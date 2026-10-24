@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/epoll.h>
+#include <sys/file.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/un.h>

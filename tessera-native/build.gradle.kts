@@ -43,8 +43,11 @@ val jextractLibc = tasks.register<JextractTask>("jextractLibc") {
         "constant PROT_READ", "constant PROT_WRITE", "constant MAP_SHARED", "constant MAP_PRIVATE",
         "constant F_ADD_SEALS", "constant F_SEAL_SHRINK", "constant F_SEAL_GROW", "constant F_SEAL_SEAL",
         "constant F_GETFL", "constant F_SETFL", "constant F_DUPFD_CLOEXEC", "constant O_NONBLOCK", "constant O_CLOEXEC",
+        "constant O_RDWR", "constant O_CREAT",
+        // file locks
+        "constant LOCK_EX", "constant LOCK_NB",
         // error codes
-        "constant EAGAIN", "constant EINTR", "constant EPIPE", "constant ECONNRESET",
+        "constant EAGAIN", "constant EINTR", "constant EPIPE", "constant ECONNRESET", "constant EWOULDBLOCK",
     )
 }
 
@@ -52,4 +55,10 @@ tasks.register("jextract") {
     group = "jextract"
     description = "Regenerates all C bindings of this module."
     dependsOn(jextractLibc)
+}
+
+// When regeneration and compilation run in one command, regenerate first.
+// (Only an ordering rule: a normal build does not run jextract.)
+tasks.matching { it.name.startsWith("compile") }.configureEach {
+    mustRunAfter(jextractLibc)
 }

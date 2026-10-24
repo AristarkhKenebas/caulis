@@ -109,6 +109,24 @@ internal object Libc {
         return check("fcntl", fcntlHandle.invokeExact(state, fd, command, argument) as Int, state)
     }
 
+    private val flockHandle = function("flock", JAVA_INT, JAVA_INT, JAVA_INT)
+
+    /** Takes a lock on a file; returns false if someone else holds it (with LOCK_NB). */
+    fun flock(fd: Int, operation: Int): Boolean {
+        val state = errnoState.get()
+        val result = flockHandle.invokeExact(state, fd, operation) as Int
+        if (result == -1 && lastErrno(state) == Errno.EWOULDBLOCK) return false
+        check("flock", result, state)
+        return true
+    }
+
+    private val openHandle = function("open", JAVA_INT, ADDRESS, JAVA_INT, JAVA_INT, firstVariadicArg = 2)
+
+    fun open(path: MemorySegment, flags: Int, mode: Int): Int {
+        val state = errnoState.get()
+        return check("open", openHandle.invokeExact(state, path, flags, mode) as Int, state)
+    }
+
     // --- epoll ------------------------------------------------------------------------
 
     private val epollCreateHandle = function("epoll_create1", JAVA_INT, JAVA_INT)

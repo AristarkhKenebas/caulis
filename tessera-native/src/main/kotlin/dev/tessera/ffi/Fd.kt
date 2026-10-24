@@ -1,5 +1,7 @@
 package dev.tessera.ffi
 
+import dev.tessera.ffi.c.libc.LibC
+
 /**
  * An open file descriptor that this program owns.
  *
@@ -30,6 +32,9 @@ class Fd private constructor(private var number: Int) : AutoCloseable {
         number = -1
         return raw
     }
+
+    /** A second, independent descriptor for the same file (closed separately). */
+    fun duplicate(): Fd = adopt(Libc.fcntl(value, LibC.F_DUPFD_CLOEXEC(), 0))
 
     override fun close() {
         if (number < 0) return

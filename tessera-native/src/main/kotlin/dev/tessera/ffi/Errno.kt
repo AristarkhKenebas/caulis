@@ -8,4 +8,5 @@ object Errno {
     val EINTR: Int = LibC.EINTR()
     val EPIPE: Int = LibC.EPIPE()
     val ECONNRESET: Int = LibC.ECONNRESET()
+    val EWOULDBLOCK: Int = LibC.EWOULDBLOCK()
 }

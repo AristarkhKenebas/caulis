@@ -59,6 +59,24 @@ public class LibC extends LibC$shared {
     public static int ECONNRESET() {
         return ECONNRESET;
     }
+    private static final int O_RDWR = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * #define O_RDWR 2
+     * }
+     */
+    public static int O_RDWR() {
+        return O_RDWR;
+    }
+    private static final int O_CREAT = (int)64L;
+    /**
+     * {@snippet lang=c :
+     * #define O_CREAT 64
+     * }
+     */
+    public static int O_CREAT() {
+        return O_CREAT;
+    }
     private static final int O_NONBLOCK = (int)2048L;
     /**
      * {@snippet lang=c :
@@ -103,6 +121,24 @@ public class LibC extends LibC$shared {
      */
     public static int F_DUPFD_CLOEXEC() {
         return F_DUPFD_CLOEXEC;
+    }
+    private static final int LOCK_EX = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * #define LOCK_EX 2
+     * }
+     */
+    public static int LOCK_EX() {
+        return LOCK_EX;
+    }
+    private static final int LOCK_NB = (int)4L;
+    /**
+     * {@snippet lang=c :
+     * #define LOCK_NB 4
+     * }
+     */
+    public static int LOCK_NB() {
+        return LOCK_NB;
     }
     private static final int F_SEAL_SEAL = (int)1L;
     /**
@@ -337,6 +373,15 @@ public class LibC extends LibC$shared {
      */
     public static int SCM_RIGHTS() {
         return SCM_RIGHTS;
+    }
+    private static final int EWOULDBLOCK = (int)11L;
+    /**
+     * {@snippet lang=c :
+     * #define EWOULDBLOCK 11
+     * }
+     */
+    public static int EWOULDBLOCK() {
+        return EWOULDBLOCK;
     }
     private static final int O_CLOEXEC = (int)524288L;
     /**

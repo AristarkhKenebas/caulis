@@ -13,5 +13,7 @@ dependencyResolutionManagement {
 
 include(
     "tessera-native",
+    "tessera-protocol",
+    "tessera-core",
     "examples:minimal",
 )
