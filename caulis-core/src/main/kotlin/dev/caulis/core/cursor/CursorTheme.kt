@@ -56,19 +56,25 @@ class CursorTheme private constructor(
     private val chain: List<String>,
     private val sources: List<Source>,
 ) {
-    private val cache = HashMap<String, Cursor?>()
+    private val cache = HashMap<Pair<String, Int>, Cursor?>()
 
     /** True if the theme was found (otherwise only the fallback themes are used). */
     val found: Boolean get() = sources.any { it.has(name) }
 
     /** The cursor called [shape], or null if no theme has anything like it. */
-    fun cursor(shape: String): Cursor? = cache.getOrPut(shape) {
+    fun cursor(shape: String): Cursor? = cursor(shape, size)
+
+    /**
+     * The cursor called [shape] in the theme's size nearest to [pixels] (for a scaled screen:
+     * the size times the scale, so it is sharp), or null if no theme has anything like it.
+     */
+    fun cursor(shape: String, pixels: Int): Cursor? = cache.getOrPut(shape to pixels) {
         // The chosen theme under any of the cursor's names first; only then the next theme.
         val names = listOf(shape) + (ALIASES[shape] ?: emptyList())
         for (theme in chain) {
             for (candidate in names) {
                 val bytes = sources.firstNotNullOfOrNull { it.file(theme, "cursors/$candidate") } ?: continue
-                val frames = XCursor.read(bytes, size) ?: continue
+                val frames = XCursor.read(bytes, pixels) ?: continue
                 return@getOrPut Cursor(shape, frames)
             }
         }

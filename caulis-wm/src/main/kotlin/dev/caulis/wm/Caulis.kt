@@ -84,6 +84,17 @@ class Caulis {
             running?.desktop?.effects = value
         }
 
+    /**
+     * How big everything is: 1.0, 1.25, 1.5, 2.0 ... (also fractions). Programs are told and
+     * draw at exactly this size, sharp — X11 programs too. Can be changed while running.
+     */
+    var scale: Double = 1.0
+        set(value) {
+            require(value in 0.5..4.0) { "scale must be between 0.5 and 4" }
+            field = value
+            running?.applyScale()
+        }
+
     /** Keyboard layouts as for `setxkbmap`, e.g. "us,ru", and options, e.g. "grp:win_space_toggle". */
     var keyboardLayouts = "us"
     var keyboardOptions = ""
@@ -337,6 +348,7 @@ class Caulis {
     fun layout(layout: Layout): Caulis = apply { this.layout = layout }
     fun terminal(command: String): Caulis = apply { terminal = command }
     fun lockCommand(command: String): Caulis = apply { lockCommand = command }
+    fun scale(scale: Double): Caulis = apply { this.scale = scale }
     fun logLevel(level: Int): Caulis = apply { logLevel = level }
     fun logArea(area: String, level: Int): Caulis = apply { log(area, level) }
     fun cursor(theme: String?, size: Int?): Caulis = apply {

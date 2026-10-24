@@ -105,6 +105,8 @@ internal sealed class DrawItem {
         /** Only the part inside is drawn, with [radius] round corners (null = all of it). */
         val clip: Rect? = null,
         val radius: Float = 0f,
+        /** The part of the texture shown (wp_viewport), or null for all. */
+        val source: FloatArray? = null,
     ) : DrawItem() {
         override val key: Any get() = surface
     }
@@ -162,7 +164,8 @@ internal sealed class DrawItem {
     fun differsFrom(other: DrawItem): Boolean = when {
         rect != other.rect -> true
         this is Image && other is Image -> texture !== other.texture
-        this is Picture && other is Picture -> opaque != other.opaque || alpha != other.alpha || clip != other.clip || radius != other.radius
+        this is Picture && other is Picture -> opaque != other.opaque || alpha != other.alpha || clip != other.clip || radius != other.radius ||
+            !java.util.Arrays.equals(source, other.source)
         this is Color && other is Color -> red != other.red || green != other.green || blue != other.blue || alpha != other.alpha
         this is Shadow || this is Border || this is Blur -> this != other
         else -> true

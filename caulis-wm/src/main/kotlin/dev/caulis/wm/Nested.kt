@@ -13,13 +13,14 @@ internal fun runNested(config: Caulis) {
             NestedWindow(loop, renderer, title = config.title, appId = config.appId, outerSocket = config.nestedIn).use { window ->
                 Running(config, loop, renderer, window.width, window.height, switchConsole = null).use { running ->
                     val desktop = running.desktop
-                    val output = Output(running.display, "NESTED-1", "${config.title} (nested)", window.width, window.height, 60_000)
+                    val output = Output(running.display, "NESTED-1", "${config.title} (nested)", window.width, window.height, 60_000, scale = config.scale)
                     println("${config.title} is running. Start programs inside it with: WAYLAND_DISPLAY=${running.socket} <program>")
                     println("Renderer: ${renderer.description}")
                     println(if (window.sharesGpuBuffers) "Frames go to the outer session as GPU buffers" else "Frames are copied to the outer session")
 
                     // Input from the outer session goes to the window manager.
-                    window.onPointerMotion = desktop::pointerMoved
+                    // The window's pixels -> desktop units.
+                    window.onPointerMotion = { time, x, y -> desktop.pointerMoved(time, x / desktop.scale, y / desktop.scale) }
                     window.onPointerButton = running::pointerButton
                     window.onPointerAxis = desktop::pointerAxis
                     window.onGesture = running::gesture
@@ -32,8 +33,7 @@ internal fun runNested(config: Caulis) {
 
                     window.onResize = { width, height ->
                         output.resize(width, height)
-                        desktop.width = width
-                        desktop.height = height
+                        desktop.resizeScreen(width, height)
                     }
 
                     // Each refresh of the outer session: draw what changed (if anything),

@@ -23,6 +23,13 @@ class ScreenTestServer : AutoCloseable {
     private lateinit var loop: EventLoop
     private lateinit var desktop: Desktop
     private lateinit var renderer: GlesRenderer
+    private lateinit var output: Output
+
+    /** Scales the pretend screen (the desktop and its monitor), as a user's setting does. */
+    fun setScale(scale: Double) = onServer { desktop ->
+        desktop.scale = scale
+        output.rescale(scale)
+    }
 
     /** Runs [action] on the server's thread with its window manager and returns the result. */
     fun <T> onServer(action: (Desktop) -> T): T {
@@ -87,7 +94,7 @@ class ScreenTestServer : AutoCloseable {
                                 dev.caulis.core.input.CursorShape(display, seat)
                                 XdgOutputManager(display)
                                 ScreenCapture(display, desktop, renderer, ForeignToplevels(display, desktop))
-                                Output(display, "TEST-1", "Test screen", WIDTH, HEIGHT, 60_000)
+                                output = Output(display, "TEST-1", "Test screen", WIDTH, HEIGHT, 60_000)
                                 runScreen(eventLoop, renderer, desktop)
                                 started.complete(display.addSocket(runtimeDir))
                                 eventLoop.run()

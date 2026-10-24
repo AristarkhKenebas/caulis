@@ -12,6 +12,10 @@ import dev.caulis.protocol.wayland.WlRegion
 import dev.caulis.protocol.wayland.WlSubcompositor
 import dev.caulis.protocol.wayland.WlSubsurface
 import dev.caulis.protocol.wayland.WlSurface
+import dev.caulis.protocol.fractionalscalev1.WpFractionalScaleManagerV1
+import dev.caulis.protocol.fractionalscalev1.WpFractionalScaleV1
+import dev.caulis.protocol.viewporter.WpViewport
+import dev.caulis.protocol.viewporter.WpViewporter
 import dev.caulis.render.Renderer
 
 /**
@@ -37,7 +41,58 @@ class Compositor(val display: Display, private val renderer: Renderer?) {
     init {
         display.addGlobal(WlCompositor, VERSION) { compositor -> compositor.requests = compositorRequests }
         display.addGlobal(WlSubcompositor, 1) { subcompositor -> subcompositor.requests = subcompositorRequests }
+        display.addGlobal(WpViewporter, 1) { viewporter ->
+            viewporter.requests = object : WpViewporter.Requests {
+                override fun getViewport(resource: WpViewporter, id: WpViewport, surface: WlSurface) {
+                    val target = surface.dataAs<Surface>() ?: return
+                    if (target.viewport?.isAlive == true) {
+                        resource.postError(WpViewporter.Error.VIEWPORT_EXISTS, "the surface already has a viewport")
+                        return
+                    }
+                    target.attachViewport(id)
+                }
+
+                override fun destroy(resource: WpViewporter) {}
+            }
+        }
+        display.addGlobal(WpFractionalScaleManagerV1, 1) { manager ->
+            manager.requests = object : WpFractionalScaleManagerV1.Requests {
+                override fun getFractionalScale(resource: WpFractionalScaleManagerV1, id: WpFractionalScaleV1, surface: WlSurface) {
+                    val target = surface.dataAs<Surface>() ?: return
+                    if (target.fractionalScale?.isAlive == true) {
+                        resource.postError(WpFractionalScaleManagerV1.Error.FRACTIONAL_SCALE_EXISTS, "the surface already has a fractional scale")
+                        return
+                    }
+                    id.requests = object : WpFractionalScaleV1.Requests {
+                        override fun destroy(resource: WpFractionalScaleV1) {}
+                    }
+                    target.fractionalScale = id
+                    id.sendPreferredScale(fractionalScale())
+                }
+
+                override fun destroy(resource: WpFractionalScaleManagerV1) {}
+            }
+        }
     }
+
+    /**
+     * How many screen pixels one surface unit is (1.0, 1.25, 1.5, 2, ...), as programs are
+     * told: those that know fractional scales draw at exactly this size, the others at the
+     * next whole number (and are scaled down a little).
+     */
+    var outputScale: Double = 1.0
+        set(value) {
+            require(value in 0.5..4.0) { "a scale must be between 0.5 and 4, not $value" }
+            if (value == field) return
+            field = value
+            for (surface in surfaces) surface.tellScale()
+        }
+
+    /** The scale as wp_fractional_scale wants it: in 120ths. */
+    internal fun fractionalScale(): Int = Math.round(outputScale * 120).toInt()
+
+    /** The whole-number scale for programs without fractional scaling (wl_output, wl_surface). */
+    val integerScale: Int get() = Math.ceil(outputScale - 1e-9).toInt().coerceAtLeast(1)
 
     private val compositorRequests = object : WlCompositor.Requests {
         override fun createSurface(resource: WlCompositor, id: WlSurface) {
@@ -119,9 +174,96 @@ class Surface internal constructor(val resource: WlSurface, private val composit
     var opaque = false
         internal set
 
-    /** Size in surface coordinates (buffer size divided by the buffer scale). */
-    val width: Int get() = current.bufferWidth / current.scale
-    val height: Int get() = current.bufferHeight / current.scale
+    /**
+     * Size in surface coordinates: the viewport's destination if the client set one (that is
+     * how programs draw at fractional scales), else the buffer size divided by its scale.
+     */
+    val width: Int
+        get() = when {
+            current.bufferWidth == 0 -> 0
+            current.viewportWidth > 0 -> current.viewportWidth
+            current.viewportSource != null -> current.viewportSource!![2].toInt()
+            else -> current.bufferWidth / current.scale
+        }
+    val height: Int
+        get() = when {
+            current.bufferHeight == 0 -> 0
+            current.viewportHeight > 0 -> current.viewportHeight
+            current.viewportSource != null -> current.viewportSource!![3].toInt()
+            else -> current.bufferHeight / current.scale
+        }
+
+    /**
+     * The part of the picture to show, as fractions of the texture (u, v, width, height), or
+     * null for all of it (wp_viewport's source rectangle).
+     */
+    val textureSource: FloatArray?
+        get() {
+            val source = current.viewportSource ?: return null
+            val w = current.bufferWidth.toDouble() / current.scale
+            val h = current.bufferHeight.toDouble() / current.scale
+            if (w <= 0 || h <= 0) return null
+            return floatArrayOf((source[0] / w).toFloat(), (source[1] / h).toFloat(), (source[2] / w).toFloat(), (source[3] / h).toFloat())
+        }
+
+    // --- scale and outputs ----------------------------------------------------------------
+
+    internal var viewport: WpViewport? = null
+    internal var fractionalScale: WpFractionalScaleV1? = null
+    private val enteredOutputs = HashSet<WlOutput>()
+    private var toldBufferScale = 0
+
+    internal fun attachViewport(resource: WpViewport) {
+        viewport = resource
+        resource.requests = object : WpViewport.Requests {
+            override fun setSource(resource: WpViewport, x: Double, y: Double, width: Double, height: Double) {
+                if (x == -1.0 && y == -1.0 && width == -1.0 && height == -1.0) {
+                    pending.viewportSource = null
+                } else if (x < 0 || y < 0 || width <= 0 || height <= 0) {
+                    resource.postError(WpViewport.Error.BAD_VALUE, "invalid source $x,$y ${width}x$height")
+                    return
+                } else {
+                    pending.viewportSource = doubleArrayOf(x, y, width, height)
+                }
+                pending.viewportSet = true
+            }
+
+            override fun setDestination(resource: WpViewport, width: Int, height: Int) {
+                if (width == -1 && height == -1) {
+                    pending.viewportWidth = -1
+                    pending.viewportHeight = -1
+                } else if (width <= 0 || height <= 0) {
+                    resource.postError(WpViewport.Error.BAD_VALUE, "invalid destination ${width}x$height")
+                    return
+                } else {
+                    pending.viewportWidth = width
+                    pending.viewportHeight = height
+                }
+                pending.viewportSet = true
+            }
+
+            override fun destroy(resource: WpViewport) {
+                // Back to the buffer's own size from the next commit on.
+                pending.viewportSource = null
+                pending.viewportWidth = -1
+                pending.viewportHeight = -1
+                pending.viewportSet = true
+            }
+        }
+    }
+
+    // Tells the program which monitors it is on and their scale (once per new monitor object).
+    internal fun tellScale() {
+        if (!resource.isAlive) return
+        for (output in Output.of(compositor.display).flatMap { it.resourcesOf(resource.client) }) {
+            if (enteredOutputs.add(output)) resource.sendEnter(output)
+        }
+        if (resource.version >= 6 && toldBufferScale != compositor.integerScale) {
+            toldBufferScale = compositor.integerScale
+            resource.sendPreferredBufferScale(toldBufferScale)
+        }
+        fractionalScale?.takeIf { it.isAlive }?.sendPreferredScale(compositor.fractionalScale())
+    }
 
     /**
      * Parts of the picture (surface coordinates) that are certainly not transparent: all
@@ -172,6 +314,11 @@ class Surface internal constructor(val resource: WlSurface, private val composit
         if (width != oldWidth || height != oldHeight) {
             changes.clear()
             changes += Rect(0, 0, maxOf(width, oldWidth), maxOf(height, oldHeight))
+            return
+        }
+        if (current.viewportSource != null || current.viewportWidth > 0) {
+            // Buffer pixels and surface units differ by an arbitrary factor: redraw it all.
+            if (current.damage.isNotEmpty()) changes += Rect(0, 0, width, height)
             return
         }
         val scale = current.scale
@@ -302,6 +449,8 @@ class Surface internal constructor(val resource: WlSurface, private val composit
         val oldWidth = width
         val oldHeight = height
         current.takeFrom(state)
+        if (!checkViewport()) return
+        if (enteredOutputs.isEmpty() || toldBufferScale == 0) tellScale()
         if (current.newBuffer) {
             recordChanges(oldWidth, oldHeight)
             compositor.uploadContent(this)
@@ -312,6 +461,24 @@ class Surface internal constructor(val resource: WlSurface, private val composit
             if (child !== this) child.subsurface?.parentCommitted()
         }
         commitListeners.forEach { it() }
+    }
+
+    // The viewport must fit the buffer, and without a destination its source must be whole units.
+    private fun checkViewport(): Boolean {
+        val source = current.viewportSource ?: return true
+        val port = viewport ?: return true
+        if (current.bufferWidth == 0) return true
+        val w = current.bufferWidth.toDouble() / current.scale
+        val h = current.bufferHeight.toDouble() / current.scale
+        if (source[0] + source[2] > w + 1e-6 || source[1] + source[3] > h + 1e-6) {
+            port.postError(WpViewport.Error.OUT_OF_BUFFER, "the source rectangle is outside the ${w}x$h buffer")
+            return false
+        }
+        if (current.viewportWidth <= 0 && (source[2] % 1.0 != 0.0 || source[3] % 1.0 != 0.0)) {
+            port.postError(WpViewport.Error.BAD_SIZE, "without a destination the source size must be whole units")
+            return false
+        }
+        return true
     }
 
     /** Tells the client it is a good moment to draw its next frame. [timeMillis] is a timestamp. */
@@ -369,6 +536,13 @@ class SurfaceState {
     var inputRegion: Region.Snapshot? = null
     internal var inputRegionSet = false
 
+    /** wp_viewport: the part of the buffer shown (x, y, width, height in buffer pixels / scale), or null for all. */
+    var viewportSource: DoubleArray? = null
+    /** wp_viewport: the size on screen in surface units, or -1 for the buffer's own size. */
+    var viewportWidth = -1
+    var viewportHeight = -1
+    internal var viewportSet = false
+
     /** Where the picture has no transparency (the client says so; helps skip hidden windows). */
     var opaqueRegion: Region.Snapshot? = null
     internal var opaqueRegionSet = false
@@ -395,8 +569,22 @@ class SurfaceState {
         damage += other.damage
         frameCallbacks += other.frameCallbacks
         presentationFeedbacks += other.presentationFeedbacks
-        if (other.inputRegionSet) inputRegion = other.inputRegion
-        if (other.opaqueRegionSet) opaqueRegion = other.opaqueRegion
+        // "Was set" travels along, so a synchronized subsurface's cached state (applied later)
+        // still knows these changed.
+        if (other.inputRegionSet) {
+            inputRegion = other.inputRegion
+            inputRegionSet = true
+        }
+        if (other.opaqueRegionSet) {
+            opaqueRegion = other.opaqueRegion
+            opaqueRegionSet = true
+        }
+        if (other.viewportSet) {
+            viewportSource = other.viewportSource
+            viewportWidth = other.viewportWidth
+            viewportHeight = other.viewportHeight
+            viewportSet = true
+        }
 
         other.buffer = null
         other.newBuffer = false
@@ -407,6 +595,7 @@ class SurfaceState {
         other.presentationFeedbacks.clear()
         other.inputRegionSet = false
         other.opaqueRegionSet = false
+        other.viewportSet = false
     }
 }
 

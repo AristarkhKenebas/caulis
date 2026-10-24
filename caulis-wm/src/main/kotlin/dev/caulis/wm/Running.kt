@@ -10,6 +10,7 @@ import dev.caulis.core.ScreenCapture
 import dev.caulis.core.FrameStats
 import dev.caulis.core.LayerShell
 import dev.caulis.core.LinuxDmabuf
+import dev.caulis.core.Output
 import dev.caulis.core.Presentation
 import dev.caulis.core.SessionLockManager
 import dev.caulis.core.Shm
@@ -91,6 +92,7 @@ internal class Running(
         val defaultRule = desktop.floatRule
         desktop.effects = config.effects
         desktop.animationMillis = config.animationMillis
+        desktop.scale = config.scale
         desktop.windowEffects = { window ->
             config.effectRules.fold(desktop.effects) { fx, rule -> safely("effectsFor", fx) { rule(window, fx) } }
         }
@@ -115,6 +117,14 @@ internal class Running(
 
     fun quit() = loop.stop()
 
+
+    /** Applies the scale to the desktop, the monitors and the programs. */
+    fun applyScale() {
+        desktop.scale = config.scale
+        for (output in Output.of(display)) output.rescale(config.scale)
+        log.info { "Scale ${config.scale}" }
+        applyCursor() // programs that draw their own cursor get the new size
+    }
 
     /** Applies the cursor settings (theme, size, hiding). */
     fun applyCursor() {

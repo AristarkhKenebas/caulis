@@ -32,8 +32,7 @@ internal fun runOnScreen(config: Caulis) {
                 desktop.onChange = { outputs.keys.forEach(DrmOutput::requestFrame) }
                 fun fitDesktop() {
                     val first = outputs.keys.firstOrNull() ?: return
-                    desktop.width = first.width
-                    desktop.height = first.height
+                    desktop.resizeScreen(first.width, first.height)
                 }
                 backend.onOutputAdded = { monitor ->
                     val mode = monitor.mode!!
@@ -43,6 +42,7 @@ internal fun runOnScreen(config: Caulis) {
                         mode.width, mode.height, mode.refreshMillihertz,
                         physicalWidthMm = monitor.physicalWidthMm, physicalHeightMm = monitor.physicalHeightMm,
                         make = edid?.make ?: "Unknown", model = edid?.model ?: monitor.name,
+                        scale = config.scale,
                     )
                     fitDesktop()
                     // Each refresh: draw what changed (if anything), then tell programs

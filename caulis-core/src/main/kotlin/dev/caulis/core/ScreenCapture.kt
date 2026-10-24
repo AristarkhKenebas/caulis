@@ -149,9 +149,9 @@ class ScreenCapture(
 
     private fun screenTarget(): GpuTarget {
         val current = screen
-        if (current != null && current.width == desktop.width && current.height == desktop.height) return current
+        if (current != null && current.width == desktop.pixelWidth && current.height == desktop.pixelHeight) return current
         current?.close()
-        return renderer.createTarget(desktop.width, desktop.height).also { screen = it }
+        return renderer.createTarget(desktop.pixelWidth, desktop.pixelHeight).also { screen = it }
     }
 
     private fun windowTarget(width: Int, height: Int): GpuTarget {
@@ -171,12 +171,16 @@ class ScreenCapture(
         return arena.allocate(bytes).also { readBackMemory = it }
     }
 
-    /** The size a picture of [source] has (null if there is nothing to show). */
+    /** The size a picture of [source] has, in pixels (null if there is nothing to show). */
     private fun sizeOf(source: Source): Pair<Int, Int>? = when (source) {
-        Source.Screen -> desktop.width to desktop.height
-        is Source.OneWindow -> source.window.takeIf { it in desktop.allWindows }?.shell?.visibleRect?.let { it.width to it.height }
+        Source.Screen -> desktop.pixelWidth to desktop.pixelHeight
+        is Source.OneWindow -> source.window.takeIf { it in desktop.allWindows }?.let(desktop::windowPixelSize)
         Source.Gone -> null
     }
+
+    // What changed (desktop units) as pixels of a picture of [part] (pixels) of the screen.
+    private fun changedPixels(changed: Rect, part: Rect): Rect =
+        desktop.toPixels(changed).intersect(part)?.translate(-part.x, -part.y) ?: Rect(0, 0, 1, 1)
 
     /**
      * Draws [source] ([part] of it, or all) into [buffer]. Returns null if done, or why the
@@ -262,7 +266,10 @@ class ScreenCapture(
         private var buffer: WlBuffer? = null
         private var withDamage = false
         private var used = false
-        private val region: Rect = part?.intersect(Rect(0, 0, desktop.width, desktop.height)) ?: Rect(0, 0, desktop.width, desktop.height)
+        // The part asked for is in desktop units; the picture is in pixels.
+        private val region: Rect = Rect(0, 0, desktop.pixelWidth, desktop.pixelHeight).let { all ->
+            part?.let { desktop.toPixels(it).intersect(all) ?: Rect(0, 0, 0, 0) } ?: all
+        }
 
         fun start() {
             resource.data = this
@@ -313,7 +320,7 @@ class ScreenCapture(
             log.trace { "Gave ${resource.client.name} a picture of the screen" }
             resource.sendFlags(0)
             if (withDamage) {
-                val damage = (changed ?: region).intersect(region)?.translate(-region.x, -region.y) ?: Rect(0, 0, 1, 1)
+                val damage = changed?.let { changedPixels(it, region) } ?: Rect(0, 0, region.width, region.height)
                 resource.sendDamage(damage.x, damage.y, damage.width, damage.height)
             }
             val (hi, lo, nanos) = now()
@@ -411,7 +418,7 @@ class ScreenCapture(
 
         /** What changed since the last picture, or null if nothing did (screen: a rectangle). */
         fun changes(): Rect? = when (source) {
-            Source.Screen -> desktop.captureChanges(view!!, cursor)
+            Source.Screen -> desktop.captureChanges(view!!, cursor)?.let { changedPixels(it, Rect(0, 0, desktop.pixelWidth, desktop.pixelHeight)) }
             is Source.OneWindow -> if (windowChanged && !desktop.locked) {
                 windowChanged = false
                 sizeOf(source)?.let { Rect(0, 0, it.first, it.second) }

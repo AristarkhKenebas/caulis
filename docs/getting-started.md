@@ -292,7 +292,19 @@ Fullscreen windows never get effects. The names come from `dev.caulis.core` (`Ef
 `Border`, `Shadow`, `Blur`) and `dev.caulis.render.Color`; IntelliJ adds the imports when you
 press Alt+Enter on a red name.
 
-## 10. The cursor
+## 10. Bigger or smaller: the scale
+
+```kotlin
+scale = 1.25 // or 1.5, 2.0 ... — fractions are fine
+```
+
+Everything gets bigger by that much, and stays sharp: programs are told the scale and draw
+at exactly that size (foot, GTK 4, Qt 6, Firefox, Chromium do; older ones draw at the next
+whole scale and are shrunk a little). The cursor is loaded in its scaled size, windows tile
+without gaps or overlaps at any fraction, and screenshots have the screen's full
+resolution. The scale can be changed while running.
+
+## 11. The cursor
 
 The template comes with the Bibata cursor. Choose another theme and size:
 
@@ -312,7 +324,7 @@ Programs show the same cursor: modern ones ask the compositor for it by name, ol
 are told the theme and size. If the theme you name is not installed, the log says so and
 lists the ones that are.
 
-## 11. Locking the screen
+## 12. Locking the screen
 
 Super+L starts the screen locker — `swaylock` unless you choose another:
 
@@ -328,7 +340,7 @@ socket name the compositor printed when it started — then come back (Ctrl+Alt+
 whichever console the session is on). Ctrl+Alt+Backspace still quits the compositor, as
 always.
 
-## 12. Screenshots and screen sharing
+## 13. Screenshots and screen sharing
 
 Programs made for wlroots-style compositors work as they are:
 
@@ -369,7 +381,7 @@ windows can be shared too; a shared window keeps drawing at full speed even whil
 hidden or on another workspace. While the screen is locked, pictures show the lock and no
 window is given out.
 
-## 13. Touchpad gestures
+## 14. Touchpad gestures
 
 | Gesture | What it does |
 | --- | --- |
@@ -386,7 +398,7 @@ overviewPinchFingers = 4      // 0 = off
 swipe(fingers = 3, Direction.UP) { desktop.toggleOverview() }
 ```
 
-## 14. On the real screen
+## 15. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 
@@ -403,7 +415,7 @@ exitAfterSeconds = 60
 
 Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles.
 
-## 15. Your own layout
+## 16. Your own layout
 
 Describe it with building blocks — no arithmetic:
 

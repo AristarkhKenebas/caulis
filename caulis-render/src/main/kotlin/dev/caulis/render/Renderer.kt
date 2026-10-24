@@ -65,11 +65,14 @@ interface Renderer : AutoCloseable {
     /**
      * Draws [texture] stretched over the rectangle. [opaque] ignores its alpha (XRGB pictures).
      * With a [clip], only the part inside it is drawn, its corners rounded by [cornerRadius]
-     * (with soft, anti-aliased edges).
+     * (with soft, anti-aliased edges). With a [source], only that part of the texture is
+     * shown (stretched over the rectangle).
      */
     fun drawTexture(
         texture: GpuTexture, x: Int, y: Int, width: Int, height: Int, opaque: Boolean,
         alpha: Float = 1f, clip: Rect? = null, cornerRadius: Float = 0f,
+        /** Only this part of the texture (u, v, width, height as fractions), or null for all. */
+        source: FloatArray? = null,
     )
 
     /** Fills the rectangle with a colour. */

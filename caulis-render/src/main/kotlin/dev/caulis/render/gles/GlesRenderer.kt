@@ -131,12 +131,16 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
 
     override fun drawTexture(
         texture: GpuTexture, x: Int, y: Int, width: Int, height: Int, opaque: Boolean,
-        alpha: Float, clip: Rect?, cornerRadius: Float,
+        alpha: Float, clip: Rect?, cornerRadius: Float, source: FloatArray?,
     ) {
         texture as GlTexture
         textured.use()
         setRect(textured, x, y, width, height)
-        Gles.glUniform4f(textured.uniform("source"), 0f, 0f, 1f, 1f)
+        if (source != null) {
+            Gles.glUniform4f(textured.uniform("source"), source[0], source[1], source[2], source[3])
+        } else {
+            Gles.glUniform4f(textured.uniform("source"), 0f, 0f, 1f, 1f)
+        }
         Gles.glActiveTexture(Gles.GL_TEXTURE0())
         Gles.glBindTexture(Gles.GL_TEXTURE_2D(), texture.id)
         Gles.glUniform1i(textured.uniform("image"), 0)

@@ -16,7 +16,7 @@ class Output(
     height: Int,
     /** Refresh rate in millihertz (60 Hz = 60000). */
     val refreshMillihertz: Int,
-    val scale: Int = 1,
+    scale: Double = 1.0,
     val physicalWidthMm: Int = 0,
     val physicalHeightMm: Int = 0,
     val make: String = "Caulis",
@@ -29,6 +29,22 @@ class Output(
 
     private val bound = ArrayList<WlOutput>()
 
+    /** How many pixels one desktop unit is on this monitor (1.0, 1.25, 2.0, ...). */
+    var scale: Double = scale
+        private set
+
+    /** The whole-number scale wl_output tells programs (the next one up). */
+    val integerScale: Int get() = Math.ceil(scale - 1e-9).toInt().coerceAtLeast(1)
+
+    /** Changes the scale and tells every client that uses this output. */
+    fun rescale(newScale: Double) {
+        if (newScale == scale) return
+        scale = newScale
+        for (output in bound) output.sendScale(integerScale)
+        for ((xdg, output) in xdgOutputs.toList()) sendLogical(xdg, output)
+        for (output in bound) output.sendDone()
+    }
+
     private val global = display.addGlobal(WlOutput, VERSION) { output ->
         output.requests = object : WlOutput.Requests {
             override fun release(resource: WlOutput) {}
@@ -39,7 +55,7 @@ class Output(
         output.sendGeometry(0, 0, physicalWidthMm, physicalHeightMm,
             WlOutput.Subpixel.UNKNOWN, make, model, WlOutput.Transform.NORMAL)
         sendMode(output)
-        output.sendScale(scale)
+        output.sendScale(integerScale)
         output.sendName(name)
         output.sendDescription(description)
         output.sendDone()
@@ -87,7 +103,8 @@ class Output(
     private fun sendLogical(xdg: dev.caulis.protocol.xdgoutputunstablev1.ZxdgOutputV1, output: WlOutput) {
         if (!xdg.isAlive) return
         xdg.sendLogicalPosition(0, 0)
-        xdg.sendLogicalSize(width / scale, height / scale)
+        // The desktop's own units: the pixels divided by the (fractional) scale.
+        xdg.sendLogicalSize(Math.round(width / scale).toInt(), Math.round(height / scale).toInt())
         if (xdg.version == 2) {
             xdg.sendName(name)
             xdg.sendDescription(description)

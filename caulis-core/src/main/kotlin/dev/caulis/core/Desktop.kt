@@ -29,7 +29,60 @@ class Desktop(
     height: Int,
 ) : XdgShell.Listener, LayerShell.Listener, SessionLockManager.Listener {
 
-    /** Size of the desktop in pixels. */
+    // --- size and scale ------------------------------------------------------------------------
+
+    /**
+     * How many screen pixels one desktop unit is: 1.0, 1.25, 1.5, 2.0, ... Windows, layouts,
+     * the pointer and panels are in desktop units; only drawing is in pixels, so a bigger
+     * scale makes everything bigger and as sharp as the screen is. Programs are told, and
+     * those that can (most today) draw at exactly this scale.
+     */
+    var scale: Double = 1.0
+        set(value) {
+            require(value in 0.5..4.0) { "a scale must be between 0.5 and 4, not $value" }
+            if (value == field) return
+            field = value
+            compositor.outputScale = value
+            fitToScreen()
+            cursorChanged()
+        }
+
+    /** The screen's size in pixels (the desktop is this divided by [scale]). */
+    var pixelWidth = width
+        private set
+    var pixelHeight = height
+        private set
+
+    /** The screen is now [pixelWidth] x [pixelHeight] pixels (a monitor's mode, the nested window's size). */
+    fun resizeScreen(pixelWidth: Int, pixelHeight: Int) {
+        this.pixelWidth = pixelWidth
+        this.pixelHeight = pixelHeight
+        fitToScreen()
+    }
+
+    // The desktop's units follow the pixels and the scale.
+    private fun fitToScreen() {
+        val logicalWidth = Math.round(pixelWidth / scale).toInt().coerceAtLeast(1)
+        val logicalHeight = Math.round(pixelHeight / scale).toInt().coerceAtLeast(1)
+        if (logicalWidth != width || logicalHeight != height) {
+            width = logicalWidth
+            height = logicalHeight
+        } else {
+            changed()
+        }
+        for (view in views) view.damageEverything()
+    }
+
+    /** A rectangle in desktop units as screen pixels (edges rounded the same way everywhere, so nothing overlaps or gaps). */
+    fun toPixels(rect: Rect): Rect {
+        val left = px(rect.x)
+        val top = px(rect.y)
+        return Rect(left, top, px(rect.right) - left, px(rect.bottom) - top)
+    }
+
+    private fun px(value: Int): Int = Math.round(value * scale).toInt()
+
+    /** Size of the desktop in desktop units (the screen's pixels divided by [scale]). */
     var width = width
         set(value) {
             field = value
@@ -190,6 +243,12 @@ class Desktop(
         renderer.begin(target, 0f, 0f, 0f, alpha = 0f)
         draw(items, null)
         renderer.end()
+    }
+
+    /** The size [captureWindow] draws [window] at, in pixels. */
+    fun windowPixelSize(window: Window): Pair<Int, Int> {
+        val visible = window.shell.visibleRect
+        return px(visible.width).coerceAtLeast(1) to px(visible.height).coerceAtLeast(1)
     }
 
     /** Asks for a refresh soon (the backend then calls [refresh]), e.g. because a screenshot waits. */
@@ -1843,26 +1902,31 @@ class Desktop(
         val items = items()
         compare(view, items)
         takeFeedbacks(view)
-        val bounds = Rect(0, 0, target.width, target.height)
+        val bounds = Rect(0, 0, width, height)
         view.showsLock = locked
         val repaint = withBlurReach(items, view.takeRepaint(age, bounds) ?: return, bounds)
-        renderLog.trace { "Frame: redraw $repaint of ${target.width}x${target.height} (buffer age $age), ${items.size} things to draw" }
-        renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], clip = repaint)
+        // In pixels, one more around it: a fractional scale must not leave a half-drawn edge.
+        val clip = Rect(px(repaint.x) - 1, px(repaint.y) - 1, px(repaint.right) - px(repaint.x) + 2, px(repaint.bottom) - px(repaint.y) + 2)
+            .intersect(Rect(0, 0, target.width, target.height)) ?: return
+        renderLog.trace { "Frame: redraw $repaint ($clip in pixels) of ${target.width}x${target.height} (buffer age $age), ${items.size} things to draw" }
+        renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], clip = clip)
         draw(items, repaint)
         renderer.end()
     }
 
     // Draws [items] (only those touching [repaint]) into the frame begun.
     private fun draw(items: List<DrawItem>, repaint: Rect?) {
+        val s = scale.toFloat()
+        fun p(rect: Rect): Rect = toPixels(rect) // desktop units -> the target's pixels
         for (item in items) {
             if (repaint != null && item.rect.intersect(repaint) == null) continue
-            val r = item.rect
+            val r = p(item.rect)
             when (item) {
-                is DrawItem.Picture -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, item.opaque, item.alpha, item.clip, item.radius)
+                is DrawItem.Picture -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, item.opaque, item.alpha, item.clip?.let(::p), item.radius * s, item.source)
                 is DrawItem.Color -> renderer.drawColor(r.x, r.y, r.width, r.height, item.red, item.green, item.blue, item.alpha)
-                is DrawItem.Shadow -> renderer.drawShadow(item.box, item.radius, item.softness, item.color, item.cutOut, item.cutOutRadius)
-                is DrawItem.Border -> renderer.drawRoundedRect(r, item.radius, item.color, item.width)
-                is DrawItem.Blur -> renderer.drawBlur(r, item.radius, item.size, item.passes)
+                is DrawItem.Shadow -> renderer.drawShadow(p(item.box), item.radius * s, item.softness * s, item.color, p(item.cutOut), item.cutOutRadius * s)
+                is DrawItem.Border -> renderer.drawRoundedRect(r, item.radius * s, item.color, item.width * s)
+                is DrawItem.Blur -> renderer.drawBlur(r, item.radius * s, Math.round(item.size * s).coerceAtLeast(1), item.passes)
                 is DrawItem.Image -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, opaque = false)
             }
         }
@@ -2062,7 +2126,7 @@ class Desktop(
                 val rect = Rect(x, y, (surface.width * scaleX).roundToInt(), (surface.height * scaleY).roundToInt())
                 // A stretched or faded picture hides nothing for sure (its edges move every frame).
                 val covers = if (scaled || look.alpha < 1f) emptyList() else coversOf(surface.opaqueRects().map { it.translate(x, y) }, look)
-                items += DrawItem.Picture(surface, texture, rect, surface.opaque, covers, look.alpha, look.clip, look.radius)
+                items += DrawItem.Picture(surface, texture, rect, surface.opaque, covers, look.alpha, look.clip, look.radius, surface.textureSource)
             } else {
                 val sub = child.subsurface ?: continue
                 addTree(items, child, x + (sub.x * scaleX).roundToInt(), y + (sub.y * scaleY).roundToInt(), scaleX, scaleY, look)
@@ -2095,7 +2159,9 @@ class Desktop(
             shownShape = shape
             shapeSince = System.nanoTime()
         }
-        val cursor = cursorTheme.cursor(shape) ?: cursorTheme.cursor("default")
+        // Loaded in the size it has on screen, so it is sharp at any scale.
+        val pixels = Math.round(cursorTheme.size * scale).toInt()
+        val cursor = cursorTheme.cursor(shape, pixels) ?: cursorTheme.cursor("default", pixels)
         if (cursor == null) {
             // Only if even Caulis's own cursors could not be read (a broken jar): a plain square.
             items += DrawItem.Color(CURSOR_BORDER, Rect(x, y, 12, 12), 0f, 0f, 0f)
