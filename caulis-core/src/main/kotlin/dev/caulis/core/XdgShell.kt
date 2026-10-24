@@ -1,6 +1,6 @@
 package dev.caulis.core
 
-import dev.caulis.core.layout.LayoutWindow
+import dev.caulis.geometry.Rect
 import dev.caulis.protocol.Display
 import dev.caulis.protocol.wayland.WlOutput
 import dev.caulis.protocol.wayland.WlSeat
@@ -10,7 +10,7 @@ import dev.caulis.protocol.xdgshell.XdgPositioner
 import dev.caulis.protocol.xdgshell.XdgSurface
 import dev.caulis.protocol.xdgshell.XdgToplevel
 import dev.caulis.protocol.xdgshell.XdgWmBase
-import dev.caulis.render.Rect
+import dev.caulis.tiling.LayoutWindow
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 

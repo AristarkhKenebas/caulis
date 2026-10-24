@@ -1,14 +1,15 @@
 package dev.caulis.core
 
 import dev.caulis.core.input.Seat
-import dev.caulis.core.layout.Floating
-import dev.caulis.core.layout.Layout
 import dev.caulis.event.EventLoop
+import dev.caulis.geometry.Rect
 import dev.caulis.protocol.xdgshell.XdgToplevel
 import dev.caulis.render.GpuTarget
-import dev.caulis.render.Rect
 import dev.caulis.render.Renderer
+import dev.caulis.tiling.Floating
+import dev.caulis.tiling.Layout
 import java.util.TreeMap
+import kotlin.math.roundToInt
 
 /**
  * The window manager: workspaces, layouts (floating or tiled — see [Layout]), focus,
@@ -262,12 +263,51 @@ class Desktop(
     private fun applyPending() {
         pendingTimer?.cancel()
         pendingTimer = null
-        for ((window, rect) in pending) {
-            window.x = rect.x
-            window.y = rect.y
-        }
+        for ((window, rect) in pending) moveSmoothly(window, rect.x, rect.y)
         pending.clear()
         changed()
+    }
+
+    // --- smooth movement -------------------------------------------------------------------
+
+    /**
+     * How long windows take to glide to a new place (a layout change, maximize, a
+     * neighbour closing), in milliseconds. 0 = they jump.
+     */
+    var animationMillis = 220L
+
+    // A window on its way: where it started; the end is wherever the window is now.
+    private class Glide(val from: Rect, val startNanos: Long)
+
+    private val glides = HashMap<Window, Glide>()
+
+    // Where each window was drawn last (with any glide), so a new glide starts there.
+    private val shownRects = HashMap<Window, Rect>()
+
+    /**
+     * Where [window] is drawn right now — during a glide, somewhere between its old and new
+     * place (null if it has not been drawn yet).
+     */
+    fun shownRect(window: Window): Rect? = shownRects[window]
+
+    // Moves [window] to ([x], [y]); if it was on screen, it glides there instead of jumping.
+    private fun moveSmoothly(window: Window, x: Int, y: Int) {
+        val shown = shownRects[window]
+        window.x = x
+        window.y = y
+        if (animationMillis > 0 && shown != null && window in activeWorkspace.windows) {
+            glides[window] = Glide(shown, System.nanoTime())
+        }
+    }
+
+    // Where a gliding window is drawn now: from its start towards its current place, fast
+    // at first and gently slowing down. Null when the glide is over.
+    private fun glidePosition(glide: Glide, target: Rect, nowNanos: Long): Rect? {
+        val t = (nowNanos - glide.startNanos) / (animationMillis * 1_000_000.0)
+        if (t >= 1.0) return null
+        val eased = 1 - (1 - t) * (1 - t) * (1 - t)
+        fun mix(a: Int, b: Int) = (a + (b - a) * eased).roundToInt()
+        return Rect(mix(glide.from.x, target.x), mix(glide.from.y, target.y), mix(glide.from.width, target.width), mix(glide.from.height, target.height))
     }
 
     // Takes a window out of tiling: it gets its floating place and size back.
@@ -276,8 +316,7 @@ class Desktop(
         if (!window.tiled) return
         window.tiled = false
         val floating = floatingRects[window] ?: cascadeRect(window.shell.visibleRect.width, window.shell.visibleRect.height)
-        window.x = floating.x
-        window.y = floating.y
+        moveSmoothly(window, floating.x, floating.y)
         window.configure(floating.width, floating.height)
         changed()
     }
@@ -353,6 +392,8 @@ class Desktop(
         workspace?.remove(window)
         pending.remove(window)
         floatingRects -= window
+        glides -= window
+        shownRects -= window
         if (grab?.window === window) grab = null
         if (workspace != null) arrange(workspace)
         if (seat.keyboardFocus === window.surface) focus(windows.lastOrNull())
@@ -417,15 +458,13 @@ class Desktop(
         val workspace = workspaceOf(window)
         if (window.maximized || window.fullscreen) {
             if (!window.tiled && window.shell.mapped) floatingRects[window] = currentRect(window)
-            window.x = 0
-            window.y = 0
+            moveSmoothly(window, 0, 0)
             window.configure(width, height)
         } else if (workspace != null && window in workspace.tiledWindows()) {
             window.tiled = false // makes arrange send the tile size again
         } else {
             val floating = floatingRects[window] ?: currentRect(window)
-            window.x = floating.x
-            window.y = floating.y
+            moveSmoothly(window, floating.x, floating.y)
             window.configure(floating.width, floating.height)
         }
         workspace?.let { arrange(it) }
@@ -799,6 +838,11 @@ class Desktop(
          */
         presentDirect: ((DmabufBuffer) -> Boolean)? = null,
     ): Boolean {
+        if (glides.isNotEmpty()) {
+            // Windows are gliding: the scene changes every frame until they arrive.
+            version++
+            onChange()
+        }
         val draw = force || needsRedraw(view)
         val direct = if (draw && !force && presentDirect != null) directCandidate() else null
         if (direct != null && presentDirect!!(direct)) {
@@ -932,9 +976,16 @@ class Desktop(
     private fun scene(): List<DrawItem> {
         if (sceneVersion == version) return scene
         val all = ArrayList<DrawItem>()
+        val now = System.nanoTime()
         for (window in stackingOrder()) {
             val visibleRect = window.shell.visibleRect
-            addTree(all, window.surface, window.x - visibleRect.x, window.y - visibleRect.y)
+            val target = currentRect(window)
+            val shown = glides[window]?.let { glide -> glidePosition(glide, target, now) ?: target.also { glides -= window } } ?: target
+            shownRects[window] = shown
+            // While gliding, the picture is stretched to the in-between size.
+            val scaleX = if (target.width > 0) shown.width.toDouble() / target.width else 1.0
+            val scaleY = if (target.height > 0) shown.height.toDouble() / target.height else 1.0
+            addTree(all, window.surface, shown.x - (visibleRect.x * scaleX).roundToInt(), shown.y - (visibleRect.y * scaleY).roundToInt(), scaleX, scaleY)
         }
         for (popup in popups) {
             val (x, y) = popupOrigin(popup)
@@ -950,15 +1001,18 @@ class Desktop(
         return kept
     }
 
-    private fun addTree(items: MutableList<DrawItem>, surface: Surface, x: Int, y: Int) {
+    private fun addTree(items: MutableList<DrawItem>, surface: Surface, x: Int, y: Int, scaleX: Double = 1.0, scaleY: Double = 1.0) {
+        val scaled = scaleX != 1.0 || scaleY != 1.0
         for (child in surface.stack) {
             if (child === surface) {
                 val texture = surface.texture ?: continue
-                val covers = surface.opaqueRects().map { it.translate(x, y) }
-                items += DrawItem.Picture(surface, texture, Rect(x, y, surface.width, surface.height), surface.opaque, covers)
+                val rect = Rect(x, y, (surface.width * scaleX).roundToInt(), (surface.height * scaleY).roundToInt())
+                // A stretched picture hides nothing for sure (its edges move every frame).
+                val covers = if (scaled) emptyList() else surface.opaqueRects().map { it.translate(x, y) }
+                items += DrawItem.Picture(surface, texture, rect, surface.opaque, covers)
             } else {
                 val sub = child.subsurface ?: continue
-                addTree(items, child, x + sub.x, y + sub.y)
+                addTree(items, child, x + (sub.x * scaleX).roundToInt(), y + (sub.y * scaleY).roundToInt(), scaleX, scaleY)
             }
         }
     }

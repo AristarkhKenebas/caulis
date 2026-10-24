@@ -1,4 +1,4 @@
-// Your own way of placing windows: equal columns side by side.
+// Your own way of placing windows, described with the layout language.
 
 plugins {
     id("caulis.application")

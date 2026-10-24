@@ -14,7 +14,7 @@ data class Options(
     val stats: Boolean = false,
     /** Show fullscreen programs' pictures directly on the monitor (no copying, less delay). */
     val directScanout: Boolean = true,
-    /** How windows are arranged at start: Floating, Dwindle, Master or Scrolling. */
+    /** How windows are arranged at start (a built-in layout's name, e.g. Dwindle). */
     val layout: String = "Floating",
 ) {
     enum class Mode { NESTED, SCREEN }
@@ -30,8 +30,9 @@ data class Options(
   --run COMMAND       start COMMAND inside irisWM (may be given several times)
   --terminal COMMAND  terminal for Super+Enter (default: foot)
   --stats             print frame timing every 5 seconds (fps, late frames, GC pauses)
-  --layout NAME       how windows are arranged: Floating (default), Dwindle,
-                      Master or Scrolling (Super+E switches while running)
+  --layout NAME       how windows are arranged at start: Floating (default), Master,
+                      Dwindle, Spiral, Grid, Strips, Centered, Columns, Rows, Monocle,
+                      Scrolling (Super+E goes through all of them while running)
   --no-direct-scanout always draw fullscreen programs instead of showing their own
                       picture directly (only for finding display problems)
   --help              show this text
@@ -43,7 +44,7 @@ Keys:
   Super+F                 fullscreen on / off
   Super+Down              minimize (Alt+Tab brings it back)
   Super+V                 take the window out of the layout (floating) / back
-  Super+E                 next layout (Floating, Dwindle, Master, Scrolling)
+  Super+E                 next layout (windows glide to their new places)
   Super+Left / Right      focus the window to the left / right
   Super+1 ... 9           go to workspace 1 ... 9
   Super+Shift+1 ... 9     move the window to workspace 1 ... 9

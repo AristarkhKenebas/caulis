@@ -1,6 +1,6 @@
 package dev.caulis.examples.windowrules
 
-import dev.caulis.core.layout.Dwindle
+import dev.caulis.tiling.Dwindle
 import dev.caulis.wm.caulis
 
 fun main() = caulis {

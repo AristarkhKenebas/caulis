@@ -1,15 +1,14 @@
 package dev.caulis.render.gles
 
 import dev.caulis.ffi.Fd
+import dev.caulis.ffi.c.gles.Gles
+import dev.caulis.geometry.Rect
 import dev.caulis.render.Dmabuf
 import dev.caulis.render.DmabufFormat
 import dev.caulis.render.GpuBuffer
 import dev.caulis.render.GpuTarget
 import dev.caulis.render.GpuTexture
-import dev.caulis.render.Rect
 import dev.caulis.render.Renderer
-
-import dev.caulis.ffi.c.gles.Gles
 import java.lang.foreign.Arena
 import java.lang.foreign.ValueLayout.JAVA_FLOAT
 import java.lang.foreign.ValueLayout.JAVA_INT

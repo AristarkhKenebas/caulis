@@ -1,6 +1,6 @@
-package dev.caulis.core.layout
+package dev.caulis.tiling
 
-import dev.caulis.render.Rect
+import dev.caulis.geometry.Rect
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

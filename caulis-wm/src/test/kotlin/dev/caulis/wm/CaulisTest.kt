@@ -2,11 +2,10 @@ package dev.caulis.wm
 
 import dev.caulis.core.TestClient
 import dev.caulis.core.TestServer
-import dev.caulis.core.layout.Dwindle
-import dev.caulis.core.layout.Gaps
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.xdgshell.XdgToplevel
-import org.junit.jupiter.api.Assumptions.assumeTrue
+import dev.caulis.tiling.Dwindle
+import dev.caulis.tiling.Gaps
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
@@ -15,6 +14,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
 
 /** `caulis { }` as a user writes it, running nested inside a test server. */
 class CaulisTest {

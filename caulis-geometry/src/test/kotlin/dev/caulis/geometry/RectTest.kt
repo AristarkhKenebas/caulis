@@ -1,4 +1,4 @@
-package dev.caulis.render
+package dev.caulis.geometry
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

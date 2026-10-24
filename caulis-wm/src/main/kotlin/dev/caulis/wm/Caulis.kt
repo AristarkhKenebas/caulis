@@ -2,8 +2,8 @@ package dev.caulis.wm
 
 import dev.caulis.core.Desktop
 import dev.caulis.core.Window
-import dev.caulis.core.layout.Floating
-import dev.caulis.core.layout.Layout
+import dev.caulis.tiling.Floating
+import dev.caulis.tiling.Layout
 import java.util.function.Consumer
 import kotlin.system.exitProcess
 
@@ -22,7 +22,7 @@ import kotlin.system.exitProcess
  *
  * ```
  * Caulis.create()
- *     .layout(new Dwindle())
+ *     .layout(Layouts.Dwindle())
  *     .bind("Super+Return", c -> c.launch("foot"))
  *     .run();
  * ```

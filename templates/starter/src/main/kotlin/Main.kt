@@ -1,6 +1,6 @@
-import dev.caulis.core.layout.Dwindle
-import dev.caulis.core.layout.Floating
-import dev.caulis.core.layout.Gaps
+import dev.caulis.tiling.Dwindle
+import dev.caulis.tiling.Floating
+import dev.caulis.tiling.Gaps
 import dev.caulis.wm.caulis
 
 // Your compositor. Change anything, then run it again with ./gradlew run

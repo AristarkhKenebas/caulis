@@ -6,4 +6,5 @@ plugins {
 
 dependencies {
     api(project(":caulis-native"))
+    api(project(":caulis-geometry"))
 }

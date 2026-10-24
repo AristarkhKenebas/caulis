@@ -1,5 +1,6 @@
 package dev.caulis.core
 
+import dev.caulis.geometry.Rect
 import dev.caulis.protocol.Display
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.presentationtime.WpPresentationFeedback
@@ -11,7 +12,6 @@ import dev.caulis.protocol.wayland.WlRegion
 import dev.caulis.protocol.wayland.WlSubcompositor
 import dev.caulis.protocol.wayland.WlSubsurface
 import dev.caulis.protocol.wayland.WlSurface
-import dev.caulis.render.Rect
 import dev.caulis.render.Renderer
 
 /**

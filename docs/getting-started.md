@@ -81,7 +81,7 @@ application {
 `src/main/kotlin/Main.kt`:
 
 ```kotlin
-import dev.caulis.core.layout.Dwindle
+import dev.caulis.tiling.Dwindle
 import dev.caulis.wm.caulis
 
 fun main() = caulis {
@@ -141,13 +141,21 @@ Turn the defaults off with `useDefaultBindings = false`.
 
 ## 5. Layouts
 
-```kotlin
-layout = Floating          // no tiling: windows go where you put them
-layout = Dwindle()         // halving, like Hyprland
-layout = MasterStack()     // one big window left, the rest stacked right
-layout = Scrolling()       // an endless strip of columns, like niri or newm
-layout = Dwindle(Gaps(inner = 8, outer = 12))   // with space between windows
-```
+| Layout | What it does |
+| --- | --- |
+| `Floating` | no tiling: windows go where you put them |
+| `MasterStack()` | one big window, the rest stacked beside it (`side = Side.RIGHT/TOP/BOTTOM` too) |
+| `CenteredMaster()` | the big window in the middle, the others left and right |
+| `MasterStrips()` | the big window, the others as thin title strips — the focused one open (like i3) |
+| `Dwindle()` | each new window takes half of the last one's space (like Hyprland) |
+| `Spiral()` | halving in a spiral: left, top, right, bottom (like bspwm) |
+| `Grid()` | an even grid |
+| `Columns()` / `Rows()` | equal columns / rows |
+| `Monocle()` | every window fills the screen, the focused one on top |
+| `Scrolling()` | columns on a strip that scrolls sideways |
+
+All of them take gaps: `Dwindle(Gaps(inner = 8, outer = 12))`. `builtInLayouts()` lists
+them all, e.g. to go through them with a key.
 
 You can change it while running, e.g. on a key:
 
@@ -155,7 +163,8 @@ You can change it while running, e.g. on a key:
 bind("Super+T") { layout = if (layout === Floating) Dwindle() else Floating }
 ```
 
-Windows move to their new places right away.
+Windows glide to their new places instead of jumping (`animationMillis` on the desktop sets
+how long; 0 turns it off).
 
 ## 6. Rules and events
 
@@ -193,18 +202,39 @@ Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles.
 
 ## 8. Your own layout
 
-A layout gets the windows and the free area, and returns one rectangle per window. Equal
-columns:
+Describe it with building blocks — no arithmetic:
 
 ```kotlin
-object Columns : Layout {
-    override val name = "Columns"
-    override fun arrange(windows: List<LayoutWindow>, area: Rect, focused: Int) =
-        Split.evenly(area, windows.size, gap = 10, vertical = false)
+val MyLayout = tiling("Mine") {
+    row {                          // parts side by side
+        window(weight = 60)        // the first window, 60% of the width
+        column(weight = 40) {      // parts on top of each other
+            window()               // the second window
+            rest()                 // all the others
+        }
+    }
 }
 ```
 
-`Split` divides space without losing a pixel. Then `layout = Columns`.
+Then `layout = MyLayout`. The blocks:
+
+| Block | Takes |
+| --- | --- |
+| `row { }` / `column { }` | its parts side by side / on top of each other |
+| `window()` | one window (the first `window()` gets the oldest window) |
+| `rest()` | all windows not placed elsewhere, evenly |
+| `share(1, 2)`, `share(2, 2)` | half of the remaining windows each (e.g. both sides of a centred master) |
+| `grid()`, `dwindle()`, `spiral()` | the remaining windows in a grid / halving / spiral |
+| `accordion(thin = 40)` | the remaining windows stacked, the focused one open, the others thin strips |
+| `monocle()` | the remaining windows all in the same place |
+
+`weight` is a part's share (60 and 40 = 60% and 40%). Parts without windows disappear, so
+there are never empty holes; space is divided without losing a pixel, and gaps are added for
+you. Inside a description, `count` (how many windows) and `focused` are known, so plain
+Kotlin works: `if (count > 4) grid() else rest()`.
+
+Need something the blocks cannot express? Implement `Layout` yourself: it gets the windows
+and the free area, and returns one rectangle per window.
 
 ## When something goes wrong
 
@@ -220,5 +250,7 @@ object Columns : Layout {
 
 - `examples/` in the Caulis repository: `minimal`, `minimal-java`, `custom-layout`,
   `window-rules`
+- `caulis-tiling/src/main/kotlin/dev/caulis/tiling/Layouts.kt`: every built-in layout is a
+  few lines of the same building blocks — good examples for your own
 - The API documentation: run `./gradlew dokkaGenerate` in the Caulis folder and open
   `build/dokka/html/index.html`

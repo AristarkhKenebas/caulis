@@ -1,23 +1,25 @@
 package dev.caulis.examples.customlayout
 
-import dev.caulis.core.layout.Layout
-import dev.caulis.core.layout.LayoutWindow
-import dev.caulis.core.layout.Split
-import dev.caulis.render.Rect
+import dev.caulis.tiling.tiling
 import dev.caulis.wm.caulis
 
-// A layout gets the windows and the free area, and returns one rectangle per window.
-// This one puts all windows in equal columns side by side, 10 pixels apart.
-object Columns : Layout {
-    override val name = "Columns"
-
-    override fun arrange(windows: List<LayoutWindow>, area: Rect, focused: Int): List<Rect> =
-        Split.evenly(area, windows.size, gap = 10, vertical = false)
+// Your own way of placing windows, described with building blocks:
+// the first window big on the left, the next two stacked in the middle,
+// and everything else as a grid on the right.
+val ThreeParts = tiling("Three parts") {
+    row {
+        window(weight = 50)
+        column(weight = 25) {
+            window()
+            window()
+        }
+        column(weight = 25) { grid() }
+    }
 }
 
 fun main() = caulis {
-    layout = Columns
+    layout = ThreeParts
     onStart {
-        repeat(3) { launch("foot") }
+        repeat(5) { launch("foot") }
     }
 }

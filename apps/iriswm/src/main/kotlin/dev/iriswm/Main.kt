@@ -1,15 +1,12 @@
 package dev.iriswm
 
-import dev.caulis.core.layout.Dwindle
-import dev.caulis.core.layout.Floating
-import dev.caulis.core.layout.MasterStack
-import dev.caulis.core.layout.Scrolling
+import dev.caulis.tiling.builtInLayouts
 import dev.caulis.wm.Caulis
 import dev.caulis.wm.caulis
 import kotlin.system.exitProcess
 
-/** The layouts Super+E goes through, in this order. */
-val layouts = listOf(Floating, Dwindle(), MasterStack(), Scrolling())
+/** The layouts Super+E goes through, in this order (all built-in ones). */
+val layouts = builtInLayouts()
 
 /**
  * irisWM: runs inside the current Wayland session (nested) or directly on the screen.

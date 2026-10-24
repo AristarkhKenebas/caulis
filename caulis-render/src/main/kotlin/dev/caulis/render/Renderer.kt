@@ -1,5 +1,6 @@
 package dev.caulis.render
 
+import dev.caulis.geometry.Rect
 import java.lang.foreign.MemorySegment
 
 /**

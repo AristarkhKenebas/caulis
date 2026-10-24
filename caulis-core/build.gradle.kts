@@ -10,4 +10,5 @@ plugins {
 dependencies {
     api(project(":caulis-protocol"))
     api(project(":caulis-render"))
+    api(project(":caulis-tiling"))
 }

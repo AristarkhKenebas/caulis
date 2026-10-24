@@ -19,6 +19,7 @@ fi
 caulis="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 name="$(basename "$target")"
 
+mkdir -p "$(dirname "$target")"
 cp -r "$caulis/templates/starter" "$target"
 # The Gradle wrapper: the right Gradle version, downloaded on first use.
 cp "$caulis/gradlew" "$caulis/gradlew.bat" "$target/"

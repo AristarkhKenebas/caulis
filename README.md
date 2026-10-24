@@ -21,7 +21,7 @@ started from a text console. The same in Java:
 
 ```java
 Caulis.create()
-        .layout(new Dwindle(new Gaps(8, 12)))
+        .layout(Layouts.Dwindle(new Gaps(8, 12)))
         .bind("Super+Return", c -> c.launch("foot"))
         .run();
 ```
@@ -29,9 +29,19 @@ Caulis.create()
 **New here? Start with [Your first compositor](docs/getting-started.md)**, or create a
 ready project right away: `templates/new-compositor.sh ~/my-compositor`.
 
-See `examples/` (`minimal`, `minimal-java`, `custom-layout`, `window-rules`). Layouts: `Floating`, `Dwindle`,
-`MasterStack`, `Scrolling` — or your own (implement `Layout`: windows and an area in,
-rectangles out). Change them while running; windows move to their new places right away.
+See `examples/` (`minimal`, `minimal-java`, `custom-layout`, `window-rules`).
+
+Many layouts are built in (master/stack on any side, centred master, i3-like strips,
+dwindle, bspwm-like spiral, grid, columns, rows, monocle, scrolling) — and describing your
+own takes a few lines of building blocks:
+
+```kotlin
+val Mine = tiling("Mine") {
+    row { window(weight = 60); column(weight = 40) { rest() } }
+}
+```
+
+Change layouts while running: windows glide to their new places.
 
 ## Modules
 
@@ -40,7 +50,9 @@ rectangles out). Change them while running; windows move to their new places rig
 | `caulis-native` | C libraries through the Foreign Function & Memory API, the event loop |
 | `caulis-protocol` | the Wayland protocol (server and client side), generated from XML |
 | `caulis-render` | drawing on the GPU (OpenGL ES; Vulkan later) |
-| `caulis-core` | surfaces, windows, input, outputs, layouts, the nested and screen backends |
+| `caulis-geometry` | rectangles |
+| `caulis-tiling` | the layout language and the built-in layouts (pure Kotlin) |
+| `caulis-core` | surfaces, windows, input, outputs, the nested and screen backends |
 | `caulis-wm` | `caulis { }`: a running compositor in a few lines |
 
 ## Requirements

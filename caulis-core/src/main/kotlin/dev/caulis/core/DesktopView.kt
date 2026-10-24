@@ -1,8 +1,8 @@
 package dev.caulis.core
 
+import dev.caulis.geometry.Rect
 import dev.caulis.protocol.presentationtime.WpPresentationFeedback
 import dev.caulis.render.GpuTexture
-import dev.caulis.render.Rect
 
 /**
  * One screen's view of the [Desktop]. It remembers what was drawn there last time and

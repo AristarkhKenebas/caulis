@@ -1,8 +1,8 @@
 package dev.caulis.examples.minimal
 
-import dev.caulis.core.layout.Dwindle
-import dev.caulis.core.layout.Floating
-import dev.caulis.core.layout.Gaps
+import dev.caulis.tiling.Dwindle
+import dev.caulis.tiling.Floating
+import dev.caulis.tiling.Gaps
 import dev.caulis.wm.caulis
 
 // A complete Wayland compositor: tiling with gaps, a few keys of its own, and the usual

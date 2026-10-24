@@ -1,19 +1,13 @@
 # Module caulis-core
 
 The compositor itself: surfaces and windows, the window manager ([dev.caulis.core.Desktop]),
-layouts, input, monitors, and the two backends (a window in another session, or the real
+input, monitors, and the two backends (a window in another session, or the real
 screen). Use it directly when `caulis-wm` is not flexible enough.
 
 # Package dev.caulis.core
 
 Windows ([dev.caulis.core.Window]), workspaces, the window manager [dev.caulis.core.Desktop]
 and the Wayland features programs use (shared memory and GPU buffers, presentation time).
-
-# Package dev.caulis.core.layout
-
-How tiled windows are placed. A layout gets windows and an area and returns rectangles —
-write your own by implementing [dev.caulis.core.layout.Layout]. Built in: `Floating`,
-`Dwindle`, `MasterStack`, `Scrolling`.
 
 # Package dev.caulis.core.input
 

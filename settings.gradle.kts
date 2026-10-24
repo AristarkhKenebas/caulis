@@ -18,6 +18,8 @@ dependencyResolutionManagement {
 
 include(
     "caulis-native",
+    "caulis-geometry",
+    "caulis-tiling",
     "caulis-protocol",
     "caulis-render",
     "caulis-core",

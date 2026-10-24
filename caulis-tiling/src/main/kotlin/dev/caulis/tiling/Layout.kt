@@ -1,6 +1,6 @@
-package dev.caulis.core.layout
+package dev.caulis.tiling
 
-import dev.caulis.render.Rect
+import dev.caulis.geometry.Rect
 
 /**
  * Decides where tiled windows go. A layout gets the windows (in their tiling order, oldest
@@ -62,6 +62,26 @@ object Split {
             val size = base + if (i < extra) 1 else 0
             (position to size).also { position += size + gap }
         }
+    }
+
+    /**
+     * Like [sizes], but the parts get space in proportion to [weights] (e.g. 55 and 45).
+     * The leftover pixels of the rounding go one each to the first parts.
+     */
+    fun weighted(total: Int, weights: List<Int>, gap: Int): List<Pair<Int, Int>> {
+        if (weights.isEmpty()) return emptyList()
+        val usable = (total - gap * (weights.size - 1)).coerceAtLeast(weights.size)
+        val sum = weights.sum().toLong()
+        val sizes = weights.map { (usable * it.toLong() / sum).toInt().coerceAtLeast(1) }.toMutableList()
+        var leftover = usable - sizes.sum()
+        var i = 0
+        while (leftover > 0) {
+            sizes[i % sizes.size]++
+            leftover--
+            i++
+        }
+        var position = 0
+        return sizes.map { size -> (position to size).also { position += size + gap } }
     }
 
     /** [count] rectangles side by side ([vertical] = false) or on top of each other, filling [area]. */

@@ -1,16 +1,16 @@
 package dev.caulis.core
 
-import dev.caulis.core.layout.Dwindle
-import dev.caulis.core.layout.Floating
-import dev.caulis.core.layout.Gaps
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.xdgshell.XdgToplevel
-import org.junit.jupiter.api.Assumptions.assumeTrue
+import dev.caulis.tiling.Dwindle
+import dev.caulis.tiling.Floating
+import dev.caulis.tiling.Gaps
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
 
 /** Real windows in tiling layouts and workspaces. */
 class TilingTest {
@@ -81,5 +81,42 @@ class TilingTest {
     private fun withServer(test: (ScreenTestServer, TestClient) -> Unit) {
         assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
         ScreenTestServer().use { server -> TestClient(Connection.connect(server.socketPath)).use { test(server, it) } }
+    }
+}
+
+/** Windows glide to their new places instead of jumping. */
+class GlideTest {
+
+    @Test
+    fun `switching the layout moves windows smoothly`() {
+        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        ScreenTestServer().use { server ->
+            TestClient(Connection.connect(server.socketPath)).use { client ->
+                server.onServer {
+                    it.animationMillis = 600
+                    it.layout = dev.caulis.tiling.Columns(Gaps(0, 0))
+                }
+                val first = client.window().also { it.draw() }
+                client.waitFor { server.onServer { d -> d.windows.size } == 1 }
+                val second = client.window().also { it.draw() }
+                client.waitFor { first.width == ScreenTestServer.WIDTH / 2 }
+                first.draw()
+                client.waitFor { server.onServer { d -> d.windows.firstOrNull()?.let(d::shownRect)?.width } == ScreenTestServer.WIDTH / 2 }
+                Thread.sleep(700) // let the glides of the second window finish
+
+                // Rows instead of columns: the first window goes from the left half to the top half.
+                server.onServer { it.layout = dev.caulis.tiling.Rows(Gaps(0, 0)) }
+                client.waitFor { first.height == ScreenTestServer.HEIGHT / 2 }
+                first.draw()
+                second.draw()
+                client.connection.roundtrip() // send the new pictures
+                Thread.sleep(250)
+                val midway = server.onServer { d -> d.windows.first { it.surface.width == ScreenTestServer.WIDTH }.let(d::shownRect)!! }
+                assertTrue(midway.width in (ScreenTestServer.WIDTH / 2 + 1) until ScreenTestServer.WIDTH, "between half and full width: $midway")
+                Thread.sleep(600)
+                val arrived = server.onServer { d -> d.windows.first { it.surface.width == ScreenTestServer.WIDTH }.let(d::shownRect)!! }
+                assertEquals(ScreenTestServer.WIDTH, arrived.width)
+            }
+        }
     }
 }

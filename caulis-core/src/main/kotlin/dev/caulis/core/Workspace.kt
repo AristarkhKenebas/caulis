@@ -1,7 +1,7 @@
 package dev.caulis.core
 
-import dev.caulis.core.layout.Floating
-import dev.caulis.core.layout.Layout
+import dev.caulis.tiling.Floating
+import dev.caulis.tiling.Layout
 
 /**
  * One virtual desktop: its windows and how they are arranged ([layout]). Only the active

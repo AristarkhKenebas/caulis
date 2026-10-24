@@ -10,7 +10,7 @@ dokka {
 }
 
 dependencies {
-    for (module in listOf("caulis-native", "caulis-protocol", "caulis-render", "caulis-core", "caulis-wm")) {
+    for (module in listOf("caulis-native", "caulis-geometry", "caulis-tiling", "caulis-protocol", "caulis-render", "caulis-core", "caulis-wm")) {
         dokka(project(":$module"))
     }
 }
