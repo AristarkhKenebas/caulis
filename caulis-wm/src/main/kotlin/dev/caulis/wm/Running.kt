@@ -86,6 +86,12 @@ internal class Running(
             // units: no XCURSOR_SIZE then (it would win over both); X11 programs get it from the
             // X resources, Wayland ones from the compositor (cursor-shape) or their own default.
             if (desktop.scale == 1.0) env["XCURSOR_SIZE"] = theme.size.toString() else env.remove("XCURSOR_SIZE")
+            // Java (Swing, AWT on X11) does not read Xft.dpi but its own scale, in whole numbers
+            // only: the nearest one (1.5 -> 2, a little big rather than too small to read).
+            if (System.getenv("J2D_UISCALE") == null) {
+                val whole = Math.round(desktop.scale).toInt()
+                if (whole > 1) env["J2D_UISCALE"] = whole.toString() else env.remove("J2D_UISCALE")
+            }
             cursorFolder?.let { folder -> env["XCURSOR_PATH"] = (listOf(folder) + CursorTheme.searchPath()).joinToString(":") }
         },
         x11Available = { xwayland != null },

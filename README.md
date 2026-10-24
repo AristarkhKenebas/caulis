@@ -50,7 +50,8 @@ xdg-desktop-portal-wlr) work, also of single windows.
 
 X11 programs run too (Xwayland starts only when the first one does): their windows tile,
 get title bars and effects like the rest, are sharp and the right size on scaled screens,
-and copy and paste works between X11 and Wayland programs.
+and copy and paste works between X11 and Wayland programs. Programs are started the
+Wayland way when they can, and through X11 when that fails.
 
 ## Modules
 

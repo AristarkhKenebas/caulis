@@ -359,6 +359,31 @@ scale their text and drawing (GTK, Qt, Electron, xterm with `-fa`) are as big an
 as Wayland ones, and the cursor changes over them as it should. Very old programs with
 fixed bitmap fonts stay at their pixel size — they cannot be told otherwise.
 
+**Wayland first.** Programs the compositor starts (`launch`, keys, `onStart`, and what you
+start from its terminals) are asked to use Wayland when they can do both — GTK, Qt,
+Electron and Firefox then choose it themselves and fall back to X11 if they must. A program
+that still fails — it quits with an error right away, before showing a window — is started
+again through X11, and from then on that way at once; the log says so:
+
+```
+I clients  "oldapp" quit at once on Wayland (status 1): starting it through X11. To start it that way right away: x11Programs += "oldapp"
+```
+
+To always start some programs through X11, or to leave the choice to the programs:
+
+```kotlin
+x11Programs += "steam"                  // by program name
+bind("Super+G") { launch("lutris", x11 = true) }
+waylandFirst = false                    // no hints; programs choose for themselves
+```
+
+What you set yourself before starting the compositor (e.g. `QT_QPA_PLATFORM`) is kept.
+Some programs need a flag instead: Chromium and apps on Electron older than 28 take
+`--ozone-platform-hint=auto`, Spotify `--enable-features=UseOzonePlatform --ozone-platform=wayland`. SDL 2 games run through X11, which works well;
+`SDL_VIDEODRIVER=wayland` before the command makes those that can use Wayland. Java programs
+(Swing) run through X11 and are scaled in whole steps (1.5 → 2); for an exact size give
+them `-Dsun.java2d.uiScale=1.5`.
+
 Don't want X11 at all:
 
 ```kotlin
