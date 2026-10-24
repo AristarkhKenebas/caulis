@@ -8,7 +8,8 @@ import dev.caulis.wm.caulis
 fun main() = caulis {
     title = "My compositor"
 
-    // How windows are placed: Floating, Dwindle(), MasterStack(), Scrolling() — or your own.
+    // How windows are placed: Floating, Dwindle(), MasterStack(), BinaryTree(),
+    // ScrollingColumns(), Canvas() ... — or your own.
     layout = Dwindle(Gaps(inner = 8, outer = 8))
 
     // Keyboard layouts, as for setxkbmap: "us", "us,de", "us,ru" ...

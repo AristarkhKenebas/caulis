@@ -57,12 +57,12 @@ class LayoutTest {
     }
 
     @Test
-    fun `scrolling keeps the focused column in view`() {
-        val layout = Scrolling(Gaps(0, 0), columnWidth = 0.5)
-        val first = layout.arrange(windows(5), screen, focused = 0)
+    fun `scrolling columns keep the focused column in view`() {
+        val model = ScrollingColumns(Gaps(0, 0)).createModel()
+        val all = windows(5)
+        val first = model.arrange(all, screen, all[0])
         assertEquals(0, first[0].x, "no empty space before the first column")
-        val last = layout.arrange(windows(5), screen, focused = 4)
-        assertTrue(last[4].x >= 0 && last[4].right <= 1001, "the focused column is on screen: ${last[4]}")
+        val last = model.arrange(all, screen, all[4])
         assertEquals(1001, last[4].right, "no empty space after the last column")
         assertTrue(last[0].right <= 0, "the first column scrolled out of view")
     }

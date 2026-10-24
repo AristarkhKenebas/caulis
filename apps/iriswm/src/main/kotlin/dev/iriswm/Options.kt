@@ -32,7 +32,7 @@ data class Options(
   --stats             print frame timing every 5 seconds (fps, late frames, GC pauses)
   --layout NAME       how windows are arranged at start: Floating (default), Master,
                       Dwindle, Spiral, Grid, Strips, Centered, Columns, Rows, Monocle,
-                      Scrolling (Super+E goes through all of them while running)
+                      Tree, Manual, Canvas, ... (Super+E goes through all of them)
   --no-direct-scanout always draw fullscreen programs instead of showing their own
                       picture directly (only for finding display problems)
   --help              show this text

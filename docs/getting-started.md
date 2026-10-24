@@ -152,7 +152,25 @@ Turn the defaults off with `useDefaultBindings = false`.
 | `Grid()` | an even grid |
 | `Columns()` / `Rows()` | equal columns / rows |
 | `Monocle()` | every window fills the screen, the focused one on top |
-| `Scrolling()` | columns on a strip that scrolls sideways |
+| `BinaryTree()` | a tree of splits, remembered (like bspwm): preselect where the next window goes, swap, resize, rotate, balance |
+| `BspSpiral()` | the same tree, filled in a spiral |
+| `ManualTiling()` | containers like i3: you choose whether the next window goes beside or below |
+| `ScrollingColumns()` | columns on a strip that scrolls sideways (like niri); a column can hold several windows |
+| `Canvas()` | one big canvas with a grid (like newm): windows keep their cells, you move the view |
+
+The last five remember how you arranged things, and every workspace has its own (with
+`Canvas`, every workspace is its own canvas). Their keys:
+
+| Keys | What they do |
+| --- | --- |
+| Super+Shift+arrows | move the window (swap, move the column, move by a cell) |
+| Super+Ctrl+arrows | make the window bigger that way |
+| Super+Alt+arrows | preselect where the next window goes (trees), move the view (canvas), move into the next column (columns) |
+| Super+S / Super+Shift+S | the next window goes beside / below (manual tiling) |
+| Super+R / Super+B | rotate / balance the tree |
+| Super+W | next column width (1/3, 1/2, 2/3, full) |
+
+Focusing a window that is out of view (Alt+Tab, a dock) scrolls or moves the view to it.
 
 All of them take gaps: `Dwindle(Gaps(inner = 8, outer = 12))`. `builtInLayouts()` lists
 them all, e.g. to go through them with a key.

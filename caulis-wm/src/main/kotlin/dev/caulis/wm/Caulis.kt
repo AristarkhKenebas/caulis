@@ -3,7 +3,9 @@ package dev.caulis.wm
 import dev.caulis.core.Desktop
 import dev.caulis.core.Window
 import dev.caulis.tiling.Floating
+import dev.caulis.tiling.Direction
 import dev.caulis.tiling.Layout
+import dev.caulis.tiling.TilingCommand
 import java.util.function.Consumer
 import kotlin.system.exitProcess
 
@@ -205,6 +207,11 @@ class Caulis {
          * Super+Return terminal, Super+Q close, Super+Up maximize, Super+F fullscreen,
          * Super+Down minimize, Super+V float/tile, Alt+Tab next window, Super+Left/Right
          * focus neighbour, Super+1..9 workspace, Super+Shift+1..9 move window there.
+         * For layouts that remember things: Super+Shift+arrows move the window,
+         * Super+Ctrl+arrows resize it, Super+Alt+arrows preselect where the next window
+         * goes (trees) / move the view (canvas) / move into the next column (columns),
+         * Super+R rotate, Super+B balance, Super+W next column width, Super+S / Super+Shift+S
+         * next window side by side / below (manual tiling).
          */
         val defaultBindings: List<Pair<String, Caulis.() -> Unit>> = buildList {
             add("Super+Return" to { openTerminal() })
@@ -220,6 +227,22 @@ class Caulis {
                 add("Super+$n" to { desktop.switchTo(n) })
                 add("Super+Shift+$n" to { focusedWindow?.let { desktop.moveToWorkspace(it, n) } })
             }
+            for (direction in Direction.entries) {
+                val key = direction.name.lowercase().replaceFirstChar(Char::uppercase) // "Left", ...
+                add("Super+Shift+$key" to { desktop.tilingCommand(TilingCommand.Move(direction)) })
+                add("Super+Ctrl+$key" to { desktop.tilingCommand(TilingCommand.Resize(direction)) })
+                // One key, whatever fits the layout: preselect, pan the canvas, or take into a column.
+                add("Super+Alt+$key" to {
+                    desktop.tilingCommand(TilingCommand.Preselect(direction)) ||
+                        desktop.tilingCommand(TilingCommand.Pan(direction)) ||
+                        desktop.tilingCommand(TilingCommand.Consume(direction))
+                })
+            }
+            add("Super+R" to { desktop.tilingCommand(TilingCommand.Rotate) })
+            add("Super+B" to { desktop.tilingCommand(TilingCommand.Balance) })
+            add("Super+W" to { desktop.tilingCommand(TilingCommand.CycleWidth) })
+            add("Super+S" to { desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = true)) })
+            add("Super+Shift+S" to { desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = false)) })
         }
     }
 }

@@ -14,7 +14,8 @@ val Master = tiling("Master") {
 ```
 
 or use a built-in one: `MasterStack`, `CenteredMaster`, `MasterStrips`, `Dwindle`, `Spiral`,
-`Grid`, `Columns`, `Rows`, `Monocle`, `Scrolling`, `Floating`.
+`Grid`, `Columns`, `Rows`, `Monocle`, `Floating` — and layouts that remember things:
+`BinaryTree` (bspwm), `ManualTiling` (i3), `ScrollingColumns` (niri), `Canvas` (newm).
 
 # Package dev.caulis.tiling
 

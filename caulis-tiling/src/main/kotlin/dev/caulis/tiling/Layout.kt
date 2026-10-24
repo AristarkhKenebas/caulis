@@ -27,6 +27,12 @@ interface Layout {
 
     /** One rectangle per window in [windows]; [focused] is the index of the focused one (-1 = none). */
     fun arrange(windows: List<LayoutWindow>, area: Rect, focused: Int): List<Rect>
+
+    /**
+     * A fresh arrangement for one workspace. Layouts that remember things (trees, columns,
+     * a canvas) return their own [TilingModel]; the others need not override this.
+     */
+    fun createModel(): TilingModel = StatelessModel(this)
 }
 
 /** What a layout may know about a window. */
@@ -93,8 +99,9 @@ object Split {
     /** [area] split in two at [fraction] (0..1) with [gap] in between: (first, second). */
     fun two(area: Rect, fraction: Double, gap: Int, vertical: Boolean): Pair<Rect, Rect> {
         val total = if (vertical) area.height else area.width
-        val first = ((total - gap) * fraction).toInt().coerceIn(1, (total - gap - 1).coerceAtLeast(1))
-        val second = (total - gap - first).coerceAtLeast(1)
+        if (total < gap + 2) return area to area // too small to split: both share it (never outside)
+        val first = ((total - gap) * fraction).toInt().coerceIn(1, total - gap - 1)
+        val second = total - gap - first
         return if (vertical) {
             Rect(area.x, area.y, area.width, first) to Rect(area.x, area.y + first + gap, area.width, second)
         } else {

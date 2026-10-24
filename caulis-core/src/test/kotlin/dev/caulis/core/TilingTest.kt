@@ -120,3 +120,34 @@ class GlideTest {
         }
     }
 }
+
+/** Layouts that remember things, with real windows. */
+class RememberingDesktopTest {
+
+    @Test
+    fun `on a canvas, focusing a far window brings it into view - like activating it from a dock`() {
+        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        ScreenTestServer().use { server ->
+            TestClient(Connection.connect(server.socketPath)).use { client ->
+                server.onServer {
+                    it.animationMillis = 0
+                    it.layout = dev.caulis.tiling.Canvas(Gaps(0, 0), columns = 2, rows = 1, windowColumns = 1, windowRows = 1)
+                }
+                val windows = (1..3).map { n ->
+                    client.window { it.setTitle("w$n") }.also { w ->
+                        w.draw()
+                        client.waitFor { server.onServer { d -> d.windows.size } == n }
+                    }
+                }
+                // Three windows of half the screen each: the third pushed the view right.
+                client.waitFor { server.onServer { d -> d.windows.first { it.title == "w1" }.x } < 0 }
+                server.onServer { d -> d.focus(d.windows.first { it.title == "w1" }) }
+                client.waitFor { server.onServer { d -> d.windows.first { it.title == "w1" }.x } == 0 }
+                // Panning away and the window stays out of view until it is focused again.
+                server.onServer { d -> d.tilingCommand(dev.caulis.tiling.TilingCommand.Pan(dev.caulis.tiling.Direction.RIGHT)) }
+                assertTrue(server.onServer { d -> d.windows.first { it.title == "w1" }.x } < 0)
+                windows.forEach { it.draw() }
+            }
+        }
+    }
+}

@@ -8,6 +8,7 @@ import dev.caulis.render.GpuTarget
 import dev.caulis.render.Renderer
 import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Layout
+import dev.caulis.tiling.TilingCommand
 import java.util.TreeMap
 import kotlin.math.roundToInt
 
@@ -173,6 +174,7 @@ class Desktop(
         if (from === to) return
         val wasFloating = window in from.floating
         from.remove(window)
+        from.model.forget(window) // it lives on the other workspace now
         pending.remove(window)
         to.add(window)
         if (wasFloating) to.floating += window
@@ -214,15 +216,29 @@ class Desktop(
     private val pending = HashMap<Window, Rect>()
     private var pendingTimer: EventLoop.Timer? = null
 
-    // Puts the tiled windows of [workspace] where its layout wants them.
+    // Puts the tiled windows of [workspace] where its layout wants them. With [extra], also
+    // a window about to appear (to learn its size before its first frame) — without moving anyone.
     private fun arrange(workspace: Workspace, extra: Window? = null): Map<Window, Rect> {
         val tiled = workspace.tiledWindows() + listOfNotNull(extra)
         if (tiled.isEmpty()) return emptyMap()
-        val top = workspace.windows.lastOrNull { it in tiled }
-        val rects = workspace.layout.arrange(tiled, Rect(0, 0, width, height), tiled.indexOf(top))
+        val top = workspace.windows.lastOrNull { it in tiled } ?: extra
+        val rects = workspace.model.arrange(tiled, Rect(0, 0, width, height), top)
         val targets = tiled.zip(rects).associate { (window, rect) -> window to fit(window, rect) }
         if (extra == null) place(targets)
         return targets
+    }
+
+    /**
+     * Asks the active workspace's layout to do [command] for the focused window (move it,
+     * resize it, preselect, pan the canvas, ...). Returns true if the layout did something;
+     * windows then glide to their new places.
+     */
+    fun tilingCommand(command: TilingCommand): Boolean {
+        val focused = focusedWindow?.takeIf { it.tiled }
+        if (!activeWorkspace.model.command(command, focused)) return false
+        arrange(activeWorkspace)
+        changed()
+        return true
     }
 
     // Respects the program's own size limits: a window that cannot be as big (or small) as
@@ -390,6 +406,7 @@ class Desktop(
     override fun windowUnmapped(window: Window) {
         val workspace = workspaceOf(window)
         workspace?.remove(window)
+        workspace?.model?.forget(window) // closed for good: its place is free now
         pending.remove(window)
         floatingRects -= window
         glides -= window
@@ -500,7 +517,7 @@ class Desktop(
 
     /**
      * Focuses the nearest window in a direction ([dx], [dy] = -1, 0 or 1), e.g. the column
-     * to the right in a scrolling layout. Scrolling layouts then bring it into view.
+     * to the right in a scrolling layout. Scrolling and canvas layouts then bring it into view.
      */
     fun focusDirection(dx: Int, dy: Int) {
         val from = focusedWindow ?: return focus(windows.lastOrNull())

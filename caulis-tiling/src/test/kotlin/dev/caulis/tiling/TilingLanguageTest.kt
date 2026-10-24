@@ -63,7 +63,8 @@ class TilingLanguageTest {
     @Test
     fun `every built-in tiles without gaps, overlaps or lost pixels`() {
         val gaps = Gaps(inner = 7, outer = 5)
-        val tiling = builtInLayouts(gaps).filter { it.name !in setOf("Floating", "Monocle", "Scrolling") }
+        // (Monocle overlaps on purpose; scrolling and canvas layouts go beyond the screen.)
+        val tiling = builtInLayouts(gaps).filter { it.name !in setOf("Floating", "Monocle", "Columns (scrolling)", "Canvas") }
         for (layout in tiling) {
             for (n in 1..12) {
                 for (focused in listOf(0, n - 1)) {

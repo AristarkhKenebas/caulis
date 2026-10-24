@@ -80,33 +80,13 @@ fun Rows(gaps: Gaps = Gaps()): Layout = tiling("Rows", gaps) { column { rest() }
 /** Every window fills the screen; the focused one is on top. */
 fun Monocle(gaps: Gaps = Gaps()): Layout = tiling("Monocle", gaps) { monocle() }
 
-/**
- * Windows as columns on a strip that scrolls sideways, the focused column kept in view
- * (a simple form of niri's scrolling; columns with several windows come later).
- * [columnWidth] is a column's share of the screen width.
- */
-class Scrolling(private val gaps: Gaps = Gaps(), private val columnWidth: Double = 0.5) : Layout {
-    override val name = "Scrolling"
-
-    override fun arrange(windows: List<LayoutWindow>, area: Rect, focused: Int): List<Rect> {
-        if (windows.isEmpty()) return emptyList()
-        val inner = inset(area, gaps.outer)
-        val width = ((inner.width + gaps.inner) * columnWidth).toInt() - gaps.inner
-        val step = width + gaps.inner
-        val stripWidth = windows.size * step - gaps.inner
-        // Scroll so the focused column is centred, without empty space before the first
-        // column or after the last one.
-        val center = (focused.coerceAtLeast(0)) * step + width / 2
-        val scroll = (center - inner.width / 2).coerceIn(0, (stripWidth - inner.width).coerceAtLeast(0))
-        return windows.indices.map { i -> Rect(inner.x + i * step - scroll, inner.y, width, inner.height) }
-    }
-}
-
 /** Every built-in layout once, with default settings (e.g. for a "next layout" key). */
 fun builtInLayouts(gaps: Gaps = Gaps()): List<Layout> = listOf(
     Floating, MasterStack(gaps), Dwindle(gaps), Spiral(gaps), Grid(gaps), MasterStrips(gaps),
-    CenteredMaster(gaps), Columns(gaps), Rows(gaps), Monocle(gaps), Scrolling(gaps),
+    CenteredMaster(gaps), Columns(gaps), Rows(gaps), Monocle(gaps),
     MasterStack(gaps, side = Side.RIGHT), MasterStack(gaps, side = Side.TOP), MasterStack(gaps, side = Side.BOTTOM),
+    // These remember things (a tree, columns, a canvas):
+    BinaryTree(gaps), BspSpiral(gaps), ManualTiling(gaps), ScrollingColumns(gaps), Canvas(gaps),
 )
 
 // [area] made smaller by [margin] on every side (never below 1 pixel).

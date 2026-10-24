@@ -2,6 +2,7 @@ package dev.caulis.core
 
 import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Layout
+import dev.caulis.tiling.TilingModel
 
 /**
  * One virtual desktop: its windows and how they are arranged ([layout]). Only the active
@@ -14,7 +15,14 @@ class Workspace internal constructor(
 ) {
     /** How tiled windows are placed; change it with [Desktop.setLayout]. */
     var layout: Layout = layout
-        internal set
+        internal set(value) {
+            field = value
+            model = value.createModel()
+        }
+
+    /** This workspace's own arrangement (layouts that remember things keep their state here). */
+    var model: TilingModel = layout.createModel()
+        private set
 
     /** Windows shown on this workspace, bottom to top (drawing order). */
     val windows = ArrayList<Window>()
