@@ -6,6 +6,7 @@ import dev.caulis.render.DmabufFormat
 import dev.caulis.render.GpuBuffer
 import dev.caulis.render.GpuTarget
 import dev.caulis.render.GpuTexture
+import dev.caulis.render.Rect
 import dev.caulis.render.Renderer
 
 import dev.caulis.ffi.c.gles.Gles
@@ -67,11 +68,18 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
     override fun createBuffer(width: Int, height: Int, format: Int, modifiers: List<Long>, scanout: Boolean): GpuBuffer =
         GlesBuffer.create(egl, images, width, height, format, modifiers, scanout)
 
-    override fun begin(target: GpuTarget, red: Float, green: Float, blue: Float) {
+    override fun begin(target: GpuTarget, red: Float, green: Float, blue: Float, clip: Rect?) {
         target as GlesFramebuffer
         target.bind()
         targetWidth = target.width.toFloat()
         targetHeight = target.height.toFloat()
+        // Pixel row y is framebuffer row y (see VERTEX), so the clip needs no flipping.
+        if (clip != null) {
+            Gles.glEnable(Gles.GL_SCISSOR_TEST())
+            Gles.glScissor(clip.x, clip.y, clip.width, clip.height)
+        } else {
+            Gles.glDisable(Gles.GL_SCISSOR_TEST())
+        }
         Gles.glClearColor(red, green, blue, 1f)
         Gles.glClear(Gles.GL_COLOR_BUFFER_BIT())
         // Wayland pixels have premultiplied alpha.

@@ -10,6 +10,7 @@ import dev.caulis.protocol.wayland.WlRegion
 import dev.caulis.protocol.wayland.WlSubcompositor
 import dev.caulis.protocol.wayland.WlSubsurface
 import dev.caulis.protocol.wayland.WlSurface
+import dev.caulis.render.Rect
 import dev.caulis.render.Renderer
 
 /**
@@ -140,6 +141,44 @@ class Surface internal constructor(val resource: WlSurface, private val composit
 
     private val commitListeners = ArrayList<() -> Unit>()
 
+    // Parts of the picture that changed and nobody has redrawn yet (surface coordinates).
+    private val changes = ArrayList<Rect>()
+
+    /**
+     * Takes the parts of this surface (in surface coordinates) that changed since the last
+     * call. The window manager redraws those, and only those, on screen.
+     */
+    fun takeChanges(): List<Rect> {
+        if (changes.isEmpty()) return emptyList()
+        val taken = changes.toList()
+        changes.clear()
+        return taken
+    }
+
+    // Remembers what a commit changed: the damaged parts, or everything if the size changed.
+    private fun recordChanges(oldWidth: Int, oldHeight: Int) {
+        if (width != oldWidth || height != oldHeight) {
+            changes.clear()
+            changes += Rect(0, 0, maxOf(width, oldWidth), maxOf(height, oldHeight))
+            return
+        }
+        val scale = current.scale
+        for (damage in current.damage) {
+            // Buffer pixels -> surface coordinates, rounded outwards so nothing is missed.
+            val left = Math.floorDiv(damage.x, scale)
+            val top = Math.floorDiv(damage.y, scale)
+            val right = -Math.floorDiv(-(damage.x + damage.width), scale)
+            val bottom = -Math.floorDiv(-(damage.y + damage.height), scale)
+            Rect(left, top, right - left, bottom - top).intersect(Rect(0, 0, width, height))?.let { changes += it }
+        }
+        // Many small pieces cost more to track than to redraw: merge them into one.
+        if (changes.size > MAX_CHANGE_RECTS) {
+            val all = changes.reduce(Rect::union)
+            changes.clear()
+            changes += all
+        }
+    }
+
     /** Runs [listener] after every commit that made new state current. */
     fun onCommit(listener: () -> Unit) {
         commitListeners += listener
@@ -245,11 +284,15 @@ class Surface internal constructor(val resource: WlSurface, private val composit
 
     /** Makes [state] current. Also applies cached state of synchronized subsurfaces. */
     internal fun apply(state: SurfaceState) {
+        val oldWidth = width
+        val oldHeight = height
         current.takeFrom(state)
         if (current.newBuffer) {
+            recordChanges(oldWidth, oldHeight)
             compositor.uploadContent(this)
             current.newBuffer = false
         }
+        current.damage.clear()
         for (child in stack) {
             if (child !== this) child.subsurface?.parentCommitted()
         }
@@ -280,6 +323,11 @@ class Surface internal constructor(val resource: WlSurface, private val composit
         shownDmabuf = null
         subsurface?.detach()
         for (child in stack.toList()) if (child !== this) child.subsurface?.detach()
+    }
+
+    private companion object {
+        /** More changed rectangles than this are merged into one. */
+        const val MAX_CHANGE_RECTS = 16
     }
 }
 

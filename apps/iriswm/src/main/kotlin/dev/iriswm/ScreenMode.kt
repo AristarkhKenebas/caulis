@@ -1,5 +1,6 @@
 package dev.iriswm
 
+import dev.caulis.core.DesktopView
 import dev.caulis.core.Output
 import dev.caulis.core.drm.DrmBackend
 import dev.caulis.core.drm.DrmOutput
@@ -25,6 +26,8 @@ fun runOnScreen(options: Options) {
                 // Monitors: each one becomes a wl_output and shows the desktop.
                 // (For now every monitor shows the same desktop, sized after the first one.)
                 val outputs = LinkedHashMap<DrmOutput, Output>()
+                val views = HashMap<DrmOutput, DesktopView>()
+                desktop.onChange = { outputs.keys.forEach(DrmOutput::requestFrame) }
                 fun fitDesktop() {
                     val first = outputs.keys.firstOrNull() ?: return
                     desktop.width = first.width
@@ -40,13 +43,20 @@ fun runOnScreen(options: Options) {
                         make = edid?.make ?: "Unknown", model = edid?.model ?: monitor.name,
                     )
                     fitDesktop()
+                    // Each refresh: draw what changed (if anything), then tell programs
+                    // their last frame is on screen.
+                    val view = desktop.createView()
+                    views[monitor] = view
                     monitor.onFrame = {
-                        monitor.present(desktop::render)
+                        if (monitor.needsPicture || desktop.needsRedraw(view)) {
+                            monitor.present { target, age -> desktop.render(view, target, age) }
+                        }
                         desktop.frameShown(now())
                     }
                 }
                 backend.onOutputRemoved = { monitor ->
                     outputs.remove(monitor)?.remove()
+                    views.remove(monitor)?.let(desktop::removeView)
                     fitDesktop()
                 }
 

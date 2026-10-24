@@ -62,7 +62,13 @@ class DrmOutput internal constructor(
     private val crtcProps = device.properties(crtcId, Drm.DRM_MODE_OBJECT_CRTC())
     private val planeProps = device.properties(planeId, Drm.DRM_MODE_OBJECT_PLANE())
 
-    private class Slot(val buffer: GpuBuffer, val framebuffer: Int)
+    private class Slot(val buffer: GpuBuffer, val framebuffer: Int) {
+        /** The frame this buffer was last drawn in (0 = never). */
+        var drawnInFrame = 0L
+    }
+
+    private var frameNumber = 0L
+    private var lastFlipNanos = 0L
 
     private var slots: List<Slot> = emptyList()
     private var modeBlob = 0
@@ -143,15 +149,23 @@ class DrmOutput internal constructor(
         request.set(planeId, planeProps, "CRTC_H", mode.height.toLong())
     }
 
+    /** True if the monitor must get a picture even if nothing changed (it is being set up). */
+    val needsPicture: Boolean get() = needsModeset
+
     /**
-     * Draws the next picture with [draw] and sends it to the monitor. Does nothing while
-     * another virtual terminal is shown or a picture is still on its way.
+     * Draws the next picture with [draw] and sends it to the monitor. [draw] also gets how
+     * many frames old the buffer's picture is (1 = previous frame, 0 = unknown: draw
+     * everything). Does nothing while another virtual terminal is shown or a picture is
+     * still on its way.
      */
-    fun present(draw: (GpuTarget) -> Unit) {
+    fun present(draw: (target: GpuTarget, age: Int) -> Unit) {
         val current = mode ?: return
         if (!isSessionActive() || queued != null) return
         val slot = slots.first { it !== shown }
-        draw(slot.buffer)
+        frameNumber++
+        val age = if (slot.drawnInFrame == 0L) 0 else (frameNumber - slot.drawnInFrame).toInt()
+        slot.drawnInFrame = frameNumber
+        draw(slot.buffer, age)
         renderer.end()
 
         val result = if (needsModeset) {
@@ -176,7 +190,19 @@ class DrmOutput internal constructor(
     private fun flipped() {
         shown = queued ?: shown
         queued = null
+        lastFlipNanos = System.nanoTime()
         nextFrame()
+    }
+
+    /**
+     * Asks for an [onFrame] call at the monitor's next refresh, e.g. because something
+     * changed while the screen was idle. Cheap to call often.
+     */
+    fun requestFrame() {
+        if (queued != null || mode == null) return // onFrame comes with the next flip anyway
+        val period = 1_000_000_000_000L / (mode?.refreshMillihertz ?: 60_000).coerceAtLeast(1_000)
+        val wait = (lastFlipNanos + period - System.nanoTime()).coerceAtLeast(0) / 1_000_000
+        scheduleFrame(wait)
     }
 
     // Asks for the next picture. If drawing fails, the screen must not freeze for good:
@@ -194,6 +220,7 @@ class DrmOutput internal constructor(
     internal fun resume() {
         needsModeset = true
         queued = null
+        slots.forEach { it.drawnInFrame = 0 } // draw everything again
         scheduleFrame(0)
     }
 

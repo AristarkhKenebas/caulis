@@ -85,6 +85,44 @@ class NestedWindow(
     private var frameRequested = false
     private val buffers = ArrayList<Buffer>()
 
+    // Input handlers. Declared before init on purpose: Kotlin initializes properties in
+    // order, and the outer compositor may announce its keyboard during init already.
+    private var pendingValue120 = intArrayOf(0, 0)
+
+    private val keyboardEvents = object : WlKeyboard.Events {
+        // We use our own keymap; the outer one is not needed.
+        override fun keymap(proxy: WlKeyboard, format: Int, fd: dev.caulis.ffi.Fd, size: Int) = fd.close()
+
+        override fun leave(proxy: WlKeyboard, serial: Int, surface: WlSurface) = onKeyboardLeave()
+
+        override fun key(proxy: WlKeyboard, serial: Int, time: Int, key: Int, state: Int) =
+            onKey(time, key, state == WlKeyboard.KeyState.PRESSED)
+    }
+
+    private val pointerEvents = object : WlPointer.Events {
+        override fun enter(proxy: WlPointer, serial: Int, surface: WlSurface, surfaceX: Double, surfaceY: Double) {
+            // Hide the outer cursor over our window: Caulis draws its own.
+            proxy.setCursor(serial, null, 0, 0)
+            onPointerMotion(0, surfaceX, surfaceY)
+        }
+
+        override fun motion(proxy: WlPointer, time: Int, surfaceX: Double, surfaceY: Double) =
+            onPointerMotion(time, surfaceX, surfaceY)
+
+        override fun button(proxy: WlPointer, serial: Int, time: Int, button: Int, state: Int) =
+            onPointerButton(time, button, state == WlPointer.ButtonState.PRESSED)
+
+        override fun axisValue120(proxy: WlPointer, axis: Int, value120: Int) {
+            pendingValue120[axis.coerceIn(0, 1)] += value120
+        }
+
+        override fun axis(proxy: WlPointer, time: Int, axis: Int, value: Double) {
+            val index = axis.coerceIn(0, 1)
+            onPointerAxis(time, axis == WlPointer.Axis.VERTICAL_SCROLL, value, pendingValue120[index])
+            pendingValue120[index] = 0
+        }
+    }
+
     init {
         var compositorName = 0
         var shmName = 0
@@ -166,7 +204,6 @@ class NestedWindow(
         connection.attach(loop)
     }
 
-    private var pendingValue120 = intArrayOf(0, 0)
 
     // Asks for the outer keyboard and pointer when the seat has them.
     private fun listenToInput(seat: WlSeat) {
@@ -184,46 +221,16 @@ class NestedWindow(
         }
     }
 
-    private val keyboardEvents = object : WlKeyboard.Events {
-        // We use our own keymap; the outer one is not needed.
-        override fun keymap(proxy: WlKeyboard, format: Int, fd: dev.caulis.ffi.Fd, size: Int) = fd.close()
-
-        override fun leave(proxy: WlKeyboard, serial: Int, surface: WlSurface) = onKeyboardLeave()
-
-        override fun key(proxy: WlKeyboard, serial: Int, time: Int, key: Int, state: Int) =
-            onKey(time, key, state == WlKeyboard.KeyState.PRESSED)
-    }
-
-    private val pointerEvents = object : WlPointer.Events {
-        override fun enter(proxy: WlPointer, serial: Int, surface: WlSurface, surfaceX: Double, surfaceY: Double) {
-            // Hide the outer cursor over our window: Caulis draws its own.
-            proxy.setCursor(serial, null, 0, 0)
-            onPointerMotion(0, surfaceX, surfaceY)
-        }
-
-        override fun motion(proxy: WlPointer, time: Int, surfaceX: Double, surfaceY: Double) =
-            onPointerMotion(time, surfaceX, surfaceY)
-
-        override fun button(proxy: WlPointer, serial: Int, time: Int, button: Int, state: Int) =
-            onPointerButton(time, button, state == WlPointer.ButtonState.PRESSED)
-
-        override fun axisValue120(proxy: WlPointer, axis: Int, value120: Int) {
-            pendingValue120[axis.coerceIn(0, 1)] += value120
-        }
-
-        override fun axis(proxy: WlPointer, time: Int, axis: Int, value: Double) {
-            val index = axis.coerceIn(0, 1)
-            onPointerAxis(time, axis == WlPointer.Axis.VERTICAL_SCROLL, value, pendingValue120[index])
-            pendingValue120[index] = 0
-        }
-    }
 
     /**
-     * Shows a new frame: [draw] draws it into the given target (the window's size).
-     * Afterwards [onFrame] is called again when the outer compositor wants the next frame.
+     * Shows a new frame: [draw] draws it into the given target (the window's size); the
+     * number is how many frames old the target's picture is (1 = previous frame, 0 = new:
+     * draw everything). Afterwards [onFrame] is called again when the outer compositor
+     * wants the next frame.
      */
-    fun present(draw: (GpuTarget) -> Unit) {
+    fun present(draw: (target: GpuTarget, age: Int) -> Unit) {
         val buffer = freeBuffer()
+        frameNumber++
         buffer.render(draw)
         surface.attach(buffer.wlBuffer, 0, 0)
         surface.damageBuffer(0, 0, width, height)
@@ -235,6 +242,24 @@ class NestedWindow(
                     frameRequested = false
                     onFrame()
                 }
+            }
+        }
+        surface.commit()
+    }
+
+    private var frameNumber = 0L
+
+    /**
+     * Asks for an [onFrame] call at the outer compositor's next refresh, e.g. because
+     * something changed while no frame was being drawn. Cheap to call often.
+     */
+    fun requestFrame() {
+        if (!configured || frameRequested) return
+        frameRequested = true
+        surface.frame().events = object : WlCallback.Events {
+            override fun done(proxy: WlCallback, callbackData: Int) {
+                frameRequested = false
+                onFrame()
             }
         }
         surface.commit()
@@ -261,7 +286,17 @@ class NestedWindow(
         var busy = false
 
         /** Draws the frame into this buffer. */
-        abstract fun render(draw: (GpuTarget) -> Unit)
+        abstract fun render(draw: (GpuTarget, Int) -> Unit)
+
+        // The frame this buffer was last drawn in (0 = never).
+        protected var drawnInFrame = 0L
+
+        // How many frames old this buffer's picture is (0 = never drawn).
+        protected fun takeAge(): Int {
+            val age = if (drawnInFrame == 0L) 0 else (frameNumber - drawnInFrame).toInt()
+            drawnInFrame = frameNumber
+            return age
+        }
 
         // The outer compositor is done reading; the buffer may be reused.
         protected fun listenForRelease() {
@@ -285,7 +320,7 @@ class NestedWindow(
             listenForRelease()
         }
 
-        override fun render(draw: (GpuTarget) -> Unit) = draw(gpuBuffer)
+        override fun render(draw: (GpuTarget, Int) -> Unit) = draw(gpuBuffer, takeAge())
 
         override fun close() {
             wlBuffer.destroy()
@@ -304,9 +339,12 @@ class NestedWindow(
             listenForRelease()
         }
 
-        override fun render(draw: (GpuTarget) -> Unit) {
+        override fun render(draw: (GpuTarget, Int) -> Unit) {
+            // All shared-memory frames are drawn in one target, which therefore always
+            // holds the previous frame (unless it was just created).
+            val fresh = shmTarget?.let { it.width != width || it.height != height } ?: true
             val target = drawingTarget()
-            draw(target)
+            draw(target, if (fresh) 0 else 1)
             memory.write { pixels -> target.readPixels(pixels, stride) }
         }
 

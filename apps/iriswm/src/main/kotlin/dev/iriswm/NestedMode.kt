@@ -33,11 +33,14 @@ fun runNested(options: Options) {
                         desktop.height = height
                     }
 
-                    // Each frame: draw everything, show it, then tell clients their frame is on screen.
+                    // Each refresh of the outer session: draw what changed (if anything),
+                    // then tell programs their last frame is on screen.
+                    val view = desktop.createView()
                     window.onFrame = {
-                        window.present(desktop::render)
+                        if (desktop.needsRedraw(view)) window.present { target, age -> desktop.render(view, target, age) }
                         desktop.frameShown(now())
                     }
+                    desktop.onChange = window::requestFrame
 
                     options.exitAfterSeconds?.let { seconds -> loop.after(seconds * 1000) { loop.stop() } }
                     options.run.forEach(iris::launch)

@@ -27,6 +27,23 @@ While irisWM lives inside the Caulis repository, the build uses the Caulis sourc
 
 ## Run
 
+The simplest way is the `iriswm-run` script: it builds irisWM when the sources changed,
+finds a JDK 27, passes all options on and keeps a log in `~/.local/state/iriswm/iriswm.log`.
+
+```sh
+./iriswm-run                 # from a text console (Ctrl+Alt+F3): directly on the screen
+./iriswm-run --run foot      # ... and open foot inside it
+./iriswm-run --help          # all options and keys
+```
+
+To have it as a command everywhere, link it into a folder on your `PATH`:
+
+```sh
+ln -s "$PWD/iriswm-run" ~/.local/bin/iriswm
+```
+
+Or start the built program directly:
+
 ```sh
 build/install/iriswm/bin/iriswm
 ```

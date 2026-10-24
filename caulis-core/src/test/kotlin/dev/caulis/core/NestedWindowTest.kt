@@ -41,7 +41,7 @@ class NestedWindowTest {
                     NestedWindow(loop, renderer, outerSocket = outer.socketPath).use { window ->
                         var frames = 0
                         window.onFrame = {
-                            window.present { target -> renderer.begin(target, 0.2f, 0.4f, 0.6f); renderer.end() }
+                            window.present { target, _ -> renderer.begin(target, 0.2f, 0.4f, 0.6f); renderer.end() }
                             if (++frames == FRAMES) loop.stop()
                         }
                         loop.run()

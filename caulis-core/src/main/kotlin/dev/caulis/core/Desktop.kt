@@ -2,20 +2,57 @@ package dev.caulis.core
 
 import dev.caulis.core.input.Seat
 import dev.caulis.render.GpuTarget
+import dev.caulis.render.Rect
 import dev.caulis.render.Renderer
 
 /**
  * A simple floating window manager: windows open in a cascade, a click raises and focuses
- * a window, popups close when clicking elsewhere. It also draws everything.
+ * a window, popups close when clicking elsewhere. It also draws everything — only the
+ * parts that changed (see [DesktopView]).
  *
  * (Layouts — tiling, Hyprland-like, newm-like — replace this in stage 6.)
  */
 class Desktop(
     private val renderer: Renderer,
     private val seat: Seat,
-    var width: Int,
-    var height: Int,
+    compositor: Compositor,
+    width: Int,
+    height: Int,
 ) : XdgShell.Listener {
+
+    /** Size of the desktop in pixels. */
+    var width = width
+        set(value) {
+            field = value
+            changed()
+        }
+    var height = height
+        set(value) {
+            field = value
+            changed()
+        }
+
+    /**
+     * Called whenever something may have to be drawn again (a program drew, a window moved,
+     * the pointer moved). The backend then asks for a frame on every screen.
+     */
+    var onChange: () -> Unit = {}
+
+    private val views = ArrayList<DesktopView>()
+
+    /** A view for one more screen showing this desktop. */
+    fun createView(): DesktopView = DesktopView().also { views += it }
+
+    fun removeView(view: DesktopView) {
+        views -= view
+    }
+
+    init {
+        // Every commit may change what is on screen.
+        compositor.onNewSurface { surface -> surface.onCommit { surfaceCommitted(surface) } }
+    }
+
+    private fun changed() = onChange()
 
     /** Mapped windows, bottom to top. */
     val windows = ArrayList<Window>()
@@ -34,8 +71,8 @@ class Desktop(
     var pointerY = height / 2.0
         private set
 
-    // Surfaces drawn in the last frame; they get "frame done" after it is shown.
-    private val drawn = ArrayList<Surface>()
+    // Surfaces visible in the last frame; they get "frame done" after it is shown.
+    private val visible = LinkedHashSet<Surface>()
 
     // --- windows and popups -----------------------------------------------------------
 
@@ -53,15 +90,18 @@ class Desktop(
     override fun windowUnmapped(window: Window) {
         windows -= window
         if (seat.keyboardFocus === window.surface) focus(windows.lastOrNull())
+        changed()
     }
 
     override fun popupMapped(popup: Popup) {
         popups += popup
+        changed()
     }
 
     override fun popupUnmapped(popup: Popup) {
         popups -= popup
         grabs -= popup
+        changed()
         if (seat.keyboardFocus === popup.surface) {
             seat.focusKeyboard(grabs.lastOrNull()?.surface ?: windows.lastOrNull()?.surface)
         }
@@ -81,6 +121,7 @@ class Desktop(
             window.setActivated(true)
         }
         seat.focusKeyboard(window?.surface)
+        changed()
     }
 
     // --- input ------------------------------------------------------------------------
@@ -90,6 +131,7 @@ class Desktop(
         pointerY = y.coerceIn(0.0, height - 1.0)
         val hit = surfaceAt(pointerX, pointerY)
         seat.pointerMotion(timeMillis, hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
+        changed() // the cursor moved
     }
 
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean) {
@@ -159,56 +201,119 @@ class Desktop(
 
     // --- drawing ----------------------------------------------------------------------
 
-    /** Draws one frame into [target]. */
-    fun render(target: GpuTarget) {
-        drawn.clear()
-        renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2])
-        for (window in windows) {
-            val visible = window.shell.visibleRect
-            drawTree(window.surface, window.x - visible.x, window.y - visible.y)
+    // A program drew something: mark those parts as changed where the surface is shown.
+    private fun surfaceCommitted(surface: Surface) {
+        val changes = surface.takeChanges()
+        if (changes.isNotEmpty()) {
+            for (view in views) {
+                val shownAt = view.shown.firstOrNull { it is DrawItem.Picture && it.surface === surface }?.rect ?: continue
+                for (change in changes) view.damage(change.translate(shownAt.x, shownAt.y))
+            }
         }
-        for (popup in popups) {
-            val (x, y) = popupOrigin(popup)
-            drawTree(popup.surface, x, y)
+        changed()
+    }
+
+    /**
+     * True if [view] needs a new frame: compares what would be drawn now with what it
+     * showed last time (windows that moved, opened, closed, the cursor, ...).
+     */
+    fun needsRedraw(view: DesktopView): Boolean {
+        compare(view, items())
+        return view.hasChanges
+    }
+
+    /**
+     * Draws the changed parts into [target], whose picture is [age] frames old (1 = the
+     * previous frame; 0 = unknown, then everything is drawn).
+     */
+    fun render(view: DesktopView, target: GpuTarget, age: Int) {
+        val items = items()
+        compare(view, items)
+        val repaint = view.takeRepaint(age, Rect(0, 0, target.width, target.height)) ?: return
+        renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], clip = repaint)
+        for (item in items) {
+            if (item.rect.intersect(repaint) == null) continue
+            val r = item.rect
+            when (item) {
+                is DrawItem.Picture -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, item.opaque)
+                is DrawItem.Color -> renderer.drawColor(r.x, r.y, r.width, r.height, item.red, item.green, item.blue)
+            }
         }
-        drawCursor()
         renderer.end()
     }
 
-    private fun drawTree(surface: Surface, x: Int, y: Int) {
+    // Marks everything that appeared, disappeared, moved or changed order since the view's last frame.
+    private fun compare(view: DesktopView, items: List<DrawItem>) {
+        val before = view.shown.withIndex().associateBy({ it.value.key }, { it })
+        val now = items.withIndex().associateBy({ it.value.key }, { it })
+        for ((key, old) in before) {
+            val new = now[key]
+            if (new == null) {
+                view.damage(old.value.rect)
+            } else if (new.index != old.index || new.value.differsFrom(old.value)) {
+                view.damage(old.value.rect)
+                view.damage(new.value.rect)
+            }
+        }
+        for ((key, new) in now) if (key !in before) view.damage(new.value.rect)
+        view.shown = items
+    }
+
+    // Everything on screen now, bottom to top.
+    private fun items(): List<DrawItem> {
+        visible.clear()
+        val items = ArrayList<DrawItem>()
+        for (window in windows) {
+            val visibleRect = window.shell.visibleRect
+            addTree(items, window.surface, window.x - visibleRect.x, window.y - visibleRect.y)
+        }
+        for (popup in popups) {
+            val (x, y) = popupOrigin(popup)
+            addTree(items, popup.surface, x, y)
+        }
+        addCursor(items)
+        return items
+    }
+
+    private fun addTree(items: MutableList<DrawItem>, surface: Surface, x: Int, y: Int) {
         for (child in surface.stack) {
             if (child === surface) {
                 val texture = surface.texture ?: continue
-                renderer.drawTexture(texture, x, y, surface.width, surface.height, surface.opaque)
-                drawn += surface
+                items += DrawItem.Picture(surface, texture, Rect(x, y, surface.width, surface.height), surface.opaque)
+                visible += surface
             } else {
                 val sub = child.subsurface ?: continue
-                drawTree(child, x + sub.x, y + sub.y)
+                addTree(items, child, x + sub.x, y + sub.y)
             }
         }
     }
 
-    private fun drawCursor() {
+    private fun addCursor(items: MutableList<DrawItem>) {
         val x = pointerX.toInt()
         val y = pointerY.toInt()
         val cursor = seat.cursorSurface
         when {
-            cursor != null && cursor.hasContent -> drawTree(cursor, x - seat.cursorHotspotX, y - seat.cursorHotspotY)
+            cursor != null && cursor.hasContent -> addTree(items, cursor, x - seat.cursorHotspotX, y - seat.cursorHotspotY)
             seat.cursorIsDefault -> {
                 // A simple default cursor until cursor themes are supported.
-                renderer.drawColor(x, y, 12, 12, 0f, 0f, 0f)
-                renderer.drawColor(x + 1, y + 1, 10, 10, 1f, 1f, 1f)
+                items += DrawItem.Color(CURSOR_BORDER, Rect(x, y, 12, 12), 0f, 0f, 0f)
+                items += DrawItem.Color(CURSOR_FILL, Rect(x + 1, y + 1, 10, 10), 1f, 1f, 1f)
             }
         }
     }
 
-    /** Tells every surface drawn in the last frame that it was shown. */
+    /**
+     * Tells every surface that was on screen in the last frame that it was shown, so the
+     * program can draw its next frame. Call once per screen refresh, also when nothing
+     * had to be redrawn.
+     */
     fun frameShown(timeMillis: Int) {
-        for (surface in drawn) surface.sendFrameDone(timeMillis)
-        drawn.clear()
+        for (surface in visible) if (surface.resource.isAlive) surface.sendFrameDone(timeMillis)
     }
 
     private companion object {
         val BACKGROUND = floatArrayOf(0.16f, 0.18f, 0.22f)
+        const val CURSOR_BORDER = "cursor border"
+        const val CURSOR_FILL = "cursor fill"
     }
 }

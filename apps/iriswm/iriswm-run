@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Starts irisWM: builds it first if the sources changed, finds JDK 27, keeps a log.
+#
+#   ./iriswm-run                 on the screen (from a text console, e.g. Ctrl+Alt+F3)
+#   ./iriswm-run --run foot      ... and start foot inside it
+#   ./iriswm-run --help          all options
+#
+# Any options are passed to irisWM unchanged. The log ends up in
+# ~/.local/state/iriswm/iriswm.log (the previous run's in iriswm.log.old).
+set -euo pipefail
+
+# Where this project is, even when started through a link (e.g. ~/.local/bin/iriswm).
+project="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+program="$project/build/install/iriswm/bin/iriswm"
+
+# A JDK 27 or newer: $JAVA_HOME if it fits, otherwise one from /usr/lib/jvm.
+java_version() { "$1/bin/java" -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' | head -1; }
+if [[ -z "${JAVA_HOME:-}" || "$(java_version "$JAVA_HOME")" -lt 27 ]]; then
+    JAVA_HOME=""
+    for candidate in /usr/lib/jvm/*/; do
+        version="$(java_version "${candidate%/}" || true)"
+        if [[ -n "$version" && "$version" -ge 27 ]]; then JAVA_HOME="${candidate%/}"; break; fi
+    done
+    if [[ -z "$JAVA_HOME" ]]; then
+        echo "irisWM needs JDK 27 or newer. On Arch: sudo pacman -S jdk-openjdk" >&2
+        exit 1
+    fi
+fi
+export JAVA_HOME
+
+# Build when there is no build yet or something changed since the last one.
+stamp="$project/build/install/iriswm/.built"
+caulis="$(readlink -f "$project/../..")"
+if [[ ! -x "$program" || ! -f "$stamp" ]] \
+    || [[ -n "$(find "$project/src" "$project/build.gradle.kts" "$project/gradle" \
+             "$caulis"/caulis-*/src "$caulis/gradle" -newer "$stamp" -print -quit 2>/dev/null)" ]]; then
+    echo "Building irisWM..."
+    (cd "$project" && ./gradlew installDist --quiet)
+    touch "$stamp"
+fi
+
+log_dir="${XDG_STATE_HOME:-$HOME/.local/state}/iriswm"
+mkdir -p "$log_dir"
+log="$log_dir/iriswm.log"
+[[ -f "$log" ]] && mv -f "$log" "$log.old"
+
+echo "Starting irisWM (log: $log)"
+set +e
+"$program" "$@" > >(tee "$log") 2>&1
+code=$?
+set -e
+
+case $code in
+    0) echo "irisWM finished." ;;
+    70) echo "irisWM stopped itself because it hung. Please keep the log: $log" ;;
+    *) echo "irisWM ended with code $code. Log: $log" ;;
+esac
+exit $code

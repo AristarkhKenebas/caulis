@@ -40,8 +40,12 @@ interface Renderer : AutoCloseable {
      */
     fun createBuffer(width: Int, height: Int, format: Int, modifiers: List<Long>, scanout: Boolean): GpuBuffer
 
-    /** Starts drawing a frame into [target], cleared to the given colour. */
-    fun begin(target: GpuTarget, red: Float, green: Float, blue: Float)
+    /**
+     * Starts drawing a frame into [target]. Only pixels inside [clip] change (null = the
+     * whole target); that part is first cleared to the given colour. Drawing only what
+     * changed saves most of the work when little moves on screen.
+     */
+    fun begin(target: GpuTarget, red: Float, green: Float, blue: Float, clip: Rect? = null)
 
     /** Draws [texture] stretched over the rectangle. [opaque] ignores its alpha (XRGB pictures). */
     fun drawTexture(texture: GpuTexture, x: Int, y: Int, width: Int, height: Int, opaque: Boolean, alpha: Float = 1f)

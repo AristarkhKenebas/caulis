@@ -2,6 +2,7 @@ package dev.caulis.core
 
 import dev.caulis.ffi.SharedMemoryException
 import dev.caulis.protocol.wayland.WlShm
+import dev.caulis.render.Rect
 import dev.caulis.render.Renderer
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment

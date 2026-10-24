@@ -26,13 +26,13 @@ class IrisCompositor(
     val display = Display(loop)
     private val keymap = Keymap.fromNames()
     val seat = Seat(display, keymap)
-    val desktop = Desktop(renderer, seat, width, height)
+    private val compositor = Compositor(display, renderer)
+    val desktop = Desktop(renderer, seat, compositor, width, height)
 
     /** Socket name programs connect to, e.g. "wayland-1". */
     val socket: String
 
     init {
-        Compositor(display, renderer)
         Shm(display)
         if (renderer.renderNode != null) LinuxDmabuf(display, renderer)
         DataDeviceManager(display, seat)

@@ -9,6 +9,7 @@ import dev.caulis.protocol.xdgshell.XdgPositioner
 import dev.caulis.protocol.xdgshell.XdgSurface
 import dev.caulis.protocol.xdgshell.XdgToplevel
 import dev.caulis.protocol.xdgshell.XdgWmBase
+import dev.caulis.render.Rect
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
