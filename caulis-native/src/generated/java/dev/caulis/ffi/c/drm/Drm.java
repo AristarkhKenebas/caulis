@@ -459,6 +459,129 @@ public class Drm extends Drm$shared {
         }
     }
 
+    private static class drmPrimeFDToHandle {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Drm.C_INT,
+            Drm.C_INT,
+            Drm.C_INT,
+            Drm.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("drmPrimeFDToHandle");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * extern int drmPrimeFDToHandle(int fd, int prime_fd, uint32_t *handle)
+     * }
+     */
+    public static FunctionDescriptor drmPrimeFDToHandle$descriptor() {
+        return drmPrimeFDToHandle.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * extern int drmPrimeFDToHandle(int fd, int prime_fd, uint32_t *handle)
+     * }
+     */
+    public static MethodHandle drmPrimeFDToHandle$handle() {
+        return drmPrimeFDToHandle.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * extern int drmPrimeFDToHandle(int fd, int prime_fd, uint32_t *handle)
+     * }
+     */
+    public static MemorySegment drmPrimeFDToHandle$address() {
+        return drmPrimeFDToHandle.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * extern int drmPrimeFDToHandle(int fd, int prime_fd, uint32_t *handle)
+     * }
+     */
+    public static int drmPrimeFDToHandle(int fd, int prime_fd, MemorySegment handle) {
+        var mh$ = drmPrimeFDToHandle.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("drmPrimeFDToHandle", fd, prime_fd, handle);
+            }
+            return (int)mh$.invokeExact(fd, prime_fd, handle);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class drmCloseBufferHandle {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Drm.C_INT,
+            Drm.C_INT,
+            Drm.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("drmCloseBufferHandle");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * extern int drmCloseBufferHandle(int fd, uint32_t handle)
+     * }
+     */
+    public static FunctionDescriptor drmCloseBufferHandle$descriptor() {
+        return drmCloseBufferHandle.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * extern int drmCloseBufferHandle(int fd, uint32_t handle)
+     * }
+     */
+    public static MethodHandle drmCloseBufferHandle$handle() {
+        return drmCloseBufferHandle.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * extern int drmCloseBufferHandle(int fd, uint32_t handle)
+     * }
+     */
+    public static MemorySegment drmCloseBufferHandle$address() {
+        return drmCloseBufferHandle.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * extern int drmCloseBufferHandle(int fd, uint32_t handle)
+     * }
+     */
+    public static int drmCloseBufferHandle(int fd, int handle) {
+        var mh$ = drmCloseBufferHandle.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("drmCloseBufferHandle", fd, handle);
+            }
+            return (int)mh$.invokeExact(fd, handle);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
     private static class drmGetRenderDeviceNameFromFd {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             Drm.C_POINTER,

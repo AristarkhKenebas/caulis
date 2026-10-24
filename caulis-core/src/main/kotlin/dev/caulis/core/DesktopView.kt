@@ -23,6 +23,10 @@ class DesktopView internal constructor() {
     private var pending: Rect? = null
     private var everything = true
 
+    // Our buffers do not match the screen any more: the next drawn frame must be complete
+    // (but this alone is no reason to draw).
+    private var fullNextTime = false
+
     // What each of the last frames redrew, newest first (for buffers drawn longer ago).
     private val history = ArrayDeque<Rect>()
 
@@ -32,6 +36,17 @@ class DesktopView internal constructor() {
     internal fun damage(rect: Rect) {
         if (rect.isEmpty) return
         pending = pending?.union(rect) ?: rect
+    }
+
+    /**
+     * The screen showed something else this frame (a program's own buffer, see direct
+     * scanout): the changes so far are dealt with, but our buffers no longer match the
+     * screen, so the next frame we draw must be complete.
+     */
+    internal fun shownWithoutDrawing() {
+        pending = null
+        everything = false
+        fullNextTime = true
     }
 
     /** Everything must be drawn again (e.g. the screen came back from another terminal). */
@@ -44,9 +59,9 @@ class DesktopView internal constructor() {
      * previous frame, 0 = unknown or new: redraw everything). Null if nothing needs drawing.
      */
     internal fun takeRepaint(age: Int, bounds: Rect): Rect? {
-        val now = if (everything) bounds else pending
+        val now = if (everything || fullNextTime) bounds else pending
         var repaint = now
-        if (age <= 0 || age - 1 > history.size) {
+        if (age <= 0 || age - 1 > history.size || fullNextTime) {
             repaint = bounds
         } else {
             // The buffer also misses what the frames since it was drawn changed.
@@ -56,6 +71,7 @@ class DesktopView internal constructor() {
         while (history.size > MAX_AGE) history.removeLast()
         pending = null
         everything = false
+        fullNextTime = false
         return repaint?.intersect(bounds)
     }
 

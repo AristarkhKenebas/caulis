@@ -18,14 +18,17 @@ fun runNested(options: Options) {
                     println("Renderer: ${renderer.description}")
                     println(if (window.sharesGpuBuffers) "Frames go to the outer session as GPU buffers" else "Frames are copied to the outer session")
 
-                    val shortcuts = Shortcuts(quit = loop::stop, openTerminal = { iris.launch(options.terminal) }, switchConsole = null)
+                    val bindings = Bindings(desktop, quit = loop::stop, openTerminal = { iris.launch(options.terminal) }, switchConsole = null)
 
                     // Input from the outer session goes to the window manager.
                     window.onPointerMotion = desktop::pointerMoved
-                    window.onPointerButton = desktop::pointerButton
+                    window.onPointerButton = bindings::pointerButton
                     window.onPointerAxis = desktop::pointerAxis
-                    window.onKey = { time, code, pressed -> if (!shortcuts.key(code, pressed)) desktop.key(time, code, pressed) }
-                    window.onKeyboardLeave = { iris.seat.releaseAllKeys(now()) }
+                    window.onKey = bindings::key
+                    window.onKeyboardLeave = {
+                        bindings.keys.releaseAll()
+                        iris.seat.releaseAllKeys(now())
+                    }
                     window.onClose = { loop.stop() }
 
                     window.onResize = { width, height ->

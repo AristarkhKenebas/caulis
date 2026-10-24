@@ -21,10 +21,29 @@ class ScreenTestServer : AutoCloseable {
     val runtimeDir: Path = Files.createTempDirectory("caulis-screen-test")
     private val started = CompletableFuture<String>()
     private lateinit var loop: EventLoop
+    private lateinit var desktop: Desktop
+
+    /** Runs [action] on the server's thread with its window manager and returns the result. */
+    fun <T> onServer(action: (Desktop) -> T): T {
+        val result = CompletableFuture<T>()
+        loop.post {
+            try {
+                result.complete(action(desktop))
+            } catch (e: Throwable) {
+                result.completeExceptionally(e)
+            }
+        }
+        return result.get(5, TimeUnit.SECONDS)
+    }
 
     /** Frames drawn so far (written on the server thread). */
     @Volatile
     var framesDrawn = 0
+        private set
+
+    /** Frames where a program's own buffer went to the screen directly (direct scanout). */
+    @Volatile
+    var framesShownDirectly = 0
         private set
 
     private val thread = Thread {
@@ -38,7 +57,8 @@ class ScreenTestServer : AutoCloseable {
                                 val compositor = Compositor(display, renderer)
                                 Shm(display)
                                 Presentation(display)
-                                val desktop = Desktop(renderer, seat, compositor, WIDTH, HEIGHT)
+                                LinuxDmabuf(display, renderer)
+                                desktop = Desktop(renderer, seat, compositor, WIDTH, HEIGHT)
                                 XdgShell(display).listener = desktop
                                 Output(display, "TEST-1", "Test screen", WIDTH, HEIGHT, 60_000)
                                 runScreen(eventLoop, renderer, desktop)
@@ -60,7 +80,11 @@ class ScreenTestServer : AutoCloseable {
         val view = desktop.createView()
         var sequence = 0L
         fun tick() {
-            val drew = desktop.refresh(view, { draw -> draw(target, 1) })
+            // A pretend display that can show programs' buffers directly.
+            val drew = desktop.refresh(view, { draw -> draw(target, 1) }, presentDirect = { _ ->
+                framesShownDirectly++
+                true
+            })
             if (drew) {
                 framesDrawn++
                 desktop.presented(view, System.nanoTime(), REFRESH_NANOS, ++sequence, WpPresentationFeedback.Kind.VSYNC)

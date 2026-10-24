@@ -12,6 +12,8 @@ data class Options(
     val terminal: String = "foot",
     /** Print frame timing every few seconds (frames per second, stutters, GC pauses). */
     val stats: Boolean = false,
+    /** Show fullscreen programs' pictures directly on the monitor (no copying, less delay). */
+    val directScanout: Boolean = true,
 ) {
     enum class Mode { NESTED, SCREEN }
 
@@ -26,10 +28,19 @@ data class Options(
   --run COMMAND       start COMMAND inside irisWM (may be given several times)
   --terminal COMMAND  terminal for Super+Enter (default: foot)
   --stats             print frame timing every 5 seconds (fps, late frames, GC pauses)
+  --no-direct-scanout always draw fullscreen programs instead of showing their own
+                      picture directly (only for finding display problems)
   --help              show this text
 
 Keys:
   Super+Enter             open a terminal
+  Super+Q                 close the window
+  Super+Up                maximize / restore the window
+  Super+F                 fullscreen on / off
+  Super+Down              minimize (Alt+Tab brings it back)
+  Alt+Tab                 switch between windows
+  Super + left drag       move a window
+  Super + right drag      resize a window
   Ctrl+Alt+F1 ... F12     switch to another text console (screen mode)
   Ctrl+Alt+Backspace      quit irisWM immediately"""
 
@@ -40,6 +51,7 @@ Keys:
             val run = ArrayList<String>()
             var terminal = "foot"
             var stats = false
+            var directScanout = true
             var i = 0
             fun value(name: String): String = args.getOrNull(++i) ?: throw IllegalArgumentException("$name needs a value")
             while (i < args.size) {
@@ -51,12 +63,13 @@ Keys:
                     "--run" -> run += value(arg)
                     "--terminal" -> terminal = value(arg)
                     "--stats" -> stats = true
+                    "--no-direct-scanout" -> directScanout = false
                     "--help", "-h" -> throw HelpRequested()
                     else -> throw IllegalArgumentException("Unknown option: $arg")
                 }
                 i++
             }
-            return Options(mode, exitAfter, run, terminal, stats)
+            return Options(mode, exitAfter, run, terminal, stats, directScanout)
         }
     }
 

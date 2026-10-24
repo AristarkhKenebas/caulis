@@ -45,6 +45,17 @@ class DesktopViewTest {
     }
 
     @Test
+    fun `after a program's own picture was on screen, the next drawn frame is complete`() {
+        val view = DesktopView()
+        view.takeRepaint(0, screen)
+        view.damage(Rect(1, 1, 1, 1))
+        view.shownWithoutDrawing()
+        assertFalse(view.hasChanges, "that alone is no reason to draw")
+        view.damage(Rect(5, 5, 1, 1))
+        assertEquals(screen, view.takeRepaint(age = 1, bounds = screen))
+    }
+
+    @Test
     fun `changes outside the screen are cut off`() {
         val view = DesktopView()
         view.takeRepaint(0, screen)

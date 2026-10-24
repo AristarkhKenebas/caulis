@@ -1,5 +1,6 @@
 package dev.caulis.core.drm
 
+import dev.caulis.core.DmabufBuffer
 import dev.caulis.event.EventLoop
 import dev.caulis.ffi.c.drm.Drm
 import dev.caulis.render.Dmabuf
@@ -62,7 +63,7 @@ class DrmOutput internal constructor(
      * Called when a picture from [present] reached the screen: the moment of that refresh
      * ([nanos], monotonic clock), the time between refreshes and the monitor's frame number.
      */
-    var onPresented: (nanos: Long, refreshNanos: Long, sequence: Long) -> Unit = { _, _, _ -> }
+    var onPresented: (nanos: Long, refreshNanos: Long, sequence: Long, zeroCopy: Boolean) -> Unit = { _, _, _, _ -> }
 
     /** Time between two refreshes of the current mode, in nanoseconds. */
     val refreshNanos: Long get() = 1_000_000_000_000L / (mode?.refreshMillihertz ?: 60_000).coerceAtLeast(1_000)
@@ -83,6 +84,13 @@ class DrmOutput internal constructor(
     private var modeBlob = 0
     private var shown: Slot? = null
     private var queued: Slot? = null
+
+    // A program's own buffer on screen instead of one of ours (direct scanout).
+    private var shownDirect: DmabufBuffer? = null
+    private var queuedDirect: DmabufBuffer? = null
+
+    // A picture is on its way to the screen; the next one waits for the flip.
+    private val flipPending: Boolean get() = queued != null || queuedDirect != null
     private var needsModeset = true
     private var frameScheduled = false
 
@@ -169,7 +177,7 @@ class DrmOutput internal constructor(
      */
     fun present(draw: (target: GpuTarget, age: Int) -> Unit) {
         val current = mode ?: return
-        if (!isSessionActive() || queued != null) return
+        if (!isSessionActive() || flipPending) return
         val slot = slots.first { it !== shown }
         frameNumber++
         val age = if (slot.drawnInFrame == 0L) 0 else (frameNumber - slot.drawnInFrame).toInt()
@@ -195,15 +203,65 @@ class DrmOutput internal constructor(
         }
     }
 
+    /**
+     * Shows a program's own GPU buffer directly, without drawing anything (for a fullscreen
+     * game or video). The kernel checks first whether the display can show it; returns
+     * false if not — then draw normally with [present]. The program gets the buffer back
+     * when the monitor has moved on to the next picture.
+     */
+    fun presentDirect(buffer: DmabufBuffer): Boolean {
+        val current = mode ?: return false
+        if (!isSessionActive() || flipPending || needsModeset) return false
+        if (buffer.width != current.width || buffer.height != current.height) return false
+        val framebuffer = buffer.attachment(this) { ScanoutFramebuffer(device, device.importFramebuffer(buffer.dmabuf)) }
+        val id = framebuffer.id ?: return false
+        if (framebuffer.refused) return false
+        val test = device.commit(Drm.DRM_MODE_ATOMIC_TEST_ONLY()) { request ->
+            request.set(planeId, planeProps, "FB_ID", id.toLong())
+        }
+        if (test != 0) {
+            framebuffer.refused = true // this buffer will not work later either
+            return false
+        }
+        val result = device.commit(Drm.DRM_MODE_ATOMIC_NONBLOCK() or Drm.DRM_MODE_PAGE_FLIP_EVENT()) { request ->
+            request.set(planeId, planeProps, "FB_ID", id.toLong())
+        }
+        if (result != 0) return false
+        buffer.startShowing()
+        queuedDirect = buffer
+        return true
+    }
+
+    // A program's buffer registered with the display; freed together with the buffer.
+    private class ScanoutFramebuffer(private val device: DrmDevice, val id: Int?) : AutoCloseable {
+        var refused = false
+
+        override fun close() {
+            id?.let(device::removeFramebuffer)
+        }
+    }
+
     // The monitor now shows the queued picture: the previous one is free again.
     private fun flipped(nanos: Long, sequence: Long) {
-        val wasQueued = queued != null
-        shown = queued ?: shown
-        queued = null
+        val wasQueued = flipPending
+        if (wasQueued) {
+            val previousDirect = shownDirect
+            if (queuedDirect != null) {
+                shownDirect = queuedDirect
+                shown = null // none of our buffers is on screen
+            } else {
+                shown = queued
+                shownDirect = null
+            }
+            // The program may draw into its previous buffer again.
+            if (previousDirect != null && previousDirect !== shownDirect) previousDirect.stopShowing()
+            queued = null
+            queuedDirect = null
+        }
         lastFlipNanos = System.nanoTime()
         if (wasQueued) {
             try {
-                onPresented(nanos, refreshNanos, sequence)
+                onPresented(nanos, refreshNanos, sequence, shownDirect != null)
             } catch (e: Exception) {
                 System.getLogger("caulis.drm").log(System.Logger.Level.ERROR, "Reporting a frame of $name failed", e)
             }
@@ -216,7 +274,7 @@ class DrmOutput internal constructor(
      * changed while the screen was idle. Cheap to call often.
      */
     fun requestFrame() {
-        if (queued != null || mode == null) return // onFrame comes with the next flip anyway
+        if (flipPending || mode == null) return // onFrame comes with the next flip anyway
         val wait = (lastFlipNanos + refreshNanos - System.nanoTime()).coerceAtLeast(0) / 1_000_000
         scheduleFrame(wait)
     }
@@ -236,6 +294,8 @@ class DrmOutput internal constructor(
     internal fun resume() {
         needsModeset = true
         queued = null
+        queuedDirect?.stopShowing() // that flip never happened
+        queuedDirect = null
         slots.forEach { it.drawnInFrame = 0 } // draw everything again
         scheduleFrame(0)
     }
@@ -268,7 +328,16 @@ class DrmOutput internal constructor(
         slot.buffer.close()
     }
 
+    // Gives programs' buffers back (the monitor stops showing them).
+    private fun releaseDirect() {
+        queuedDirect?.stopShowing()
+        queuedDirect = null
+        shownDirect?.stopShowing()
+        shownDirect = null
+    }
+
     private fun freeBuffers() {
+        releaseDirect()
         slots.forEach(::freeSlot)
         slots = emptyList()
         shown = null

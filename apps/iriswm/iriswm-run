@@ -39,6 +39,21 @@ if [[ ! -x "$program" || ! -f "$stamp" ]] \
     touch "$stamp"
 fi
 
+# AOT cache: the JVM remembers which classes irisWM loads and which code is hot, so the
+# next start is fast from the first frame. Made at the end of the first run after every
+# build or JDK update; later runs only read it.
+cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/iriswm"
+mkdir -p "$cache_dir"
+build_id="$( { "$JAVA_HOME/bin/java" -version 2>&1; cat "$project"/build/install/iriswm/lib/*.jar; } | sha256sum | cut -c1-16)"
+aot_cache="$cache_dir/iriswm-$build_id.aot"
+if [[ -f "$aot_cache" ]]; then
+    aot_option="-XX:AOTCache=$aot_cache"
+else
+    rm -f "$cache_dir"/iriswm-*.aot "$cache_dir"/iriswm-*.aot.config # old builds
+    aot_option="-XX:AOTCacheOutput=$aot_cache"
+fi
+export JAVA_OPTS="${JAVA_OPTS:-} $aot_option"
+
 log_dir="${XDG_STATE_HOME:-$HOME/.local/state}/iriswm"
 mkdir -p "$log_dir"
 log="$log_dir/iriswm.log"

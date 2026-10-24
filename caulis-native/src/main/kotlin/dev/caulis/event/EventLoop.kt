@@ -70,6 +70,17 @@ class EventLoop : AutoCloseable {
         beforeWaitTasks += task
     }
 
+    // Tasks handed over from other threads (see post).
+    private val posted = java.util.concurrent.ConcurrentLinkedQueue<() -> Unit>()
+
+    /**
+     * Runs [task] on this loop's thread, soon. The only method that may be called from
+     * another thread (besides [stop]); it is picked up within 100 ms at the latest.
+     */
+    fun post(task: () -> Unit) {
+        posted += task
+    }
+
     /** Runs [task] once on this loop, [delayMillis] from now. */
     fun after(delayMillis: Long, task: () -> Unit): Timer =
         Timer(System.nanoTime() + delayMillis * 1_000_000, timerCount++, task).also { timers += it }
@@ -85,6 +96,7 @@ class EventLoop : AutoCloseable {
             untilDue.coerceIn(0, timeoutMillis.toLong()).toInt()
         } ?: timeoutMillis
         epoll.wait(wait) { fd, ready -> handlers[fd]?.invoke(ready) }
+        while (true) (posted.poll() ?: break).invoke()
         val now = System.nanoTime()
         while (true) {
             val next = timers.peek() ?: break

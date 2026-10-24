@@ -217,6 +217,8 @@ val jextractDrm = tasks.register<JextractTask>("jextractDrm") {
         "struct _drmModePropertyBlob", "typedef drmModePropertyBlobRes",
         "function drmModeGetPropertyBlob", "function drmModeFreePropertyBlob",
         "function drmModeConnectorGetPossibleCrtcs",
+        // Showing a program's own GPU buffer on screen (direct scanout).
+        "function drmPrimeFDToHandle", "function drmCloseBufferHandle",
         "constant DRM_CLIENT_CAP_ATOMIC", "constant DRM_CLIENT_CAP_UNIVERSAL_PLANES",
         "constant DRM_CAP_TIMESTAMP_MONOTONIC", "constant DRM_CAP_ADDFB2_MODIFIERS",
         "constant DRM_MODE_CONNECTED", "constant DRM_MODE_ATOMIC_ALLOW_MODESET",

@@ -51,11 +51,13 @@ fun runOnScreen(options: Options) {
                     views[monitor] = view
                     val stats = if (options.stats) FrameStats(monitor.name) else null
                     val present = timed(stats, monitor::present)
-                    monitor.onFrame = { desktop.refresh(view, present, force = monitor.needsPicture) }
-                    monitor.onPresented = { nanos, refreshNanos, sequence ->
+                    val presentDirect = if (options.directScanout) monitor::presentDirect else null
+                    monitor.onFrame = { desktop.refresh(view, present, force = monitor.needsPicture, presentDirect = presentDirect) }
+                    monitor.onPresented = { nanos, refreshNanos, sequence, zeroCopy ->
                         stats?.presented(nanos, refreshNanos)
                         // Exact: the kernel's own timestamp of the refresh that showed it.
-                        desktop.presented(view, nanos, refreshNanos, sequence, EXACT_PRESENTATION)
+                        val flags = if (zeroCopy) EXACT_PRESENTATION or WpPresentationFeedback.Kind.ZERO_COPY else EXACT_PRESENTATION
+                        desktop.presented(view, nanos, refreshNanos, sequence, flags)
                     }
                 }
                 backend.onOutputRemoved = { monitor ->
@@ -64,16 +66,17 @@ fun runOnScreen(options: Options) {
                     fitDesktop()
                 }
 
-                val shortcuts = Shortcuts(
+                val bindings = Bindings(
+                    desktop,
                     quit = loop::stop,
                     openTerminal = { iris.launch(options.terminal) },
                     switchConsole = backend.session::switchTo,
                 )
                 val input = backend.input
-                input.onKey = { time, code, pressed -> if (!shortcuts.key(code, pressed)) desktop.key(time, code, pressed) }
+                input.onKey = bindings::key
                 input.onPointerMotion = { time, dx, dy -> desktop.pointerMoved(time, desktop.pointerX + dx, desktop.pointerY + dy) }
                 input.onPointerMotionAbsolute = { time, x, y -> desktop.pointerMoved(time, x * desktop.width, y * desktop.height) }
-                input.onPointerButton = desktop::pointerButton
+                input.onPointerButton = bindings::pointerButton
                 input.onPointerAxis = desktop::pointerAxis
 
                 backend.start()

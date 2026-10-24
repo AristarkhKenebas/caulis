@@ -210,7 +210,7 @@ private class BufferParams(private val resource: ZwpLinuxBufferParamsV1, private
  */
 class DmabufBuffer internal constructor(
     val resource: WlBuffer,
-    private val dmabuf: Dmabuf,
+    internal val dmabuf: Dmabuf,
     val texture: GpuTexture,
 ) : ClientBuffer {
 
@@ -222,6 +222,15 @@ class DmabufBuffer internal constructor(
 
     private var shownBy = 0
     private var closed = false
+
+    // Things made from this buffer elsewhere (e.g. a display framebuffer), freed with it.
+    private val attachments = HashMap<Any, AutoCloseable>()
+
+    /** Something made from this buffer and kept with it under [key] (created once by [create]). */
+    internal fun <T : AutoCloseable> attachment(key: Any, create: () -> T): T {
+        @Suppress("UNCHECKED_CAST")
+        return attachments.getOrPut(key, create) as T
+    }
 
     init {
         resource.data = this
@@ -243,6 +252,8 @@ class DmabufBuffer internal constructor(
     private fun closeIfUnused() {
         if (shownBy > 0 || closed) return
         closed = true
+        attachments.values.forEach { runCatching { it.close() } }
+        attachments.clear()
         texture.close()
         dmabuf.close()
     }

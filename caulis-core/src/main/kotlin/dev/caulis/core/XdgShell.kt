@@ -29,6 +29,20 @@ class XdgShell(private val display: Display) {
         fun windowMapped(window: Window) {}
         fun windowUnmapped(window: Window) {}
         fun windowCommitted(window: Window) {}
+
+        /** The largest sensible window size (e.g. the screen), or null if unknown. */
+        fun bounds(window: Window): Pair<Int, Int>? = null
+
+        /** The app asks to move the window with the pointer (the user dragged its title bar). */
+        fun moveRequested(window: Window, serial: Int) {}
+
+        /** The app asks to resize with the pointer; [edges] says which (XdgToplevel.ResizeEdge). */
+        fun resizeRequested(window: Window, serial: Int, edges: Int) {}
+
+        fun maximizeRequested(window: Window, maximized: Boolean) {}
+        fun fullscreenRequested(window: Window, fullscreen: Boolean) {}
+        fun minimizeRequested(window: Window) {}
+
         fun popupMapped(popup: Popup) {}
         fun popupUnmapped(popup: Popup) {}
         fun popupGrab(popup: Popup) {}
@@ -86,6 +100,9 @@ class ShellSurface internal constructor(
     private val sentSerials = ArrayList<Int>()
     private var acknowledged = false
     private var initialConfigureSent = false
+
+    /** True once the window manager has answered the app's first commit (sizes may be sent from now on). */
+    val configured: Boolean get() = initialConfigureSent
     var mapped = false
         private set
 
@@ -249,6 +266,16 @@ class Window internal constructor(val resource: XdgToplevel, val shell: ShellSur
     var activated = false
         private set
 
+    /**
+     * States the window manager gives the window; the app learns about them with the next
+     * [configure] (and then draws itself accordingly, e.g. without rounded corners).
+     */
+    var maximized = false
+    var fullscreen = false
+    var resizing = false
+
+    private var capabilitiesSent = false
+
     private var configuredWidth = 0
     private var configuredHeight = 0
 
@@ -269,10 +296,17 @@ class Window internal constructor(val resource: XdgToplevel, val shell: ShellSur
 
             override fun showWindowMenu(resource: XdgToplevel, seat: WlSeat, serial: Int, x: Int, y: Int) {}
 
-            // Interactive moving and resizing come with the window manager (stage 6).
-            override fun move(resource: XdgToplevel, seat: WlSeat, serial: Int) {}
+            override fun move(resource: XdgToplevel, seat: WlSeat, serial: Int) {
+                if (shell.mapped) shell.shell.listener.moveRequested(this@Window, serial)
+            }
 
-            override fun resize(resource: XdgToplevel, seat: WlSeat, serial: Int, edges: Int) {}
+            override fun resize(resource: XdgToplevel, seat: WlSeat, serial: Int, edges: Int) {
+                if (edges !in VALID_EDGES) {
+                    resource.postError(XdgToplevel.Error.INVALID_RESIZE_EDGE, "invalid resize edge $edges")
+                    return
+                }
+                if (shell.mapped) shell.shell.listener.resizeRequested(this@Window, serial, edges)
+            }
 
             override fun setMaxSize(resource: XdgToplevel, width: Int, height: Int) {
                 if (width < 0 || height < 0) {
@@ -292,27 +326,46 @@ class Window internal constructor(val resource: XdgToplevel, val shell: ShellSur
                 minHeight = height
             }
 
-            override fun setMaximized(resource: XdgToplevel) {}
+            override fun setMaximized(resource: XdgToplevel) = shell.shell.listener.maximizeRequested(this@Window, true)
 
-            override fun unsetMaximized(resource: XdgToplevel) {}
+            override fun unsetMaximized(resource: XdgToplevel) = shell.shell.listener.maximizeRequested(this@Window, false)
 
-            override fun setFullscreen(resource: XdgToplevel, output: WlOutput?) {}
+            override fun setFullscreen(resource: XdgToplevel, output: WlOutput?) =
+                shell.shell.listener.fullscreenRequested(this@Window, true)
 
-            override fun unsetFullscreen(resource: XdgToplevel) {}
+            override fun unsetFullscreen(resource: XdgToplevel) = shell.shell.listener.fullscreenRequested(this@Window, false)
 
-            override fun setMinimized(resource: XdgToplevel) {}
+            override fun setMinimized(resource: XdgToplevel) = shell.shell.listener.minimizeRequested(this@Window)
         }
     }
 
-    /** Asks the app to use this size (0 = its own choice) and tells it whether it is active. */
+    /** Asks the app to use this size (0 = its own choice) and tells it its states. */
     fun configure(width: Int = configuredWidth, height: Int = configuredHeight) {
         configuredWidth = width
         configuredHeight = height
+        // Before the first configure: which window features we support, and the screen size.
+        if (!capabilitiesSent) {
+            capabilitiesSent = true
+            if (resource.version >= 5) {
+                resource.sendWmCapabilities(uintArray(listOf(
+                    XdgToplevel.WmCapabilities.MAXIMIZE,
+                    XdgToplevel.WmCapabilities.FULLSCREEN,
+                    XdgToplevel.WmCapabilities.MINIMIZE,
+                )))
+            }
+        }
+        if (resource.version >= 4) shell.shell.listener.bounds(this)?.let { (w, h) -> resource.sendConfigureBounds(w, h) }
         val states = mutableListOf<Int>()
         if (activated) states += XdgToplevel.State.ACTIVATED
+        if (maximized) states += XdgToplevel.State.MAXIMIZED
+        if (fullscreen) states += XdgToplevel.State.FULLSCREEN
+        if (resizing) states += XdgToplevel.State.RESIZING
         resource.sendConfigure(width, height, uintArray(states))
         shell.sendConfigure()
     }
+
+    /** The size last asked for with [configure] (0 = the app's choice). */
+    val configuredSize: Pair<Int, Int> get() = configuredWidth to configuredHeight
 
     /** Marks the window as active or not (apps draw active windows a bit differently). */
     fun setActivated(active: Boolean) {
@@ -325,6 +378,14 @@ class Window internal constructor(val resource: XdgToplevel, val shell: ShellSur
     fun close() = resource.sendClose()
 
     override fun toString() = "Window(\"$title\", $appId)"
+
+    private companion object {
+        val VALID_EDGES = setOf(
+            XdgToplevel.ResizeEdge.TOP, XdgToplevel.ResizeEdge.BOTTOM, XdgToplevel.ResizeEdge.LEFT,
+            XdgToplevel.ResizeEdge.TOP_LEFT, XdgToplevel.ResizeEdge.BOTTOM_LEFT, XdgToplevel.ResizeEdge.RIGHT,
+            XdgToplevel.ResizeEdge.TOP_RIGHT, XdgToplevel.ResizeEdge.BOTTOM_RIGHT, XdgToplevel.ResizeEdge.NONE,
+        )
+    }
 }
 
 /** A menu or tooltip attached to a window or another popup (xdg_popup). */

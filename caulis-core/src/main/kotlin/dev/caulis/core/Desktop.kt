@@ -2,6 +2,7 @@ package dev.caulis.core
 
 import dev.caulis.core.input.Seat
 import dev.caulis.event.EventLoop
+import dev.caulis.protocol.xdgshell.XdgToplevel
 import dev.caulis.render.GpuTarget
 import dev.caulis.render.Rect
 import dev.caulis.render.Renderer
@@ -25,13 +26,21 @@ class Desktop(
     var width = width
         set(value) {
             field = value
-            changed()
+            refitWindows()
         }
     var height = height
         set(value) {
             field = value
-            changed()
+            refitWindows()
         }
+
+    // The desktop changed size: maximized and fullscreen windows follow it.
+    private fun refitWindows() {
+        for (window in windows + minimized) {
+            if ((window.maximized || window.fullscreen) && window.shell.configured) window.configure(width, height)
+        }
+        changed()
+    }
 
     /**
      * Called whenever something may have to be drawn again (a program drew, a window moved,
@@ -89,21 +98,243 @@ class Desktop(
 
     // --- windows and popups -----------------------------------------------------------
 
+    // Apps that asked to start maximized or fullscreen get the desktop size right away.
+    override fun initialSize(window: Window): Pair<Int, Int> =
+        if (window.maximized || window.fullscreen) width to height else 0 to 0
+
     override fun windowMapped(window: Window) {
         val visible = window.shell.visibleRect
         // Cascade from the top left, wrapping around before leaving the output.
         val step = 32
-        window.x = (40 + cascade * step).coerceAtMost((width - visible.width).coerceAtLeast(0))
-        window.y = (40 + cascade * step).coerceAtMost((height - visible.height).coerceAtLeast(0))
+        val x = (40 + cascade * step).coerceAtMost((width - visible.width).coerceAtLeast(0))
+        val y = (40 + cascade * step).coerceAtMost((height - visible.height).coerceAtLeast(0))
         cascade = (cascade + 1) % 8
+        if (window.maximized || window.fullscreen) {
+            // Started maximized: if it is ever restored, it gets a sensible floating place.
+            floatingRects[window] = Rect(x, y, width * 2 / 3, height * 2 / 3)
+            window.x = 0
+            window.y = 0
+        } else {
+            window.x = x
+            window.y = y
+        }
         windows += window
         focus(window)
     }
 
     override fun windowUnmapped(window: Window) {
         windows -= window
+        minimized -= window
+        floatingRects -= window
+        if (grab?.window === window) grab = null
         if (seat.keyboardFocus === window.surface) focus(windows.lastOrNull())
         changed()
+    }
+
+    override fun windowCommitted(window: Window) {
+        // While resizing from the left or top, the opposite edge stays where it was.
+        val resize = grab as? Grab.Resize ?: return
+        if (resize.window !== window) return
+        val visibleRect = window.shell.visibleRect
+        if (resize.edges and XdgToplevel.ResizeEdge.LEFT != 0) window.x = resize.start.right - visibleRect.width
+        if (resize.edges and XdgToplevel.ResizeEdge.TOP != 0) window.y = resize.start.bottom - visibleRect.height
+        changed()
+    }
+
+    override fun bounds(window: Window): Pair<Int, Int> = width to height
+
+    // --- window states: maximized, fullscreen, minimized ----------------------------------
+
+    /** Windows the user minimized: hidden until brought back with [focus] or [cycleFocus]. */
+    val minimized = ArrayList<Window>()
+
+    // Where a window was (and how big) before it was maximized or made fullscreen.
+    private val floatingRects = HashMap<Window, Rect>()
+
+    /** The window that has the keyboard, if any. */
+    val focusedWindow: Window? get() = windows.lastOrNull()?.takeIf { it.activated }
+
+    override fun maximizeRequested(window: Window, maximized: Boolean) = setMaximized(window, maximized)
+    override fun fullscreenRequested(window: Window, fullscreen: Boolean) = setFullscreen(window, fullscreen)
+    override fun minimizeRequested(window: Window) = minimize(window)
+
+    /** Makes [window] fill the desktop (or brings it back to its earlier place and size). */
+    fun setMaximized(window: Window, maximized: Boolean) {
+        if (!window.shell.configured) {
+            window.maximized = maximized // sent with the first configure (see initialSize)
+            return
+        }
+        if (window.maximized == maximized) {
+            window.configure() // the app expects an answer anyway
+            return
+        }
+        window.maximized = maximized
+        applyState(window)
+    }
+
+    /** Shows [window] on the whole screen, above everything (or back as before). */
+    fun setFullscreen(window: Window, fullscreen: Boolean) {
+        if (!window.shell.configured) {
+            window.fullscreen = fullscreen
+            return
+        }
+        if (window.fullscreen == fullscreen) {
+            window.configure()
+            return
+        }
+        window.fullscreen = fullscreen
+        applyState(window)
+        if (fullscreen && window.shell.mapped) focus(window)
+    }
+
+    // Puts a window where its states say: full desktop, or its remembered floating place.
+    private fun applyState(window: Window) {
+        if (window.maximized || window.fullscreen) {
+            if (window !in floatingRects && window.shell.mapped) floatingRects[window] = currentRect(window)
+            window.x = 0
+            window.y = 0
+            window.configure(width, height)
+        } else {
+            val floating = floatingRects.remove(window) ?: currentRect(window)
+            window.x = floating.x
+            window.y = floating.y
+            window.configure(floating.width, floating.height)
+        }
+        changed()
+    }
+
+    private fun currentRect(window: Window): Rect {
+        val visibleRect = window.shell.visibleRect
+        return Rect(window.x, window.y, visibleRect.width, visibleRect.height)
+    }
+
+    /** Hides [window]; it comes back with [focus] or [cycleFocus] (Alt+Tab). */
+    fun minimize(window: Window) {
+        if (window !in windows) return
+        windows -= window
+        minimized += window
+        if (grab?.window === window) grab = null
+        focus(windows.lastOrNull())
+    }
+
+    /**
+     * Brings the window at the bottom of the stack to the front; pressed repeatedly, it
+     * goes through all windows, minimized ones included (they come back).
+     */
+    fun cycleFocus() {
+        val next = minimized.firstOrNull() ?: windows.firstOrNull() ?: return
+        if (next === windows.lastOrNull()) return // only one window
+        focus(next)
+    }
+
+    /** Asks the focused window to close. */
+    fun closeFocused() {
+        focusedWindow?.close()
+    }
+
+    /** The window under the desktop point ([x], [y]), if any. */
+    fun windowAt(x: Double, y: Double): Window? = surfaceAt(x, y)?.root?.roleObject as? Window
+
+    // --- moving and resizing with the pointer ---------------------------------------------
+
+    private sealed class Grab(val window: Window, val pointerX: Double, val pointerY: Double) {
+        class Move(window: Window, pointerX: Double, pointerY: Double, val startX: Int, val startY: Int) :
+            Grab(window, pointerX, pointerY)
+
+        class Resize(window: Window, pointerX: Double, pointerY: Double, val edges: Int, val start: Rect) :
+            Grab(window, pointerX, pointerY) {
+            var lastWidth = start.width
+            var lastHeight = start.height
+        }
+    }
+
+    private var grab: Grab? = null
+    private var buttonsHeld = 0
+
+    override fun moveRequested(window: Window, serial: Int) = beginMove(window)
+
+    override fun resizeRequested(window: Window, serial: Int, edges: Int) = beginResize(window, edges)
+
+    /**
+     * Moves [window] with the pointer until the button is released. Only while a button is
+     * held (an app cannot grab the pointer on its own).
+     */
+    fun beginMove(window: Window) {
+        if (buttonsHeld == 0 || window !in windows || window.fullscreen) return
+        if (window.maximized) {
+            // Dragging a maximized window: it gets its old size back, under the pointer.
+            val floating = floatingRects[window] ?: currentRect(window)
+            floatingRects[window] = Rect((pointerX - floating.width / 2).toInt(), pointerY.toInt() - 10, floating.width, floating.height)
+            setMaximized(window, false)
+        }
+        startGrab(Grab.Move(window, pointerX, pointerY, window.x, window.y))
+    }
+
+    /** Resizes [window] with the pointer at [edges] (XdgToplevel.ResizeEdge) until the button is released. */
+    fun beginResize(window: Window, edges: Int) {
+        if (buttonsHeld == 0 || window !in windows || window.maximized || window.fullscreen) return
+        startGrab(Grab.Resize(window, pointerX, pointerY, edges, currentRect(window)))
+    }
+
+    /** The resize edges nearest to the desktop point (for Super+right-drag). */
+    fun nearestEdges(window: Window, x: Double, y: Double): Int {
+        val rect = currentRect(window)
+        val horizontal = if (x < rect.x + rect.width / 2) XdgToplevel.ResizeEdge.LEFT else XdgToplevel.ResizeEdge.RIGHT
+        val vertical = if (y < rect.y + rect.height / 2) XdgToplevel.ResizeEdge.TOP else XdgToplevel.ResizeEdge.BOTTOM
+        return horizontal or vertical
+    }
+
+    private fun startGrab(newGrab: Grab) {
+        grab = newGrab
+        focus(newGrab.window)
+        // The app under the pointer stops getting pointer events during the grab.
+        seat.pointerMotion((System.nanoTime() / 1_000_000).toInt(), null, 0.0, 0.0)
+    }
+
+    private fun continueGrab(current: Grab) {
+        val dx = (pointerX - current.pointerX).toInt()
+        val dy = (pointerY - current.pointerY).toInt()
+        when (current) {
+            is Grab.Move -> {
+                current.window.x = current.startX + dx
+                current.window.y = current.startY + dy
+                changed()
+            }
+            is Grab.Resize -> {
+                val window = current.window
+                val edges = current.edges
+                var newWidth = current.start.width
+                var newHeight = current.start.height
+                if (edges and XdgToplevel.ResizeEdge.LEFT != 0) newWidth -= dx
+                if (edges and XdgToplevel.ResizeEdge.RIGHT != 0) newWidth += dx
+                if (edges and XdgToplevel.ResizeEdge.TOP != 0) newHeight -= dy
+                if (edges and XdgToplevel.ResizeEdge.BOTTOM != 0) newHeight += dy
+                newWidth = limit(newWidth, window.minWidth, window.maxWidth)
+                newHeight = limit(newHeight, window.minHeight, window.maxHeight)
+                if (newWidth != current.lastWidth || newHeight != current.lastHeight) {
+                    current.lastWidth = newWidth
+                    current.lastHeight = newHeight
+                    window.resizing = true
+                    window.configure(newWidth, newHeight)
+                }
+            }
+        }
+    }
+
+    private fun endGrab() {
+        val ended = grab ?: return
+        grab = null
+        if (ended is Grab.Resize && ended.window.resizing) {
+            ended.window.resizing = false
+            ended.window.configure()
+        }
+    }
+
+    // A size within the app's limits (0 = no limit), never smaller than 1.
+    private fun limit(size: Int, min: Int, max: Int): Int {
+        var result = maxOf(size, min, 1)
+        if (max > 0) result = minOf(result, max)
+        return result
     }
 
     override fun popupMapped(popup: Popup) {
@@ -125,8 +356,12 @@ class Desktop(
         seat.focusKeyboard(popup.surface)
     }
 
-    /** Raises [window], marks it active and gives it the keyboard (null = nothing focused). */
+    /**
+     * Raises [window], marks it active and gives it the keyboard (null = nothing focused).
+     * A minimized window comes back.
+     */
     fun focus(window: Window?) {
+        if (window != null && minimized.remove(window)) windows += window
         for (other in windows) if (other !== window) other.setActivated(false)
         if (window != null) {
             windows -= window
@@ -142,12 +377,31 @@ class Desktop(
     fun pointerMoved(timeMillis: Int, x: Double, y: Double) {
         pointerX = x.coerceIn(0.0, width - 1.0)
         pointerY = y.coerceIn(0.0, height - 1.0)
+        grab?.let { current ->
+            continueGrab(current)
+            onChange()
+            return
+        }
         val hit = surfaceAt(pointerX, pointerY)
         seat.pointerMotion(timeMillis, hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
         onChange() // only the cursor moved: the rest of the scene stays as it is
     }
 
-    fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean) {
+    /**
+     * A mouse button changed. With [passToApps] false it only counts as held (for a move or
+     * resize the window manager starts itself, e.g. Super+drag) and no program sees it.
+     */
+    fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean, passToApps: Boolean = true) {
+        buttonsHeld = (buttonsHeld + if (pressed) 1 else -1).coerceAtLeast(0)
+        if (!passToApps) return
+        if (grab != null) {
+            // The button that started a move or resize ends it; the app does not see it.
+            if (!pressed && buttonsHeld == 0) {
+                endGrab()
+                pointerMoved(timeMillis, pointerX, pointerY) // the app under the pointer gets it back
+            }
+            return
+        }
         if (pressed) {
             val hit = surfaceAt(pointerX, pointerY)
             // A click outside the open menus closes them (and is not passed to the window below).
@@ -234,9 +488,23 @@ class Desktop(
      *
      * [present] is the backend's: `monitor::present` or `window::present`.
      */
-    fun refresh(view: DesktopView, present: ((GpuTarget, Int) -> Unit) -> Unit, force: Boolean = false): Boolean {
+    fun refresh(
+        view: DesktopView,
+        present: ((GpuTarget, Int) -> Unit) -> Unit,
+        force: Boolean = false,
+        /**
+         * The backend's way to show a program's buffer directly (e.g. `monitor::presentDirect`),
+         * or null. Used for a fullscreen window alone on screen; returns false if not possible.
+         */
+        presentDirect: ((DmabufBuffer) -> Boolean)? = null,
+    ): Boolean {
         val draw = force || needsRedraw(view)
-        if (draw) {
+        val direct = if (draw && !force && presentDirect != null) directCandidate() else null
+        if (direct != null && presentDirect!!(direct)) {
+            // Nothing drawn: the program's own picture is on screen.
+            view.shownWithoutDrawing()
+            takeFeedbacks(view)
+        } else if (draw) {
             present { target, age -> render(view, target, age) }
         } else {
             // Nothing new to show: whatever programs committed is on screen already.
@@ -284,6 +552,20 @@ class Desktop(
             }
         }
         renderer.end()
+    }
+
+    /**
+     * The buffer of a fullscreen window that is the only thing on screen (no menus, no
+     * cursor drawn by us, nothing above it), if it is a GPU buffer exactly as big as the
+     * screen. Such a picture can go to the display as it is.
+     */
+    private fun directCandidate(): DmabufBuffer? {
+        val all = items()
+        val only = all.singleOrNull() as? DrawItem.Picture ?: return null
+        val window = only.surface.roleObject as? Window ?: return null
+        if (!window.fullscreen || only.rect != Rect(0, 0, width, height)) return null
+        val buffer = only.surface.current.buffer?.dataAs<DmabufBuffer>() ?: return null
+        return buffer.takeIf { it.width == width && it.height == height && only.surface.current.scale == 1 }
     }
 
     // The visible programs' "tell me when it is shown" requests now belong to this frame.

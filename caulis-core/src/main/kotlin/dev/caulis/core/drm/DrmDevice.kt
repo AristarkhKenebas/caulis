@@ -141,6 +141,40 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
         id.get(JAVA_INT, 0)
     }
 
+    /**
+     * Registers a program's own GPU buffer as something the display can show (direct
+     * scanout). Returns the framebuffer id, or null if this display cannot show it.
+     */
+    internal fun importFramebuffer(buffer: Dmabuf): Int? = Arena.ofConfined().use { temp ->
+        val handles = temp.allocate(JAVA_INT, 4)
+        val pitches = temp.allocate(JAVA_INT, 4)
+        val offsets = temp.allocate(JAVA_INT, 4)
+        val modifiers = temp.allocate(JAVA_LONG, 4)
+        val explicitModifier = buffer.modifier != Dmabuf.MODIFIER_INVALID
+        val opened = LinkedHashSet<Int>()
+        try {
+            val handle = temp.allocate(JAVA_INT)
+            for ((index, plane) in buffer.planes.withIndex()) {
+                if (Drm.drmPrimeFDToHandle(fd, plane.fd.value, handle) != 0) return@use null
+                val value = handle.get(JAVA_INT, 0)
+                opened += value
+                handles.setAtIndex(JAVA_INT, index.toLong(), value)
+                pitches.setAtIndex(JAVA_INT, index.toLong(), plane.stride)
+                offsets.setAtIndex(JAVA_INT, index.toLong(), plane.offset)
+                if (explicitModifier) modifiers.setAtIndex(JAVA_LONG, index.toLong(), buffer.modifier)
+            }
+            val id = temp.allocate(JAVA_INT)
+            val flags = if (explicitModifier) Drm.DRM_MODE_FB_MODIFIERS() else 0
+            val result = Drm.drmModeAddFB2WithModifiers(
+                fd, buffer.width, buffer.height, buffer.format, handles, pitches, offsets, modifiers, id, flags,
+            )
+            if (result == 0) id.get(JAVA_INT, 0) else null
+        } finally {
+            // The framebuffer keeps its own reference to the memory.
+            for (value in opened) Drm.drmCloseBufferHandle(fd, value)
+        }
+    }
+
     internal fun removeFramebuffer(id: Int) {
         Drm.drmModeRmFB(fd, id)
     }
