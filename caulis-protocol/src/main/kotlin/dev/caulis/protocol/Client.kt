@@ -19,6 +19,7 @@ class Client internal constructor(
     /** The server this client is connected to. */
     val server: Display,
     internal val socket: UnixSocket,
+    private val givenName: String? = null,
 ) : WireOutput {
     /** Process id of the program (from the kernel, cannot be faked). */
     val pid: Int
@@ -32,6 +33,7 @@ class Client internal constructor(
 
     /** A short name for logs: the program's name and process id, e.g. "foot[4123]". */
     val name: String by lazy {
+        givenName?.let { return@lazy it }
         val program = try {
             java.nio.file.Files.readString(java.nio.file.Path.of("/proc/$pid/comm")).trim()
         } catch (_: Exception) {

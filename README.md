@@ -48,6 +48,10 @@ any installed cursor theme works too.
 Screenshots and recordings (grim, wf-recorder, OBS, screen sharing in browsers through
 xdg-desktop-portal-wlr) work, also of single windows.
 
+X11 programs run too (Xwayland starts only when the first one does): their windows tile,
+get title bars and effects like the rest, are sharp and the right size on scaled screens,
+and copy and paste works between X11 and Wayland programs.
+
 ## Modules
 
 | Module | What it is |
@@ -59,6 +63,7 @@ xdg-desktop-portal-wlr) work, also of single windows.
 | `caulis-geometry` | rectangles |
 | `caulis-tiling` | the layout language and the built-in layouts (pure Kotlin) |
 | `caulis-core` | surfaces, windows, input, outputs, the nested and screen backends |
+| `caulis-xwayland` | X11 programs: Xwayland started on demand, their window manager, the shared clipboard |
 | `caulis-wm` | `caulis { }`: a running compositor in a few lines |
 | `caulis-cursor-bibata` | the Bibata cursor themes, ready to use (optional; GPL-3.0, as Bibata) |
 

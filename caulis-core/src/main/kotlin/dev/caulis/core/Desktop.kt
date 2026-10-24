@@ -101,7 +101,7 @@ class Desktop(
         for (pad in shownPads) placeScratchpad(pad, appearing = emptySet())
         for (workspace in workspaces.values) {
             for (window in workspace.windows + workspace.minimized) {
-                if (!window.shell.configured) continue
+                if (!window.configured) continue
                 if (window.fullscreen) {
                     window.configure(width, height)
                 } else if (window.maximized) {
@@ -238,7 +238,7 @@ class Desktop(
      * also when it is hidden or on another workspace. For sharing one window.
      */
     fun captureWindow(window: Window, target: GpuTarget) {
-        val visible = window.shell.visibleRect
+        val visible = window.visibleRect
         val items = ArrayList<DrawItem>()
         addTree(items, window.surface, -visible.x, -visible.y)
         renderer.begin(target, 0f, 0f, 0f, alpha = 0f)
@@ -248,7 +248,7 @@ class Desktop(
 
     /** The size [captureWindow] draws [window] at, in pixels. */
     fun windowPixelSize(window: Window): Pair<Int, Int> {
-        val visible = window.shell.visibleRect
+        val visible = window.visibleRect
         return px(visible.width).coerceAtLeast(1) to px(visible.height).coerceAtLeast(1)
     }
 
@@ -327,7 +327,7 @@ class Desktop(
         }
         return when (val role = current.roleObject) {
             is LayerSurface -> (role.x + dx) to (role.y + dy)
-            is Window -> screenRects[role]?.let { (it.x - role.shell.visibleRect.x + dx) to (it.y - role.shell.visibleRect.y + dy) }
+            is Window -> screenRects[role]?.let { (it.x - role.visibleRect.x + dx) to (it.y - role.visibleRect.y + dy) }
             else -> null
         }
     }
@@ -787,7 +787,7 @@ class Desktop(
         val now = System.nanoTime()
         for ((window, rect) in padTargets(pad)) {
             window.tiled = pad.style is Scratchpad.Overlay
-            val visibleRect = window.shell.visibleRect
+            val visibleRect = window.visibleRect
             if (visibleRect.width != rect.width || visibleRect.height != rect.height) window.configure(rect.width, rect.height)
             window.x = rect.x
             window.y = rect.y
@@ -804,7 +804,7 @@ class Desktop(
      * Decides whether a new window floats instead of being tiled. By default: dialogs and
      * windows that cannot be resized. Replace it for your own rules (e.g. by app id).
      */
-    var floatRule: (Window) -> Boolean = { it.parent != null || it.fixedSize }
+    var floatRule: (Window) -> Boolean = { it.parent != null || it.fixedSize || it.prefersFloating }
 
     private var cascade = 0
 
@@ -855,7 +855,7 @@ class Desktop(
 
     private fun place(targets: Map<Window, Rect>) {
         for ((window, rect) in targets) {
-            val visibleRect = window.shell.visibleRect
+            val visibleRect = window.visibleRect
             val becameTiled = !window.tiled
             window.tiled = true
             if (becameTiled || visibleRect.width != rect.width || visibleRect.height != rect.height) {
@@ -870,7 +870,7 @@ class Desktop(
     private fun applyWhenReady() {
         if (pending.isEmpty()) return
         val ready = pending.all { (window, rect) ->
-            val visibleRect = window.shell.visibleRect
+            val visibleRect = window.visibleRect
             visibleRect.width == rect.width && visibleRect.height == rect.height
         }
         if (ready) {
@@ -1034,6 +1034,37 @@ class Desktop(
         if (chosen != null) focus(chosen)
     }
 
+    // --- surfaces that place themselves (X11 menus and tooltips) ---------------------------
+
+    private val unmanaged = LinkedHashMap<Surface, Pair<Int, Int>>()
+
+    /**
+     * Shows [surface] at [x], [y] (desktop units) above the windows, as it places itself —
+     * an X11 menu or tooltip ("override-redirect" window). Again to move it.
+     */
+    fun showUnmanaged(surface: Surface, x: Int, y: Int) {
+        if (!surface.resource.isAlive) return
+        if (unmanaged.remove(surface) == null) surface.resource.onDestroy { hideUnmanaged(surface) }
+        unmanaged[surface] = x to y // last shown on top
+        changed()
+    }
+
+    fun hideUnmanaged(surface: Surface) {
+        if (unmanaged.remove(surface) == null) return
+        if (seat.keyboardFocus === surface) focusUnmanaged(null)
+        changed()
+    }
+
+    /**
+     * Gives the keyboard to [surface], shown with [showUnmanaged] — an X11 launcher, game or
+     * menu that grabbed the keyboard; null gives it back to the focused window.
+     */
+    fun focusUnmanaged(surface: Surface?) {
+        if (surface != null && surface !in unmanaged) return
+        focusLog.trace { "Keyboard to ${surface?.roleObject ?: "the focused window"} (places itself)" }
+        seat.focusKeyboard(surface ?: exclusiveLayer()?.surface ?: focusedWindow?.surface)
+    }
+
     // --- title bars (server-side decorations) ---------------------------------------------
 
     /**
@@ -1068,8 +1099,16 @@ class Desktop(
     fun titleBarsOf(window: Window): TitleBars = titleBarsFor?.invoke(window) ?: titleBars
 
     /** How high the compositor's title bar over [window] is, in desktop units (0: it has none). */
-    fun titleHeight(window: Window): Int =
-        if (window.serverDecorated && !window.fullscreen && titleBarsOf(window) == TitleBars.COMPOSITOR) titleBarStyle.height else 0
+    fun titleHeight(window: Window): Int {
+        if (window.fullscreen) return 0
+        val mode = titleBarsOf(window)
+        return when {
+            mode == TitleBars.NONE -> 0
+            window.needsTitleBar -> titleBarStyle.height
+            window.serverDecorated && mode == TitleBars.COMPOSITOR -> titleBarStyle.height
+            else -> 0
+        }
+    }
 
     // [area] without the title bar at its top (where the window's own picture goes).
     private fun withoutTitle(window: Window, area: Rect): Rect {
@@ -1328,7 +1367,7 @@ class Desktop(
         pending.remove(window)
         if (!window.tiled) return
         window.tiled = false
-        val floating = floatingRects[window] ?: cascadeRect(window.shell.visibleRect.width, window.shell.visibleRect.height)
+        val floating = floatingRects[window] ?: cascadeRect(window.visibleRect.width, window.visibleRect.height)
         moveSmoothly(window, floating.x, floating.y)
         window.configure(floating.width, floating.height)
         changed()
@@ -1352,7 +1391,7 @@ class Desktop(
         val workspace = workspaceOf(window) ?: return
         if (floating) {
             if (!window.tiled && window in workspace.floating) return
-            floatingRects.getOrPut(window) { cascadeRect(window.shell.visibleRect.width, window.shell.visibleRect.height) }
+            floatingRects.getOrPut(window) { cascadeRect(window.visibleRect.width, window.visibleRect.height) }
             workspace.floating += window
             untile(window)
         } else {
@@ -1390,7 +1429,7 @@ class Desktop(
             return
         }
         val workspace = activeWorkspace
-        val visibleRect = window.shell.visibleRect
+        val visibleRect = window.visibleRect
         // Its place when floating: its own size, or (if the layout sized it) 2/3 of the desktop.
         val floatingPlace = (if (window.tiled) cascadeRect(width * 2 / 3, height * 2 / 3) else cascadeRect(visibleRect.width, visibleRect.height))
             .let { it.translate(0, titleHeight(window)) } // its title bar stays on screen
@@ -1459,7 +1498,7 @@ class Desktop(
         // While resizing from the left or top, the opposite edge stays where it was.
         val resize = grab as? Grab.Resize ?: return
         if (resize.window !== window) return
-        val visibleRect = window.shell.visibleRect
+        val visibleRect = window.visibleRect
         if (resize.edges and XdgToplevel.ResizeEdge.LEFT != 0) window.x = resize.start.right - visibleRect.width
         if (resize.edges and XdgToplevel.ResizeEdge.TOP != 0) window.y = resize.start.bottom - visibleRect.height
         changed()
@@ -1503,7 +1542,7 @@ class Desktop(
     /** Makes [window] fill the desktop (or brings it back to its earlier place and size). */
     fun setMaximized(window: Window, maximized: Boolean) {
         windowsLog.info { "$window: ${if (maximized) "maximized" else "not maximized"}" }
-        if (!window.shell.configured) {
+        if (!window.configured) {
             window.maximized = maximized // sent with the first configure (see initialSize)
             return
         }
@@ -1518,7 +1557,7 @@ class Desktop(
     /** Shows [window] on the whole screen, above everything (or back as before). */
     fun setFullscreen(window: Window, fullscreen: Boolean) {
         windowsLog.info { "$window: ${if (fullscreen) "fullscreen" else "not fullscreen"}" }
-        if (!window.shell.configured) {
+        if (!window.configured) {
             window.fullscreen = fullscreen
             return
         }
@@ -1528,7 +1567,7 @@ class Desktop(
         }
         window.fullscreen = fullscreen
         applyState(window)
-        if (fullscreen && window.shell.mapped) focus(window)
+        if (fullscreen && window.mapped) focus(window)
     }
 
     // Puts a window where its states say: full desktop, its tile, or its floating place.
@@ -1536,7 +1575,7 @@ class Desktop(
         pending.remove(window)
         val workspace = workspaceOf(window)
         if (window.maximized || window.fullscreen) {
-            if (!window.tiled && window.shell.mapped) floatingRects[window] = currentRect(window)
+            if (!window.tiled && window.mapped) floatingRects[window] = currentRect(window)
             // Fullscreen covers everything; maximized leaves panels and docks free.
             val area = if (window.fullscreen) Rect(0, 0, width, height) else withoutTitle(window, usableArea)
             moveSmoothly(window, area.x, area.y)
@@ -1553,7 +1592,7 @@ class Desktop(
     }
 
     private fun currentRect(window: Window): Rect {
-        val visibleRect = window.shell.visibleRect
+        val visibleRect = window.visibleRect
         return Rect(window.x, window.y, visibleRect.width, visibleRect.height)
     }
 
@@ -1569,6 +1608,7 @@ class Desktop(
         }
         workspace.windows -= window
         workspace.minimized += window
+        window.setMinimized(true)
         pending.remove(window)
         if (grab?.window === window) grab = null
         arrange(workspace)
@@ -1611,6 +1651,9 @@ class Desktop(
 
     /** The window under the desktop point ([x], [y]), if any. */
     fun windowAt(x: Double, y: Double): Window? = surfaceAt(x, y)?.root?.roleObject as? Window
+
+    /** The windows on screen bottom to top, as they are drawn (X11 windows are stacked the same way). */
+    val stacking: List<Window> get() = stackingOrder()
 
     // Windows bottom to top as drawn: tiled ones, floating ones above them, fullscreen on top.
     private fun stackingOrder(): List<Window> {
@@ -1805,6 +1848,7 @@ class Desktop(
             }
             if (activeWorkspace.minimized.remove(window)) {
                 activeWorkspace.windows += window
+                window.setMinimized(false)
                 // Back out of its dock icon (or up from below), from wherever it is now.
                 if (animationMillis > 0) {
                     val place = currentRect(window)
@@ -1952,6 +1996,9 @@ class Desktop(
             for (lockSurface in lockSurfaces()) hitTree(lockSurface.surface, x, y, lockSurface.surface)?.let { return it }
             return null
         }
+        for ((surface, place) in unmanaged.entries.reversed().map { it.key to it.value }) {
+            hitTree(surface, x - place.first, y - place.second, surface)?.let { return it }
+        }
         for (popup in popups.asReversed()) {
             val (px, py) = popupOrigin(popup)
             hitTree(popup.surface, x - px, y - py, popup.surface)?.let { return it }
@@ -1960,7 +2007,7 @@ class Desktop(
         for (pad in shownPads.asReversed()) {
             if (pad.leaving) continue
             for (window in pad.windows.asReversed()) {
-                val visible = window.shell.visibleRect
+                val visible = window.visibleRect
                 hitTree(window.surface, x - (window.x - visible.x), y - (window.y - visible.y), window.surface)?.let { return it }
             }
         }
@@ -1973,7 +2020,7 @@ class Desktop(
     }
 
     private fun windowHit(window: Window, x: Double, y: Double): Hit? {
-        val visible = window.shell.visibleRect
+        val visible = window.visibleRect
         return hitTree(window.surface, x - (window.x - visible.x), y - (window.y - visible.y), window.surface)
     }
 
@@ -2270,6 +2317,7 @@ class Desktop(
             val (x, y) = popupOrigin(popup)
             addTree(all, popup.surface, x, y)
         }
+        if (camera === Camera.NONE) for ((surface, place) in unmanaged) addTree(all, surface, place.first, place.second)
 
         // Leave out what nobody can see; only the rest counts as visible.
         val kept = cullHidden(all, Rect(0, 0, width, height))
@@ -2292,7 +2340,7 @@ class Desktop(
 
     // A window where it is (or on its way, see glides); a leaving one only while it moves.
     private fun addWindow(all: MutableList<DrawItem>, window: Window, now: Long, leaving: Boolean = false, camera: Camera = Camera.NONE) {
-        val visibleRect = window.shell.visibleRect
+        val visibleRect = window.visibleRect
         val target = currentRect(window)
         val glide = glides[window]
         val shown = glide?.let { glidePosition(it, target, now) }

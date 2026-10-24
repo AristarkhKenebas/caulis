@@ -146,7 +146,7 @@ class Compositor(val display: Display, private val renderer: Renderer?) {
 class Surface internal constructor(val resource: WlSurface, private val compositor: Compositor) {
 
     /** What the surface is used as. A surface gets a role once and keeps it. */
-    enum class Role { XDG_TOPLEVEL, XDG_POPUP, LAYER, LOCK, SUBSURFACE, CURSOR }
+    enum class Role { XDG_TOPLEVEL, XDG_POPUP, LAYER, LOCK, SUBSURFACE, CURSOR, XWAYLAND }
 
     var role: Role? = null
         private set
@@ -181,6 +181,7 @@ class Surface internal constructor(val resource: WlSurface, private val composit
     val width: Int
         get() = when {
             current.bufferWidth == 0 -> 0
+            nativeScale != null -> Math.round(current.bufferWidth / nativeScale!!).toInt()
             current.viewportWidth > 0 -> current.viewportWidth
             current.viewportSource != null -> current.viewportSource!![2].toInt()
             else -> current.bufferWidth / current.scale
@@ -188,6 +189,7 @@ class Surface internal constructor(val resource: WlSurface, private val composit
     val height: Int
         get() = when {
             current.bufferHeight == 0 -> 0
+            nativeScale != null -> Math.round(current.bufferHeight / nativeScale!!).toInt()
             current.viewportHeight > 0 -> current.viewportHeight
             current.viewportSource != null -> current.viewportSource!![3].toInt()
             else -> current.bufferHeight / current.scale
@@ -207,6 +209,14 @@ class Surface internal constructor(val resource: WlSurface, private val composit
         }
 
     // --- scale and outputs ----------------------------------------------------------------
+
+    /**
+     * For surfaces whose pictures are always in screen pixels, whatever they say (Xwayland's:
+     * X11 programs draw at the screen's real resolution): how many pixels one surface unit
+     * is. Their size is the picture's divided by this, and pointer positions are sent to the
+     * program in its pixels. Null for ordinary surfaces.
+     */
+    var nativeScale: Double? = null
 
     internal var viewport: WpViewport? = null
     internal var fractionalScale: WpFractionalScaleV1? = null
@@ -314,6 +324,16 @@ class Surface internal constructor(val resource: WlSurface, private val composit
         if (width != oldWidth || height != oldHeight) {
             changes.clear()
             changes += Rect(0, 0, maxOf(width, oldWidth), maxOf(height, oldHeight))
+            return
+        }
+        nativeScale?.let { s ->
+            for (damage in current.damage) {
+                val left = Math.floor(damage.x / s).toInt()
+                val top = Math.floor(damage.y / s).toInt()
+                val right = Math.ceil((damage.x + damage.width) / s).toInt()
+                val bottom = Math.ceil((damage.y + damage.height) / s).toInt()
+                Rect(left, top, right - left, bottom - top).intersect(Rect(0, 0, width, height))?.let { changes += it }
+            }
             return
         }
         if (current.viewportSource != null || current.viewportWidth > 0) {
@@ -494,7 +514,9 @@ class Surface internal constructor(val resource: WlSurface, private val composit
     fun acceptsInput(x: Double, y: Double): Boolean {
         if (x < 0 || y < 0 || x >= width || y >= height) return false
         val region = current.inputRegion ?: return true
-        return region.contains(x.toInt(), y.toInt())
+        // A region of a surface in screen pixels is in its pixels too.
+        val s = nativeScale ?: 1.0
+        return region.contains((x * s).toInt(), (y * s).toInt())
     }
 
     internal fun destroyed() {

@@ -44,6 +44,17 @@ class Fd private constructor(private var number: Int, private val owned: Boolean
     }
 
     /** A second, independent descriptor for the same file (closed separately). */
+    /** Reads into [buffer]: the number of bytes read, 0 at the end; throws [NativeException] (EAGAIN: nothing yet). */
+    fun read(buffer: java.lang.foreign.MemorySegment): Long = Libc.read(value, buffer)
+
+    /** Writes [data]: the number of bytes written (maybe fewer); throws [NativeException] (EAGAIN: full for now). */
+    fun write(data: java.lang.foreign.MemorySegment): Long = Libc.write(value, data)
+
+    /** Makes reads and writes return at once instead of waiting (they fail with EAGAIN then). */
+    fun setNonBlocking() {
+        Libc.fcntl(value, LibC.F_SETFL(), Libc.fcntl(value, LibC.F_GETFL()) or LibC.O_NONBLOCK())
+    }
+
     fun duplicate(): Fd = adopt(Libc.fcntl(value, LibC.F_DUPFD_CLOEXEC(), 0))
 
     override fun close() {
@@ -62,6 +73,13 @@ class Fd private constructor(private var number: Int, private val owned: Boolean
         fun adopt(raw: Int): Fd {
             require(raw >= 0) { "Not a file descriptor: $raw" }
             return Fd(raw)
+        }
+
+        /** A new pipe: (the end to read, the end to write), both closed in started programs. */
+        fun pipe(): Pair<Fd, Fd> = java.lang.foreign.Arena.ofConfined().use { temp ->
+            val ends = temp.allocate(java.lang.foreign.ValueLayout.JAVA_INT, 2)
+            Libc.pipe2(ends, LibC.O_CLOEXEC())
+            adopt(ends.getAtIndex(java.lang.foreign.ValueLayout.JAVA_INT, 0)) to adopt(ends.getAtIndex(java.lang.foreign.ValueLayout.JAVA_INT, 1))
         }
 
         /**

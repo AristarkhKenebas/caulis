@@ -2,6 +2,7 @@ package dev.caulis.core
 
 import dev.caulis.core.input.Seat
 import dev.caulis.ffi.Fd
+import dev.caulis.log.Logger
 import dev.caulis.protocol.Client
 import dev.caulis.protocol.Display
 import dev.caulis.protocol.wayland.WlDataDevice
@@ -18,16 +19,45 @@ import dev.caulis.protocol.wayland.WlSurface
  * The focused program is told what is on the clipboard and, when pasting, asks for one
  * format; the data then flows directly between the two programs through a pipe.
  * Drag and drop is refused for now (stage 8).
+ *
+ * The compositor can use the clipboard too ([clipboard], [setClipboard],
+ * [onClipboardChanged]): to bridge it to X11 programs, keep a clipboard history, or put
+ * something on it itself.
  */
 class DataDeviceManager(display: Display, private val seat: Seat) {
 
+    private val log = Logger("clipboard")
     private val devices = ArrayList<WlDataDevice>()
 
     /** What is on the clipboard: the source and its formats. */
-    private var selection: Source? = null
+    private var selection: ClipboardData? = null
+    private val changeListeners = ArrayList<(ClipboardData?) -> Unit>()
 
-    private class Source(val resource: WlDataSource) {
-        val mimeTypes = ArrayList<String>()
+    // A program's wl_data_source.
+    private class Source(val resource: WlDataSource) : ClipboardData {
+        override val mimeTypes = ArrayList<String>()
+
+        override fun send(mimeType: String, fd: Fd) {
+            fd.use { if (resource.isAlive && mimeType in mimeTypes) resource.sendSend(mimeType, it) }
+        }
+
+        override fun cancelled() {
+            if (resource.isAlive) resource.sendCancelled()
+        }
+
+        override fun toString() = "the clipboard of ${resource.client.name}"
+    }
+
+    /** What is on the clipboard now (copied by a program or set with [setClipboard]), or null. */
+    val clipboard: ClipboardData? get() = selection
+
+    /** Puts [data] on the clipboard (null empties it); programs see it at once. */
+    fun setClipboard(data: ClipboardData?) = setSelection(data)
+
+    /** Calls [listener] whenever the clipboard changes (also by [setClipboard]); close the result to stop. */
+    fun onClipboardChanged(listener: (ClipboardData?) -> Unit): AutoCloseable {
+        changeListeners += listener
+        return AutoCloseable { changeListeners -= listener }
     }
 
     init {
@@ -75,12 +105,20 @@ class DataDeviceManager(display: Display, private val seat: Seat) {
         override fun release(resource: WlDataDeviceManager) {}
     }
 
-    private fun setSelection(source: Source?) {
+    private fun setSelection(source: ClipboardData?) {
         val old = selection
         if (old === source) return
         selection = source
-        if (old != null && old.resource.isAlive) old.resource.sendCancelled()
+        log.info { "Clipboard: ${source?.let { "$it (${it.mimeTypes.joinToString()})" } ?: "empty"}" }
+        old?.cancelled()
         seat.keyboardFocus?.let { offerSelectionTo(it.resource.client) }
+        for (listener in changeListeners.toList()) {
+            try {
+                listener(source)
+            } catch (e: Exception) {
+                log.error("A clipboard listener failed", e)
+            }
+        }
     }
 
     private fun offerSelectionTo(client: Client) {
@@ -100,10 +138,12 @@ class DataDeviceManager(display: Display, private val seat: Seat) {
 
             override fun receive(resource: WlDataOffer, mimeType: String, fd: Fd) {
                 // The pasting program gets the data straight from the copying one.
-                if (selection === source && source.resource.isAlive && mimeType in source.mimeTypes) {
-                    source.resource.sendSend(mimeType, fd)
+                if (selection === source && mimeType in source.mimeTypes) {
+                    log.trace { "${resource.client.name} pastes $mimeType" }
+                    source.send(mimeType, fd)
+                } else {
+                    fd.close()
                 }
-                fd.close() // the source got its own copy
             }
 
             override fun destroy(resource: WlDataOffer) {}
@@ -121,4 +161,18 @@ class DataDeviceManager(display: Display, private val seat: Seat) {
         const val VERSION = 3
         private const val MAX_MIME_TYPES = 64
     }
+}
+
+/**
+ * Something on the clipboard: the formats it can be had in (MIME types such as
+ * "text/plain;charset=utf-8" or "image/png") and a way to get it in one of them.
+ */
+interface ClipboardData {
+    val mimeTypes: List<String>
+
+    /** Writes the data as [mimeType] to [fd], then closes it (it may finish later). */
+    fun send(mimeType: String, fd: Fd)
+
+    /** Something else was put on the clipboard. */
+    fun cancelled() {}
 }

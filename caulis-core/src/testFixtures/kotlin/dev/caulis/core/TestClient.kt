@@ -42,6 +42,10 @@ class TestClient(val connection: Connection) : AutoCloseable {
     val output: WlOutput? = names["wl_output"]?.let { registry.bind(it, WlOutput, 4) }
     private val memory = SharedMemory.create("pictures", MAX_SIZE.toLong() * MAX_SIZE * 4)
 
+    /** Binds another global the server offers (e.g. "wl_data_device_manager"). */
+    fun <T : dev.caulis.protocol.client.Proxy> bind(name: String, type: dev.caulis.protocol.client.ProxyType<T>, version: Int): T =
+        registry.bind(names[name] ?: error("the server has no $name"), type, version)
+
     /** A window and what the compositor last asked of it. */
     inner class TestWindow(val surface: WlSurface, val toplevel: XdgToplevel) {
         var width = 0

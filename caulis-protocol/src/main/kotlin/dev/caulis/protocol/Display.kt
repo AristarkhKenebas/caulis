@@ -7,6 +7,7 @@ import dev.caulis.ffi.Fd
 import dev.caulis.ffi.FileLock
 import dev.caulis.ffi.NativeException
 import dev.caulis.ffi.UnixListener
+import dev.caulis.ffi.UnixSocket
 import dev.caulis.protocol.wayland.WlCallback
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlRegistry
@@ -100,14 +101,19 @@ class Display(val loop: EventLoop) : AutoCloseable {
                     }
                 }
             }
-            val client = Client(this, socket)
-            connected += client
-            log.info { "${client.name} connected (user ${client.uid})" }
-            loop.add(socket.fd) { ready ->
-                if (ready.readable || ready.hangUp || ready.error) client.dispatch()
-                if (client.isConnected && ready.writable && client.flush()) {
-                    loop.update(socket.fd, read = true, write = false)
-                }
+            serve(Client(this, socket))
+        }
+    }
+
+    // Starts reading a client's requests (and writing its events when the socket is full).
+    private fun serve(client: Client) {
+        val socket = client.socket
+        connected += client
+        log.info { "${client.name} connected (user ${client.uid})" }
+        loop.add(socket.fd) { ready ->
+            if (ready.readable || ready.hangUp || ready.error) client.dispatch()
+            if (client.isConnected && ready.writable && client.flush()) {
+                loop.update(socket.fd, read = true, write = false)
             }
         }
     }
@@ -134,22 +140,40 @@ class Display(val loop: EventLoop) : AutoCloseable {
     }
 
     /** Offers a feature to every client, now and in the future. */
-    fun <T : Resource> addGlobal(type: ResourceType<T>, version: Int, onBind: (T) -> Unit): Global {
+    fun <T : Resource> addGlobal(type: ResourceType<T>, version: Int, onBind: (T) -> Unit): Global =
+        addGlobal(type, version, { true }, onBind)
+
+    /**
+     * Offers a feature only to the clients [visibleTo] accepts (e.g. one only Xwayland may
+     * use): the others neither see nor can bind it.
+     */
+    fun <T : Resource> addGlobal(type: ResourceType<T>, version: Int, visibleTo: (Client) -> Boolean, onBind: (T) -> Unit): Global {
         require(version in 1..type.version) {
             "$type: version $version is not supported by the generated code (max ${type.version})"
         }
-        val global = Global(nextGlobalName++, type, version) { client, id, boundVersion ->
+        val global = Global(nextGlobalName++, type, version, visibleTo) { client, id, boundVersion ->
             onBind(client.register(type.create(client, id, boundVersion)))
         }
         globals[global.name] = global
-        for (registry in registries) registry.sendGlobal(global.name, type.name, version)
+        for (registry in registries) if (visibleTo(registry.client)) registry.sendGlobal(global.name, type.name, version)
         return global
+    }
+
+    /**
+     * Serves a client already connected through [socket] (e.g. one end of a socket pair
+     * given to a program the compositor starts, such as Xwayland), called [name] in logs
+     * (the kernel would name the compositor itself: it made the pair). Returns it.
+     */
+    fun addClient(socket: UnixSocket, name: String? = null): Client {
+        val client = Client(this, socket, name)
+        serve(client)
+        return client
     }
 
     /** Stops offering a feature. Clients that already use it keep their objects. */
     fun removeGlobal(global: Global) {
         if (globals.remove(global.name) == null) return
-        for (registry in registries) registry.sendGlobalRemove(global.name)
+        for (registry in registries) if (global.visibleTo(registry.client)) registry.sendGlobalRemove(global.name)
     }
 
     // --- wl_display and wl_registry, implemented here -------------------------------
@@ -165,13 +189,15 @@ class Display(val loop: EventLoop) : AutoCloseable {
             registry.requests = registryRequests
             registries += registry
             registry.onDestroy { registries -= registry }
-            for (global in globals.values) registry.sendGlobal(global.name, global.type.name, global.version)
+            for (global in globals.values) {
+                if (global.visibleTo(resource.client)) registry.sendGlobal(global.name, global.type.name, global.version)
+            }
         }
     }
 
     private val registryRequests = object : WlRegistry.Requests {
         override fun bind(resource: WlRegistry, name: Int, interfaceName: String, version: Int, id: Int) {
-            val global = globals[name]
+            val global = globals[name]?.takeIf { it.visibleTo(resource.client) }
             if (global == null || global.type.name != interfaceName) {
                 throw ProtocolException(resource.client.displayObject, WlDisplay.Error.INVALID_OBJECT,
                     "no global $name of type $interfaceName")
@@ -239,5 +265,6 @@ class Global internal constructor(
     val name: Int,
     val type: ResourceType<*>,
     val version: Int,
+    internal val visibleTo: (Client) -> Boolean,
     internal val bind: (client: Client, id: Int, version: Int) -> Unit,
 )

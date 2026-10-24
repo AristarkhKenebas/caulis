@@ -103,8 +103,13 @@ class Output(
     private fun sendLogical(xdg: dev.caulis.protocol.xdgoutputunstablev1.ZxdgOutputV1, output: WlOutput) {
         if (!xdg.isAlive) return
         xdg.sendLogicalPosition(0, 0)
-        // The desktop's own units: the pixels divided by the (fractional) scale.
-        xdg.sendLogicalSize(Math.round(width / scale).toInt(), Math.round(height / scale).toInt())
+        // The desktop's own units: the pixels divided by the (fractional) scale — but in pixels
+        // for programs that work in pixels (Xwayland, see pixelsFor).
+        if (pixelsFor(display)(xdg.client)) {
+            xdg.sendLogicalSize(width, height)
+        } else {
+            xdg.sendLogicalSize(Math.round(width / scale).toInt(), Math.round(height / scale).toInt())
+        }
         if (xdg.version == 2) {
             xdg.sendName(name)
             xdg.sendDescription(description)
@@ -120,6 +125,20 @@ class Output(
 
         // The monitors of each display.
         private val all = java.util.WeakHashMap<Display, MutableList<Output>>()
+
+        private val pixelClients = java.util.WeakHashMap<Display, (dev.caulis.protocol.Client) -> Boolean>()
+
+        /**
+         * Tells the clients [pixels] accepts (Xwayland) the monitors' size in pixels, not in
+         * desktop units: they work in the screen's real pixels.
+         */
+        @JvmStatic
+        fun reportPixelsTo(display: Display, pixels: (dev.caulis.protocol.Client) -> Boolean) {
+            synchronized(pixelClients) { pixelClients[display] = pixels }
+        }
+
+        private fun pixelsFor(display: Display): (dev.caulis.protocol.Client) -> Boolean =
+            synchronized(pixelClients) { pixelClients[display] } ?: { false }
 
         /** The monitors [display] has now. */
         @JvmStatic

@@ -84,7 +84,7 @@ class ForeignToplevels(private val display: Display, private val desktop: Deskto
             if (window === desktop.focusedWindow) add(STATE_ACTIVATED)
             if (window.fullscreen) add(STATE_FULLSCREEN)
         }
-        return Facts(window.title, window.appId, states, window.parent?.takeIf { it.shell.surface.resource.isAlive })
+        return Facts(window.title, window.appId, states, window.parent?.takeIf { it.surface.resource.isAlive })
     }
 
     /** Tells every dock what changed since it was last told. */

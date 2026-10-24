@@ -24,6 +24,7 @@ include(
     "caulis-protocol",
     "caulis-render",
     "caulis-core",
+    "caulis-xwayland",
     "caulis-wm",
     "caulis-cursor-bibata",
     "tools:cursors",

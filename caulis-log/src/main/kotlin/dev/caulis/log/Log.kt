@@ -52,10 +52,12 @@ object Log {
         "docks" to "what docks and taskbars are told and ask for",
         "cursor" to "cursor themes and shapes",
         "capture" to "screenshots and screen recordings: who takes pictures, of what",
+        "clipboard" to "copy and paste: what is on the clipboard, who pastes it (also between X11 and Wayland)",
         "render" to "drawing frames: what is redrawn, how long it takes",
         "drm" to "monitors, their modes, showing frames on the screen",
         "session" to "the seat, text consoles, devices coming and going",
         "nested" to "running as a window inside another session",
+        "xwayland" to "X11 programs: starting Xwayland, their windows and focus",
         "config" to "your own code (key bindings, rules, events): its mistakes",
         "native" to "C libraries Caulis uses, the event loop and its watchdog",
     )

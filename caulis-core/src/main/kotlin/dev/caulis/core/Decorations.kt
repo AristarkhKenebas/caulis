@@ -240,7 +240,7 @@ class ServerDecorations(display: Display, private val desktop: Desktop) {
         log.trace { "Title bar of $window: ${if (server) "the compositor's" else "the program's"} (xdg-decoration)" }
         window.serverDecorated = server
         resource.sendConfigure(if (server) ZxdgToplevelDecorationV1.Mode.SERVER_SIDE else ZxdgToplevelDecorationV1.Mode.CLIENT_SIDE)
-        if (window.shell.configured) window.configure() // a new decoration mode needs a configure
+        if (window.configured) window.configure() // a new decoration mode needs a configure
         desktop.decorationOfChanged(window)
     }
 

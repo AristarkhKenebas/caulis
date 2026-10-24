@@ -190,6 +190,13 @@ internal object Libc {
         check("socketpair", socketPairHandle.invokeExact(state, domain, type, protocol, twoInts) as Int, state)
     }
 
+    private val pipe2Handle = function("pipe2", JAVA_INT, ADDRESS, JAVA_INT)
+
+    fun pipe2(twoInts: MemorySegment, flags: Int) {
+        val state = errnoState.get()
+        check("pipe2", pipe2Handle.invokeExact(state, twoInts, flags) as Int, state)
+    }
+
     private val bindHandle = function("bind", JAVA_INT, JAVA_INT, ADDRESS, JAVA_INT)
 
     fun bind(fd: Int, address: MemorySegment) {
@@ -262,5 +269,69 @@ internal object Libc {
     fun ftruncate(fd: Int, size: Long) {
         val state = errnoState.get()
         check("ftruncate", ftruncateHandle.invokeExact(state, fd, size) as Int, state)
+    }
+
+    // --- processes --------------------------------------------------------------------
+
+    // posix_spawn reports errors as its result (not -1 and errno).
+    private val spawnFileActionsInit = function("posix_spawn_file_actions_init", JAVA_INT, ADDRESS)
+    private val spawnFileActionsDup2 = function("posix_spawn_file_actions_adddup2", JAVA_INT, ADDRESS, JAVA_INT, JAVA_INT)
+    private val spawnFileActionsDestroy = function("posix_spawn_file_actions_destroy", JAVA_INT, ADDRESS)
+    private val spawnFileActionsCloseFrom = function("posix_spawn_file_actions_addclosefrom_np", JAVA_INT, ADDRESS, JAVA_INT)
+    private val spawnp = function("posix_spawnp", JAVA_INT, ADDRESS, ADDRESS, ADDRESS, ADDRESS, ADDRESS, ADDRESS)
+    private val pidfdOpenHandle = function("pidfd_open", JAVA_INT, JAVA_INT, JAVA_INT)
+    private val waitpidHandle = function("waitpid", JAVA_INT, JAVA_INT, ADDRESS, JAVA_INT)
+    private val killHandle = function("kill", JAVA_INT, JAVA_INT, JAVA_INT)
+
+    /** posix_spawn_file_actions_t is opaque; this is more than glibc needs (80 bytes). */
+    const val SPAWN_ACTIONS_SIZE = 256L
+
+    fun spawnActionsInit(actions: MemorySegment) {
+        val state = errnoState.get()
+        val result = spawnFileActionsInit.invokeExact(state, actions) as Int
+        if (result != 0) throw NativeException("posix_spawn_file_actions_init", result)
+    }
+
+    fun spawnActionsDup2(actions: MemorySegment, fd: Int, target: Int) {
+        val state = errnoState.get()
+        val result = spawnFileActionsDup2.invokeExact(state, actions, fd, target) as Int
+        if (result != 0) throw NativeException("posix_spawn_file_actions_adddup2", result)
+    }
+
+    /** In the new program, closes every descriptor from [lowest] on (glibc 2.34+). */
+    fun spawnActionsCloseFrom(actions: MemorySegment, lowest: Int) {
+        val state = errnoState.get()
+        val result = spawnFileActionsCloseFrom.invokeExact(state, actions, lowest) as Int
+        if (result != 0) throw NativeException("posix_spawn_file_actions_addclosefrom_np", result)
+    }
+
+    fun spawnActionsDestroy(actions: MemorySegment) {
+        val state = errnoState.get()
+        spawnFileActionsDestroy.invokeExact(state, actions) as Int
+    }
+
+    /** Starts [file] (looked up in PATH) with [argv] and [envp] (NULL-terminated arrays); returns the pid. */
+    fun spawn(file: MemorySegment, actions: MemorySegment, argv: MemorySegment, envp: MemorySegment, pidOut: MemorySegment): Int {
+        val state = errnoState.get()
+        val result = spawnp.invokeExact(state, pidOut, file, actions, MemorySegment.NULL, argv, envp) as Int
+        if (result != 0) throw NativeException("posix_spawnp", result)
+        return pidOut.get(JAVA_INT, 0)
+    }
+
+    /** A descriptor that becomes readable when process [pid] ends. */
+    fun pidfdOpen(pid: Int): Int {
+        val state = errnoState.get()
+        return check("pidfd_open", pidfdOpenHandle.invokeExact(state, pid, 0) as Int, state)
+    }
+
+    /** waitpid; returns the pid if it ended (its status in [status]), 0 if still running (with WNOHANG). */
+    fun waitpid(pid: Int, status: MemorySegment, options: Int): Int {
+        val state = errnoState.get()
+        return check("waitpid", waitpidHandle.invokeExact(state, pid, status, options) as Int, state)
+    }
+
+    fun kill(pid: Int, signal: Int) {
+        val state = errnoState.get()
+        check("kill", killHandle.invokeExact(state, pid, signal) as Int, state)
     }
 }

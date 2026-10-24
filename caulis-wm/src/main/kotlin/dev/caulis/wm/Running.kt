@@ -8,6 +8,7 @@ import dev.caulis.core.Effects
 import dev.caulis.core.ForeignToplevels
 import dev.caulis.core.ScreenCapture
 import dev.caulis.core.ServerDecorations
+import dev.caulis.xwayland.Xwayland
 import dev.caulis.core.FrameStats
 import dev.caulis.core.LayerShell
 import dev.caulis.core.LinuxDmabuf
@@ -68,10 +69,34 @@ internal class Running(
     // Where a cursor theme that came with a library is put for programs that draw their own cursor.
     private var cursorFolder: java.nio.file.Path? = null
 
+    // X11 programs (null if turned off). Declared before init, which sets it.
+    private var xwayland: Xwayland? = null
+
+    // Starts programs: Wayland first, X11 when that fails.
+    private val launcher = Launcher(
+        environment = { env ->
+            env["WAYLAND_DISPLAY"] = socket
+            env["XDG_CURRENT_DESKTOP"] = config.desktopName
+            // X11 programs (started now or later by these) reach Xwayland here.
+            xwayland?.let { env["DISPLAY"] = it.displayName } ?: env.remove("DISPLAY")
+            // Programs that draw their own cursor use the same theme and size.
+            val theme = desktop.cursorTheme
+            env["XCURSOR_THEME"] = theme.name
+            // On a scaled screen X11 programs need the cursor size in pixels and Wayland ones in
+            // units: no XCURSOR_SIZE then (it would win over both); X11 programs get it from the
+            // X resources, Wayland ones from the compositor (cursor-shape) or their own default.
+            if (desktop.scale == 1.0) env["XCURSOR_SIZE"] = theme.size.toString() else env.remove("XCURSOR_SIZE")
+            cursorFolder?.let { folder -> env["XCURSOR_PATH"] = (listOf(folder) + CursorTheme.searchPath()).joinToString(":") }
+        },
+        x11Available = { xwayland != null },
+        post = loop::post,
+        settings = { Launcher.Settings(config.waylandFirst, config.x11Programs.toSet()) },
+    )
+
     init {
         Shm(display)
         if (renderer.renderNode != null) LinuxDmabuf(display, renderer)
-        DataDeviceManager(display, seat)
+        val clipboard = DataDeviceManager(display, seat)
         Presentation(display)
         XdgShell(display).listener = desktop
         LayerShell(display).listener = desktop
@@ -79,6 +104,7 @@ internal class Running(
         CursorShape(display, seat)
         XdgOutputManager(display)
         ServerDecorations(display, desktop)
+        xwayland = if (config.xwayland) safely("Xwayland", null) { Xwayland(display, desktop, loop, clipboard) } else null
         ScreenCapture(display, desktop, renderer, ForeignToplevels(display, desktop))
         applyCursor()
         desktop.layout = config.layout
@@ -111,6 +137,7 @@ internal class Running(
             desktop.addScratchpad(pad.name, pad.style) { window -> safely("scratchpad ${pad.name}", false) { pad.match(window) } }
             pad.key?.let { key -> keys.bind(key) { toggleScratchpad(pad.name) } }
         }
+        desktop.onWindowOpened { window -> launcher.windowOpened(window.pid) }
         config.windowOpened.forEach { action -> desktop.onWindowOpened { window -> action(config, window) } }
         config.windowClosed.forEach { action -> desktop.onWindowClosed { window -> action(config, window) } }
         config.focusChanged.forEach { action -> desktop.onFocusChanged { window -> action(config, window) } }
@@ -129,6 +156,7 @@ internal class Running(
     fun applyScale() {
         desktop.scale = config.scale
         for (output in Output.of(display)) output.rescale(config.scale)
+        xwayland?.rescaled()
         log.info { "Scale ${config.scale}" }
         applyCursor() // programs that draw their own cursor get the new size
     }
@@ -142,6 +170,7 @@ internal class Running(
         }
         cursorLog.info { "Cursor theme ${theme.name}${if (theme.found) "" else " (not found)"}, ${theme.size} px" }
         desktop.cursorTheme = theme
+        xwayland?.cursorChanged()
         desktop.hideCursorWhileTyping = config.hideCursorWhileTyping
         desktop.hideCursorAfterMillis = config.hideCursorAfterSeconds * 1000L
         cursorFolder = safely("cursor theme files", null) {
@@ -167,37 +196,11 @@ internal class Running(
     }
 
     /**
-     * Starts [command] (run by /bin/sh) as a program inside the compositor. If the program
-     * does not exist, that is said in plain words instead of nothing happening.
+     * Starts [command] (run by /bin/sh) as a program inside the compositor, the Wayland way
+     * first (or through X11: [x11]). If the program does not exist, that is said in plain
+     * words instead of nothing happening.
      */
-    fun launch(command: String) {
-        clientsLog.info { "Starting: $command" }
-        try {
-            val builder = ProcessBuilder("/bin/sh", "-c", command)
-            builder.environment().apply {
-                put("WAYLAND_DISPLAY", socket)
-                put("XDG_CURRENT_DESKTOP", config.desktopName)
-                // Programs that draw their own cursor use the same theme and size.
-                val theme = desktop.cursorTheme
-                put("XCURSOR_THEME", theme.name)
-                put("XCURSOR_SIZE", theme.size.toString())
-                cursorFolder?.let { folder ->
-                    put("XCURSOR_PATH", (listOf(folder) + CursorTheme.searchPath()).joinToString(":"))
-                }
-                remove("DISPLAY") // no X11 server inside (yet)
-            }
-            builder.redirectOutput(ProcessBuilder.Redirect.DISCARD)
-            builder.redirectError(ProcessBuilder.Redirect.DISCARD)
-            builder.start().onExit().thenAccept { process ->
-                // 127 is the shell's "command not found".
-                if (process.exitValue() == 127) {
-                    clientsLog.warn("\"$command\" could not be started: the program was not found (is it installed?)")
-                }
-            }
-        } catch (e: Exception) {
-            clientsLog.warn("\"$command\" could not be started: ${e.message}")
-        }
-    }
+    fun launch(command: String, x11: Boolean = false) = launcher.launch(command, x11)
 
     // Runs the user's code; a mistake in it is reported and the compositor keeps running.
     private fun <T> safely(what: String, fallback: T, action: () -> T): T = try {
@@ -340,6 +343,7 @@ internal class Running(
     }
 
     override fun close() {
+        xwayland?.close()
         seat.close()
         keymap.close()
         display.close()

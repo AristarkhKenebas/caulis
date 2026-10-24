@@ -340,7 +340,32 @@ whole scale and are shrunk a little). The cursor is loaded in its scaled size, w
 without gaps or overlaps at any fraction, and screenshots have the screen's full
 resolution. The scale can be changed while running.
 
-## 12. The cursor
+## 12. X11 programs
+
+Older programs that only speak X11 (xterm, many games and Java programs, some Electron
+apps) run as they are: `DISPLAY` is set for everything the compositor starts, and Xwayland
+starts by itself when the first X11 program does — until then it costs nothing. If it is
+not installed, the log says which package to install (`xorg-xwayland` on Arch).
+
+Their windows are windows like any other: they tile and float, follow your rules, get the
+compositor's title bars (or none, if they draw their own), effects, focus, minimize and
+fullscreen, show in docks and can be shared. Menus and tooltips appear where the program
+puts them. Copy and paste works both ways between X11 and Wayland programs, small text or
+large.
+
+On a scaled screen X11 programs are not shrunk or stretched: X works in the screen's real
+pixels, and programs are told the real DPI (`Xft.dpi`) and cursor size, so programs that
+scale their text and drawing (GTK, Qt, Electron, xterm with `-fa`) are as big and as sharp
+as Wayland ones, and the cursor changes over them as it should. Very old programs with
+fixed bitmap fonts stay at their pixel size — they cannot be told otherwise.
+
+Don't want X11 at all:
+
+```kotlin
+xwayland = false
+```
+
+## 13. The cursor
 
 The template comes with the Bibata cursor. Choose another theme and size:
 
@@ -360,7 +385,7 @@ Programs show the same cursor: modern ones ask the compositor for it by name, ol
 are told the theme and size. If the theme you name is not installed, the log says so and
 lists the ones that are.
 
-## 13. Locking the screen
+## 14. Locking the screen
 
 Super+L starts the screen locker — `swaylock` unless you choose another:
 
@@ -376,7 +401,7 @@ socket name the compositor printed when it started — then come back (Ctrl+Alt+
 whichever console the session is on). Ctrl+Alt+Backspace still quits the compositor, as
 always.
 
-## 14. Screenshots and screen sharing
+## 15. Screenshots and screen sharing
 
 Programs made for wlroots-style compositors work as they are:
 
@@ -417,7 +442,7 @@ windows can be shared too; a shared window keeps drawing at full speed even whil
 hidden or on another workspace. While the screen is locked, pictures show the lock and no
 window is given out.
 
-## 15. Touchpad gestures
+## 16. Touchpad gestures
 
 | Gesture | What it does |
 | --- | --- |
@@ -434,7 +459,7 @@ overviewPinchFingers = 4      // 0 = off
 swipe(fingers = 3, Direction.UP) { desktop.toggleOverview() }
 ```
 
-## 16. On the real screen
+## 17. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 
@@ -451,7 +476,7 @@ exitAfterSeconds = 60
 
 Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles.
 
-## 17. Your own layout
+## 18. Your own layout
 
 Describe it with building blocks — no arithmetic:
 
@@ -503,9 +528,9 @@ CAULIS_LOG=3 CAULIS_LOG_FILE=/tmp/caulis.log ./gradlew run   # everything, into 
 ```
 
 or in code: `logLevel = 2`, `log("windows", 3)`, `logFile = Path.of("/tmp/caulis.log")`.
-The areas: `wayland`, `clients`, `windows`, `focus`, `input`, `gestures`, `layout`, `layers`,
-`lock`, `docks`, `cursor`, `render`, `drm`, `session`, `nested`, `config` (your own code),
-`native`. A line looks like this:
+The areas: `wayland`, `clients`, `windows`, `focus`, `input`, `gestures`, `layout`,
+`layers`, `lock`, `docks`, `cursor`, `capture`, `clipboard`, `render`, `drm`, `session`,
+`nested`, `xwayland`, `config` (your own code) and `native`. A line looks like this:
 
 ```
 22:02:17.646     1,524 I focus    Focus: Window("foot", foot)
@@ -532,6 +557,7 @@ what you type — do not share one in which you typed a password.
 | `"xyz" could not be started: the program was not found` | `launch("xyz")`: that program is not installed. |
 | `Do not run ... as root` | Start it as your normal user — a compositor never needs root. |
 | `The GPU driver lacks ...` | The graphics driver is too old or missing. |
+| `Xwayland could not be started` | X11 programs need Xwayland: install it (`xorg-xwayland` on Arch, `xwayland` elsewhere). |
 
 ## Where next
 

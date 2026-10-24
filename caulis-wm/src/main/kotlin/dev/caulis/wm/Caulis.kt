@@ -126,6 +126,22 @@ class Caulis {
         titleBarRules += rule
     }
 
+    /**
+     * Run X11 programs too (through Xwayland, started only when the first one connects). Off
+     * = Wayland programs only.
+     */
+    var xwayland = true
+
+    /**
+     * Start programs the Wayland way when they can (GTK, Qt, Electron, Firefox are told to
+     * prefer it), and through X11 when that fails: a program that quits at once without a
+     * window is started again through Xwayland. Off = programs choose for themselves.
+     */
+    var waylandFirst = true
+
+    /** Programs always started through X11, by name: `x11Programs += "steam"`. */
+    val x11Programs: MutableSet<String> = LinkedHashSet()
+
     /** Keyboard layouts as for `setxkbmap`, e.g. "us,ru", and options, e.g. "grp:win_space_toggle". */
     var keyboardLayouts = "us"
     var keyboardOptions = ""
@@ -380,6 +396,8 @@ class Caulis {
     fun terminal(command: String): Caulis = apply { terminal = command }
     fun lockCommand(command: String): Caulis = apply { lockCommand = command }
     fun scale(scale: Double): Caulis = apply { this.scale = scale }
+    fun waylandFirst(on: Boolean): Caulis = apply { waylandFirst = on }
+    fun x11Program(name: String): Caulis = apply { x11Programs += name }
     fun titleBars(titleBars: TitleBars): Caulis = apply { this.titleBars = titleBars }
     fun titleBarsFor(rule: java.util.function.Function<Window, TitleBars?>): Caulis = apply { titleBarsFor { rule.apply(it) } }
     fun logLevel(level: Int): Caulis = apply { logLevel = level }
@@ -414,9 +432,13 @@ class Caulis {
     /** The window with the keyboard focus, if any. */
     val focusedWindow: Window? get() = running?.desktop?.focusedWindow
 
-    /** Starts [command] (run by /bin/sh) as a program inside the compositor. */
-    fun launch(command: String) {
-        checkNotNull(running) { "Caulis is not running yet" }.launch(command)
+    /**
+     * Starts [command] (run by /bin/sh) as a program inside the compositor — the Wayland way
+     * first ([waylandFirst]), or through X11 with [x11] = true.
+     */
+    @JvmOverloads
+    fun launch(command: String, x11: Boolean = false) {
+        checkNotNull(running) { "Caulis is not running yet" }.launch(command, x11)
     }
 
     fun openTerminal() = launch(terminal)

@@ -20,7 +20,13 @@ class ScreenTestServer : AutoCloseable {
 
     val runtimeDir: Path = Files.createTempDirectory("caulis-screen-test")
     private val started = CompletableFuture<String>()
-    private lateinit var loop: EventLoop
+    /** The server's event loop, display and clipboard: for adding more to the server (on its thread). */
+    lateinit var loop: EventLoop
+        private set
+    lateinit var display: Display
+        private set
+    lateinit var clipboard: DataDeviceManager
+        private set
     private lateinit var desktop: Desktop
     private lateinit var renderer: GlesRenderer
     private lateinit var output: Output
@@ -81,10 +87,12 @@ class ScreenTestServer : AutoCloseable {
                 GlesRenderer.create().use { renderer ->
                     this.renderer = renderer
                     Display(eventLoop).use { display ->
+                        this.display = display
                         Keymap.fromNames().use { keymap ->
                             Seat(display, keymap).use { seat ->
                                 val compositor = Compositor(display, renderer)
                                 Shm(display)
+                                clipboard = DataDeviceManager(display, seat)
                                 Presentation(display)
                                 LinuxDmabuf(display, renderer)
                                 desktop = Desktop(renderer, seat, compositor, WIDTH, HEIGHT)

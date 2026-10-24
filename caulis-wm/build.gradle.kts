@@ -8,5 +8,6 @@ plugins {
 
 dependencies {
     api(project(":caulis-core"))
+    api(project(":caulis-xwayland"))
     testImplementation(testFixtures(project(":caulis-core")))
 }
