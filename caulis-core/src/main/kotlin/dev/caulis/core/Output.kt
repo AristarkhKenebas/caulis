@@ -8,7 +8,7 @@ import dev.caulis.protocol.wayland.WlOutput
  * The size can change (e.g. Caulis's window in nested mode is resized).
  */
 class Output(
-    display: Display,
+    private val display: Display,
     /** Connector name, e.g. "eDP-1" or "NESTED-1". */
     val name: String,
     val description: String,
@@ -29,21 +29,25 @@ class Output(
 
     private val bound = ArrayList<WlOutput>()
 
-    init {
-        display.addGlobal(WlOutput, VERSION) { output ->
-            output.requests = object : WlOutput.Requests {
-                override fun release(resource: WlOutput) {}
-            }
-            bound += output
-            output.onDestroy { bound -= output }
-            output.sendGeometry(0, 0, physicalWidthMm, physicalHeightMm,
-                WlOutput.Subpixel.UNKNOWN, make, model, WlOutput.Transform.NORMAL)
-            sendMode(output)
-            output.sendScale(scale)
-            output.sendName(name)
-            output.sendDescription(description)
-            output.sendDone()
+    private val global = display.addGlobal(WlOutput, VERSION) { output ->
+        output.requests = object : WlOutput.Requests {
+            override fun release(resource: WlOutput) {}
         }
+        bound += output
+        output.onDestroy { bound -= output }
+        output.sendGeometry(0, 0, physicalWidthMm, physicalHeightMm,
+            WlOutput.Subpixel.UNKNOWN, make, model, WlOutput.Transform.NORMAL)
+        sendMode(output)
+        output.sendScale(scale)
+        output.sendName(name)
+        output.sendDescription(description)
+        output.sendDone()
+    }
+
+    /** The monitor is gone: clients stop seeing it (their wl_output objects stay valid but idle). */
+    fun remove() {
+        display.removeGlobal(global)
+        bound.clear()
     }
 
     /** Changes the size and tells every client that uses this output. */

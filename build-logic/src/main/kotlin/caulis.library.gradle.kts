@@ -12,6 +12,10 @@ fun library(name: String) = libs.findLibrary(name).get()
 
 fun version(name: String) = libs.findVersion(name).get().requiredVersion.toInt()
 
+// How other builds name these modules, e.g. dev.caulis:caulis-core:0.1.0-SNAPSHOT.
+group = "dev.caulis"
+version = libs.findVersion("caulis").get().requiredVersion
+
 kotlin {
     // Gradle finds and uses this JDK for compiling, testing and running.
     jvmToolchain(version("java"))

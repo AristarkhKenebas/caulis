@@ -1,6 +1,8 @@
 # All versions of the project live here, in one place.
 
 [versions]
+# Version of Caulis itself (what irisWM and other programs depend on).
+caulis = "0.1.0-SNAPSHOT"
 # The JDK that compiles, tests and runs Caulis.
 java = "27"
 # Bytecode version of the compiled classes. Kotlin 2.4 can produce at most 26;

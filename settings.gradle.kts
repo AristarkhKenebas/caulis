@@ -5,6 +5,11 @@ pluginManagement {
     includeBuild("build-logic")
 }
 
+plugins {
+    // Downloads the right JDK automatically if it is not installed.
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
@@ -17,5 +22,6 @@ include(
     "caulis-render",
     "caulis-core",
     "examples:minimal",
-    "apps:iriswm",
 )
+
+// irisWM (apps/iriswm) is a separate build with its own settings; it uses this one.

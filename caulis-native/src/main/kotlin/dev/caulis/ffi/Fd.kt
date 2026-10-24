@@ -15,7 +15,7 @@ import dev.caulis.ffi.c.libc.LibC
  * To hand the descriptor to someone else (for example, to send it to another process),
  * call [release]: after that this object no longer owns it and will not close it.
  */
-class Fd private constructor(private var number: Int) : AutoCloseable {
+class Fd private constructor(private var number: Int, private val owned: Boolean = true) : AutoCloseable {
 
     /** The raw descriptor number. Throws if this [Fd] was already closed or released. */
     val value: Int
@@ -50,7 +50,7 @@ class Fd private constructor(private var number: Int) : AutoCloseable {
         if (number < 0) return
         val raw = number
         number = -1
-        Libc.close(raw)
+        if (owned) Libc.close(raw)
     }
 
     override fun toString(): String = if (isOpen) "Fd($number)" else "Fd(closed)"
@@ -62,6 +62,15 @@ class Fd private constructor(private var number: Int) : AutoCloseable {
         fun adopt(raw: Int): Fd {
             require(raw >= 0) { "Not a file descriptor: $raw" }
             return Fd(raw)
+        }
+
+        /**
+         * A descriptor that belongs to a C library (e.g. libseat's or libinput's own socket):
+         * we may watch it in the event loop, but [close] leaves it open for its owner.
+         */
+        fun borrow(raw: Int): Fd {
+            require(raw >= 0) { "Not a file descriptor: $raw" }
+            return Fd(raw, owned = false)
         }
     }
 }

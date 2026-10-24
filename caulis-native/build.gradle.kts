@@ -214,6 +214,9 @@ val jextractDrm = tasks.register<JextractTask>("jextractDrm") {
         "function drmModeDestroyPropertyBlob", "function drmModeAddFB2WithModifiers", "function drmModeRmFB",
         "function drmSetClientCap", "function drmGetCap", "function drmHandleEvent",
         "function drmGetRenderDeviceNameFromFd", "function drmDropMaster",
+        "struct _drmModePropertyBlob", "typedef drmModePropertyBlobRes",
+        "function drmModeGetPropertyBlob", "function drmModeFreePropertyBlob",
+        "function drmModeConnectorGetPossibleCrtcs",
         "constant DRM_CLIENT_CAP_ATOMIC", "constant DRM_CLIENT_CAP_UNIVERSAL_PLANES",
         "constant DRM_CAP_TIMESTAMP_MONOTONIC", "constant DRM_CAP_ADDFB2_MODIFIERS",
         "constant DRM_MODE_CONNECTED", "constant DRM_MODE_ATOMIC_ALLOW_MODESET",
@@ -281,6 +284,14 @@ val jextractInput = tasks.register<JextractTask>("jextractInput") {
         "constant LIBINPUT_KEY_STATE_PRESSED", "constant LIBINPUT_BUTTON_STATE_PRESSED",
         "constant LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL", "constant LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL",
         "constant LIBINPUT_CONFIG_TAP_ENABLED",
+        "function libinput_device_has_capability",
+        "constant LIBINPUT_DEVICE_CAP_KEYBOARD", "constant LIBINPUT_DEVICE_CAP_POINTER",
+        // udev monitor: notices monitors being plugged in or out (DRM "hotplug" events).
+        "function udev_monitor_new_from_netlink", "function udev_monitor_filter_add_match_subsystem_devtype",
+        "function udev_monitor_enable_receiving", "function udev_monitor_get_fd",
+        "function udev_monitor_receive_device", "function udev_monitor_unref",
+        "function udev_device_get_devnum", "function udev_device_get_property_value",
+        "function udev_device_get_action", "function udev_device_unref",
     )
 }
 

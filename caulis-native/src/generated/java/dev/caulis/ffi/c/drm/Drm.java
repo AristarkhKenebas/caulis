@@ -1255,6 +1255,67 @@ public class Drm extends Drm$shared {
         }
     }
 
+    private static class drmModeConnectorGetPossibleCrtcs {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Drm.C_INT,
+            Drm.C_INT,
+            Drm.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("drmModeConnectorGetPossibleCrtcs");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * extern uint32_t drmModeConnectorGetPossibleCrtcs(int fd, const drmModeConnector *connector)
+     * }
+     */
+    public static FunctionDescriptor drmModeConnectorGetPossibleCrtcs$descriptor() {
+        return drmModeConnectorGetPossibleCrtcs.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * extern uint32_t drmModeConnectorGetPossibleCrtcs(int fd, const drmModeConnector *connector)
+     * }
+     */
+    public static MethodHandle drmModeConnectorGetPossibleCrtcs$handle() {
+        return drmModeConnectorGetPossibleCrtcs.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * extern uint32_t drmModeConnectorGetPossibleCrtcs(int fd, const drmModeConnector *connector)
+     * }
+     */
+    public static MemorySegment drmModeConnectorGetPossibleCrtcs$address() {
+        return drmModeConnectorGetPossibleCrtcs.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * extern uint32_t drmModeConnectorGetPossibleCrtcs(int fd, const drmModeConnector *connector)
+     * }
+     */
+    public static int drmModeConnectorGetPossibleCrtcs(int fd, MemorySegment connector) {
+        var mh$ = drmModeConnectorGetPossibleCrtcs.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("drmModeConnectorGetPossibleCrtcs", fd, connector);
+            }
+            return (int)mh$.invokeExact(fd, connector);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
     private static class drmModeGetProperty {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             Drm.C_POINTER,
@@ -1366,6 +1427,126 @@ public class Drm extends Drm$shared {
         try {
             if (TRACE_DOWNCALLS) {
                 traceDowncall("drmModeFreeProperty", ptr);
+            }
+            mh$.invokeExact(ptr);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class drmModeGetPropertyBlob {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Drm.C_POINTER,
+            Drm.C_INT,
+            Drm.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("drmModeGetPropertyBlob");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * extern drmModePropertyBlobPtr drmModeGetPropertyBlob(int fd, uint32_t blob_id)
+     * }
+     */
+    public static FunctionDescriptor drmModeGetPropertyBlob$descriptor() {
+        return drmModeGetPropertyBlob.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * extern drmModePropertyBlobPtr drmModeGetPropertyBlob(int fd, uint32_t blob_id)
+     * }
+     */
+    public static MethodHandle drmModeGetPropertyBlob$handle() {
+        return drmModeGetPropertyBlob.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * extern drmModePropertyBlobPtr drmModeGetPropertyBlob(int fd, uint32_t blob_id)
+     * }
+     */
+    public static MemorySegment drmModeGetPropertyBlob$address() {
+        return drmModeGetPropertyBlob.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * extern drmModePropertyBlobPtr drmModeGetPropertyBlob(int fd, uint32_t blob_id)
+     * }
+     */
+    public static MemorySegment drmModeGetPropertyBlob(int fd, int blob_id) {
+        var mh$ = drmModeGetPropertyBlob.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("drmModeGetPropertyBlob", fd, blob_id);
+            }
+            return (MemorySegment)mh$.invokeExact(fd, blob_id);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class drmModeFreePropertyBlob {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(
+            Drm.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("drmModeFreePropertyBlob");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * extern void drmModeFreePropertyBlob(drmModePropertyBlobPtr ptr)
+     * }
+     */
+    public static FunctionDescriptor drmModeFreePropertyBlob$descriptor() {
+        return drmModeFreePropertyBlob.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * extern void drmModeFreePropertyBlob(drmModePropertyBlobPtr ptr)
+     * }
+     */
+    public static MethodHandle drmModeFreePropertyBlob$handle() {
+        return drmModeFreePropertyBlob.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * extern void drmModeFreePropertyBlob(drmModePropertyBlobPtr ptr)
+     * }
+     */
+    public static MemorySegment drmModeFreePropertyBlob$address() {
+        return drmModeFreePropertyBlob.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * extern void drmModeFreePropertyBlob(drmModePropertyBlobPtr ptr)
+     * }
+     */
+    public static void drmModeFreePropertyBlob(MemorySegment ptr) {
+        var mh$ = drmModeFreePropertyBlob.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("drmModeFreePropertyBlob", ptr);
             }
             mh$.invokeExact(ptr);
         } catch (Error | RuntimeException ex) {

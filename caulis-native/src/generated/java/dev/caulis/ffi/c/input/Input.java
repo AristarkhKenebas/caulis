@@ -143,6 +143,628 @@ public class Input extends Input$shared {
            throw new AssertionError("should not reach here", ex$);
         }
     }
+
+    private static class udev_device_unref {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("udev_device_unref");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * struct udev_device *udev_device_unref(struct udev_device *p)
+     * }
+     */
+    public static FunctionDescriptor udev_device_unref$descriptor() {
+        return udev_device_unref.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * struct udev_device *udev_device_unref(struct udev_device *p)
+     * }
+     */
+    public static MethodHandle udev_device_unref$handle() {
+        return udev_device_unref.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * struct udev_device *udev_device_unref(struct udev_device *p)
+     * }
+     */
+    public static MemorySegment udev_device_unref$address() {
+        return udev_device_unref.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * struct udev_device *udev_device_unref(struct udev_device *p)
+     * }
+     */
+    public static MemorySegment udev_device_unref(MemorySegment p) {
+        var mh$ = udev_device_unref.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("udev_device_unref", p);
+            }
+            return (MemorySegment)mh$.invokeExact(p);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class udev_device_get_property_value {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("udev_device_get_property_value");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * const char *udev_device_get_property_value(struct udev_device *udev_device, const char *key)
+     * }
+     */
+    public static FunctionDescriptor udev_device_get_property_value$descriptor() {
+        return udev_device_get_property_value.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * const char *udev_device_get_property_value(struct udev_device *udev_device, const char *key)
+     * }
+     */
+    public static MethodHandle udev_device_get_property_value$handle() {
+        return udev_device_get_property_value.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * const char *udev_device_get_property_value(struct udev_device *udev_device, const char *key)
+     * }
+     */
+    public static MemorySegment udev_device_get_property_value$address() {
+        return udev_device_get_property_value.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * const char *udev_device_get_property_value(struct udev_device *udev_device, const char *key)
+     * }
+     */
+    public static MemorySegment udev_device_get_property_value(MemorySegment udev_device, MemorySegment key) {
+        var mh$ = udev_device_get_property_value.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("udev_device_get_property_value", udev_device, key);
+            }
+            return (MemorySegment)mh$.invokeExact(udev_device, key);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class udev_device_get_devnum {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_LONG,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("udev_device_get_devnum");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * dev_t udev_device_get_devnum(struct udev_device *udev_device)
+     * }
+     */
+    public static FunctionDescriptor udev_device_get_devnum$descriptor() {
+        return udev_device_get_devnum.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * dev_t udev_device_get_devnum(struct udev_device *udev_device)
+     * }
+     */
+    public static MethodHandle udev_device_get_devnum$handle() {
+        return udev_device_get_devnum.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * dev_t udev_device_get_devnum(struct udev_device *udev_device)
+     * }
+     */
+    public static MemorySegment udev_device_get_devnum$address() {
+        return udev_device_get_devnum.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * dev_t udev_device_get_devnum(struct udev_device *udev_device)
+     * }
+     */
+    public static long udev_device_get_devnum(MemorySegment udev_device) {
+        var mh$ = udev_device_get_devnum.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("udev_device_get_devnum", udev_device);
+            }
+            return (long)mh$.invokeExact(udev_device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class udev_device_get_action {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("udev_device_get_action");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * const char *udev_device_get_action(struct udev_device *udev_device)
+     * }
+     */
+    public static FunctionDescriptor udev_device_get_action$descriptor() {
+        return udev_device_get_action.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * const char *udev_device_get_action(struct udev_device *udev_device)
+     * }
+     */
+    public static MethodHandle udev_device_get_action$handle() {
+        return udev_device_get_action.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * const char *udev_device_get_action(struct udev_device *udev_device)
+     * }
+     */
+    public static MemorySegment udev_device_get_action$address() {
+        return udev_device_get_action.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * const char *udev_device_get_action(struct udev_device *udev_device)
+     * }
+     */
+    public static MemorySegment udev_device_get_action(MemorySegment udev_device) {
+        var mh$ = udev_device_get_action.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("udev_device_get_action", udev_device);
+            }
+            return (MemorySegment)mh$.invokeExact(udev_device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class udev_monitor_unref {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("udev_monitor_unref");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * struct udev_monitor *udev_monitor_unref(struct udev_monitor *p)
+     * }
+     */
+    public static FunctionDescriptor udev_monitor_unref$descriptor() {
+        return udev_monitor_unref.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * struct udev_monitor *udev_monitor_unref(struct udev_monitor *p)
+     * }
+     */
+    public static MethodHandle udev_monitor_unref$handle() {
+        return udev_monitor_unref.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * struct udev_monitor *udev_monitor_unref(struct udev_monitor *p)
+     * }
+     */
+    public static MemorySegment udev_monitor_unref$address() {
+        return udev_monitor_unref.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * struct udev_monitor *udev_monitor_unref(struct udev_monitor *p)
+     * }
+     */
+    public static MemorySegment udev_monitor_unref(MemorySegment p) {
+        var mh$ = udev_monitor_unref.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("udev_monitor_unref", p);
+            }
+            return (MemorySegment)mh$.invokeExact(p);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class udev_monitor_new_from_netlink {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("udev_monitor_new_from_netlink");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char *name)
+     * }
+     */
+    public static FunctionDescriptor udev_monitor_new_from_netlink$descriptor() {
+        return udev_monitor_new_from_netlink.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char *name)
+     * }
+     */
+    public static MethodHandle udev_monitor_new_from_netlink$handle() {
+        return udev_monitor_new_from_netlink.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char *name)
+     * }
+     */
+    public static MemorySegment udev_monitor_new_from_netlink$address() {
+        return udev_monitor_new_from_netlink.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * struct udev_monitor *udev_monitor_new_from_netlink(struct udev *udev, const char *name)
+     * }
+     */
+    public static MemorySegment udev_monitor_new_from_netlink(MemorySegment udev, MemorySegment name) {
+        var mh$ = udev_monitor_new_from_netlink.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("udev_monitor_new_from_netlink", udev, name);
+            }
+            return (MemorySegment)mh$.invokeExact(udev, name);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class udev_monitor_enable_receiving {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("udev_monitor_enable_receiving");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
+     * }
+     */
+    public static FunctionDescriptor udev_monitor_enable_receiving$descriptor() {
+        return udev_monitor_enable_receiving.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
+     * }
+     */
+    public static MethodHandle udev_monitor_enable_receiving$handle() {
+        return udev_monitor_enable_receiving.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
+     * }
+     */
+    public static MemorySegment udev_monitor_enable_receiving$address() {
+        return udev_monitor_enable_receiving.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int udev_monitor_enable_receiving(struct udev_monitor *udev_monitor)
+     * }
+     */
+    public static int udev_monitor_enable_receiving(MemorySegment udev_monitor) {
+        var mh$ = udev_monitor_enable_receiving.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("udev_monitor_enable_receiving", udev_monitor);
+            }
+            return (int)mh$.invokeExact(udev_monitor);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class udev_monitor_get_fd {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("udev_monitor_get_fd");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int udev_monitor_get_fd(struct udev_monitor *udev_monitor)
+     * }
+     */
+    public static FunctionDescriptor udev_monitor_get_fd$descriptor() {
+        return udev_monitor_get_fd.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int udev_monitor_get_fd(struct udev_monitor *udev_monitor)
+     * }
+     */
+    public static MethodHandle udev_monitor_get_fd$handle() {
+        return udev_monitor_get_fd.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int udev_monitor_get_fd(struct udev_monitor *udev_monitor)
+     * }
+     */
+    public static MemorySegment udev_monitor_get_fd$address() {
+        return udev_monitor_get_fd.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int udev_monitor_get_fd(struct udev_monitor *udev_monitor)
+     * }
+     */
+    public static int udev_monitor_get_fd(MemorySegment udev_monitor) {
+        var mh$ = udev_monitor_get_fd.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("udev_monitor_get_fd", udev_monitor);
+            }
+            return (int)mh$.invokeExact(udev_monitor);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class udev_monitor_receive_device {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("udev_monitor_receive_device");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monitor)
+     * }
+     */
+    public static FunctionDescriptor udev_monitor_receive_device$descriptor() {
+        return udev_monitor_receive_device.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monitor)
+     * }
+     */
+    public static MethodHandle udev_monitor_receive_device$handle() {
+        return udev_monitor_receive_device.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monitor)
+     * }
+     */
+    public static MemorySegment udev_monitor_receive_device$address() {
+        return udev_monitor_receive_device.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * struct udev_device *udev_monitor_receive_device(struct udev_monitor *udev_monitor)
+     * }
+     */
+    public static MemorySegment udev_monitor_receive_device(MemorySegment udev_monitor) {
+        var mh$ = udev_monitor_receive_device.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("udev_monitor_receive_device", udev_monitor);
+            }
+            return (MemorySegment)mh$.invokeExact(udev_monitor);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class udev_monitor_filter_add_match_subsystem_devtype {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("udev_monitor_filter_add_match_subsystem_devtype");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int udev_monitor_filter_add_match_subsystem_devtype(struct udev_monitor *udev_monitor, const char *subsystem, const char *devtype)
+     * }
+     */
+    public static FunctionDescriptor udev_monitor_filter_add_match_subsystem_devtype$descriptor() {
+        return udev_monitor_filter_add_match_subsystem_devtype.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int udev_monitor_filter_add_match_subsystem_devtype(struct udev_monitor *udev_monitor, const char *subsystem, const char *devtype)
+     * }
+     */
+    public static MethodHandle udev_monitor_filter_add_match_subsystem_devtype$handle() {
+        return udev_monitor_filter_add_match_subsystem_devtype.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int udev_monitor_filter_add_match_subsystem_devtype(struct udev_monitor *udev_monitor, const char *subsystem, const char *devtype)
+     * }
+     */
+    public static MemorySegment udev_monitor_filter_add_match_subsystem_devtype$address() {
+        return udev_monitor_filter_add_match_subsystem_devtype.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int udev_monitor_filter_add_match_subsystem_devtype(struct udev_monitor *udev_monitor, const char *subsystem, const char *devtype)
+     * }
+     */
+    public static int udev_monitor_filter_add_match_subsystem_devtype(MemorySegment udev_monitor, MemorySegment subsystem, MemorySegment devtype) {
+        var mh$ = udev_monitor_filter_add_match_subsystem_devtype.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("udev_monitor_filter_add_match_subsystem_devtype", udev_monitor, subsystem, devtype);
+            }
+            return (int)mh$.invokeExact(udev_monitor, subsystem, devtype);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+    private static final int LIBINPUT_DEVICE_CAP_KEYBOARD = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_device_capability.LIBINPUT_DEVICE_CAP_KEYBOARD = 0
+     * }
+     */
+    public static int LIBINPUT_DEVICE_CAP_KEYBOARD() {
+        return LIBINPUT_DEVICE_CAP_KEYBOARD;
+    }
+    private static final int LIBINPUT_DEVICE_CAP_POINTER = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_device_capability.LIBINPUT_DEVICE_CAP_POINTER = 1
+     * }
+     */
+    public static int LIBINPUT_DEVICE_CAP_POINTER() {
+        return LIBINPUT_DEVICE_CAP_POINTER;
+    }
     private static final int LIBINPUT_KEY_STATE_PRESSED = (int)1L;
     /**
      * {@snippet lang=c :
@@ -1880,6 +2502,67 @@ public class Input extends Input$shared {
                 traceDowncall("libinput_device_get_name", device);
             }
             return (MemorySegment)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_has_capability {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_has_capability");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_device_has_capability(struct libinput_device *device, enum libinput_device_capability capability)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_has_capability$descriptor() {
+        return libinput_device_has_capability.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_device_has_capability(struct libinput_device *device, enum libinput_device_capability capability)
+     * }
+     */
+    public static MethodHandle libinput_device_has_capability$handle() {
+        return libinput_device_has_capability.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_device_has_capability(struct libinput_device *device, enum libinput_device_capability capability)
+     * }
+     */
+    public static MemorySegment libinput_device_has_capability$address() {
+        return libinput_device_has_capability.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_device_has_capability(struct libinput_device *device, enum libinput_device_capability capability)
+     * }
+     */
+    public static int libinput_device_has_capability(MemorySegment device, int capability) {
+        var mh$ = libinput_device_has_capability.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_has_capability", device, capability);
+            }
+            return (int)mh$.invokeExact(device, capability);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {

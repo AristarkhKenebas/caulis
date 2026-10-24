@@ -1,0 +1,39 @@
+package dev.caulis.event
+
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+class EventLoopTest {
+
+    @Test
+    fun `timers run in order, cancelled ones never`() {
+        EventLoop().use { loop ->
+            val ran = ArrayList<String>()
+            loop.after(30) { ran += "second" }
+            loop.after(10) { ran += "first" }
+            loop.after(20) { ran += "cancelled" }.cancel()
+            loop.after(50) { loop.stop() }
+            val start = System.nanoTime()
+            loop.run()
+            assertEquals(listOf("first", "second"), ran)
+            assertTrue((System.nanoTime() - start) / 1_000_000 < 1000, "timers should not wait for the 100 ms poll")
+        }
+    }
+
+    @Test
+    fun `the watchdog notices a stuck loop`() {
+        EventLoop().use { loop ->
+            val stuck = CountDownLatch(1)
+            Watchdog(loop, warnMillis = 200, giveUpMillis = 600, onStuck = { stuck.countDown() }).use {
+                loop.after(0) { Thread.sleep(2_000) } // a handler that never returns in time
+                loop.after(10) { loop.stop() }
+                val thread = Thread.ofPlatform().start { loop.run() }
+                assertTrue(stuck.await(5, TimeUnit.SECONDS), "the watchdog should have given up")
+                thread.join() // the loop finishes before it is closed
+            }
+        }
+    }
+}

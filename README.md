@@ -2,7 +2,7 @@
 
 A toolkit for writing Wayland compositors in Kotlin and Java.
 
-irisWM is the compositor built with it (in `apps/iriswm`).
+irisWM is the compositor built with it (in `apps/iriswm`, a separate project).
 
 Status: early development.
 
@@ -19,21 +19,14 @@ Status: early development.
 
 ## Try it
 
-irisWM can run as a window inside your current Wayland session:
+irisWM, the compositor built with Caulis, lives in `apps/iriswm` as a separate project
+with its own build. See [its README](apps/iriswm/README.md):
 
 ```sh
-./gradlew :apps:iriswm:installDist
-apps/iriswm/build/install/iriswm/bin/iriswm
+cd apps/iriswm
+./gradlew installDist
+build/install/iriswm/bin/iriswm
 ```
-
-It prints the socket name to use, for example `wayland-1`; start programs inside it with:
-
-```sh
-WAYLAND_DISPLAY=wayland-1 foot
-```
-
-If your default `java` is older than 27, run it with
-`JAVA_HOME=/usr/lib/jvm/java-27-openjdk apps/iriswm/build/install/iriswm/bin/iriswm`.
 
 ## License
 
