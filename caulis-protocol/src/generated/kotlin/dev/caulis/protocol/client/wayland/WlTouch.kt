@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -154,6 +155,7 @@ public class WlTouch private constructor(connection: Connection, id: Int, versio
      */
     public fun release(): Unit {
         check(version >= 3) { "wl_touch.release needs version 3, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "release", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -169,6 +171,7 @@ public class WlTouch private constructor(connection: Connection, id: Int, versio
                 val x = args.fixed()
                 val y = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "down", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, surface=${Wire.show(surface)}, id=${Wire.show(id)}, x=${Wire.show(x)}, y=${Wire.show(y)}")
                 handler?.down(this, serial, time, surface, id, x, y)
             }
             1 -> {
@@ -176,6 +179,7 @@ public class WlTouch private constructor(connection: Connection, id: Int, versio
                 val time = args.uint()
                 val id = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "up", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, id=${Wire.show(id)}")
                 handler?.up(this, serial, time, id)
             }
             2 -> {
@@ -184,14 +188,17 @@ public class WlTouch private constructor(connection: Connection, id: Int, versio
                 val x = args.fixed()
                 val y = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "motion", "time=${Wire.show(time)}, id=${Wire.show(id)}, x=${Wire.show(x)}, y=${Wire.show(y)}")
                 handler?.motion(this, time, id, x, y)
             }
             3 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "frame", "")
                 handler?.frame(this)
             }
             4 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "cancel", "")
                 handler?.cancel(this)
             }
             5 -> {
@@ -199,12 +206,14 @@ public class WlTouch private constructor(connection: Connection, id: Int, versio
                 val major = args.fixed()
                 val minor = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "shape", "id=${Wire.show(id)}, major=${Wire.show(major)}, minor=${Wire.show(minor)}")
                 handler?.shape(this, id, major, minor)
             }
             6 -> {
                 val id = args.int()
                 val orientation = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "orientation", "id=${Wire.show(id)}, orientation=${Wire.show(orientation)}")
                 handler?.orientation(this, id, orientation)
             }
         }

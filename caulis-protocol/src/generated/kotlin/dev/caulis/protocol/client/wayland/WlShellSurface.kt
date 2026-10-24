@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -79,6 +80,7 @@ public class WlShellSurface private constructor(connection: Connection, id: Int,
      * the client may be deemed unresponsive.
      */
     public fun pong(serial: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "pong", "serial=${Wire.show(serial)}")
         request(0).uint(serial).end()
     }
 
@@ -92,6 +94,7 @@ public class WlShellSurface private constructor(connection: Connection, id: Int,
      * the surface (e.g. fullscreen or maximized).
      */
     public fun move(seat: WlSeat, serial: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "move", "seat=${Wire.show(seat)}, serial=${Wire.show(serial)}")
         request(1).obj(seat).uint(serial).end()
     }
 
@@ -105,6 +108,7 @@ public class WlShellSurface private constructor(connection: Connection, id: Int,
      * the surface (e.g. fullscreen or maximized).
      */
     public fun resize(seat: WlSeat, serial: Int, edges: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "resize", "seat=${Wire.show(seat)}, serial=${Wire.show(serial)}, edges=${Wire.show(edges)}")
         request(2).obj(seat).uint(serial).uint(edges).end()
     }
 
@@ -116,6 +120,7 @@ public class WlShellSurface private constructor(connection: Connection, id: Int,
      * A toplevel surface is not fullscreen, maximized or transient.
      */
     public fun setToplevel(): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_toplevel", "")
         request(3).end()
     }
 
@@ -131,6 +136,7 @@ public class WlShellSurface private constructor(connection: Connection, id: Int,
      * The flags argument controls details of the transient behaviour.
      */
     public fun setTransient(parent: WlSurface, x: Int, y: Int, flags: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_transient", "parent=${Wire.show(parent)}, x=${Wire.show(x)}, y=${Wire.show(y)}, flags=${Wire.show(flags)}")
         request(4).obj(parent).int(x).int(y).uint(flags).end()
     }
 
@@ -172,6 +178,7 @@ public class WlShellSurface private constructor(connection: Connection, id: Int,
      * be made fullscreen.
      */
     public fun setFullscreen(method: Int, framerate: Int, output: WlOutput?): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_fullscreen", "method=${Wire.show(method)}, framerate=${Wire.show(framerate)}, output=${Wire.show(output)}")
         request(5).uint(method).uint(framerate).obj(output).end()
     }
 
@@ -199,6 +206,7 @@ public class WlShellSurface private constructor(connection: Connection, id: Int,
      * parent surface, in surface-local coordinates.
      */
     public fun setPopup(seat: WlSeat, serial: Int, parent: WlSurface, x: Int, y: Int, flags: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_popup", "seat=${Wire.show(seat)}, serial=${Wire.show(serial)}, parent=${Wire.show(parent)}, x=${Wire.show(x)}, y=${Wire.show(y)}, flags=${Wire.show(flags)}")
         request(6).obj(seat).uint(serial).obj(parent).int(x).int(y).uint(flags).end()
     }
 
@@ -225,6 +233,7 @@ public class WlShellSurface private constructor(connection: Connection, id: Int,
      * The details depend on the compositor implementation.
      */
     public fun setMaximized(output: WlOutput?): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_maximized", "output=${Wire.show(output)}")
         request(7).obj(output).end()
     }
 
@@ -240,6 +249,7 @@ public class WlShellSurface private constructor(connection: Connection, id: Int,
      * The string must be encoded in UTF-8.
      */
     public fun setTitle(title: String): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_title", "title=${Wire.show(title)}")
         request(8).string(title).end()
     }
 
@@ -254,6 +264,7 @@ public class WlShellSurface private constructor(connection: Connection, id: Int,
      * the application's .desktop file as the class.
      */
     public fun setClass(`class`: String): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_class", "class_=${Wire.show(`class`)}")
         request(9).string(`class`).end()
     }
 
@@ -303,6 +314,7 @@ public class WlShellSurface private constructor(connection: Connection, id: Int,
             0 -> {
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "ping", "serial=${Wire.show(serial)}")
                 handler?.ping(this, serial)
             }
             1 -> {
@@ -310,10 +322,12 @@ public class WlShellSurface private constructor(connection: Connection, id: Int,
                 val width = args.int()
                 val height = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "configure", "edges=${Wire.show(edges)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler?.configure(this, edges, width, height)
             }
             2 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "popup_done", "")
                 handler?.popupDone(this)
             }
         }

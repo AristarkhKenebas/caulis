@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Desktop-style metadata interface
@@ -206,6 +207,7 @@ public class WlShellSurface private constructor(client: Client, id: Int, version
      */
     public fun sendPing(serial: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "ping", "serial=${Wire.show(serial)}")
         event(0).uint(serial).end()
     }
 
@@ -232,6 +234,7 @@ public class WlShellSurface private constructor(client: Client, id: Int, version
      */
     public fun sendConfigure(edges: Int, width: Int, height: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "configure", "edges=${Wire.show(edges)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
         event(1).uint(edges).int(width).int(height).end()
     }
 
@@ -244,6 +247,7 @@ public class WlShellSurface private constructor(client: Client, id: Int, version
      */
     public fun sendPopupDone() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "popup_done", "")
         event(2).end()
     }
 
@@ -304,12 +308,14 @@ public class WlShellSurface private constructor(client: Client, id: Int, version
             0 -> {
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "pong", "serial=${Wire.show(serial)}")
                 handler.pong(this, serial)
             }
             1 -> {
                 val seat = args.obj(WlSeat::class.java)
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "move", "seat=${Wire.show(seat)}, serial=${Wire.show(serial)}")
                 handler.move(this, seat, serial)
             }
             2 -> {
@@ -317,10 +323,12 @@ public class WlShellSurface private constructor(client: Client, id: Int, version
                 val serial = args.uint()
                 val edges = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "resize", "seat=${Wire.show(seat)}, serial=${Wire.show(serial)}, edges=${Wire.show(edges)}")
                 handler.resize(this, seat, serial, edges)
             }
             3 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_toplevel", "")
                 handler.setToplevel(this)
             }
             4 -> {
@@ -329,6 +337,7 @@ public class WlShellSurface private constructor(client: Client, id: Int, version
                 val y = args.int()
                 val flags = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_transient", "parent=${Wire.show(parent)}, x=${Wire.show(x)}, y=${Wire.show(y)}, flags=${Wire.show(flags)}")
                 handler.setTransient(this, parent, x, y, flags)
             }
             5 -> {
@@ -336,6 +345,7 @@ public class WlShellSurface private constructor(client: Client, id: Int, version
                 val framerate = args.uint()
                 val output = args.objOrNull(WlOutput::class.java)
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_fullscreen", "method=${Wire.show(method)}, framerate=${Wire.show(framerate)}, output=${Wire.show(output)}")
                 handler.setFullscreen(this, method, framerate, output)
             }
             6 -> {
@@ -346,21 +356,25 @@ public class WlShellSurface private constructor(client: Client, id: Int, version
                 val y = args.int()
                 val flags = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_popup", "seat=${Wire.show(seat)}, serial=${Wire.show(serial)}, parent=${Wire.show(parent)}, x=${Wire.show(x)}, y=${Wire.show(y)}, flags=${Wire.show(flags)}")
                 handler.setPopup(this, seat, serial, parent, x, y, flags)
             }
             7 -> {
                 val output = args.objOrNull(WlOutput::class.java)
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_maximized", "output=${Wire.show(output)}")
                 handler.setMaximized(this, output)
             }
             8 -> {
                 val title = args.string()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_title", "title=${Wire.show(title)}")
                 handler.setTitle(this, title)
             }
             9 -> {
                 val `class` = args.string()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_class", "class_=${Wire.show(`class`)}")
                 handler.setClass(this, `class`)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wl_shell_surface request $opcode")

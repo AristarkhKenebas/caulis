@@ -6,7 +6,6 @@ import dev.caulis.ffi.Fd
 import dev.caulis.ffi.NativeException
 import dev.caulis.ffi.UnixSocket
 import dev.caulis.protocol.Incoming
-import dev.caulis.protocol.Log
 import dev.caulis.protocol.MessageWriter
 import dev.caulis.protocol.Outgoing
 import dev.caulis.protocol.WireOutput
@@ -29,7 +28,7 @@ import java.nio.file.Path
  */
 class Connection private constructor(private val socket: UnixSocket) : WireOutput, AutoCloseable {
 
-    val log = Log("caulis.wayland.client")
+    val log = dev.caulis.log.Logger("nested")
 
     private val arena = Arena.ofShared()
     private val incoming = Incoming(socket, arena)

@@ -121,6 +121,7 @@ Without writing anything, you already have the usual keys:
 | --- | --- |
 | Super+Return | open the terminal (`terminal = "foot"` changes which) |
 | Super+Q | close the window |
+| Super+F12 | write the state (windows, focus, panels) to the log — see *When something goes wrong* |
 | Super+L | lock the screen (`lockCommand = "swaylock"` changes the locker) |
 | Super+Up / Super+F / Super+Down | maximize / fullscreen / minimize |
 | Super+V | take the window out of the layout (floating) and back |
@@ -244,6 +245,11 @@ onStart {
 bind("Super+D") { launch("fuzzel") }
 ```
 
+Docks and taskbars (Waybar's taskbar, nwg-dock, sfwbar, or your own) see every window and
+can activate, minimize, maximize and close it; a window minimized from a dock flies into
+its icon there and comes back out of it. How fast windows move, minimize and zoom is
+`animationMillis = 220` (0 turns the animations off).
+
 A bar that reserves space (as Waybar does) keeps it free: tiled and maximized windows stay
 next to it, never under it. `desktop.usableArea` is what is left for windows. A launcher gets
 the keyboard while it is open; fullscreen windows cover bars, but not notifications.
@@ -297,11 +303,14 @@ hideCursorWhileTyping = true      // it comes back when the mouse moves
 hideCursorAfterSeconds = 5        // hide it when the mouse is still (0 = never)
 ```
 
+Caulis has its own cursors too: `"Caulis"` (sharp white arrows with a black outline, as on
+Windows) and `"Caulis-Black"`. They are used when no other theme is chosen — e.g. without
+`caulis-cursor-bibata` in `build.gradle.kts` (Bibata is GPL-3.0; remove that line if your
+compositor must not contain GPL files) — and they stand in for any cursor a theme lacks.
+
 Programs show the same cursor: modern ones ask the compositor for it by name, older ones
 are told the theme and size. If the theme you name is not installed, the log says so and
-lists the ones that are. Without `caulis-cursor-bibata` in `build.gradle.kts` the system's
-theme is used (Bibata is GPL-3.0; remove that line if your compositor must not contain GPL
-files).
+lists the ones that are.
 
 ## 11. Locking the screen
 
@@ -390,6 +399,42 @@ Need something the blocks cannot express? Implement `Layout` yourself: it gets t
 and the free area, and returns one rectangle per window.
 
 ## When something goes wrong
+
+### Look in the log
+
+The log tells what happened, in four levels: **0** nearly nothing, **1** problems (the
+default), **2** what happens (windows opening and closing, the focus, layouts, monitors,
+panels, the lock), **3** everything step by step. Turn it up without changing code:
+
+```sh
+CAULIS_LOG=2 ./gradlew run                       # what happens
+CAULIS_LOG="1,focus=3" ./gradlew run             # only the focus in detail
+CAULIS_LOG="2,wayland=3" ./gradlew run           # every Wayland message (like WAYLAND_DEBUG)
+CAULIS_LOG=3 CAULIS_LOG_FILE=/tmp/caulis.log ./gradlew run   # everything, into a file
+```
+
+or in code: `logLevel = 2`, `log("windows", 3)`, `logFile = Path.of("/tmp/caulis.log")`.
+The areas: `wayland`, `clients`, `windows`, `focus`, `input`, `gestures`, `layout`, `layers`,
+`lock`, `docks`, `cursor`, `render`, `drm`, `session`, `nested`, `config` (your own code),
+`native`. A line looks like this:
+
+```
+22:02:17.646     1,524 I focus    Focus: Window("foot", foot)
+22:02:17.647     1,524 I windows  Opened Window("foot", foot) (workspace 1, tiled)
+```
+
+(time, seconds since the start, **E**rror / **W**arning / **I**nfo / **T**race, area, what).
+
+**Super+F12** writes the whole state to the log: every workspace and window with its place,
+the focus, panels, the lock, the cursor — the first thing to look at when windows behave
+oddly. (`dumpState()` does the same from your code.) And if the compositor stops with an
+error, its report ends with the last events before it, even when the log level was low.
+
+Keys are written at level 3 of `input` (as key numbers), never while the screen is locked;
+the Wayland log never shows which key was pressed. Still, a level 3 log of `input` records
+what you type — do not share one in which you typed a password.
+
+### Messages
 
 | Message | What it means |
 | --- | --- |

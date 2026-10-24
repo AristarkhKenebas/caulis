@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.xdgshell
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -99,6 +100,7 @@ public class XdgSurface private constructor(connection: Connection, id: Int, ver
      * a defunct_role_object error is raised.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -114,6 +116,7 @@ public class XdgSurface private constructor(connection: Connection, id: Int, ver
      */
     public fun getToplevel(): XdgToplevel {
         val created = connection.createProxy(XdgToplevel, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_toplevel", "id=${Wire.show(created)}")
         request(1).newId(created).end()
         return created
     }
@@ -132,6 +135,7 @@ public class XdgSurface private constructor(connection: Connection, id: Int, ver
      */
     public fun getPopup(parent: XdgSurface?, positioner: XdgPositioner): XdgPopup {
         val created = connection.createProxy(XdgPopup, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_popup", "id=${Wire.show(created)}, parent=${Wire.show(parent)}, positioner=${Wire.show(positioner)}")
         request(2).newId(created).obj(parent).obj(positioner).end()
         return created
     }
@@ -181,6 +185,7 @@ public class XdgSurface private constructor(connection: Connection, id: Int, ver
      * invalid_size error.
      */
     public fun setWindowGeometry(x: Int, y: Int, width: Int, height: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_window_geometry", "x=${Wire.show(x)}, y=${Wire.show(y)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
         request(3).int(x).int(y).int(width).int(height).end()
     }
 
@@ -221,6 +226,7 @@ public class XdgSurface private constructor(connection: Connection, id: Int, ver
      * xdg_surface. Doing so will raise an invalid_serial error.
      */
     public fun ackConfigure(serial: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "ack_configure", "serial=${Wire.show(serial)}")
         request(4).uint(serial).end()
     }
 
@@ -245,6 +251,7 @@ public class XdgSurface private constructor(connection: Connection, id: Int, ver
             0 -> {
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "configure", "serial=${Wire.show(serial)}")
                 handler?.configure(this, serial)
             }
         }

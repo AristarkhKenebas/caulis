@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlOutput
 import dev.caulis.protocol.wayland.WlSurface
@@ -101,11 +102,13 @@ public class ZwlrLayerShellV1 private constructor(client: Client, id: Int, versi
                 val namespace = args.string()
                 args.end()
                 val id = client.register(ZwlrLayerSurfaceV1.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_layer_surface", "id=${Wire.show(id)}, surface=${Wire.show(surface)}, output=${Wire.show(output)}, layer=${Wire.show(layer)}, namespace=${Wire.show(namespace)}")
                 handler.getLayerSurface(this, id, surface, output, layer, namespace)
             }
             1 -> {
                 if (version < 3) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "zwlr_layer_shell_v1.destroy needs version 3")
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }

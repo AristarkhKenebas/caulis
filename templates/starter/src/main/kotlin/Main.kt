@@ -18,9 +18,14 @@ fun main() = caulis {
     effects = Effects.MODERN
 
     // The cursor: Bibata comes with the project ("Bibata-Modern-Ice" is the white one,
-    // "Bibata-Modern-Amber" the amber one); any installed theme works too, e.g. "Adwaita".
+    // "Bibata-Modern-Amber" the amber one); Caulis's own sharp ones are "Caulis" and
+    // "Caulis-Black"; any installed theme works too, e.g. "Adwaita".
     cursorTheme = "Bibata-Modern-Classic"
     cursorSize = 24
+
+    // How much the log says: 0 nearly nothing, 1 problems, 2 what happens, 3 everything.
+    // (CAULIS_LOG=3 when starting does the same without changing this file.)
+    logLevel = 1
 
     // Keyboard layouts, as for setxkbmap: "us", "us,de", "us,ru" ...
     keyboardLayouts = "us"

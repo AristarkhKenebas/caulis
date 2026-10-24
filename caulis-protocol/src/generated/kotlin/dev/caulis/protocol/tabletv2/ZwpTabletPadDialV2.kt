@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 
 /**
@@ -75,6 +76,7 @@ public class ZwpTabletPadDialV2 private constructor(client: Client, id: Int, ver
      */
     public fun sendDelta(value120: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "delta", "value120=${Wire.show(value120)}")
         event(0).int(value120).end()
     }
 
@@ -95,6 +97,7 @@ public class ZwpTabletPadDialV2 private constructor(client: Client, id: Int, ver
      */
     public fun sendFrame(time: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "frame", "time=${Wire.show(time)}")
         event(1).uint(time).end()
     }
 
@@ -106,10 +109,12 @@ public class ZwpTabletPadDialV2 private constructor(client: Client, id: Int, ver
                 val description = args.string()
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_feedback", "description=${Wire.show(description)}, serial=${Wire.show(serial)}")
                 handler.setFeedback(this, description, serial)
             }
             1 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }

@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Touchscreen input device
@@ -47,6 +48,7 @@ public class WlTouch private constructor(client: Client, id: Int, version: Int) 
      */
     public fun sendDown(serial: Int, time: Int, surface: WlSurface, id: Int, x: Double, y: Double) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "down", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, surface=${Wire.show(surface)}, id=${Wire.show(id)}, x=${Wire.show(x)}, y=${Wire.show(y)}")
         event(0).uint(serial).uint(time).obj(surface).int(id).fixed(x).fixed(y).end()
     }
 
@@ -59,6 +61,7 @@ public class WlTouch private constructor(client: Client, id: Int, version: Int) 
      */
     public fun sendUp(serial: Int, time: Int, id: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "up", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, id=${Wire.show(id)}")
         event(1).uint(serial).uint(time).int(id).end()
     }
 
@@ -69,6 +72,7 @@ public class WlTouch private constructor(client: Client, id: Int, version: Int) 
      */
     public fun sendMotion(time: Int, id: Int, x: Double, y: Double) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "motion", "time=${Wire.show(time)}, id=${Wire.show(id)}, x=${Wire.show(x)}, y=${Wire.show(y)}")
         event(2).uint(time).int(id).fixed(x).fixed(y).end()
     }
 
@@ -86,6 +90,7 @@ public class WlTouch private constructor(client: Client, id: Int, version: Int) 
      */
     public fun sendFrame() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "frame", "")
         event(3).end()
     }
 
@@ -103,6 +108,7 @@ public class WlTouch private constructor(client: Client, id: Int, version: Int) 
      */
     public fun sendCancel() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "cancel", "")
         event(4).end()
     }
 
@@ -140,6 +146,7 @@ public class WlTouch private constructor(client: Client, id: Int, version: Int) 
     public fun sendShape(id: Int, major: Double, minor: Double) {
         if (!isAlive || !client.isConnected) return
         if (version < 6) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "shape", "id=${Wire.show(id)}, major=${Wire.show(major)}, minor=${Wire.show(minor)}")
         event(5).int(id).fixed(major).fixed(minor).end()
     }
 
@@ -175,6 +182,7 @@ public class WlTouch private constructor(client: Client, id: Int, version: Int) 
     public fun sendOrientation(id: Int, orientation: Double) {
         if (!isAlive || !client.isConnected) return
         if (version < 6) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "orientation", "id=${Wire.show(id)}, orientation=${Wire.show(orientation)}")
         event(6).int(id).fixed(orientation).end()
     }
 
@@ -185,6 +193,7 @@ public class WlTouch private constructor(client: Client, id: Int, version: Int) 
             0 -> {
                 if (version < 3) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "wl_touch.release needs version 3")
                 args.end()
+                if (Wire.tracing) Wire.request(this, "release", "")
                 handler.release(this)
                 client.destroyResource(this)
             }

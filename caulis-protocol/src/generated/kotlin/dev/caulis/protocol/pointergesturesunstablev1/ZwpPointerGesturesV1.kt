@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlPointer
 
@@ -85,6 +86,7 @@ public class ZwpPointerGesturesV1 private constructor(client: Client, id: Int, v
                 val pointer = args.obj(WlPointer::class.java)
                 args.end()
                 val id = client.register(ZwpPointerGestureSwipeV1.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_swipe_gesture", "id=${Wire.show(id)}, pointer=${Wire.show(pointer)}")
                 handler.getSwipeGesture(this, id, pointer)
             }
             1 -> {
@@ -92,11 +94,13 @@ public class ZwpPointerGesturesV1 private constructor(client: Client, id: Int, v
                 val pointer = args.obj(WlPointer::class.java)
                 args.end()
                 val id = client.register(ZwpPointerGesturePinchV1.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_pinch_gesture", "id=${Wire.show(id)}, pointer=${Wire.show(pointer)}")
                 handler.getPinchGesture(this, id, pointer)
             }
             2 -> {
                 if (version < 2) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "zwp_pointer_gestures_v1.release needs version 2")
                 args.end()
+                if (Wire.tracing) Wire.request(this, "release", "")
                 handler.release(this)
                 client.destroyResource(this)
             }
@@ -106,6 +110,7 @@ public class ZwpPointerGesturesV1 private constructor(client: Client, id: Int, v
                 val pointer = args.obj(WlPointer::class.java)
                 args.end()
                 val id = client.register(ZwpPointerGestureHoldV1.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_hold_gesture", "id=${Wire.show(id)}, pointer=${Wire.show(pointer)}")
                 handler.getHoldGesture(this, id, pointer)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown zwp_pointer_gestures_v1 request $opcode")

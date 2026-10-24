@@ -56,7 +56,7 @@ class DrmBackend private constructor(
     var onOutputAdded: (DrmOutput) -> Unit = {}
     var onOutputRemoved: (DrmOutput) -> Unit = {}
 
-    private val log = System.getLogger("caulis.drm")
+    private val log = dev.caulis.log.Logger("drm")
     private val arena = Arena.ofShared()
     private val udev: MemorySegment = Input.udev_new()
     private var hotplug: MemorySegment = MemorySegment.NULL
@@ -91,19 +91,19 @@ class DrmBackend private constructor(
             if (connectorId in active) continue
             val output = createOutput(info) ?: continue
             if (!output.start()) {
-                log.log(System.Logger.Level.WARNING, "No mode of ${info.name} works; leaving it off")
+                log.warn("No mode of ${info.name} works; leaving it off")
                 output.close()
                 continue
             }
             active[connectorId] = output
-            log.log(System.Logger.Level.INFO, "Monitor ${output.name} (${output.edid?.model ?: "unknown"}) at ${output.mode}")
+            log.info("Monitor ${output.name} (${output.edid?.model ?: "unknown"}) at ${output.mode}")
             onOutputAdded(output)
         }
     }
 
     private fun removeOutput(connectorId: Int) {
         val output = active.remove(connectorId) ?: return
-        log.log(System.Logger.Level.INFO, "Monitor ${output.name} disconnected")
+        log.info("Monitor ${output.name} disconnected")
         onOutputRemoved(output)
         output.stop()
         output.close()
@@ -193,13 +193,13 @@ class DrmBackend private constructor(
         val used = active.values.map { it.crtcId }.toSet()
         val index = crtcIds.indices.firstOrNull { info.possibleCrtcs and (1 shl it) != 0 && crtcIds[it] !in used }
         if (index == null) {
-            log.log(System.Logger.Level.WARNING, "No free display controller (CRTC) for ${info.name}")
+            log.warn("No free display controller (CRTC) for ${info.name}")
             return null
         }
         val crtc = crtcIds[index]
         val planes = planes()
         val primary = planes.firstOrNull { it.type == Drm.DRM_PLANE_TYPE_PRIMARY().toLong() && it.possibleCrtcs and (1 shl index) != 0 && it.id !in usedPlanes() }
-            ?: return null.also { log.log(System.Logger.Level.WARNING, "No primary plane for ${info.name}") }
+            ?: return null.also { log.warn("No primary plane for ${info.name}") }
         val stray = planes.filter { it.currentCrtc == crtc && it.id != primary.id }.map { it.id }
         return DrmOutput(
             loop, device, renderer, { session.active }, info.id, crtc, primary.id, info.name, info.edid,

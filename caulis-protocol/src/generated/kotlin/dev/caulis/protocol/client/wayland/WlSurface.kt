@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -132,6 +133,7 @@ public class WlSurface private constructor(connection: Connection, id: Int, vers
      * Deletes the surface and invalidates its object ID.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -208,6 +210,7 @@ public class WlSurface private constructor(connection: Connection, id: Int, vers
      * destroying buffers.
      */
     public fun attach(buffer: WlBuffer?, x: Int, y: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "attach", "buffer=${Wire.show(buffer)}, x=${Wire.show(x)}, y=${Wire.show(y)}")
         request(1).obj(buffer).int(x).int(y).end()
     }
 
@@ -237,6 +240,7 @@ public class WlSurface private constructor(connection: Connection, id: Int, vers
      * instead of surface coordinates.
      */
     public fun damage(x: Int, y: Int, width: Int, height: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "damage", "x=${Wire.show(x)}, y=${Wire.show(y)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
         request(2).int(x).int(y).int(width).int(height).end()
     }
 
@@ -278,6 +282,7 @@ public class WlSurface private constructor(connection: Connection, id: Int, vers
      */
     public fun frame(): WlCallback {
         val created = connection.createProxy(WlCallback, this.version)
+        if (Wire.tracing) Wire.sent(this, "frame", "callback=${Wire.show(created)}")
         request(3).newId(created).end()
         return created
     }
@@ -311,6 +316,7 @@ public class WlSurface private constructor(connection: Connection, id: Int, vers
      * region to be set to empty.
      */
     public fun setOpaqueRegion(region: WlRegion?): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_opaque_region", "region=${Wire.show(region)}")
         request(4).obj(region).end()
     }
 
@@ -341,6 +347,7 @@ public class WlSurface private constructor(connection: Connection, id: Int, vers
      * to infinite.
      */
     public fun setInputRegion(region: WlRegion?): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_input_region", "region=${Wire.show(region)}")
         request(5).obj(region).end()
     }
 
@@ -395,6 +402,7 @@ public class WlSurface private constructor(connection: Connection, id: Int, vers
      * the previous content update.
      */
     public fun commit(): Unit {
+        if (Wire.tracing) Wire.sent(this, "commit", "")
         request(6).end()
     }
 
@@ -437,6 +445,7 @@ public class WlSurface private constructor(connection: Connection, id: Int, vers
      */
     public fun setBufferTransform(transform: Int): Unit {
         check(version >= 2) { "wl_surface.set_buffer_transform needs version 2, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "set_buffer_transform", "transform=${Wire.show(transform)}")
         request(7).int(transform).end()
     }
 
@@ -471,6 +480,7 @@ public class WlSurface private constructor(connection: Connection, id: Int, vers
      */
     public fun setBufferScale(scale: Int): Unit {
         check(version >= 3) { "wl_surface.set_buffer_scale needs version 3, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "set_buffer_scale", "scale=${Wire.show(scale)}")
         request(8).int(scale).end()
     }
 
@@ -514,6 +524,7 @@ public class WlSurface private constructor(connection: Connection, id: Int, vers
      */
     public fun damageBuffer(x: Int, y: Int, width: Int, height: Int): Unit {
         check(version >= 4) { "wl_surface.damage_buffer needs version 4, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "damage_buffer", "x=${Wire.show(x)}, y=${Wire.show(y)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
         request(9).int(x).int(y).int(width).int(height).end()
     }
 
@@ -540,6 +551,7 @@ public class WlSurface private constructor(connection: Connection, id: Int, vers
      */
     public fun offset(x: Int, y: Int): Unit {
         check(version >= 5) { "wl_surface.offset needs version 5, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "offset", "x=${Wire.show(x)}, y=${Wire.show(y)}")
         request(10).int(x).int(y).end()
     }
 
@@ -570,6 +582,7 @@ public class WlSurface private constructor(connection: Connection, id: Int, vers
     public fun getRelease(): WlCallback {
         check(version >= 7) { "wl_surface.get_release needs version 7, this object has $version" }
         val created = connection.createProxy(WlCallback, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_release", "callback=${Wire.show(created)}")
         request(11).newId(created).end()
         return created
     }
@@ -596,21 +609,25 @@ public class WlSurface private constructor(connection: Connection, id: Int, vers
             0 -> {
                 val output = args.obj(WlOutput::class.java)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "enter", "output=${Wire.show(output)}")
                 handler?.enter(this, output)
             }
             1 -> {
                 val output = args.obj(WlOutput::class.java)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "leave", "output=${Wire.show(output)}")
                 handler?.leave(this, output)
             }
             2 -> {
                 val factor = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "preferred_buffer_scale", "factor=${Wire.show(factor)}")
                 handler?.preferredBufferScale(this, factor)
             }
             3 -> {
                 val transform = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "preferred_buffer_transform", "transform=${Wire.show(transform)}")
                 handler?.preferredBufferTransform(this, transform)
             }
         }

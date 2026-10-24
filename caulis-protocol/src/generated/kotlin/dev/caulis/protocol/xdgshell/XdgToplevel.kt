@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlOutput
 import dev.caulis.protocol.wayland.WlSeat
@@ -423,6 +424,7 @@ public class XdgToplevel private constructor(client: Client, id: Int, version: I
      */
     public fun sendConfigure(width: Int, height: Int, states: ByteArray) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "configure", "width=${Wire.show(width)}, height=${Wire.show(height)}, states=${Wire.show(states)}")
         event(0).int(width).int(height).array(states).end()
     }
 
@@ -440,6 +442,7 @@ public class XdgToplevel private constructor(client: Client, id: Int, version: I
      */
     public fun sendClose() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "close", "")
         event(1).end()
     }
 
@@ -467,6 +470,7 @@ public class XdgToplevel private constructor(client: Client, id: Int, version: I
     public fun sendConfigureBounds(width: Int, height: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 4) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "configure_bounds", "width=${Wire.show(width)}, height=${Wire.show(height)}")
         event(2).int(width).int(height).end()
     }
 
@@ -499,6 +503,7 @@ public class XdgToplevel private constructor(client: Client, id: Int, version: I
     public fun sendWmCapabilities(capabilities: ByteArray) {
         if (!isAlive || !client.isConnected) return
         if (version < 5) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "wm_capabilities", "capabilities=${Wire.show(capabilities)}")
         event(3).array(capabilities).end()
     }
 
@@ -566,22 +571,26 @@ public class XdgToplevel private constructor(client: Client, id: Int, version: I
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
             1 -> {
                 val parent = args.objOrNull(XdgToplevel::class.java)
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_parent", "parent=${Wire.show(parent)}")
                 handler.setParent(this, parent)
             }
             2 -> {
                 val title = args.string()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_title", "title=${Wire.show(title)}")
                 handler.setTitle(this, title)
             }
             3 -> {
                 val appId = args.string()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_app_id", "app_id=${Wire.show(appId)}")
                 handler.setAppId(this, appId)
             }
             4 -> {
@@ -590,12 +599,14 @@ public class XdgToplevel private constructor(client: Client, id: Int, version: I
                 val x = args.int()
                 val y = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "show_window_menu", "seat=${Wire.show(seat)}, serial=${Wire.show(serial)}, x=${Wire.show(x)}, y=${Wire.show(y)}")
                 handler.showWindowMenu(this, seat, serial, x, y)
             }
             5 -> {
                 val seat = args.obj(WlSeat::class.java)
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "move", "seat=${Wire.show(seat)}, serial=${Wire.show(serial)}")
                 handler.move(this, seat, serial)
             }
             6 -> {
@@ -603,39 +614,47 @@ public class XdgToplevel private constructor(client: Client, id: Int, version: I
                 val serial = args.uint()
                 val edges = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "resize", "seat=${Wire.show(seat)}, serial=${Wire.show(serial)}, edges=${Wire.show(edges)}")
                 handler.resize(this, seat, serial, edges)
             }
             7 -> {
                 val width = args.int()
                 val height = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_max_size", "width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler.setMaxSize(this, width, height)
             }
             8 -> {
                 val width = args.int()
                 val height = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_min_size", "width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler.setMinSize(this, width, height)
             }
             9 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_maximized", "")
                 handler.setMaximized(this)
             }
             10 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "unset_maximized", "")
                 handler.unsetMaximized(this)
             }
             11 -> {
                 val output = args.objOrNull(WlOutput::class.java)
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_fullscreen", "output=${Wire.show(output)}")
                 handler.setFullscreen(this, output)
             }
             12 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "unset_fullscreen", "")
                 handler.unsetFullscreen(this)
             }
             13 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_minimized", "")
                 handler.setMinimized(this)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown xdg_toplevel request $opcode")

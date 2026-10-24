@@ -31,6 +31,9 @@ class XdgShell(private val display: Display) {
         fun windowUnmapped(window: Window) {}
         fun windowCommitted(window: Window) {}
 
+        /** The window's title or app id changed. */
+        fun windowInfoChanged(window: Window) {}
+
         /** The largest sensible window size (e.g. the screen), or null if unknown. */
         fun bounds(window: Window): Pair<Int, Int>? = null
 
@@ -297,11 +300,15 @@ class Window internal constructor(val resource: XdgToplevel, val shell: ShellSur
             }
 
             override fun setTitle(resource: XdgToplevel, title: String) {
+                if (title == this@Window.title) return
                 this@Window.title = title
+                shell.shell.listener.windowInfoChanged(this@Window)
             }
 
             override fun setAppId(resource: XdgToplevel, appId: String) {
+                if (appId == this@Window.appId) return
                 this@Window.appId = appId
+                shell.shell.listener.windowInfoChanged(this@Window)
             }
 
             override fun showWindowMenu(resource: XdgToplevel, seat: WlSeat, serial: Int, x: Int, y: Int) {}
@@ -373,6 +380,7 @@ class Window internal constructor(val resource: XdgToplevel, val shell: ShellSur
         if (tiled && resource.version >= 2) {
             states += listOf(XdgToplevel.State.TILED_LEFT, XdgToplevel.State.TILED_RIGHT, XdgToplevel.State.TILED_TOP, XdgToplevel.State.TILED_BOTTOM)
         }
+        windowsLog.trace { "Asking $this for ${width}x$height${if (states.isEmpty()) "" else ", states $states"}" }
         resource.sendConfigure(width, height, uintArray(states))
         shell.sendConfigure()
     }
@@ -553,3 +561,5 @@ internal fun uintArray(values: List<Int>): ByteArray {
     values.forEach { bytes.putInt(it) }
     return bytes.array()
 }
+
+private val windowsLog = dev.caulis.log.Logger("windows")

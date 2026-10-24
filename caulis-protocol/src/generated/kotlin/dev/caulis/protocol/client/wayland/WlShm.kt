@@ -4,6 +4,7 @@
 package dev.caulis.protocol.client.wayland
 
 import dev.caulis.ffi.Fd
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -55,6 +56,7 @@ public class WlShm private constructor(connection: Connection, id: Int, version:
      */
     public fun createPool(fd: Fd, size: Int): WlShmPool {
         val created = connection.createProxy(WlShmPool, this.version)
+        if (Wire.tracing) Wire.sent(this, "create_pool", "id=${Wire.show(created)}, fd=${Wire.show(fd)}, size=${Wire.show(size)}")
         request(0).newId(created).fd(fd).int(size).end()
         return created
     }
@@ -71,6 +73,7 @@ public class WlShm private constructor(connection: Connection, id: Int, version:
      */
     public fun release(): Unit {
         check(version >= 2) { "wl_shm.release needs version 2, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "release", "")
         request(1).end()
         connection.destroyProxy(this)
     }
@@ -378,6 +381,7 @@ public class WlShm private constructor(connection: Connection, id: Int, version:
             0 -> {
                 val format = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "format", "format=${Wire.show(format)}")
                 handler?.format(this, format)
             }
         }

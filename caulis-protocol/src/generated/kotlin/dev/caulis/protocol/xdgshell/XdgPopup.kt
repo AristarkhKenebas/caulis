@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlSeat
 
@@ -151,6 +152,7 @@ public class XdgPopup private constructor(client: Client, id: Int, version: Int)
      */
     public fun sendConfigure(x: Int, y: Int, width: Int, height: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "configure", "x=${Wire.show(x)}, y=${Wire.show(y)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
         event(0).int(x).int(y).int(width).int(height).end()
     }
 
@@ -163,6 +165,7 @@ public class XdgPopup private constructor(client: Client, id: Int, version: Int)
      */
     public fun sendPopupDone() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "popup_done", "")
         event(1).end()
     }
 
@@ -190,6 +193,7 @@ public class XdgPopup private constructor(client: Client, id: Int, version: Int)
     public fun sendRepositioned(token: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 3) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "repositioned", "token=${Wire.show(token)}")
         event(2).uint(token).end()
     }
 
@@ -204,6 +208,7 @@ public class XdgPopup private constructor(client: Client, id: Int, version: Int)
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -211,6 +216,7 @@ public class XdgPopup private constructor(client: Client, id: Int, version: Int)
                 val seat = args.obj(WlSeat::class.java)
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "grab", "seat=${Wire.show(seat)}, serial=${Wire.show(serial)}")
                 handler.grab(this, seat, serial)
             }
             2 -> {
@@ -218,6 +224,7 @@ public class XdgPopup private constructor(client: Client, id: Int, version: Int)
                 val positioner = args.obj(XdgPositioner::class.java)
                 val token = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "reposition", "positioner=${Wire.show(positioner)}, token=${Wire.show(token)}")
                 handler.reposition(this, positioner, token)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown xdg_popup request $opcode")

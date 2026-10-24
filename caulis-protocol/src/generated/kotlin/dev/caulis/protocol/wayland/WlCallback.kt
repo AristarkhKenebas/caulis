@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Callback object
@@ -29,6 +30,7 @@ public class WlCallback private constructor(client: Client, id: Int, version: In
      */
     public fun sendDone(callbackData: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "done", "callback_data=${Wire.show(callbackData)}")
         event(0).uint(callbackData).end()
     }
 

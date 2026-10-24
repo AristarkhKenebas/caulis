@@ -37,6 +37,8 @@ class DrmOutput internal constructor(
     // Planes of other programs still attached to our CRTC (cursor, overlays): turned off.
     private val strayPlanes: List<Int>,
 ) : AutoCloseable {
+    private val log = dev.caulis.log.Logger("drm")
+
 
     /** A resolution and refresh rate. [info] is the kernel's description of it. */
     class Mode internal constructor(
@@ -263,7 +265,7 @@ class DrmOutput internal constructor(
             try {
                 onPresented(nanos, refreshNanos, sequence, shownDirect != null)
             } catch (e: Exception) {
-                System.getLogger("caulis.drm").log(System.Logger.Level.ERROR, "Reporting a frame of $name failed", e)
+                log.error("Reporting a frame of $name failed", e)
             }
         }
         nextFrame()
@@ -285,7 +287,7 @@ class DrmOutput internal constructor(
         try {
             onFrame()
         } catch (e: Exception) {
-            System.getLogger("caulis.drm").log(System.Logger.Level.ERROR, "Drawing a frame for $name failed", e)
+            log.error("Drawing a frame for $name failed", e)
             scheduleFrame(ERROR_RETRY_MILLIS)
         }
     }

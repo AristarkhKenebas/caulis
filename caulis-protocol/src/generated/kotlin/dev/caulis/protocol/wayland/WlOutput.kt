@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Compositor output region
@@ -64,6 +65,7 @@ public class WlOutput private constructor(client: Client, id: Int, version: Int)
      */
     public fun sendGeometry(x: Int, y: Int, physicalWidth: Int, physicalHeight: Int, subpixel: Int, make: String, model: String, transform: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "geometry", "x=${Wire.show(x)}, y=${Wire.show(y)}, physical_width=${Wire.show(physicalWidth)}, physical_height=${Wire.show(physicalHeight)}, subpixel=${Wire.show(subpixel)}, make=${Wire.show(make)}, model=${Wire.show(model)}, transform=${Wire.show(transform)}")
         event(0).int(x).int(y).int(physicalWidth).int(physicalHeight).int(subpixel).string(make).string(model).int(transform).end()
     }
 
@@ -106,6 +108,7 @@ public class WlOutput private constructor(client: Client, id: Int, version: Int)
      */
     public fun sendMode(flags: Int, width: Int, height: Int, refresh: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "mode", "flags=${Wire.show(flags)}, width=${Wire.show(width)}, height=${Wire.show(height)}, refresh=${Wire.show(refresh)}")
         event(1).uint(flags).int(width).int(height).int(refresh).end()
     }
 
@@ -123,6 +126,7 @@ public class WlOutput private constructor(client: Client, id: Int, version: Int)
     public fun sendDone() {
         if (!isAlive || !client.isConnected) return
         if (version < 2) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "done", "")
         event(2).end()
     }
 
@@ -153,6 +157,7 @@ public class WlOutput private constructor(client: Client, id: Int, version: Int)
     public fun sendScale(factor: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 2) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "scale", "factor=${Wire.show(factor)}")
         event(3).int(factor).end()
     }
 
@@ -193,6 +198,7 @@ public class WlOutput private constructor(client: Client, id: Int, version: Int)
     public fun sendName(name: String) {
         if (!isAlive || !client.isConnected) return
         if (version < 4) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "name", "name=${Wire.show(name)}")
         event(4).string(name).end()
     }
 
@@ -219,6 +225,7 @@ public class WlOutput private constructor(client: Client, id: Int, version: Int)
     public fun sendDescription(description: String) {
         if (!isAlive || !client.isConnected) return
         if (version < 4) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "description", "description=${Wire.show(description)}")
         event(5).string(description).end()
     }
 
@@ -281,6 +288,7 @@ public class WlOutput private constructor(client: Client, id: Int, version: Int)
             0 -> {
                 if (version < 3) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "wl_output.release needs version 3")
                 args.end()
+                if (Wire.tracing) Wire.request(this, "release", "")
                 handler.release(this)
                 client.destroyResource(this)
             }

@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlSurface
 
@@ -58,6 +59,7 @@ public class ZwpPointerGestureHoldV1 private constructor(client: Client, id: Int
     public fun sendBegin(serial: Int, time: Int, surface: WlSurface, fingers: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 3) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "begin", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, surface=${Wire.show(surface)}, fingers=${Wire.show(fingers)}")
         event(0).uint(serial).uint(time).obj(surface).uint(fingers).end()
     }
 
@@ -79,6 +81,7 @@ public class ZwpPointerGestureHoldV1 private constructor(client: Client, id: Int
     public fun sendEnd(serial: Int, time: Int, cancelled: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 3) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "end", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, cancelled=${Wire.show(cancelled)}")
         event(1).uint(serial).uint(time).int(cancelled).end()
     }
 
@@ -89,6 +92,7 @@ public class ZwpPointerGestureHoldV1 private constructor(client: Client, id: Int
             0 -> {
                 if (version < 3) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "zwp_pointer_gesture_hold_v1.destroy needs version 3")
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }

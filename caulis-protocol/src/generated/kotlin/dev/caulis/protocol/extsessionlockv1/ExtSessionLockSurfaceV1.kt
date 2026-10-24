@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 
 /**
@@ -95,6 +96,7 @@ public class ExtSessionLockSurfaceV1 private constructor(client: Client, id: Int
      */
     public fun sendConfigure(serial: Int, width: Int, height: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "configure", "serial=${Wire.show(serial)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
         event(0).uint(serial).uint(width).uint(height).end()
     }
 
@@ -115,12 +117,14 @@ public class ExtSessionLockSurfaceV1 private constructor(client: Client, id: Int
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
             1 -> {
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "ack_configure", "serial=${Wire.show(serial)}")
                 handler.ackConfigure(this, serial)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown ext_session_lock_surface_v1 request $opcode")

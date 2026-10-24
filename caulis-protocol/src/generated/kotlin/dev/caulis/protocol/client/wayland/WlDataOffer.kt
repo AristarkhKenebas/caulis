@@ -4,6 +4,7 @@
 package dev.caulis.protocol.client.wayland
 
 import dev.caulis.ffi.Fd
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -110,6 +111,7 @@ public class WlDataOffer private constructor(connection: Connection, id: Int, ve
      * conjunction with wl_data_source.action for feedback.
      */
     public fun accept(serial: Int, mimeType: String?): Unit {
+        if (Wire.tracing) Wire.sent(this, "accept", "serial=${Wire.show(serial)}, mime_type=${Wire.show(mimeType)}")
         request(0).uint(serial).string(mimeType).end()
     }
 
@@ -133,6 +135,7 @@ public class WlDataOffer private constructor(connection: Connection, id: Int, ve
      * determine acceptance.
      */
     public fun receive(mimeType: String, fd: Fd): Unit {
+        if (Wire.tracing) Wire.sent(this, "receive", "mime_type=${Wire.show(mimeType)}, fd=${Wire.show(fd)}")
         request(1).string(mimeType).fd(fd).end()
     }
 
@@ -142,6 +145,7 @@ public class WlDataOffer private constructor(connection: Connection, id: Int, ve
      * Destroy the data offer.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(2).end()
         connection.destroyProxy(this)
     }
@@ -168,6 +172,7 @@ public class WlDataOffer private constructor(connection: Connection, id: Int, ve
      */
     public fun finish(): Unit {
         check(version >= 3) { "wl_data_offer.finish needs version 3, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "finish", "")
         request(3).end()
     }
 
@@ -210,6 +215,7 @@ public class WlDataOffer private constructor(connection: Connection, id: Int, ve
      */
     public fun setActions(dndActions: Int, preferredAction: Int): Unit {
         check(version >= 3) { "wl_data_offer.set_actions needs version 3, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "set_actions", "dnd_actions=${Wire.show(dndActions)}, preferred_action=${Wire.show(preferredAction)}")
         request(4).uint(dndActions).uint(preferredAction).end()
     }
 
@@ -230,16 +236,19 @@ public class WlDataOffer private constructor(connection: Connection, id: Int, ve
             0 -> {
                 val mimeType = args.string()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "offer", "mime_type=${Wire.show(mimeType)}")
                 handler?.offer(this, mimeType)
             }
             1 -> {
                 val sourceActions = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "source_actions", "source_actions=${Wire.show(sourceActions)}")
                 handler?.sourceActions(this, sourceActions)
             }
             2 -> {
                 val dndAction = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "action", "dnd_action=${Wire.show(dndAction)}")
                 handler?.action(this, dndAction)
             }
         }

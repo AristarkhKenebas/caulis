@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.xdgshell
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -41,6 +42,7 @@ public class XdgPositioner private constructor(connection: Connection, id: Int, 
      * Notify the compositor that the xdg_positioner will no longer be used.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -55,6 +57,7 @@ public class XdgPositioner private constructor(connection: Connection, id: Int, 
      * If a zero or negative size is set the invalid_input error is raised.
      */
     public fun setSize(width: Int, height: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_size", "width=${Wire.show(width)}, height=${Wire.show(height)}")
         request(1).int(width).int(height).end()
     }
 
@@ -73,6 +76,7 @@ public class XdgPositioner private constructor(connection: Connection, id: Int, 
      * If a negative size is set the invalid_input error is raised.
      */
     public fun setAnchorRect(x: Int, y: Int, width: Int, height: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_anchor_rect", "x=${Wire.show(x)}, y=${Wire.show(y)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
         request(2).int(x).int(y).int(width).int(height).end()
     }
 
@@ -87,6 +91,7 @@ public class XdgPositioner private constructor(connection: Connection, id: Int, 
      * edge, or in the center of the anchor rectangle if no edge is specified.
      */
     public fun setAnchor(anchor: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_anchor", "anchor=${Wire.show(anchor)}")
         request(3).uint(anchor).end()
     }
 
@@ -102,6 +107,7 @@ public class XdgPositioner private constructor(connection: Connection, id: Int, 
      * invalid_input error is raised.
      */
     public fun setGravity(gravity: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_gravity", "gravity=${Wire.show(gravity)}")
         request(4).uint(gravity).end()
     }
 
@@ -123,6 +129,7 @@ public class XdgPositioner private constructor(connection: Connection, id: Int, 
      * The default adjustment is none.
      */
     public fun setConstraintAdjustment(constraintAdjustment: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_constraint_adjustment", "constraint_adjustment=${Wire.show(constraintAdjustment)}")
         request(5).uint(constraintAdjustment).end()
     }
 
@@ -142,6 +149,7 @@ public class XdgPositioner private constructor(connection: Connection, id: Int, 
      * with some user interface element placed somewhere in the popup surface.
      */
     public fun setOffset(x: Int, y: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_offset", "x=${Wire.show(x)}, y=${Wire.show(y)}")
         request(6).int(x).int(y).end()
     }
 
@@ -159,6 +167,7 @@ public class XdgPositioner private constructor(connection: Connection, id: Int, 
      */
     public fun setReactive(): Unit {
         check(version >= 3) { "xdg_positioner.set_reactive needs version 3, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "set_reactive", "")
         request(7).end()
     }
 
@@ -177,6 +186,7 @@ public class XdgPositioner private constructor(connection: Connection, id: Int, 
      */
     public fun setParentSize(parentWidth: Int, parentHeight: Int): Unit {
         check(version >= 3) { "xdg_positioner.set_parent_size needs version 3, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "set_parent_size", "parent_width=${Wire.show(parentWidth)}, parent_height=${Wire.show(parentHeight)}")
         request(8).int(parentWidth).int(parentHeight).end()
     }
 
@@ -192,6 +202,7 @@ public class XdgPositioner private constructor(connection: Connection, id: Int, 
      */
     public fun setParentConfigure(serial: Int): Unit {
         check(version >= 3) { "xdg_positioner.set_parent_configure needs version 3, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "set_parent_configure", "serial=${Wire.show(serial)}")
         request(9).uint(serial).end()
     }
 

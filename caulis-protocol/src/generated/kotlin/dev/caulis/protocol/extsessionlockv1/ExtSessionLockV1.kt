@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlOutput
 import dev.caulis.protocol.wayland.WlSurface
@@ -149,6 +150,7 @@ public class ExtSessionLockV1 private constructor(client: Client, id: Int, versi
      */
     public fun sendLocked() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "locked", "")
         event(0).end()
     }
 
@@ -180,6 +182,7 @@ public class ExtSessionLockV1 private constructor(client: Client, id: Int, versi
      */
     public fun sendFinished() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "finished", "")
         event(1).end()
     }
 
@@ -202,6 +205,7 @@ public class ExtSessionLockV1 private constructor(client: Client, id: Int, versi
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -211,10 +215,12 @@ public class ExtSessionLockV1 private constructor(client: Client, id: Int, versi
                 val output = args.obj(WlOutput::class.java)
                 args.end()
                 val id = client.register(ExtSessionLockSurfaceV1.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_lock_surface", "id=${Wire.show(id)}, surface=${Wire.show(surface)}, output=${Wire.show(output)}")
                 handler.getLockSurface(this, id, surface, output)
             }
             2 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "unlock_and_destroy", "")
                 handler.unlockAndDestroy(this)
                 client.destroyResource(this)
             }

@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.extsessionlockv1
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -62,6 +63,7 @@ public class ExtSessionLockSurfaceV1 private constructor(connection: Connection,
      * must fall back to rendering a solid color.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -95,6 +97,7 @@ public class ExtSessionLockSurfaceV1 private constructor(connection: Connection,
      * event acked for a given lock surface.
      */
     public fun ackConfigure(serial: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "ack_configure", "serial=${Wire.show(serial)}")
         request(1).uint(serial).end()
     }
 
@@ -117,6 +120,7 @@ public class ExtSessionLockSurfaceV1 private constructor(connection: Connection,
                 val width = args.uint()
                 val height = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "configure", "serial=${Wire.show(serial)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler?.configure(this, serial, width, height)
             }
         }

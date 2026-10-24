@@ -42,12 +42,14 @@ val Mine = tiling("Mine") {
 Change layouts while running: windows glide to their new places.
 
 Round corners, borders, shadows and blur behind see-through windows are one line:
-`effects = Effects.MODERN.copy(blur = Blur())`.
+`effects = Effects.MODERN.copy(blur = Blur())`. Caulis comes with sharp cursors of its own;
+any installed cursor theme works too.
 
 ## Modules
 
 | Module | What it is |
 | --- | --- |
+| `caulis-log` | the log: levels 0–3 for everything or single areas (`CAULIS_LOG="1,focus=3"`) |
 | `caulis-native` | C libraries through the Foreign Function & Memory API, the event loop |
 | `caulis-protocol` | the Wayland protocol (server and client side), generated from XML |
 | `caulis-render` | drawing on the GPU (OpenGL ES; Vulkan later) |

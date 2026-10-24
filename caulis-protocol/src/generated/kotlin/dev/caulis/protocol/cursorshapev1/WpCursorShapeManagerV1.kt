@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.tabletv2.ZwpTabletToolV2
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlPointer
@@ -66,6 +67,7 @@ public class WpCursorShapeManagerV1 private constructor(client: Client, id: Int,
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -74,6 +76,7 @@ public class WpCursorShapeManagerV1 private constructor(client: Client, id: Int,
                 val pointer = args.obj(WlPointer::class.java)
                 args.end()
                 val cursorShapeDevice = client.register(WpCursorShapeDeviceV1.create(client, cursorShapeDeviceId, version))
+                if (Wire.tracing) Wire.request(this, "get_pointer", "cursor_shape_device=${Wire.show(cursorShapeDevice)}, pointer=${Wire.show(pointer)}")
                 handler.getPointer(this, cursorShapeDevice, pointer)
             }
             2 -> {
@@ -81,6 +84,7 @@ public class WpCursorShapeManagerV1 private constructor(client: Client, id: Int,
                 val tabletTool = args.obj(ZwpTabletToolV2::class.java)
                 args.end()
                 val cursorShapeDevice = client.register(WpCursorShapeDeviceV1.create(client, cursorShapeDeviceId, version))
+                if (Wire.tracing) Wire.request(this, "get_tablet_tool_v2", "cursor_shape_device=${Wire.show(cursorShapeDevice)}, tablet_tool=${Wire.show(tabletTool)}")
                 handler.getTabletToolV2(this, cursorShapeDevice, tabletTool)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wp_cursor_shape_manager_v1 request $opcode")

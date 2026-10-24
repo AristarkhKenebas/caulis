@@ -84,8 +84,40 @@ class CursorThemeTest {
             assertTrue(theme.found)
             assertEquals(7, theme.cursor("text")!!.frames[0].pixels[0], "text = xterm, from the theme itself")
             assertEquals(8, theme.cursor("default")!!.frames[0].pixels[0], "default = left_ptr, from the inherited theme")
-            assertNull(CursorTheme.load("Mine", 24, listOf(root)).cursor("zoom-in"), "nobody has it")
             assertTrue(!CursorTheme.load("Missing", 24, listOf(root)).found)
+        } finally {
+            root.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `Caulis's own cursors are the default and complete`() {
+        assertEquals(CursorTheme.DEFAULT, CursorTheme.load(null, 24, emptyList()).name, "nothing installed, no library")
+        for (name in listOf(CursorTheme.DEFAULT, CursorTheme.BLACK)) {
+            for (size in listOf(16, 24, 32, 48, 64, 96)) {
+                val theme = CursorTheme.load(name, size, emptyList())
+                assertTrue(theme.found, name)
+                val missing = CursorTheme.SHAPES.filter { theme.cursor(it)?.frames?.first()?.nominalSize != size }
+                assertEquals(emptyList(), missing, "$name at $size px")
+            }
+            val arrow = CursorTheme.load(name, 24, emptyList()).cursor("default")!!.frames[0]
+            assertEquals(2 to 2, arrow.hotspotX to arrow.hotspotY, "$name: the arrow points with its tip")
+            // The tip pixel is part of the arrow (not empty).
+            assertTrue((arrow.pixels[2 * 24 + 2] ushr 24) > 0x80, "$name: something is drawn at the hotspot")
+            assertTrue(CursorTheme.load(name, 24, emptyList()).cursor("wait")!!.animated, "$name: the busy cursor turns")
+        }
+    }
+
+    @Test
+    fun `cursors a theme lacks come from Caulis's own`() {
+        val root = Files.createTempDirectory("cursor-themes")
+        try {
+            Files.createDirectories(root.resolve("Tiny/cursors"))
+            Files.write(root.resolve("Tiny/cursors/left_ptr"), xcursor(Image(24, 24, color = 5)))
+            val theme = CursorTheme.load("Tiny", 24, listOf(root))
+            assertEquals(5, theme.cursor("default")!!.frames[0].pixels[0], "its own arrow")
+            assertNotNull(theme.cursor("zoom-in"), "the rest from Caulis")
+            assertNotNull(CursorTheme.load(CursorTheme.DEFAULT, 24, emptyList()).cursor("xterm"), "old X11 names work too")
         } finally {
             root.toFile().deleteRecursively()
         }

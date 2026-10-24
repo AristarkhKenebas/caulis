@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.xdgshell
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -106,6 +107,7 @@ public class XdgPopup private constructor(connection: Connection, id: Int, versi
      * xdg_wm_base.not_the_topmost_popup protocol error will be sent.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -152,6 +154,7 @@ public class XdgPopup private constructor(connection: Connection, id: Int, versi
      * will always have keyboard focus.
      */
     public fun grab(seat: WlSeat, serial: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "grab", "seat=${Wire.show(seat)}, serial=${Wire.show(serial)}")
         request(1).obj(seat).uint(serial).end()
     }
 
@@ -186,6 +189,7 @@ public class XdgPopup private constructor(connection: Connection, id: Int, versi
      */
     public fun reposition(positioner: XdgPositioner, token: Int): Unit {
         check(version >= 3) { "xdg_popup.reposition needs version 3, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "reposition", "positioner=${Wire.show(positioner)}, token=${Wire.show(token)}")
         request(2).obj(positioner).uint(token).end()
     }
 
@@ -203,15 +207,18 @@ public class XdgPopup private constructor(connection: Connection, id: Int, versi
                 val width = args.int()
                 val height = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "configure", "x=${Wire.show(x)}, y=${Wire.show(y)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler?.configure(this, x, y, width, height)
             }
             1 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "popup_done", "")
                 handler?.popupDone(this)
             }
             2 -> {
                 val token = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "repositioned", "token=${Wire.show(token)}")
                 handler?.repositioned(this, token)
             }
         }

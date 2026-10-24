@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.xdgshell.XdgPopup
 
@@ -231,6 +232,7 @@ public class ZwlrLayerSurfaceV1 private constructor(client: Client, id: Int, ver
      */
     public fun sendConfigure(serial: Int, width: Int, height: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "configure", "serial=${Wire.show(serial)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
         event(0).uint(serial).uint(width).uint(height).end()
     }
 
@@ -245,6 +247,7 @@ public class ZwlrLayerSurfaceV1 private constructor(client: Client, id: Int, ver
      */
     public fun sendClosed() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "closed", "")
         event(1).end()
     }
 
@@ -292,16 +295,19 @@ public class ZwlrLayerSurfaceV1 private constructor(client: Client, id: Int, ver
                 val width = args.uint()
                 val height = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_size", "width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler.setSize(this, width, height)
             }
             1 -> {
                 val anchor = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_anchor", "anchor=${Wire.show(anchor)}")
                 handler.setAnchor(this, anchor)
             }
             2 -> {
                 val zone = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_exclusive_zone", "zone=${Wire.show(zone)}")
                 handler.setExclusiveZone(this, zone)
             }
             3 -> {
@@ -310,25 +316,30 @@ public class ZwlrLayerSurfaceV1 private constructor(client: Client, id: Int, ver
                 val bottom = args.int()
                 val left = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_margin", "top=${Wire.show(top)}, right=${Wire.show(right)}, bottom=${Wire.show(bottom)}, left=${Wire.show(left)}")
                 handler.setMargin(this, top, right, bottom, left)
             }
             4 -> {
                 val keyboardInteractivity = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_keyboard_interactivity", "keyboard_interactivity=${Wire.show(keyboardInteractivity)}")
                 handler.setKeyboardInteractivity(this, keyboardInteractivity)
             }
             5 -> {
                 val popup = args.obj(XdgPopup::class.java)
                 args.end()
+                if (Wire.tracing) Wire.request(this, "get_popup", "popup=${Wire.show(popup)}")
                 handler.getPopup(this, popup)
             }
             6 -> {
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "ack_configure", "serial=${Wire.show(serial)}")
                 handler.ackConfigure(this, serial)
             }
             7 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -336,12 +347,14 @@ public class ZwlrLayerSurfaceV1 private constructor(client: Client, id: Int, ver
                 if (version < 2) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "zwlr_layer_surface_v1.set_layer needs version 2")
                 val layer = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_layer", "layer=${Wire.show(layer)}")
                 handler.setLayer(this, layer)
             }
             9 -> {
                 if (version < 5) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "zwlr_layer_surface_v1.set_exclusive_edge needs version 5")
                 val edge = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_exclusive_edge", "edge=${Wire.show(edge)}")
                 handler.setExclusiveEdge(this, edge)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown zwlr_layer_surface_v1 request $opcode")

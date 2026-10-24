@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -72,6 +73,7 @@ public class WlSubsurface private constructor(connection: Connection, id: Int, v
      * to the parent is deleted. The wl_surface is unmapped immediately.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -93,6 +95,7 @@ public class WlSubsurface private constructor(connection: Connection, id: Int, v
      * wl_subsurface and wl_surface.commit for more information.
      */
     public fun setPosition(x: Int, y: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_position", "x=${Wire.show(x)}, y=${Wire.show(y)}")
         request(1).int(x).int(y).end()
     }
 
@@ -112,6 +115,7 @@ public class WlSubsurface private constructor(connection: Connection, id: Int, v
      * wl_subsurface and wl_surface.commit for more information.
      */
     public fun placeAbove(sibling: WlSurface): Unit {
+        if (Wire.tracing) Wire.sent(this, "place_above", "sibling=${Wire.show(sibling)}")
         request(2).obj(sibling).end()
     }
 
@@ -123,6 +127,7 @@ public class WlSubsurface private constructor(connection: Connection, id: Int, v
      * See wl_subsurface.place_above.
      */
     public fun placeBelow(sibling: WlSurface): Unit {
+        if (Wire.tracing) Wire.sent(this, "place_below", "sibling=${Wire.show(sibling)}")
         request(3).obj(sibling).end()
     }
 
@@ -135,6 +140,7 @@ public class WlSubsurface private constructor(connection: Connection, id: Int, v
      * See wl_subsurface and wl_surface.commit for more information.
      */
     public fun setSync(): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_sync", "")
         request(4).end()
     }
 
@@ -147,6 +153,7 @@ public class WlSubsurface private constructor(connection: Connection, id: Int, v
      * See wl_subsurface and wl_surface.commit for more information.
      */
     public fun setDesync(): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_desync", "")
         request(5).end()
     }
 

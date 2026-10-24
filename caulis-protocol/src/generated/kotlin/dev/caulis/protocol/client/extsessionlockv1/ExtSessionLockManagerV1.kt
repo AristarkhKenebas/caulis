@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.extsessionlockv1
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -25,6 +26,7 @@ public class ExtSessionLockManagerV1 private constructor(connection: Connection,
      * remain valid.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -39,6 +41,7 @@ public class ExtSessionLockManagerV1 private constructor(connection: Connection,
      */
     public fun lock(): ExtSessionLockV1 {
         val created = connection.createProxy(ExtSessionLockV1, this.version)
+        if (Wire.tracing) Wire.sent(this, "lock", "id=${Wire.show(created)}")
         request(1).newId(created).end()
         return created
     }

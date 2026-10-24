@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 
 /**
@@ -211,6 +212,7 @@ public class XdgSurface private constructor(client: Client, id: Int, version: In
      */
     public fun sendConfigure(serial: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "configure", "serial=${Wire.show(serial)}")
         event(0).uint(serial).end()
     }
 
@@ -235,6 +237,7 @@ public class XdgSurface private constructor(client: Client, id: Int, version: In
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -242,6 +245,7 @@ public class XdgSurface private constructor(client: Client, id: Int, version: In
                 val idId = args.newId()
                 args.end()
                 val id = client.register(XdgToplevel.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_toplevel", "id=${Wire.show(id)}")
                 handler.getToplevel(this, id)
             }
             2 -> {
@@ -250,6 +254,7 @@ public class XdgSurface private constructor(client: Client, id: Int, version: In
                 val positioner = args.obj(XdgPositioner::class.java)
                 args.end()
                 val id = client.register(XdgPopup.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_popup", "id=${Wire.show(id)}, parent=${Wire.show(parent)}, positioner=${Wire.show(positioner)}")
                 handler.getPopup(this, id, parent, positioner)
             }
             3 -> {
@@ -258,11 +263,13 @@ public class XdgSurface private constructor(client: Client, id: Int, version: In
                 val width = args.int()
                 val height = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_window_geometry", "x=${Wire.show(x)}, y=${Wire.show(y)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler.setWindowGeometry(this, x, y, width, height)
             }
             4 -> {
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "ack_configure", "serial=${Wire.show(serial)}")
                 handler.ackConfigure(this, serial)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown xdg_surface request $opcode")

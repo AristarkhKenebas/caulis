@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wlrlayershellunstablev1
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -89,6 +90,7 @@ public class ZwlrLayerSurfaceV1 private constructor(connection: Connection, id: 
      * Size is double-buffered, see wl_surface.commit.
      */
     public fun setSize(width: Int, height: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_size", "width=${Wire.show(width)}, height=${Wire.show(height)}")
         request(0).uint(width).uint(height).end()
     }
 
@@ -104,6 +106,7 @@ public class ZwlrLayerSurfaceV1 private constructor(connection: Connection, id: 
      * Anchor is double-buffered, see wl_surface.commit.
      */
     public fun setAnchor(anchor: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_anchor", "anchor=${Wire.show(anchor)}")
         request(1).uint(anchor).end()
     }
 
@@ -144,6 +147,7 @@ public class ZwlrLayerSurfaceV1 private constructor(connection: Connection, id: 
      * Exclusive zone is double-buffered, see wl_surface.commit.
      */
     public fun setExclusiveZone(zone: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_exclusive_zone", "zone=${Wire.show(zone)}")
         request(2).int(zone).end()
     }
 
@@ -159,6 +163,7 @@ public class ZwlrLayerSurfaceV1 private constructor(connection: Connection, id: 
      * Margin is double-buffered, see wl_surface.commit.
      */
     public fun setMargin(top: Int, right: Int, bottom: Int, left: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_margin", "top=${Wire.show(top)}, right=${Wire.show(right)}, bottom=${Wire.show(bottom)}, left=${Wire.show(left)}")
         request(3).int(top).int(right).int(bottom).int(left).end()
     }
 
@@ -179,6 +184,7 @@ public class ZwlrLayerSurfaceV1 private constructor(connection: Connection, id: 
      * Keyboard interactivity is double-buffered, see wl_surface.commit.
      */
     public fun setKeyboardInteractivity(keyboardInteractivity: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_keyboard_interactivity", "keyboard_interactivity=${Wire.show(keyboardInteractivity)}")
         request(4).uint(keyboardInteractivity).end()
     }
 
@@ -194,6 +200,7 @@ public class ZwlrLayerSurfaceV1 private constructor(connection: Connection, id: 
      * xdg_popup is and how it is used.
      */
     public fun getPopup(popup: XdgPopup): Unit {
+        if (Wire.tracing) Wire.sent(this, "get_popup", "popup=${Wire.show(popup)}")
         request(5).obj(popup).end()
     }
 
@@ -217,6 +224,7 @@ public class ZwlrLayerSurfaceV1 private constructor(connection: Connection, id: 
      * event the client really is responding to.
      */
     public fun ackConfigure(serial: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "ack_configure", "serial=${Wire.show(serial)}")
         request(6).uint(serial).end()
     }
 
@@ -226,6 +234,7 @@ public class ZwlrLayerSurfaceV1 private constructor(connection: Connection, id: 
      * This request destroys the layer surface.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(7).end()
         connection.destroyProxy(this)
     }
@@ -241,6 +250,7 @@ public class ZwlrLayerSurfaceV1 private constructor(connection: Connection, id: 
      */
     public fun setLayer(layer: Int): Unit {
         check(version >= 2) { "zwlr_layer_surface_v1.set_layer needs version 2, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "set_layer", "layer=${Wire.show(layer)}")
         request(8).uint(layer).end()
     }
 
@@ -260,6 +270,7 @@ public class ZwlrLayerSurfaceV1 private constructor(connection: Connection, id: 
      */
     public fun setExclusiveEdge(edge: Int): Unit {
         check(version >= 5) { "zwlr_layer_surface_v1.set_exclusive_edge needs version 5, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "set_exclusive_edge", "edge=${Wire.show(edge)}")
         request(9).uint(edge).end()
     }
 
@@ -302,10 +313,12 @@ public class ZwlrLayerSurfaceV1 private constructor(connection: Connection, id: 
                 val width = args.uint()
                 val height = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "configure", "serial=${Wire.show(serial)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler?.configure(this, serial, width, height)
             }
             1 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "closed", "")
                 handler?.closed(this)
             }
         }

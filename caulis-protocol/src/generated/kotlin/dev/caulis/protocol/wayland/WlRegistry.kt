@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Global registry object
@@ -61,6 +62,7 @@ public class WlRegistry private constructor(client: Client, id: Int, version: In
      */
     public fun sendGlobal(name: Int, `interface`: String, version: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "global", "name=${Wire.show(name)}, interface=${Wire.show(`interface`)}, version=${Wire.show(version)}")
         event(0).uint(name).string(`interface`).uint(version).end()
     }
 
@@ -80,6 +82,7 @@ public class WlRegistry private constructor(client: Client, id: Int, version: In
      */
     public fun sendGlobalRemove(name: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "global_remove", "name=${Wire.show(name)}")
         event(1).uint(name).end()
     }
 
@@ -93,6 +96,7 @@ public class WlRegistry private constructor(client: Client, id: Int, version: In
                 val requestedVersion = args.uint()
                 val id = args.newId()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "bind", "name=${Wire.show(name)}, interface=${Wire.show(interfaceName)}, version=${Wire.show(requestedVersion)}, id=${Wire.show(id)}")
                 handler.bind(this, name, interfaceName, requestedVersion, id)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wl_registry request $opcode")

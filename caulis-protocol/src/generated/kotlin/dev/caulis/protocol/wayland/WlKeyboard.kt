@@ -9,6 +9,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Keyboard input device
@@ -54,6 +55,7 @@ public class WlKeyboard private constructor(client: Client, id: Int, version: In
      */
     public fun sendKeymap(format: Int, fd: Fd, size: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "keymap", "format=${Wire.show(format)}, fd=${Wire.show(fd)}, size=${Wire.show(size)}")
         event(0).uint(format).fd(fd).uint(size).end()
     }
 
@@ -76,6 +78,7 @@ public class WlKeyboard private constructor(client: Client, id: Int, version: In
      */
     public fun sendEnter(serial: Int, surface: WlSurface, keys: ByteArray) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "enter", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}, keys=${Wire.show(keys)}")
         event(1).uint(serial).obj(surface).array(keys).end()
     }
 
@@ -95,6 +98,7 @@ public class WlKeyboard private constructor(client: Client, id: Int, version: In
      */
     public fun sendLeave(serial: Int, surface: WlSurface) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "leave", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}")
         event(2).uint(serial).obj(surface).end()
     }
 
@@ -127,6 +131,7 @@ public class WlKeyboard private constructor(client: Client, id: Int, version: In
      */
     public fun sendKey(serial: Int, time: Int, key: Int, state: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "key", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, key=${Wire.show(key)}, state=${Wire.show(state)}")
         event(3).uint(serial).uint(time).uint(key).uint(state).end()
     }
 
@@ -149,6 +154,7 @@ public class WlKeyboard private constructor(client: Client, id: Int, version: In
      */
     public fun sendModifiers(serial: Int, modsDepressed: Int, modsLatched: Int, modsLocked: Int, group: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "modifiers", "serial=${Wire.show(serial)}, mods_depressed=${Wire.show(modsDepressed)}, mods_latched=${Wire.show(modsLatched)}, mods_locked=${Wire.show(modsLocked)}, group=${Wire.show(group)}")
         event(4).uint(serial).uint(modsDepressed).uint(modsLatched).uint(modsLocked).uint(group).end()
     }
 
@@ -173,6 +179,7 @@ public class WlKeyboard private constructor(client: Client, id: Int, version: In
     public fun sendRepeatInfo(rate: Int, delay: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 4) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "repeat_info", "rate=${Wire.show(rate)}, delay=${Wire.show(delay)}")
         event(5).int(rate).int(delay).end()
     }
 
@@ -205,6 +212,7 @@ public class WlKeyboard private constructor(client: Client, id: Int, version: In
             0 -> {
                 if (version < 3) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "wl_keyboard.release needs version 3")
                 args.end()
+                if (Wire.tracing) Wire.request(this, "release", "")
                 handler.release(this)
                 client.destroyResource(this)
             }

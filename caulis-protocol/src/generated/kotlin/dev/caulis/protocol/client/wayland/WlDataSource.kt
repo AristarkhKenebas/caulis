@@ -4,6 +4,7 @@
 package dev.caulis.protocol.client.wayland
 
 import dev.caulis.ffi.Fd
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -143,6 +144,7 @@ public class WlDataSource private constructor(connection: Connection, id: Int, v
      * multiple types.
      */
     public fun offer(mimeType: String): Unit {
+        if (Wire.tracing) Wire.sent(this, "offer", "mime_type=${Wire.show(mimeType)}")
         request(0).string(mimeType).end()
     }
 
@@ -152,6 +154,7 @@ public class WlDataSource private constructor(connection: Connection, id: Int, v
      * Destroy the data source.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(1).end()
         connection.destroyProxy(this)
     }
@@ -177,6 +180,7 @@ public class WlDataSource private constructor(connection: Connection, id: Int, v
      */
     public fun setActions(dndActions: Int): Unit {
         check(version >= 3) { "wl_data_source.set_actions needs version 3, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "set_actions", "dnd_actions=${Wire.show(dndActions)}")
         request(2).uint(dndActions).end()
     }
 
@@ -193,29 +197,35 @@ public class WlDataSource private constructor(connection: Connection, id: Int, v
             0 -> {
                 val mimeType = args.stringOrNull()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "target", "mime_type=${Wire.show(mimeType)}")
                 handler?.target(this, mimeType)
             }
             1 -> {
                 val mimeType = args.string()
                 val fd = args.fd()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "send", "mime_type=${Wire.show(mimeType)}, fd=${Wire.show(fd)}")
                 handler?.send(this, mimeType, fd)
             }
             2 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "cancelled", "")
                 handler?.cancelled(this)
             }
             3 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "dnd_drop_performed", "")
                 handler?.dndDropPerformed(this)
             }
             4 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "dnd_finished", "")
                 handler?.dndFinished(this)
             }
             5 -> {
                 val dndAction = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "action", "dnd_action=${Wire.show(dndAction)}")
                 handler?.action(this, dndAction)
             }
         }

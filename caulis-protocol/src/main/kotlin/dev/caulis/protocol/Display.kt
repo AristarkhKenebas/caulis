@@ -26,7 +26,7 @@ import java.nio.file.Path
  */
 class Display(val loop: EventLoop) : AutoCloseable {
 
-    val log = Log("caulis.wayland")
+    val log = dev.caulis.log.Logger("clients")
 
     private val sockets = ArrayList<Pair<UnixListener, FileLock>>()
     private val connected = ArrayList<Client>()
@@ -102,6 +102,7 @@ class Display(val loop: EventLoop) : AutoCloseable {
             }
             val client = Client(this, socket)
             connected += client
+            log.info { "${client.name} connected (user ${client.uid})" }
             loop.add(socket.fd) { ready ->
                 if (ready.readable || ready.hangUp || ready.error) client.dispatch()
                 if (client.isConnected && ready.writable && client.flush()) {

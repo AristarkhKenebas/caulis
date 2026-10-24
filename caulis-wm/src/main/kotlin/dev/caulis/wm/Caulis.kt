@@ -6,6 +6,7 @@ import dev.caulis.core.LayerSurface
 import dev.caulis.core.Scratchpad
 import dev.caulis.core.Window
 import dev.caulis.core.cursor.CursorTheme
+import dev.caulis.log.Log
 import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Direction
 import dev.caulis.tiling.Layout
@@ -61,6 +62,17 @@ class Caulis {
         }
 
     /**
+     * How long windows take to glide to new places, minimize into the dock, zoom into the
+     * overview, ... in milliseconds (0 = no animations, they jump).
+     */
+    var animationMillis = 220L
+        set(value) {
+            require(value >= 0) { "animationMillis must not be negative" }
+            field = value
+            running?.desktop?.animationMillis = value
+        }
+
+    /**
      * How windows look: rounded corners, a border, shadows, blur, transparency. Off by
      * default; e.g. `effects = Effects.MODERN` or
      * `effects = Effects(cornerRadius = 10, shadow = Shadow(), blur = Blur(), inactiveOpacity = 0.9f)`.
@@ -84,9 +96,10 @@ class Caulis {
     var lockCommand = "swaylock"
 
     /**
-     * The cursor theme, e.g. "Bibata-Modern-Ice", "Adwaita", "breeze_cursors". Null = the
+     * The cursor theme, e.g. "Caulis-Black", "Bibata-Modern-Ice", "Adwaita". Null = the
      * default: Bibata if the project uses `caulis-cursor-bibata` (the template does), else
-     * the system's. [CursorTheme.available] lists what is there.
+     * `XCURSOR_THEME` if set, else Caulis's own sharp white cursors ("Caulis").
+     * [CursorTheme.available] lists what is there.
      */
     var cursorTheme: String? = null
         set(value) {
@@ -130,6 +143,39 @@ class Caulis {
     /** Name of the window in nested mode (and what the outer session knows it as). */
     var title = "Caulis"
     var appId = "dev.caulis.Nested"
+
+    /**
+     * How much the log says: 0 nearly nothing, 1 problems (the default), 2 what happens
+     * (windows, monitors, layouts, ...), 3 everything step by step. `CAULIS_LOG` (e.g.
+     * `CAULIS_LOG=3`) wins over this, so you can look closer without changing code.
+     * See [Log] and [log] for single areas.
+     */
+    var logLevel: Int = Log.PROBLEMS
+        set(value) {
+            require(value in 0..3) { "logLevel must be 0, 1, 2 or 3" }
+            field = value
+        }
+
+    /** Also write the log to this file (e.g. Path.of("/tmp/my-compositor.log")). `CAULIS_LOG_FILE` wins over it. */
+    var logFile: java.nio.file.Path? = null
+
+    internal val logAreas = LinkedHashMap<String, Int>()
+
+    /**
+     * One area of the log in more (or less) detail than [logLevel], e.g. `log("focus", 3)`
+     * to follow every focus change. The areas: [Log.AREAS] ("wayland", "windows", "focus",
+     * "input", "layout", "render", "drm", ...).
+     */
+    fun log(area: String, level: Int) {
+        require(level in 0..3) { "a log level is 0, 1, 2 or 3" }
+        require(area in Log.AREAS) { "there is no log area \"$area\"; the areas: ${Log.AREAS.keys.joinToString()}" }
+        logAreas[area] = level
+    }
+
+    /** Writes everything the window manager knows now (windows, focus, panels, ...) to the log. Super+F12 by default. */
+    fun dumpState() {
+        Log.write("state", Log.QUIET, "D", "The state now:\n" + desktop.describe().trimEnd(), null)
+    }
 
     /** Print frame timing every few seconds. */
     var stats = false
@@ -285,6 +331,8 @@ class Caulis {
     fun layout(layout: Layout): Caulis = apply { this.layout = layout }
     fun terminal(command: String): Caulis = apply { terminal = command }
     fun lockCommand(command: String): Caulis = apply { lockCommand = command }
+    fun logLevel(level: Int): Caulis = apply { logLevel = level }
+    fun logArea(area: String, level: Int): Caulis = apply { log(area, level) }
     fun cursor(theme: String?, size: Int?): Caulis = apply {
         cursorTheme = theme
         cursorSize = size
@@ -337,6 +385,7 @@ class Caulis {
      * it needs is there; throws [CannotStartException] with plain explanations if not.
      */
     fun run() {
+        applyLogSettings()
         val nested = when (mode) {
             Mode.AUTO -> !System.getenv("WAYLAND_DISPLAY").isNullOrEmpty()
             Mode.NESTED -> true
@@ -346,6 +395,16 @@ class Caulis {
             throw CannotStartException("$title cannot start (see the problems listed above)")
         }
         if (nested) runNested(this) else runOnScreen(this)
+    }
+
+    // The log settings from code, then CAULIS_LOG / CAULIS_LOG_FILE on top (they win).
+    private fun applyLogSettings() {
+        Log.level = logLevel
+        for ((area, level) in logAreas) Log.setLevel(area, level)
+        System.getenv("CAULIS_LOG")?.takeIf { it.isNotBlank() }?.let(Log::configure)
+        if (System.getenv("CAULIS_LOG_FILE").isNullOrBlank()) logFile?.let { Log.file = it }
+        Log.write("log", Log.EVENTS, "I", "Log level ${Log.level}" + Log.AREAS.keys.filter { Log.levelOf(it) != Log.level }
+            .joinToString("") { ", $it ${Log.levelOf(it)}" } + (Log.file?.let { ", also written to $it" } ?: ""), null)
     }
 
     companion object {
@@ -361,7 +420,8 @@ class Caulis {
 
         /**
          * The usual keys, active unless [useDefaultBindings] is false:
-         * Super+Return terminal, Super+Q close, Super+L lock the screen, Super+Up maximize, Super+F fullscreen,
+         * Super+Return terminal, Super+Q close, Super+L lock the screen, Super+F12 write the
+         * state to the log, Super+Up maximize, Super+F fullscreen,
          * Super+Down minimize, Super+V float/tile, Alt+Tab next window, Super+Tab overview
          * (the whole workspace zoomed out; click a window to go there), Super+Left/Right
          * focus neighbour, Super+1..9 workspace, Super+Shift+1..9 move window there.
@@ -374,6 +434,7 @@ class Caulis {
         val defaultBindings: List<Pair<String, Caulis.() -> Unit>> = buildList {
             add("Super+Return" to { openTerminal() })
             add("Super+Q" to { closeFocused() })
+            add("Super+F12" to { dumpState() })
             add("Super+L" to { lock() })
             add("Super+Up" to { focusedWindow?.let { desktop.setMaximized(it, !it.maximized) } })
             add("Super+F" to { focusedWindow?.let { desktop.setFullscreen(it, !it.fullscreen) } })
@@ -422,6 +483,15 @@ fun caulis(configure: Caulis.() -> Unit) {
         e.cause?.let { System.err.println("  (${it.message})") }
         System.err.println("\nDetails for a bug report:")
         e.printStackTrace()
+        // What happened just before (kept even when the log level was low).
+        val recent = Log.recent().takeLast(40)
+        if (recent.isNotEmpty()) {
+            System.err.println("\nThe last events:")
+            recent.forEach(System.err::println)
+        }
+        runCatching { compositor.running?.desktop?.describe() }.getOrNull()?.let {
+            System.err.println("\nThe state when it stopped:\n$it")
+        }
         exitProcess(1)
     }
 }

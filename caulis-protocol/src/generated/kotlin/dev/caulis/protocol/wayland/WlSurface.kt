@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * An onscreen surface
@@ -489,6 +490,7 @@ public class WlSurface private constructor(client: Client, id: Int, version: Int
      */
     public fun sendEnter(output: WlOutput) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "enter", "output=${Wire.show(output)}")
         event(0).obj(output).end()
     }
 
@@ -507,6 +509,7 @@ public class WlSurface private constructor(client: Client, id: Int, version: Int
      */
     public fun sendLeave(output: WlOutput) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "leave", "output=${Wire.show(output)}")
         event(1).obj(output).end()
     }
 
@@ -531,6 +534,7 @@ public class WlSurface private constructor(client: Client, id: Int, version: Int
     public fun sendPreferredBufferScale(factor: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 6) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "preferred_buffer_scale", "factor=${Wire.show(factor)}")
         event(2).int(factor).end()
     }
 
@@ -552,6 +556,7 @@ public class WlSurface private constructor(client: Client, id: Int, version: Int
     public fun sendPreferredBufferTransform(transform: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 6) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "preferred_buffer_transform", "transform=${Wire.show(transform)}")
         event(3).uint(transform).end()
     }
 
@@ -579,6 +584,7 @@ public class WlSurface private constructor(client: Client, id: Int, version: Int
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -587,6 +593,7 @@ public class WlSurface private constructor(client: Client, id: Int, version: Int
                 val x = args.int()
                 val y = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "attach", "buffer=${Wire.show(buffer)}, x=${Wire.show(x)}, y=${Wire.show(y)}")
                 handler.attach(this, buffer, x, y)
             }
             2 -> {
@@ -595,38 +602,45 @@ public class WlSurface private constructor(client: Client, id: Int, version: Int
                 val width = args.int()
                 val height = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "damage", "x=${Wire.show(x)}, y=${Wire.show(y)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler.damage(this, x, y, width, height)
             }
             3 -> {
                 val callbackId = args.newId()
                 args.end()
                 val callback = client.register(WlCallback.create(client, callbackId, version))
+                if (Wire.tracing) Wire.request(this, "frame", "callback=${Wire.show(callback)}")
                 handler.frame(this, callback)
             }
             4 -> {
                 val region = args.objOrNull(WlRegion::class.java)
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_opaque_region", "region=${Wire.show(region)}")
                 handler.setOpaqueRegion(this, region)
             }
             5 -> {
                 val region = args.objOrNull(WlRegion::class.java)
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_input_region", "region=${Wire.show(region)}")
                 handler.setInputRegion(this, region)
             }
             6 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "commit", "")
                 handler.commit(this)
             }
             7 -> {
                 if (version < 2) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "wl_surface.set_buffer_transform needs version 2")
                 val transform = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_buffer_transform", "transform=${Wire.show(transform)}")
                 handler.setBufferTransform(this, transform)
             }
             8 -> {
                 if (version < 3) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "wl_surface.set_buffer_scale needs version 3")
                 val scale = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_buffer_scale", "scale=${Wire.show(scale)}")
                 handler.setBufferScale(this, scale)
             }
             9 -> {
@@ -636,6 +650,7 @@ public class WlSurface private constructor(client: Client, id: Int, version: Int
                 val width = args.int()
                 val height = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "damage_buffer", "x=${Wire.show(x)}, y=${Wire.show(y)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler.damageBuffer(this, x, y, width, height)
             }
             10 -> {
@@ -643,6 +658,7 @@ public class WlSurface private constructor(client: Client, id: Int, version: Int
                 val x = args.int()
                 val y = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "offset", "x=${Wire.show(x)}, y=${Wire.show(y)}")
                 handler.offset(this, x, y)
             }
             11 -> {
@@ -650,6 +666,7 @@ public class WlSurface private constructor(client: Client, id: Int, version: Int
                 val callbackId = args.newId()
                 args.end()
                 val callback = client.register(WlCallback.create(client, callbackId, version))
+                if (Wire.tracing) Wire.request(this, "get_release", "callback=${Wire.show(callback)}")
                 handler.getRelease(this, callback)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wl_surface request $opcode")

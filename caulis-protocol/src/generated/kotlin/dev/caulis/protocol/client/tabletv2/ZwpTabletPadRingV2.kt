@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.tabletv2
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -113,6 +114,7 @@ public class ZwpTabletPadRingV2 private constructor(connection: Connection, id: 
      * ignored.
      */
     public fun setFeedback(description: String, serial: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_feedback", "description=${Wire.show(description)}, serial=${Wire.show(serial)}")
         request(0).string(description).uint(serial).end()
     }
 
@@ -122,6 +124,7 @@ public class ZwpTabletPadRingV2 private constructor(connection: Connection, id: 
      * This destroys the client's resource for this ring object.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(1).end()
         connection.destroyProxy(this)
     }
@@ -138,20 +141,24 @@ public class ZwpTabletPadRingV2 private constructor(connection: Connection, id: 
             0 -> {
                 val source = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "source", "source=${Wire.show(source)}")
                 handler?.source(this, source)
             }
             1 -> {
                 val degrees = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "angle", "degrees=${Wire.show(degrees)}")
                 handler?.angle(this, degrees)
             }
             2 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "stop", "")
                 handler?.stop(this)
             }
             3 -> {
                 val time = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "frame", "time=${Wire.show(time)}")
                 handler?.frame(this, time)
             }
         }

@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Sub-surface compositing
@@ -88,6 +89,7 @@ public class WlSubcompositor private constructor(client: Client, id: Int, versio
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -97,6 +99,7 @@ public class WlSubcompositor private constructor(client: Client, id: Int, versio
                 val parent = args.obj(WlSurface::class.java)
                 args.end()
                 val id = client.register(WlSubsurface.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_subsurface", "id=${Wire.show(id)}, surface=${Wire.show(surface)}, parent=${Wire.show(parent)}")
                 handler.getSubsurface(this, id, surface, parent)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wl_subcompositor request $opcode")

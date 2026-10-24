@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -22,6 +23,7 @@ public class WlFixes private constructor(connection: Connection, id: Int, versio
      * Destroys this object
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -40,6 +42,7 @@ public class WlFixes private constructor(connection: Connection, id: Int, versio
      * wl_display.delete_id event.
      */
     public fun destroyRegistry(registry: WlRegistry): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy_registry", "registry=${Wire.show(registry)}")
         request(1).obj(registry).end()
     }
 
@@ -73,6 +76,7 @@ public class WlFixes private constructor(connection: Connection, id: Int, versio
      */
     public fun ackGlobalRemove(registry: WlRegistry, name: Int): Unit {
         check(version >= 2) { "wl_fixes.ack_global_remove needs version 2, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "ack_global_remove", "registry=${Wire.show(registry)}, name=${Wire.show(name)}")
         request(2).obj(registry).uint(name).end()
     }
 

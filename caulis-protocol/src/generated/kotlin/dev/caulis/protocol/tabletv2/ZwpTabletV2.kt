@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 
 /**
@@ -50,6 +51,7 @@ public class ZwpTabletV2 private constructor(client: Client, id: Int, version: I
      */
     public fun sendName(name: String) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "name", "name=${Wire.show(name)}")
         event(0).string(name).end()
     }
 
@@ -71,6 +73,7 @@ public class ZwpTabletV2 private constructor(client: Client, id: Int, version: I
      */
     public fun sendId(vid: Int, pid: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "id", "vid=${Wire.show(vid)}, pid=${Wire.show(pid)}")
         event(1).uint(vid).uint(pid).end()
     }
 
@@ -94,6 +97,7 @@ public class ZwpTabletV2 private constructor(client: Client, id: Int, version: I
      */
     public fun sendPath(path: String) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "path", "path=${Wire.show(path)}")
         event(2).string(path).end()
     }
 
@@ -107,6 +111,7 @@ public class ZwpTabletV2 private constructor(client: Client, id: Int, version: I
      */
     public fun sendDone() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "done", "")
         event(3).end()
     }
 
@@ -121,6 +126,7 @@ public class ZwpTabletV2 private constructor(client: Client, id: Int, version: I
      */
     public fun sendRemoved() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "removed", "")
         event(4).end()
     }
 
@@ -141,6 +147,7 @@ public class ZwpTabletV2 private constructor(client: Client, id: Int, version: I
     public fun sendBustype(bustype: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 2) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "bustype", "bustype=${Wire.show(bustype)}")
         event(5).uint(bustype).end()
     }
 
@@ -166,6 +173,7 @@ public class ZwpTabletV2 private constructor(client: Client, id: Int, version: I
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }

@@ -9,6 +9,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlBuffer
 import dev.caulis.protocol.wayland.WlDisplay
 
@@ -202,6 +203,7 @@ public class ZwpLinuxBufferParamsV1 private constructor(client: Client, id: Int,
      */
     public fun sendCreated(buffer: WlBuffer) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "created", "buffer=${Wire.show(buffer)}")
         event(0).newId(buffer).end()
     }
 
@@ -217,6 +219,7 @@ public class ZwpLinuxBufferParamsV1 private constructor(client: Client, id: Int,
      */
     public fun sendFailed() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "failed", "")
         event(1).end()
     }
 
@@ -259,6 +262,7 @@ public class ZwpLinuxBufferParamsV1 private constructor(client: Client, id: Int,
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -270,6 +274,7 @@ public class ZwpLinuxBufferParamsV1 private constructor(client: Client, id: Int,
                 val modifierHi = args.uint()
                 val modifierLo = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "add", "fd=${Wire.show(fd)}, plane_idx=${Wire.show(planeIdx)}, offset=${Wire.show(offset)}, stride=${Wire.show(stride)}, modifier_hi=${Wire.show(modifierHi)}, modifier_lo=${Wire.show(modifierLo)}")
                 handler.add(this, fd, planeIdx, offset, stride, modifierHi, modifierLo)
             }
             2 -> {
@@ -278,6 +283,7 @@ public class ZwpLinuxBufferParamsV1 private constructor(client: Client, id: Int,
                 val format = args.uint()
                 val flags = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "create", "width=${Wire.show(width)}, height=${Wire.show(height)}, format=${Wire.show(format)}, flags=${Wire.show(flags)}")
                 handler.create(this, width, height, format, flags)
             }
             3 -> {
@@ -289,12 +295,14 @@ public class ZwpLinuxBufferParamsV1 private constructor(client: Client, id: Int,
                 val flags = args.uint()
                 args.end()
                 val bufferId = client.register(WlBuffer.create(client, bufferIdId, version))
+                if (Wire.tracing) Wire.request(this, "create_immed", "buffer_id=${Wire.show(bufferId)}, width=${Wire.show(width)}, height=${Wire.show(height)}, format=${Wire.show(format)}, flags=${Wire.show(flags)}")
                 handler.createImmed(this, bufferId, width, height, format, flags)
             }
             4 -> {
                 if (version < 6) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "zwp_linux_buffer_params_v1.set_sampling_device needs version 6")
                 val device = args.array()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_sampling_device", "device=${Wire.show(device)}")
                 handler.setSamplingDevice(this, device)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown zwp_linux_buffer_params_v1 request $opcode")

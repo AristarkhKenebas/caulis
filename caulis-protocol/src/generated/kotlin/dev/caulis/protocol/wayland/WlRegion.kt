@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Region interface
@@ -53,6 +54,7 @@ public class WlRegion private constructor(client: Client, id: Int, version: Int)
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -62,6 +64,7 @@ public class WlRegion private constructor(client: Client, id: Int, version: Int)
                 val width = args.int()
                 val height = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "add", "x=${Wire.show(x)}, y=${Wire.show(y)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler.add(this, x, y, width, height)
             }
             2 -> {
@@ -70,6 +73,7 @@ public class WlRegion private constructor(client: Client, id: Int, version: Int)
                 val width = args.int()
                 val height = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "subtract", "x=${Wire.show(x)}, y=${Wire.show(y)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler.subtract(this, x, y, width, height)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wl_region request $opcode")

@@ -9,6 +9,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Offer to transfer data
@@ -74,6 +75,7 @@ public class WlDataSource private constructor(client: Client, id: Int, version: 
      */
     public fun sendTarget(mimeType: String?) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "target", "mime_type=${Wire.show(mimeType)}")
         event(0).string(mimeType).end()
     }
 
@@ -86,6 +88,7 @@ public class WlDataSource private constructor(client: Client, id: Int, version: 
      */
     public fun sendSend(mimeType: String, fd: Fd) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "send", "mime_type=${Wire.show(mimeType)}, fd=${Wire.show(fd)}")
         event(1).string(mimeType).fd(fd).end()
     }
 
@@ -115,6 +118,7 @@ public class WlDataSource private constructor(client: Client, id: Int, version: 
      */
     public fun sendCancelled() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "cancelled", "")
         event(2).end()
     }
 
@@ -136,6 +140,7 @@ public class WlDataSource private constructor(client: Client, id: Int, version: 
     public fun sendDndDropPerformed() {
         if (!isAlive || !client.isConnected) return
         if (version < 3) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "dnd_drop_performed", "")
         event(3).end()
     }
 
@@ -154,6 +159,7 @@ public class WlDataSource private constructor(client: Client, id: Int, version: 
     public fun sendDndFinished() {
         if (!isAlive || !client.isConnected) return
         if (version < 3) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "dnd_finished", "")
         event(4).end()
     }
 
@@ -191,6 +197,7 @@ public class WlDataSource private constructor(client: Client, id: Int, version: 
     public fun sendAction(dndAction: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 3) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "action", "dnd_action=${Wire.show(dndAction)}")
         event(5).uint(dndAction).end()
     }
 
@@ -208,10 +215,12 @@ public class WlDataSource private constructor(client: Client, id: Int, version: 
             0 -> {
                 val mimeType = args.string()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "offer", "mime_type=${Wire.show(mimeType)}")
                 handler.offer(this, mimeType)
             }
             1 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -219,6 +228,7 @@ public class WlDataSource private constructor(client: Client, id: Int, version: 
                 if (version < 3) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "wl_data_source.set_actions needs version 3")
                 val dndActions = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_actions", "dnd_actions=${Wire.show(dndActions)}")
                 handler.setActions(this, dndActions)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wl_data_source request $opcode")

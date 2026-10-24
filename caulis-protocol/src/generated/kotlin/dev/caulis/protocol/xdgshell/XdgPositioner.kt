@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 
 /**
@@ -228,6 +229,7 @@ public class XdgPositioner private constructor(client: Client, id: Int, version:
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -235,6 +237,7 @@ public class XdgPositioner private constructor(client: Client, id: Int, version:
                 val width = args.int()
                 val height = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_size", "width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler.setSize(this, width, height)
             }
             2 -> {
@@ -243,32 +246,38 @@ public class XdgPositioner private constructor(client: Client, id: Int, version:
                 val width = args.int()
                 val height = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_anchor_rect", "x=${Wire.show(x)}, y=${Wire.show(y)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler.setAnchorRect(this, x, y, width, height)
             }
             3 -> {
                 val anchor = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_anchor", "anchor=${Wire.show(anchor)}")
                 handler.setAnchor(this, anchor)
             }
             4 -> {
                 val gravity = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_gravity", "gravity=${Wire.show(gravity)}")
                 handler.setGravity(this, gravity)
             }
             5 -> {
                 val constraintAdjustment = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_constraint_adjustment", "constraint_adjustment=${Wire.show(constraintAdjustment)}")
                 handler.setConstraintAdjustment(this, constraintAdjustment)
             }
             6 -> {
                 val x = args.int()
                 val y = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_offset", "x=${Wire.show(x)}, y=${Wire.show(y)}")
                 handler.setOffset(this, x, y)
             }
             7 -> {
                 if (version < 3) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "xdg_positioner.set_reactive needs version 3")
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_reactive", "")
                 handler.setReactive(this)
             }
             8 -> {
@@ -276,12 +285,14 @@ public class XdgPositioner private constructor(client: Client, id: Int, version:
                 val parentWidth = args.int()
                 val parentHeight = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_parent_size", "parent_width=${Wire.show(parentWidth)}, parent_height=${Wire.show(parentHeight)}")
                 handler.setParentSize(this, parentWidth, parentHeight)
             }
             9 -> {
                 if (version < 3) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "xdg_positioner.set_parent_configure needs version 3")
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_parent_configure", "serial=${Wire.show(serial)}")
                 handler.setParentConfigure(this, serial)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown xdg_positioner request $opcode")

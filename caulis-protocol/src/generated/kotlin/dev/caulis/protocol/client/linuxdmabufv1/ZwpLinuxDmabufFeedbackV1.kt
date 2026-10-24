@@ -4,6 +4,7 @@
 package dev.caulis.protocol.client.linuxdmabufv1
 
 import dev.caulis.ffi.Fd
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -202,6 +203,7 @@ public class ZwpLinuxDmabufFeedbackV1 private constructor(connection: Connection
      * use the zwp_linux_dmabuf_feedback_v1 object anymore.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -216,36 +218,43 @@ public class ZwpLinuxDmabufFeedbackV1 private constructor(connection: Connection
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "done", "")
                 handler?.done(this)
             }
             1 -> {
                 val fd = args.fd()
                 val size = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "format_table", "fd=${Wire.show(fd)}, size=${Wire.show(size)}")
                 handler?.formatTable(this, fd, size)
             }
             2 -> {
                 val device = args.array()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "main_device", "device=${Wire.show(device)}")
                 handler?.mainDevice(this, device)
             }
             3 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "tranche_done", "")
                 handler?.trancheDone(this)
             }
             4 -> {
                 val device = args.array()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "tranche_target_device", "device=${Wire.show(device)}")
                 handler?.trancheTargetDevice(this, device)
             }
             5 -> {
                 val indices = args.array()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "tranche_formats", "indices=${Wire.show(indices)}")
                 handler?.trancheFormats(this, indices)
             }
             6 -> {
                 val flags = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "tranche_flags", "flags=${Wire.show(flags)}")
                 handler?.trancheFlags(this, flags)
             }
         }

@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlSurface
 
@@ -98,6 +99,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendType(toolType: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "type", "tool_type=${Wire.show(toolType)}")
         event(0).uint(toolType).end()
     }
 
@@ -122,6 +124,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendHardwareSerial(hardwareSerialHi: Int, hardwareSerialLo: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "hardware_serial", "hardware_serial_hi=${Wire.show(hardwareSerialHi)}, hardware_serial_lo=${Wire.show(hardwareSerialLo)}")
         event(1).uint(hardwareSerialHi).uint(hardwareSerialLo).end()
     }
 
@@ -141,6 +144,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendHardwareIdWacom(hardwareIdHi: Int, hardwareIdLo: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "hardware_id_wacom", "hardware_id_hi=${Wire.show(hardwareIdHi)}, hardware_id_lo=${Wire.show(hardwareIdLo)}")
         event(2).uint(hardwareIdHi).uint(hardwareIdLo).end()
     }
 
@@ -157,6 +161,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendCapability(capability: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "capability", "capability=${Wire.show(capability)}")
         event(3).uint(capability).end()
     }
 
@@ -169,6 +174,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendDone() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "done", "")
         event(4).end()
     }
 
@@ -192,6 +198,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendRemoved() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "removed", "")
         event(5).end()
     }
 
@@ -210,6 +217,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendProximityIn(serial: Int, tablet: ZwpTabletV2, surface: WlSurface) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "proximity_in", "serial=${Wire.show(serial)}, tablet=${Wire.show(tablet)}, surface=${Wire.show(surface)}")
         event(6).uint(serial).obj(tablet).obj(surface).end()
     }
 
@@ -231,6 +239,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendProximityOut() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "proximity_out", "")
         event(7).end()
     }
 
@@ -252,6 +261,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendDown(serial: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "down", "serial=${Wire.show(serial)}")
         event(8).uint(serial).end()
     }
 
@@ -277,6 +287,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendUp() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "up", "")
         event(9).end()
     }
 
@@ -287,6 +298,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendMotion(x: Double, y: Double) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "motion", "x=${Wire.show(x)}, y=${Wire.show(y)}")
         event(10).fixed(x).fixed(y).end()
     }
 
@@ -301,6 +313,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendPressure(pressure: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "pressure", "pressure=${Wire.show(pressure)}")
         event(11).uint(pressure).end()
     }
 
@@ -315,6 +328,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendDistance(distance: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "distance", "distance=${Wire.show(distance)}")
         event(12).uint(distance).end()
     }
 
@@ -328,6 +342,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendTilt(tiltX: Double, tiltY: Double) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "tilt", "tilt_x=${Wire.show(tiltX)}, tilt_y=${Wire.show(tiltY)}")
         event(13).fixed(tiltX).fixed(tiltY).end()
     }
 
@@ -340,6 +355,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendRotation(degrees: Double) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "rotation", "degrees=${Wire.show(degrees)}")
         event(14).fixed(degrees).end()
     }
 
@@ -354,6 +370,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendSlider(position: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "slider", "position=${Wire.show(position)}")
         event(15).int(position).end()
     }
 
@@ -375,6 +392,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendWheel(degrees: Double, clicks: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "wheel", "degrees=${Wire.show(degrees)}, clicks=${Wire.show(clicks)}")
         event(16).fixed(degrees).int(clicks).end()
     }
 
@@ -390,6 +408,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendButton(serial: Int, button: Int, state: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "button", "serial=${Wire.show(serial)}, button=${Wire.show(button)}, state=${Wire.show(state)}")
         event(17).uint(serial).uint(button).uint(state).end()
     }
 
@@ -403,6 +422,7 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendFrame(time: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "frame", "time=${Wire.show(time)}")
         event(18).uint(time).end()
     }
 
@@ -471,10 +491,12 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
                 val hotspotX = args.int()
                 val hotspotY = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_cursor", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}, hotspot_x=${Wire.show(hotspotX)}, hotspot_y=${Wire.show(hotspotY)}")
                 handler.setCursor(this, serial, surface, hotspotX, hotspotY)
             }
             1 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }

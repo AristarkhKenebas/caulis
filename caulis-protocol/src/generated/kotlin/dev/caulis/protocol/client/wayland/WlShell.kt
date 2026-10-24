@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -36,6 +37,7 @@ public class WlShell private constructor(connection: Connection, id: Int, versio
      */
     public fun getShellSurface(surface: WlSurface): WlShellSurface {
         val created = connection.createProxy(WlShellSurface, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_shell_surface", "id=${Wire.show(created)}, surface=${Wire.show(surface)}")
         request(0).newId(created).obj(surface).end()
         return created
     }

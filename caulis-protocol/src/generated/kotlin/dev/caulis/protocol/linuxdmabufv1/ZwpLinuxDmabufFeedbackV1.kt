@@ -9,6 +9,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 
 /**
@@ -71,6 +72,7 @@ public class ZwpLinuxDmabufFeedbackV1 private constructor(client: Client, id: In
      */
     public fun sendDone() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "done", "")
         event(0).end()
     }
 
@@ -94,6 +96,7 @@ public class ZwpLinuxDmabufFeedbackV1 private constructor(client: Client, id: In
      */
     public fun sendFormatTable(fd: Fd, size: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "format_table", "fd=${Wire.show(fd)}, size=${Wire.show(size)}")
         event(1).fd(fd).uint(size).end()
     }
 
@@ -129,6 +132,7 @@ public class ZwpLinuxDmabufFeedbackV1 private constructor(client: Client, id: In
      */
     public fun sendMainDevice(device: ByteArray) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "main_device", "device=${Wire.show(device)}")
         event(2).array(device).end()
     }
 
@@ -142,6 +146,7 @@ public class ZwpLinuxDmabufFeedbackV1 private constructor(client: Client, id: In
      */
     public fun sendTrancheDone() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "tranche_done", "")
         event(3).end()
     }
 
@@ -177,6 +182,7 @@ public class ZwpLinuxDmabufFeedbackV1 private constructor(client: Client, id: In
      */
     public fun sendTrancheTargetDevice(device: ByteArray) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "tranche_target_device", "device=${Wire.show(device)}")
         event(4).array(device).end()
     }
 
@@ -210,6 +216,7 @@ public class ZwpLinuxDmabufFeedbackV1 private constructor(client: Client, id: In
      */
     public fun sendTrancheFormats(indices: ByteArray) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "tranche_formats", "indices=${Wire.show(indices)}")
         event(5).array(indices).end()
     }
 
@@ -223,6 +230,7 @@ public class ZwpLinuxDmabufFeedbackV1 private constructor(client: Client, id: In
      */
     public fun sendTrancheFlags(flags: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "tranche_flags", "flags=${Wire.show(flags)}")
         event(6).uint(flags).end()
     }
 
@@ -240,6 +248,7 @@ public class ZwpLinuxDmabufFeedbackV1 private constructor(client: Client, id: In
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }

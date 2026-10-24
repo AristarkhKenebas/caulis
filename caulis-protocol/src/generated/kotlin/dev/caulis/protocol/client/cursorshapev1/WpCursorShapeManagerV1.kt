@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.cursorshapev1
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -32,6 +33,7 @@ public class WpCursorShapeManagerV1 private constructor(connection: Connection, 
      * Destroy the cursor shape manager.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -46,6 +48,7 @@ public class WpCursorShapeManagerV1 private constructor(connection: Connection, 
      */
     public fun getPointer(pointer: WlPointer): WpCursorShapeDeviceV1 {
         val created = connection.createProxy(WpCursorShapeDeviceV1, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_pointer", "cursor_shape_device=${Wire.show(created)}, pointer=${Wire.show(pointer)}")
         request(1).newId(created).obj(pointer).end()
         return created
     }
@@ -60,6 +63,7 @@ public class WpCursorShapeManagerV1 private constructor(connection: Connection, 
      */
     public fun getTabletToolV2(tabletTool: ZwpTabletToolV2): WpCursorShapeDeviceV1 {
         val created = connection.createProxy(WpCursorShapeDeviceV1, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_tablet_tool_v2", "cursor_shape_device=${Wire.show(created)}, tablet_tool=${Wire.show(tabletTool)}")
         request(2).newId(created).obj(tabletTool).end()
         return created
     }

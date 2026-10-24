@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.presentationtime
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -83,6 +84,7 @@ public class WpPresentation private constructor(connection: Connection, id: Int,
      * are not affected.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -101,6 +103,7 @@ public class WpPresentation private constructor(connection: Connection, id: Int,
      */
     public fun feedback(surface: WlSurface): WpPresentationFeedback {
         val created = connection.createProxy(WpPresentationFeedback, this.version)
+        if (Wire.tracing) Wire.sent(this, "feedback", "surface=${Wire.show(surface)}, callback=${Wire.show(created)}")
         request(1).obj(surface).newId(created).end()
         return created
     }
@@ -119,6 +122,7 @@ public class WpPresentation private constructor(connection: Connection, id: Int,
             0 -> {
                 val clkId = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "clock_id", "clk_id=${Wire.show(clkId)}")
                 handler?.clockId(this, clkId)
             }
         }

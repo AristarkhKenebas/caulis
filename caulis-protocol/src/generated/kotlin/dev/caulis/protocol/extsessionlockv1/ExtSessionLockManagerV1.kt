@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 
 /**
@@ -49,6 +50,7 @@ public class ExtSessionLockManagerV1 private constructor(client: Client, id: Int
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -56,6 +58,7 @@ public class ExtSessionLockManagerV1 private constructor(client: Client, id: Int
                 val idId = args.newId()
                 args.end()
                 val id = client.register(ExtSessionLockV1.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "lock", "id=${Wire.show(id)}")
                 handler.lock(this, id)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown ext_session_lock_manager_v1 request $opcode")

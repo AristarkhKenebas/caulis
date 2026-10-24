@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.tabletv2
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -155,6 +156,7 @@ public class ZwpTabletPadV2 private constructor(connection: Connection, id: Int,
      * be ignored.
      */
     public fun setFeedback(button: Int, description: String, serial: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_feedback", "button=${Wire.show(button)}, description=${Wire.show(description)}, serial=${Wire.show(serial)}")
         request(0).uint(button).string(description).uint(serial).end()
     }
 
@@ -165,6 +167,7 @@ public class ZwpTabletPadV2 private constructor(connection: Connection, id: Int,
      * are unaffected and should be destroyed separately.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(1).end()
         connection.destroyProxy(this)
     }
@@ -183,20 +186,24 @@ public class ZwpTabletPadV2 private constructor(connection: Connection, id: Int,
             0 -> {
                 val padGroup = args.newId(ZwpTabletPadGroupV2, version)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "group", "pad_group=${Wire.show(padGroup)}")
                 handler?.group(this, padGroup)
             }
             1 -> {
                 val path = args.string()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "path", "path=${Wire.show(path)}")
                 handler?.path(this, path)
             }
             2 -> {
                 val buttons = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "buttons", "buttons=${Wire.show(buttons)}")
                 handler?.buttons(this, buttons)
             }
             3 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "done", "")
                 handler?.done(this)
             }
             4 -> {
@@ -204,6 +211,7 @@ public class ZwpTabletPadV2 private constructor(connection: Connection, id: Int,
                 val button = args.uint()
                 val state = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "button", "time=${Wire.show(time)}, button=${Wire.show(button)}, state=${Wire.show(state)}")
                 handler?.button(this, time, button, state)
             }
             5 -> {
@@ -211,16 +219,19 @@ public class ZwpTabletPadV2 private constructor(connection: Connection, id: Int,
                 val tablet = args.obj(ZwpTabletV2::class.java)
                 val surface = args.obj(WlSurface::class.java)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "enter", "serial=${Wire.show(serial)}, tablet=${Wire.show(tablet)}, surface=${Wire.show(surface)}")
                 handler?.enter(this, serial, tablet, surface)
             }
             6 -> {
                 val serial = args.uint()
                 val surface = args.obj(WlSurface::class.java)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "leave", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}")
                 handler?.leave(this, serial, surface)
             }
             7 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "removed", "")
                 handler?.removed(this)
             }
         }

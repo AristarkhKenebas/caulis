@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.extsessionlockv1
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -128,6 +129,7 @@ public class ExtSessionLockV1 private constructor(connection: Connection, id: In
      * sent, the unlock_and_destroy request must be used instead.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -149,6 +151,7 @@ public class ExtSessionLockV1 private constructor(connection: Connection, id: In
      */
     public fun getLockSurface(surface: WlSurface, output: WlOutput): ExtSessionLockSurfaceV1 {
         val created = connection.createProxy(ExtSessionLockSurfaceV1, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_lock_surface", "id=${Wire.show(created)}, surface=${Wire.show(surface)}, output=${Wire.show(output)}")
         request(1).newId(created).obj(surface).obj(output).end()
         return created
     }
@@ -181,6 +184,7 @@ public class ExtSessionLockV1 private constructor(connection: Connection, id: In
      * it processes the unlock_and_destroy request.
      */
     public fun unlockAndDestroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "unlock_and_destroy", "")
         request(2).end()
         connection.destroyProxy(this)
     }
@@ -203,10 +207,12 @@ public class ExtSessionLockV1 private constructor(connection: Connection, id: In
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "locked", "")
                 handler?.locked(this)
             }
             1 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "finished", "")
                 handler?.finished(this)
             }
         }

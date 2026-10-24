@@ -4,6 +4,7 @@
 package dev.caulis.protocol.client.linuxdmabufv1
 
 import dev.caulis.ffi.Fd
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -69,6 +70,7 @@ public class ZwpLinuxBufferParamsV1 private constructor(connection: Connection, 
      * wl_buffer creation.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -97,6 +99,7 @@ public class ZwpLinuxBufferParamsV1 private constructor(connection: Connection, 
      * was already set.
      */
     public fun add(fd: Fd, planeIdx: Int, offset: Int, stride: Int, modifierHi: Int, modifierLo: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "add", "fd=${Wire.show(fd)}, plane_idx=${Wire.show(planeIdx)}, offset=${Wire.show(offset)}, stride=${Wire.show(stride)}, modifier_hi=${Wire.show(modifierHi)}, modifier_lo=${Wire.show(modifierLo)}")
         request(1).fd(fd).uint(planeIdx).uint(offset).uint(stride).uint(modifierHi).uint(modifierLo).end()
     }
 
@@ -164,6 +167,7 @@ public class ZwpLinuxBufferParamsV1 private constructor(connection: Connection, 
      * cancel the buffer creation, it can just destroy this object.
      */
     public fun create(width: Int, height: Int, format: Int, flags: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "create", "width=${Wire.show(width)}, height=${Wire.show(height)}, format=${Wire.show(format)}, flags=${Wire.show(flags)}")
         request(2).int(width).int(height).uint(format).uint(flags).end()
     }
 
@@ -199,6 +203,7 @@ public class ZwpLinuxBufferParamsV1 private constructor(connection: Connection, 
     public fun createImmed(width: Int, height: Int, format: Int, flags: Int): WlBuffer {
         check(version >= 2) { "zwp_linux_buffer_params_v1.create_immed needs version 2, this object has $version" }
         val created = connection.createProxy(WlBuffer, this.version)
+        if (Wire.tracing) Wire.sent(this, "create_immed", "buffer_id=${Wire.show(created)}, width=${Wire.show(width)}, height=${Wire.show(height)}, format=${Wire.show(format)}, flags=${Wire.show(flags)}")
         request(3).newId(created).int(width).int(height).uint(format).uint(flags).end()
         return created
     }
@@ -224,6 +229,7 @@ public class ZwpLinuxBufferParamsV1 private constructor(connection: Connection, 
      */
     public fun setSamplingDevice(device: ByteArray): Unit {
         check(version >= 6) { "zwp_linux_buffer_params_v1.set_sampling_device needs version 6, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "set_sampling_device", "device=${Wire.show(device)}")
         request(4).array(device).end()
     }
 
@@ -263,10 +269,12 @@ public class ZwpLinuxBufferParamsV1 private constructor(connection: Connection, 
             0 -> {
                 val buffer = args.newId(WlBuffer, version)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "created", "buffer=${Wire.show(buffer)}")
                 handler?.created(this, buffer)
             }
             1 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "failed", "")
                 handler?.failed(this)
             }
         }

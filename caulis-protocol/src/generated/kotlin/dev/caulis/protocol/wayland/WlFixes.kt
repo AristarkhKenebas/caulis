@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Wayland protocol fixes
@@ -88,12 +89,14 @@ public class WlFixes private constructor(client: Client, id: Int, version: Int) 
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
             1 -> {
                 val registry = args.obj(WlRegistry::class.java)
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy_registry", "registry=${Wire.show(registry)}")
                 handler.destroyRegistry(this, registry)
             }
             2 -> {
@@ -101,6 +104,7 @@ public class WlFixes private constructor(client: Client, id: Int, version: Int) 
                 val registry = args.obj(WlRegistry::class.java)
                 val name = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "ack_global_remove", "registry=${Wire.show(registry)}, name=${Wire.show(name)}")
                 handler.ackGlobalRemove(this, registry, name)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wl_fixes request $opcode")

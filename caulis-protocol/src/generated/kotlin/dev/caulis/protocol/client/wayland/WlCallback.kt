@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -39,6 +40,7 @@ public class WlCallback private constructor(connection: Connection, id: Int, ver
             0 -> {
                 val callbackData = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "done", "callback_data=${Wire.show(callbackData)}")
                 handler?.done(this, callbackData)
             }
         }

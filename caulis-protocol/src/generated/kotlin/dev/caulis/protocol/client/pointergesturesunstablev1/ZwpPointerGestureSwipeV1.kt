@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.pointergesturesunstablev1
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -73,6 +74,7 @@ public class ZwpPointerGestureSwipeV1 private constructor(connection: Connection
      * Destroy the pointer swipe gesture object
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -86,6 +88,7 @@ public class ZwpPointerGestureSwipeV1 private constructor(connection: Connection
                 val surface = args.obj(WlSurface::class.java)
                 val fingers = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "begin", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, surface=${Wire.show(surface)}, fingers=${Wire.show(fingers)}")
                 handler?.begin(this, serial, time, surface, fingers)
             }
             1 -> {
@@ -93,6 +96,7 @@ public class ZwpPointerGestureSwipeV1 private constructor(connection: Connection
                 val dx = args.fixed()
                 val dy = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "update", "time=${Wire.show(time)}, dx=${Wire.show(dx)}, dy=${Wire.show(dy)}")
                 handler?.update(this, time, dx, dy)
             }
             2 -> {
@@ -100,6 +104,7 @@ public class ZwpPointerGestureSwipeV1 private constructor(connection: Connection
                 val time = args.uint()
                 val cancelled = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "end", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, cancelled=${Wire.show(cancelled)}")
                 handler?.end(this, serial, time, cancelled)
             }
         }

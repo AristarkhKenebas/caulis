@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Sub-surface interface to a wl_surface
@@ -154,6 +155,7 @@ public class WlSubsurface private constructor(client: Client, id: Int, version: 
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -161,24 +163,29 @@ public class WlSubsurface private constructor(client: Client, id: Int, version: 
                 val x = args.int()
                 val y = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_position", "x=${Wire.show(x)}, y=${Wire.show(y)}")
                 handler.setPosition(this, x, y)
             }
             2 -> {
                 val sibling = args.obj(WlSurface::class.java)
                 args.end()
+                if (Wire.tracing) Wire.request(this, "place_above", "sibling=${Wire.show(sibling)}")
                 handler.placeAbove(this, sibling)
             }
             3 -> {
                 val sibling = args.obj(WlSurface::class.java)
                 args.end()
+                if (Wire.tracing) Wire.request(this, "place_below", "sibling=${Wire.show(sibling)}")
                 handler.placeBelow(this, sibling)
             }
             4 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_sync", "")
                 handler.setSync(this)
             }
             5 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_desync", "")
                 handler.setDesync(this)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wl_subsurface request $opcode")

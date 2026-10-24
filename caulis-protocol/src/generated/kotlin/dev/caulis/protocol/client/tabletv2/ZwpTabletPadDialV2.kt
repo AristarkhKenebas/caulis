@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.tabletv2
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -82,6 +83,7 @@ public class ZwpTabletPadDialV2 private constructor(connection: Connection, id: 
      * ignored.
      */
     public fun setFeedback(description: String, serial: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_feedback", "description=${Wire.show(description)}, serial=${Wire.show(serial)}")
         request(0).string(description).uint(serial).end()
     }
 
@@ -91,6 +93,7 @@ public class ZwpTabletPadDialV2 private constructor(connection: Connection, id: 
      * This destroys the client's resource for this dial object.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(1).end()
         connection.destroyProxy(this)
     }
@@ -101,11 +104,13 @@ public class ZwpTabletPadDialV2 private constructor(connection: Connection, id: 
             0 -> {
                 val value120 = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "delta", "value120=${Wire.show(value120)}")
                 handler?.delta(this, value120)
             }
             1 -> {
                 val time = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "frame", "time=${Wire.show(time)}")
                 handler?.frame(this, time)
             }
         }

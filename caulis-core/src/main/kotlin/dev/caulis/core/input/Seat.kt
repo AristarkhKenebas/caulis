@@ -144,6 +144,7 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
         val surface = wanted?.takeIf(mayFocus)
         val old = keyboardFocus
         if (old === surface) return
+        focusLog.trace { "Keyboard: ${old?.roleObject ?: old} → ${surface?.roleObject ?: surface}${if (wanted != null && surface == null) " (refused: $wanted may not have it now)" else ""}" }
         keyboardFocus = surface
         if (old != null && old.resource.isAlive) {
             val serial = display.nextSerial()
@@ -216,6 +217,7 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
         val surface = under?.takeIf(mayFocus)
         val old = pointerFocus
         if (old !== surface) {
+            focusLog.trace { "Pointer: ${old?.roleObject ?: old} → ${surface?.roleObject ?: surface}" }
             if (old != null && old.resource.isAlive) {
                 val serial = display.nextSerial()
                 pointersOf(old.resource.client).forEach {
@@ -280,3 +282,5 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
         const val REPEAT_DELAY = 300
     }
 }
+
+private val focusLog = dev.caulis.log.Logger("focus")

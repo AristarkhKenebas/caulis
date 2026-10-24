@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 
 /**
@@ -146,6 +147,7 @@ public class WpCursorShapeDeviceV1 private constructor(client: Client, id: Int, 
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -153,6 +155,7 @@ public class WpCursorShapeDeviceV1 private constructor(client: Client, id: Int, 
                 val serial = args.uint()
                 val shape = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_shape", "serial=${Wire.show(serial)}, shape=${Wire.show(shape)}")
                 handler.setShape(this, serial, shape)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wp_cursor_shape_device_v1 request $opcode")

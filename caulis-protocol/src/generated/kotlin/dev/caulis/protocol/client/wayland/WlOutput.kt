@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -199,6 +200,7 @@ public class WlOutput private constructor(connection: Connection, id: Int, versi
      */
     public fun release(): Unit {
         check(version >= 3) { "wl_output.release needs version 3, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "release", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -260,6 +262,7 @@ public class WlOutput private constructor(connection: Connection, id: Int, versi
                 val model = args.string()
                 val transform = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "geometry", "x=${Wire.show(x)}, y=${Wire.show(y)}, physical_width=${Wire.show(physicalWidth)}, physical_height=${Wire.show(physicalHeight)}, subpixel=${Wire.show(subpixel)}, make=${Wire.show(make)}, model=${Wire.show(model)}, transform=${Wire.show(transform)}")
                 handler?.geometry(this, x, y, physicalWidth, physicalHeight, subpixel, make, model, transform)
             }
             1 -> {
@@ -268,25 +271,30 @@ public class WlOutput private constructor(connection: Connection, id: Int, versi
                 val height = args.int()
                 val refresh = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "mode", "flags=${Wire.show(flags)}, width=${Wire.show(width)}, height=${Wire.show(height)}, refresh=${Wire.show(refresh)}")
                 handler?.mode(this, flags, width, height, refresh)
             }
             2 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "done", "")
                 handler?.done(this)
             }
             3 -> {
                 val factor = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "scale", "factor=${Wire.show(factor)}")
                 handler?.scale(this, factor)
             }
             4 -> {
                 val name = args.string()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "name", "name=${Wire.show(name)}")
                 handler?.name(this, name)
             }
             5 -> {
                 val description = args.string()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "description", "description=${Wire.show(description)}")
                 handler?.description(this, description)
             }
         }

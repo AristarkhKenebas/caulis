@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 
 /**
@@ -70,6 +71,7 @@ public class ZwpTabletPadGroupV2 private constructor(client: Client, id: Int, ve
      */
     public fun sendButtons(buttons: ByteArray) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "buttons", "buttons=${Wire.show(buttons)}")
         event(0).array(buttons).end()
     }
 
@@ -84,6 +86,7 @@ public class ZwpTabletPadGroupV2 private constructor(client: Client, id: Int, ve
      */
     public fun sendRing(ring: ZwpTabletPadRingV2) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "ring", "ring=${Wire.show(ring)}")
         event(1).newId(ring).end()
     }
 
@@ -98,6 +101,7 @@ public class ZwpTabletPadGroupV2 private constructor(client: Client, id: Int, ve
      */
     public fun sendStrip(strip: ZwpTabletPadStripV2) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "strip", "strip=${Wire.show(strip)}")
         event(2).newId(strip).end()
     }
 
@@ -119,6 +123,7 @@ public class ZwpTabletPadGroupV2 private constructor(client: Client, id: Int, ve
      */
     public fun sendModes(modes: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "modes", "modes=${Wire.show(modes)}")
         event(3).uint(modes).end()
     }
 
@@ -132,6 +137,7 @@ public class ZwpTabletPadGroupV2 private constructor(client: Client, id: Int, ve
      */
     public fun sendDone() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "done", "")
         event(4).end()
     }
 
@@ -168,6 +174,7 @@ public class ZwpTabletPadGroupV2 private constructor(client: Client, id: Int, ve
      */
     public fun sendModeSwitch(time: Int, serial: Int, mode: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "mode_switch", "time=${Wire.show(time)}, serial=${Wire.show(serial)}, mode=${Wire.show(mode)}")
         event(5).uint(time).uint(serial).uint(mode).end()
     }
 
@@ -185,6 +192,7 @@ public class ZwpTabletPadGroupV2 private constructor(client: Client, id: Int, ve
     public fun sendDial(dial: ZwpTabletPadDialV2) {
         if (!isAlive || !client.isConnected) return
         if (version < 2) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "dial", "dial=${Wire.show(dial)}")
         event(6).newId(dial).end()
     }
 
@@ -194,6 +202,7 @@ public class ZwpTabletPadGroupV2 private constructor(client: Client, id: Int, ve
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }

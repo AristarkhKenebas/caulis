@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlSurface
 
@@ -95,6 +96,7 @@ public class XdgWmBase private constructor(client: Client, id: Int, version: Int
      */
     public fun sendPing(serial: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "ping", "serial=${Wire.show(serial)}")
         event(0).uint(serial).end()
     }
 
@@ -121,6 +123,7 @@ public class XdgWmBase private constructor(client: Client, id: Int, version: Int
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -128,6 +131,7 @@ public class XdgWmBase private constructor(client: Client, id: Int, version: Int
                 val idId = args.newId()
                 args.end()
                 val id = client.register(XdgPositioner.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "create_positioner", "id=${Wire.show(id)}")
                 handler.createPositioner(this, id)
             }
             2 -> {
@@ -135,11 +139,13 @@ public class XdgWmBase private constructor(client: Client, id: Int, version: Int
                 val surface = args.obj(WlSurface::class.java)
                 args.end()
                 val id = client.register(XdgSurface.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_xdg_surface", "id=${Wire.show(id)}, surface=${Wire.show(surface)}")
                 handler.getXdgSurface(this, id, surface)
             }
             3 -> {
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "pong", "serial=${Wire.show(serial)}")
                 handler.pong(this, serial)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown xdg_wm_base request $opcode")

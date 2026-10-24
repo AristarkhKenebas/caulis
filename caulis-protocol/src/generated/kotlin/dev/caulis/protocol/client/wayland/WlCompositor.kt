@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -26,6 +27,7 @@ public class WlCompositor private constructor(connection: Connection, id: Int, v
      */
     public fun createSurface(): WlSurface {
         val created = connection.createProxy(WlSurface, this.version)
+        if (Wire.tracing) Wire.sent(this, "create_surface", "id=${Wire.show(created)}")
         request(0).newId(created).end()
         return created
     }
@@ -37,6 +39,7 @@ public class WlCompositor private constructor(connection: Connection, id: Int, v
      */
     public fun createRegion(): WlRegion {
         val created = connection.createProxy(WlRegion, this.version)
+        if (Wire.tracing) Wire.sent(this, "create_region", "id=${Wire.show(created)}")
         request(1).newId(created).end()
         return created
     }
@@ -50,6 +53,7 @@ public class WlCompositor private constructor(connection: Connection, id: Int, v
      */
     public fun release(): Unit {
         check(version >= 7) { "wl_compositor.release needs version 7, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "release", "")
         request(2).end()
         connection.destroyProxy(this)
     }

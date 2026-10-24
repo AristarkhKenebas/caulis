@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -65,6 +66,7 @@ public class WlBuffer private constructor(connection: Connection, id: Int, versi
      * For possible side-effects to a surface, see wl_surface.attach.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -74,6 +76,7 @@ public class WlBuffer private constructor(connection: Connection, id: Int, versi
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "release", "")
                 handler?.release(this)
             }
         }

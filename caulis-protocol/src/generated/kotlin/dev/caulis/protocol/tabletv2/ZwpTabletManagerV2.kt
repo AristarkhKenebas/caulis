@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlSeat
 
@@ -52,10 +53,12 @@ public class ZwpTabletManagerV2 private constructor(client: Client, id: Int, ver
                 val seat = args.obj(WlSeat::class.java)
                 args.end()
                 val tabletSeat = client.register(ZwpTabletSeatV2.create(client, tabletSeatId, version))
+                if (Wire.tracing) Wire.request(this, "get_tablet_seat", "tablet_seat=${Wire.show(tabletSeat)}, seat=${Wire.show(seat)}")
                 handler.getTabletSeat(this, tabletSeat, seat)
             }
             1 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }

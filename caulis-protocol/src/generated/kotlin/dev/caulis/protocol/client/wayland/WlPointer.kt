@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -369,6 +370,7 @@ public class WlPointer private constructor(connection: Connection, id: Int, vers
      * ignored.
      */
     public fun setCursor(serial: Int, surface: WlSurface?, hotspotX: Int, hotspotY: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_cursor", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}, hotspot_x=${Wire.show(hotspotX)}, hotspot_y=${Wire.show(hotspotY)}")
         request(0).uint(serial).obj(surface).int(hotspotX).int(hotspotY).end()
     }
 
@@ -385,6 +387,7 @@ public class WlPointer private constructor(connection: Connection, id: Int, vers
      */
     public fun release(): Unit {
         check(version >= 3) { "wl_pointer.release needs version 3, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "release", "")
         request(1).end()
         connection.destroyProxy(this)
     }
@@ -439,12 +442,14 @@ public class WlPointer private constructor(connection: Connection, id: Int, vers
                 val surfaceX = args.fixed()
                 val surfaceY = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "enter", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}, surface_x=${Wire.show(surfaceX)}, surface_y=${Wire.show(surfaceY)}")
                 handler?.enter(this, serial, surface, surfaceX, surfaceY)
             }
             1 -> {
                 val serial = args.uint()
                 val surface = args.obj(WlSurface::class.java)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "leave", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}")
                 handler?.leave(this, serial, surface)
             }
             2 -> {
@@ -452,6 +457,7 @@ public class WlPointer private constructor(connection: Connection, id: Int, vers
                 val surfaceX = args.fixed()
                 val surfaceY = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "motion", "time=${Wire.show(time)}, surface_x=${Wire.show(surfaceX)}, surface_y=${Wire.show(surfaceY)}")
                 handler?.motion(this, time, surfaceX, surfaceY)
             }
             3 -> {
@@ -460,6 +466,7 @@ public class WlPointer private constructor(connection: Connection, id: Int, vers
                 val button = args.uint()
                 val state = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "button", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, button=${Wire.show(button)}, state=${Wire.show(state)}")
                 handler?.button(this, serial, time, button, state)
             }
             4 -> {
@@ -467,45 +474,53 @@ public class WlPointer private constructor(connection: Connection, id: Int, vers
                 val axis = args.uint()
                 val value = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "axis", "time=${Wire.show(time)}, axis=${Wire.show(axis)}, value=${Wire.show(value)}")
                 handler?.axis(this, time, axis, value)
             }
             5 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "frame", "")
                 handler?.frame(this)
             }
             6 -> {
                 val axisSource = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "axis_source", "axis_source=${Wire.show(axisSource)}")
                 handler?.axisSource(this, axisSource)
             }
             7 -> {
                 val time = args.uint()
                 val axis = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "axis_stop", "time=${Wire.show(time)}, axis=${Wire.show(axis)}")
                 handler?.axisStop(this, time, axis)
             }
             8 -> {
                 val axis = args.uint()
                 val discrete = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "axis_discrete", "axis=${Wire.show(axis)}, discrete=${Wire.show(discrete)}")
                 handler?.axisDiscrete(this, axis, discrete)
             }
             9 -> {
                 val axis = args.uint()
                 val value120 = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "axis_value120", "axis=${Wire.show(axis)}, value120=${Wire.show(value120)}")
                 handler?.axisValue120(this, axis, value120)
             }
             10 -> {
                 val axis = args.uint()
                 val direction = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "axis_relative_direction", "axis=${Wire.show(axis)}, direction=${Wire.show(direction)}")
                 handler?.axisRelativeDirection(this, axis, direction)
             }
             11 -> {
                 val surfaceX = args.fixed()
                 val surfaceY = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "warp", "surface_x=${Wire.show(surfaceX)}, surface_y=${Wire.show(surfaceY)}")
                 handler?.warp(this, surfaceX, surfaceY)
             }
         }

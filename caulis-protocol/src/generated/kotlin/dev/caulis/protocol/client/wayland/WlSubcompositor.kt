@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -43,6 +44,7 @@ public class WlSubcompositor private constructor(connection: Connection, id: Int
      * objects, wl_subsurface objects included.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -72,6 +74,7 @@ public class WlSubcompositor private constructor(connection: Connection, id: Int
      */
     public fun getSubsurface(surface: WlSurface, parent: WlSurface): WlSubsurface {
         val created = connection.createProxy(WlSubsurface, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_subsurface", "id=${Wire.show(created)}, surface=${Wire.show(surface)}, parent=${Wire.show(parent)}")
         request(1).newId(created).obj(surface).obj(parent).end()
         return created
     }

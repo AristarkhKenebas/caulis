@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * The compositor singleton
@@ -56,17 +57,20 @@ public class WlCompositor private constructor(client: Client, id: Int, version: 
                 val idId = args.newId()
                 args.end()
                 val id = client.register(WlSurface.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "create_surface", "id=${Wire.show(id)}")
                 handler.createSurface(this, id)
             }
             1 -> {
                 val idId = args.newId()
                 args.end()
                 val id = client.register(WlRegion.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "create_region", "id=${Wire.show(id)}")
                 handler.createRegion(this, id)
             }
             2 -> {
                 if (version < 7) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "wl_compositor.release needs version 7")
                 args.end()
+                if (Wire.tracing) Wire.request(this, "release", "")
                 handler.release(this)
                 client.destroyResource(this)
             }

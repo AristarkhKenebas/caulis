@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.tabletv2
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -339,6 +340,7 @@ public class ZwpTabletToolV2 private constructor(connection: Connection, id: Int
      * protocol error is raised.
      */
     public fun setCursor(serial: Int, surface: WlSurface?, hotspotX: Int, hotspotY: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_cursor", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}, hotspot_x=${Wire.show(hotspotX)}, hotspot_y=${Wire.show(hotspotY)}")
         request(0).uint(serial).obj(surface).int(hotspotX).int(hotspotY).end()
     }
 
@@ -348,6 +350,7 @@ public class ZwpTabletToolV2 private constructor(connection: Connection, id: Int
      * This destroys the client's resource for this tool object.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(1).end()
         connection.destroyProxy(this)
     }
@@ -407,31 +410,37 @@ public class ZwpTabletToolV2 private constructor(connection: Connection, id: Int
             0 -> {
                 val toolType = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "type", "tool_type=${Wire.show(toolType)}")
                 handler?.type(this, toolType)
             }
             1 -> {
                 val hardwareSerialHi = args.uint()
                 val hardwareSerialLo = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "hardware_serial", "hardware_serial_hi=${Wire.show(hardwareSerialHi)}, hardware_serial_lo=${Wire.show(hardwareSerialLo)}")
                 handler?.hardwareSerial(this, hardwareSerialHi, hardwareSerialLo)
             }
             2 -> {
                 val hardwareIdHi = args.uint()
                 val hardwareIdLo = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "hardware_id_wacom", "hardware_id_hi=${Wire.show(hardwareIdHi)}, hardware_id_lo=${Wire.show(hardwareIdLo)}")
                 handler?.hardwareIdWacom(this, hardwareIdHi, hardwareIdLo)
             }
             3 -> {
                 val capability = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "capability", "capability=${Wire.show(capability)}")
                 handler?.capability(this, capability)
             }
             4 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "done", "")
                 handler?.done(this)
             }
             5 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "removed", "")
                 handler?.removed(this)
             }
             6 -> {
@@ -439,57 +448,68 @@ public class ZwpTabletToolV2 private constructor(connection: Connection, id: Int
                 val tablet = args.obj(ZwpTabletV2::class.java)
                 val surface = args.obj(WlSurface::class.java)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "proximity_in", "serial=${Wire.show(serial)}, tablet=${Wire.show(tablet)}, surface=${Wire.show(surface)}")
                 handler?.proximityIn(this, serial, tablet, surface)
             }
             7 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "proximity_out", "")
                 handler?.proximityOut(this)
             }
             8 -> {
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "down", "serial=${Wire.show(serial)}")
                 handler?.down(this, serial)
             }
             9 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "up", "")
                 handler?.up(this)
             }
             10 -> {
                 val x = args.fixed()
                 val y = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "motion", "x=${Wire.show(x)}, y=${Wire.show(y)}")
                 handler?.motion(this, x, y)
             }
             11 -> {
                 val pressure = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "pressure", "pressure=${Wire.show(pressure)}")
                 handler?.pressure(this, pressure)
             }
             12 -> {
                 val distance = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "distance", "distance=${Wire.show(distance)}")
                 handler?.distance(this, distance)
             }
             13 -> {
                 val tiltX = args.fixed()
                 val tiltY = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "tilt", "tilt_x=${Wire.show(tiltX)}, tilt_y=${Wire.show(tiltY)}")
                 handler?.tilt(this, tiltX, tiltY)
             }
             14 -> {
                 val degrees = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "rotation", "degrees=${Wire.show(degrees)}")
                 handler?.rotation(this, degrees)
             }
             15 -> {
                 val position = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "slider", "position=${Wire.show(position)}")
                 handler?.slider(this, position)
             }
             16 -> {
                 val degrees = args.fixed()
                 val clicks = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "wheel", "degrees=${Wire.show(degrees)}, clicks=${Wire.show(clicks)}")
                 handler?.wheel(this, degrees, clicks)
             }
             17 -> {
@@ -497,11 +517,13 @@ public class ZwpTabletToolV2 private constructor(connection: Connection, id: Int
                 val button = args.uint()
                 val state = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "button", "serial=${Wire.show(serial)}, button=${Wire.show(button)}, state=${Wire.show(state)}")
                 handler?.button(this, serial, button, state)
             }
             18 -> {
                 val time = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "frame", "time=${Wire.show(time)}")
                 handler?.frame(this, time)
             }
         }

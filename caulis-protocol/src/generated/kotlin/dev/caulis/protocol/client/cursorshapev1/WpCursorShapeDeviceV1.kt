@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.cursorshapev1
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -25,6 +26,7 @@ public class WpCursorShapeDeviceV1 private constructor(connection: Connection, i
      * The device cursor shape remains unchanged.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -52,6 +54,7 @@ public class WpCursorShapeDeviceV1 private constructor(connection: Connection, i
      * Otherwise the request will be ignored.
      */
     public fun setShape(serial: Int, shape: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_shape", "serial=${Wire.show(serial)}, shape=${Wire.show(shape)}")
         request(1).uint(serial).uint(shape).end()
     }
 

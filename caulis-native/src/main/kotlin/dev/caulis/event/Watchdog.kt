@@ -17,7 +17,7 @@ class Watchdog(
     private val onStuck: () -> Unit = { Runtime.getRuntime().halt(EXIT_STUCK) },
 ) : AutoCloseable {
 
-    private val logger = System.getLogger("caulis.watchdog")
+    private val logger = dev.caulis.log.Logger("native")
 
     @Volatile
     private var running = true
@@ -33,14 +33,14 @@ class Watchdog(
             val stuckFor = (System.nanoTime() - loop.lastIterationNanos) / 1_000_000
             when {
                 stuckFor >= giveUpMillis -> {
-                    logger.log(System.Logger.Level.ERROR, "The main loop has not responded for $stuckFor ms; stopping")
+                    logger.error("The main loop has not responded for $stuckFor ms; stopping")
                     onStuck()
                     return@start
                 }
                 stuckFor >= warnMillis && !warned -> {
                     warned = true
                     val stack = loopThread.stackTrace.joinToString("\n") { "    at $it" }
-                    logger.log(System.Logger.Level.WARNING, "The main loop is stuck for $stuckFor ms:\n$stack")
+                    logger.warn("The main loop is stuck for $stuckFor ms:\n$stack")
                 }
                 stuckFor < warnMillis -> warned = false
             }

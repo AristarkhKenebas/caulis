@@ -1,9 +1,11 @@
 package dev.caulis.wm
 
+import dev.caulis.log.Logger
 import dev.caulis.core.Compositor
 import dev.caulis.core.DataDeviceManager
 import dev.caulis.core.Desktop
 import dev.caulis.core.Effects
+import dev.caulis.core.ForeignToplevels
 import dev.caulis.core.FrameStats
 import dev.caulis.core.LayerShell
 import dev.caulis.core.LinuxDmabuf
@@ -39,7 +41,10 @@ internal class Running(
     switchConsole: ((Int) -> Unit)?,
 ) : AutoCloseable {
 
-    private val log = System.getLogger("caulis")
+    private val log = Logger("config")
+    private val clientsLog = Logger("clients")
+    private val cursorLog = Logger("cursor")
+    private val gesturesLog = Logger("gestures")
 
     val display = Display(loop)
     private val keymap = Keymap.fromNames(layouts = config.keyboardLayouts, options = config.keyboardOptions)
@@ -68,6 +73,7 @@ internal class Running(
         LayerShell(display).listener = desktop
         SessionLockManager(display).listener = desktop
         CursorShape(display, seat)
+        ForeignToplevels(display, desktop)
         applyCursor()
         desktop.layout = config.layout
         socket = config.socketDirectory?.let(display::addSocket) ?: display.addSocket()
@@ -81,6 +87,7 @@ internal class Running(
         // The user's rules and events (dialogs and fixed-size windows always float).
         val defaultRule = desktop.floatRule
         desktop.effects = config.effects
+        desktop.animationMillis = config.animationMillis
         desktop.windowEffects = { window ->
             config.effectRules.fold(desktop.effects) { fx, rule -> safely("effectsFor", fx) { rule(window, fx) } }
         }
@@ -110,9 +117,10 @@ internal class Running(
     fun applyCursor() {
         val theme = CursorTheme.load(config.cursorTheme, config.cursorSize)
         if (!theme.found) {
-            log.log(System.Logger.Level.WARNING, "The cursor theme \"${theme.name}\" is not installed; using the system's. " +
+            cursorLog.warn("The cursor theme \"${theme.name}\" is not installed; using the system's. " +
                 "Installed: ${CursorTheme.available().joinToString()}")
         }
+        cursorLog.info { "Cursor theme ${theme.name}${if (theme.found) "" else " (not found)"}, ${theme.size} px" }
         desktop.cursorTheme = theme
         desktop.hideCursorWhileTyping = config.hideCursorWhileTyping
         desktop.hideCursorAfterMillis = config.hideCursorAfterSeconds * 1000L
@@ -143,6 +151,7 @@ internal class Running(
      * does not exist, that is said in plain words instead of nothing happening.
      */
     fun launch(command: String) {
+        clientsLog.info { "Starting: $command" }
         try {
             val builder = ProcessBuilder("/bin/sh", "-c", command)
             builder.environment().apply {
@@ -161,11 +170,11 @@ internal class Running(
             builder.start().onExit().thenAccept { process ->
                 // 127 is the shell's "command not found".
                 if (process.exitValue() == 127) {
-                    log.log(System.Logger.Level.WARNING, "\"$command\" could not be started: the program was not found (is it installed?)")
+                    clientsLog.warn("\"$command\" could not be started: the program was not found (is it installed?)")
                 }
             }
         } catch (e: Exception) {
-            log.log(System.Logger.Level.WARNING, "\"$command\" could not be started: ${e.message}")
+            clientsLog.warn("\"$command\" could not be started: ${e.message}")
         }
     }
 
@@ -173,7 +182,7 @@ internal class Running(
     private fun <T> safely(what: String, fallback: T, action: () -> T): T = try {
         action()
     } catch (e: Exception) {
-        log.log(System.Logger.Level.ERROR, "Your code for \"$what\" failed (ignored): $e", e)
+        log.error("Your code for \"$what\" failed (ignored): $e", e)
         fallback
     }
 
@@ -224,6 +233,7 @@ internal class Running(
 
     /** A touchpad gesture: the compositor's own (see [Caulis.dragViewFingers] ...) or the program's. */
     fun gesture(gesture: Gesture) = safely("gesture") {
+        gesturesLog.trace { "$gesture (fingers ${gestureFingers}, use $gestureUse)" }
         when (gesture) {
             is Gesture.SwipeBegin -> {
                 gestureFingers = gesture.fingers

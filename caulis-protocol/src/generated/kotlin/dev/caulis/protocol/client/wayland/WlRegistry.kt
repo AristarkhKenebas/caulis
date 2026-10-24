@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -76,6 +77,7 @@ public class WlRegistry private constructor(connection: Connection, id: Int, ver
      */
     public fun <T : Proxy> bind(name: Int, type: ProxyType<T>, version: Int): T {
         val created = connection.createProxy(type, version)
+        if (Wire.tracing) Wire.sent(this, "bind", "name=${Wire.show(name)}, id=${Wire.show(created)}")
         request(0).uint(name).string(type.name).uint(version).newId(created).end()
         return created
     }
@@ -88,11 +90,13 @@ public class WlRegistry private constructor(connection: Connection, id: Int, ver
                 val `interface` = args.string()
                 val versionArg = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "global", "name=${Wire.show(name)}, interface=${Wire.show(`interface`)}, version=${Wire.show(versionArg)}")
                 handler?.global(this, name, `interface`, versionArg)
             }
             1 -> {
                 val name = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "global_remove", "name=${Wire.show(name)}")
                 handler?.globalRemove(this, name)
             }
         }

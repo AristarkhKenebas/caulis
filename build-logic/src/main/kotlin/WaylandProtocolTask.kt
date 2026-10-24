@@ -212,6 +212,7 @@ internal class KotlinWriter(
             "dev.caulis.protocol.ProtocolException",
             "dev.caulis.protocol.Resource",
             "dev.caulis.protocol.ResourceType",
+            "dev.caulis.protocol.Wire",
             "dev.caulis.protocol.wayland.WlDisplay",
         )
         val all = iface.requests + iface.events
@@ -256,6 +257,8 @@ internal class KotlinWriter(
         line("    public fun send${pascal(event.name)}(${params.joinToString(", ")}) {")
         line("        if (!isAlive || !client.isConnected) return")
         if (event.since > 1) line("        if (version < ${event.since}) return // the client is too old for this event")
+        val shown = traceArgs(event.args.map { it.name to paramName(it.name) })
+        line("        if (Wire.tracing) Wire.event(this, \"${event.name}\", \"$shown\")")
         val writes = event.args.joinToString("") { ".${writeCall(it)}(${paramName(it.name)})" }
         line("        event($opcode)$writes.end()")
         line("    }")
@@ -315,6 +318,12 @@ internal class KotlinWriter(
                 val type = simpleClass(arg.interfaceName!!)
                 line("                val $param = client.register($type.create(client, ${param}Id, version))")
             }
+            val shown = traceArgs(request.args.flatMap { arg ->
+                val param = paramName(arg.name)
+                if (arg.type == "new_id" && arg.interfaceName == null) listOf("interface" to "interfaceName", "version" to "requestedVersion", arg.name to param)
+                else listOf(arg.name to param)
+            })
+            line("                if (Wire.tracing) Wire.request(this, \"${request.name}\", \"$shown\")")
             line("                handler.${camel(request.name)}(${callArgs.joinToString(", ")})")
             if (request.isDestructor) line("                client.destroyResource(this)")
             line("            }")
@@ -463,6 +472,7 @@ internal class ClientKotlinWriter(
             "dev.caulis.protocol.client.EventReader",
             "dev.caulis.protocol.client.Proxy",
             "dev.caulis.protocol.client.ProxyType",
+            "dev.caulis.protocol.Wire",
         )
         val all = iface.requests + iface.events
         if (all.any { message -> message.args.any { it.type == "fd" } }) names += "dev.caulis.ffi.Fd"
@@ -514,6 +524,10 @@ internal class ClientKotlinWriter(
                 else -> ".${writeCall(arg)}(${paramName(arg.name)})"
             }
         }
+        val shown = traceArgs(request.args.map { arg ->
+            if (arg.type == "new_id") arg.name to "created" else arg.name to paramName(arg.name)
+        })
+        line("        if (Wire.tracing) Wire.sent(this, \"${request.name}\", \"$shown\")")
         line("        request($opcode)$writes.end()")
         if (request.isDestructor) line("        connection.destroyProxy(this)")
         if (newIds.isNotEmpty()) line("        return created")
@@ -549,6 +563,8 @@ internal class ClientKotlinWriter(
                 callArgs += param
             }
             line("                args.end()")
+            val shown = traceArgs(event.args.map { it.name to paramName(it.name) })
+            line("                if (Wire.tracing) Wire.received(this, \"${event.name}\", \"$shown\")")
             line("                handler?.${camel(event.name)}(${callArgs.joinToString(", ")})")
             line("            }")
         }
@@ -659,3 +675,7 @@ internal class ClientKotlinWriter(
         )
     }
 }
+
+// The arguments as they appear in a "wayland" trace line: name=${Wire.show(value)}, ...
+private fun traceArgs(pairs: List<Pair<String, String>>): String =
+    pairs.joinToString(", ") { (label, value) -> label + "=" + "$" + "{Wire.show(" + value + ")}" }

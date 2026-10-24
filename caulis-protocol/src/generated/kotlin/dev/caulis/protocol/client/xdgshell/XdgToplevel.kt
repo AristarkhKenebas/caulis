@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.xdgshell
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -144,6 +145,7 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
      * see "Unmapping" behavior in interface section for details.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -173,6 +175,7 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
      * otherwise the invalid_parent protocol error is raised.
      */
     public fun setParent(parent: XdgToplevel?): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_parent", "parent=${Wire.show(parent)}")
         request(1).obj(parent).end()
     }
 
@@ -188,6 +191,7 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
      * The string must be encoded in UTF-8.
      */
     public fun setTitle(title: String): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_title", "title=${Wire.show(title)}")
         request(2).string(title).end()
     }
 
@@ -219,6 +223,7 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
      * [0] https://standards.freedesktop.org/desktop-entry-spec/
      */
     public fun setAppId(appId: String): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_app_id", "app_id=${Wire.show(appId)}")
         request(3).string(appId).end()
     }
 
@@ -239,6 +244,7 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
      * like a button press, key press, or touch down event.
      */
     public fun showWindowMenu(seat: WlSeat, serial: Int, x: Int, y: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "show_window_menu", "seat=${Wire.show(seat)}, serial=${Wire.show(serial)}, x=${Wire.show(x)}, y=${Wire.show(y)}")
         request(4).obj(seat).uint(serial).int(x).int(y).end()
     }
 
@@ -263,6 +269,7 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
      * that the device focus will return when the move is completed.
      */
     public fun move(seat: WlSeat, serial: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "move", "seat=${Wire.show(seat)}, serial=${Wire.show(serial)}")
         request(5).obj(seat).uint(serial).end()
     }
 
@@ -302,6 +309,7 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
      * cursor image.
      */
     public fun resize(seat: WlSeat, serial: Int, edges: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "resize", "seat=${Wire.show(seat)}, serial=${Wire.show(serial)}, edges=${Wire.show(edges)}")
         request(6).obj(seat).uint(serial).uint(edges).end()
     }
 
@@ -343,6 +351,7 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
      * invalid_size error.
      */
     public fun setMaxSize(width: Int, height: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_max_size", "width=${Wire.show(width)}, height=${Wire.show(height)}")
         request(7).int(width).int(height).end()
     }
 
@@ -384,6 +393,7 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
      * invalid_size error.
      */
     public fun setMinSize(width: Int, height: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_min_size", "width=${Wire.show(width)}, height=${Wire.show(height)}")
         request(8).int(width).int(height).end()
     }
 
@@ -411,6 +421,7 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
      * unmaximized unless overridden by the compositor.
      */
     public fun setMaximized(): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_maximized", "")
         request(9).end()
     }
 
@@ -440,6 +451,7 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
      * unmaximized unless overridden by the compositor.
      */
     public fun unsetMaximized(): Unit {
+        if (Wire.tracing) Wire.sent(this, "unset_maximized", "")
         request(10).end()
     }
 
@@ -471,6 +483,7 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
      * visible below the fullscreened surface.
      */
     public fun setFullscreen(output: WlOutput?): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_fullscreen", "output=${Wire.show(output)}")
         request(11).obj(output).end()
     }
 
@@ -496,6 +509,7 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
      * content (see ack_configure).
      */
     public fun unsetFullscreen(): Unit {
+        if (Wire.tracing) Wire.sent(this, "unset_fullscreen", "")
         request(12).end()
     }
 
@@ -512,6 +526,7 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
      * similar compositor features.
      */
     public fun setMinimized(): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_minimized", "")
         request(13).end()
     }
 
@@ -577,21 +592,25 @@ public class XdgToplevel private constructor(connection: Connection, id: Int, ve
                 val height = args.int()
                 val states = args.array()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "configure", "width=${Wire.show(width)}, height=${Wire.show(height)}, states=${Wire.show(states)}")
                 handler?.configure(this, width, height, states)
             }
             1 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "close", "")
                 handler?.close(this)
             }
             2 -> {
                 val width = args.int()
                 val height = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "configure_bounds", "width=${Wire.show(width)}, height=${Wire.show(height)}")
                 handler?.configureBounds(this, width, height)
             }
             3 -> {
                 val capabilities = args.array()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "wm_capabilities", "capabilities=${Wire.show(capabilities)}")
                 handler?.wmCapabilities(this, capabilities)
             }
         }

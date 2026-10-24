@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.pointergesturesunstablev1
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -41,6 +42,7 @@ public class ZwpPointerGesturesV1 private constructor(connection: Connection, id
      */
     public fun getSwipeGesture(pointer: WlPointer): ZwpPointerGestureSwipeV1 {
         val created = connection.createProxy(ZwpPointerGestureSwipeV1, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_swipe_gesture", "id=${Wire.show(created)}, pointer=${Wire.show(pointer)}")
         request(0).newId(created).obj(pointer).end()
         return created
     }
@@ -53,6 +55,7 @@ public class ZwpPointerGesturesV1 private constructor(connection: Connection, id
      */
     public fun getPinchGesture(pointer: WlPointer): ZwpPointerGesturePinchV1 {
         val created = connection.createProxy(ZwpPointerGesturePinchV1, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_pinch_gesture", "id=${Wire.show(created)}, pointer=${Wire.show(pointer)}")
         request(1).newId(created).obj(pointer).end()
         return created
     }
@@ -67,6 +70,7 @@ public class ZwpPointerGesturesV1 private constructor(connection: Connection, id
      */
     public fun release(): Unit {
         check(version >= 2) { "zwp_pointer_gestures_v1.release needs version 2, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "release", "")
         request(2).end()
         connection.destroyProxy(this)
     }
@@ -82,6 +86,7 @@ public class ZwpPointerGesturesV1 private constructor(connection: Connection, id
     public fun getHoldGesture(pointer: WlPointer): ZwpPointerGestureHoldV1 {
         check(version >= 3) { "zwp_pointer_gestures_v1.get_hold_gesture needs version 3, this object has $version" }
         val created = connection.createProxy(ZwpPointerGestureHoldV1, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_hold_gesture", "id=${Wire.show(created)}, pointer=${Wire.show(pointer)}")
         request(3).newId(created).obj(pointer).end()
         return created
     }

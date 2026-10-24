@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 
 /**
@@ -44,6 +45,7 @@ public class ZwpTabletSeatV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendTabletAdded(id: ZwpTabletV2) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "tablet_added", "id=${Wire.show(id)}")
         event(0).newId(id).end()
     }
 
@@ -57,6 +59,7 @@ public class ZwpTabletSeatV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendToolAdded(id: ZwpTabletToolV2) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "tool_added", "id=${Wire.show(id)}")
         event(1).newId(id).end()
     }
 
@@ -76,6 +79,7 @@ public class ZwpTabletSeatV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendPadAdded(id: ZwpTabletPadV2) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "pad_added", "id=${Wire.show(id)}")
         event(2).newId(id).end()
     }
 
@@ -85,6 +89,7 @@ public class ZwpTabletSeatV2 private constructor(client: Client, id: Int, versio
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }

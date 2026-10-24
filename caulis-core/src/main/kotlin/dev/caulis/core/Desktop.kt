@@ -1,5 +1,6 @@
 package dev.caulis.core
 
+import dev.caulis.log.Logger
 import dev.caulis.core.cursor.CursorTheme
 import dev.caulis.core.input.Seat
 import dev.caulis.event.EventLoop
@@ -94,6 +95,124 @@ class Desktop(
     private fun changed() {
         version++
         onChange()
+        windowListChanged()
+    }
+
+    override fun windowInfoChanged(window: Window) {
+        windowsLog.trace { "Now called $window" }
+        windowListChanged()
+    }
+
+    // --- a picture of the whole state, for finding problems ------------------------------------
+
+    /**
+     * Everything the window manager knows right now, as text: the screen, the focus, every
+     * workspace with its windows (where, tiled or floating, minimized, ...), scratchpads,
+     * panels, the lock. Log it when something looks wrong (Super+F12 in caulis-wm).
+     */
+    fun describe(): String = buildString {
+        appendLine("Desktop ${width}x$height, room for windows $usableArea${if (locked) ", LOCKED" else ""}${if (inOverview) ", overview open" else ""}")
+        appendLine("  focus: ${focusedWindow ?: "nothing"}; keyboard: ${seat.keyboardFocus?.roleObject ?: seat.keyboardFocus ?: "nobody"}; pointer at ${pointerX.toInt()},${pointerY.toInt()} over ${seat.pointerFocus?.roleObject ?: "nothing"}")
+        appendLine("  cursor: ${cursorTheme.name} ${cursorTheme.size} px, showing ${cursorShape ?: "the program's own"}${if (cursorHidden) " (hidden)" else ""}")
+        for (workspace in workspaces.values.sortedBy { it.number }) {
+            appendLine("  workspace ${workspace.number}${if (workspace === activeWorkspace) " (on screen)" else ""}, layout ${workspace.layout.name}:")
+            for (window in workspace.windows) appendLine("    ${describe(window, workspace)}")
+            for (window in workspace.minimized) appendLine("    ${describe(window, workspace)} [minimized]")
+        }
+        for (pad in scratchpads.values) {
+            appendLine("  scratchpad ${pad.name} (${if (pad.shown) "shown" else "hidden"}): ${pad.windows.joinToString { it.toString() }.ifEmpty { "no window" }}")
+        }
+        for (layer in layerSurfaces) {
+            appendLine("  panel \"${layer.namespace}\" (${layer.surface.resource.client.name}) on ${layer.current.layer} at ${layer.x},${layer.y} ${layer.surface.width}x${layer.surface.height}${if (layer === layerFocus) ", has the keyboard" else ""}")
+        }
+        if (glides.isNotEmpty()) appendLine("  moving now: ${glides.keys.joinToString { it.title.take(24) }}")
+    }
+
+    private fun describe(window: Window, workspace: Workspace): String = buildString {
+        append(window).append(" from ").append(window.surface.resource.client.name)
+        append(" at ").append(screenRects[window] ?: currentRect(window))
+        append(if (window in workspace.floating || !window.tiled) ", floating" else ", tiled")
+        if (window.maximized) append(", maximized")
+        if (window.fullscreen) append(", fullscreen")
+        if (window.parent != null) append(", dialog of ").append(window.parent)
+        if (window === focusedWindow) append(", focused")
+    }
+
+    // --- the window list (for docks, taskbars and your own code) --------------------------------
+
+    /** Every window: on all workspaces (minimized ones too) and in scratchpads. */
+    val allWindows: List<Window>
+        get() = workspaces.values.flatMap { it.windows + it.minimized } + scratchpads.values.flatMap { it.windows }
+
+    /** True if [window] is minimized (on any workspace). */
+    fun isMinimized(window: Window): Boolean = workspaces.values.any { window in it.minimized }
+
+    private val windowListListeners = ArrayList<() -> Unit>()
+    private var windowListPending = false
+
+    /**
+     * Runs [listener] when the windows or what a window list shows of them changed: a window
+     * opened or closed, its title, the focus, minimized, maximized, fullscreen. Many changes
+     * at once (a whole batch from the programs) are one call, at the end of the batch.
+     */
+    fun onWindowListChanged(listener: () -> Unit) {
+        windowListListeners += listener
+    }
+
+    private fun windowListChanged() {
+        if (windowListPending || windowListListeners.isEmpty()) return
+        windowListPending = true
+        compositor.display.loop.post {
+            windowListPending = false
+            for (listener in windowListListeners.toList()) {
+                try {
+                    listener()
+                } catch (e: Exception) {
+                    log.error("A window list listener failed (ignored): $e", e)
+                }
+            }
+        }
+    }
+
+    // Where each window goes when minimized: a rectangle in a surface (a dock's icon).
+    private val minimizeTargets = HashMap<Window, Pair<Surface, Rect>>()
+
+    /**
+     * Where [window] goes when it is minimized (and comes back from): [rect] inside
+     * [surface], e.g. its icon in a dock. Null for none (it then just sinks down). Docks set
+     * this through the wlr-foreign-toplevel protocol.
+     */
+    fun setMinimizeTarget(window: Window, surface: Surface?, rect: Rect?) {
+        if (surface == null || rect == null || rect.isEmpty) minimizeTargets -= window else minimizeTargets[window] = surface to rect
+    }
+
+    // The window's minimized place on screen: the dock icon, or a sliver at its bottom.
+    private fun minimizedRect(window: Window, from: Rect): Rect {
+        minimizeTargets[window]?.let { (surface, rect) ->
+            surfaceOrigin(surface)?.let { (x, y) -> return rect.translate(x, y) }
+        }
+        val width = (from.width / 4).coerceAtLeast(1)
+        val height = (from.height / 8).coerceAtLeast(1)
+        return Rect(from.x + (from.width - width) / 2, from.bottom - height, width, height)
+    }
+
+    // Where a surface's top left corner is on screen (null if it is not shown).
+    private fun surfaceOrigin(surface: Surface): Pair<Int, Int>? {
+        if (!surface.resource.isAlive) return null
+        var current = surface
+        var dx = 0
+        var dy = 0
+        while (true) {
+            val sub = current.subsurface ?: break
+            dx += sub.x
+            dy += sub.y
+            current = sub.parent ?: return null
+        }
+        return when (val role = current.roleObject) {
+            is LayerSurface -> (role.x + dx) to (role.y + dy)
+            is Window -> screenRects[role]?.let { (it.x - role.shell.visibleRect.x + dx) to (it.y - role.shell.visibleRect.y + dy) }
+            else -> null
+        }
     }
 
     // --- events for your own code ------------------------------------------------------------
@@ -130,12 +249,21 @@ class Desktop(
             try {
                 listener(value)
             } catch (e: Exception) {
-                log.log(System.Logger.Level.ERROR, "Your $event handler failed (ignored): $e", e)
+                log.error("Your $event handler failed (ignored): $e", e)
             }
         }
     }
 
-    private val log = System.getLogger("caulis")
+    // The log, by area (see dev.caulis.log.Log.AREAS): CAULIS_LOG="1,focus=3" and so on.
+    private val log = Logger("config")
+    private val windowsLog = Logger("windows")
+    private val focusLog = Logger("focus")
+    private val inputLog = Logger("input")
+    private val layoutLog = Logger("layout")
+    private val layersLog = Logger("layers")
+    private val lockLog = Logger("lock")
+    private val cursorLog = Logger("cursor")
+    private val renderLog = Logger("render")
     private var lastFocused: Window? = null
 
     // --- workspaces -----------------------------------------------------------------------
@@ -178,6 +306,7 @@ class Desktop(
         if (previous.isEmpty) workspaces.remove(previous.number)
         arrange(activeWorkspace)
         focus(activeWorkspace.windows.lastOrNull())
+        layoutLog.info { "Workspace ${activeWorkspace.number} (${activeWorkspace.layout.name})" }
         notify(workspaceListeners, activeWorkspace, "workspace")
     }
 
@@ -186,6 +315,7 @@ class Desktop(
         val from = workspaceOf(window) ?: return
         val to = workspace(number)
         if (from === to) return
+        layoutLog.info { "$window moves from workspace ${from.number} to $number" }
         val wasFloating = window in from.floating
         from.remove(window)
         from.model.forget(window) // it lives on the other workspace now
@@ -201,6 +331,7 @@ class Desktop(
 
     /** Uses [layout] on [workspace]; windows move to their new places right away. */
     fun setLayout(workspace: Workspace, layout: Layout) {
+        layoutLog.info { "Workspace ${workspace.number}: layout ${workspace.layout.name} → ${layout.name}" }
         val wasTiled = workspace.tiledWindows().toSet()
         workspace.layout = layout
         // Windows leaving the layout get their own floating place back.
@@ -230,13 +361,17 @@ class Desktop(
     private var layerFocus: LayerSurface? = null
 
     override fun layerCommitted(layer: LayerSurface) {
-        if (layer !in layerSurfaces) layerSurfaces += layer
+        if (layer !in layerSurfaces) {
+            layersLog.info { "Panel \"${layer.namespace}\" (${layer.surface.resource.client.name}) on the ${layer.current.layer} layer, anchors ${layer.current.anchor}, exclusive zone ${layer.current.exclusiveZone}" }
+            layerSurfaces += layer
+        }
         arrangeLayers()
         updateLayerKeyboard()
         changed()
     }
 
     override fun layerUnmapped(layer: LayerSurface) {
+        layersLog.info { "Panel \"${layer.namespace}\" is gone" }
         layerSurfaces -= layer
         popups.filter { it.layerParent === layer }.forEach { it.dismiss() }
         if (layerFocus === layer) {
@@ -371,7 +506,10 @@ class Desktop(
     }
 
     override fun lockRequested(lock: SessionLock): Boolean {
-        if (locked && this.lock?.alive == true) return false // another locker is in charge
+        if (locked && this.lock?.alive == true) {
+            lockLog.info { "${lock.resource.client.name} wants to lock, but another locker is in charge: refused" }
+            return false
+        }
         this.lock = lock
         val wasLocked = locked
         locked = true
@@ -387,6 +525,7 @@ class Desktop(
         seat.mayFocus = ::belongsToLocker
         lockPending = true
         lockShownOn.clear()
+        lockLog.info { "Locked by ${lock.resource.client.name}${if (wasLocked) " (taking over from a crashed locker)" else ""}: nothing of the desktop is shown now" }
         confirmLockIfShown()
         changed()
         if (!wasLocked) notify(lockListeners, true, "lock")
@@ -397,6 +536,7 @@ class Desktop(
     private fun confirmLockIfShown() {
         if (!lockPending || !views.all { it in lockShownOn }) return
         lockPending = false
+        lockLog.info("Every screen shows the lock: telling the locker")
         lock?.confirmLocked()
     }
 
@@ -410,7 +550,11 @@ class Desktop(
     }
 
     override fun unlockRequested(lock: SessionLock) {
-        if (lock !== this.lock) return
+        if (lock !== this.lock) {
+            lockLog.warn("An old locker (${lock.resource.client.name}) tried to unlock; ignored")
+            return
+        }
+        lockLog.info { "Unlocked by ${lock.resource.client.name}" }
         this.lock = null
         locked = false
         lockPending = false
@@ -425,7 +569,7 @@ class Desktop(
         if (lock !== this.lock) return
         // The locker crashed: the session stays locked (that is the point of a lock).
         lockPending = false
-        log.log(System.Logger.Level.WARNING, "The screen locker quit without unlocking; the session stays locked until a new locker is started")
+        lockLog.warn("The screen locker quit without unlocking; the session stays locked until a new locker is started")
         changed()
     }
 
@@ -563,6 +707,7 @@ class Desktop(
         val top = workspace.windows.lastOrNull { it in tiled } ?: extra
         val rects = workspace.model.arrange(tiled, usableArea, top)
         val targets = tiled.zip(rects).associate { (window, rect) -> window to fit(window, rect) }
+        layoutLog.trace { "Arrange workspace ${workspace.number} (${workspace.layout.name}) in $usableArea: " + targets.entries.joinToString { (w, r) -> "${w.title.take(24)}=$r" } }
         if (extra == null) place(targets)
         return targets
     }
@@ -574,7 +719,9 @@ class Desktop(
      */
     fun tilingCommand(command: TilingCommand): Boolean {
         val focused = focusedWindow?.takeIf { it.tiled }
-        if (!activeWorkspace.model.command(command, focused)) return false
+        val done = activeWorkspace.model.command(command, focused)
+        layoutLog.trace { "Tiling command $command for $focused: ${if (done) "done" else "not possible here"}" }
+        if (!done) return false
         arrange(activeWorkspace)
         changed()
         return true
@@ -655,6 +802,7 @@ class Desktop(
      */
     fun setOverview(on: Boolean) {
         if (on == inOverview || (on && locked)) return
+        layoutLog.info { if (on) "Overview opens" else "Overview closes" }
         endGrab()
         val now = System.nanoTime()
         cameraFrom = cameraAt(now)
@@ -907,6 +1055,7 @@ class Desktop(
 
     /** Takes [window] out of the layout (floating) or puts it back (tiled). */
     fun setFloating(window: Window, floating: Boolean) {
+        layoutLog.info { "$window: ${if (floating) "floating" else "tiled"}" }
         val workspace = workspaceOf(window) ?: return
         if (floating) {
             if (!window.tiled && window in workspace.floating) return
@@ -943,6 +1092,7 @@ class Desktop(
             // Its program was just started (usually by the scratchpad's key): show it.
             pad.windows += window
             showScratchpad(pad, appearing = setOf(window))
+            windowsLog.info { "Opened $window (workspace ${workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
             notify(windowOpenedListeners, window, "window-opened")
             return
         }
@@ -968,10 +1118,14 @@ class Desktop(
         val targets = arrange(workspace)
         targets[window]?.let { window.x = it.x; window.y = it.y }
         focus(window)
+        windowsLog.info { "Opened $window (workspace ${workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
         notify(windowOpenedListeners, window, "window-opened")
     }
 
     override fun windowUnmapped(window: Window) {
+        windowsLog.info { "Closed $window" }
+        minimizeTargets -= window
+        windowListChanged()
         scratchpadOf(window)?.let { pad ->
             pad.windows -= window
             glides -= window
@@ -1051,6 +1205,7 @@ class Desktop(
 
     /** Makes [window] fill the desktop (or brings it back to its earlier place and size). */
     fun setMaximized(window: Window, maximized: Boolean) {
+        windowsLog.info { "$window: ${if (maximized) "maximized" else "not maximized"}" }
         if (!window.shell.configured) {
             window.maximized = maximized // sent with the first configure (see initialSize)
             return
@@ -1065,6 +1220,7 @@ class Desktop(
 
     /** Shows [window] on the whole screen, above everything (or back as before). */
     fun setFullscreen(window: Window, fullscreen: Boolean) {
+        windowsLog.info { "$window: ${if (fullscreen) "fullscreen" else "not fullscreen"}" }
         if (!window.shell.configured) {
             window.fullscreen = fullscreen
             return
@@ -1108,6 +1264,12 @@ class Desktop(
     fun minimize(window: Window) {
         val workspace = workspaceOf(window) ?: return
         if (window !in workspace.windows) return
+        windowsLog.info { "$window: minimized${if (window in minimizeTargets) " (into its dock icon)" else ""}" }
+        // It flies into its dock icon (or sinks down), shrinking, then is gone.
+        val shown = shownRects[window]
+        if (animationMillis > 0 && shown != null && workspace === activeWorkspace) {
+            glides[window] = Glide(shown, System.nanoTime(), to = minimizedRect(window, shown))
+        }
         workspace.windows -= window
         workspace.minimized += window
         pending.remove(window)
@@ -1329,6 +1491,7 @@ class Desktop(
             }
             if (window !== lastFocused) {
                 lastFocused = window
+                focusLog.info { "Focus: ${window ?: "nothing"}" }
                 notify(focusListeners, window, "focus")
             }
             changed()
@@ -1340,9 +1503,18 @@ class Desktop(
             if (workspace != null && workspace !== activeWorkspace) {
                 activeWorkspace = workspace
                 arrange(workspace)
+                layoutLog.info { "Workspace ${workspace.number} (${workspace.layout.name})" }
                 notify(workspaceListeners, workspace, "workspace")
             }
-            if (activeWorkspace.minimized.remove(window)) activeWorkspace.windows += window
+            if (activeWorkspace.minimized.remove(window)) {
+                activeWorkspace.windows += window
+                // Back out of its dock icon (or up from below), from wherever it is now.
+                if (animationMillis > 0) {
+                    val place = currentRect(window)
+                    val from = if (glides[window] != null) shownRects[window] ?: place else minimizedRect(window, place)
+                    glides[window] = Glide(from, System.nanoTime())
+                }
+            }
         }
         val list = activeWorkspace.windows
         for (other in list) if (other !== window) other.setActivated(false)
@@ -1357,6 +1529,7 @@ class Desktop(
         }
         if (window !== lastFocused) {
             lastFocused = window
+            focusLog.info { "Focus: ${window ?: "nothing"}" }
             notify(focusListeners, window, "focus")
         }
         // Layouts that follow the focus (scrolling) move their windows.
@@ -1367,6 +1540,7 @@ class Desktop(
     // --- input ------------------------------------------------------------------------
 
     fun pointerMoved(timeMillis: Int, x: Double, y: Double) {
+        inputLog.trace { "Pointer at ${String.format("%.1f, %.1f", x, y)}" }
         cursorActive()
         pointerX = x.coerceIn(0.0, width - 1.0)
         pointerY = y.coerceIn(0.0, height - 1.0)
@@ -1389,6 +1563,7 @@ class Desktop(
      * resize the window manager starts itself, e.g. Super+drag) and no program sees it.
      */
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean, passToApps: Boolean = true) {
+        inputLog.trace { "Button $button ${if (pressed) "pressed" else "released"} at ${pointerX.toInt()},${pointerY.toInt()}${if (passToApps) "" else " (for the window manager)"}" }
         buttonsHeld = (buttonsHeld + if (pressed) 1 else -1).coerceAtLeast(0)
         cursorActive()
         if (!passToApps) return
@@ -1436,11 +1611,14 @@ class Desktop(
     }
 
     fun pointerAxis(timeMillis: Int, vertical: Boolean, value: Double, value120: Int) {
+        inputLog.trace { "Scroll ${if (vertical) "vertical" else "horizontal"} $value ($value120/120)" }
         cursorActive()
         seat.pointerAxis(timeMillis, vertical, value, value120)
     }
 
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
+        // Never what is typed into a locker (a password).
+        inputLog.trace { if (locked) "A key (not logged while locked)" else "Key $evdevCode ${if (pressed) "pressed" else "released"} → ${seat.keyboardFocus}" }
         // Typing (not just holding Ctrl or Super): the cursor makes way.
         if (pressed && hideCursorWhileTyping && evdevCode !in MODIFIER_KEYS && seat.keyboardFocus != null) hideCursor()
         if (inOverview && pressed) {
@@ -1609,6 +1787,7 @@ class Desktop(
         val bounds = Rect(0, 0, target.width, target.height)
         view.showsLock = locked
         val repaint = withBlurReach(items, view.takeRepaint(age, bounds) ?: return, bounds)
+        renderLog.trace { "Frame: redraw $repaint of ${target.width}x${target.height} (buffer age $age), ${items.size} things to draw" }
         renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], clip = repaint)
         for (item in items) {
             if (item.rect.intersect(repaint) == null) continue
@@ -1744,6 +1923,8 @@ class Desktop(
         addLayers(all, LayerShell.Layer.BOTTOM)
         for (window in normal) addWindow(all, window, now, camera = camera)
         addLayers(all, LayerShell.Layer.TOP)
+        // Windows on their way into the dock (above it, so they are seen going into their icon).
+        for (window in activeWorkspace.minimized) if (window in glides) addWindow(all, window, now, leaving = true, camera = camera)
         // Fullscreen windows cover panels and bars (not notifications on the overlay layer).
         for (window in fullscreen) addWindow(all, window, now, camera = camera)
         // Shown scratchpads above every workspace, the last shown on top.
@@ -1844,12 +2025,13 @@ class Desktop(
             return
         }
         if (shape != shownShape) {
+            cursorLog.trace { "Cursor: $shape" }
             shownShape = shape
             shapeSince = System.nanoTime()
         }
         val cursor = cursorTheme.cursor(shape) ?: cursorTheme.cursor("default")
         if (cursor == null) {
-            // No cursor theme at all: a plain square, so the pointer can still be seen.
+            // Only if even Caulis's own cursors could not be read (a broken jar): a plain square.
             items += DrawItem.Color(CURSOR_BORDER, Rect(x, y, 12, 12), 0f, 0f, 0f)
             items += DrawItem.Color(CURSOR_FILL, Rect(x + 1, y + 1, 10, 10), 1f, 1f, 1f)
             return
@@ -1869,7 +2051,8 @@ class Desktop(
 
     /**
      * The cursor theme and size, e.g. `CursorTheme.load("Bibata-Modern-Ice", 32)`. By default
-     * a theme that came with a library (caulis-cursor-bibata), else the system's.
+     * a theme that came with a library (caulis-cursor-bibata), else `XCURSOR_THEME`, else
+     * Caulis's own sharp cursors.
      */
     var cursorTheme: CursorTheme = CursorTheme.load()
         set(value) {

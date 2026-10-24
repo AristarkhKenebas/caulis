@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -94,6 +95,7 @@ public class WlSeat private constructor(connection: Connection, id: Int, version
      */
     public fun getPointer(): WlPointer {
         val created = connection.createProxy(WlPointer, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_pointer", "id=${Wire.show(created)}")
         request(0).newId(created).end()
         return created
     }
@@ -112,6 +114,7 @@ public class WlSeat private constructor(connection: Connection, id: Int, version
      */
     public fun getKeyboard(): WlKeyboard {
         val created = connection.createProxy(WlKeyboard, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_keyboard", "id=${Wire.show(created)}")
         request(1).newId(created).end()
         return created
     }
@@ -130,6 +133,7 @@ public class WlSeat private constructor(connection: Connection, id: Int, version
      */
     public fun getTouch(): WlTouch {
         val created = connection.createProxy(WlTouch, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_touch", "id=${Wire.show(created)}")
         request(2).newId(created).end()
         return created
     }
@@ -144,6 +148,7 @@ public class WlSeat private constructor(connection: Connection, id: Int, version
      */
     public fun release(): Unit {
         check(version >= 5) { "wl_seat.release needs version 5, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "release", "")
         request(3).end()
         connection.destroyProxy(this)
     }
@@ -170,11 +175,13 @@ public class WlSeat private constructor(connection: Connection, id: Int, version
             0 -> {
                 val capabilities = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "capabilities", "capabilities=${Wire.show(capabilities)}")
                 handler?.capabilities(this, capabilities)
             }
             1 -> {
                 val name = args.string()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "name", "name=${Wire.show(name)}")
                 handler?.name(this, name)
             }
         }

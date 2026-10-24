@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.pointergesturesunstablev1
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -80,6 +81,7 @@ public class ZwpPointerGesturePinchV1 private constructor(connection: Connection
      * Destroy the pinch gesture object
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -93,6 +95,7 @@ public class ZwpPointerGesturePinchV1 private constructor(connection: Connection
                 val surface = args.obj(WlSurface::class.java)
                 val fingers = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "begin", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, surface=${Wire.show(surface)}, fingers=${Wire.show(fingers)}")
                 handler?.begin(this, serial, time, surface, fingers)
             }
             1 -> {
@@ -102,6 +105,7 @@ public class ZwpPointerGesturePinchV1 private constructor(connection: Connection
                 val scale = args.fixed()
                 val rotation = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "update", "time=${Wire.show(time)}, dx=${Wire.show(dx)}, dy=${Wire.show(dy)}, scale=${Wire.show(scale)}, rotation=${Wire.show(rotation)}")
                 handler?.update(this, time, dx, dy, scale, rotation)
             }
             2 -> {
@@ -109,6 +113,7 @@ public class ZwpPointerGesturePinchV1 private constructor(connection: Connection
                 val time = args.uint()
                 val cancelled = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "end", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, cancelled=${Wire.show(cancelled)}")
                 handler?.end(this, serial, time, cancelled)
             }
         }

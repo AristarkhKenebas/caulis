@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.xdgshell
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -56,6 +57,7 @@ public class XdgWmBase private constructor(connection: Connection, id: Int, vers
      * and will result in a defunct_surfaces error.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -69,6 +71,7 @@ public class XdgWmBase private constructor(connection: Connection, id: Int, vers
      */
     public fun createPositioner(): XdgPositioner {
         val created = connection.createProxy(XdgPositioner, this.version)
+        if (Wire.tracing) Wire.sent(this, "create_positioner", "id=${Wire.show(created)}")
         request(1).newId(created).end()
         return created
     }
@@ -91,6 +94,7 @@ public class XdgWmBase private constructor(connection: Connection, id: Int, vers
      */
     public fun getXdgSurface(surface: WlSurface): XdgSurface {
         val created = connection.createProxy(XdgSurface, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_xdg_surface", "id=${Wire.show(created)}, surface=${Wire.show(surface)}")
         request(2).newId(created).obj(surface).end()
         return created
     }
@@ -103,6 +107,7 @@ public class XdgWmBase private constructor(connection: Connection, id: Int, vers
      * and xdg_wm_base.error.unresponsive.
      */
     public fun pong(serial: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "pong", "serial=${Wire.show(serial)}")
         request(3).uint(serial).end()
     }
 
@@ -129,6 +134,7 @@ public class XdgWmBase private constructor(connection: Connection, id: Int, vers
             0 -> {
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "ping", "serial=${Wire.show(serial)}")
                 handler?.ping(this, serial)
             }
         }

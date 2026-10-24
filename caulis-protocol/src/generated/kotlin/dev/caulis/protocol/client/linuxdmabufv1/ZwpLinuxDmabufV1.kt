@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.linuxdmabufv1
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -139,6 +140,7 @@ public class ZwpLinuxDmabufV1 private constructor(connection: Connection, id: In
      * remain valid.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -153,6 +155,7 @@ public class ZwpLinuxDmabufV1 private constructor(connection: Connection, id: In
      */
     public fun createParams(): ZwpLinuxBufferParamsV1 {
         val created = connection.createProxy(ZwpLinuxBufferParamsV1, this.version)
+        if (Wire.tracing) Wire.sent(this, "create_params", "params_id=${Wire.show(created)}")
         request(1).newId(created).end()
         return created
     }
@@ -170,6 +173,7 @@ public class ZwpLinuxDmabufV1 private constructor(connection: Connection, id: In
     public fun getDefaultFeedback(): ZwpLinuxDmabufFeedbackV1 {
         check(version >= 4) { "zwp_linux_dmabuf_v1.get_default_feedback needs version 4, this object has $version" }
         val created = connection.createProxy(ZwpLinuxDmabufFeedbackV1, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_default_feedback", "id=${Wire.show(created)}")
         request(2).newId(created).end()
         return created
     }
@@ -189,6 +193,7 @@ public class ZwpLinuxDmabufV1 private constructor(connection: Connection, id: In
     public fun getSurfaceFeedback(surface: WlSurface): ZwpLinuxDmabufFeedbackV1 {
         check(version >= 4) { "zwp_linux_dmabuf_v1.get_surface_feedback needs version 4, this object has $version" }
         val created = connection.createProxy(ZwpLinuxDmabufFeedbackV1, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_surface_feedback", "id=${Wire.show(created)}, surface=${Wire.show(surface)}")
         request(3).newId(created).obj(surface).end()
         return created
     }
@@ -199,6 +204,7 @@ public class ZwpLinuxDmabufV1 private constructor(connection: Connection, id: In
             0 -> {
                 val format = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "format", "format=${Wire.show(format)}")
                 handler?.format(this, format)
             }
             1 -> {
@@ -206,6 +212,7 @@ public class ZwpLinuxDmabufV1 private constructor(connection: Connection, id: In
                 val modifierHi = args.uint()
                 val modifierLo = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "modifier", "format=${Wire.show(format)}, modifier_hi=${Wire.show(modifierHi)}, modifier_lo=${Wire.show(modifierLo)}")
                 handler?.modifier(this, format, modifierHi, modifierLo)
             }
         }

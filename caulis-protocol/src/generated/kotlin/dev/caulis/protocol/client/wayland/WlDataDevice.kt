@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -139,6 +140,7 @@ public class WlDataDevice private constructor(connection: Connection, id: Int, v
      * may send a used_source error.
      */
     public fun startDrag(source: WlDataSource?, origin: WlSurface, icon: WlSurface?, serial: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "start_drag", "source=${Wire.show(source)}, origin=${Wire.show(origin)}, icon=${Wire.show(icon)}, serial=${Wire.show(serial)}")
         request(0).obj(source).obj(origin).obj(icon).uint(serial).end()
     }
 
@@ -155,6 +157,7 @@ public class WlDataDevice private constructor(connection: Connection, id: Int, v
      * may send a used_source error.
      */
     public fun setSelection(source: WlDataSource?, serial: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "set_selection", "source=${Wire.show(source)}, serial=${Wire.show(serial)}")
         request(1).obj(source).uint(serial).end()
     }
 
@@ -167,6 +170,7 @@ public class WlDataDevice private constructor(connection: Connection, id: Int, v
      */
     public fun release(): Unit {
         check(version >= 2) { "wl_data_device.release needs version 2, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "release", "")
         request(2).end()
         connection.destroyProxy(this)
     }
@@ -184,6 +188,7 @@ public class WlDataDevice private constructor(connection: Connection, id: Int, v
             0 -> {
                 val id = args.newId(WlDataOffer, version)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "data_offer", "id=${Wire.show(id)}")
                 handler?.dataOffer(this, id)
             }
             1 -> {
@@ -193,10 +198,12 @@ public class WlDataDevice private constructor(connection: Connection, id: Int, v
                 val y = args.fixed()
                 val id = args.objOrNull(WlDataOffer::class.java)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "enter", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}, x=${Wire.show(x)}, y=${Wire.show(y)}, id=${Wire.show(id)}")
                 handler?.enter(this, serial, surface, x, y, id)
             }
             2 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "leave", "")
                 handler?.leave(this)
             }
             3 -> {
@@ -204,15 +211,18 @@ public class WlDataDevice private constructor(connection: Connection, id: Int, v
                 val x = args.fixed()
                 val y = args.fixed()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "motion", "time=${Wire.show(time)}, x=${Wire.show(x)}, y=${Wire.show(y)}")
                 handler?.motion(this, time, x, y)
             }
             4 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "drop", "")
                 handler?.drop(this)
             }
             5 -> {
                 val id = args.objOrNull(WlDataOffer::class.java)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "selection", "id=${Wire.show(id)}")
                 handler?.selection(this, id)
             }
         }

@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.tabletv2
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -28,6 +29,7 @@ public class ZwpTabletManagerV2 private constructor(connection: Connection, id: 
      */
     public fun getTabletSeat(seat: WlSeat): ZwpTabletSeatV2 {
         val created = connection.createProxy(ZwpTabletSeatV2, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_tablet_seat", "tablet_seat=${Wire.show(created)}, seat=${Wire.show(seat)}")
         request(0).newId(created).obj(seat).end()
         return created
     }
@@ -39,6 +41,7 @@ public class ZwpTabletManagerV2 private constructor(connection: Connection, id: 
      * object are unaffected and should be destroyed separately.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(1).end()
         connection.destroyProxy(this)
     }

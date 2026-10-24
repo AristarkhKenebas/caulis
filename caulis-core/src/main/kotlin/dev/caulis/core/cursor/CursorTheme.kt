@@ -63,8 +63,10 @@ class CursorTheme private constructor(
 
     /** The cursor called [shape], or null if no theme has anything like it. */
     fun cursor(shape: String): Cursor? = cache.getOrPut(shape) {
-        for (candidate in listOf(shape) + (ALIASES[shape] ?: emptyList())) {
-            for (theme in chain) {
+        // The chosen theme under any of the cursor's names first; only then the next theme.
+        val names = listOf(shape) + (ALIASES[shape] ?: emptyList())
+        for (theme in chain) {
+            for (candidate in names) {
                 val bytes = sources.firstNotNullOfOrNull { it.file(theme, "cursors/$candidate") } ?: continue
                 val frames = XCursor.read(bytes, size) ?: continue
                 return@getOrPut Cursor(shape, frames)
@@ -79,7 +81,7 @@ class CursorTheme private constructor(
      * Written once; returns false if the theme is installed anyway (nothing to write).
      */
     fun exportTo(iconsFolder: Path): Boolean {
-        val provider = providers().firstOrNull { name in it.themes } ?: return false
+        val provider = (providers() + BUILT_IN).firstOrNull { name in it.themes } ?: return false
         val folder = iconsFolder.resolve(name)
         val done = folder.resolve(".complete")
         if (Files.exists(done)) return true
@@ -132,7 +134,9 @@ class CursorTheme private constructor(
         /**
          * Loads the theme [name] at [size] pixels. Without a name: a theme that came with a
          * library (like Bibata from `caulis-cursor-bibata`), else the one in `XCURSOR_THEME`,
-         * else the system's default. Without a size: `XCURSOR_SIZE`, else 24.
+         * else Caulis's own ([DEFAULT], sharp white arrows). Without a size: `XCURSOR_SIZE`,
+         * else 24. Cursors a theme lacks come from the system's theme, then from Caulis's own,
+         * so there always is one.
          */
         @JvmStatic
         @JvmOverloads
@@ -141,9 +145,9 @@ class CursorTheme private constructor(
         // The same with the folders given (for tests).
         internal fun load(name: String?, size: Int?, folders: List<Path>): CursorTheme {
             val providers = providers()
-            val sources = providers.map(::Provided) + Folders(folders)
+            val sources = (providers + BUILT_IN).map(::Provided) + Folders(folders)
             val chosen = name ?: providers.firstNotNullOfOrNull { it.themes.firstOrNull() }
-                ?: System.getenv("XCURSOR_THEME")?.takeIf { it.isNotBlank() } ?: "default"
+                ?: System.getenv("XCURSOR_THEME")?.takeIf { it.isNotBlank() } ?: DEFAULT
             val pixels = size ?: System.getenv("XCURSOR_SIZE")?.toIntOrNull()?.takeIf { it in 8..512 } ?: 24
             require(pixels in 8..512) { "a cursor size must be between 8 and 512 pixels, not $pixels" }
             return CursorTheme(chosen, pixels, inheritanceChain(chosen, sources), sources)
@@ -152,7 +156,7 @@ class CursorTheme private constructor(
         /** The names of all themes that can be loaded (installed or from libraries). */
         @JvmStatic
         fun available(): List<String> {
-            val provided = providers().flatMap { it.themes }
+            val provided = (providers() + BUILT_IN).flatMap { it.themes }
             val installed = searchPath().flatMap { root ->
                 try {
                     Files.list(root).use { list -> list.filter { Files.isDirectory(it.resolve("cursors")) }.map { it.fileName.toString() }.toList() }
@@ -165,6 +169,15 @@ class CursorTheme private constructor(
 
         private fun providers(): List<CursorThemeProvider> =
             ServiceLoader.load(CursorThemeProvider::class.java).toList()
+
+        /** Caulis's own theme: sharp white arrows with a black outline. */
+        const val DEFAULT = "Caulis"
+
+        /** Caulis's own theme in black, with a white outline. */
+        const val BLACK = "Caulis-Black"
+
+        // Caulis's own themes, always there (drawn by tools/cursors; MPL-2.0 as all of Caulis).
+        private val BUILT_IN: CursorThemeProvider = ZipCursorThemes(CursorTheme::class.java, listOf(DEFAULT, BLACK))
 
         /** The folders cursor themes are looked for in (as libXcursor does). */
         @JvmStatic
@@ -191,7 +204,7 @@ class CursorTheme private constructor(
                 Regex("""(?m)^\s*Inherits\s*=\s*(.*)$""").find(index)?.groupValues?.get(1)
                     ?.split(',', ';')?.map { it.trim().trim('"') }?.filter { it.isNotEmpty() }?.forEach(queue::addLast)
             }
-            for (fallback in listOf("default", "Adwaita")) if (fallback !in chain) chain += fallback
+            for (fallback in listOf("default", "Adwaita", DEFAULT)) if (fallback !in chain) chain += fallback
             return chain
         }
 

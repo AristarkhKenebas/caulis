@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 
 /**
@@ -78,6 +79,7 @@ public class ZwpTabletPadRingV2 private constructor(client: Client, id: Int, ver
      */
     public fun sendSource(source: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "source", "source=${Wire.show(source)}")
         event(0).uint(source).end()
     }
 
@@ -91,6 +93,7 @@ public class ZwpTabletPadRingV2 private constructor(client: Client, id: Int, ver
      */
     public fun sendAngle(degrees: Double) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "angle", "degrees=${Wire.show(degrees)}")
         event(1).fixed(degrees).end()
     }
 
@@ -110,6 +113,7 @@ public class ZwpTabletPadRingV2 private constructor(client: Client, id: Int, ver
      */
     public fun sendStop() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "stop", "")
         event(2).end()
     }
 
@@ -132,6 +136,7 @@ public class ZwpTabletPadRingV2 private constructor(client: Client, id: Int, ver
      */
     public fun sendFrame(time: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "frame", "time=${Wire.show(time)}")
         event(3).uint(time).end()
     }
 
@@ -151,10 +156,12 @@ public class ZwpTabletPadRingV2 private constructor(client: Client, id: Int, ver
                 val description = args.string()
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_feedback", "description=${Wire.show(description)}, serial=${Wire.show(serial)}")
                 handler.setFeedback(this, description, serial)
             }
             1 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }

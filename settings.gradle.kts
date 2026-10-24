@@ -17,6 +17,7 @@ dependencyResolutionManagement {
 }
 
 include(
+    "caulis-log",
     "caulis-native",
     "caulis-geometry",
     "caulis-tiling",
@@ -25,6 +26,7 @@ include(
     "caulis-core",
     "caulis-wm",
     "caulis-cursor-bibata",
+    "tools:cursors",
     "examples:minimal",
     "examples:minimal-java",
     "examples:custom-layout",

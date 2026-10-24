@@ -45,11 +45,19 @@ class Output(
         output.sendDone()
     }
 
+    init {
+        synchronized(all) { all.getOrPut(display) { ArrayList() } += this }
+    }
+
     /** The monitor is gone: clients stop seeing it (their wl_output objects stay valid but idle). */
     fun remove() {
         display.removeGlobal(global)
         bound.clear()
+        synchronized(all) { all[display]?.remove(this) }
     }
+
+    /** This monitor's wl_output objects that [client] has. */
+    fun resourcesOf(client: dev.caulis.protocol.Client): List<WlOutput> = bound.filter { it.client === client && it.isAlive }
 
     /** Changes the size and tells every client that uses this output. */
     fun resize(newWidth: Int, newHeight: Int) {
@@ -67,5 +75,12 @@ class Output(
 
     companion object {
         const val VERSION = 4
+
+        // The monitors of each display.
+        private val all = java.util.WeakHashMap<Display, MutableList<Output>>()
+
+        /** The monitors [display] has now. */
+        @JvmStatic
+        fun of(display: Display): List<Output> = synchronized(all) { all[display]?.toList() ?: emptyList() }
     }
 }

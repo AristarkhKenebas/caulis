@@ -9,6 +9,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Shared memory support
@@ -68,6 +69,7 @@ public class WlShm private constructor(client: Client, id: Int, version: Int) : 
      */
     public fun sendFormat(format: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "format", "format=${Wire.show(format)}")
         event(0).uint(format).end()
     }
 
@@ -382,11 +384,13 @@ public class WlShm private constructor(client: Client, id: Int, version: Int) : 
                 val size = args.int()
                 args.end()
                 val id = client.register(WlShmPool.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "create_pool", "id=${Wire.show(id)}, fd=${Wire.show(fd)}, size=${Wire.show(size)}")
                 handler.createPool(this, id, fd, size)
             }
             1 -> {
                 if (version < 2) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "wl_shm.release needs version 2")
                 args.end()
+                if (Wire.tracing) Wire.request(this, "release", "")
                 handler.release(this)
                 client.destroyResource(this)
             }

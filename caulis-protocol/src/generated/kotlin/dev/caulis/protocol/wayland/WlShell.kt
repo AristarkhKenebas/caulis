@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Create desktop-style surfaces
@@ -56,6 +57,7 @@ public class WlShell private constructor(client: Client, id: Int, version: Int) 
                 val surface = args.obj(WlSurface::class.java)
                 args.end()
                 val id = client.register(WlShellSurface.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_shell_surface", "id=${Wire.show(id)}, surface=${Wire.show(surface)}")
                 handler.getShellSurface(this, id, surface)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wl_shell request $opcode")

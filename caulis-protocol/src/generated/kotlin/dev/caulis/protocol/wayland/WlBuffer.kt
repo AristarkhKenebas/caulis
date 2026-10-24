@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Content for a wl_surface
@@ -67,6 +68,7 @@ public class WlBuffer private constructor(client: Client, id: Int, version: Int)
      */
     public fun sendRelease() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "release", "")
         event(0).end()
     }
 
@@ -76,6 +78,7 @@ public class WlBuffer private constructor(client: Client, id: Int, version: Int)
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }

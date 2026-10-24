@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.tabletv2
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -163,6 +164,7 @@ public class ZwpTabletPadGroupV2 private constructor(connection: Connection, id:
      * are unaffected and should be destroyed separately.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -173,25 +175,30 @@ public class ZwpTabletPadGroupV2 private constructor(connection: Connection, id:
             0 -> {
                 val buttons = args.array()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "buttons", "buttons=${Wire.show(buttons)}")
                 handler?.buttons(this, buttons)
             }
             1 -> {
                 val ring = args.newId(ZwpTabletPadRingV2, version)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "ring", "ring=${Wire.show(ring)}")
                 handler?.ring(this, ring)
             }
             2 -> {
                 val strip = args.newId(ZwpTabletPadStripV2, version)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "strip", "strip=${Wire.show(strip)}")
                 handler?.strip(this, strip)
             }
             3 -> {
                 val modes = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "modes", "modes=${Wire.show(modes)}")
                 handler?.modes(this, modes)
             }
             4 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "done", "")
                 handler?.done(this)
             }
             5 -> {
@@ -199,11 +206,13 @@ public class ZwpTabletPadGroupV2 private constructor(connection: Connection, id:
                 val serial = args.uint()
                 val mode = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "mode_switch", "time=${Wire.show(time)}, serial=${Wire.show(serial)}, mode=${Wire.show(mode)}")
                 handler?.modeSwitch(this, time, serial, mode)
             }
             6 -> {
                 val dial = args.newId(ZwpTabletPadDialV2, version)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "dial", "dial=${Wire.show(dial)}")
                 handler?.dial(this, dial)
             }
         }

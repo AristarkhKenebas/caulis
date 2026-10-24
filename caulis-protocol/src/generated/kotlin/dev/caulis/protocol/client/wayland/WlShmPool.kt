@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -40,6 +41,7 @@ public class WlShmPool private constructor(connection: Connection, id: Int, vers
      */
     public fun createBuffer(offset: Int, width: Int, height: Int, stride: Int, format: Int): WlBuffer {
         val created = connection.createProxy(WlBuffer, this.version)
+        if (Wire.tracing) Wire.sent(this, "create_buffer", "id=${Wire.show(created)}, offset=${Wire.show(offset)}, width=${Wire.show(width)}, height=${Wire.show(height)}, stride=${Wire.show(stride)}, format=${Wire.show(format)}")
         request(0).newId(created).int(offset).int(width).int(height).int(stride).uint(format).end()
         return created
     }
@@ -54,6 +56,7 @@ public class WlShmPool private constructor(connection: Connection, id: Int, vers
      * are gone.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(1).end()
         connection.destroyProxy(this)
     }
@@ -73,6 +76,7 @@ public class WlShmPool private constructor(connection: Connection, id: Int, vers
      * the new pool size.
      */
     public fun resize(size: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "resize", "size=${Wire.show(size)}")
         request(2).int(size).end()
     }
 

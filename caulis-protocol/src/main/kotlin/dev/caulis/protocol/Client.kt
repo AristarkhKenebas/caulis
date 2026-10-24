@@ -30,6 +30,16 @@ class Client internal constructor(
         uid = credentials.uid
     }
 
+    /** A short name for logs: the program's name and process id, e.g. "foot[4123]". */
+    val name: String by lazy {
+        val program = try {
+            java.nio.file.Files.readString(java.nio.file.Path.of("/proc/$pid/comm")).trim()
+        } catch (_: Exception) {
+            "client"
+        }
+        "$program[$pid]"
+    }
+
     private val arena = Arena.ofShared()
     private val incoming = Incoming(socket, arena)
     private val outgoing = Outgoing(socket, arena)
@@ -108,7 +118,7 @@ class Client internal constructor(
         } catch (e: Exception) {
             // A bug in the compositor (or in user code) while handling this request.
             // Only this client is affected.
-            server.log.error("Error while handling ${target.type.name} request $opcode from client $pid", e)
+            server.log.error("Error while handling ${target.type.name} request $opcode from $name", e)
             postError(displayObject, WlDisplay.Error.IMPLEMENTATION, "compositor error: ${e.message}")
         }
     }
@@ -161,7 +171,7 @@ class Client internal constructor(
     /** Sends a protocol error about [resource] and disconnects the client. */
     fun postError(resource: Resource, code: Int, message: String) {
         if (!isConnected || closing) return
-        server.log.warn("Client $pid: ${resource.type.name}@${resource.id} error $code: $message")
+        server.log.warn("$name: ${resource.type.name}@${resource.id} error $code: $message")
         displayObject.sendError(resource, code, message)
         closing = true
         outgoing.flush()
@@ -172,6 +182,7 @@ class Client internal constructor(
     fun disconnect() {
         if (!isConnected) return
         isConnected = false
+        server.log.info { "$name left" }
         for (resource in resources.values.toList()) resource.markDestroyed()
         resources.clear()
         incoming.close()
@@ -195,7 +206,7 @@ class Client internal constructor(
             // The client does not read its events. Keeping everything would let one
             // stuck program use all memory, so it is disconnected instead.
             closing = true
-            server.log.warn("Client $pid does not read its events, disconnecting")
+            server.log.warn("$name does not read its events, disconnecting")
             server.disconnectLater(this)
         }
         return outgoing.grow(extra)

@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.presentationtime
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -118,6 +119,7 @@ public class WpPresentationFeedback private constructor(connection: Connection, 
             0 -> {
                 val output = args.obj(WlOutput::class.java)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "sync_output", "output=${Wire.show(output)}")
                 handler?.syncOutput(this, output)
             }
             1 -> {
@@ -129,10 +131,12 @@ public class WpPresentationFeedback private constructor(connection: Connection, 
                 val seqLo = args.uint()
                 val flags = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "presented", "tv_sec_hi=${Wire.show(tvSecHi)}, tv_sec_lo=${Wire.show(tvSecLo)}, tv_nsec=${Wire.show(tvNsec)}, refresh=${Wire.show(refresh)}, seq_hi=${Wire.show(seqHi)}, seq_lo=${Wire.show(seqLo)}, flags=${Wire.show(flags)}")
                 handler?.presented(this, tvSecHi, tvSecLo, tvNsec, refresh, seqHi, seqLo, flags)
             }
             2 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "discarded", "")
                 handler?.discarded(this)
             }
         }

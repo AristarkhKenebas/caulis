@@ -48,6 +48,34 @@ class CaulisTest {
         }
     }
 
+    @Test
+    fun `the log levels from code, and the state written on request`() {
+        val lines = CopyOnWriteArrayList<String>()
+        dev.caulis.log.Log.listener = { lines += it }
+        try {
+            withCaulis({
+                logLevel = 2
+                log("focus", 3)
+            }) { caulis, client ->
+                assertEquals(2, dev.caulis.log.Log.level)
+                assertEquals(3, dev.caulis.log.Log.levelOf("focus"))
+                client.window { it.setTitle("logged") }.draw()
+                client.waitFor { lines.any { "Opened" in it && "logged" in it } }
+                assertTrue(lines.any { " T focus" in it }, "focus in detail")
+                assertTrue(lines.none { " T windows" in it }, "the other areas at level 2 only")
+
+                caulis.onLoop { it.key(0, 125, true); it.key(0, 88, true); it.key(0, 88, false); it.key(0, 125, false) } // Super+F12
+                client.waitFor { lines.any { "The state now" in it } }
+                val state = lines.first { "The state now" in it }
+                assertTrue("workspace 1" in state && "logged" in state && "focused" in state, state)
+            }
+        } finally {
+            dev.caulis.log.Log.listener = null
+            dev.caulis.log.Log.level = dev.caulis.log.Log.PROBLEMS
+            dev.caulis.log.Log.clearLevel("focus")
+        }
+    }
+
     // Runs [configure]d Caulis nested in a test server until [test] is done.
     internal fun withCaulis(configure: Caulis.() -> Unit, test: (Caulis, TestClient) -> Unit) {
         assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")

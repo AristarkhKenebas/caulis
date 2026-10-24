@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.tabletv2
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -122,6 +123,7 @@ public class ZwpTabletV2 private constructor(connection: Connection, id: Int, ve
      * This destroys the client's resource for this tablet object.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -146,30 +148,36 @@ public class ZwpTabletV2 private constructor(connection: Connection, id: Int, ve
             0 -> {
                 val name = args.string()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "name", "name=${Wire.show(name)}")
                 handler?.name(this, name)
             }
             1 -> {
                 val vid = args.uint()
                 val pid = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "id", "vid=${Wire.show(vid)}, pid=${Wire.show(pid)}")
                 handler?.id(this, vid, pid)
             }
             2 -> {
                 val path = args.string()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "path", "path=${Wire.show(path)}")
                 handler?.path(this, path)
             }
             3 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "done", "")
                 handler?.done(this)
             }
             4 -> {
                 args.end()
+                if (Wire.tracing) Wire.received(this, "removed", "")
                 handler?.removed(this)
             }
             5 -> {
                 val bustype = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "bustype", "bustype=${Wire.show(bustype)}")
                 handler?.bustype(this, bustype)
             }
         }

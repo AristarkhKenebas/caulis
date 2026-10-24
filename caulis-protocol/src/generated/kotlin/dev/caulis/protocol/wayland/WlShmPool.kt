@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * A shared memory pool
@@ -96,16 +97,19 @@ public class WlShmPool private constructor(client: Client, id: Int, version: Int
                 val format = args.uint()
                 args.end()
                 val id = client.register(WlBuffer.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "create_buffer", "id=${Wire.show(id)}, offset=${Wire.show(offset)}, width=${Wire.show(width)}, height=${Wire.show(height)}, stride=${Wire.show(stride)}, format=${Wire.show(format)}")
                 handler.createBuffer(this, id, offset, width, height, stride, format)
             }
             1 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
             2 -> {
                 val size = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "resize", "size=${Wire.show(size)}")
                 handler.resize(this, size)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wl_shm_pool request $opcode")

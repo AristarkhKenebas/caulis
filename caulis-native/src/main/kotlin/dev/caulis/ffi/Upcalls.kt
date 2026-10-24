@@ -7,7 +7,7 @@ package dev.caulis.ffi
  * So every callback body runs inside [guard]; an error is logged and C gets [fallback].
  */
 object Upcalls {
-    private val logger = System.getLogger("caulis.native")
+    private val logger = dev.caulis.log.Logger("native")
 
     inline fun <T> guard(name: String, fallback: T, body: () -> T): T = try {
         body()
@@ -19,5 +19,5 @@ object Upcalls {
     inline fun guard(name: String, body: () -> Unit) = guard(name, Unit, body)
 
     fun report(name: String, error: Throwable) =
-        logger.log(System.Logger.Level.ERROR, "Error in callback $name (ignored)", error)
+        logger.error("Error in callback $name (ignored)", error)
 }

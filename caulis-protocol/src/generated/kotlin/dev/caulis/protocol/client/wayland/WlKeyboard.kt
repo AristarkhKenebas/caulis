@@ -4,6 +4,7 @@
 package dev.caulis.protocol.client.wayland
 
 import dev.caulis.ffi.Fd
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -156,6 +157,7 @@ public class WlKeyboard private constructor(connection: Connection, id: Int, ver
      */
     public fun release(): Unit {
         check(version >= 3) { "wl_keyboard.release needs version 3, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "release", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -186,6 +188,7 @@ public class WlKeyboard private constructor(connection: Connection, id: Int, ver
                 val fd = args.fd()
                 val size = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "keymap", "format=${Wire.show(format)}, fd=${Wire.show(fd)}, size=${Wire.show(size)}")
                 handler?.keymap(this, format, fd, size)
             }
             1 -> {
@@ -193,12 +196,14 @@ public class WlKeyboard private constructor(connection: Connection, id: Int, ver
                 val surface = args.obj(WlSurface::class.java)
                 val keys = args.array()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "enter", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}, keys=${Wire.show(keys)}")
                 handler?.enter(this, serial, surface, keys)
             }
             2 -> {
                 val serial = args.uint()
                 val surface = args.obj(WlSurface::class.java)
                 args.end()
+                if (Wire.tracing) Wire.received(this, "leave", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}")
                 handler?.leave(this, serial, surface)
             }
             3 -> {
@@ -207,6 +212,7 @@ public class WlKeyboard private constructor(connection: Connection, id: Int, ver
                 val key = args.uint()
                 val state = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "key", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, key=${Wire.show(key)}, state=${Wire.show(state)}")
                 handler?.key(this, serial, time, key, state)
             }
             4 -> {
@@ -216,12 +222,14 @@ public class WlKeyboard private constructor(connection: Connection, id: Int, ver
                 val modsLocked = args.uint()
                 val group = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "modifiers", "serial=${Wire.show(serial)}, mods_depressed=${Wire.show(modsDepressed)}, mods_latched=${Wire.show(modsLatched)}, mods_locked=${Wire.show(modsLocked)}, group=${Wire.show(group)}")
                 handler?.modifiers(this, serial, modsDepressed, modsLatched, modsLocked, group)
             }
             5 -> {
                 val rate = args.int()
                 val delay = args.int()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "repeat_info", "rate=${Wire.show(rate)}, delay=${Wire.show(delay)}")
                 handler?.repeatInfo(this, rate, delay)
             }
         }

@@ -9,6 +9,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Offer to transfer data
@@ -146,6 +147,7 @@ public class WlDataOffer private constructor(client: Client, id: Int, version: I
      */
     public fun sendOffer(mimeType: String) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "offer", "mime_type=${Wire.show(mimeType)}")
         event(0).string(mimeType).end()
     }
 
@@ -162,6 +164,7 @@ public class WlDataOffer private constructor(client: Client, id: Int, version: I
     public fun sendSourceActions(sourceActions: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 3) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "source_actions", "source_actions=${Wire.show(sourceActions)}")
         event(1).uint(sourceActions).end()
     }
 
@@ -209,6 +212,7 @@ public class WlDataOffer private constructor(client: Client, id: Int, version: I
     public fun sendAction(dndAction: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 3) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "action", "dnd_action=${Wire.show(dndAction)}")
         event(2).uint(dndAction).end()
     }
 
@@ -231,22 +235,26 @@ public class WlDataOffer private constructor(client: Client, id: Int, version: I
                 val serial = args.uint()
                 val mimeType = args.stringOrNull()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "accept", "serial=${Wire.show(serial)}, mime_type=${Wire.show(mimeType)}")
                 handler.accept(this, serial, mimeType)
             }
             1 -> {
                 val mimeType = args.string()
                 val fd = args.fd()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "receive", "mime_type=${Wire.show(mimeType)}, fd=${Wire.show(fd)}")
                 handler.receive(this, mimeType, fd)
             }
             2 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
             3 -> {
                 if (version < 3) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "wl_data_offer.finish needs version 3")
                 args.end()
+                if (Wire.tracing) Wire.request(this, "finish", "")
                 handler.finish(this)
             }
             4 -> {
@@ -254,6 +262,7 @@ public class WlDataOffer private constructor(client: Client, id: Int, version: I
                 val dndActions = args.uint()
                 val preferredAction = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_actions", "dnd_actions=${Wire.show(dndActions)}, preferred_action=${Wire.show(preferredAction)}")
                 handler.setActions(this, dndActions, preferredAction)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wl_data_offer request $opcode")

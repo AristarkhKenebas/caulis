@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -68,6 +69,7 @@ public class WlDisplay private constructor(connection: Connection, id: Int, vers
      */
     public fun sync(): WlCallback {
         val created = connection.createProxy(WlCallback, this.version)
+        if (Wire.tracing) Wire.sent(this, "sync", "callback=${Wire.show(created)}")
         request(0).newId(created).end()
         return created
     }
@@ -87,6 +89,7 @@ public class WlDisplay private constructor(connection: Connection, id: Int, vers
      */
     public fun getRegistry(): WlRegistry {
         val created = connection.createProxy(WlRegistry, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_registry", "registry=${Wire.show(created)}")
         request(1).newId(created).end()
         return created
     }
@@ -111,11 +114,13 @@ public class WlDisplay private constructor(connection: Connection, id: Int, vers
                 val code = args.uint()
                 val message = args.string()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "error", "object_id=${Wire.show(objectId)}, code=${Wire.show(code)}, message=${Wire.show(message)}")
                 handler?.error(this, objectId, code, message)
             }
             1 -> {
                 val id = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.received(this, "delete_id", "id=${Wire.show(id)}")
                 handler?.deleteId(this, id)
             }
         }

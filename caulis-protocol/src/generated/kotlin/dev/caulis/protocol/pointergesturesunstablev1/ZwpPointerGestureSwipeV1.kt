@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlSurface
 
@@ -52,6 +53,7 @@ public class ZwpPointerGestureSwipeV1 private constructor(client: Client, id: In
      */
     public fun sendBegin(serial: Int, time: Int, surface: WlSurface, fingers: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "begin", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, surface=${Wire.show(surface)}, fingers=${Wire.show(fingers)}")
         event(0).uint(serial).uint(time).obj(surface).uint(fingers).end()
     }
 
@@ -66,6 +68,7 @@ public class ZwpPointerGestureSwipeV1 private constructor(client: Client, id: In
      */
     public fun sendUpdate(time: Int, dx: Double, dy: Double) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "update", "time=${Wire.show(time)}, dx=${Wire.show(dx)}, dy=${Wire.show(dy)}")
         event(1).uint(time).fixed(dx).fixed(dy).end()
     }
 
@@ -82,6 +85,7 @@ public class ZwpPointerGestureSwipeV1 private constructor(client: Client, id: In
      */
     public fun sendEnd(serial: Int, time: Int, cancelled: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "end", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, cancelled=${Wire.show(cancelled)}")
         event(2).uint(serial).uint(time).int(cancelled).end()
     }
 
@@ -91,6 +95,7 @@ public class ZwpPointerGestureSwipeV1 private constructor(client: Client, id: In
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }

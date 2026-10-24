@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Pointer input device
@@ -94,6 +95,7 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
      */
     public fun sendEnter(serial: Int, surface: WlSurface, surfaceX: Double, surfaceY: Double) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "enter", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}, surface_x=${Wire.show(surfaceX)}, surface_y=${Wire.show(surfaceY)}")
         event(0).uint(serial).obj(surface).fixed(surfaceX).fixed(surfaceY).end()
     }
 
@@ -108,6 +110,7 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
      */
     public fun sendLeave(serial: Int, surface: WlSurface) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "leave", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}")
         event(1).uint(serial).obj(surface).end()
     }
 
@@ -120,6 +123,7 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
      */
     public fun sendMotion(time: Int, surfaceX: Double, surfaceY: Double) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "motion", "time=${Wire.show(time)}, surface_x=${Wire.show(surfaceX)}, surface_y=${Wire.show(surfaceY)}")
         event(2).uint(time).fixed(surfaceX).fixed(surfaceY).end()
     }
 
@@ -143,6 +147,7 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
      */
     public fun sendButton(serial: Int, time: Int, button: Int, state: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "button", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, button=${Wire.show(button)}, state=${Wire.show(state)}")
         event(3).uint(serial).uint(time).uint(button).uint(state).end()
     }
 
@@ -168,6 +173,7 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
      */
     public fun sendAxis(time: Int, axis: Int, value: Double) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "axis", "time=${Wire.show(time)}, axis=${Wire.show(axis)}, value=${Wire.show(value)}")
         event(4).uint(time).uint(axis).fixed(value).end()
     }
 
@@ -214,6 +220,7 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
     public fun sendFrame() {
         if (!isAlive || !client.isConnected) return
         if (version < 5) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "frame", "")
         event(5).end()
     }
 
@@ -251,6 +258,7 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
     public fun sendAxisSource(axisSource: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 5) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "axis_source", "axis_source=${Wire.show(axisSource)}")
         event(6).uint(axisSource).end()
     }
 
@@ -277,6 +285,7 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
     public fun sendAxisStop(time: Int, axis: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 5) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "axis_stop", "time=${Wire.show(time)}, axis=${Wire.show(axis)}")
         event(7).uint(time).uint(axis).end()
     }
 
@@ -319,6 +328,7 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
     public fun sendAxisDiscrete(axis: Int, discrete: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 5) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "axis_discrete", "axis=${Wire.show(axis)}, discrete=${Wire.show(discrete)}")
         event(8).uint(axis).int(discrete).end()
     }
 
@@ -352,6 +362,7 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
     public fun sendAxisValue120(axis: Int, value120: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 8) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "axis_value120", "axis=${Wire.show(axis)}, value120=${Wire.show(value120)}")
         event(9).uint(axis).int(value120).end()
     }
 
@@ -399,6 +410,7 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
     public fun sendAxisRelativeDirection(axis: Int, direction: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 9) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "axis_relative_direction", "axis=${Wire.show(axis)}, direction=${Wire.show(direction)}")
         event(10).uint(axis).uint(direction).end()
     }
 
@@ -424,6 +436,7 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
     public fun sendWarp(surfaceX: Double, surfaceY: Double) {
         if (!isAlive || !client.isConnected) return
         if (version < 11) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "warp", "surface_x=${Wire.show(surfaceX)}, surface_y=${Wire.show(surfaceY)}")
         event(11).fixed(surfaceX).fixed(surfaceY).end()
     }
 
@@ -486,11 +499,13 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
                 val hotspotX = args.int()
                 val hotspotY = args.int()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_cursor", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}, hotspot_x=${Wire.show(hotspotX)}, hotspot_y=${Wire.show(hotspotY)}")
                 handler.setCursor(this, serial, surface, hotspotX, hotspotY)
             }
             1 -> {
                 if (version < 3) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "wl_pointer.release needs version 3")
                 args.end()
+                if (Wire.tracing) Wire.request(this, "release", "")
                 handler.release(this)
                 client.destroyResource(this)
             }

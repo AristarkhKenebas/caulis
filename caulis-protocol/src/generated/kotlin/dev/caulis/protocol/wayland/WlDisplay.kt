@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Core global object
@@ -69,6 +70,7 @@ public class WlDisplay private constructor(client: Client, id: Int, version: Int
      */
     public fun sendError(objectId: Resource, code: Int, message: String) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "error", "object_id=${Wire.show(objectId)}, code=${Wire.show(code)}, message=${Wire.show(message)}")
         event(0).obj(objectId).uint(code).string(message).end()
     }
 
@@ -87,6 +89,7 @@ public class WlDisplay private constructor(client: Client, id: Int, version: Int
      */
     public fun sendDeleteId(id: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "delete_id", "id=${Wire.show(id)}")
         event(1).uint(id).end()
     }
 
@@ -112,12 +115,14 @@ public class WlDisplay private constructor(client: Client, id: Int, version: Int
                 val callbackId = args.newId()
                 args.end()
                 val callback = client.register(WlCallback.create(client, callbackId, version))
+                if (Wire.tracing) Wire.request(this, "sync", "callback=${Wire.show(callback)}")
                 handler.sync(this, callback)
             }
             1 -> {
                 val registryId = args.newId()
                 args.end()
                 val registry = client.register(WlRegistry.create(client, registryId, version))
+                if (Wire.tracing) Wire.request(this, "get_registry", "registry=${Wire.show(registry)}")
                 handler.getRegistry(this, registry)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wl_display request $opcode")

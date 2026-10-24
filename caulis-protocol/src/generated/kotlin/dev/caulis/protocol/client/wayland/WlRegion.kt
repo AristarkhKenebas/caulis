@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -26,6 +27,7 @@ public class WlRegion private constructor(connection: Connection, id: Int, versi
      * Destroy the region.  This will invalidate the object ID.
      */
     public fun destroy(): Unit {
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(0).end()
         connection.destroyProxy(this)
     }
@@ -36,6 +38,7 @@ public class WlRegion private constructor(connection: Connection, id: Int, versi
      * Add the specified rectangle to the region.
      */
     public fun add(x: Int, y: Int, width: Int, height: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "add", "x=${Wire.show(x)}, y=${Wire.show(y)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
         request(1).int(x).int(y).int(width).int(height).end()
     }
 
@@ -45,6 +48,7 @@ public class WlRegion private constructor(connection: Connection, id: Int, versi
      * Subtract the specified rectangle from the region.
      */
     public fun subtract(x: Int, y: Int, width: Int, height: Int): Unit {
+        if (Wire.tracing) Wire.sent(this, "subtract", "x=${Wire.show(x)}, y=${Wire.show(y)}, width=${Wire.show(width)}, height=${Wire.show(height)}")
         request(2).int(x).int(y).int(width).int(height).end()
     }
 

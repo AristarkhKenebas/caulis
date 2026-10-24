@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Group of input devices
@@ -109,6 +110,7 @@ public class WlSeat private constructor(client: Client, id: Int, version: Int) :
      */
     public fun sendCapabilities(capabilities: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "capabilities", "capabilities=${Wire.show(capabilities)}")
         event(0).uint(capabilities).end()
     }
 
@@ -137,6 +139,7 @@ public class WlSeat private constructor(client: Client, id: Int, version: Int) :
     public fun sendName(name: String) {
         if (!isAlive || !client.isConnected) return
         if (version < 2) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "name", "name=${Wire.show(name)}")
         event(1).string(name).end()
     }
 
@@ -170,23 +173,27 @@ public class WlSeat private constructor(client: Client, id: Int, version: Int) :
                 val idId = args.newId()
                 args.end()
                 val id = client.register(WlPointer.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_pointer", "id=${Wire.show(id)}")
                 handler.getPointer(this, id)
             }
             1 -> {
                 val idId = args.newId()
                 args.end()
                 val id = client.register(WlKeyboard.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_keyboard", "id=${Wire.show(id)}")
                 handler.getKeyboard(this, id)
             }
             2 -> {
                 val idId = args.newId()
                 args.end()
                 val id = client.register(WlTouch.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_touch", "id=${Wire.show(id)}")
                 handler.getTouch(this, id)
             }
             3 -> {
                 if (version < 5) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "wl_seat.release needs version 5")
                 args.end()
+                if (Wire.tracing) Wire.request(this, "release", "")
                 handler.release(this)
                 client.destroyResource(this)
             }

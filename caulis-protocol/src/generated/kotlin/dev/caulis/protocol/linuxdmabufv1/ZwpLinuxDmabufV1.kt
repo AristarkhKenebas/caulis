@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlSurface
 
@@ -147,6 +148,7 @@ public class ZwpLinuxDmabufV1 private constructor(client: Client, id: Int, versi
      */
     public fun sendFormat(format: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "format", "format=${Wire.show(format)}")
         event(0).uint(format).end()
     }
 
@@ -182,6 +184,7 @@ public class ZwpLinuxDmabufV1 private constructor(client: Client, id: Int, versi
     public fun sendModifier(format: Int, modifierHi: Int, modifierLo: Int) {
         if (!isAlive || !client.isConnected) return
         if (version < 3) return // the client is too old for this event
+        if (Wire.tracing) Wire.event(this, "modifier", "format=${Wire.show(format)}, modifier_hi=${Wire.show(modifierHi)}, modifier_lo=${Wire.show(modifierLo)}")
         event(1).uint(format).uint(modifierHi).uint(modifierLo).end()
     }
 
@@ -191,6 +194,7 @@ public class ZwpLinuxDmabufV1 private constructor(client: Client, id: Int, versi
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -198,6 +202,7 @@ public class ZwpLinuxDmabufV1 private constructor(client: Client, id: Int, versi
                 val paramsIdId = args.newId()
                 args.end()
                 val paramsId = client.register(ZwpLinuxBufferParamsV1.create(client, paramsIdId, version))
+                if (Wire.tracing) Wire.request(this, "create_params", "params_id=${Wire.show(paramsId)}")
                 handler.createParams(this, paramsId)
             }
             2 -> {
@@ -205,6 +210,7 @@ public class ZwpLinuxDmabufV1 private constructor(client: Client, id: Int, versi
                 val idId = args.newId()
                 args.end()
                 val id = client.register(ZwpLinuxDmabufFeedbackV1.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_default_feedback", "id=${Wire.show(id)}")
                 handler.getDefaultFeedback(this, id)
             }
             3 -> {
@@ -213,6 +219,7 @@ public class ZwpLinuxDmabufV1 private constructor(client: Client, id: Int, versi
                 val surface = args.obj(WlSurface::class.java)
                 args.end()
                 val id = client.register(ZwpLinuxDmabufFeedbackV1.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_surface_feedback", "id=${Wire.show(id)}, surface=${Wire.show(surface)}")
                 handler.getSurfaceFeedback(this, id, surface)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown zwp_linux_dmabuf_v1 request $opcode")

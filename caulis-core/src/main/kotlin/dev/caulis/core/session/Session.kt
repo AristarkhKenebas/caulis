@@ -81,6 +81,7 @@ class Session private constructor(private val loop: EventLoop) : AutoCloseable {
     private fun setActive(value: Boolean) {
         if (active == value) return
         active = value
+        sessionLog.info(if (value) "The session is ours again (back on this console): devices resume" else "The session is paused (another console): devices are released")
         activeListeners.forEach { it(value) }
     }
 
@@ -89,6 +90,7 @@ class Session private constructor(private val loop: EventLoop) : AutoCloseable {
         val fdOut = temp.allocate(JAVA_INT)
         val id = Seat.libseat_open_device(seat, temp.allocateFrom(path.toString()), fdOut)
         if (id < 0) throw SessionException("Could not open $path through the session")
+        sessionLog.trace { "Opened $path" }
         Device(path, Fd.adopt(fdOut.get(JAVA_INT, 0)), id).also { devices += it }
     }
 
@@ -100,6 +102,7 @@ class Session private constructor(private val loop: EventLoop) : AutoCloseable {
 
     /** Switches to virtual terminal [number] (Ctrl+Alt+F[number]). */
     fun switchTo(number: Int) {
+        sessionLog.info { "Switching to console $number" }
         Seat.libseat_switch_session(seat, number)
     }
 
@@ -117,3 +120,5 @@ class Session private constructor(private val loop: EventLoop) : AutoCloseable {
 }
 
 class SessionException(message: String) : RuntimeException(message)
+
+private val sessionLog = dev.caulis.log.Logger("session")

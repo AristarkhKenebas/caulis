@@ -5,6 +5,10 @@ plugins {
     id("caulis.library")
 }
 
+dependencies {
+    api(project(":caulis-log"))
+}
+
 val libs = versionCatalogs.named("libs")
 fun version(name: String) = libs.findVersion(name).get().requiredVersion
 

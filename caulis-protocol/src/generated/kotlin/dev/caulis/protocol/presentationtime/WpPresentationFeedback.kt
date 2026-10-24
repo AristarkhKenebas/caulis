@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlOutput
 
@@ -44,6 +45,7 @@ public class WpPresentationFeedback private constructor(client: Client, id: Int,
      */
     public fun sendSyncOutput(output: WlOutput) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "sync_output", "output=${Wire.show(output)}")
         event(0).obj(output).end()
     }
 
@@ -97,6 +99,7 @@ public class WpPresentationFeedback private constructor(client: Client, id: Int,
      */
     public fun sendPresented(tvSecHi: Int, tvSecLo: Int, tvNsec: Int, refresh: Int, seqHi: Int, seqLo: Int, flags: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "presented", "tv_sec_hi=${Wire.show(tvSecHi)}, tv_sec_lo=${Wire.show(tvSecLo)}, tv_nsec=${Wire.show(tvNsec)}, refresh=${Wire.show(refresh)}, seq_hi=${Wire.show(seqHi)}, seq_lo=${Wire.show(seqLo)}, flags=${Wire.show(flags)}")
         event(1).uint(tvSecHi).uint(tvSecLo).uint(tvNsec).uint(refresh).uint(seqHi).uint(seqLo).uint(flags).end()
     }
 
@@ -107,6 +110,7 @@ public class WpPresentationFeedback private constructor(client: Client, id: Int,
      */
     public fun sendDiscarded() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "discarded", "")
         event(2).end()
     }
 

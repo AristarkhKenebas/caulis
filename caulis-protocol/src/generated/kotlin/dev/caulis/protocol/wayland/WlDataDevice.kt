@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Data transfer device
@@ -98,6 +99,7 @@ public class WlDataDevice private constructor(client: Client, id: Int, version: 
      */
     public fun sendDataOffer(id: WlDataOffer) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "data_offer", "id=${Wire.show(id)}")
         event(0).newId(id).end()
     }
 
@@ -111,6 +113,7 @@ public class WlDataDevice private constructor(client: Client, id: Int, version: 
      */
     public fun sendEnter(serial: Int, surface: WlSurface, x: Double, y: Double, id: WlDataOffer?) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "enter", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}, x=${Wire.show(x)}, y=${Wire.show(y)}, id=${Wire.show(id)}")
         event(1).uint(serial).obj(surface).fixed(x).fixed(y).obj(id).end()
     }
 
@@ -123,6 +126,7 @@ public class WlDataDevice private constructor(client: Client, id: Int, version: 
      */
     public fun sendLeave() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "leave", "")
         event(2).end()
     }
 
@@ -136,6 +140,7 @@ public class WlDataDevice private constructor(client: Client, id: Int, version: 
      */
     public fun sendMotion(time: Int, x: Double, y: Double) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "motion", "time=${Wire.show(time)}, x=${Wire.show(x)}, y=${Wire.show(y)}")
         event(3).uint(time).fixed(x).fixed(y).end()
     }
 
@@ -158,6 +163,7 @@ public class WlDataDevice private constructor(client: Client, id: Int, version: 
      */
     public fun sendDrop() {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "drop", "")
         event(4).end()
     }
 
@@ -179,6 +185,7 @@ public class WlDataDevice private constructor(client: Client, id: Int, version: 
      */
     public fun sendSelection(id: WlDataOffer?) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "selection", "id=${Wire.show(id)}")
         event(5).obj(id).end()
     }
 
@@ -199,17 +206,20 @@ public class WlDataDevice private constructor(client: Client, id: Int, version: 
                 val icon = args.objOrNull(WlSurface::class.java)
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "start_drag", "source=${Wire.show(source)}, origin=${Wire.show(origin)}, icon=${Wire.show(icon)}, serial=${Wire.show(serial)}")
                 handler.startDrag(this, source, origin, icon, serial)
             }
             1 -> {
                 val source = args.objOrNull(WlDataSource::class.java)
                 val serial = args.uint()
                 args.end()
+                if (Wire.tracing) Wire.request(this, "set_selection", "source=${Wire.show(source)}, serial=${Wire.show(serial)}")
                 handler.setSelection(this, source, serial)
             }
             2 -> {
                 if (version < 2) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "wl_data_device.release needs version 2")
                 args.end()
+                if (Wire.tracing) Wire.request(this, "release", "")
                 handler.release(this)
                 client.destroyResource(this)
             }

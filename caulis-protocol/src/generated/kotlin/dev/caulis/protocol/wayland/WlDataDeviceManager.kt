@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 
 /**
  * Data transfer interface
@@ -80,6 +81,7 @@ public class WlDataDeviceManager private constructor(client: Client, id: Int, ve
                 val idId = args.newId()
                 args.end()
                 val id = client.register(WlDataSource.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "create_data_source", "id=${Wire.show(id)}")
                 handler.createDataSource(this, id)
             }
             1 -> {
@@ -87,11 +89,13 @@ public class WlDataDeviceManager private constructor(client: Client, id: Int, ve
                 val seat = args.obj(WlSeat::class.java)
                 args.end()
                 val id = client.register(WlDataDevice.create(client, idId, version))
+                if (Wire.tracing) Wire.request(this, "get_data_device", "id=${Wire.show(id)}, seat=${Wire.show(seat)}")
                 handler.getDataDevice(this, id, seat)
             }
             2 -> {
                 if (version < 4) throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "wl_data_device_manager.release needs version 4")
                 args.end()
+                if (Wire.tracing) Wire.request(this, "release", "")
                 handler.release(this)
                 client.destroyResource(this)
             }

@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wayland
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -33,6 +34,7 @@ public class WlDataDeviceManager private constructor(connection: Connection, id:
      */
     public fun createDataSource(): WlDataSource {
         val created = connection.createProxy(WlDataSource, this.version)
+        if (Wire.tracing) Wire.sent(this, "create_data_source", "id=${Wire.show(created)}")
         request(0).newId(created).end()
         return created
     }
@@ -44,6 +46,7 @@ public class WlDataDeviceManager private constructor(connection: Connection, id:
      */
     public fun getDataDevice(seat: WlSeat): WlDataDevice {
         val created = connection.createProxy(WlDataDevice, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_data_device", "id=${Wire.show(created)}, seat=${Wire.show(seat)}")
         request(1).newId(created).obj(seat).end()
         return created
     }
@@ -58,6 +61,7 @@ public class WlDataDeviceManager private constructor(connection: Connection, id:
      */
     public fun release(): Unit {
         check(version >= 4) { "wl_data_device_manager.release needs version 4, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "release", "")
         request(2).end()
         connection.destroyProxy(this)
     }

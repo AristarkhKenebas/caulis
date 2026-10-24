@@ -3,6 +3,7 @@
 
 package dev.caulis.protocol.client.wlrlayershellunstablev1
 
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.EventReader
 import dev.caulis.protocol.client.Proxy
@@ -52,6 +53,7 @@ public class ZwlrLayerShellV1 private constructor(connection: Connection, id: In
      */
     public fun getLayerSurface(surface: WlSurface, output: WlOutput?, layer: Int, namespace: String): ZwlrLayerSurfaceV1 {
         val created = connection.createProxy(ZwlrLayerSurfaceV1, this.version)
+        if (Wire.tracing) Wire.sent(this, "get_layer_surface", "id=${Wire.show(created)}, surface=${Wire.show(surface)}, output=${Wire.show(output)}, layer=${Wire.show(layer)}, namespace=${Wire.show(namespace)}")
         request(0).newId(created).obj(surface).obj(output).uint(layer).string(namespace).end()
         return created
     }
@@ -67,6 +69,7 @@ public class ZwlrLayerShellV1 private constructor(connection: Connection, id: In
      */
     public fun destroy(): Unit {
         check(version >= 3) { "zwlr_layer_shell_v1.destroy needs version 3, this object has $version" }
+        if (Wire.tracing) Wire.sent(this, "destroy", "")
         request(1).end()
         connection.destroyProxy(this)
     }

@@ -8,6 +8,7 @@ import dev.caulis.protocol.MessageReader
 import dev.caulis.protocol.ProtocolException
 import dev.caulis.protocol.Resource
 import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.Wire
 import dev.caulis.protocol.wayland.WlDisplay
 import dev.caulis.protocol.wayland.WlSurface
 
@@ -100,6 +101,7 @@ public class WpPresentation private constructor(client: Client, id: Int, version
      */
     public fun sendClockId(clkId: Int) {
         if (!isAlive || !client.isConnected) return
+        if (Wire.tracing) Wire.event(this, "clock_id", "clk_id=${Wire.show(clkId)}")
         event(0).uint(clkId).end()
     }
 
@@ -119,6 +121,7 @@ public class WpPresentation private constructor(client: Client, id: Int, version
         when (opcode) {
             0 -> {
                 args.end()
+                if (Wire.tracing) Wire.request(this, "destroy", "")
                 handler.destroy(this)
                 client.destroyResource(this)
             }
@@ -127,6 +130,7 @@ public class WpPresentation private constructor(client: Client, id: Int, version
                 val callbackId = args.newId()
                 args.end()
                 val callback = client.register(WpPresentationFeedback.create(client, callbackId, version))
+                if (Wire.tracing) Wire.request(this, "feedback", "surface=${Wire.show(surface)}, callback=${Wire.show(callback)}")
                 handler.feedback(this, surface, callback)
             }
             else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown wp_presentation request $opcode")
