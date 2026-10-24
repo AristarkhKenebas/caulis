@@ -2,6 +2,7 @@
 .gradle/
 build/
 .kotlin/
+.gradle-home/
 
 # IDE
 .idea/

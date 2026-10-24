@@ -31,7 +31,7 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
     val fd: Int get() = device.fd.value
 
     private val arena = Arena.ofShared()
-    private val flipHandlers = HashMap<Int, () -> Unit>()
+    private val flipHandlers = HashMap<Int, (nanos: Long, sequence: Long) -> Unit>()
     private val eventContext: MemorySegment
 
     init {
@@ -51,13 +51,17 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
         // "A new picture is on screen" events, per CRTC (one CRTC drives one monitor).
         eventContext = _drmEventContext.allocate(arena)
         _drmEventContext.version(eventContext, 3)
-        _drmEventContext.page_flip_handler2(eventContext, _drmEventContext.page_flip_handler2.allocate({ _, _, _, _, crtc, _ ->
-            Upcalls.guard("page_flip_handler2") { flipHandlers[crtc]?.invoke() }
+        _drmEventContext.page_flip_handler2(eventContext, _drmEventContext.page_flip_handler2.allocate({ _, sequence, seconds, micros, crtc, _ ->
+            Upcalls.guard("page_flip_handler2") {
+                // The kernel's timestamp of the refresh that showed the picture (monotonic clock).
+                val nanos = Integer.toUnsignedLong(seconds) * 1_000_000_000 + Integer.toUnsignedLong(micros) * 1_000
+                flipHandlers[crtc]?.invoke(nanos, Integer.toUnsignedLong(sequence))
+            }
         }, arena))
         loop.add(device.fd) { Drm.drmHandleEvent(fd, eventContext) }
     }
 
-    internal fun onFlip(crtc: Int, handler: () -> Unit) {
+    internal fun onFlip(crtc: Int, handler: (nanos: Long, sequence: Long) -> Unit) {
         flipHandlers[crtc] = handler
     }
 

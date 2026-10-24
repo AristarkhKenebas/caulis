@@ -2,6 +2,7 @@ package dev.caulis.core
 
 import dev.caulis.protocol.Display
 import dev.caulis.protocol.Resource
+import dev.caulis.protocol.presentationtime.WpPresentationFeedback
 import dev.caulis.protocol.wayland.WlBuffer
 import dev.caulis.protocol.wayland.WlCallback
 import dev.caulis.protocol.wayland.WlCompositor
@@ -123,6 +124,17 @@ class Surface internal constructor(val resource: WlSurface, private val composit
     val height: Int get() = current.bufferHeight / current.scale
 
     /**
+     * Parts of the picture (surface coordinates) that are certainly not transparent: all
+     * of it for pictures without an alpha channel, otherwise what the client declared.
+     */
+    fun opaqueRects(): List<Rect> {
+        if (!hasContent) return emptyList()
+        val whole = Rect(0, 0, width, height)
+        if (opaque) return listOf(whole)
+        return current.opaqueRegion?.solidRects()?.mapNotNull { it.intersect(whole) } ?: emptyList()
+    }
+
+    /**
      * True if the client committed a picture (and has not removed it with a null buffer).
      * Depends only on what the client did, not on drawing details, so it works the same
      * with and without a GPU.
@@ -210,7 +222,10 @@ class Surface internal constructor(val resource: WlSurface, private val composit
                 pending.frameCallbacks += callback
             }
 
-            override fun setOpaqueRegion(resource: WlSurface, region: WlRegion?) {}
+            override fun setOpaqueRegion(resource: WlSurface, region: WlRegion?) {
+                pending.opaqueRegion = region?.dataAs<Region>()?.snapshot()
+                pending.opaqueRegionSet = true
+            }
 
             override fun setInputRegion(resource: WlSurface, region: WlRegion?) {
                 pending.inputRegion = region?.dataAs<Region>()?.snapshot()
@@ -316,6 +331,8 @@ class Surface internal constructor(val resource: WlSurface, private val composit
     }
 
     internal fun destroyed() {
+        for (feedback in current.presentationFeedbacks) feedback.discard()
+        current.presentationFeedbacks.clear()
         texture = null
         uploadedTexture?.close()
         uploadedTexture = null
@@ -352,9 +369,19 @@ class SurfaceState {
     var inputRegion: Region.Snapshot? = null
     internal var inputRegionSet = false
 
+    /** Where the picture has no transparency (the client says so; helps skip hidden windows). */
+    var opaqueRegion: Region.Snapshot? = null
+    internal var opaqueRegionSet = false
+
+    /** Programs waiting to hear when this picture reached the screen (presentation-time). */
+    val presentationFeedbacks = ArrayList<WpPresentationFeedback>()
+
     /** Moves the pending changes of [other] into this state and resets [other]. */
     internal fun takeFrom(other: SurfaceState) {
         if (other.newBuffer) {
+            // The previous picture is replaced before it was shown: it never will be.
+            for (feedback in presentationFeedbacks) feedback.discard()
+            presentationFeedbacks.clear()
             buffer = other.buffer
             newBuffer = true
             val picture = other.buffer?.dataAs<ClientBuffer>()
@@ -367,7 +394,9 @@ class SurfaceState {
         transform = other.transform
         damage += other.damage
         frameCallbacks += other.frameCallbacks
+        presentationFeedbacks += other.presentationFeedbacks
         if (other.inputRegionSet) inputRegion = other.inputRegion
+        if (other.opaqueRegionSet) opaqueRegion = other.opaqueRegion
 
         other.buffer = null
         other.newBuffer = false
@@ -375,8 +404,17 @@ class SurfaceState {
         other.offsetY = 0
         other.damage.clear()
         other.frameCallbacks.clear()
+        other.presentationFeedbacks.clear()
         other.inputRegionSet = false
+        other.opaqueRegionSet = false
     }
+}
+
+/** Tells the program its picture was never shown, and frees the object. */
+internal fun WpPresentationFeedback.discard() {
+    if (!isAlive) return
+    sendDiscarded()
+    destroy()
 }
 
 /**
@@ -494,6 +532,14 @@ class Region internal constructor(resource: WlRegion) {
     fun snapshot() = Snapshot(parts.toList())
 
     class Snapshot(private val parts: List<Pair<Rect, Boolean>>) {
+        /**
+         * Rectangles that are certainly inside the region: added ones that no later
+         * subtraction touches. (Careful rather than exact: it may leave parts out.)
+         */
+        fun solidRects(): List<Rect> = parts.withIndex().filter { (index, part) ->
+            part.second && parts.subList(index + 1, parts.size).none { !it.second && it.first.intersect(part.first) != null }
+        }.map { it.value.first }
+
         /** The last rectangle covering the point decides (later operations win). */
         fun contains(x: Int, y: Int): Boolean {
             var inside = false

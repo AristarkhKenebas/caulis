@@ -69,6 +69,13 @@ class NestedWindow(
     /** Called when the outer compositor is ready for a new frame: draw it and call [present]. */
     var onFrame: () -> Unit = {}
 
+    /**
+     * Called when the outer compositor is ready for the next frame, which roughly means the
+     * previous one is on screen ([nanos], monotonic clock). Only approximate: the outer
+     * compositor does not say exactly when it showed our picture.
+     */
+    var onPresented: (nanos: Long) -> Unit = {}
+
     /** Called when the user closes the window. */
     var onClose: () -> Unit = {}
 
@@ -235,16 +242,26 @@ class NestedWindow(
         surface.attach(buffer.wlBuffer, 0, 0)
         surface.damageBuffer(0, 0, width, height)
         buffer.busy = true
-        if (!frameRequested) {
-            frameRequested = true
-            surface.frame().events = object : WlCallback.Events {
-                override fun done(proxy: WlCallback, callbackData: Int) {
-                    frameRequested = false
-                    onFrame()
+        presentedPending = true
+        if (!frameRequested) requestFrameCallback()
+        surface.commit()
+    }
+
+    // A picture was committed and not yet reported as shown.
+    private var presentedPending = false
+
+    private fun requestFrameCallback() {
+        frameRequested = true
+        surface.frame().events = object : WlCallback.Events {
+            override fun done(proxy: WlCallback, callbackData: Int) {
+                frameRequested = false
+                if (presentedPending) {
+                    presentedPending = false
+                    onPresented(System.nanoTime())
                 }
+                onFrame()
             }
         }
-        surface.commit()
     }
 
     private var frameNumber = 0L
@@ -255,13 +272,7 @@ class NestedWindow(
      */
     fun requestFrame() {
         if (!configured || frameRequested) return
-        frameRequested = true
-        surface.frame().events = object : WlCallback.Events {
-            override fun done(proxy: WlCallback, callbackData: Int) {
-                frameRequested = false
-                onFrame()
-            }
-        }
+        requestFrameCallback()
         surface.commit()
     }
 

@@ -1,5 +1,6 @@
 package dev.iriswm
 
+import dev.caulis.core.FrameStats
 import dev.caulis.core.Output
 import dev.caulis.core.nested.NestedWindow
 import dev.caulis.event.EventLoop
@@ -36,9 +37,12 @@ fun runNested(options: Options) {
                     // Each refresh of the outer session: draw what changed (if anything),
                     // then tell programs their last frame is on screen.
                     val view = desktop.createView()
-                    window.onFrame = {
-                        if (desktop.needsRedraw(view)) window.present { target, age -> desktop.render(view, target, age) }
-                        desktop.frameShown(now())
+                    val stats = if (options.stats) FrameStats("NESTED-1") else null
+                    val present = timed(stats, window::present)
+                    window.onFrame = { desktop.refresh(view, present) }
+                    window.onPresented = { nanos ->
+                        stats?.presented(nanos, refreshNanos = 0)
+                        desktop.presented(view, nanos, refreshNanos = 0, sequence = 0, flags = 0)
                     }
                     desktop.onChange = window::requestFrame
 

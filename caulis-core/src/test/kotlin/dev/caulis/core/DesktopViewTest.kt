@@ -52,3 +52,32 @@ class DesktopViewTest {
         assertEquals(Rect(90, 90, 10, 10), view.takeRepaint(1, screen))
     }
 }
+
+class CullHiddenTest {
+
+    private val screen = Rect(0, 0, 100, 100)
+    private fun item(name: String, rect: Rect, opaque: Boolean = false) =
+        DrawItem.Color(name, rect, 0f, 0f, 0f, covers = if (opaque) listOf(rect) else emptyList())
+
+    @Test
+    fun `a window completely behind an opaque one is not drawn`() {
+        val below = item("below", Rect(10, 10, 20, 20))
+        val above = item("above", Rect(0, 0, 50, 50), opaque = true)
+        assertEquals(listOf("above"), cullHidden(listOf(below, above), screen).map { it.key })
+    }
+
+    @Test
+    fun `partly covered or covered by something transparent stays`() {
+        val below = item("below", Rect(40, 40, 20, 20))
+        val opaque = item("opaque", Rect(0, 0, 50, 50), opaque = true)
+        val glass = item("glass", Rect(0, 0, 100, 100))
+        assertEquals(listOf("below", "opaque", "glass"), cullHidden(listOf(below, opaque, glass), screen).map { it.key })
+    }
+
+    @Test
+    fun `things outside the screen are not drawn`() {
+        val outside = item("outside", Rect(200, 0, 10, 10))
+        val edge = item("edge", Rect(95, 95, 10, 10))
+        assertEquals(listOf("edge"), cullHidden(listOf(outside, edge), screen).map { it.key })
+    }
+}

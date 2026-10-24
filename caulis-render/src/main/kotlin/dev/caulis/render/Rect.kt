@@ -16,6 +16,10 @@ data class Rect(val x: Int, val y: Int, val width: Int, val height: Int) {
         return if (r > left && b > top) Rect(left, top, r - left, b - top) else null
     }
 
+    /** True if [other] lies completely inside this rectangle. */
+    fun contains(other: Rect): Boolean =
+        other.x >= x && other.y >= y && other.right <= right && other.bottom <= bottom
+
     /** The smallest rectangle that contains both. */
     fun union(other: Rect): Rect {
         if (isEmpty) return other

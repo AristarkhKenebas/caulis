@@ -1,11 +1,13 @@
 package dev.iriswm
 
 import dev.caulis.core.DesktopView
+import dev.caulis.core.FrameStats
 import dev.caulis.core.Output
 import dev.caulis.core.drm.DrmBackend
 import dev.caulis.core.drm.DrmOutput
 import dev.caulis.event.EventLoop
 import dev.caulis.event.Watchdog
+import dev.caulis.protocol.presentationtime.WpPresentationFeedback
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -47,11 +49,13 @@ fun runOnScreen(options: Options) {
                     // their last frame is on screen.
                     val view = desktop.createView()
                     views[monitor] = view
-                    monitor.onFrame = {
-                        if (monitor.needsPicture || desktop.needsRedraw(view)) {
-                            monitor.present { target, age -> desktop.render(view, target, age) }
-                        }
-                        desktop.frameShown(now())
+                    val stats = if (options.stats) FrameStats(monitor.name) else null
+                    val present = timed(stats, monitor::present)
+                    monitor.onFrame = { desktop.refresh(view, present, force = monitor.needsPicture) }
+                    monitor.onPresented = { nanos, refreshNanos, sequence ->
+                        stats?.presented(nanos, refreshNanos)
+                        // Exact: the kernel's own timestamp of the refresh that showed it.
+                        desktop.presented(view, nanos, refreshNanos, sequence, EXACT_PRESENTATION)
                     }
                 }
                 backend.onOutputRemoved = { monitor ->
@@ -83,6 +87,10 @@ fun runOnScreen(options: Options) {
         }
     }
 }
+
+// The time comes from the display hardware at the refresh (vsync) itself.
+private const val EXACT_PRESENTATION = WpPresentationFeedback.Kind.VSYNC or
+    WpPresentationFeedback.Kind.HW_CLOCK or WpPresentationFeedback.Kind.HW_COMPLETION
 
 private const val DEFAULT_WIDTH = 1920
 private const val DEFAULT_HEIGHT = 1080

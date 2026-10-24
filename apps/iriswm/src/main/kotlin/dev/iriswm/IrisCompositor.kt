@@ -2,14 +2,17 @@ package dev.iriswm
 
 import dev.caulis.core.Compositor
 import dev.caulis.core.DataDeviceManager
+import dev.caulis.core.FrameStats
 import dev.caulis.core.Desktop
 import dev.caulis.core.LinuxDmabuf
+import dev.caulis.core.Presentation
 import dev.caulis.core.Shm
 import dev.caulis.core.XdgShell
 import dev.caulis.core.input.Keymap
 import dev.caulis.core.input.Seat
 import dev.caulis.event.EventLoop
 import dev.caulis.protocol.Display
+import dev.caulis.render.GpuTarget
 import dev.caulis.render.Renderer
 
 /**
@@ -36,6 +39,7 @@ class IrisCompositor(
         Shm(display)
         if (renderer.renderNode != null) LinuxDmabuf(display, renderer)
         DataDeviceManager(display, seat)
+        Presentation(display)
         XdgShell(display).listener = desktop
         socket = display.addSocket()
     }
@@ -60,6 +64,23 @@ class IrisCompositor(
         seat.close()
         keymap.close()
         display.close()
+    }
+}
+
+/**
+ * Wraps a backend's `present` so drawing is timed by [stats] (if measuring is on).
+ */
+fun timed(
+    stats: FrameStats?,
+    present: ((GpuTarget, Int) -> Unit) -> Unit,
+): ((GpuTarget, Int) -> Unit) -> Unit {
+    if (stats == null) return present
+    return { draw ->
+        present { target, age ->
+            stats.drawStarted()
+            draw(target, age)
+            stats.drawFinished()
+        }
     }
 }
 

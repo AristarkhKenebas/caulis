@@ -1,0 +1,47 @@
+# Builds and tests Caulis and irisWM on GitLab (same steps as GitHub: ci/build.sh).
+image: eclipse-temurin:27-jdk
+
+variables:
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle-home"
+
+cache:
+  key: gradle
+  paths:
+    - .gradle-home/caches/
+    - .gradle-home/wrapper/
+
+stages:
+  - build
+  - release
+
+build:
+  stage: build
+  timeout: 30m
+  script:
+    - ci/install-deps-debian.sh
+    - ci/build.sh
+  artifacts:
+    when: always
+    paths:
+      - apps/iriswm/build/distributions/
+      - "**/build/reports/tests/"
+    reports:
+      junit: "**/build/test-results/test/*.xml"
+
+# A version tag (v0.1.0) publishes the irisWM archives as a GitLab release.
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+  needs: [build]
+  script:
+    - echo "Releasing $CI_COMMIT_TAG"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: "irisWM $CI_COMMIT_TAG"
+    description: "irisWM $CI_COMMIT_TAG"
+    assets:
+      links:
+        - name: "Build artifacts (archives)"
+          url: "$CI_PROJECT_URL/-/jobs/artifacts/$CI_COMMIT_TAG/browse/apps/iriswm/build/distributions?job=build"

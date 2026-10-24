@@ -52,6 +52,9 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
     var cursorIsDefault = true
         private set
 
+    /** Called when the cursor picture changes (the window manager redraws it). */
+    var onCursorChange: () -> Unit = {}
+
     init {
         display.addGlobal(WlSeat, VERSION) { seat ->
             seat.requests = seatRequests
@@ -103,6 +106,7 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
             cursorHotspotX = hotspotX
             cursorHotspotY = hotspotY
             cursorIsDefault = false
+            onCursorChange()
         }
 
         override fun release(resource: WlPointer) {}

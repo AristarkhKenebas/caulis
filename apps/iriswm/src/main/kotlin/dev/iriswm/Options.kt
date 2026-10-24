@@ -10,6 +10,8 @@ data class Options(
     val run: List<String> = emptyList(),
     /** The terminal Super+Enter opens. */
     val terminal: String = "foot",
+    /** Print frame timing every few seconds (frames per second, stutters, GC pauses). */
+    val stats: Boolean = false,
 ) {
     enum class Mode { NESTED, SCREEN }
 
@@ -23,6 +25,7 @@ data class Options(
   --exit-after SEC    quit by itself after SEC seconds
   --run COMMAND       start COMMAND inside irisWM (may be given several times)
   --terminal COMMAND  terminal for Super+Enter (default: foot)
+  --stats             print frame timing every 5 seconds (fps, late frames, GC pauses)
   --help              show this text
 
 Keys:
@@ -36,6 +39,7 @@ Keys:
             var exitAfter: Long? = null
             val run = ArrayList<String>()
             var terminal = "foot"
+            var stats = false
             var i = 0
             fun value(name: String): String = args.getOrNull(++i) ?: throw IllegalArgumentException("$name needs a value")
             while (i < args.size) {
@@ -46,12 +50,13 @@ Keys:
                         ?: throw IllegalArgumentException("--exit-after needs a number of seconds")
                     "--run" -> run += value(arg)
                     "--terminal" -> terminal = value(arg)
+                    "--stats" -> stats = true
                     "--help", "-h" -> throw HelpRequested()
                     else -> throw IllegalArgumentException("Unknown option: $arg")
                 }
                 i++
             }
-            return Options(mode, exitAfter, run, terminal)
+            return Options(mode, exitAfter, run, terminal, stats)
         }
     }
 

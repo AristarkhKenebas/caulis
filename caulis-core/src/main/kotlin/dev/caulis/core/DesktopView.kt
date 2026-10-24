@@ -1,5 +1,6 @@
 package dev.caulis.core
 
+import dev.caulis.protocol.presentationtime.WpPresentationFeedback
 import dev.caulis.render.GpuTexture
 import dev.caulis.render.Rect
 
@@ -14,6 +15,9 @@ class DesktopView internal constructor() {
 
     // What the last frame on this screen showed, in drawing order.
     internal var shown: List<DrawItem> = emptyList()
+
+    // Programs waiting to hear when the frame being shown now reaches the screen.
+    internal val inFlight = ArrayList<WpPresentationFeedback>()
 
     // Changed since the last frame (desktop coordinates); null = nothing.
     private var pending: Rect? = null
@@ -68,11 +72,27 @@ internal sealed class DrawItem {
     /** Identifies the same thing from one frame to the next. */
     abstract val key: Any
 
-    class Picture(val surface: Surface, val texture: GpuTexture, override val rect: Rect, val opaque: Boolean) : DrawItem() {
+    /** Parts that hide whatever is below them (desktop coordinates). */
+    abstract val covers: List<Rect>
+
+    class Picture(
+        val surface: Surface,
+        val texture: GpuTexture,
+        override val rect: Rect,
+        val opaque: Boolean,
+        override val covers: List<Rect>,
+    ) : DrawItem() {
         override val key: Any get() = surface
     }
 
-    class Color(override val key: Any, override val rect: Rect, val red: Float, val green: Float, val blue: Float) : DrawItem()
+    class Color(
+        override val key: Any,
+        override val rect: Rect,
+        val red: Float,
+        val green: Float,
+        val blue: Float,
+        override val covers: List<Rect> = emptyList(),
+    ) : DrawItem()
 
     /** True if [other] (the same thing last frame) looks different apart from its content. */
     fun differsFrom(other: DrawItem): Boolean = when {
@@ -81,4 +101,24 @@ internal sealed class DrawItem {
         this is Color && other is Color -> red != other.red || green != other.green || blue != other.blue
         else -> true
     }
+}
+
+/**
+ * Leaves out what nobody can see: items outside [bounds], or completely behind something
+ * opaque above them. [items] and the result are bottom to top.
+ *
+ * Careful rather than exact: an item counts as hidden only if one single opaque rectangle
+ * covers all of it, so nothing visible is ever skipped.
+ */
+internal fun cullHidden(items: List<DrawItem>, bounds: Rect): List<DrawItem> {
+    val covers = ArrayList<Rect>()
+    val kept = ArrayList<DrawItem>()
+    for (item in items.asReversed()) {
+        val onScreen = item.rect.intersect(bounds) ?: continue
+        if (covers.any { it.contains(onScreen) }) continue
+        kept += item
+        covers += item.covers
+    }
+    kept.reverse()
+    return kept
 }

@@ -74,6 +74,8 @@ class LinuxDmabufTest {
 
     @Test
     fun `a plane outside its memory is refused`() {
+        // Skipping must happen outside assertFailsWith, or the skip counts as the wrong error.
+        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
         assertFailsWith<ConnectionException> {
             withGpuClient { _, connection, dmabuf, _ ->
                 GlesRenderer.create().use { renderer ->

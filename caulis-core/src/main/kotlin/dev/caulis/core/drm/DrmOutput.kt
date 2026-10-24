@@ -58,6 +58,15 @@ class DrmOutput internal constructor(
     /** Called when it is time to draw the next picture: draw it with [present]. */
     var onFrame: () -> Unit = {}
 
+    /**
+     * Called when a picture from [present] reached the screen: the moment of that refresh
+     * ([nanos], monotonic clock), the time between refreshes and the monitor's frame number.
+     */
+    var onPresented: (nanos: Long, refreshNanos: Long, sequence: Long) -> Unit = { _, _, _ -> }
+
+    /** Time between two refreshes of the current mode, in nanoseconds. */
+    val refreshNanos: Long get() = 1_000_000_000_000L / (mode?.refreshMillihertz ?: 60_000).coerceAtLeast(1_000)
+
     private val connectorProps = device.properties(connectorId, Drm.DRM_MODE_OBJECT_CONNECTOR())
     private val crtcProps = device.properties(crtcId, Drm.DRM_MODE_OBJECT_CRTC())
     private val planeProps = device.properties(planeId, Drm.DRM_MODE_OBJECT_PLANE())
@@ -78,7 +87,7 @@ class DrmOutput internal constructor(
     private var frameScheduled = false
 
     init {
-        device.onFlip(crtcId) { flipped() }
+        device.onFlip(crtcId) { nanos, sequence -> flipped(nanos, sequence) }
     }
 
     /**
@@ -187,10 +196,18 @@ class DrmOutput internal constructor(
     }
 
     // The monitor now shows the queued picture: the previous one is free again.
-    private fun flipped() {
+    private fun flipped(nanos: Long, sequence: Long) {
+        val wasQueued = queued != null
         shown = queued ?: shown
         queued = null
         lastFlipNanos = System.nanoTime()
+        if (wasQueued) {
+            try {
+                onPresented(nanos, refreshNanos, sequence)
+            } catch (e: Exception) {
+                System.getLogger("caulis.drm").log(System.Logger.Level.ERROR, "Reporting a frame of $name failed", e)
+            }
+        }
         nextFrame()
     }
 
@@ -200,8 +217,7 @@ class DrmOutput internal constructor(
      */
     fun requestFrame() {
         if (queued != null || mode == null) return // onFrame comes with the next flip anyway
-        val period = 1_000_000_000_000L / (mode?.refreshMillihertz ?: 60_000).coerceAtLeast(1_000)
-        val wait = (lastFlipNanos + period - System.nanoTime()).coerceAtLeast(0) / 1_000_000
+        val wait = (lastFlipNanos + refreshNanos - System.nanoTime()).coerceAtLeast(0) / 1_000_000
         scheduleFrame(wait)
     }
 

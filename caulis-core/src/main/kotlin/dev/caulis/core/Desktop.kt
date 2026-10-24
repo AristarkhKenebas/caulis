@@ -1,6 +1,7 @@
 package dev.caulis.core
 
 import dev.caulis.core.input.Seat
+import dev.caulis.event.EventLoop
 import dev.caulis.render.GpuTarget
 import dev.caulis.render.Rect
 import dev.caulis.render.Renderer
@@ -15,7 +16,7 @@ import dev.caulis.render.Renderer
 class Desktop(
     private val renderer: Renderer,
     private val seat: Seat,
-    compositor: Compositor,
+    private val compositor: Compositor,
     width: Int,
     height: Int,
 ) : XdgShell.Listener {
@@ -45,14 +46,26 @@ class Desktop(
 
     fun removeView(view: DesktopView) {
         views -= view
+        for (feedback in view.inFlight) feedback.discard()
+        view.inFlight.clear()
     }
 
     init {
         // Every commit may change what is on screen.
-        compositor.onNewSurface { surface -> surface.onCommit { surfaceCommitted(surface) } }
+        compositor.onNewSurface { surface ->
+            surface.onCommit { surfaceCommitted(surface) }
+            surface.resource.onDestroy { keptUpdating.remove(surface) }
+        }
+        seat.onCursorChange = ::changed
     }
 
-    private fun changed() = onChange()
+    // Grows with every change; the list of things to draw is rebuilt only when it moved on.
+    private var version = 0L
+
+    private fun changed() {
+        version++
+        onChange()
+    }
 
     /** Mapped windows, bottom to top. */
     val windows = ArrayList<Window>()
@@ -71,7 +84,7 @@ class Desktop(
     var pointerY = height / 2.0
         private set
 
-    // Surfaces visible in the last frame; they get "frame done" after it is shown.
+    // Surfaces visible right now; they get "frame done" at every refresh.
     private val visible = LinkedHashSet<Surface>()
 
     // --- windows and popups -----------------------------------------------------------
@@ -131,7 +144,7 @@ class Desktop(
         pointerY = y.coerceIn(0.0, height - 1.0)
         val hit = surfaceAt(pointerX, pointerY)
         seat.pointerMotion(timeMillis, hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
-        changed() // the cursor moved
+        onChange() // only the cursor moved: the rest of the scene stays as it is
     }
 
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean) {
@@ -211,6 +224,36 @@ class Desktop(
             }
         }
         changed()
+        scheduleHiddenRefresh()
+    }
+
+    /**
+     * One refresh of a screen: draws a frame with [present] if something changed on [view]
+     * (or if [force] is set, e.g. while the monitor is being set up), and tells programs
+     * that it is time for their next frame. Returns true if a frame was drawn.
+     *
+     * [present] is the backend's: `monitor::present` or `window::present`.
+     */
+    fun refresh(view: DesktopView, present: ((GpuTarget, Int) -> Unit) -> Unit, force: Boolean = false): Boolean {
+        val draw = force || needsRedraw(view)
+        if (draw) {
+            present { target, age -> render(view, target, age) }
+        } else {
+            // Nothing new to show: whatever programs committed is on screen already.
+            takeFeedbacks(view)
+            presented(view, System.nanoTime(), refreshNanos = 0, sequence = 0, flags = 0)
+        }
+        frameShown((System.nanoTime() / 1_000_000).toInt())
+        return draw
+    }
+
+    /**
+     * The frame last drawn for [view] reached the screen at [nanos] (monotonic clock).
+     * Programs that asked are told (presentation-time).
+     */
+    fun presented(view: DesktopView, nanos: Long, refreshNanos: Long, sequence: Long, flags: Int) {
+        Presentation.presented(view.inFlight, nanos, refreshNanos, sequence, flags)
+        view.inFlight.clear()
     }
 
     /**
@@ -229,6 +272,7 @@ class Desktop(
     fun render(view: DesktopView, target: GpuTarget, age: Int) {
         val items = items()
         compare(view, items)
+        takeFeedbacks(view)
         val repaint = view.takeRepaint(age, Rect(0, 0, target.width, target.height)) ?: return
         renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], clip = repaint)
         for (item in items) {
@@ -242,8 +286,19 @@ class Desktop(
         renderer.end()
     }
 
+    // The visible programs' "tell me when it is shown" requests now belong to this frame.
+    private fun takeFeedbacks(view: DesktopView) {
+        for (surface in visible) {
+            val feedbacks = surface.current.presentationFeedbacks
+            if (feedbacks.isEmpty()) continue
+            view.inFlight += feedbacks
+            feedbacks.clear()
+        }
+    }
+
     // Marks everything that appeared, disappeared, moved or changed order since the view's last frame.
     private fun compare(view: DesktopView, items: List<DrawItem>) {
+        if (items === view.shown) return // nothing changed since the last comparison
         val before = view.shown.withIndex().associateBy({ it.value.key }, { it })
         val now = items.withIndex().associateBy({ it.value.key }, { it })
         for ((key, old) in before) {
@@ -259,28 +314,65 @@ class Desktop(
         view.shown = items
     }
 
-    // Everything on screen now, bottom to top.
+    // The scene (everything except the cursor), rebuilt only after a change.
+    private var scene: List<DrawItem> = emptyList()
+    private val sceneVisible = ArrayList<Surface>()
+    private var sceneVersion = -1L
+
+    // The scene plus the cursor, rebuilt when the scene changed or the pointer moved.
+    private var items: List<DrawItem> = emptyList()
+    private var itemsVersion = -1L
+    private var itemsPointerX = Double.NaN
+    private var itemsPointerY = Double.NaN
+
+    /** Everything to draw now, bottom to top, the cursor last. */
     private fun items(): List<DrawItem> {
+        if (itemsVersion == version && itemsPointerX == pointerX && itemsPointerY == pointerY) return items
+        val all = ArrayList<DrawItem>(scene().size + 2)
+        all += scene
         visible.clear()
-        val items = ArrayList<DrawItem>()
+        visible += sceneVisible
+        val cursorStart = all.size
+        addCursor(all)
+        for (i in cursorStart until all.size) (all[i] as? DrawItem.Picture)?.let { visible += it.surface }
+        items = all
+        itemsVersion = version
+        itemsPointerX = pointerX
+        itemsPointerY = pointerY
+        return all
+    }
+
+    /**
+     * Windows and popups to draw, bottom to top. Things nobody can see are left out:
+     * outside the desktop, or completely behind something opaque.
+     */
+    private fun scene(): List<DrawItem> {
+        if (sceneVersion == version) return scene
+        val all = ArrayList<DrawItem>()
         for (window in windows) {
             val visibleRect = window.shell.visibleRect
-            addTree(items, window.surface, window.x - visibleRect.x, window.y - visibleRect.y)
+            addTree(all, window.surface, window.x - visibleRect.x, window.y - visibleRect.y)
         }
         for (popup in popups) {
             val (x, y) = popupOrigin(popup)
-            addTree(items, popup.surface, x, y)
+            addTree(all, popup.surface, x, y)
         }
-        addCursor(items)
-        return items
+
+        // Leave out what nobody can see; only the rest counts as visible.
+        val kept = cullHidden(all, Rect(0, 0, width, height))
+        sceneVisible.clear()
+        for (item in kept) if (item is DrawItem.Picture) sceneVisible += item.surface
+        scene = kept
+        sceneVersion = version
+        return kept
     }
 
     private fun addTree(items: MutableList<DrawItem>, surface: Surface, x: Int, y: Int) {
         for (child in surface.stack) {
             if (child === surface) {
                 val texture = surface.texture ?: continue
-                items += DrawItem.Picture(surface, texture, Rect(x, y, surface.width, surface.height), surface.opaque)
-                visible += surface
+                val covers = surface.opaqueRects().map { it.translate(x, y) }
+                items += DrawItem.Picture(surface, texture, Rect(x, y, surface.width, surface.height), surface.opaque, covers)
             } else {
                 val sub = child.subsurface ?: continue
                 addTree(items, child, x + sub.x, y + sub.y)
@@ -302,18 +394,78 @@ class Desktop(
         }
     }
 
+    // --- programs nobody sees -------------------------------------------------------------
+
+    // Surfaces kept updating although they may be hidden (e.g. shared in a screen recording).
+    private val keptUpdating = HashMap<Surface, Int>()
+
     /**
-     * Tells every surface that was on screen in the last frame that it was shown, so the
-     * program can draw its next frame. Call once per screen refresh, also when nothing
-     * had to be redrawn.
+     * Keeps [surface] and its subsurfaces running at full speed even while nobody sees it,
+     * for example while it is shared in a screen recording. Close the returned handle when
+     * that ends. Without it, hidden programs only get a slow heartbeat (see [frameShown]).
+     */
+    fun keepUpdating(surface: Surface): AutoCloseable {
+        keptUpdating[surface] = (keptUpdating[surface] ?: 0) + 1
+        var open = true
+        return AutoCloseable {
+            if (!open) return@AutoCloseable
+            open = false
+            val count = (keptUpdating[surface] ?: 1) - 1
+            if (count <= 0) keptUpdating.remove(surface) else keptUpdating[surface] = count
+        }
+    }
+
+    private fun isKeptUpdating(surface: Surface): Boolean {
+        var current: Surface? = surface
+        while (current != null) {
+            if (current in keptUpdating) return true
+            current = current.subsurface?.parent
+        }
+        return false
+    }
+
+    /**
+     * Tells every program on screen (and those kept updating) that its last frame was
+     * shown, so it can draw the next one. Called at every refresh, also when nothing had
+     * to be redrawn. Hidden programs get a slow heartbeat instead: they do not freeze, but
+     * they do not burn the computer's power on pictures nobody sees either.
      */
     fun frameShown(timeMillis: Int) {
         for (surface in visible) if (surface.resource.isAlive) surface.sendFrameDone(timeMillis)
+        for (surface in compositor.surfaces) {
+            if (surface !in visible && isKeptUpdating(surface)) surface.sendFrameDone(timeMillis)
+        }
+        scheduleHiddenRefresh()
+    }
+
+    private var hiddenRefresh: EventLoop.Timer? = null
+
+    // Hidden programs waiting for their next frame get it once per HIDDEN_REFRESH_MILLIS.
+    private fun scheduleHiddenRefresh() {
+        if (hiddenRefresh != null || hiddenWaiting().isEmpty()) return
+        hiddenRefresh = compositor.display.loop.after(HIDDEN_REFRESH_MILLIS) {
+            hiddenRefresh = null
+            val time = (System.nanoTime() / 1_000_000).toInt()
+            for (surface in hiddenWaiting()) {
+                surface.sendFrameDone(time)
+                // Its pictures were never shown, and will not be until it is visible again.
+                for (feedback in surface.current.presentationFeedbacks) feedback.discard()
+                surface.current.presentationFeedbacks.clear()
+            }
+            scheduleHiddenRefresh()
+        }
+    }
+
+    private fun hiddenWaiting(): List<Surface> = compositor.surfaces.filter {
+        it.current.frameCallbacks.isNotEmpty() && it !in visible && !isKeptUpdating(it)
     }
 
     private companion object {
         val BACKGROUND = floatArrayOf(0.16f, 0.18f, 0.22f)
         const val CURSOR_BORDER = "cursor border"
         const val CURSOR_FILL = "cursor fill"
+
+        /** How often programs nobody sees may draw a frame (they must not freeze completely). */
+        const val HIDDEN_REFRESH_MILLIS = 1000L
     }
 }
