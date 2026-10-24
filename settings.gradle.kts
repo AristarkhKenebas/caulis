@@ -24,6 +24,8 @@ include(
     "caulis-wm",
     "examples:minimal",
     "examples:minimal-java",
+    "examples:custom-layout",
+    "examples:window-rules",
 )
 
 // irisWM (apps/iriswm) is a separate build with its own settings; it uses this one.

@@ -10,6 +10,8 @@ java = "27"
 java-bytecode = "26"
 kotlin = "2.4.21"
 junit = "6.1.3"
+# Builds the API documentation website from the code comments.
+dokka = "2.2.0"
 
 # jextract turns C headers into Java FFM bindings. It is only needed to regenerate
 # bindings (./gradlew :caulis-native:jextract), not for a normal build.
@@ -19,6 +21,7 @@ jextract-url = "https://download.java.net/java/early_access/jextract/25/2/openjd
 jextract-sha256 = "d0cc481abc1adb16fb9514e1c5e0bfc08d38c29228bece667fb5054ceaffaa42"
 
 [libraries]
+dokka-gradle-plugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }

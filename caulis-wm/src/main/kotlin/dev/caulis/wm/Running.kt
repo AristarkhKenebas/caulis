@@ -31,6 +31,8 @@ internal class Running(
     switchConsole: ((Int) -> Unit)?,
 ) : AutoCloseable {
 
+    private val log = System.getLogger("caulis")
+
     val display = Display(loop)
     private val keymap = Keymap.fromNames(layouts = config.keyboardLayouts, options = config.keyboardOptions)
     val seat = Seat(display, keymap)
@@ -49,11 +51,21 @@ internal class Running(
         Presentation(display)
         XdgShell(display).listener = desktop
         desktop.layout = config.layout
-        socket = display.addSocket()
+        socket = config.socketDirectory?.let(display::addSocket) ?: display.addSocket()
 
         // Defaults first, the user's own bindings after them (later ones win).
-        if (config.useDefaultBindings) Caulis.defaultBindings.forEach { (combination, action) -> keys.bind(combination) { action(config) } }
-        config.bindings.forEach { (combination, action) -> keys.bind(combination) { action(config) } }
+        if (config.useDefaultBindings) {
+            Caulis.defaultBindings.forEach { (combination, action) -> keys.bind(combination) { safely(combination) { action(config) } } }
+        }
+        config.bindings.forEach { (combination, action) -> keys.bind(combination) { safely(combination) { action(config) } } }
+
+        // The user's rules and events (dialogs and fixed-size windows always float).
+        val defaultRule = desktop.floatRule
+        desktop.floatRule = { window -> defaultRule(window) || config.floatRules.any { rule -> safely("floatWhen", false) { rule(window) } } }
+        config.windowOpened.forEach { action -> desktop.onWindowOpened { window -> action(config, window) } }
+        config.windowClosed.forEach { action -> desktop.onWindowClosed { window -> action(config, window) } }
+        config.focusChanged.forEach { action -> desktop.onFocusChanged { window -> action(config, window) } }
+        config.workspaceChanged.forEach { action -> desktop.onWorkspaceChanged { workspace -> action(config, workspace.number) } }
         // Never locked in: quitting and text consoles always work.
         keys.bind("Ctrl+Alt+BackSpace") { quit() }
         if (switchConsole != null) for (n in 1..12) keys.bind("Ctrl+Alt+F$n") { switchConsole(n) }
@@ -61,7 +73,10 @@ internal class Running(
 
     fun quit() = loop.stop()
 
-    /** Starts [command] (run by /bin/sh) as a program inside the compositor. */
+    /**
+     * Starts [command] (run by /bin/sh) as a program inside the compositor. If the program
+     * does not exist, that is said in plain words instead of nothing happening.
+     */
     fun launch(command: String) {
         try {
             val builder = ProcessBuilder("/bin/sh", "-c", command)
@@ -71,11 +86,26 @@ internal class Running(
             }
             builder.redirectOutput(ProcessBuilder.Redirect.DISCARD)
             builder.redirectError(ProcessBuilder.Redirect.DISCARD)
-            builder.start()
+            builder.start().onExit().thenAccept { process ->
+                // 127 is the shell's "command not found".
+                if (process.exitValue() == 127) {
+                    log.log(System.Logger.Level.WARNING, "\"$command\" could not be started: the program was not found (is it installed?)")
+                }
+            }
         } catch (e: Exception) {
-            System.err.println("Could not start \"$command\": ${e.message}")
+            log.log(System.Logger.Level.WARNING, "\"$command\" could not be started: ${e.message}")
         }
     }
+
+    // Runs the user's code; a mistake in it is reported and the compositor keeps running.
+    private fun <T> safely(what: String, fallback: T, action: () -> T): T = try {
+        action()
+    } catch (e: Exception) {
+        log.log(System.Logger.Level.ERROR, "Your code for \"$what\" failed (ignored): $e", e)
+        fallback
+    }
+
+    private fun safely(what: String, action: () -> Unit) = safely(what, Unit, action)
 
     /** A key from the keyboard: the compositor's combination, or passed to the focused program. */
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
@@ -119,7 +149,7 @@ internal class Running(
         config.running = this
         try {
             config.exitAfterSeconds?.let { seconds -> loop.after(seconds * 1000) { quit() } }
-            config.startActions.forEach { it(config) }
+            config.startActions.forEach { action -> safely("onStart") { action(config) } }
             loop.run()
         } finally {
             config.running = null

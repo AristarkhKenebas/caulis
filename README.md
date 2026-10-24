@@ -26,7 +26,9 @@ Caulis.create()
         .run();
 ```
 
-See `examples/minimal` and `examples/minimal-java`. Layouts: `Floating`, `Dwindle`,
+**New here? Start with [Your first compositor](docs/getting-started.md).**
+
+See `examples/` (`minimal`, `minimal-java`, `custom-layout`, `window-rules`). Layouts: `Floating`, `Dwindle`,
 `MasterStack`, `Scrolling` — or your own (implement `Layout`: windows and an area in,
 rectangles out). Change them while running; windows move to their new places right away.
 
@@ -48,7 +50,8 @@ rectangles out). Change them while running; windows move to their new places rig
 ## Build
 
 ```sh
-./gradlew build
+./gradlew build            # build and test everything
+./gradlew dokkaGenerate    # API documentation: build/dokka/html/index.html
 ```
 
 ## Try it

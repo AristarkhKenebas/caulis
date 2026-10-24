@@ -80,6 +80,48 @@ class Desktop(
         onChange()
     }
 
+    // --- events for your own code ------------------------------------------------------------
+
+    private val windowOpenedListeners = ArrayList<(Window) -> Unit>()
+    private val windowClosedListeners = ArrayList<(Window) -> Unit>()
+    private val focusListeners = ArrayList<(Window?) -> Unit>()
+    private val workspaceListeners = ArrayList<(Workspace) -> Unit>()
+
+    /** Runs [listener] when a window appears (after it got its place and the focus). */
+    fun onWindowOpened(listener: (Window) -> Unit) {
+        windowOpenedListeners += listener
+    }
+
+    /** Runs [listener] when a window goes away. */
+    fun onWindowClosed(listener: (Window) -> Unit) {
+        windowClosedListeners += listener
+    }
+
+    /** Runs [listener] when another window gets the keyboard (null = none). */
+    fun onFocusChanged(listener: (Window?) -> Unit) {
+        focusListeners += listener
+    }
+
+    /** Runs [listener] when another workspace is shown. */
+    fun onWorkspaceChanged(listener: (Workspace) -> Unit) {
+        workspaceListeners += listener
+    }
+
+    // Calls listeners one by one; a mistake in one of them is reported and the rest go on
+    // (your code must never be able to bring the whole desktop down).
+    private fun <T> notify(listeners: List<(T) -> Unit>, value: T, event: String) {
+        for (listener in listeners.toList()) {
+            try {
+                listener(value)
+            } catch (e: Exception) {
+                log.log(System.Logger.Level.ERROR, "Your $event handler failed (ignored): $e", e)
+            }
+        }
+    }
+
+    private val log = System.getLogger("caulis")
+    private var lastFocused: Window? = null
+
     // --- workspaces -----------------------------------------------------------------------
 
     /**
@@ -120,6 +162,7 @@ class Desktop(
         if (previous.isEmpty) workspaces.remove(previous.number)
         arrange(activeWorkspace)
         focus(activeWorkspace.windows.lastOrNull())
+        notify(workspaceListeners, activeWorkspace, "workspace")
     }
 
     /** Moves [window] to workspace [number] (it stays where it is on screen if floating). */
@@ -302,6 +345,7 @@ class Desktop(
         val targets = arrange(workspace)
         targets[window]?.let { window.x = it.x; window.y = it.y }
         focus(window)
+        notify(windowOpenedListeners, window, "window-opened")
     }
 
     override fun windowUnmapped(window: Window) {
@@ -313,6 +357,7 @@ class Desktop(
         if (workspace != null) arrange(workspace)
         if (seat.keyboardFocus === window.surface) focus(windows.lastOrNull())
         changed()
+        notify(windowClosedListeners, window, "window-closed")
     }
 
     override fun windowCommitted(window: Window) {
@@ -607,6 +652,7 @@ class Desktop(
             if (workspace != null && workspace !== activeWorkspace) {
                 activeWorkspace = workspace
                 arrange(workspace)
+                notify(workspaceListeners, workspace, "workspace")
             }
             if (activeWorkspace.minimized.remove(window)) activeWorkspace.windows += window
         }
@@ -618,6 +664,10 @@ class Desktop(
             window.setActivated(true)
         }
         seat.focusKeyboard(window?.surface)
+        if (window !== lastFocused) {
+            lastFocused = window
+            notify(focusListeners, window, "focus")
+        }
         // Layouts that follow the focus (scrolling) move their windows.
         if (window != null && window.tiled && activeWorkspace.layout !== Floating) arrange(activeWorkspace)
         changed()

@@ -81,8 +81,19 @@ class Caulis {
     /** Quit by itself after this many seconds (handy for trying things out safely). */
     var exitAfterSeconds: Long? = null
 
+    /** Advanced: the session socket to open the nested window in (null = WAYLAND_DISPLAY). */
+    var nestedIn: java.nio.file.Path? = null
+
+    /** Advanced: where programs' socket is created (null = XDG_RUNTIME_DIR, the usual place). */
+    var socketDirectory: java.nio.file.Path? = null
+
     internal val bindings = ArrayList<Pair<String, Caulis.() -> Unit>>()
     internal val startActions = ArrayList<Caulis.() -> Unit>()
+    internal val floatRules = ArrayList<(Window) -> Boolean>()
+    internal val windowOpened = ArrayList<Caulis.(Window) -> Unit>()
+    internal val windowClosed = ArrayList<Caulis.(Window) -> Unit>()
+    internal val focusChanged = ArrayList<Caulis.(Window?) -> Unit>()
+    internal val workspaceChanged = ArrayList<Caulis.(Int) -> Unit>()
 
     /** Runs [action] when the key [combination] (e.g. "Super+Shift+Q") is pressed. */
     @JvmSynthetic // Java uses the Consumer version below
@@ -96,6 +107,39 @@ class Caulis {
         startActions += action
     }
 
+    /**
+     * Windows for which [rule] is true float above the tiled ones instead of joining the
+     * layout, e.g. `floatWhen { it.appId == "pavucontrol" }`. Dialogs always float.
+     */
+    @JvmSynthetic
+    fun floatWhen(rule: (Window) -> Boolean) {
+        floatRules += rule
+    }
+
+    /** Runs [action] when a window appears, e.g. to move it to a workspace. */
+    @JvmSynthetic
+    fun onWindowOpened(action: Caulis.(Window) -> Unit) {
+        windowOpened += action
+    }
+
+    /** Runs [action] when a window goes away. */
+    @JvmSynthetic
+    fun onWindowClosed(action: Caulis.(Window) -> Unit) {
+        windowClosed += action
+    }
+
+    /** Runs [action] when another window gets the keyboard (null = none). */
+    @JvmSynthetic
+    fun onFocusChanged(action: Caulis.(Window?) -> Unit) {
+        focusChanged += action
+    }
+
+    /** Runs [action] with the number of the workspace that is now shown. */
+    @JvmSynthetic
+    fun onWorkspaceChanged(action: Caulis.(Int) -> Unit) {
+        workspaceChanged += action
+    }
+
     // --- the same for Java (each returns this, so calls can be chained) -----------------
 
     fun layout(layout: Layout): Caulis = apply { this.layout = layout }
@@ -107,6 +151,9 @@ class Caulis {
     }
     fun bind(combination: String, action: Consumer<Caulis>): Caulis = apply { bind(combination) { action.accept(this) } }
     fun onStart(action: Consumer<Caulis>): Caulis = apply { onStart { action.accept(this) } }
+    fun floatWhen(rule: java.util.function.Predicate<Window>): Caulis = apply { floatWhen { rule.test(it) } }
+    fun onWindowOpened(action: java.util.function.BiConsumer<Caulis, Window>): Caulis = apply { onWindowOpened { action.accept(this, it) } }
+    fun onWindowClosed(action: java.util.function.BiConsumer<Caulis, Window>): Caulis = apply { onWindowClosed { action.accept(this, it) } }
 
     // --- while running ------------------------------------------------------------------
 

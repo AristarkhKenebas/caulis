@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
+    id("org.jetbrains.dokka")
 }
 
 // The version list from gradle/libs.versions.toml.
@@ -41,4 +42,17 @@ tasks.withType<Test>().configureEach {
     // Caulis calls C libraries through the Foreign Function & Memory API.
     // Java asks for an explicit permission to do that.
     jvmArgs("--enable-native-access=ALL-UNNAMED")
+}
+
+// API documentation (./gradlew dokkaGenerate at the top level builds the whole website).
+dokka {
+    dokkaSourceSets.configureEach {
+        // A module's own introduction, if it has one.
+        includes.from(fileTree(projectDir) { include("Module.md") })
+        // The generated C bindings are an implementation detail, not something to read.
+        perPackageOption {
+            matchingRegex = "dev\\.caulis\\.ffi\\.c(\\..*)?"
+            suppress = true
+        }
+    }
 }

@@ -8,4 +8,5 @@ plugins {
 
 dependencies {
     api(project(":caulis-core"))
+    testImplementation(testFixtures(project(":caulis-core")))
 }

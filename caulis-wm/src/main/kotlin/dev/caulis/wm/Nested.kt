@@ -10,7 +10,7 @@ import dev.caulis.render.gles.GlesRenderer
 internal fun runNested(config: Caulis) {
     EventLoop().use { loop ->
         GlesRenderer.create().use { renderer ->
-            NestedWindow(loop, renderer, title = config.title, appId = config.appId).use { window ->
+            NestedWindow(loop, renderer, title = config.title, appId = config.appId, outerSocket = config.nestedIn).use { window ->
                 Running(config, loop, renderer, window.width, window.height, switchConsole = null).use { running ->
                     val desktop = running.desktop
                     val output = Output(running.display, "NESTED-1", "${config.title} (nested)", window.width, window.height, 60_000)

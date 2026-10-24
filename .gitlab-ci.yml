@@ -28,6 +28,18 @@ build:
     reports:
       junit: "**/build/test-results/test/*.xml"
 
+# The API documentation website on GitLab Pages (from the main branch).
+pages:
+  stage: release
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  script:
+    - ./gradlew --console=plain --no-daemon dokkaGenerate
+    - mv build/dokka/html public
+  artifacts:
+    paths:
+      - public
+
 # A version tag (v0.1.0) publishes the irisWM archives as a GitLab release.
 release:
   stage: release

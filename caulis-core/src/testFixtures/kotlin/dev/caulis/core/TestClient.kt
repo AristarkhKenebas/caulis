@@ -95,6 +95,6 @@ class TestClient(val connection: Connection) : AutoCloseable {
     }
 
     companion object {
-        const val MAX_SIZE = 1024
+        const val MAX_SIZE = 2048
     }
 }

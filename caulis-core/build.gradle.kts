@@ -3,6 +3,8 @@
 
 plugins {
     id("caulis.library")
+    // Test helpers (a test server, a small client) other modules' tests can use too.
+    `java-test-fixtures`
 }
 
 dependencies {
