@@ -85,6 +85,7 @@ class ScreenTestServer : AutoCloseable {
                                 LayerShell(display).listener = desktop
                                 SessionLockManager(display).listener = desktop
                                 dev.caulis.core.input.CursorShape(display, seat)
+                                XdgOutputManager(display)
                                 ScreenCapture(display, desktop, renderer, ForeignToplevels(display, desktop))
                                 Output(display, "TEST-1", "Test screen", WIDTH, HEIGHT, 60_000)
                                 runScreen(eventLoop, renderer, desktop)

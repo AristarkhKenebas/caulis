@@ -13,6 +13,7 @@ import dev.caulis.core.LinuxDmabuf
 import dev.caulis.core.Presentation
 import dev.caulis.core.SessionLockManager
 import dev.caulis.core.Shm
+import dev.caulis.core.XdgOutputManager
 import dev.caulis.core.XdgShell
 import dev.caulis.core.cursor.CursorTheme
 import dev.caulis.core.input.CursorShape
@@ -74,6 +75,7 @@ internal class Running(
         LayerShell(display).listener = desktop
         SessionLockManager(display).listener = desktop
         CursorShape(display, seat)
+        XdgOutputManager(display)
         ScreenCapture(display, desktop, renderer, ForeignToplevels(display, desktop))
         applyCursor()
         desktop.layout = config.layout

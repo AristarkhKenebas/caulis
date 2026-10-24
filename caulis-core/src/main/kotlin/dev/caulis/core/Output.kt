@@ -64,10 +64,35 @@ class Output(
         if (newWidth == width && newHeight == height) return
         width = newWidth
         height = newHeight
-        for (output in bound) {
-            sendMode(output)
-            output.sendDone()
+        for (output in bound) sendMode(output)
+        for ((xdg, output) in xdgOutputs.toList()) sendLogical(xdg, output)
+        for (output in bound) output.sendDone()
+    }
+
+    // xdg-output: where the monitor is and how big, in the desktop's own (logical) pixels.
+    private val xdgOutputs = ArrayList<Pair<dev.caulis.protocol.xdgoutputunstablev1.ZxdgOutputV1, WlOutput>>()
+
+    internal fun addXdgOutput(xdg: dev.caulis.protocol.xdgoutputunstablev1.ZxdgOutputV1, output: WlOutput) {
+        xdg.requests = object : dev.caulis.protocol.xdgoutputunstablev1.ZxdgOutputV1.Requests {
+            override fun destroy(resource: dev.caulis.protocol.xdgoutputunstablev1.ZxdgOutputV1) {}
         }
+        val entry = xdg to output
+        xdgOutputs += entry
+        xdg.onDestroy { xdgOutputs -= entry }
+        sendLogical(xdg, output)
+        // Since version 3 the monitor's own "done" ends the description.
+        if (xdg.version >= 3) output.sendDone()
+    }
+
+    private fun sendLogical(xdg: dev.caulis.protocol.xdgoutputunstablev1.ZxdgOutputV1, output: WlOutput) {
+        if (!xdg.isAlive) return
+        xdg.sendLogicalPosition(0, 0)
+        xdg.sendLogicalSize(width / scale, height / scale)
+        if (xdg.version == 2) {
+            xdg.sendName(name)
+            xdg.sendDescription(description)
+        }
+        if (xdg.version < 3) xdg.sendDone()
     }
 
     private fun sendMode(output: WlOutput) =
@@ -82,5 +107,20 @@ class Output(
         /** The monitors [display] has now. */
         @JvmStatic
         fun of(display: Display): List<Output> = synchronized(all) { all[display]?.toList() ?: emptyList() }
+    }
+}
+
+/** xdg-output: monitors' place and size in the desktop (grim, slurp, Waybar and portals need it). */
+class XdgOutputManager(display: Display) {
+    init {
+        display.addGlobal(dev.caulis.protocol.xdgoutputunstablev1.ZxdgOutputManagerV1, 3) { manager ->
+            manager.requests = object : dev.caulis.protocol.xdgoutputunstablev1.ZxdgOutputManagerV1.Requests {
+                override fun getXdgOutput(resource: dev.caulis.protocol.xdgoutputunstablev1.ZxdgOutputManagerV1, id: dev.caulis.protocol.xdgoutputunstablev1.ZxdgOutputV1, output: WlOutput) {
+                    output.dataAs<Output>()?.addXdgOutput(id, output)
+                }
+
+                override fun destroy(resource: dev.caulis.protocol.xdgoutputunstablev1.ZxdgOutputManagerV1) {}
+            }
+        }
     }
 }

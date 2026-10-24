@@ -7,6 +7,10 @@ import dev.caulis.protocol.client.Proxy
 import dev.caulis.protocol.client.extforeigntoplevellistv1.ExtForeignToplevelHandleV1
 import dev.caulis.protocol.client.extforeigntoplevellistv1.ExtForeignToplevelListV1
 import dev.caulis.protocol.client.extimagecapturesourcev1.ExtForeignToplevelImageCaptureSourceManagerV1
+import dev.caulis.protocol.client.extimagecapturesourcev1.ExtOutputImageCaptureSourceManagerV1
+import dev.caulis.protocol.client.wayland.WlOutput
+import dev.caulis.protocol.client.xdgoutputunstablev1.ZxdgOutputManagerV1
+import dev.caulis.protocol.client.xdgoutputunstablev1.ZxdgOutputV1
 import dev.caulis.protocol.client.extimagecopycapturev1.ExtImageCopyCaptureFrameV1
 import dev.caulis.protocol.client.extimagecopycapturev1.ExtImageCopyCaptureManagerV1
 import dev.caulis.protocol.client.extimagecopycapturev1.ExtImageCopyCaptureSessionV1
@@ -172,6 +176,45 @@ class ScreenCaptureTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun `a screenshot as grim 1_5 takes it, with the monitor's size from xdg-output`() = withServer { server, apps, grim ->
+        apps.window().draw(200, 100)
+        apps.connection.roundtrip()
+        grim.waitFor { server.onServer { d -> d.windows.isNotEmpty() } }
+        // grim asks where the monitor is and how big (without this it guesses 0 x 0).
+        var logical = 0 to 0
+        var described = false
+        grim.global("zxdg_output_manager_v1", ZxdgOutputManagerV1, 3).getXdgOutput(grim.output!!).events = object : ZxdgOutputV1.Events {
+            override fun logicalSize(proxy: ZxdgOutputV1, width: Int, height: Int) { logical = width to height }
+        }
+        grim.output!!.events = object : WlOutput.Events {
+            override fun done(proxy: WlOutput) { described = true }
+        }
+        grim.waitFor { described }
+        assertEquals(width to height, logical)
+
+        val sources = grim.global("ext_output_image_capture_source_manager_v1", ExtOutputImageCaptureSourceManagerV1, 1)
+        val copier = grim.global("ext_image_copy_capture_manager_v1", ExtImageCopyCaptureManagerV1, 1)
+        val sharing = Sharing(copier.createSession(sources.createSource(grim.output!!), 0))
+        sharing.session.events = object : ExtImageCopyCaptureSessionV1.Events {
+            override fun bufferSize(proxy: ExtImageCopyCaptureSessionV1, width: Int, height: Int) { sharing.size = width to height }
+            override fun done(proxy: ExtImageCopyCaptureSessionV1) { sharing.constraintsDone = true }
+        }
+        grim.waitFor { sharing.constraintsDone }
+        assertEquals(width to height, sharing.size)
+        val (buffer, memory) = grim.buffer(width, height)
+        val frame = sharing.session.createFrame()
+        var ready = false
+        frame.events = object : ExtImageCopyCaptureFrameV1.Events {
+            override fun ready(proxy: ExtImageCopyCaptureFrameV1) { ready = true }
+        }
+        frame.attachBuffer(buffer)
+        frame.damageBuffer(0, 0, Int.MAX_VALUE, Int.MAX_VALUE) // as grim does
+        frame.capture()
+        grim.waitFor { ready }
+        assertEquals(BACKGROUND, memory.pixel(1, height - 2, width * 4), "the desktop")
     }
 
     // An ext-image-copy-capture session as screen sharing of one window uses it.
