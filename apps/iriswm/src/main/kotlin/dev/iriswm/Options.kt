@@ -14,6 +14,8 @@ data class Options(
     val stats: Boolean = false,
     /** Show fullscreen programs' pictures directly on the monitor (no copying, less delay). */
     val directScanout: Boolean = true,
+    /** How windows are arranged at start: Floating, Dwindle, Master or Scrolling. */
+    val layout: String = "Floating",
 ) {
     enum class Mode { NESTED, SCREEN }
 
@@ -28,6 +30,8 @@ data class Options(
   --run COMMAND       start COMMAND inside irisWM (may be given several times)
   --terminal COMMAND  terminal for Super+Enter (default: foot)
   --stats             print frame timing every 5 seconds (fps, late frames, GC pauses)
+  --layout NAME       how windows are arranged: Floating (default), Dwindle,
+                      Master or Scrolling (Super+E switches while running)
   --no-direct-scanout always draw fullscreen programs instead of showing their own
                       picture directly (only for finding display problems)
   --help              show this text
@@ -38,6 +42,11 @@ Keys:
   Super+Up                maximize / restore the window
   Super+F                 fullscreen on / off
   Super+Down              minimize (Alt+Tab brings it back)
+  Super+V                 take the window out of the layout (floating) / back
+  Super+E                 next layout (Floating, Dwindle, Master, Scrolling)
+  Super+Left / Right      focus the window to the left / right
+  Super+1 ... 9           go to workspace 1 ... 9
+  Super+Shift+1 ... 9     move the window to workspace 1 ... 9
   Alt+Tab                 switch between windows
   Super + left drag       move a window
   Super + right drag      resize a window
@@ -52,6 +61,7 @@ Keys:
             var terminal = "foot"
             var stats = false
             var directScanout = true
+            var layout = "Floating"
             var i = 0
             fun value(name: String): String = args.getOrNull(++i) ?: throw IllegalArgumentException("$name needs a value")
             while (i < args.size) {
@@ -64,12 +74,17 @@ Keys:
                     "--terminal" -> terminal = value(arg)
                     "--stats" -> stats = true
                     "--no-direct-scanout" -> directScanout = false
+                    "--layout" -> layout = value(arg).also { name ->
+                        require(layouts.any { it.name.equals(name, ignoreCase = true) }) {
+                            "Unknown layout \"$name\"; choose from: ${layouts.joinToString { it.name }}"
+                        }
+                    }
                     "--help", "-h" -> throw HelpRequested()
                     else -> throw IllegalArgumentException("Unknown option: $arg")
                 }
                 i++
             }
-            return Options(mode, exitAfter, run, terminal, stats, directScanout)
+            return Options(mode, exitAfter, run, terminal, stats, directScanout, layout)
         }
     }
 

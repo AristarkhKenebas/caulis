@@ -1,18 +1,19 @@
 package dev.caulis.core
 
 import dev.caulis.core.input.Seat
+import dev.caulis.core.layout.Floating
+import dev.caulis.core.layout.Layout
 import dev.caulis.event.EventLoop
 import dev.caulis.protocol.xdgshell.XdgToplevel
 import dev.caulis.render.GpuTarget
 import dev.caulis.render.Rect
 import dev.caulis.render.Renderer
+import java.util.TreeMap
 
 /**
- * A simple floating window manager: windows open in a cascade, a click raises and focuses
- * a window, popups close when clicking elsewhere. It also draws everything — only the
- * parts that changed (see [DesktopView]).
- *
- * (Layouts — tiling, Hyprland-like, newm-like — replace this in stage 6.)
+ * The window manager: workspaces, layouts (floating or tiled — see [Layout]), focus,
+ * maximize/fullscreen/minimize, moving and resizing with the pointer, popups. It also draws
+ * everything — only the parts that changed (see [DesktopView]).
  */
 class Desktop(
     private val renderer: Renderer,
@@ -34,10 +35,13 @@ class Desktop(
             refitWindows()
         }
 
-    // The desktop changed size: maximized and fullscreen windows follow it.
+    // The desktop changed size: maximized and fullscreen windows follow it, layouts re-arrange.
     private fun refitWindows() {
-        for (window in windows + minimized) {
-            if ((window.maximized || window.fullscreen) && window.shell.configured) window.configure(width, height)
+        for (workspace in workspaces.values) {
+            for (window in workspace.windows + workspace.minimized) {
+                if ((window.maximized || window.fullscreen) && window.shell.configured) window.configure(width, height)
+            }
+            arrange(workspace)
         }
         changed()
     }
@@ -76,62 +80,243 @@ class Desktop(
         onChange()
     }
 
-    /** Mapped windows, bottom to top. */
-    val windows = ArrayList<Window>()
+    // --- workspaces -----------------------------------------------------------------------
 
-    /** Mapped popups, in the order they opened (children after parents). */
-    private val popups = ArrayList<Popup>()
+    /**
+     * The layout new workspaces start with. Setting it changes every workspace at once;
+     * windows move to their new places right away (see [setLayout] for one workspace).
+     */
+    var layout: Layout = Floating
+        set(value) {
+            field = value
+            for (workspace in workspaces.values) setLayout(workspace, value)
+        }
 
-    /** Popups that asked for a grab: a click outside them closes them. */
-    private val grabs = ArrayList<Popup>()
+    private val workspaces = TreeMap<Int, Workspace>()
+
+    /** The workspace on screen. */
+    var activeWorkspace: Workspace = workspace(1)
+        private set
+
+    /** Workspaces that exist now (the active one and those with windows), in order. */
+    val allWorkspaces: Collection<Workspace> get() = workspaces.values
+
+    // The workspace with [number], created when first needed (there is no limit).
+    private fun workspace(number: Int): Workspace = workspaces.getOrPut(number) { Workspace(number, layout) }
+
+    /** Windows on the active workspace, bottom to top. */
+    val windows: List<Window> get() = activeWorkspace.windows
+
+    /** Minimized windows of the active workspace. */
+    val minimized: List<Window> get() = activeWorkspace.minimized
+
+    /** Shows workspace [number] (created if needed); its top window gets the keyboard. */
+    fun switchTo(number: Int) {
+        if (number == activeWorkspace.number) return
+        endGrab()
+        val previous = activeWorkspace
+        activeWorkspace = workspace(number)
+        // Empty workspaces disappear once you leave them (never the one on screen).
+        if (previous.isEmpty) workspaces.remove(previous.number)
+        arrange(activeWorkspace)
+        focus(activeWorkspace.windows.lastOrNull())
+    }
+
+    /** Moves [window] to workspace [number] (it stays where it is on screen if floating). */
+    fun moveToWorkspace(window: Window, number: Int) {
+        val from = workspaceOf(window) ?: return
+        val to = workspace(number)
+        if (from === to) return
+        val wasFloating = window in from.floating
+        from.remove(window)
+        pending.remove(window)
+        to.add(window)
+        if (wasFloating) to.floating += window
+        window.setActivated(false)
+        arrange(from)
+        arrange(to)
+        if (from === activeWorkspace) focus(from.windows.lastOrNull())
+        changed()
+    }
+
+    /** Uses [layout] on [workspace]; windows move to their new places right away. */
+    fun setLayout(workspace: Workspace, layout: Layout) {
+        val wasTiled = workspace.tiledWindows().toSet()
+        workspace.layout = layout
+        // Windows leaving the layout get their own floating place back.
+        for (window in wasTiled - workspace.tiledWindows().toSet()) untile(window)
+        arrange(workspace)
+        changed()
+    }
+
+    private fun workspaceOf(window: Window): Workspace? =
+        workspaces.values.firstOrNull { window in it.windows || window in it.minimized }
+
+    // --- placing windows: layouts and transactions ---------------------------------------
+
+    /**
+     * Decides whether a new window floats instead of being tiled. By default: dialogs and
+     * windows that cannot be resized. Replace it for your own rules (e.g. by app id).
+     */
+    var floatRule: (Window) -> Boolean = { it.parent != null || it.fixedSize }
 
     private var cascade = 0
 
-    /** Pointer position on the output. */
-    var pointerX = width / 2.0
-        private set
-    var pointerY = height / 2.0
-        private set
+    // The free floating place of each window (also kept while it is tiled or maximized).
+    private val floatingRects = HashMap<Window, Rect>()
 
-    // Surfaces visible right now; they get "frame done" at every refresh.
-    private val visible = LinkedHashSet<Surface>()
+    // New sizes asked for, positions applied together once every window has drawn in its
+    // new size (or after a short wait): so neighbours never jump one after another.
+    private val pending = HashMap<Window, Rect>()
+    private var pendingTimer: EventLoop.Timer? = null
 
-    // --- windows and popups -----------------------------------------------------------
+    // Puts the tiled windows of [workspace] where its layout wants them.
+    private fun arrange(workspace: Workspace, extra: Window? = null): Map<Window, Rect> {
+        val tiled = workspace.tiledWindows() + listOfNotNull(extra)
+        if (tiled.isEmpty()) return emptyMap()
+        val top = workspace.windows.lastOrNull { it in tiled }
+        val rects = workspace.layout.arrange(tiled, Rect(0, 0, width, height), tiled.indexOf(top))
+        val targets = tiled.zip(rects).associate { (window, rect) -> window to fit(window, rect) }
+        if (extra == null) place(targets)
+        return targets
+    }
 
-    // Apps that asked to start maximized or fullscreen get the desktop size right away.
-    override fun initialSize(window: Window): Pair<Int, Int> =
-        if (window.maximized || window.fullscreen) width to height else 0 to 0
+    // Respects the program's own size limits: a window that cannot be as big (or small) as
+    // its tile is centred in it instead of being pushed off screen (R5).
+    private fun fit(window: Window, tile: Rect): Rect {
+        val w = limit(tile.width, window.minWidth, window.maxWidth)
+        val h = limit(tile.height, window.minHeight, window.maxHeight)
+        return Rect(tile.x + (tile.width - w) / 2, tile.y + (tile.height - h) / 2, w, h)
+    }
+
+    private fun place(targets: Map<Window, Rect>) {
+        for ((window, rect) in targets) {
+            val visibleRect = window.shell.visibleRect
+            val becameTiled = !window.tiled
+            window.tiled = true
+            if (becameTiled || visibleRect.width != rect.width || visibleRect.height != rect.height) {
+                window.configure(rect.width, rect.height)
+            }
+            pending[window] = rect
+        }
+        applyWhenReady()
+    }
+
+    // Applies all pending positions if every window has its new size by now; else waits a bit.
+    private fun applyWhenReady() {
+        if (pending.isEmpty()) return
+        val ready = pending.all { (window, rect) ->
+            val visibleRect = window.shell.visibleRect
+            visibleRect.width == rect.width && visibleRect.height == rect.height
+        }
+        if (ready) {
+            applyPending()
+        } else if (pendingTimer == null) {
+            pendingTimer = compositor.display.loop.after(TRANSACTION_TIMEOUT_MILLIS) { applyPending() }
+        }
+    }
+
+    private fun applyPending() {
+        pendingTimer?.cancel()
+        pendingTimer = null
+        for ((window, rect) in pending) {
+            window.x = rect.x
+            window.y = rect.y
+        }
+        pending.clear()
+        changed()
+    }
+
+    // Takes a window out of tiling: it gets its floating place and size back.
+    private fun untile(window: Window) {
+        pending.remove(window)
+        if (!window.tiled) return
+        window.tiled = false
+        val floating = floatingRects[window] ?: cascadeRect(window.shell.visibleRect.width, window.shell.visibleRect.height)
+        window.x = floating.x
+        window.y = floating.y
+        window.configure(floating.width, floating.height)
+        changed()
+    }
+
+    // The next free spot of the cascade (top left, stepping down and right).
+    private fun cascadeRect(windowWidth: Int, windowHeight: Int): Rect {
+        val step = 32
+        val x = (40 + cascade * step).coerceAtMost((width - windowWidth).coerceAtLeast(0))
+        val y = (40 + cascade * step).coerceAtMost((height - windowHeight).coerceAtLeast(0))
+        cascade = (cascade + 1) % 8
+        return Rect(x, y, windowWidth, windowHeight)
+    }
+
+    /** True if [window] floats (placed by hand) rather than being tiled by the layout. */
+    fun isFloating(window: Window): Boolean = window.tiled.not()
+
+    /** Takes [window] out of the layout (floating) or puts it back (tiled). */
+    fun setFloating(window: Window, floating: Boolean) {
+        val workspace = workspaceOf(window) ?: return
+        if (floating) {
+            if (!window.tiled && window in workspace.floating) return
+            floatingRects.getOrPut(window) { cascadeRect(window.shell.visibleRect.width, window.shell.visibleRect.height) }
+            workspace.floating += window
+            untile(window)
+        } else {
+            floatingRects[window] = currentRect(window)
+            workspace.floating -= window
+        }
+        arrange(workspace)
+        changed()
+    }
+
+    // --- windows appear and disappear ----------------------------------------------------
+
+    // The layout decides the size before the first frame, so a new window never shows up
+    // in a wrong size first (R1). Maximized/fullscreen apps get the whole desktop.
+    override fun initialSize(window: Window): Pair<Int, Int> {
+        if (window.maximized || window.fullscreen) return width to height
+        if (floatRule(window)) return 0 to 0
+        val target = arrange(activeWorkspace, extra = window)[window] ?: return 0 to 0
+        window.tiled = true
+        return target.width to target.height
+    }
 
     override fun windowMapped(window: Window) {
-        val visible = window.shell.visibleRect
-        // Cascade from the top left, wrapping around before leaving the output.
-        val step = 32
-        val x = (40 + cascade * step).coerceAtMost((width - visible.width).coerceAtLeast(0))
-        val y = (40 + cascade * step).coerceAtMost((height - visible.height).coerceAtLeast(0))
-        cascade = (cascade + 1) % 8
+        val workspace = activeWorkspace
+        val visibleRect = window.shell.visibleRect
+        // Its place when floating: its own size, or (if the layout sized it) 2/3 of the desktop.
+        val floatingPlace = if (window.tiled) cascadeRect(width * 2 / 3, height * 2 / 3) else cascadeRect(visibleRect.width, visibleRect.height)
+        floatingRects[window] = floatingPlace
+        workspace.add(window)
+        if (floatRule(window) || workspace.layout === Floating) {
+            if (floatRule(window)) workspace.floating += window
+            window.tiled = false
+            window.x = floatingPlace.x
+            window.y = floatingPlace.y
+        }
         if (window.maximized || window.fullscreen) {
             // Started maximized: if it is ever restored, it gets a sensible floating place.
-            floatingRects[window] = Rect(x, y, width * 2 / 3, height * 2 / 3)
+            floatingRects[window] = Rect(floatingPlace.x, floatingPlace.y, width * 2 / 3, height * 2 / 3)
             window.x = 0
             window.y = 0
-        } else {
-            window.x = x
-            window.y = y
         }
-        windows += window
+        // Its own tile was decided before the first frame: it appears there right away.
+        val targets = arrange(workspace)
+        targets[window]?.let { window.x = it.x; window.y = it.y }
         focus(window)
     }
 
     override fun windowUnmapped(window: Window) {
-        windows -= window
-        minimized -= window
+        val workspace = workspaceOf(window)
+        workspace?.remove(window)
+        pending.remove(window)
         floatingRects -= window
         if (grab?.window === window) grab = null
+        if (workspace != null) arrange(workspace)
         if (seat.keyboardFocus === window.surface) focus(windows.lastOrNull())
         changed()
     }
 
     override fun windowCommitted(window: Window) {
+        if (window in pending) applyWhenReady()
         // While resizing from the left or top, the opposite edge stays where it was.
         val resize = grab as? Grab.Resize ?: return
         if (resize.window !== window) return
@@ -144,12 +329,6 @@ class Desktop(
     override fun bounds(window: Window): Pair<Int, Int> = width to height
 
     // --- window states: maximized, fullscreen, minimized ----------------------------------
-
-    /** Windows the user minimized: hidden until brought back with [focus] or [cycleFocus]. */
-    val minimized = ArrayList<Window>()
-
-    // Where a window was (and how big) before it was maximized or made fullscreen.
-    private val floatingRects = HashMap<Window, Rect>()
 
     /** The window that has the keyboard, if any. */
     val focusedWindow: Window? get() = windows.lastOrNull()?.takeIf { it.activated }
@@ -187,19 +366,24 @@ class Desktop(
         if (fullscreen && window.shell.mapped) focus(window)
     }
 
-    // Puts a window where its states say: full desktop, or its remembered floating place.
+    // Puts a window where its states say: full desktop, its tile, or its floating place.
     private fun applyState(window: Window) {
+        pending.remove(window)
+        val workspace = workspaceOf(window)
         if (window.maximized || window.fullscreen) {
-            if (window !in floatingRects && window.shell.mapped) floatingRects[window] = currentRect(window)
+            if (!window.tiled && window.shell.mapped) floatingRects[window] = currentRect(window)
             window.x = 0
             window.y = 0
             window.configure(width, height)
+        } else if (workspace != null && window in workspace.tiledWindows()) {
+            window.tiled = false // makes arrange send the tile size again
         } else {
-            val floating = floatingRects.remove(window) ?: currentRect(window)
+            val floating = floatingRects[window] ?: currentRect(window)
             window.x = floating.x
             window.y = floating.y
             window.configure(floating.width, floating.height)
         }
+        workspace?.let { arrange(it) }
         changed()
     }
 
@@ -210,11 +394,14 @@ class Desktop(
 
     /** Hides [window]; it comes back with [focus] or [cycleFocus] (Alt+Tab). */
     fun minimize(window: Window) {
-        if (window !in windows) return
-        windows -= window
-        minimized += window
+        val workspace = workspaceOf(window) ?: return
+        if (window !in workspace.windows) return
+        workspace.windows -= window
+        workspace.minimized += window
+        pending.remove(window)
         if (grab?.window === window) grab = null
-        focus(windows.lastOrNull())
+        arrange(workspace)
+        if (workspace === activeWorkspace) focus(windows.lastOrNull())
     }
 
     /**
@@ -227,6 +414,25 @@ class Desktop(
         focus(next)
     }
 
+    /**
+     * Focuses the nearest window in a direction ([dx], [dy] = -1, 0 or 1), e.g. the column
+     * to the right in a scrolling layout. Scrolling layouts then bring it into view.
+     */
+    fun focusDirection(dx: Int, dy: Int) {
+        val from = focusedWindow ?: return focus(windows.lastOrNull())
+        val origin = currentRect(from)
+        val candidates = windows.filter { it !== from }.map { it to currentRect(it) }.filter { (_, rect) ->
+            (dx > 0 && rect.x >= origin.right - 1) || (dx < 0 && rect.right <= origin.x + 1) ||
+                (dy > 0 && rect.y >= origin.bottom - 1) || (dy < 0 && rect.bottom <= origin.y + 1)
+        }
+        val nearest = candidates.minByOrNull { (_, rect) ->
+            val distanceX = (rect.x + rect.width / 2) - (origin.x + origin.width / 2)
+            val distanceY = (rect.y + rect.height / 2) - (origin.y + origin.height / 2)
+            distanceX.toLong() * distanceX + distanceY.toLong() * distanceY
+        }
+        nearest?.let { focus(it.first) }
+    }
+
     /** Asks the focused window to close. */
     fun closeFocused() {
         focusedWindow?.close()
@@ -234,6 +440,12 @@ class Desktop(
 
     /** The window under the desktop point ([x], [y]), if any. */
     fun windowAt(x: Double, y: Double): Window? = surfaceAt(x, y)?.root?.roleObject as? Window
+
+    // Windows bottom to top as drawn: tiled ones, floating ones above them, fullscreen on top.
+    private fun stackingOrder(): List<Window> {
+        val (fullscreen, others) = windows.partition { it.fullscreen }
+        return others.filter { it.tiled } + others.filter { !it.tiled } + fullscreen
+    }
 
     // --- moving and resizing with the pointer ---------------------------------------------
 
@@ -257,7 +469,7 @@ class Desktop(
 
     /**
      * Moves [window] with the pointer until the button is released. Only while a button is
-     * held (an app cannot grab the pointer on its own).
+     * held (an app cannot grab the pointer on its own). A tiled window starts floating.
      */
     fun beginMove(window: Window) {
         if (buttonsHeld == 0 || window !in windows || window.fullscreen) return
@@ -267,12 +479,20 @@ class Desktop(
             floatingRects[window] = Rect((pointerX - floating.width / 2).toInt(), pointerY.toInt() - 10, floating.width, floating.height)
             setMaximized(window, false)
         }
+        if (window.tiled) {
+            floatingRects[window] = currentRect(window) // it floats from where it is now
+            setFloating(window, true)
+        }
         startGrab(Grab.Move(window, pointerX, pointerY, window.x, window.y))
     }
 
     /** Resizes [window] with the pointer at [edges] (XdgToplevel.ResizeEdge) until the button is released. */
     fun beginResize(window: Window, edges: Int) {
         if (buttonsHeld == 0 || window !in windows || window.maximized || window.fullscreen) return
+        if (window.tiled) {
+            floatingRects[window] = currentRect(window)
+            setFloating(window, true)
+        }
         startGrab(Grab.Resize(window, pointerX, pointerY, edges, currentRect(window)))
     }
 
@@ -324,9 +544,13 @@ class Desktop(
     private fun endGrab() {
         val ended = grab ?: return
         grab = null
-        if (ended is Grab.Resize && ended.window.resizing) {
-            ended.window.resizing = false
-            ended.window.configure()
+        if (ended is Grab.Move) floatingRects[ended.window] = currentRect(ended.window)
+        if (ended is Grab.Resize) {
+            if (ended.window.resizing) {
+                ended.window.resizing = false
+                ended.window.configure()
+            }
+            floatingRects[ended.window] = currentRect(ended.window)
         }
     }
 
@@ -336,6 +560,23 @@ class Desktop(
         if (max > 0) result = minOf(result, max)
         return result
     }
+
+    // --- popups and focus ------------------------------------------------------------------
+
+    /** Mapped popups, in the order they opened (children after parents). */
+    private val popups = ArrayList<Popup>()
+
+    /** Popups that asked for a grab: a click outside them closes them. */
+    private val grabs = ArrayList<Popup>()
+
+    /** Pointer position on the output. */
+    var pointerX = width / 2.0
+        private set
+    var pointerY = height / 2.0
+        private set
+
+    // Surfaces visible right now; they get "frame done" at every refresh.
+    private val visible = LinkedHashSet<Surface>()
 
     override fun popupMapped(popup: Popup) {
         popups += popup
@@ -358,17 +599,27 @@ class Desktop(
 
     /**
      * Raises [window], marks it active and gives it the keyboard (null = nothing focused).
-     * A minimized window comes back.
+     * A minimized window comes back; a window on another workspace brings that workspace.
      */
     fun focus(window: Window?) {
-        if (window != null && minimized.remove(window)) windows += window
-        for (other in windows) if (other !== window) other.setActivated(false)
         if (window != null) {
-            windows -= window
-            windows += window
+            val workspace = workspaceOf(window)
+            if (workspace != null && workspace !== activeWorkspace) {
+                activeWorkspace = workspace
+                arrange(workspace)
+            }
+            if (activeWorkspace.minimized.remove(window)) activeWorkspace.windows += window
+        }
+        val list = activeWorkspace.windows
+        for (other in list) if (other !== window) other.setActivated(false)
+        if (window != null) {
+            list -= window
+            list += window
             window.setActivated(true)
         }
         seat.focusKeyboard(window?.surface)
+        // Layouts that follow the focus (scrolling) move their windows.
+        if (window != null && window.tiled && activeWorkspace.layout !== Floating) arrange(activeWorkspace)
         changed()
     }
 
@@ -429,7 +680,7 @@ class Desktop(
             val (px, py) = popupOrigin(popup)
             hitTree(popup.surface, x - px, y - py, popup.surface)?.let { return it }
         }
-        for (window in windows.asReversed()) {
+        for (window in stackingOrder().asReversed()) {
             val visible = window.shell.visibleRect
             hitTree(window.surface, x - (window.x - visible.x), y - (window.y - visible.y), window.surface)?.let { return it }
         }
@@ -631,7 +882,7 @@ class Desktop(
     private fun scene(): List<DrawItem> {
         if (sceneVersion == version) return scene
         val all = ArrayList<DrawItem>()
-        for (window in windows) {
+        for (window in stackingOrder()) {
             val visibleRect = window.shell.visibleRect
             addTree(all, window.surface, window.x - visibleRect.x, window.y - visibleRect.y)
         }
@@ -746,6 +997,12 @@ class Desktop(
         val BACKGROUND = floatArrayOf(0.16f, 0.18f, 0.22f)
         const val CURSOR_BORDER = "cursor border"
         const val CURSOR_FILL = "cursor fill"
+
+        /**
+         * How long a layout change waits for every window to draw in its new size before
+         * moving them anyway (a program that does not answer must not hold up the others).
+         */
+        const val TRANSACTION_TIMEOUT_MILLIS = 200L
 
         /** How often programs nobody sees may draw a frame (they must not freeze completely). */
         const val HIDDEN_REFRESH_MILLIS = 1000L

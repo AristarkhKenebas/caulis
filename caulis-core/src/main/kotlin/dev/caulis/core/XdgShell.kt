@@ -1,5 +1,6 @@
 package dev.caulis.core
 
+import dev.caulis.core.layout.LayoutWindow
 import dev.caulis.protocol.Display
 import dev.caulis.protocol.wayland.WlOutput
 import dev.caulis.protocol.wayland.WlSeat
@@ -239,24 +240,31 @@ class ShellSurface internal constructor(
 }
 
 /** An application window (xdg_toplevel). */
-class Window internal constructor(val resource: XdgToplevel, val shell: ShellSurface) {
+class Window internal constructor(val resource: XdgToplevel, val shell: ShellSurface) : LayoutWindow {
 
     val surface: Surface get() = shell.surface
 
-    var title = ""
+    override var title = ""
         private set
-    var appId = ""
+    override var appId = ""
+        private set
+
+    /** The window this one belongs to (dialogs), or null. */
+    var parent: Window? = null
         private set
 
     /** Size limits the app asked for (0 = no limit). */
-    var minWidth = 0
+    override var minWidth = 0
         private set
-    var minHeight = 0
+    override var minHeight = 0
         private set
-    var maxWidth = 0
+    override var maxWidth = 0
         private set
-    var maxHeight = 0
+    override var maxHeight = 0
         private set
+
+    /** True if the app cannot be resized (minimum = maximum): such windows float. */
+    val fixedSize: Boolean get() = minWidth > 0 && minWidth == maxWidth && minHeight > 0 && minHeight == maxHeight
 
     /** Where the window's visible top left corner is on the screen; set by the window manager. */
     var x = 0
@@ -274,6 +282,9 @@ class Window internal constructor(val resource: XdgToplevel, val shell: ShellSur
     var fullscreen = false
     var resizing = false
 
+    /** Placed by a tiling layout (apps then draw without shadows and rounded corners). */
+    var tiled = false
+
     private var capabilitiesSent = false
 
     private var configuredWidth = 0
@@ -284,7 +295,9 @@ class Window internal constructor(val resource: XdgToplevel, val shell: ShellSur
         resource.requests = object : XdgToplevel.Requests {
             override fun destroy(resource: XdgToplevel) = shell.unmap()
 
-            override fun setParent(resource: XdgToplevel, parent: XdgToplevel?) {}
+            override fun setParent(resource: XdgToplevel, parent: XdgToplevel?) {
+                this@Window.parent = parent?.dataAs<Window>()
+            }
 
             override fun setTitle(resource: XdgToplevel, title: String) {
                 this@Window.title = title
@@ -360,6 +373,9 @@ class Window internal constructor(val resource: XdgToplevel, val shell: ShellSur
         if (maximized) states += XdgToplevel.State.MAXIMIZED
         if (fullscreen) states += XdgToplevel.State.FULLSCREEN
         if (resizing) states += XdgToplevel.State.RESIZING
+        if (tiled && resource.version >= 2) {
+            states += listOf(XdgToplevel.State.TILED_LEFT, XdgToplevel.State.TILED_RIGHT, XdgToplevel.State.TILED_TOP, XdgToplevel.State.TILED_BOTTOM)
+        }
         resource.sendConfigure(width, height, uintArray(states))
         shell.sendConfigure()
     }

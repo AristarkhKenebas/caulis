@@ -27,7 +27,7 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 dependencies {
-    implementation(libs.caulis.core)
+    implementation(libs.caulis.wm)
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)

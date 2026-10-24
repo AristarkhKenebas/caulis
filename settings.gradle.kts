@@ -21,7 +21,9 @@ include(
     "caulis-protocol",
     "caulis-render",
     "caulis-core",
+    "caulis-wm",
     "examples:minimal",
+    "examples:minimal-java",
 )
 
 // irisWM (apps/iriswm) is a separate build with its own settings; it uses this one.
