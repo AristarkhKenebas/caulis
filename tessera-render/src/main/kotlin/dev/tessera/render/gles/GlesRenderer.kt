@@ -1,5 +1,9 @@
 package dev.tessera.render.gles
 
+import dev.tessera.ffi.Fd
+import dev.tessera.render.Dmabuf
+import dev.tessera.render.DmabufFormat
+import dev.tessera.render.GpuBuffer
 import dev.tessera.render.GpuTarget
 import dev.tessera.render.GpuTexture
 import dev.tessera.render.Renderer
@@ -16,6 +20,8 @@ import java.lang.foreign.ValueLayout.JAVA_INT
 class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
 
     override val description: String get() = "OpenGL ES 3 on ${egl.renderer}"
+
+    override val renderNode: java.nio.file.Path? get() = egl.renderNode
 
     private val textured = Program(VERTEX, TEXTURE_FRAGMENT)
     private val solid = Program(VERTEX, COLOR_FRAGMENT)
@@ -38,12 +44,31 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         Gl.check("creating the quad renderer")
     }
 
+    private val images = DmabufImages(egl)
+
     override fun createTexture(width: Int, height: Int): GpuTexture = GlesTexture(width, height)
 
     override fun createTarget(width: Int, height: Int): GpuTarget = GlesTarget(width, height)
 
+    override val dmabufFormats: List<DmabufFormat> by lazy {
+        val functions = egl.extensionFunctions
+        functions.dmabufFormats(egl.display).flatMap { format ->
+            // MODIFIER_INVALID = "implicit layout": what clients without modifier support use.
+            (functions.dmabufModifiers(egl.display, format) + Dmabuf.MODIFIER_INVALID).distinct()
+                .map { DmabufFormat(format, it) }
+        }
+    }
+
+    override fun importDmabuf(buffer: Dmabuf): GpuTexture? {
+        val image = images.createImage(buffer) ?: return null
+        return images.texture(image, buffer.width, buffer.height)
+    }
+
+    override fun createBuffer(width: Int, height: Int, format: Int, modifiers: List<Long>, scanout: Boolean): GpuBuffer =
+        GlesBuffer.create(egl, images, width, height, format, modifiers, scanout)
+
     override fun begin(target: GpuTarget, red: Float, green: Float, blue: Float) {
-        target as GlesTarget
+        target as GlesFramebuffer
         target.bind()
         targetWidth = target.width.toFloat()
         targetHeight = target.height.toFloat()
@@ -56,7 +81,7 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
     }
 
     override fun drawTexture(texture: GpuTexture, x: Int, y: Int, width: Int, height: Int, opaque: Boolean, alpha: Float) {
-        texture as GlesTexture
+        texture as GlTexture
         textured.use()
         setRect(textured, x, y, width, height)
         Gles.glActiveTexture(Gles.GL_TEXTURE0())
@@ -91,6 +116,12 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         /** Opens the GPU (the first render node, or [renderNode]) and prepares drawing. */
         fun create(renderNode: java.nio.file.Path = EglContext.findRenderNode()): GlesRenderer =
             GlesRenderer(EglContext.create(renderNode))
+
+        /**
+         * A renderer on an already open GPU device, e.g. the card node the display backend
+         * got from libseat (then its buffers can be shown on screen). [device] is not closed.
+         */
+        fun createOn(device: Fd): GlesRenderer = GlesRenderer(EglContext.createOn(device.value, owned = null))
 
 
         // Pixel rectangle -> OpenGL coordinates. Pixel row 0 goes to framebuffer row 0, so

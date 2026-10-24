@@ -23,29 +23,44 @@ internal class SurfaceUploader(private val renderer: Renderer) {
 
     fun upload(surface: Surface) {
         val buffer = surface.current.buffer
+        val gpu = buffer?.dataAs<DmabufBuffer>()
+        // Whatever comes now replaces the GPU buffer shown before (the same one is kept).
+        val previous = surface.shownDmabuf
+        if (previous !== gpu) {
+            gpu?.startShowing()
+            surface.shownDmabuf = gpu
+            previous?.stopShowing()
+        }
         if (buffer == null) {
             // A null buffer means "hide me".
-            surface.texture?.close()
             surface.texture = null
+            surface.current.damage.clear()
+            return
+        }
+        if (gpu != null) {
+            // Already on the GPU: show the buffer itself, nothing to copy.
+            surface.texture = gpu.texture
+            surface.opaque = gpu.opaque
             surface.current.damage.clear()
             return
         }
         val shm = buffer.dataAs<ShmBuffer>()
         if (shm == null) {
-            // GPU buffers (dmabuf) come with stage 4; until then nothing is shown.
             buffer.sendRelease()
             return
         }
 
-        var texture = surface.texture
-        val newSize = texture == null || texture.width != shm.width || texture.height != shm.height
-        if (newSize) {
+        var texture = surface.uploadedTexture
+        val fullUpload = texture == null || texture.width != shm.width || texture.height != shm.height ||
+            surface.texture !== texture
+        if (texture == null || texture.width != shm.width || texture.height != shm.height) {
             texture?.close()
             texture = renderer.createTexture(shm.width, shm.height)
-            surface.texture = texture
+            surface.uploadedTexture = texture
         }
+        surface.texture = texture
 
-        val (firstRow, rowCount) = if (newSize) 0 to shm.height else changedRows(surface.current.damage, shm.height)
+        val (firstRow, rowCount) = if (fullUpload) 0 to shm.height else changedRows(surface.current.damage, shm.height)
         surface.current.damage.clear()
 
         if (rowCount > 0) {
@@ -63,7 +78,7 @@ internal class SurfaceUploader(private val renderer: Renderer) {
                 buffer.client.disconnect()
                 return
             }
-            texture!!.upload(pixels, firstRow, rowCount)
+            texture.upload(pixels, firstRow, rowCount)
         }
         surface.opaque = shm.format == WlShm.Format.XRGB8888
         buffer.sendRelease()

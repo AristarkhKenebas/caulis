@@ -33,6 +33,16 @@ class Fd private constructor(private var number: Int) : AutoCloseable {
         return raw
     }
 
+    /**
+     * Size of the file in bytes (works for GPU buffers too), or null if it has none
+     * (pipes, sockets). Moves the file position, so only use it on files you do not read.
+     */
+    fun sizeOrNull(): Long? = try {
+        Libc.lseek(value, 0, SEEK_END)
+    } catch (e: NativeException) {
+        null
+    }
+
     /** A second, independent descriptor for the same file (closed separately). */
     fun duplicate(): Fd = adopt(Libc.fcntl(value, LibC.F_DUPFD_CLOEXEC(), 0))
 
@@ -46,6 +56,8 @@ class Fd private constructor(private var number: Int) : AutoCloseable {
     override fun toString(): String = if (isOpen) "Fd($number)" else "Fd(closed)"
 
     companion object {
+        private const val SEEK_END = 2 // from <unistd.h>; the same on every Linux
+
         /** Takes ownership of a raw descriptor number returned by a C call. */
         fun adopt(raw: Int): Fd {
             require(raw >= 0) { "Not a file descriptor: $raw" }

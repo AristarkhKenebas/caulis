@@ -1,7 +1,9 @@
 package dev.tessera.render.gles
 
+import dev.tessera.ffi.CStrings
 import dev.tessera.ffi.Device
 import dev.tessera.ffi.Fd
+import dev.tessera.ffi.c.drm.Drm
 import dev.tessera.ffi.c.egl.Egl
 import dev.tessera.ffi.c.gbm.Gbm
 import dev.tessera.ffi.c.gles.Gles
@@ -20,11 +22,18 @@ import java.nio.file.Path
  * OpenGL contexts belong to one thread: create and use this on the event loop thread.
  */
 internal class EglContext private constructor(
-    private val renderNode: Fd,
-    private val gbmDevice: MemorySegment,
-    private val display: MemorySegment,
+    /** The GPU device file, if this context opened it (null if it was given one). */
+    private val ownedDevice: Fd?,
+    /** GBM on the same device: allocates GPU buffers. */
+    val gbmDevice: MemorySegment,
+    val display: MemorySegment,
     private val context: MemorySegment,
+    /** The GPU's render node (e.g. /dev/dri/renderD128), or null if the driver has none. */
+    val renderNode: Path?,
 ) : AutoCloseable {
+
+    /** EGL and GL functions that are only reachable through eglGetProcAddress. */
+    val extensionFunctions = EglExtensions()
 
     /** e.g. "AMD Radeon Graphics (radeonsi, renoir, ...)". */
     val renderer: String = glString(Gles.GL_RENDERER())
@@ -45,18 +54,28 @@ internal class EglContext private constructor(
         Egl.eglTerminate(display)
         Egl.eglReleaseThread()
         Gbm.gbm_device_destroy(gbmDevice)
-        renderNode.close()
+        ownedDevice?.close()
     }
 
     companion object {
         /** Opens the first GPU render node (e.g. /dev/dri/renderD128) and creates a context on it. */
         fun create(renderNodePath: Path = findRenderNode()): EglContext {
             val renderNode = openDevice(renderNodePath)
-            val gbm = Gbm.gbm_create_device(renderNode.value)
-            if (gbm == MemorySegment.NULL) {
+            try {
+                return createOn(renderNode.value, renderNode)
+            } catch (e: Exception) {
                 renderNode.close()
-                error("gbm_create_device failed for $renderNodePath")
+                throw e
             }
+        }
+
+        /**
+         * A context on an already open GPU device (e.g. a card node opened through libseat).
+         * [owned] is closed with the context; pass null if someone else closes the device.
+         */
+        fun createOn(deviceFd: Int, owned: Fd?): EglContext {
+            val gbm = Gbm.gbm_create_device(deviceFd)
+            check(gbm != MemorySegment.NULL) { "gbm_create_device failed" }
 
             val display = Arena.ofConfined().use { arena ->
                 // EGLAttrib list (64-bit values): just "end".
@@ -88,7 +107,9 @@ internal class EglContext private constructor(
             check(Egl.eglMakeCurrent(display, MemorySegment.NULL, MemorySegment.NULL, context) == Egl.EGL_TRUE()) {
                 "eglMakeCurrent failed: ${eglError()}"
             }
-            return EglContext(renderNode, gbm, display, context)
+            // Also right for a card node: clients always get the matching render node.
+            val renderNode = CStrings.takeOwned(Drm.drmGetRenderDeviceNameFromFd(deviceFd))?.let { Path.of(it) }
+            return EglContext(owned, gbm, display, context, renderNode)
         }
 
         /** The first render node in /dev/dri (render nodes need no special rights, unlike card nodes). */

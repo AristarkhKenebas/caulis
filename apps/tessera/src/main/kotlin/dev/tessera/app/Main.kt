@@ -3,6 +3,7 @@ package dev.tessera.app
 import dev.tessera.core.Compositor
 import dev.tessera.core.DataDeviceManager
 import dev.tessera.core.Desktop
+import dev.tessera.core.LinuxDmabuf
 import dev.tessera.core.Output
 import dev.tessera.core.Shm
 import dev.tessera.core.XdgShell
@@ -38,6 +39,7 @@ private fun run(loop: EventLoop, display: Display, window: NestedWindow, rendere
     val output = Output(display, "NESTED-1", "Tessera (nested)", window.width, window.height, 60_000)
     Compositor(display, renderer)
     Shm(display)
+    LinuxDmabuf(display, renderer)
     DataDeviceManager(display, seat)
     val shell = XdgShell(display)
     val desktop = Desktop(renderer, seat, window.width, window.height)

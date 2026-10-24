@@ -2,6 +2,7 @@ package dev.tessera.core
 
 import dev.tessera.event.EventLoop
 import dev.tessera.protocol.Display
+import dev.tessera.render.gles.GlesRenderer
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
@@ -10,13 +11,17 @@ import java.util.concurrent.TimeUnit
 /**
  * A real Tessera server for tests, running its event loop on its own thread
  * with a private runtime directory (so it never touches the user's session).
+ * With [gpu] it draws with the GPU and accepts clients' GPU buffers.
  */
-class TestServer : AutoCloseable {
+class TestServer(gpu: Boolean = false) : AutoCloseable {
 
     val runtimeDir: Path = Files.createTempDirectory("tessera-test-runtime")
 
     /** Titles of windows that became visible (written on the server thread). */
     val mappedTitles: MutableList<String> = java.util.concurrent.CopyOnWriteArrayList()
+
+    /** Size of the picture of every commit that showed one, e.g. "32x16" (written on the server thread). */
+    val shownPictures: MutableList<String> = java.util.concurrent.CopyOnWriteArrayList()
     private val started = CompletableFuture<String>()
     private lateinit var loop: EventLoop
 
@@ -24,9 +29,16 @@ class TestServer : AutoCloseable {
         try {
             EventLoop().use { eventLoop ->
                 loop = eventLoop
+                val renderer = if (gpu) GlesRenderer.create() else null
                 Display(eventLoop).use { display ->
-                    Compositor(display, renderer = null)
+                    val compositor = Compositor(display, renderer)
+                    compositor.onNewSurface { surface ->
+                        surface.onCommit {
+                            surface.texture?.let { shownPictures += "${it.width}x${it.height}" }
+                        }
+                    }
                     Shm(display)
+                    if (renderer != null) LinuxDmabuf(display, renderer)
                     XdgShell(display).listener = object : XdgShell.Listener {
                         override fun windowMapped(window: Window) {
                             mappedTitles += window.title
@@ -36,6 +48,7 @@ class TestServer : AutoCloseable {
                     started.complete(display.addSocket(runtimeDir))
                     eventLoop.run()
                 }
+                renderer?.close()
             }
         } catch (e: Throwable) {
             started.completeExceptionally(e)

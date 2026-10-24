@@ -113,6 +113,13 @@ internal object Libc {
         return check("write", writeHandle.invokeExact(state, fd, data, data.byteSize()) as Long, state)
     }
 
+    private val lseekHandle = function("lseek", JAVA_LONG, JAVA_INT, JAVA_LONG, JAVA_INT)
+
+    fun lseek(fd: Int, offset: Long, whence: Int): Long {
+        val state = errnoState.get()
+        return check("lseek", lseekHandle.invokeExact(state, fd, offset, whence) as Long, state)
+    }
+
     // fcntl(fd, command, argument) — a variadic C function: the third argument is "...".
     private val fcntlHandle = function("fcntl", JAVA_INT, JAVA_INT, JAVA_INT, JAVA_INT, firstVariadicArg = 2)
 

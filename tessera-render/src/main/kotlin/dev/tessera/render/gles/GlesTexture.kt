@@ -9,9 +9,9 @@ import java.lang.foreign.MemorySegment
  * A picture on the GPU, [width]x[height] pixels, stored as BGRA bytes (the byte order of
  * Wayland's ARGB8888/XRGB8888 formats on little-endian machines).
  */
-internal class GlesTexture(override val width: Int, override val height: Int) : GpuTexture {
+internal class GlesTexture(override val width: Int, override val height: Int) : GlTexture {
 
-    val id: Int = Gl.generate(Gles::glGenTextures)
+    override val id: Int = Gl.generate(Gles::glGenTextures)
 
     init {
         Gles.glBindTexture(Gles.GL_TEXTURE_2D(), id)

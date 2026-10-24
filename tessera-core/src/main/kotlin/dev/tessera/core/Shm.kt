@@ -117,11 +117,11 @@ class ShmBuffer internal constructor(
     val resource: WlBuffer,
     val pool: ShmPool,
     val offset: Long,
-    val width: Int,
-    val height: Int,
+    override val width: Int,
+    override val height: Int,
     val stride: Int,
     val format: Int,
-) {
+) : ClientBuffer {
     init {
         resource.data = this
         resource.requests = object : WlBuffer.Requests {

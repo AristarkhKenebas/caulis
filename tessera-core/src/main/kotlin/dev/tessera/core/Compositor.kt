@@ -25,6 +25,12 @@ class Compositor(val display: Display, private val renderer: Renderer?) {
     val surfaces = LinkedHashSet<Surface>()
 
     private val uploader = renderer?.let { SurfaceUploader(it) }
+    private val newSurfaceListeners = ArrayList<(Surface) -> Unit>()
+
+    /** Runs [listener] for every surface a client creates. */
+    fun onNewSurface(listener: (Surface) -> Unit) {
+        newSurfaceListeners += listener
+    }
 
     init {
         display.addGlobal(WlCompositor, VERSION) { compositor -> compositor.requests = compositorRequests }
@@ -39,6 +45,7 @@ class Compositor(val display: Display, private val renderer: Renderer?) {
                 surfaces -= surface
                 surface.destroyed()
             }
+            newSurfaceListeners.forEach { it(surface) }
         }
 
         override fun createRegion(resource: WlCompositor, id: WlRegion) {
@@ -99,6 +106,12 @@ class Surface internal constructor(val resource: WlSurface, private val composit
     /** The picture on the GPU, set when a buffer is committed (null if nothing to show). */
     var texture: dev.tessera.render.GpuTexture? = null
         internal set
+
+    // The texture we copied shared-memory pictures into (owned by this surface).
+    internal var uploadedTexture: dev.tessera.render.GpuTexture? = null
+
+    // The GPU buffer shown right now; the client gets it back when another one replaces it.
+    internal var shownDmabuf: DmabufBuffer? = null
 
     /** True if the picture has no transparency (XRGB): faster to draw, no blending. */
     var opaque = false
@@ -260,11 +273,20 @@ class Surface internal constructor(val resource: WlSurface, private val composit
     }
 
     internal fun destroyed() {
-        texture?.close()
         texture = null
+        uploadedTexture?.close()
+        uploadedTexture = null
+        shownDmabuf?.stopShowing()
+        shownDmabuf = null
         subsurface?.detach()
         for (child in stack.toList()) if (child !== this) child.subsurface?.detach()
     }
+}
+
+/** What every kind of client buffer (shared memory or GPU) tells about its size. */
+interface ClientBuffer {
+    val width: Int
+    val height: Int
 }
 
 /** Everything a surface commit carries. */
@@ -287,9 +309,9 @@ class SurfaceState {
         if (other.newBuffer) {
             buffer = other.buffer
             newBuffer = true
-            val shm = other.buffer?.dataAs<ShmBuffer>()
-            bufferWidth = shm?.width ?: 0
-            bufferHeight = shm?.height ?: 0
+            val picture = other.buffer?.dataAs<ClientBuffer>()
+            bufferWidth = picture?.width ?: 0
+            bufferHeight = picture?.height ?: 0
         }
         offsetX = other.offsetX
         offsetY = other.offsetY

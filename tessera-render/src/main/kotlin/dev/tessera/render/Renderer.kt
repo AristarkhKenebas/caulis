@@ -21,6 +21,25 @@ interface Renderer : AutoCloseable {
     /** Something to draw into, e.g. one output frame. */
     fun createTarget(width: Int, height: Int): GpuTarget
 
+    /** The GPU's render node (e.g. /dev/dri/renderD128): clients allocate their GPU buffers there. */
+    val renderNode: java.nio.file.Path?
+
+    /** GPU buffer formats this renderer can show (for clients' dma-bufs). */
+    val dmabufFormats: List<DmabufFormat>
+
+    /**
+     * Shows a client's GPU buffer as a texture without copying it. The texture reads the
+     * client's memory directly, so the client must not reuse the buffer while it is shown.
+     * Returns null if the format is not supported. The [buffer] descriptors stay owned by the caller.
+     */
+    fun importDmabuf(buffer: Dmabuf): GpuTexture?
+
+    /**
+     * A GPU buffer to draw into that others can read: the display (KMS) or another
+     * compositor. Allocated with [format] and one of [modifiers].
+     */
+    fun createBuffer(width: Int, height: Int, format: Int, modifiers: List<Long>, scanout: Boolean): GpuBuffer
+
     /** Starts drawing a frame into [target], cleared to the given colour. */
     fun begin(target: GpuTarget, red: Float, green: Float, blue: Float)
 
@@ -52,4 +71,22 @@ interface GpuTarget : AutoCloseable {
 
     /** Copies the finished picture into [destination] as BGRA rows of [stride] bytes, top row first. */
     fun readPixels(destination: MemorySegment, stride: Int)
+}
+
+/**
+ * A [GpuTarget] backed by a shareable GPU buffer. Its memory can be shown by the display
+ * (with [handle], a number valid on the renderer's DRM device) or given to others ([export]).
+ */
+interface GpuBuffer : GpuTarget {
+    val format: Int
+    val modifier: Long
+    val planeCount: Int
+
+    /** GEM handle of a plane on the renderer's DRM device (for drmModeAddFB2). */
+    fun handle(plane: Int): Int
+    fun stride(plane: Int): Int
+    fun offset(plane: Int): Int
+
+    /** New descriptors for this buffer, e.g. to send to another compositor. Caller closes them. */
+    fun export(): Dmabuf
 }

@@ -42,6 +42,15 @@ public class Egl extends Egl$shared {
     public static int EGL_FALSE() {
         return EGL_FALSE;
     }
+    private static final int EGL_HEIGHT = (int)12374L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_HEIGHT 12374
+     * }
+     */
+    public static int EGL_HEIGHT() {
+        return EGL_HEIGHT;
+    }
     private static final int EGL_NONE = (int)12344L;
     /**
      * {@snippet lang=c :
@@ -87,6 +96,15 @@ public class Egl extends Egl$shared {
     public static int EGL_VERSION() {
         return EGL_VERSION;
     }
+    private static final int EGL_WIDTH = (int)12375L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_WIDTH 12375
+     * }
+     */
+    public static int EGL_WIDTH() {
+        return EGL_WIDTH;
+    }
     private static final int EGL_OPENGL_ES_API = (int)12448L;
     /**
      * {@snippet lang=c :
@@ -114,6 +132,15 @@ public class Egl extends Egl$shared {
     public static int EGL_CONTEXT_MINOR_VERSION() {
         return EGL_CONTEXT_MINOR_VERSION;
     }
+    private static final int EGL_IMAGE_PRESERVED_KHR = (int)12498L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_IMAGE_PRESERVED_KHR 12498
+     * }
+     */
+    public static int EGL_IMAGE_PRESERVED_KHR() {
+        return EGL_IMAGE_PRESERVED_KHR;
+    }
     private static final int EGL_PLATFORM_GBM_KHR = (int)12759L;
     /**
      * {@snippet lang=c :
@@ -122,6 +149,204 @@ public class Egl extends Egl$shared {
      */
     public static int EGL_PLATFORM_GBM_KHR() {
         return EGL_PLATFORM_GBM_KHR;
+    }
+    private static final int EGL_LINUX_DMA_BUF_EXT = (int)12912L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_LINUX_DMA_BUF_EXT 12912
+     * }
+     */
+    public static int EGL_LINUX_DMA_BUF_EXT() {
+        return EGL_LINUX_DMA_BUF_EXT;
+    }
+    private static final int EGL_LINUX_DRM_FOURCC_EXT = (int)12913L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_LINUX_DRM_FOURCC_EXT 12913
+     * }
+     */
+    public static int EGL_LINUX_DRM_FOURCC_EXT() {
+        return EGL_LINUX_DRM_FOURCC_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE0_FD_EXT = (int)12914L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE0_FD_EXT 12914
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE0_FD_EXT() {
+        return EGL_DMA_BUF_PLANE0_FD_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE0_OFFSET_EXT = (int)12915L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE0_OFFSET_EXT 12915
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE0_OFFSET_EXT() {
+        return EGL_DMA_BUF_PLANE0_OFFSET_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE0_PITCH_EXT = (int)12916L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE0_PITCH_EXT 12916
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE0_PITCH_EXT() {
+        return EGL_DMA_BUF_PLANE0_PITCH_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE1_FD_EXT = (int)12917L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE1_FD_EXT 12917
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE1_FD_EXT() {
+        return EGL_DMA_BUF_PLANE1_FD_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE1_OFFSET_EXT = (int)12918L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE1_OFFSET_EXT 12918
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE1_OFFSET_EXT() {
+        return EGL_DMA_BUF_PLANE1_OFFSET_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE1_PITCH_EXT = (int)12919L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE1_PITCH_EXT 12919
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE1_PITCH_EXT() {
+        return EGL_DMA_BUF_PLANE1_PITCH_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE2_FD_EXT = (int)12920L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE2_FD_EXT 12920
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE2_FD_EXT() {
+        return EGL_DMA_BUF_PLANE2_FD_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE2_OFFSET_EXT = (int)12921L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE2_OFFSET_EXT 12921
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE2_OFFSET_EXT() {
+        return EGL_DMA_BUF_PLANE2_OFFSET_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE2_PITCH_EXT = (int)12922L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE2_PITCH_EXT 12922
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE2_PITCH_EXT() {
+        return EGL_DMA_BUF_PLANE2_PITCH_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE3_FD_EXT = (int)13376L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE3_FD_EXT 13376
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE3_FD_EXT() {
+        return EGL_DMA_BUF_PLANE3_FD_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE3_OFFSET_EXT = (int)13377L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE3_OFFSET_EXT 13377
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE3_OFFSET_EXT() {
+        return EGL_DMA_BUF_PLANE3_OFFSET_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE3_PITCH_EXT = (int)13378L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE3_PITCH_EXT 13378
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE3_PITCH_EXT() {
+        return EGL_DMA_BUF_PLANE3_PITCH_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT = (int)13379L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT 13379
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT() {
+        return EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT = (int)13380L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT 13380
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT() {
+        return EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE1_MODIFIER_LO_EXT = (int)13381L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE1_MODIFIER_LO_EXT 13381
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE1_MODIFIER_LO_EXT() {
+        return EGL_DMA_BUF_PLANE1_MODIFIER_LO_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE1_MODIFIER_HI_EXT = (int)13382L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE1_MODIFIER_HI_EXT 13382
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE1_MODIFIER_HI_EXT() {
+        return EGL_DMA_BUF_PLANE1_MODIFIER_HI_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE2_MODIFIER_LO_EXT = (int)13383L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE2_MODIFIER_LO_EXT 13383
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE2_MODIFIER_LO_EXT() {
+        return EGL_DMA_BUF_PLANE2_MODIFIER_LO_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT = (int)13384L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT 13384
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT() {
+        return EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE3_MODIFIER_LO_EXT = (int)13385L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE3_MODIFIER_LO_EXT 13385
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE3_MODIFIER_LO_EXT() {
+        return EGL_DMA_BUF_PLANE3_MODIFIER_LO_EXT;
+    }
+    private static final int EGL_DMA_BUF_PLANE3_MODIFIER_HI_EXT = (int)13386L;
+    /**
+     * {@snippet lang=c :
+     * #define EGL_DMA_BUF_PLANE3_MODIFIER_HI_EXT 13386
+     * }
+     */
+    public static int EGL_DMA_BUF_PLANE3_MODIFIER_HI_EXT() {
+        return EGL_DMA_BUF_PLANE3_MODIFIER_HI_EXT;
     }
 
     private static class eglChooseConfig {
@@ -787,6 +1012,131 @@ public class Egl extends Egl$shared {
                 traceDowncall("eglReleaseThread");
             }
             return (int)mh$.invokeExact();
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class eglCreateImage {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Egl.C_POINTER,
+            Egl.C_POINTER,
+            Egl.C_POINTER,
+            Egl.C_INT,
+            Egl.C_POINTER,
+            Egl.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("eglCreateImage");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * EGLImage eglCreateImage(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLAttrib *attrib_list)
+     * }
+     */
+    public static FunctionDescriptor eglCreateImage$descriptor() {
+        return eglCreateImage.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * EGLImage eglCreateImage(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLAttrib *attrib_list)
+     * }
+     */
+    public static MethodHandle eglCreateImage$handle() {
+        return eglCreateImage.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * EGLImage eglCreateImage(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLAttrib *attrib_list)
+     * }
+     */
+    public static MemorySegment eglCreateImage$address() {
+        return eglCreateImage.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * EGLImage eglCreateImage(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLAttrib *attrib_list)
+     * }
+     */
+    public static MemorySegment eglCreateImage(MemorySegment dpy, MemorySegment ctx, int target, MemorySegment buffer, MemorySegment attrib_list) {
+        var mh$ = eglCreateImage.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("eglCreateImage", dpy, ctx, target, buffer, attrib_list);
+            }
+            return (MemorySegment)mh$.invokeExact(dpy, ctx, target, buffer, attrib_list);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class eglDestroyImage {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Egl.C_INT,
+            Egl.C_POINTER,
+            Egl.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("eglDestroyImage");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * EGLBoolean eglDestroyImage(EGLDisplay dpy, EGLImage image)
+     * }
+     */
+    public static FunctionDescriptor eglDestroyImage$descriptor() {
+        return eglDestroyImage.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * EGLBoolean eglDestroyImage(EGLDisplay dpy, EGLImage image)
+     * }
+     */
+    public static MethodHandle eglDestroyImage$handle() {
+        return eglDestroyImage.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * EGLBoolean eglDestroyImage(EGLDisplay dpy, EGLImage image)
+     * }
+     */
+    public static MemorySegment eglDestroyImage$address() {
+        return eglDestroyImage.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * EGLBoolean eglDestroyImage(EGLDisplay dpy, EGLImage image)
+     * }
+     */
+    public static int eglDestroyImage(MemorySegment dpy, MemorySegment image) {
+        var mh$ = eglDestroyImage.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("eglDestroyImage", dpy, image);
+            }
+            return (int)mh$.invokeExact(dpy, image);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {

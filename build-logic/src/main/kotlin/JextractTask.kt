@@ -48,6 +48,10 @@ abstract class JextractTask : DefaultTask() {
     @get:Input
     abstract val libraries: ListProperty<String>
 
+    /** Extra directories to search for #include files, e.g. /usr/include/libdrm. */
+    @get:Input
+    abstract val includeDirs: ListProperty<String>
+
     @get:Input
     abstract val jextractUrl: Property<String>
 
@@ -74,6 +78,7 @@ abstract class JextractTask : DefaultTask() {
             "--target-package", targetPackage.get(),
             "--header-class-name", headerClassName.get(),
         )
+        for (dir in includeDirs.getOrElse(emptyList())) command += listOf("-I", dir)
         // ":" means "load this exact library name" (versioned names exist without -dev packages).
         for (library in libraries.getOrElse(emptyList())) command += listOf("--library", ":$library")
         for (include in includes.get()) {
