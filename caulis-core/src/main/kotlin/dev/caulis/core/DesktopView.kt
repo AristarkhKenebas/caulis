@@ -108,13 +108,14 @@ internal sealed class DrawItem {
         val green: Float,
         val blue: Float,
         override val covers: List<Rect> = emptyList(),
+        val alpha: Float = 1f,
     ) : DrawItem()
 
     /** True if [other] (the same thing last frame) looks different apart from its content. */
     fun differsFrom(other: DrawItem): Boolean = when {
         rect != other.rect -> true
         this is Picture && other is Picture -> opaque != other.opaque
-        this is Color && other is Color -> red != other.red || green != other.green || blue != other.blue
+        this is Color && other is Color -> red != other.red || green != other.green || blue != other.blue || alpha != other.alpha
         else -> true
     }
 }

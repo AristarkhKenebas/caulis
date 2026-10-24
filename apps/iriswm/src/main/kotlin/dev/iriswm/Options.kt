@@ -48,6 +48,8 @@ Keys:
   Super+Left / Right      focus the window to the left / right
   Super+1 ... 9           go to workspace 1 ... 9
   Super+Shift+1 ... 9     move the window to workspace 1 ... 9
+  Super+`                 drop-down terminal (slides in from the top)
+  Super+M                 music (Spotify slides in from the right)
   Alt+Tab                 switch between windows
   Super + left drag       move a window
   Super + right drag      resize a window

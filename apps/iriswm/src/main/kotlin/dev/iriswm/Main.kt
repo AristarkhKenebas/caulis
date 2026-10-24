@@ -1,5 +1,7 @@
 package dev.iriswm
 
+import dev.caulis.core.Scratchpad
+import dev.caulis.tiling.Side
 import dev.caulis.tiling.builtInLayouts
 import dev.caulis.wm.Caulis
 import dev.caulis.wm.caulis
@@ -40,6 +42,12 @@ fun main(args: Array<String>) {
             val workspace = desktop.activeWorkspace
             val next = layouts[(layouts.indexOfFirst { it.name == workspace.layout.name } + 1) % layouts.size]
             desktop.setLayout(workspace, next)
+        }
+
+        // Shown and hidden with one key, above every workspace.
+        scratchpad("iris-dropdown", key = "Super+Grave", command = "${options.terminal} --app-id iris-dropdown", style = Scratchpad.Edge(Side.TOP))
+        scratchpad("music", key = "Super+M", command = "spotify", style = Scratchpad.Edge(Side.RIGHT, depth = 0.45, length = 0.8, margin = 12)) {
+            it.appId.equals("spotify", ignoreCase = true)
         }
 
         onStart { options.run.forEach(::launch) }

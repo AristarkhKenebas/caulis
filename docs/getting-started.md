@@ -201,7 +201,35 @@ onWorkspaceChanged { number -> println("Workspace $number") }
 If your code throws an exception, Caulis writes it to the log and keeps running — a mistake
 in a key binding never takes your desktop down.
 
-## 7. On the real screen
+## 7. Scratchpads
+
+Windows you call up with one key, above whatever workspace you are on — a drop-down
+terminal, a music player, notes:
+
+```kotlin
+// A terminal sliding in from the top (started on the first press):
+scratchpad("terminal", key = "Super+Grave", command = "foot --app-id terminal")
+
+// Spotify sliding in from the right, found by its app id:
+scratchpad("music", key = "Super+M", command = "spotify",
+    style = Scratchpad.Edge(Side.RIGHT, depth = 0.4)) { it.appId == "spotify" }
+
+// A whole workspace of its own above the current one (the rest dimmed):
+scratchpad("notes", key = "Super+N", command = "gnome-text-editor",
+    style = Scratchpad.Overlay()) { it.appId == "org.gnome.TextEditor" }
+```
+
+| Style | Looks like |
+| --- | --- |
+| `Scratchpad.Edge(side, depth, length, margin)` | a compact window sliding in from an edge |
+| `Scratchpad.Center(width, height)` | a floating window in the middle |
+| `Scratchpad.Overlay(layout, dim)` | a workspace above the current one, everything else dimmed; a click on the dimmed part hides it |
+
+The key shows or hides it; the first press starts the program. By default a window belongs
+to a scratchpad when its app id is the scratchpad's name — that is why the terminal above is
+started with `--app-id terminal`.
+
+## 8. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 
@@ -218,7 +246,7 @@ exitAfterSeconds = 60
 
 Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles.
 
-## 8. Your own layout
+## 9. Your own layout
 
 Describe it with building blocks — no arithmetic:
 

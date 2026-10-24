@@ -1,6 +1,7 @@
 package dev.caulis.wm
 
 import dev.caulis.core.Desktop
+import dev.caulis.core.Scratchpad
 import dev.caulis.core.Window
 import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Direction
@@ -92,6 +93,9 @@ class Caulis {
     internal val bindings = ArrayList<Pair<String, Caulis.() -> Unit>>()
     internal val startActions = ArrayList<Caulis.() -> Unit>()
     internal val floatRules = ArrayList<(Window) -> Boolean>()
+    internal val scratchpads = ArrayList<ScratchpadSetup>()
+
+    internal class ScratchpadSetup(val name: String, val key: String?, val command: String?, val style: Scratchpad.Style, val match: (Window) -> Boolean)
     internal val windowOpened = ArrayList<Caulis.(Window) -> Unit>()
     internal val windowClosed = ArrayList<Caulis.(Window) -> Unit>()
     internal val focusChanged = ArrayList<Caulis.(Window?) -> Unit>()
@@ -116,6 +120,37 @@ class Caulis {
     @JvmSynthetic
     fun floatWhen(rule: (Window) -> Boolean) {
         floatRules += rule
+    }
+
+    /**
+     * A special workspace, shown and hidden with [key] above whatever workspace is on screen:
+     *
+     * ```
+     * scratchpad("terminal", key = "Super+Grave", command = "foot --app-id terminal")
+     * scratchpad("music", key = "Super+M", command = "spotify", style = Scratchpad.Edge(Side.RIGHT)) { it.appId == "spotify" }
+     * scratchpad("notes", key = "Super+N", command = "gnome-text-editor", style = Scratchpad.Overlay())
+     * ```
+     *
+     * The first press starts [command] when none of its windows is open; the window slides
+     * in as soon as it appears. Windows belong to it when [match] says so — by default
+     * when their app id is [name]. Styles: [Scratchpad.Edge] (slides in from an edge, the
+     * default), [Scratchpad.Center] (floating in the middle), [Scratchpad.Overlay] (a whole
+     * workspace above the current one).
+     */
+    @JvmSynthetic
+    fun scratchpad(
+        name: String,
+        key: String? = null,
+        command: String? = null,
+        style: Scratchpad.Style = Scratchpad.Edge(),
+        match: (Window) -> Boolean = { it.appId == name },
+    ) {
+        scratchpads += ScratchpadSetup(name, key, command, style, match)
+    }
+
+    /** Shows or hides the scratchpad [name] (starting its program if needed). */
+    fun toggleScratchpad(name: String) {
+        checkNotNull(running) { "Caulis is not running yet" }.toggleScratchpad(name)
     }
 
     /** Runs [action] when a window appears, e.g. to move it to a workspace. */
@@ -154,6 +189,8 @@ class Caulis {
     fun bind(combination: String, action: Consumer<Caulis>): Caulis = apply { bind(combination) { action.accept(this) } }
     fun onStart(action: Consumer<Caulis>): Caulis = apply { onStart { action.accept(this) } }
     fun floatWhen(rule: java.util.function.Predicate<Window>): Caulis = apply { floatWhen { rule.test(it) } }
+    fun scratchpad(name: String, key: String?, command: String?, style: Scratchpad.Style): Caulis =
+        apply { scratchpad(name, key, command, style) { it.appId == name } }
     fun onWindowOpened(action: java.util.function.BiConsumer<Caulis, Window>): Caulis = apply { onWindowOpened { action.accept(this, it) } }
     fun onWindowClosed(action: java.util.function.BiConsumer<Caulis, Window>): Caulis = apply { onWindowClosed { action.accept(this, it) } }
 

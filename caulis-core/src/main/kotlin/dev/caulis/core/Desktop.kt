@@ -39,6 +39,7 @@ class Desktop(
 
     // The desktop changed size: maximized and fullscreen windows follow it, layouts re-arrange.
     private fun refitWindows() {
+        for (pad in shownPads) placeScratchpad(pad, appearing = emptySet())
         for (workspace in workspaces.values) {
             for (window in workspace.windows + workspace.minimized) {
                 if ((window.maximized || window.fullscreen) && window.shell.configured) window.configure(width, height)
@@ -198,6 +199,114 @@ class Desktop(
     private fun workspaceOf(window: Window): Workspace? =
         workspaces.values.firstOrNull { window in it.windows || window in it.minimized }
 
+    // --- scratchpads (special workspaces) -----------------------------------------------------
+
+    private val scratchpads = LinkedHashMap<String, Scratchpad>()
+
+    // Scratchpads on screen (or leaving it), the last shown on top.
+    private val shownPads = ArrayList<Scratchpad>()
+
+    // The scratchpad window with the keyboard, if any.
+    private var padFocus: Window? = null
+
+    /**
+     * A special workspace named [name]: windows for which [match] is true (e.g. a certain
+     * app id) live in it, shown and hidden with [toggleScratchpad] above any workspace.
+     */
+    fun addScratchpad(name: String, style: Scratchpad.Style, match: (Window) -> Boolean): Scratchpad {
+        require(name !in scratchpads) { "There is already a scratchpad named \"$name\"" }
+        return Scratchpad(name, style, match).also { scratchpads[name] = it }
+    }
+
+    /** The scratchpad named [name], if there is one. */
+    fun scratchpad(name: String): Scratchpad? = scratchpads[name]
+
+    /** The scratchpad [window] lives in, if any. */
+    fun scratchpadOf(window: Window): Scratchpad? = scratchpads.values.firstOrNull { window in it.windows }
+
+    // The scratchpad a new window belongs to (by the scratchpads' rules).
+    private fun scratchpadFor(window: Window): Scratchpad? =
+        scratchpads.values.firstOrNull { pad -> try { pad.match(window) } catch (e: Exception) { false } }
+
+    /**
+     * Shows the scratchpad [name], or hides it if it is shown. Returns false if it has no
+     * windows yet — then start its program; its window appears as soon as it opens.
+     */
+    fun toggleScratchpad(name: String): Boolean {
+        val pad = scratchpads[name] ?: return false
+        if (pad.windows.isEmpty()) return false
+        if (pad.shown && !pad.leaving) hideScratchpad(pad) else showScratchpad(pad, appearing = pad.windows.toSet())
+        return true
+    }
+
+    /** Moves [window] from its workspace into the scratchpad [name] (and shows it). */
+    fun moveToScratchpad(window: Window, name: String) {
+        val pad = scratchpads[name] ?: return
+        val from = workspaceOf(window) ?: return
+        from.remove(window)
+        from.model.forget(window)
+        pending.remove(window)
+        arrange(from)
+        pad.windows += window
+        showScratchpad(pad, appearing = emptySet())
+    }
+
+    private fun showScratchpad(pad: Scratchpad, appearing: Set<Window>) {
+        pad.shown = true
+        pad.leaving = false
+        shownPads -= pad
+        shownPads += pad
+        placeScratchpad(pad, appearing)
+        focus(pad.windows.last())
+    }
+
+    private fun hideScratchpad(pad: Scratchpad) {
+        pad.leaving = true
+        val now = System.nanoTime()
+        for (window in pad.windows) {
+            val from = shownRects[window] ?: currentRect(window)
+            glides[window] = Glide(from, now, to = pad.hiddenRect(from, width, height))
+        }
+        compositor.display.loop.after(animationMillis) {
+            if (!pad.leaving) return@after // shown again meanwhile
+            pad.leaving = false
+            pad.shown = false
+            shownPads -= pad
+            for (window in pad.windows) glides -= window
+            if (padFocus != null && padFocus in pad.windows) focus(windows.lastOrNull())
+            changed()
+        }
+        if (padFocus != null && padFocus in pad.windows) focus(windows.lastOrNull())
+        changed()
+    }
+
+    // Where the scratchpad's windows go: its edge, the middle, or its own layout.
+    private fun padTargets(pad: Scratchpad, extra: Window? = null): Map<Window, Rect> {
+        val windows = pad.windows + listOfNotNull(extra)
+        if (pad.style is Scratchpad.Overlay) {
+            val rects = pad.workspace.model.arrange(windows, Rect(0, 0, width, height), windows.lastOrNull())
+            return windows.zip(rects).associate { (window, rect) -> window to fit(window, rect) }
+        }
+        val rect = pad.shownRect(width, height)
+        return windows.associateWith { fit(it, rect) }
+    }
+
+    // Sizes and places the scratchpad's windows; [appearing] ones grow or slide into place.
+    private fun placeScratchpad(pad: Scratchpad, appearing: Set<Window>) {
+        val now = System.nanoTime()
+        for ((window, rect) in padTargets(pad)) {
+            window.tiled = pad.style is Scratchpad.Overlay
+            val visibleRect = window.shell.visibleRect
+            if (visibleRect.width != rect.width || visibleRect.height != rect.height) window.configure(rect.width, rect.height)
+            window.x = rect.x
+            window.y = rect.y
+            if (window in appearing && animationMillis > 0) {
+                glides[window] = Glide(pad.hiddenRect(rect, width, height), now)
+            }
+        }
+        changed()
+    }
+
     // --- placing windows: layouts and transactions ---------------------------------------
 
     /**
@@ -293,7 +402,7 @@ class Desktop(
     var animationMillis = 220L
 
     // A window on its way: where it started; the end is wherever the window is now.
-    private class Glide(val from: Rect, val startNanos: Long)
+    private class Glide(val from: Rect, val startNanos: Long, val to: Rect? = null)
 
     private val glides = HashMap<Window, Glide>()
 
@@ -311,15 +420,16 @@ class Desktop(
         val shown = shownRects[window]
         window.x = x
         window.y = y
-        if (animationMillis > 0 && shown != null && window in activeWorkspace.windows) {
+        if (animationMillis > 0 && shown != null && (window in activeWorkspace.windows || scratchpadOf(window) != null)) {
             glides[window] = Glide(shown, System.nanoTime())
         }
     }
 
     // Where a gliding window is drawn now: from its start towards its current place, fast
     // at first and gently slowing down. Null when the glide is over.
-    private fun glidePosition(glide: Glide, target: Rect, nowNanos: Long): Rect? {
-        val t = (nowNanos - glide.startNanos) / (animationMillis * 1_000_000.0)
+    private fun glidePosition(glide: Glide, current: Rect, nowNanos: Long): Rect? {
+        val target = glide.to ?: current
+        val t = (nowNanos - glide.startNanos) / (animationMillis.coerceAtLeast(1) * 1_000_000.0)
         if (t >= 1.0) return null
         val eased = 1 - (1 - t) * (1 - t) * (1 - t)
         fun mix(a: Int, b: Int) = (a + (b - a) * eased).roundToInt()
@@ -370,6 +480,10 @@ class Desktop(
     // The layout decides the size before the first frame, so a new window never shows up
     // in a wrong size first (R1). Maximized/fullscreen apps get the whole desktop.
     override fun initialSize(window: Window): Pair<Int, Int> {
+        scratchpadFor(window)?.let { pad ->
+            window.tiled = pad.style is Scratchpad.Overlay // told in the very first configure
+            return padTargets(pad, extra = window).getValue(window).let { it.width to it.height }
+        }
         if (window.maximized || window.fullscreen) return width to height
         if (floatRule(window)) return 0 to 0
         val target = arrange(activeWorkspace, extra = window)[window] ?: return 0 to 0
@@ -378,6 +492,13 @@ class Desktop(
     }
 
     override fun windowMapped(window: Window) {
+        scratchpadFor(window)?.let { pad ->
+            // Its program was just started (usually by the scratchpad's key): show it.
+            pad.windows += window
+            showScratchpad(pad, appearing = setOf(window))
+            notify(windowOpenedListeners, window, "window-opened")
+            return
+        }
         val workspace = activeWorkspace
         val visibleRect = window.shell.visibleRect
         // Its place when floating: its own size, or (if the layout sized it) 2/3 of the desktop.
@@ -404,6 +525,22 @@ class Desktop(
     }
 
     override fun windowUnmapped(window: Window) {
+        scratchpadOf(window)?.let { pad ->
+            pad.windows -= window
+            glides -= window
+            shownRects -= window
+            if (pad.windows.isEmpty()) {
+                pad.shown = false
+                pad.leaving = false
+                shownPads -= pad
+            } else if (pad.shown) {
+                placeScratchpad(pad, appearing = emptySet())
+            }
+            if (padFocus === window || seat.keyboardFocus === window.surface) focus(pad.windows.lastOrNull()?.takeIf { pad.shown } ?: windows.lastOrNull())
+            changed()
+            notify(windowClosedListeners, window, "window-closed")
+            return
+        }
         val workspace = workspaceOf(window)
         workspace?.remove(window)
         workspace?.model?.forget(window) // closed for good: its place is free now
@@ -434,11 +571,22 @@ class Desktop(
     // --- window states: maximized, fullscreen, minimized ----------------------------------
 
     /** The window that has the keyboard, if any. */
-    val focusedWindow: Window? get() = windows.lastOrNull()?.takeIf { it.activated }
+    val focusedWindow: Window? get() = padFocus?.takeIf { it.activated } ?: windows.lastOrNull()?.takeIf { it.activated }
 
-    override fun maximizeRequested(window: Window, maximized: Boolean) = setMaximized(window, maximized)
-    override fun fullscreenRequested(window: Window, fullscreen: Boolean) = setFullscreen(window, fullscreen)
-    override fun minimizeRequested(window: Window) = minimize(window)
+    override fun maximizeRequested(window: Window, maximized: Boolean) {
+        // A scratchpad window already has its place; it only gets an answer.
+        if (scratchpadOf(window) != null) window.configure() else setMaximized(window, maximized)
+    }
+
+    override fun fullscreenRequested(window: Window, fullscreen: Boolean) {
+        if (scratchpadOf(window) != null) window.configure() else setFullscreen(window, fullscreen)
+    }
+
+    // Minimizing a scratchpad window hides its scratchpad.
+    override fun minimizeRequested(window: Window) {
+        val pad = scratchpadOf(window)
+        if (pad != null) hideScratchpad(pad) else minimize(window)
+    }
 
     /** Makes [window] fill the desktop (or brings it back to its earlier place and size). */
     fun setMaximized(window: Window, maximized: Boolean) {
@@ -703,6 +851,24 @@ class Desktop(
      * A minimized window comes back; a window on another workspace brings that workspace.
      */
     fun focus(window: Window?) {
+        val pad = window?.let(::scratchpadOf)
+        // Everything else loses the "active" look.
+        for (other in scratchpads.values.flatMap { it.windows }) if (other !== window) other.setActivated(false)
+        if (pad != null) {
+            for (other in activeWorkspace.windows) other.setActivated(false)
+            pad.windows -= window
+            pad.windows += window
+            window.setActivated(true)
+            padFocus = window
+            seat.focusKeyboard(window.surface)
+            if (window !== lastFocused) {
+                lastFocused = window
+                notify(focusListeners, window, "focus")
+            }
+            changed()
+            return
+        }
+        padFocus = null
         if (window != null) {
             val workspace = workspaceOf(window)
             if (workspace != null && workspace !== activeWorkspace) {
@@ -767,8 +933,14 @@ class Desktop(
                 grabs.clear()
                 return
             }
+            // A click on the dimmed area around an overlay scratchpad hides it.
+            val overlay = shownPads.lastOrNull { it.style is Scratchpad.Overlay && !it.leaving }
+            if (overlay != null && (hit == null || (hit.root.roleObject as? Window)?.let(::scratchpadOf) !== overlay)) {
+                hideScratchpad(overlay)
+                return
+            }
             val window = hit?.root?.roleObject as? Window
-            if (window != null && window !== windows.lastOrNull()) focus(window)
+            if (window != null && window !== focusedWindow) focus(window)
         }
         seat.pointerButton(timeMillis, button, pressed)
     }
@@ -785,6 +957,13 @@ class Desktop(
         for (popup in popups.asReversed()) {
             val (px, py) = popupOrigin(popup)
             hitTree(popup.surface, x - px, y - py, popup.surface)?.let { return it }
+        }
+        for (pad in shownPads.asReversed()) {
+            if (pad.leaving) continue
+            for (window in pad.windows.asReversed()) {
+                val visible = window.shell.visibleRect
+                hitTree(window.surface, x - (window.x - visible.x), y - (window.y - visible.y), window.surface)?.let { return it }
+            }
         }
         for (window in stackingOrder().asReversed()) {
             val visible = window.shell.visibleRect
@@ -910,7 +1089,7 @@ class Desktop(
             val r = item.rect
             when (item) {
                 is DrawItem.Picture -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, item.opaque)
-                is DrawItem.Color -> renderer.drawColor(r.x, r.y, r.width, r.height, item.red, item.green, item.blue)
+                is DrawItem.Color -> renderer.drawColor(r.x, r.y, r.width, r.height, item.red, item.green, item.blue, item.alpha)
             }
         }
         renderer.end()
@@ -994,15 +1173,14 @@ class Desktop(
         if (sceneVersion == version) return scene
         val all = ArrayList<DrawItem>()
         val now = System.nanoTime()
-        for (window in stackingOrder()) {
-            val visibleRect = window.shell.visibleRect
-            val target = currentRect(window)
-            val shown = glides[window]?.let { glide -> glidePosition(glide, target, now) ?: target.also { glides -= window } } ?: target
-            shownRects[window] = shown
-            // While gliding, the picture is stretched to the in-between size.
-            val scaleX = if (target.width > 0) shown.width.toDouble() / target.width else 1.0
-            val scaleY = if (target.height > 0) shown.height.toDouble() / target.height else 1.0
-            addTree(all, window.surface, shown.x - (visibleRect.x * scaleX).roundToInt(), shown.y - (visibleRect.y * scaleY).roundToInt(), scaleX, scaleY)
+        for (window in stackingOrder()) addWindow(all, window, now)
+        // Shown scratchpads above every workspace, the last shown on top.
+        for (pad in shownPads) {
+            val overlay = pad.style as? Scratchpad.Overlay
+            if (overlay != null && !pad.leaving) {
+                all += DrawItem.Color("dim ${pad.name}", Rect(0, 0, width, height), 0f, 0f, 0f, alpha = overlay.dim)
+            }
+            for (window in pad.windows) addWindow(all, window, now, leaving = pad.leaving)
         }
         for (popup in popups) {
             val (x, y) = popupOrigin(popup)
@@ -1016,6 +1194,22 @@ class Desktop(
         scene = kept
         sceneVersion = version
         return kept
+    }
+
+    // A window where it is (or on its way, see glides); a leaving one only while it moves.
+    private fun addWindow(all: MutableList<DrawItem>, window: Window, now: Long, leaving: Boolean = false) {
+        val visibleRect = window.shell.visibleRect
+        val target = currentRect(window)
+        val glide = glides[window]
+        val shown = glide?.let { glidePosition(it, target, now) }
+        if (glide != null && shown == null) glides -= window
+        if (leaving && shown == null) return // gone out of sight
+        val rect = shown ?: target
+        shownRects[window] = rect
+        // While gliding, the picture is stretched to the in-between size.
+        val scaleX = if (target.width > 0) rect.width.toDouble() / target.width else 1.0
+        val scaleY = if (target.height > 0) rect.height.toDouble() / target.height else 1.0
+        addTree(all, window.surface, rect.x - (visibleRect.x * scaleX).roundToInt(), rect.y - (visibleRect.y * scaleY).roundToInt(), scaleX, scaleY)
     }
 
     private fun addTree(items: MutableList<DrawItem>, surface: Surface, x: Int, y: Int, scaleX: Double = 1.0, scaleY: Double = 1.0) {

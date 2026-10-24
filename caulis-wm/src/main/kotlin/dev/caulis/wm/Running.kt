@@ -62,6 +62,10 @@ internal class Running(
         // The user's rules and events (dialogs and fixed-size windows always float).
         val defaultRule = desktop.floatRule
         desktop.floatRule = { window -> defaultRule(window) || config.floatRules.any { rule -> safely("floatWhen", false) { rule(window) } } }
+        for (pad in config.scratchpads) {
+            desktop.addScratchpad(pad.name, pad.style) { window -> safely("scratchpad ${pad.name}", false) { pad.match(window) } }
+            pad.key?.let { key -> keys.bind(key) { toggleScratchpad(pad.name) } }
+        }
         config.windowOpened.forEach { action -> desktop.onWindowOpened { window -> action(config, window) } }
         config.windowClosed.forEach { action -> desktop.onWindowClosed { window -> action(config, window) } }
         config.focusChanged.forEach { action -> desktop.onFocusChanged { window -> action(config, window) } }
@@ -72,6 +76,20 @@ internal class Running(
     }
 
     fun quit() = loop.stop()
+
+    // When each scratchpad's program was started (so a second press does not start it twice).
+    private val startedAt = HashMap<String, Long>()
+
+    /** Shows or hides a scratchpad; starts its program if it has no window yet. */
+    fun toggleScratchpad(name: String) {
+        if (desktop.toggleScratchpad(name)) return
+        val command = config.scratchpads.firstOrNull { it.name == name }?.command ?: return
+        val now = System.nanoTime()
+        val last = startedAt[name]
+        if (last != null && now - last < STARTING_NANOS) return // still starting
+        startedAt[name] = now
+        launch(command)
+    }
 
     /**
      * Starts [command] (run by /bin/sh) as a program inside the compositor. If the program
@@ -163,6 +181,8 @@ internal class Running(
     }
 
     private companion object {
+        /** How long a scratchpad's program may take to show a window before a key press starts it again. */
+        const val STARTING_NANOS = 5_000_000_000L
         const val BTN_LEFT = 0x110
         const val BTN_RIGHT = 0x111
     }
