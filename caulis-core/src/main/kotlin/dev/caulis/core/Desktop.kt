@@ -138,6 +138,63 @@ class Desktop(
         if (window === focusedWindow) append(", focused")
     }
 
+    // --- pictures for screenshots and screen sharing ----------------------------------------------
+
+    // Views of screen recordings: what each has seen, so it gets only what changed since.
+    private val captureViews = ArrayList<DesktopView>()
+    internal val commitListeners = ArrayList<(Surface) -> Unit>()
+    internal val frameListeners = ArrayList<() -> Unit>()
+
+    /** A record of what a screen recording last got (see [captureChanges]). Remove it with [removeCaptureView]. */
+    internal fun createCaptureView(): DesktopView = DesktopView().also { captureViews += it }
+
+    internal fun removeCaptureView(view: DesktopView) {
+        captureViews -= view
+    }
+
+    /**
+     * What changed on the desktop since [view] last got a picture (everything the first
+     * time), or null if nothing did. Counts as given: the next call starts from now.
+     */
+    internal fun captureChanges(view: DesktopView, cursor: Boolean): Rect? {
+        compare(view, captureItems(cursor))
+        return view.takeRepaint(1, Rect(0, 0, width, height))
+    }
+
+    // Everything on screen, with or without our cursor.
+    private fun captureItems(cursor: Boolean): List<DrawItem> {
+        val all = items()
+        return if (cursor) all else all.subList(0, itemsCursorStart.coerceAtMost(all.size))
+    }
+
+    /**
+     * Draws the whole desktop as it is on screen into [target] (as big as the desktop), with
+     * or without the [cursor]. For screenshots and screen sharing: what is on screen does not
+     * change, and programs are not told about this picture.
+     */
+    fun capture(target: GpuTarget, cursor: Boolean) {
+        val items = captureItems(cursor)
+        renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2])
+        draw(items, null)
+        renderer.end()
+    }
+
+    /**
+     * Draws [window] alone into [target] (as big as the window), see-through around it —
+     * also when it is hidden or on another workspace. For sharing one window.
+     */
+    fun captureWindow(window: Window, target: GpuTarget) {
+        val visible = window.shell.visibleRect
+        val items = ArrayList<DrawItem>()
+        addTree(items, window.surface, -visible.x, -visible.y)
+        renderer.begin(target, 0f, 0f, 0f, alpha = 0f)
+        draw(items, null)
+        renderer.end()
+    }
+
+    /** Asks for a refresh soon (the backend then calls [refresh]), e.g. because a screenshot waits. */
+    internal fun requestFrame() = onChange()
+
     // --- the window list (for docks, taskbars and your own code) --------------------------------
 
     /** Every window: on all workspaces (minimized ones too) and in scratchpads. */
@@ -1706,11 +1763,12 @@ class Desktop(
     private fun surfaceCommitted(surface: Surface) {
         val changes = surface.takeChanges()
         if (changes.isNotEmpty()) {
-            for (view in views) {
+            for (view in views + captureViews) {
                 val shownAt = view.shown.firstOrNull { it is DrawItem.Picture && it.surface === surface }?.rect ?: continue
                 for (change in changes) view.damage(change.translate(shownAt.x, shownAt.y))
             }
         }
+        for (listener in commitListeners.toList()) listener(surface)
         changed()
         scheduleHiddenRefresh()
     }
@@ -1751,6 +1809,7 @@ class Desktop(
             presented(view, System.nanoTime(), refreshNanos = 0, sequence = 0, flags = 0)
         }
         frameShown((System.nanoTime() / 1_000_000).toInt())
+        for (listener in frameListeners.toList()) listener()
         return draw
     }
 
@@ -1789,8 +1848,14 @@ class Desktop(
         val repaint = withBlurReach(items, view.takeRepaint(age, bounds) ?: return, bounds)
         renderLog.trace { "Frame: redraw $repaint of ${target.width}x${target.height} (buffer age $age), ${items.size} things to draw" }
         renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], clip = repaint)
+        draw(items, repaint)
+        renderer.end()
+    }
+
+    // Draws [items] (only those touching [repaint]) into the frame begun.
+    private fun draw(items: List<DrawItem>, repaint: Rect?) {
         for (item in items) {
-            if (item.rect.intersect(repaint) == null) continue
+            if (repaint != null && item.rect.intersect(repaint) == null) continue
             val r = item.rect
             when (item) {
                 is DrawItem.Picture -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, item.opaque, item.alpha, item.clip, item.radius)
@@ -1801,7 +1866,6 @@ class Desktop(
                 is DrawItem.Image -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, opaque = false)
             }
         }
-        renderer.end()
     }
 
     /**
@@ -1878,6 +1942,7 @@ class Desktop(
     private var itemsPointerX = Double.NaN
     private var itemsPointerY = Double.NaN
     private var itemsCursorVersion = -1L
+    private var itemsCursorStart = 0
 
     /** Everything to draw now, bottom to top, the cursor last. */
     private fun items(): List<DrawItem> {
@@ -1887,6 +1952,7 @@ class Desktop(
         visible.clear()
         visible += sceneVisible
         val cursorStart = all.size
+        itemsCursorStart = cursorStart
         addCursor(all)
         for (i in cursorStart until all.size) (all[i] as? DrawItem.Picture)?.let { visible += it.surface }
         items = all
@@ -2179,7 +2245,7 @@ class Desktop(
         }
     }
 
-    private fun isKeptUpdating(surface: Surface): Boolean {
+    internal fun isKeptUpdating(surface: Surface): Boolean {
         var current: Surface? = surface
         while (current != null) {
             if (current in keptUpdating) return true

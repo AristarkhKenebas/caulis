@@ -328,7 +328,48 @@ socket name the compositor printed when it started — then come back (Ctrl+Alt+
 whichever console the session is on). Ctrl+Alt+Backspace still quits the compositor, as
 always.
 
-## 12. Touchpad gestures
+## 12. Screenshots and screen sharing
+
+Programs made for wlroots-style compositors work as they are:
+
+```kotlin
+bind("Print") { launch("grim ~/Pictures/screenshot.png") }               // the whole screen
+bind("Shift+Print") { launch("grim -g \"$(slurp)\" ~/Pictures/part.png") } // a part you choose
+bind("Super+R") { launch("wf-recorder -f ~/Videos/recording.mp4") }      // a video
+```
+
+(`pacman -S grim slurp wf-recorder` or your distribution's packages.) OBS records with the
+*wlrobs* plugin or through the portal below.
+
+Recordings get a new picture only when something on screen changed — and only what changed
+— so recording a still screen costs nothing. A recorder's own GPU buffers are filled
+directly, without a copy through the processor.
+
+**Sharing in browsers, Discord, Zoom, ...** goes through the desktop portal: install
+`xdg-desktop-portal-wlr`, and tell the portal it handles Caulis
+(`~/.config/xdg-desktop-portal/caulis-portals.conf`):
+
+```ini
+[preferred]
+default=gtk
+org.freedesktop.impl.portal.Screenshot=wlr
+org.freedesktop.impl.portal.ScreenCast=wlr
+```
+
+and start the compositor's programs knowing about it:
+
+```kotlin
+onStart {
+    launch("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
+}
+```
+
+(`desktopName = "caulis"` is the name the portal looks for: `caulis-portals.conf`.) Single
+windows can be shared too; a shared window keeps drawing at full speed even while it is
+hidden or on another workspace. While the screen is locked, pictures show the lock and no
+window is given out.
+
+## 13. Touchpad gestures
 
 | Gesture | What it does |
 | --- | --- |
@@ -345,7 +386,7 @@ overviewPinchFingers = 4      // 0 = off
 swipe(fingers = 3, Direction.UP) { desktop.toggleOverview() }
 ```
 
-## 13. On the real screen
+## 14. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 
@@ -362,7 +403,7 @@ exitAfterSeconds = 60
 
 Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles.
 
-## 14. Your own layout
+## 15. Your own layout
 
 Describe it with building blocks — no arithmetic:
 

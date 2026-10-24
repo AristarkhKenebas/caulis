@@ -85,6 +85,18 @@ class TestClient(val connection: Connection) : AutoCloseable {
         if (commit) surface.commit()
     }
 
+    /**
+     * A buffer of [width] x [height] pixels in memory of its own (e.g. for a screenshot to
+     * go into), with that memory to look at.
+     */
+    fun buffer(width: Int, height: Int, format: Int = WlShm.Format.XRGB8888): Pair<dev.caulis.protocol.client.wayland.WlBuffer, SharedMemory> {
+        val memory = SharedMemory.create("buffer", width.toLong() * height * 4)
+        val pool = shm.createPool(memory.fd, width * height * 4)
+        val buffer = pool.createBuffer(0, width, height, width * 4, format)
+        pool.destroy()
+        return buffer to memory
+    }
+
     /** Exchanges messages until [condition] holds (at most 5 seconds). */
     fun waitFor(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 5_000_000_000

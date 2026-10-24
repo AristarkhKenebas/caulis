@@ -6,6 +6,7 @@ import dev.caulis.core.DataDeviceManager
 import dev.caulis.core.Desktop
 import dev.caulis.core.Effects
 import dev.caulis.core.ForeignToplevels
+import dev.caulis.core.ScreenCapture
 import dev.caulis.core.FrameStats
 import dev.caulis.core.LayerShell
 import dev.caulis.core.LinuxDmabuf
@@ -73,7 +74,7 @@ internal class Running(
         LayerShell(display).listener = desktop
         SessionLockManager(display).listener = desktop
         CursorShape(display, seat)
-        ForeignToplevels(display, desktop)
+        ScreenCapture(display, desktop, renderer, ForeignToplevels(display, desktop))
         applyCursor()
         desktop.layout = config.layout
         socket = config.socketDirectory?.let(display::addSocket) ?: display.addSocket()
@@ -156,6 +157,7 @@ internal class Running(
             val builder = ProcessBuilder("/bin/sh", "-c", command)
             builder.environment().apply {
                 put("WAYLAND_DISPLAY", socket)
+                put("XDG_CURRENT_DESKTOP", config.desktopName)
                 // Programs that draw their own cursor use the same theme and size.
                 val theme = desktop.cursorTheme
                 put("XCURSOR_THEME", theme.name)

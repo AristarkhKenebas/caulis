@@ -75,15 +75,40 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         return images.texture(image, buffer.width, buffer.height)
     }
 
+    override fun importDmabufTarget(buffer: Dmabuf): GpuTarget? {
+        val image = images.createImage(buffer) ?: return null
+        val texture = images.texture(image, buffer.width, buffer.height)
+        return try {
+            GlesImportedTarget(buffer.width, buffer.height, texture)
+        } catch (e: IllegalStateException) {
+            texture.close() // the GPU cannot draw into this format
+            null
+        }
+    }
+
+    override fun copy(source: GpuTarget, from: Rect, target: GpuTarget) {
+        source as GlesFramebuffer
+        target as GlesFramebuffer
+        Gles.glDisable(Gles.GL_SCISSOR_TEST())
+        Gles.glBindFramebuffer(Gles.GL_READ_FRAMEBUFFER(), source.framebuffer)
+        Gles.glBindFramebuffer(Gles.GL_DRAW_FRAMEBUFFER(), target.framebuffer)
+        val filter = if (from.width == target.width && from.height == target.height) Gles.GL_NEAREST() else Gles.GL_LINEAR()
+        Gles.glBlitFramebuffer(from.x, from.y, from.right, from.bottom, 0, 0, target.width, target.height, Gles.GL_COLOR_BUFFER_BIT(), filter)
+        Gles.glBindFramebuffer(Gles.GL_FRAMEBUFFER(), 0)
+        Gl.check("copying a picture")
+    }
+
+    override fun finish() = Gles.glFinish()
+
     override fun createBuffer(width: Int, height: Int, format: Int, modifiers: List<Long>, scanout: Boolean): GpuBuffer =
         GlesBuffer.create(egl, images, width, height, format, modifiers, scanout)
 
-    override fun begin(target: GpuTarget, red: Float, green: Float, blue: Float, clip: Rect?) {
+    override fun begin(target: GpuTarget, red: Float, green: Float, blue: Float, clip: Rect?, alpha: Float) {
         target as GlesFramebuffer
         this.target = target
         this.clip = clip
         bindTarget(target, clip)
-        Gles.glClearColor(red, green, blue, 1f)
+        Gles.glClearColor(red * alpha, green * alpha, blue * alpha, alpha)
         Gles.glClear(Gles.GL_COLOR_BUFFER_BIT())
     }
 

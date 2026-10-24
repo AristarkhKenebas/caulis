@@ -25,6 +25,8 @@ class SharedMemory private constructor(
     val size: Long,
     private val arena: Arena,
     private val memory: MemorySegment,
+    /** True if [write] may change the memory (it was mapped for writing). */
+    val writable: Boolean = true,
 ) : AutoCloseable {
 
     /** Runs [action] with the memory; a fault caused by the other process becomes [SharedMemoryException]. */
@@ -89,7 +91,7 @@ class SharedMemory private constructor(
                     val mode = if (writable) FileChannel.MapMode.READ_WRITE else FileChannel.MapMode.READ_ONLY
                     channel.map(mode, 0, size, arena)
                 }
-                return SharedMemory(fd, size, arena, memory)
+                return SharedMemory(fd, size, arena, memory, writable)
             } catch (e: Exception) {
                 arena.close()
                 fd.close()

@@ -45,6 +45,9 @@ Round corners, borders, shadows and blur behind see-through windows are one line
 `effects = Effects.MODERN.copy(blur = Blur())`. Caulis comes with sharp cursors of its own;
 any installed cursor theme works too.
 
+Screenshots and recordings (grim, wf-recorder, OBS, screen sharing in browsers through
+xdg-desktop-portal-wlr) work, also of single windows.
+
 ## Modules
 
 | Module | What it is |

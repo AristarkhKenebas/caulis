@@ -393,6 +393,15 @@ public class Gles extends Gles$shared {
     public static int GL_UNPACK_ROW_LENGTH() {
         return GL_UNPACK_ROW_LENGTH;
     }
+    private static final int GL_PACK_ROW_LENGTH = (int)3330L;
+    /**
+     * {@snippet lang=c :
+     * #define GL_PACK_ROW_LENGTH 3330
+     * }
+     */
+    public static int GL_PACK_ROW_LENGTH() {
+        return GL_PACK_ROW_LENGTH;
+    }
     private static final int GL_RGBA8 = (int)32856L;
     /**
      * {@snippet lang=c :
@@ -401,6 +410,24 @@ public class Gles extends Gles$shared {
      */
     public static int GL_RGBA8() {
         return GL_RGBA8;
+    }
+    private static final int GL_READ_FRAMEBUFFER = (int)36008L;
+    /**
+     * {@snippet lang=c :
+     * #define GL_READ_FRAMEBUFFER 36008
+     * }
+     */
+    public static int GL_READ_FRAMEBUFFER() {
+        return GL_READ_FRAMEBUFFER;
+    }
+    private static final int GL_DRAW_FRAMEBUFFER = (int)36009L;
+    /**
+     * {@snippet lang=c :
+     * #define GL_DRAW_FRAMEBUFFER 36009
+     * }
+     */
+    public static int GL_DRAW_FRAMEBUFFER() {
+        return GL_DRAW_FRAMEBUFFER;
     }
     private static final int GL_BGRA_EXT = (int)32993L;
     /**
@@ -3566,6 +3593,74 @@ public class Gles extends Gles$shared {
                 traceDowncall("glViewport", x, y, width, height);
             }
             mh$.invokeExact(x, y, width, height);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class glBlitFramebuffer {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(
+            Gles.C_INT,
+            Gles.C_INT,
+            Gles.C_INT,
+            Gles.C_INT,
+            Gles.C_INT,
+            Gles.C_INT,
+            Gles.C_INT,
+            Gles.C_INT,
+            Gles.C_INT,
+            Gles.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("glBlitFramebuffer");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * void glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
+     * }
+     */
+    public static FunctionDescriptor glBlitFramebuffer$descriptor() {
+        return glBlitFramebuffer.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * void glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
+     * }
+     */
+    public static MethodHandle glBlitFramebuffer$handle() {
+        return glBlitFramebuffer.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * void glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
+     * }
+     */
+    public static MemorySegment glBlitFramebuffer$address() {
+        return glBlitFramebuffer.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * void glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
+     * }
+     */
+    public static void glBlitFramebuffer(int srcX0, int srcY0, int srcX1, int srcY1, int dstX0, int dstY0, int dstX1, int dstY1, int mask, int filter) {
+        var mh$ = glBlitFramebuffer.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("glBlitFramebuffer", srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
+            }
+            mh$.invokeExact(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {

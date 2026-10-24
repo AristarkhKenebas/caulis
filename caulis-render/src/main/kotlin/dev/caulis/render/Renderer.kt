@@ -36,6 +36,19 @@ interface Renderer : AutoCloseable {
     fun importDmabuf(buffer: Dmabuf): GpuTexture?
 
     /**
+     * A client's GPU buffer to draw into (e.g. a screen recorder's): the picture goes
+     * straight into its memory. Null if it cannot be drawn into. Close it when done; the
+     * [buffer] descriptors stay owned by the caller.
+     */
+    fun importDmabufTarget(buffer: Dmabuf): GpuTarget?
+
+    /** Copies the part [from] of [source] into the whole of [target] (on the GPU, stretched if the sizes differ). */
+    fun copy(source: GpuTarget, from: Rect, target: GpuTarget)
+
+    /** Waits until the GPU has finished everything asked so far (before others read what was drawn). */
+    fun finish()
+
+    /**
      * A GPU buffer to draw into that others can read: the display (KMS) or another
      * compositor. Allocated with [format] and one of [modifiers].
      */
@@ -43,10 +56,11 @@ interface Renderer : AutoCloseable {
 
     /**
      * Starts drawing a frame into [target]. Only pixels inside [clip] change (null = the
-     * whole target); that part is first cleared to the given colour. Drawing only what
-     * changed saves most of the work when little moves on screen.
+     * whole target); that part is first cleared to the given colour ([alpha] 0 = see-through,
+     * e.g. for a picture of one window). Drawing only what changed saves most of the work
+     * when little moves on screen.
      */
-    fun begin(target: GpuTarget, red: Float, green: Float, blue: Float, clip: Rect? = null)
+    fun begin(target: GpuTarget, red: Float, green: Float, blue: Float, clip: Rect? = null, alpha: Float = 1f)
 
     /**
      * Draws [texture] stretched over the rectangle. [opaque] ignores its alpha (XRGB pictures).
@@ -117,6 +131,9 @@ interface GpuTarget : AutoCloseable {
 
     /** Copies the finished picture into [destination] as BGRA rows of [stride] bytes, top row first. */
     fun readPixels(destination: MemorySegment, stride: Int)
+
+    /** Copies the part [region] of the picture (rows of [stride] bytes, top row first). */
+    fun readPixels(destination: MemorySegment, stride: Int, region: Rect)
 }
 
 /**

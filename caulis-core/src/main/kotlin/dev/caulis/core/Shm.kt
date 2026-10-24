@@ -32,7 +32,7 @@ class Shm(display: Display) {
                 return
             }
             val memory = try {
-                SharedMemory.map(fd, size.toLong())
+                mapPool(fd, size.toLong())
             } catch (e: Exception) {
                 resource.postError(WlShm.Error.INVALID_FD, "cannot use the shared memory: ${e.message}")
                 return
@@ -92,7 +92,7 @@ class ShmPool internal constructor(resource: WlShmPool, private var memory: Shar
                 }
                 // Map the same memory again with the new size.
                 val bigger = try {
-                    SharedMemory.map(memory.fd.duplicate(), size.toLong())
+                    mapPool(memory.fd.duplicate(), size.toLong())
                 } catch (e: SharedMemoryException) {
                     resource.postError(WlShm.Error.INVALID_FD, "cannot resize: ${e.message}")
                     return
@@ -106,6 +106,12 @@ class ShmPool internal constructor(resource: WlShmPool, private var memory: Shar
 
     /** Runs [action] with the pool's memory (a misbehaving client causes [SharedMemoryException]). */
     fun <T> read(action: (java.lang.foreign.MemorySegment) -> T): T = memory.read(action)
+
+    /** True if we may write into it (screenshots go there); false if the client gave it read-only. */
+    val writable: Boolean get() = memory.writable
+
+    /** Like [read], but to write into the pool (a screenshot). Only if [writable]. */
+    fun <T> write(action: (java.lang.foreign.MemorySegment) -> T): T = memory.write(action)
 
     internal fun release() {
         if (--users == 0) memory.close()
@@ -128,5 +134,15 @@ class ShmBuffer internal constructor(
             override fun destroy(resource: WlBuffer) {}
         }
         resource.onDestroy { pool.release() }
+    }
+}
+
+// A client's pool, writable if the client allows it (screenshots are written into pools).
+private fun mapPool(fd: Fd, size: Long): SharedMemory {
+    val copy = fd.duplicate()
+    return try {
+        SharedMemory.map(copy, size, writable = true).also { fd.close() }
+    } catch (_: Exception) {
+        SharedMemory.map(fd, size) // read-only: fine for pictures, not for screenshots
     }
 }

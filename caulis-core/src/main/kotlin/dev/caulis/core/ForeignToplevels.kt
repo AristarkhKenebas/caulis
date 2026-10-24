@@ -72,6 +72,11 @@ class ForeignToplevels(private val display: Display, private val desktop: Deskto
         desktop.onWindowListChanged(::sync)
     }
 
+    /** The window an ext-foreign-toplevel-list handle stands for (e.g. to share it), if it is still there. */
+    internal fun windowOf(handle: ExtForeignToplevelHandleV1): Window? =
+        ext.values.firstNotNullOfOrNull { handles -> handles.entries.firstOrNull { it.value.resource === handle }?.key }
+            ?.takeIf { it in desktop.allWindows }
+
     private fun factsOf(window: Window): Facts {
         val states = buildSet {
             if (window.maximized) add(STATE_MAXIMIZED)

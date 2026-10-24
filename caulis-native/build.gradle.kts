@@ -120,6 +120,7 @@ val jextractGles = tasks.register<JextractTask>("jextractGles") {
         // framebuffers (drawing into textures)
         "function glGenFramebuffers", "function glDeleteFramebuffers", "function glBindFramebuffer",
         "function glFramebufferTexture2D", "function glCheckFramebufferStatus", "function glReadPixels",
+        "function glBlitFramebuffer",
         // shaders
         "function glCreateShader", "function glDeleteShader", "function glShaderSource",
         "function glCompileShader", "function glGetShaderiv", "function glGetShaderInfoLog",
@@ -146,6 +147,7 @@ val jextractGles = tasks.register<JextractTask>("jextractGles") {
         "constant GL_COMPILE_STATUS", "constant GL_LINK_STATUS", "constant GL_INFO_LOG_LENGTH",
         "constant GL_ARRAY_BUFFER", "constant GL_STATIC_DRAW", "constant GL_DYNAMIC_DRAW", "constant GL_FLOAT",
         "constant GL_FALSE", "constant GL_TRUE", "constant GL_TRIANGLE_STRIP", "constant GL_TRIANGLES",
+        "constant GL_READ_FRAMEBUFFER", "constant GL_DRAW_FRAMEBUFFER", "constant GL_PACK_ROW_LENGTH",
     )
 }
 

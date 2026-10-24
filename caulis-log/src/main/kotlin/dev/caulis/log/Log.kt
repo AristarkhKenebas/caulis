@@ -51,6 +51,7 @@ object Log {
         "lock" to "the screen lock",
         "docks" to "what docks and taskbars are told and ask for",
         "cursor" to "cursor themes and shapes",
+        "capture" to "screenshots and screen recordings: who takes pictures, of what",
         "render" to "drawing frames: what is redrawn, how long it takes",
         "drm" to "monitors, their modes, showing frames on the screen",
         "session" to "the seat, text consoles, devices coming and going",

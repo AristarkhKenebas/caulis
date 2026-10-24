@@ -140,6 +140,12 @@ class Caulis {
      */
     var useDefaultBindings = true
 
+    /**
+     * What programs started inside are told the desktop is called (`XDG_CURRENT_DESKTOP`).
+     * Desktop portals use it to choose who handles screen sharing (see the guide).
+     */
+    var desktopName = "caulis"
+
     /** Name of the window in nested mode (and what the outer session knows it as). */
     var title = "Caulis"
     var appId = "dev.caulis.Nested"
