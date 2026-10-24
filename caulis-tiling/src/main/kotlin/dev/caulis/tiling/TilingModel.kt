@@ -64,6 +64,12 @@ sealed interface TilingCommand {
 
     /** Move the view over the canvas by one cell. Canvas. */
     data class Pan(val direction: Direction) : TilingCommand
+
+    /**
+     * Move the view by about ([dx], [dy]) pixels, e.g. after the fingers dragged it; the
+     * layout rounds it to what fits (whole cells on a canvas). Canvas, columns.
+     */
+    data class PanBy(val dx: Int, val dy: Int) : TilingCommand
 }
 
 /** A plain [Layout] needs no memory: the model just asks it every time. */

@@ -72,6 +72,7 @@ internal fun runOnScreen(config: Caulis) {
                 input.onPointerMotionAbsolute = { time, x, y -> desktop.pointerMoved(time, x * desktop.width, y * desktop.height) }
                 input.onPointerButton = running::pointerButton
                 input.onPointerAxis = desktop::pointerAxis
+                input.onGesture = running::gesture
 
                 backend.start()
                 if (outputs.isEmpty()) println("No monitor is connected yet; waiting for one.")

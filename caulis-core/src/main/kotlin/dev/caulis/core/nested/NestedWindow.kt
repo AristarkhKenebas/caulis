@@ -1,9 +1,14 @@
 package dev.caulis.core.nested
 
+import dev.caulis.core.input.Gesture
 import dev.caulis.event.EventLoop
 import dev.caulis.ffi.SharedMemory
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.linuxdmabufv1.ZwpLinuxDmabufV1
+import dev.caulis.protocol.client.pointergesturesunstablev1.ZwpPointerGestureHoldV1
+import dev.caulis.protocol.client.pointergesturesunstablev1.ZwpPointerGesturePinchV1
+import dev.caulis.protocol.client.pointergesturesunstablev1.ZwpPointerGestureSwipeV1
+import dev.caulis.protocol.client.pointergesturesunstablev1.ZwpPointerGesturesV1
 import dev.caulis.protocol.client.wayland.WlBuffer
 import dev.caulis.protocol.client.wayland.WlCallback
 import dev.caulis.protocol.client.wayland.WlCompositor
@@ -88,6 +93,29 @@ class NestedWindow(
     /** The outer session took the keyboard away (all keys count as released). */
     var onKeyboardLeave: () -> Unit = {}
 
+    /** Touchpad gestures from the outer session (if it passes them on). */
+    var onGesture: (Gesture) -> Unit = {}
+
+    // The outer session's gesture support (bound before the pointer appears, see init).
+    private var hostGestures: ZwpPointerGesturesV1? = null
+
+    // Gesture handlers. Declared before init: the pointer (and its gestures) may appear during init.
+    private val swipeEvents = object : ZwpPointerGestureSwipeV1.Events {
+        override fun begin(proxy: ZwpPointerGestureSwipeV1, serial: Int, time: Int, surface: WlSurface, fingers: Int) = onGesture(Gesture.SwipeBegin(time, fingers))
+        override fun update(proxy: ZwpPointerGestureSwipeV1, time: Int, dx: Double, dy: Double) = onGesture(Gesture.SwipeUpdate(time, dx, dy))
+        override fun end(proxy: ZwpPointerGestureSwipeV1, serial: Int, time: Int, cancelled: Int) = onGesture(Gesture.SwipeEnd(time, cancelled != 0))
+    }
+    private val pinchEvents = object : ZwpPointerGesturePinchV1.Events {
+        override fun begin(proxy: ZwpPointerGesturePinchV1, serial: Int, time: Int, surface: WlSurface, fingers: Int) = onGesture(Gesture.PinchBegin(time, fingers))
+        override fun update(proxy: ZwpPointerGesturePinchV1, time: Int, dx: Double, dy: Double, scale: Double, rotation: Double) =
+            onGesture(Gesture.PinchUpdate(time, dx, dy, scale, rotation))
+        override fun end(proxy: ZwpPointerGesturePinchV1, serial: Int, time: Int, cancelled: Int) = onGesture(Gesture.PinchEnd(time, cancelled != 0))
+    }
+    private val holdEvents = object : ZwpPointerGestureHoldV1.Events {
+        override fun begin(proxy: ZwpPointerGestureHoldV1, serial: Int, time: Int, surface: WlSurface, fingers: Int) = onGesture(Gesture.HoldBegin(time, fingers))
+        override fun end(proxy: ZwpPointerGestureHoldV1, serial: Int, time: Int, cancelled: Int) = onGesture(Gesture.HoldEnd(time, cancelled != 0))
+    }
+
     private var configured = false
     private var frameRequested = false
     private val buffers = ArrayList<Buffer>()
@@ -138,6 +166,8 @@ class NestedWindow(
         var seatVersion = 0
         var dmabufName = 0
         var dmabufVersion = 0
+        var gesturesName = 0
+        var gesturesVersion = 0
         val registry = connection.display.getRegistry()
         registry.events = object : WlRegistry.Events {
             override fun global(proxy: WlRegistry, name: Int, `interface`: String, versionArg: Int) {
@@ -148,6 +178,10 @@ class NestedWindow(
                     "zwp_linux_dmabuf_v1" -> {
                         dmabufName = name
                         dmabufVersion = versionArg
+                    }
+                    "zwp_pointer_gestures_v1" -> {
+                        gesturesName = name
+                        gesturesVersion = versionArg
                     }
                     "wl_seat" -> if (seatName == 0) {
                         seatName = name
@@ -165,6 +199,7 @@ class NestedWindow(
         shm = registry.bind(shmName, WlShm, 1)
         wmBase = registry.bind(wmBaseName, XdgWmBase, 1)
         // Version 8 adds high-resolution scroll steps (axis_value120).
+        if (gesturesName != 0) hostGestures = registry.bind(gesturesName, ZwpPointerGesturesV1, minOf(gesturesVersion, 3))
         seat = if (seatName != 0) registry.bind(seatName, WlSeat, minOf(seatVersion, 8)) else null
         seat?.let(::listenToInput)
         hostDmabuf = if (dmabufName != 0 && dmabufVersion >= 3) {
@@ -222,7 +257,14 @@ class NestedWindow(
                     keyboard = proxy.getKeyboard().also { it.events = keyboardEvents }
                 }
                 if (capabilities and WlSeat.Capability.POINTER != 0 && pointer == null) {
-                    pointer = proxy.getPointer().also { it.events = pointerEvents }
+                    val created = proxy.getPointer().also { it.events = pointerEvents }
+                    pointer = created
+                    // Touchpad gestures come through the pointer.
+                    hostGestures?.let { gestures ->
+                        gestures.getSwipeGesture(created).events = swipeEvents
+                        gestures.getPinchGesture(created).events = pinchEvents
+                        if (gestures.version >= 3) gestures.getHoldGesture(created).events = holdEvents
+                    }
                 }
             }
         }

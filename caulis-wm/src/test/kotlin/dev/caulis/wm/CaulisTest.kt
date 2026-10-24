@@ -49,7 +49,7 @@ class CaulisTest {
     }
 
     // Runs [configure]d Caulis nested in a test server until [test] is done.
-    private fun withCaulis(configure: Caulis.() -> Unit, test: (Caulis, TestClient) -> Unit) {
+    internal fun withCaulis(configure: Caulis.() -> Unit, test: (Caulis, TestClient) -> Unit) {
         assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
         val socketDirectory = Files.createTempDirectory("caulis-wm-test")
         TestServer(gpu = true).use { outer ->
@@ -75,7 +75,7 @@ class CaulisTest {
     }
 
     // Runs [action] on the compositor's own thread and returns its result.
-    private fun <T> Caulis.onLoop(action: (Running) -> T): T {
+    internal fun <T> Caulis.onLoop(action: (Running) -> T): T {
         val result = CompletableFuture<T>()
         val running = checkNotNull(running)
         running.loop.post { result.complete(action(running)) }

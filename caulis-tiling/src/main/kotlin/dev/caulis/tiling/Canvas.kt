@@ -53,6 +53,10 @@ private class CanvasModel(
     private var lastFocused: LayoutWindow? = null
     private var follow = true
 
+    // Size of a cell on screen (from the last arrangement), for PanBy.
+    private var cellWidth = 1.0
+    private var cellHeight = 1.0
+
     override fun arrange(windows: List<LayoutWindow>, area: Rect, focused: LayoutWindow?): List<Rect> {
         // Windows that went away are parked with their cells; returning ones get them back.
         val present = windows.toSet()
@@ -78,6 +82,8 @@ private class CanvasModel(
         }
 
         val inner = inset(area, gaps.outer)
+        cellWidth = (inner.width + gaps.inner).toDouble() / columns
+        cellHeight = (inner.height + gaps.inner).toDouble() / rows
         // Where cell edges are on screen; works for cells far off screen too, and the cells
         // on screen fill it exactly (no lost pixels).
         fun edgeX(cell: Int) = inner.x + Math.floorDiv((cell - viewX).toLong() * (inner.width + gaps.inner), columns.toLong()).toInt()
@@ -116,6 +122,13 @@ private class CanvasModel(
         is TilingCommand.Pan -> {
             viewX += command.direction.dx
             viewY += command.direction.dy
+            follow = false
+            true
+        }
+        is TilingCommand.PanBy -> {
+            // To the nearest whole cell.
+            viewX += Math.round(command.dx / cellWidth).toInt()
+            viewY += Math.round(command.dy / cellHeight).toInt()
             follow = false
             true
         }

@@ -457,6 +457,77 @@ class Desktop(
         return Camera(scale, width / 2.0 - (box.x + box.width / 2.0) * scale, height / 2.0 - (box.y + box.height / 2.0) * scale)
     }
 
+    // The overview's camera while a pinch opens or closes it (null = no pinch going on).
+    private var overviewTarget: Camera? = null
+
+    /**
+     * Opens the overview part of the way ([progress] 0 = normal view, 1 = fully zoomed out),
+     * following the fingers of a pinch. Finish with [endOverviewGesture].
+     */
+    fun setOverviewProgress(progress: Double) {
+        val target = overviewTarget ?: overviewCamera().also { overviewTarget = it }
+        val camera = Camera.NONE.mix(target, progress.coerceIn(0.0, 1.0))
+        cameraFrom = camera
+        cameraTo = camera // no animation: it follows the fingers exactly
+        changed()
+    }
+
+    /** The fingers lifted: the overview finishes opening ([open]) or closing, smoothly from where it is. */
+    fun endOverviewGesture(open: Boolean) {
+        val now = System.nanoTime()
+        val target = overviewTarget ?: overviewCamera()
+        overviewTarget = null
+        cameraFrom = cameraAt(now)
+        cameraTo = if (open) target else Camera.NONE
+        cameraStart = now
+        inOverview = open
+        if (open) seat.pointerMotion((now / 1_000_000).toInt(), null, 0.0, 0.0)
+        changed()
+    }
+
+    // --- following the fingers --------------------------------------------------------------
+
+    // How far the fingers dragged the view so far (tiled windows move along).
+    private var dragX = 0.0
+    private var dragY = 0.0
+
+    /**
+     * Moves the tiled windows of the workspace by ([dx], [dy]) pixels, right under the
+     * fingers of a swipe. Finish with [endViewDrag].
+     */
+    fun dragView(dx: Double, dy: Double) {
+        dragX += dx
+        dragY += dy
+        changed()
+    }
+
+    /**
+     * The fingers lifted: the layout takes the new view, rounded to what fits (whole cells
+     * on a canvas), and the windows glide there from where the fingers left them — or back,
+     * if the layout cannot move its view. If the focused window went out of sight, the
+     * window most in view gets the focus.
+     */
+    fun endViewDrag() {
+        val dx = dragX.roundToInt()
+        val dy = dragY.roundToInt()
+        dragX = 0.0
+        dragY = 0.0
+        val workspace = activeWorkspace
+        workspace.model.command(TilingCommand.PanBy(-dx, -dy), focusedWindow?.takeIf { it.tiled })
+        arrange(workspace)
+        val screen = Rect(0, 0, width, height)
+        fun visibleShare(window: Window): Double {
+            val target = pending[window] ?: currentRect(window)
+            val inView = target.intersect(screen) ?: return 0.0
+            return inView.width.toDouble() * inView.height / (target.width.toDouble() * target.height)
+        }
+        val focused = focusedWindow
+        if (focused == null || (focused.tiled && visibleShare(focused) < 0.5)) {
+            workspace.windows.filter { it.tiled }.maxByOrNull(::visibleShare)?.takeIf { visibleShare(it) > 0 }?.let(::focus)
+        }
+        changed()
+    }
+
     // A click in the overview: on a window = go there; elsewhere = just leave.
     private fun overviewClick() {
         val camera = cameraAt(System.nanoTime())
@@ -1300,7 +1371,11 @@ class Desktop(
         val shown = glide?.let { glidePosition(it, target, now) }
         if (glide != null && shown == null) glides -= window
         if (leaving && shown == null) return // gone out of sight
-        val world = shown ?: target
+        var world = shown ?: target
+        // Tiled windows follow the fingers while the view is dragged.
+        if ((dragX != 0.0 || dragY != 0.0) && window.tiled && window in activeWorkspace.windows) {
+            world = world.translate(dragX.roundToInt(), dragY.roundToInt())
+        }
         shownRects[window] = world
         val rect = if (camera === Camera.NONE) world else camera.apply(world)
         screenRects[window] = rect

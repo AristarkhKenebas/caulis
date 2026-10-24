@@ -29,6 +29,10 @@ private class ColumnsModel(private val gaps: Gaps, private val widths: List<Doub
     private val columns = ArrayList<Column>()
     private var scroll = 0 // how far the strip is scrolled, in pixels
 
+    // The view follows the focused column, unless it was moved by hand (until the focus changes).
+    private var lastFocused: LayoutWindow? = null
+    private var follow = true
+
     private fun columnOf(window: LayoutWindow?): Column? = columns.firstOrNull { window in it.windows }
 
     override fun arrange(windows: List<LayoutWindow>, area: Rect, focused: LayoutWindow?): List<Rect> {
@@ -50,7 +54,9 @@ private class ColumnsModel(private val gaps: Gaps, private val widths: List<Doub
         val stripWidth = (starts.last() - gaps.inner).coerceAtLeast(0)
 
         // Scroll just enough to show the focused column (niri: "on overflow").
-        columnOf(focused)?.let { column ->
+        if (focused !== lastFocused) follow = true
+        lastFocused = focused
+        if (follow) columnOf(focused)?.let { column ->
             val i = columns.indexOf(column)
             val left = starts[i]
             val right = left + pixelWidths[i]
@@ -69,6 +75,11 @@ private class ColumnsModel(private val gaps: Gaps, private val widths: List<Doub
     }
 
     override fun command(command: TilingCommand, focused: LayoutWindow?): Boolean {
+        if (command is TilingCommand.PanBy) {
+            scroll += command.dx
+            follow = false
+            return true
+        }
         val window = focused ?: return false
         val column = columnOf(window) ?: return false
         val index = columns.indexOf(column)

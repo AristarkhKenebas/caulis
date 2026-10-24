@@ -230,7 +230,24 @@ The key shows or hides it; the first press starts the program. By default a wind
 to a scratchpad when its app id is the scratchpad's name — that is why the terminal above is
 started with `--app-id terminal`.
 
-## 8. On the real screen
+## 8. Touchpad gestures
+
+| Gesture | What it does |
+| --- | --- |
+| three fingers, any direction | drag the view (a canvas, a strip of columns) right under your fingers; it settles on the nearest place when they lift |
+| four fingers left / right | next / previous workspace |
+| four fingers pinching in / out | open / close the overview, following your fingers |
+
+Everything else (two-finger scrolling, pinch-to-zoom in a browser or photo viewer, ...) goes
+to the program under the pointer. Change it:
+
+```kotlin
+dragViewFingers = 3           // 0 = off
+overviewPinchFingers = 4      // 0 = off
+swipe(fingers = 3, Direction.UP) { desktop.toggleOverview() }
+```
+
+## 9. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 
@@ -247,7 +264,7 @@ exitAfterSeconds = 60
 
 Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles.
 
-## 9. Your own layout
+## 10. Your own layout
 
 Describe it with building blocks — no arithmetic:
 

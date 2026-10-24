@@ -22,6 +22,7 @@ internal fun runNested(config: Caulis) {
                     window.onPointerMotion = desktop::pointerMoved
                     window.onPointerButton = running::pointerButton
                     window.onPointerAxis = desktop::pointerAxis
+                    window.onGesture = running::gesture
                     window.onKey = running::key
                     window.onKeyboardLeave = {
                         running.keys.releaseAll()

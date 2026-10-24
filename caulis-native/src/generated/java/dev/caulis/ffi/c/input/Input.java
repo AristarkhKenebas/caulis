@@ -765,6 +765,15 @@ public class Input extends Input$shared {
     public static int LIBINPUT_DEVICE_CAP_POINTER() {
         return LIBINPUT_DEVICE_CAP_POINTER;
     }
+    private static final int LIBINPUT_DEVICE_CAP_GESTURE = (int)5L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_device_capability.LIBINPUT_DEVICE_CAP_GESTURE = 5
+     * }
+     */
+    public static int LIBINPUT_DEVICE_CAP_GESTURE() {
+        return LIBINPUT_DEVICE_CAP_GESTURE;
+    }
     private static final int LIBINPUT_KEY_STATE_PRESSED = (int)1L;
     /**
      * {@snippet lang=c :
@@ -881,6 +890,78 @@ public class Input extends Input$shared {
      */
     public static int LIBINPUT_EVENT_POINTER_SCROLL_CONTINUOUS() {
         return LIBINPUT_EVENT_POINTER_SCROLL_CONTINUOUS;
+    }
+    private static final int LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN = (int)800L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN = 800
+     * }
+     */
+    public static int LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN() {
+        return LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN;
+    }
+    private static final int LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE = (int)801L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE = 801
+     * }
+     */
+    public static int LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE() {
+        return LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE;
+    }
+    private static final int LIBINPUT_EVENT_GESTURE_SWIPE_END = (int)802L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_GESTURE_SWIPE_END = 802
+     * }
+     */
+    public static int LIBINPUT_EVENT_GESTURE_SWIPE_END() {
+        return LIBINPUT_EVENT_GESTURE_SWIPE_END;
+    }
+    private static final int LIBINPUT_EVENT_GESTURE_PINCH_BEGIN = (int)803L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_GESTURE_PINCH_BEGIN = 803
+     * }
+     */
+    public static int LIBINPUT_EVENT_GESTURE_PINCH_BEGIN() {
+        return LIBINPUT_EVENT_GESTURE_PINCH_BEGIN;
+    }
+    private static final int LIBINPUT_EVENT_GESTURE_PINCH_UPDATE = (int)804L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_GESTURE_PINCH_UPDATE = 804
+     * }
+     */
+    public static int LIBINPUT_EVENT_GESTURE_PINCH_UPDATE() {
+        return LIBINPUT_EVENT_GESTURE_PINCH_UPDATE;
+    }
+    private static final int LIBINPUT_EVENT_GESTURE_PINCH_END = (int)805L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_GESTURE_PINCH_END = 805
+     * }
+     */
+    public static int LIBINPUT_EVENT_GESTURE_PINCH_END() {
+        return LIBINPUT_EVENT_GESTURE_PINCH_END;
+    }
+    private static final int LIBINPUT_EVENT_GESTURE_HOLD_BEGIN = (int)806L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_GESTURE_HOLD_BEGIN = 806
+     * }
+     */
+    public static int LIBINPUT_EVENT_GESTURE_HOLD_BEGIN() {
+        return LIBINPUT_EVENT_GESTURE_HOLD_BEGIN;
+    }
+    private static final int LIBINPUT_EVENT_GESTURE_HOLD_END = (int)807L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_GESTURE_HOLD_END = 807
+     * }
+     */
+    public static int LIBINPUT_EVENT_GESTURE_HOLD_END() {
+        return LIBINPUT_EVENT_GESTURE_HOLD_END;
     }
 
     private static class libinput_event_destroy {
@@ -1173,6 +1254,66 @@ public class Input extends Input$shared {
         try {
             if (TRACE_DOWNCALLS) {
                 traceDowncall("libinput_event_get_keyboard_event", event);
+            }
+            return (MemorySegment)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_get_gesture_event {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_get_gesture_event");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * struct libinput_event_gesture *libinput_event_get_gesture_event(struct libinput_event *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_get_gesture_event$descriptor() {
+        return libinput_event_get_gesture_event.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * struct libinput_event_gesture *libinput_event_get_gesture_event(struct libinput_event *event)
+     * }
+     */
+    public static MethodHandle libinput_event_get_gesture_event$handle() {
+        return libinput_event_get_gesture_event.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * struct libinput_event_gesture *libinput_event_get_gesture_event(struct libinput_event *event)
+     * }
+     */
+    public static MemorySegment libinput_event_get_gesture_event$address() {
+        return libinput_event_get_gesture_event.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * struct libinput_event_gesture *libinput_event_get_gesture_event(struct libinput_event *event)
+     * }
+     */
+    public static MemorySegment libinput_event_get_gesture_event(MemorySegment event) {
+        var mh$ = libinput_event_get_gesture_event.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_get_gesture_event", event);
             }
             return (MemorySegment)mh$.invokeExact(event);
         } catch (Error | RuntimeException ex) {
@@ -1960,6 +2101,546 @@ public class Input extends Input$shared {
                 traceDowncall("libinput_event_pointer_get_scroll_value_v120", event, axis);
             }
             return (double)mh$.invokeExact(event, axis);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_gesture_get_time {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_gesture_get_time");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_gesture_get_time(struct libinput_event_gesture *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_gesture_get_time$descriptor() {
+        return libinput_event_gesture_get_time.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_gesture_get_time(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MethodHandle libinput_event_gesture_get_time$handle() {
+        return libinput_event_gesture_get_time.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_gesture_get_time(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MemorySegment libinput_event_gesture_get_time$address() {
+        return libinput_event_gesture_get_time.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint32_t libinput_event_gesture_get_time(struct libinput_event_gesture *event)
+     * }
+     */
+    public static int libinput_event_gesture_get_time(MemorySegment event) {
+        var mh$ = libinput_event_gesture_get_time.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_gesture_get_time", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_gesture_get_finger_count {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_gesture_get_finger_count");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_event_gesture_get_finger_count(struct libinput_event_gesture *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_gesture_get_finger_count$descriptor() {
+        return libinput_event_gesture_get_finger_count.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_event_gesture_get_finger_count(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MethodHandle libinput_event_gesture_get_finger_count$handle() {
+        return libinput_event_gesture_get_finger_count.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_event_gesture_get_finger_count(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MemorySegment libinput_event_gesture_get_finger_count$address() {
+        return libinput_event_gesture_get_finger_count.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_event_gesture_get_finger_count(struct libinput_event_gesture *event)
+     * }
+     */
+    public static int libinput_event_gesture_get_finger_count(MemorySegment event) {
+        var mh$ = libinput_event_gesture_get_finger_count.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_gesture_get_finger_count", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_gesture_get_cancelled {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_gesture_get_cancelled");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_event_gesture_get_cancelled(struct libinput_event_gesture *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_gesture_get_cancelled$descriptor() {
+        return libinput_event_gesture_get_cancelled.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_event_gesture_get_cancelled(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MethodHandle libinput_event_gesture_get_cancelled$handle() {
+        return libinput_event_gesture_get_cancelled.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_event_gesture_get_cancelled(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MemorySegment libinput_event_gesture_get_cancelled$address() {
+        return libinput_event_gesture_get_cancelled.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_event_gesture_get_cancelled(struct libinput_event_gesture *event)
+     * }
+     */
+    public static int libinput_event_gesture_get_cancelled(MemorySegment event) {
+        var mh$ = libinput_event_gesture_get_cancelled.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_gesture_get_cancelled", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_gesture_get_dx {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_gesture_get_dx");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dx(struct libinput_event_gesture *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_gesture_get_dx$descriptor() {
+        return libinput_event_gesture_get_dx.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dx(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MethodHandle libinput_event_gesture_get_dx$handle() {
+        return libinput_event_gesture_get_dx.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dx(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MemorySegment libinput_event_gesture_get_dx$address() {
+        return libinput_event_gesture_get_dx.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dx(struct libinput_event_gesture *event)
+     * }
+     */
+    public static double libinput_event_gesture_get_dx(MemorySegment event) {
+        var mh$ = libinput_event_gesture_get_dx.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_gesture_get_dx", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_gesture_get_dy {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_gesture_get_dy");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dy(struct libinput_event_gesture *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_gesture_get_dy$descriptor() {
+        return libinput_event_gesture_get_dy.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dy(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MethodHandle libinput_event_gesture_get_dy$handle() {
+        return libinput_event_gesture_get_dy.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dy(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MemorySegment libinput_event_gesture_get_dy$address() {
+        return libinput_event_gesture_get_dy.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dy(struct libinput_event_gesture *event)
+     * }
+     */
+    public static double libinput_event_gesture_get_dy(MemorySegment event) {
+        var mh$ = libinput_event_gesture_get_dy.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_gesture_get_dy", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_gesture_get_dx_unaccelerated {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_gesture_get_dx_unaccelerated");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dx_unaccelerated(struct libinput_event_gesture *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_gesture_get_dx_unaccelerated$descriptor() {
+        return libinput_event_gesture_get_dx_unaccelerated.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dx_unaccelerated(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MethodHandle libinput_event_gesture_get_dx_unaccelerated$handle() {
+        return libinput_event_gesture_get_dx_unaccelerated.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dx_unaccelerated(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MemorySegment libinput_event_gesture_get_dx_unaccelerated$address() {
+        return libinput_event_gesture_get_dx_unaccelerated.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dx_unaccelerated(struct libinput_event_gesture *event)
+     * }
+     */
+    public static double libinput_event_gesture_get_dx_unaccelerated(MemorySegment event) {
+        var mh$ = libinput_event_gesture_get_dx_unaccelerated.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_gesture_get_dx_unaccelerated", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_gesture_get_dy_unaccelerated {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_gesture_get_dy_unaccelerated");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dy_unaccelerated(struct libinput_event_gesture *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_gesture_get_dy_unaccelerated$descriptor() {
+        return libinput_event_gesture_get_dy_unaccelerated.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dy_unaccelerated(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MethodHandle libinput_event_gesture_get_dy_unaccelerated$handle() {
+        return libinput_event_gesture_get_dy_unaccelerated.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dy_unaccelerated(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MemorySegment libinput_event_gesture_get_dy_unaccelerated$address() {
+        return libinput_event_gesture_get_dy_unaccelerated.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_dy_unaccelerated(struct libinput_event_gesture *event)
+     * }
+     */
+    public static double libinput_event_gesture_get_dy_unaccelerated(MemorySegment event) {
+        var mh$ = libinput_event_gesture_get_dy_unaccelerated.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_gesture_get_dy_unaccelerated", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_gesture_get_scale {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_gesture_get_scale");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_scale(struct libinput_event_gesture *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_gesture_get_scale$descriptor() {
+        return libinput_event_gesture_get_scale.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_scale(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MethodHandle libinput_event_gesture_get_scale$handle() {
+        return libinput_event_gesture_get_scale.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_scale(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MemorySegment libinput_event_gesture_get_scale$address() {
+        return libinput_event_gesture_get_scale.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_scale(struct libinput_event_gesture *event)
+     * }
+     */
+    public static double libinput_event_gesture_get_scale(MemorySegment event) {
+        var mh$ = libinput_event_gesture_get_scale.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_gesture_get_scale", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_gesture_get_angle_delta {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_gesture_get_angle_delta");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_angle_delta(struct libinput_event_gesture *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_gesture_get_angle_delta$descriptor() {
+        return libinput_event_gesture_get_angle_delta.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_angle_delta(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MethodHandle libinput_event_gesture_get_angle_delta$handle() {
+        return libinput_event_gesture_get_angle_delta.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_angle_delta(struct libinput_event_gesture *event)
+     * }
+     */
+    public static MemorySegment libinput_event_gesture_get_angle_delta$address() {
+        return libinput_event_gesture_get_angle_delta.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_gesture_get_angle_delta(struct libinput_event_gesture *event)
+     * }
+     */
+    public static double libinput_event_gesture_get_angle_delta(MemorySegment event) {
+        var mh$ = libinput_event_gesture_get_angle_delta.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_gesture_get_angle_delta", event);
+            }
+            return (double)mh$.invokeExact(event);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {

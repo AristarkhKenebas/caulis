@@ -1,5 +1,6 @@
 package dev.caulis.core.libinput
 
+import dev.caulis.core.input.Gesture
 import dev.caulis.core.session.Session
 import dev.caulis.event.EventLoop
 import dev.caulis.ffi.CStrings
@@ -28,6 +29,9 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
     var onPointerMotionAbsolute: (timeMillis: Int, x: Double, y: Double) -> Unit = { _, _, _ -> }
     var onPointerButton: (timeMillis: Int, button: Int, pressed: Boolean) -> Unit = { _, _, _ -> }
     var onPointerAxis: (timeMillis: Int, vertical: Boolean, value: Double, value120: Int) -> Unit = { _, _, _, _ -> }
+
+    /** Touchpad gestures with several fingers (swipe, pinch, hold). */
+    var onGesture: (Gesture) -> Unit = {}
 
     private val arena = Arena.ofShared()
     private val udev: MemorySegment = Input.udev_new()
@@ -134,6 +138,11 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
                 if (track(device, button, pressed)) onPointerButton(Input.libinput_event_pointer_get_time(pointer), button, pressed)
             }
 
+            Input.LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN(), Input.LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE(),
+            Input.LIBINPUT_EVENT_GESTURE_SWIPE_END(), Input.LIBINPUT_EVENT_GESTURE_PINCH_BEGIN(),
+            Input.LIBINPUT_EVENT_GESTURE_PINCH_UPDATE(), Input.LIBINPUT_EVENT_GESTURE_PINCH_END(),
+            Input.LIBINPUT_EVENT_GESTURE_HOLD_BEGIN(), Input.LIBINPUT_EVENT_GESTURE_HOLD_END() -> gesture(event)
+
             Input.LIBINPUT_EVENT_POINTER_SCROLL_WHEEL() -> scroll(event, wheel = true)
             Input.LIBINPUT_EVENT_POINTER_SCROLL_FINGER(), Input.LIBINPUT_EVENT_POINTER_SCROLL_CONTINUOUS() -> scroll(event, wheel = false)
         }
@@ -151,6 +160,29 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
             val value120 = if (wheel) Input.libinput_event_pointer_get_scroll_value_v120(pointer, axis).toInt() else 0
             onPointerAxis(time, vertical, value, value120)
         }
+    }
+
+    private fun gesture(event: MemorySegment) {
+        val type = Input.libinput_event_get_type(event)
+        val g = Input.libinput_event_get_gesture_event(event)
+        val time = Input.libinput_event_gesture_get_time(g)
+        val fingers by lazy { Input.libinput_event_gesture_get_finger_count(g) }
+        val cancelled by lazy { Input.libinput_event_gesture_get_cancelled(g) != 0 }
+        val dx by lazy { Input.libinput_event_gesture_get_dx(g) }
+        val dy by lazy { Input.libinput_event_gesture_get_dy(g) }
+        onGesture(
+            when (type) {
+                Input.LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN() -> Gesture.SwipeBegin(time, fingers)
+                Input.LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE() -> Gesture.SwipeUpdate(time, dx, dy)
+                Input.LIBINPUT_EVENT_GESTURE_SWIPE_END() -> Gesture.SwipeEnd(time, cancelled)
+                Input.LIBINPUT_EVENT_GESTURE_PINCH_BEGIN() -> Gesture.PinchBegin(time, fingers)
+                Input.LIBINPUT_EVENT_GESTURE_PINCH_UPDATE() ->
+                    Gesture.PinchUpdate(time, dx, dy, Input.libinput_event_gesture_get_scale(g), Input.libinput_event_gesture_get_angle_delta(g))
+                Input.LIBINPUT_EVENT_GESTURE_PINCH_END() -> Gesture.PinchEnd(time, cancelled)
+                Input.LIBINPUT_EVENT_GESTURE_HOLD_BEGIN() -> Gesture.HoldBegin(time, fingers)
+                else -> Gesture.HoldEnd(time, cancelled)
+            },
+        )
     }
 
     // Sensible defaults for new devices: tap-to-click on touchpads.

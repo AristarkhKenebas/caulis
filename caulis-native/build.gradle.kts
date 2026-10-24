@@ -287,6 +287,17 @@ val jextractInput = tasks.register<JextractTask>("jextractInput") {
         "constant LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL", "constant LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL",
         "constant LIBINPUT_CONFIG_TAP_ENABLED",
         "function libinput_device_has_capability",
+        // Touchpad gestures (swipe, pinch, hold with several fingers).
+        "function libinput_event_get_gesture_event", "function libinput_event_gesture_get_time",
+        "function libinput_event_gesture_get_finger_count", "function libinput_event_gesture_get_cancelled",
+        "function libinput_event_gesture_get_dx", "function libinput_event_gesture_get_dy",
+        "function libinput_event_gesture_get_dx_unaccelerated", "function libinput_event_gesture_get_dy_unaccelerated",
+        "function libinput_event_gesture_get_scale", "function libinput_event_gesture_get_angle_delta",
+        "constant LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN", "constant LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE",
+        "constant LIBINPUT_EVENT_GESTURE_SWIPE_END", "constant LIBINPUT_EVENT_GESTURE_PINCH_BEGIN",
+        "constant LIBINPUT_EVENT_GESTURE_PINCH_UPDATE", "constant LIBINPUT_EVENT_GESTURE_PINCH_END",
+        "constant LIBINPUT_EVENT_GESTURE_HOLD_BEGIN", "constant LIBINPUT_EVENT_GESTURE_HOLD_END",
+        "constant LIBINPUT_DEVICE_CAP_GESTURE",
         "constant LIBINPUT_DEVICE_CAP_KEYBOARD", "constant LIBINPUT_DEVICE_CAP_POINTER",
         // udev monitor: notices monitors being plugged in or out (DRM "hotplug" events).
         "function udev_monitor_new_from_netlink", "function udev_monitor_filter_add_match_subsystem_devtype",

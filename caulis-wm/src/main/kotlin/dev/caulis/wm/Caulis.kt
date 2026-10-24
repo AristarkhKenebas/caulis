@@ -94,6 +94,20 @@ class Caulis {
     internal val startActions = ArrayList<Caulis.() -> Unit>()
     internal val floatRules = ArrayList<(Window) -> Boolean>()
     internal val scratchpads = ArrayList<ScratchpadSetup>()
+    internal val swipes = ArrayList<Triple<Int, Direction, Caulis.() -> Unit>>()
+
+    /**
+     * Swiping on the touchpad with this many fingers drags the view (a canvas, a strip of
+     * columns) right under them; when they lift, it settles on the nearest whole place.
+     * 0 turns it off (the swipe then goes to the program under the pointer).
+     */
+    var dragViewFingers = 3
+
+    /**
+     * Pinching with this many fingers opens the overview, following the fingers (spreading
+     * them closes it again). 0 turns it off.
+     */
+    var overviewPinchFingers = 4
 
     internal class ScratchpadSetup(val name: String, val key: String?, val command: String?, val style: Scratchpad.Style, val match: (Window) -> Boolean)
     internal val windowOpened = ArrayList<Caulis.(Window) -> Unit>()
@@ -146,6 +160,17 @@ class Caulis {
         match: (Window) -> Boolean = { it.appId == name },
     ) {
         scratchpads += ScratchpadSetup(name, key, command, style, match)
+    }
+
+    /**
+     * Runs [action] when the touchpad is swiped with [fingers] fingers towards [direction]
+     * (when the fingers lift). By default, four fingers left/right go to the next/previous
+     * workspace.
+     */
+    @JvmSynthetic
+    fun swipe(fingers: Int, direction: Direction, action: Caulis.() -> Unit) {
+        require(fingers in 3..5) { "Touchpads report gestures with 3 to 5 fingers, not $fingers" }
+        swipes += Triple(fingers, direction, action)
     }
 
     /** Shows or hides the scratchpad [name] (starting its program if needed). */
@@ -251,6 +276,12 @@ class Caulis {
          * Super+R rotate, Super+B balance, Super+W next column width, Super+S / Super+Shift+S
          * next window side by side / below (manual tiling).
          */
+        /** The usual swipes: four fingers left / right = next / previous workspace. */
+        val defaultSwipes: List<Triple<Int, Direction, Caulis.() -> Unit>> = listOf(
+            Triple(4, Direction.LEFT) { desktop.switchTo(desktop.activeWorkspace.number + 1) },
+            Triple(4, Direction.RIGHT) { desktop.switchTo((desktop.activeWorkspace.number - 1).coerceAtLeast(1)) },
+        )
+
         val defaultBindings: List<Pair<String, Caulis.() -> Unit>> = buildList {
             add("Super+Return" to { openTerminal() })
             add("Super+Q" to { closeFocused() })
