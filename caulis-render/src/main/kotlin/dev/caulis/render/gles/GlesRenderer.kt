@@ -99,6 +99,10 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
     }
 
+    override fun end() {
+        Gles.glFlush()
+    }
+
     private fun setRect(program: Program, x: Int, y: Int, width: Int, height: Int) {
         Gles.glUniform4f(program.uniform("rect"), x.toFloat(), y.toFloat(), width.toFloat(), height.toFloat())
         Gles.glUniform2f(program.uniform("target"), targetWidth, targetHeight)

@@ -34,7 +34,9 @@ class TestServer(gpu: Boolean = false) : AutoCloseable {
                     val compositor = Compositor(display, renderer)
                     compositor.onNewSurface { surface ->
                         surface.onCommit {
-                            surface.texture?.let { shownPictures += "${it.width}x${it.height}" }
+                            if (surface.hasContent) shownPictures += "${surface.current.bufferWidth}x${surface.current.bufferHeight}"
+                            // Like a screen that shows every frame at once: the client may draw the next one.
+                            surface.sendFrameDone(0)
                         }
                     }
                     Shm(display)

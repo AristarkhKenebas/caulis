@@ -172,6 +172,7 @@ class Desktop(
             drawTree(popup.surface, x, y)
         }
         drawCursor()
+        renderer.end()
     }
 
     private fun drawTree(surface: Surface, x: Int, y: Int) {

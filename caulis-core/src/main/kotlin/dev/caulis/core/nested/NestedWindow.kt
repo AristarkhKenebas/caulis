@@ -3,6 +3,7 @@ package dev.caulis.core.nested
 import dev.caulis.event.EventLoop
 import dev.caulis.ffi.SharedMemory
 import dev.caulis.protocol.client.Connection
+import dev.caulis.protocol.client.linuxdmabufv1.ZwpLinuxDmabufV1
 import dev.caulis.protocol.client.wayland.WlBuffer
 import dev.caulis.protocol.client.wayland.WlCallback
 import dev.caulis.protocol.client.wayland.WlCompositor
@@ -16,27 +17,37 @@ import dev.caulis.protocol.client.wayland.WlSurface
 import dev.caulis.protocol.client.xdgshell.XdgSurface
 import dev.caulis.protocol.client.xdgshell.XdgToplevel
 import dev.caulis.protocol.client.xdgshell.XdgWmBase
-import java.lang.foreign.MemorySegment
+import dev.caulis.render.GpuBuffer
+import dev.caulis.render.GpuTarget
+import dev.caulis.render.Renderer
 
 /**
  * Caulis's window inside an existing Wayland session (the "nested" backend).
  *
- * Caulis draws each frame into memory; this window shows it in the outer session.
- * Frames are paced by the outer compositor: [onFrame] is called when it is a good moment
- * to draw the next one.
+ * Frames are drawn with [renderer] and handed to the outer compositor without copying
+ * (GPU buffers through linux-dmabuf) when it supports that on the same GPU; otherwise
+ * they are copied through shared memory. Frames are paced by the outer compositor:
+ * [onFrame] is called when it is a good moment to draw the next one.
  */
 class NestedWindow(
     loop: EventLoop,
+    private val renderer: Renderer,
     title: String = "Caulis",
     /** Lets the outer session recognise the window (icon, rules). */
     appId: String = "dev.caulis.Nested",
+    /** Socket of the outer session; null = the one in WAYLAND_DISPLAY. */
+    outerSocket: java.nio.file.Path? = null,
 ) : AutoCloseable {
 
-    val connection: Connection = Connection.connect()
+    val connection: Connection = Connection.connect(outerSocket)
 
     // Globals of the outer compositor.
     private val compositor: WlCompositor
     private val shm: WlShm
+    private val hostDmabuf: HostDmabuf?
+
+    /** True if frames go to the outer compositor as GPU buffers (no copying). */
+    val sharesGpuBuffers: Boolean get() = hostDmabuf != null
     private val wmBase: XdgWmBase
 
     /** The outer session's seat (keyboard and mouse), if it has one. */
@@ -80,6 +91,8 @@ class NestedWindow(
         var wmBaseName = 0
         var seatName = 0
         var seatVersion = 0
+        var dmabufName = 0
+        var dmabufVersion = 0
         val registry = connection.display.getRegistry()
         registry.events = object : WlRegistry.Events {
             override fun global(proxy: WlRegistry, name: Int, `interface`: String, versionArg: Int) {
@@ -87,6 +100,10 @@ class NestedWindow(
                     "wl_compositor" -> compositorName = name
                     "wl_shm" -> shmName = name
                     "xdg_wm_base" -> wmBaseName = name
+                    "zwp_linux_dmabuf_v1" -> {
+                        dmabufName = name
+                        dmabufVersion = versionArg
+                    }
                     "wl_seat" -> if (seatName == 0) {
                         seatName = name
                         seatVersion = versionArg
@@ -105,6 +122,12 @@ class NestedWindow(
         // Version 8 adds high-resolution scroll steps (axis_value120).
         seat = if (seatName != 0) registry.bind(seatName, WlSeat, minOf(seatVersion, 8)) else null
         seat?.let(::listenToInput)
+        hostDmabuf = if (dmabufName != 0 && dmabufVersion >= 3) {
+            val dmabuf = registry.bind(dmabufName, ZwpLinuxDmabufV1, minOf(dmabufVersion, 4))
+            HostDmabuf.connect(connection, dmabuf, renderer).also { if (it == null) dmabuf.destroy() }
+        } else {
+            null
+        }
 
         // The outer compositor checks we are alive; answer or it marks us "not responding".
         wmBase.events = object : XdgWmBase.Events {
@@ -196,13 +219,12 @@ class NestedWindow(
     }
 
     /**
-     * Shows a new frame. [draw] fills the pixels (32-bit XRGB, [width]x[height],
-     * `stride` bytes per row). Afterwards [onFrame] is called again when the outer
-     * compositor wants the next frame.
+     * Shows a new frame: [draw] draws it into the given target (the window's size).
+     * Afterwards [onFrame] is called again when the outer compositor wants the next frame.
      */
-    fun present(draw: (pixels: MemorySegment, stride: Int) -> Unit) {
+    fun present(draw: (GpuTarget) -> Unit) {
         val buffer = freeBuffer()
-        buffer.memory.write { pixels -> draw(pixels, buffer.stride) }
+        buffer.render(draw)
         surface.attach(buffer.wlBuffer, 0, 0)
         surface.damageBuffer(0, 0, width, height)
         buffer.busy = true
@@ -226,24 +248,66 @@ class NestedWindow(
             outdated && !buffer.busy
         }
         buffers.firstOrNull { !it.busy && it.width == width && it.height == height }?.let { return it }
-        return Buffer(width, height).also { buffers += it }
+        val host = hostDmabuf
+        val buffer = if (host != null) GpuFrameBuffer(host, width, height) else ShmFrameBuffer(width, height)
+        return buffer.also { buffers += it }
     }
 
-    /** One shared-memory picture the outer compositor can show. */
-    private inner class Buffer(val width: Int, val height: Int) : AutoCloseable {
-        val stride = width * 4
-        val memory = SharedMemory.create("caulis-nested", stride.toLong() * height)
-        private val pool: WlShmPool = shm.createPool(memory.fd, (stride.toLong() * height).toInt())
-        val wlBuffer: WlBuffer = pool.createBuffer(0, width, height, stride, WlShm.Format.XRGB8888)
+    /** One picture the outer compositor can show. */
+    private abstract inner class Buffer(val width: Int, val height: Int) : AutoCloseable {
+        abstract val wlBuffer: WlBuffer
+
+        /** True while the outer compositor may read it. */
         var busy = false
 
-        init {
-            // The outer compositor is done reading; the buffer may be reused.
+        /** Draws the frame into this buffer. */
+        abstract fun render(draw: (GpuTarget) -> Unit)
+
+        // The outer compositor is done reading; the buffer may be reused.
+        protected fun listenForRelease() {
             wlBuffer.events = object : WlBuffer.Events {
                 override fun release(proxy: WlBuffer) {
                     busy = false
                 }
             }
+        }
+    }
+
+    /** GPU memory the outer compositor reads directly: nothing is copied. */
+    private inner class GpuFrameBuffer(host: HostDmabuf, width: Int, height: Int) : Buffer(width, height) {
+        private val gpuBuffer: GpuBuffer
+        override val wlBuffer: WlBuffer
+
+        init {
+            val (gpu, wl) = host.createBuffer(width, height)
+            gpuBuffer = gpu
+            wlBuffer = wl
+            listenForRelease()
+        }
+
+        override fun render(draw: (GpuTarget) -> Unit) = draw(gpuBuffer)
+
+        override fun close() {
+            wlBuffer.destroy()
+            gpuBuffer.close()
+        }
+    }
+
+    /** Shared memory: each frame is drawn on the GPU, then copied here (the fallback). */
+    private inner class ShmFrameBuffer(width: Int, height: Int) : Buffer(width, height) {
+        private val stride = width * 4
+        private val memory = SharedMemory.create("caulis-nested", stride.toLong() * height)
+        private val pool: WlShmPool = shm.createPool(memory.fd, (stride.toLong() * height).toInt())
+        override val wlBuffer: WlBuffer = pool.createBuffer(0, width, height, stride, WlShm.Format.XRGB8888)
+
+        init {
+            listenForRelease()
+        }
+
+        override fun render(draw: (GpuTarget) -> Unit) {
+            val target = drawingTarget()
+            draw(target)
+            memory.write { pixels -> target.readPixels(pixels, stride) }
         }
 
         override fun close() {
@@ -253,8 +317,18 @@ class NestedWindow(
         }
     }
 
+    // Where shared-memory frames are drawn before copying; one, of the current size.
+    private var shmTarget: GpuTarget? = null
+
+    private fun drawingTarget(): GpuTarget {
+        shmTarget?.takeIf { it.width == width && it.height == height }?.let { return it }
+        shmTarget?.close()
+        return renderer.createTarget(width, height).also { shmTarget = it }
+    }
+
     override fun close() {
         buffers.forEach { it.close() }
+        shmTarget?.close()
         toplevel.destroy()
         xdgSurface.destroy()
         surface.destroy()

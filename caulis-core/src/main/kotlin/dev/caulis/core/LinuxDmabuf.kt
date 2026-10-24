@@ -9,12 +9,12 @@ import dev.caulis.protocol.linuxdmabufv1.ZwpLinuxDmabufV1
 import dev.caulis.protocol.wayland.WlBuffer
 import dev.caulis.protocol.wayland.WlSurface
 import dev.caulis.render.Dmabuf
+import dev.caulis.render.GpuDevices
 import dev.caulis.render.GpuTexture
 import dev.caulis.render.Renderer
 import java.lang.foreign.MemorySegment
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.nio.file.Files
 import java.nio.file.Path
 
 /**
@@ -48,7 +48,7 @@ class LinuxDmabuf(display: Display, private val renderer: Renderer) {
 
     // The GPU's device number (dev_t), as the 8 bytes the protocol wants.
     private val mainDevice: ByteArray = ByteBuffer.allocate(8).order(ByteOrder.nativeOrder())
-        .putLong(Files.getAttribute(renderNode, "unix:rdev") as Long).array()
+        .putLong(GpuDevices.number(renderNode)).array()
 
     init {
         display.addGlobal(ZwpLinuxDmabufV1, VERSION) { dmabuf ->

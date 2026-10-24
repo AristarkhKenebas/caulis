@@ -48,6 +48,13 @@ interface Renderer : AutoCloseable {
 
     /** Fills the rectangle with a colour. */
     fun drawColor(x: Int, y: Int, width: Int, height: Int, red: Float, green: Float, blue: Float, alpha: Float = 1f)
+
+    /**
+     * Ends the frame: hands the drawing to the GPU. Whoever reads a [GpuBuffer] afterwards
+     * (the display, another compositor) gets the finished picture; the kernel makes them
+     * wait for the GPU, so this call itself does not wait.
+     */
+    fun end()
 }
 
 /** A picture on the GPU. */
