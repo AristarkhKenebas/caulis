@@ -41,6 +41,13 @@ abstract class JextractTask : DefaultTask() {
     @get:Input
     abstract val includes: ListProperty<String>
 
+    /**
+     * Shared libraries the generated functions are loaded from, e.g. "libEGL.so.1".
+     * Empty for headers whose functions are not called through the generated code.
+     */
+    @get:Input
+    abstract val libraries: ListProperty<String>
+
     @get:Input
     abstract val jextractUrl: Property<String>
 
@@ -67,6 +74,8 @@ abstract class JextractTask : DefaultTask() {
             "--target-package", targetPackage.get(),
             "--header-class-name", headerClassName.get(),
         )
+        // ":" means "load this exact library name" (versioned names exist without -dev packages).
+        for (library in libraries.getOrElse(emptyList())) command += listOf("--library", ":$library")
         for (include in includes.get()) {
             // "struct epoll_event" -> --include-struct epoll_event
             val (kind, name) = include.split(' ', limit = 2)

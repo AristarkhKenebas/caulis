@@ -7,4 +7,5 @@ plugins {
 
 dependencies {
     api(project(":tessera-protocol"))
+    api(project(":tessera-render"))
 }

@@ -5,12 +5,13 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 /**
- * Writes one event to a client. Generated `sendXxx` functions use it:
+ * Writes one message: an event from the compositor to a client, or a request from our
+ * client side to another compositor. Generated code uses it:
  * `event(OPCODE).int(x).string(title).end()`.
  *
- * Events are collected in the client's output buffer and sent in batches.
+ * Messages are collected in the connection's output buffer and sent in batches.
  */
-class MessageWriter internal constructor(private val client: Client) {
+class MessageWriter internal constructor(private val client: WireOutput) {
 
     private var buffer: ByteBuffer = ByteBuffer.allocate(0)
     private var start = 0
@@ -70,6 +71,10 @@ class MessageWriter internal constructor(private val client: Client) {
 
     fun newId(value: Resource): MessageWriter = int(value.id)
 
+    fun obj(value: dev.tessera.protocol.client.Proxy?): MessageWriter = int(value?.id ?: 0)
+
+    fun newId(value: dev.tessera.protocol.client.Proxy): MessageWriter = int(value.id)
+
     /** Sends a file descriptor with this event; the client gets its own copy, [fd] stays yours. */
     fun fd(fd: Fd): MessageWriter {
         client.queueFd(fd, messageStart = start)
@@ -83,7 +88,7 @@ class MessageWriter internal constructor(private val client: Client) {
         buffer.putInt(start, messageId)
         buffer.putInt(start + 4, (size shl 16) or messageOpcode)
         active = false
-        client.eventWritten()
+        client.messageWritten()
     }
 
     companion object {
@@ -93,4 +98,15 @@ class MessageWriter internal constructor(private val client: Client) {
         internal fun newOutput(capacity: Int): ByteBuffer =
             ByteBuffer.allocate(capacity).order(ByteOrder.nativeOrder())
     }
+}
+
+/** Where a [MessageWriter] puts its bytes: a server-side [Client] or a client-side connection. */
+internal interface WireOutput {
+    /** Makes room for [extra] more bytes and returns the (possibly new) buffer. */
+    fun growOutput(extra: Int): ByteBuffer
+
+    /** Remembers a descriptor to send with the message starting at [messageStart]. */
+    fun queueFd(fd: Fd, messageStart: Int)
+
+    fun messageWritten()
 }

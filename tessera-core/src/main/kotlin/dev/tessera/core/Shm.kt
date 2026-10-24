@@ -123,6 +123,7 @@ class ShmBuffer internal constructor(
     val format: Int,
 ) {
     init {
+        resource.data = this
         resource.requests = object : WlBuffer.Requests {
             override fun destroy(resource: WlBuffer) {}
         }

@@ -78,6 +78,18 @@ internal object Libc {
         return text.reinterpret(Long.MAX_VALUE).getString(0)
     }
 
+    // --- memory -----------------------------------------------------------------------
+
+    private val freeHandle = linker.downcallHandle(
+        lookup.find("free").orElseThrow(),
+        FunctionDescriptor.ofVoid(ADDRESS),
+    )
+
+    /** Frees memory a C library allocated with malloc and handed to us. */
+    fun free(pointer: MemorySegment) {
+        freeHandle.invokeExact(pointer)
+    }
+
     // --- file descriptors -------------------------------------------------------------
 
     private val closeHandle = function("close", JAVA_INT, JAVA_INT)

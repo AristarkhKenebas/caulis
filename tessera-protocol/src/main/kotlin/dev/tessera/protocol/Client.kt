@@ -6,7 +6,6 @@ import dev.tessera.ffi.UnixSocket
 import dev.tessera.protocol.wayland.WlDisplay
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
-import java.lang.foreign.ValueLayout.JAVA_INT_UNALIGNED
 import java.nio.ByteBuffer
 
 /**
@@ -20,7 +19,7 @@ class Client internal constructor(
     /** The server this client is connected to. */
     val server: Display,
     internal val socket: UnixSocket,
-) {
+) : WireOutput {
     /** Process id of the program (from the kernel, cannot be faked). */
     val pid: Int
     val uid: Int
@@ -31,38 +30,24 @@ class Client internal constructor(
         uid = credentials.uid
     }
 
+    private val arena = Arena.ofShared()
+    private val incoming = Incoming(socket, arena)
+    private val outgoing = Outgoing(socket, arena)
+    private val reader = MessageReader(this)
+    private val writer = MessageWriter(this)
+
     // Object id 1 is always the client's wl_display.
     internal val displayObject: WlDisplay = WlDisplay.create(this, 1, 1)
 
     private val resources = HashMap<Int, Resource>()
+    private val recentlyDestroyed = HashSet<Int>()
     private var nextServerId = FIRST_SERVER_ID
 
     /** False after the client disconnected or was disconnected. */
     var isConnected = true
         private set
 
-    private var closeAfterFlush = false
-
-    // --- input ------------------------------------------------------------------------
-
-    private val arena = Arena.ofShared()
-    private val input = arena.allocate(INPUT_SIZE.toLong())
-    private var inputFilled = 0L
-    private val receivedFds = ArrayDeque<Fd>()
-    private val receivedFdsScratch = ArrayList<Fd>()
-    private val reader = MessageReader(this)
-
-    // --- output -----------------------------------------------------------------------
-
-    private var output: ByteBuffer = MessageWriter.newOutput(4096)
-    private val writer = MessageWriter(this)
-    private val sendBuffer = arena.allocate(SEND_CHUNK.toLong())
-    private var sentTotal = 0L // bytes sent since the connection started
-
-    // A queued descriptor and where in the output stream its message starts.
-    private class QueuedFd(val fd: Fd, val messageStart: Long)
-
-    private val queuedFds = ArrayDeque<QueuedFd>()
+    private var closing = false // an error was sent; nothing more is read
 
     init {
         resources[1] = displayObject
@@ -70,65 +55,40 @@ class Client internal constructor(
     }
 
     /** True if events are waiting to be sent. */
-    val hasPendingOutput: Boolean get() = output.position() > 0
+    val hasPendingOutput: Boolean get() = outgoing.hasPending
 
     /**
      * Reads everything the client sent and handles each complete request.
      * Returns false if the client is gone (closed the connection or was disconnected).
      */
     internal fun dispatch(): Boolean {
-        while (isConnected && !closeAfterFlush) {
-            val room = input.asSlice(inputFilled)
-            val count = try {
-                socket.receive(room, receivedFdsScratch)
+        while (isConnected && !closing) {
+            val result = try {
+                incoming.read()
             } catch (e: NativeException) {
                 disconnect()
                 return false
             }
-            for (fd in receivedFdsScratch) {
-                if (receivedFds.size >= MAX_QUEUED_FDS) {
-                    fd.close()
+            when (result) {
+                Incoming.Read.NOTHING_NOW -> break
+                Incoming.Read.CLOSED -> {
+                    disconnect()
+                    return false
+                }
+                Incoming.Read.TOO_MANY_FDS -> {
                     postError(displayObject, WlDisplay.Error.NO_MEMORY, "too many file descriptors")
-                } else {
-                    receivedFds += fd
+                    return false
+                }
+                Incoming.Read.GOT_DATA -> {
+                    val wellFormed = incoming.forEachMessage { objectId, opcode, arguments ->
+                        handleMessage(objectId, opcode, arguments)
+                        isConnected && !closing
+                    }
+                    if (!wellFormed) postError(displayObject, WlDisplay.Error.INVALID_METHOD, "malformed message header")
                 }
             }
-            receivedFdsScratch.clear()
-
-            if (count == -1L) break      // nothing more right now
-            if (count == 0L) {           // the client closed the connection
-                disconnect()
-                return false
-            }
-            inputFilled += count
-            handleMessages()
         }
         return isConnected
-    }
-
-    // Handles every complete message in the input buffer, keeps an incomplete tail.
-    private fun handleMessages() {
-        var offset = 0L
-        while (isConnected && !closeAfterFlush && inputFilled - offset >= HEADER_SIZE) {
-            val objectId = input.get(JAVA_INT_UNALIGNED, offset)
-            val sizeAndOpcode = input.get(JAVA_INT_UNALIGNED, offset + 4)
-            val size = (sizeAndOpcode ushr 16).toLong()
-            val opcode = sizeAndOpcode and 0xFFFF
-            if (size < HEADER_SIZE || size % 4 != 0L) {
-                postError(displayObject, WlDisplay.Error.INVALID_METHOD, "malformed message size $size")
-                return
-            }
-            if (inputFilled - offset < size) break // the rest of this message has not arrived yet
-
-            handleMessage(objectId, opcode, input.asSlice(offset + HEADER_SIZE, size - HEADER_SIZE))
-            offset += size
-        }
-        if (!isConnected) return // the buffer is already freed
-        // Move the unfinished tail to the start of the buffer.
-        if (offset > 0) {
-            MemorySegment.copy(input, offset, input, 0, inputFilled - offset)
-            inputFilled -= offset
-        }
     }
 
     private fun handleMessage(objectId: Int, opcode: Int, arguments: MemorySegment) {
@@ -136,7 +96,7 @@ class Client internal constructor(
         if (target == null) {
             // The client may still talk to an object it destroyed a moment ago; libwayland
             // ignores such messages too. A never-used id is an error.
-            if (objectId != 0 && objectId in recentlyDestroyed) return
+            if (objectId in recentlyDestroyed) return
             postError(displayObject, WlDisplay.Error.INVALID_OBJECT, "unknown object $objectId")
             return
         }
@@ -154,8 +114,6 @@ class Client internal constructor(
     }
 
     // --- objects ----------------------------------------------------------------------
-
-    private val recentlyDestroyed = HashSet<Int>()
 
     internal fun findResource(id: Int): Resource? = resources[id]?.takeIf { it.isAlive }
 
@@ -196,17 +154,17 @@ class Client internal constructor(
         }
     }
 
-    internal fun takeReceivedFd(): Fd? = receivedFds.removeFirstOrNull()
+    internal fun takeReceivedFd(): Fd? = incoming.takeFd()
 
     // --- errors and disconnecting -----------------------------------------------------
 
-    /** Sends a protocol error about [resource] and disconnects the client after it is sent. */
+    /** Sends a protocol error about [resource] and disconnects the client. */
     fun postError(resource: Resource, code: Int, message: String) {
-        if (!isConnected || closeAfterFlush) return
+        if (!isConnected || closing) return
         server.log.warn("Client $pid: ${resource.type.name}@${resource.id} error $code: $message")
         displayObject.sendError(resource, code, message)
-        closeAfterFlush = true
-        flush()
+        closing = true
+        outgoing.flush()
         disconnect()
     }
 
@@ -216,10 +174,8 @@ class Client internal constructor(
         isConnected = false
         for (resource in resources.values.toList()) resource.markDestroyed()
         resources.clear()
-        receivedFds.forEach { it.close() }
-        receivedFds.clear()
-        queuedFds.forEach { it.fd.close() }
-        queuedFds.clear()
+        incoming.close()
+        outgoing.close()
         server.clientDisconnected(this)
         socket.close()
         arena.close()
@@ -228,34 +184,24 @@ class Client internal constructor(
     // --- events -----------------------------------------------------------------------
 
     internal fun beginEvent(resource: Resource, opcode: Int): MessageWriter =
-        writer.begin(output, resource.id, opcode)
+        writer.begin(outgoing.buffer, resource.id, opcode)
 
-    internal fun eventWritten() {
+    override fun messageWritten() {
         server.clientHasOutput(this)
     }
 
-    internal fun growOutput(extra: Int): ByteBuffer {
-        val needed = output.position() + extra
-        if (needed > MAX_OUTPUT) {
+    override fun growOutput(extra: Int): ByteBuffer {
+        if (outgoing.sizeAfter(extra) > MAX_OUTPUT && !closing) {
             // The client does not read its events. Keeping everything would let one
             // stuck program use all memory, so it is disconnected instead.
-            closeAfterFlush = true
+            closing = true
             server.log.warn("Client $pid does not read its events, disconnecting")
             server.disconnectLater(this)
         }
-        var capacity = output.capacity()
-        while (capacity < needed) capacity *= 2
-        val bigger = MessageWriter.newOutput(capacity)
-        output.flip()
-        bigger.put(output)
-        output = bigger
-        return bigger
+        return outgoing.grow(extra)
     }
 
-    internal fun queueFd(fd: Fd, messageStart: Int) {
-        // The client gets its own copy; we keep a duplicate until it is sent.
-        queuedFds += QueuedFd(fd.duplicate(), sentTotal + messageStart)
-    }
+    override fun queueFd(fd: Fd, messageStart: Int) = outgoing.queueFd(fd, messageStart)
 
     /**
      * Sends queued events. Returns true when everything was sent, false if the socket
@@ -263,38 +209,15 @@ class Client internal constructor(
      */
     internal fun flush(): Boolean {
         if (!isConnected) return true
-        while (output.position() > 0) {
-            val available = output.position()
-            var length = minOf(available, SEND_CHUNK)
-
-            // At most MAX_FDS descriptors fit in one send. Never send a message's bytes
-            // before its descriptors, so stop before the message of the first one left out.
-            val fdsNow = queuedFds.take(UnixSocket.MAX_FDS)
-            if (queuedFds.size > UnixSocket.MAX_FDS) {
-                val nextFdMessage = queuedFds.elementAt(UnixSocket.MAX_FDS).messageStart - sentTotal
-                length = minOf(length.toLong(), nextFdMessage).toInt()
-            }
-
-            MemorySegment.copy(MemorySegment.ofArray(output.array()), 0, sendBuffer, 0, length.toLong())
-            val sent = try {
-                socket.send(sendBuffer.asSlice(0, length.toLong()), fdsNow.map { it.fd })
-            } catch (e: NativeException) {
+        return when (outgoing.flush()) {
+            Outgoing.Result.SENT_ALL -> true
+            Outgoing.Result.SOCKET_FULL -> false
+            Outgoing.Result.BROKEN -> {
                 disconnect()
-                return true
+                true
             }
-            if (sent < 0) return false // socket full, try again when writable
-
-            repeat(fdsNow.size) { queuedFds.removeFirst().fd.close() }
-            // Drop the sent bytes from the front of the buffer.
-            output.flip()
-            output.position(sent.toInt())
-            output.compact()
-            sentTotal += sent
         }
-        return true
     }
-
-    internal val wantsClose: Boolean get() = closeAfterFlush
 
     companion object {
         /** Ids from here up are chosen by the compositor, below by the client. */
@@ -306,11 +229,7 @@ class Client internal constructor(
          */
         fun isServerId(id: Int): Boolean = Integer.compareUnsigned(id, FIRST_SERVER_ID) >= 0
 
-        private const val HEADER_SIZE = 8L
-        private const val INPUT_SIZE = 2 * 65536    // always room for the largest message
-        private const val SEND_CHUNK = 65536
         private const val MAX_OUTPUT = 4 * 1024 * 1024
         private const val MAX_OBJECTS = 100_000
-        private const val MAX_QUEUED_FDS = 256
     }
 }

@@ -36,6 +36,14 @@ class Display(val loop: EventLoop) : AutoCloseable {
     /** Connected clients. */
     val clients: List<Client> get() = connected
 
+    private var serial = 0
+
+    /**
+     * A new serial number. Events like key presses and configure carry one, so clients
+     * can refer to "that click" later (e.g. to start moving a window).
+     */
+    fun nextSerial(): Int = ++serial
+
     init {
         loop.beforeWait { flushClients() }
     }

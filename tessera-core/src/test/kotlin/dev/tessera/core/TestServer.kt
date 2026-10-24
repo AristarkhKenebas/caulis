@@ -14,6 +14,9 @@ import java.util.concurrent.TimeUnit
 class TestServer : AutoCloseable {
 
     val runtimeDir: Path = Files.createTempDirectory("tessera-test-runtime")
+
+    /** Titles of windows that became visible (written on the server thread). */
+    val mappedTitles: MutableList<String> = java.util.concurrent.CopyOnWriteArrayList()
     private val started = CompletableFuture<String>()
     private lateinit var loop: EventLoop
 
@@ -22,8 +25,13 @@ class TestServer : AutoCloseable {
             EventLoop().use { eventLoop ->
                 loop = eventLoop
                 Display(eventLoop).use { display ->
-                    Compositor(display)
+                    Compositor(display, renderer = null)
                     Shm(display)
+                    XdgShell(display).listener = object : XdgShell.Listener {
+                        override fun windowMapped(window: Window) {
+                            mappedTitles += window.title
+                        }
+                    }
                     Output(display, "HEADLESS-1", "Test output", 1920, 1080, 60_000)
                     started.complete(display.addSocket(runtimeDir))
                     eventLoop.run()

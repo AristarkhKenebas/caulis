@@ -17,6 +17,15 @@ abstract class Resource(
 ) {
     abstract val type: ResourceType<*>
 
+    /**
+     * The compositor's own object behind this protocol object (for example the `ShmBuffer`
+     * behind a wl_buffer). Set by whoever implements the interface; read with [dataAs].
+     */
+    var data: Any? = null
+
+    /** [data] if it is a [T], otherwise null (e.g. a buffer of another kind). */
+    inline fun <reified T> dataAs(): T? = data as? T
+
     /** False once the object was destroyed (by the client, the compositor, or a disconnect). */
     var isAlive: Boolean = true
         private set
