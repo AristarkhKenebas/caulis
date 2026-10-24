@@ -30,4 +30,3 @@ include(
     "examples:window-rules",
 )
 
-// irisWM (apps/iriswm) is a separate build with its own settings; it uses this one.

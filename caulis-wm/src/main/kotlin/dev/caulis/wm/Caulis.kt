@@ -242,7 +242,8 @@ class Caulis {
         /**
          * The usual keys, active unless [useDefaultBindings] is false:
          * Super+Return terminal, Super+Q close, Super+Up maximize, Super+F fullscreen,
-         * Super+Down minimize, Super+V float/tile, Alt+Tab next window, Super+Left/Right
+         * Super+Down minimize, Super+V float/tile, Alt+Tab next window, Super+Tab overview
+         * (the whole workspace zoomed out; click a window to go there), Super+Left/Right
          * focus neighbour, Super+1..9 workspace, Super+Shift+1..9 move window there.
          * For layouts that remember things: Super+Shift+arrows move the window,
          * Super+Ctrl+arrows resize it, Super+Alt+arrows preselect where the next window
@@ -258,6 +259,7 @@ class Caulis {
             add("Super+Down" to { focusedWindow?.let(desktop::minimize) })
             add("Super+V" to { focusedWindow?.let { desktop.setFloating(it, !desktop.isFloating(it)) } })
             add("Alt+Tab" to { desktop.cycleFocus() })
+            add("Super+Tab" to { desktop.toggleOverview() })
             add("Super+Left" to { desktop.focusDirection(-1, 0) })
             add("Super+Right" to { desktop.focusDirection(1, 0) })
             for (n in 1..9) {

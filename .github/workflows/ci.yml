@@ -1,4 +1,4 @@
-# Builds and tests Caulis and irisWM on every push and pull request.
+# Builds and tests Caulis on every push and pull request.
 name: CI
 
 on:
@@ -43,8 +43,8 @@ jobs:
             **/build/reports/tests/
             **/build/test-results/
 
-      - name: irisWM archives
+      - name: Library jars
         uses: actions/upload-artifact@v7
         with:
-          name: iriswm
-          path: apps/iriswm/build/distributions/
+          name: caulis
+          path: caulis-*/build/libs/*.jar

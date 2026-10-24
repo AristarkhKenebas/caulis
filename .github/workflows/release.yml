@@ -1,6 +1,6 @@
 # Publishes a release when a version tag is pushed, e.g.:
 #   git tag v0.1.0 && git push origin v0.1.0
-# The irisWM archives are attached to the GitHub release.
+# The library jars are attached to the GitHub release.
 name: Release
 
 on:
@@ -35,7 +35,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            --title "irisWM $GITHUB_REF_NAME" \
+            --title "Caulis $GITHUB_REF_NAME" \
             --generate-notes \
             ${{ contains(github.ref_name, '-') && '--prerelease' || '' }} \
-            apps/iriswm/build/distributions/*
+            caulis-*/build/libs/*.jar

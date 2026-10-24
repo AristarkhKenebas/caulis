@@ -61,7 +61,7 @@ class Session private constructor(private val loop: EventLoop) : AutoCloseable {
         if (seat == MemorySegment.NULL) {
             arena.close()
             throw SessionException(
-                "Could not open the seat. Start irisWM from a text console (e.g. Ctrl+Alt+F3) " +
+                "Could not open the seat. Start the compositor from a text console (e.g. Ctrl+Alt+F3) " +
                     "of a logged-in user, with systemd-logind or seatd running.",
             )
         }

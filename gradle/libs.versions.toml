@@ -1,7 +1,7 @@
 # All versions of the project live here, in one place.
 
 [versions]
-# Version of Caulis itself (what irisWM and other programs depend on).
+# Version of Caulis itself (what compositors built with it depend on).
 caulis = "0.1.0-SNAPSHOT"
 # The JDK that compiles, tests and runs Caulis.
 java = "27"

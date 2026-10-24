@@ -124,6 +124,7 @@ Without writing anything, you already have the usual keys:
 | Super+Up / Super+F / Super+Down | maximize / fullscreen / minimize |
 | Super+V | take the window out of the layout (floating) and back |
 | Alt+Tab | next window (also brings minimized ones back) |
+| Super+Tab | overview: the whole workspace zoomed out — click a window to go there, Escape to go back |
 | Super+Left / Super+Right | focus the neighbour |
 | Super+1 … 9 | go to a workspace |
 | Super+Shift+1 … 9 | move the window to a workspace |

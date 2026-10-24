@@ -2,8 +2,6 @@
 
 A toolkit for writing Wayland compositors in Kotlin and Java.
 
-irisWM is the compositor built with it (in `apps/iriswm`, a separate project).
-
 Status: early development.
 
 A complete compositor — tiling with gaps, workspaces, the usual keys — in a few lines:
@@ -65,17 +63,6 @@ Change layouts while running: windows glide to their new places.
 ```sh
 ./gradlew build            # build and test everything
 ./gradlew dokkaGenerate    # API documentation: build/dokka/html/index.html
-```
-
-## Try it
-
-irisWM, the compositor built with Caulis, lives in `apps/iriswm` as a separate project
-with its own build. See [its README](apps/iriswm/README.md):
-
-```sh
-cd apps/iriswm
-./gradlew installDist
-build/install/iriswm/bin/iriswm
 ```
 
 ## License

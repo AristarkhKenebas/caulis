@@ -1,5 +1,6 @@
 package dev.caulis.core
 
+import dev.caulis.geometry.Rect
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.xdgshell.XdgToplevel
 import dev.caulis.tiling.Dwindle
@@ -147,6 +148,49 @@ class RememberingDesktopTest {
                 server.onServer { d -> d.tilingCommand(dev.caulis.tiling.TilingCommand.Pan(dev.caulis.tiling.Direction.RIGHT)) }
                 assertTrue(server.onServer { d -> d.windows.first { it.title == "w1" }.x } < 0)
                 windows.forEach { it.draw() }
+            }
+        }
+    }
+}
+
+/** The overview: the whole workspace zoomed out. */
+class OverviewTest {
+
+    @Test
+    fun `the overview shows windows beyond the edges, a click there goes to them`() {
+        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        ScreenTestServer().use { server ->
+            TestClient(Connection.connect(server.socketPath)).use { client ->
+                server.onServer {
+                    it.animationMillis = 0
+                    it.layout = dev.caulis.tiling.Canvas(Gaps(0, 0), columns = 2, rows = 1, windowColumns = 1, windowRows = 1)
+                }
+                (1..3).map { n ->
+                    client.window { it.setTitle("w$n") }.also { w ->
+                        w.draw()
+                        client.waitFor { server.onServer { d -> d.windows.size } == n }
+                    }
+                }
+                server.onServer { d -> d.focus(d.windows.first { it.title == "w3" }) }
+                client.waitFor { server.onServer { d -> d.windows.first { it.title == "w1" }.x } < 0 }
+
+                server.onServer { it.setOverview(true) }
+                Thread.sleep(100) // a few frames
+                val inOverview = server.onServer { d -> d.windows.associate { it.title to d.screenRect(it)!! } }
+                val screen = Rect(0, 0, ScreenTestServer.WIDTH, ScreenTestServer.HEIGHT)
+                for ((title, rect) in inOverview) assertTrue(screen.contains(rect), "$title is on screen in the overview: $rect")
+                assertTrue(inOverview.getValue("w1").width < ScreenTestServer.WIDTH / 2, "zoomed out")
+
+                // Click on the far-left window: it is focused and brought into view.
+                val target = inOverview.getValue("w1")
+                server.onServer { d ->
+                    d.pointerMoved(0, target.x + target.width / 2.0, target.y + target.height / 2.0)
+                    d.pointerButton(0, 0x110, true)
+                    d.pointerButton(0, 0x110, false)
+                }
+                assertTrue(!server.onServer { it.inOverview })
+                assertEquals("w1", server.onServer { d -> d.focusedWindow?.title })
+                client.waitFor { server.onServer { d -> d.windows.first { it.title == "w1" }.x } == 0 }
             }
         }
     }
