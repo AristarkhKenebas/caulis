@@ -83,6 +83,7 @@ class ScreenTestServer : AutoCloseable {
                                 desktop = Desktop(renderer, seat, compositor, WIDTH, HEIGHT)
                                 XdgShell(display).listener = desktop
                                 LayerShell(display).listener = desktop
+                                SessionLockManager(display).listener = desktop
                                 Output(display, "TEST-1", "Test screen", WIDTH, HEIGHT, 60_000)
                                 runScreen(eventLoop, renderer, desktop)
                                 started.complete(display.addSocket(runtimeDir))

@@ -121,6 +121,7 @@ Without writing anything, you already have the usual keys:
 | --- | --- |
 | Super+Return | open the terminal (`terminal = "foot"` changes which) |
 | Super+Q | close the window |
+| Super+L | lock the screen (`lockCommand = "swaylock"` changes the locker) |
 | Super+Up / Super+F / Super+Down | maximize / fullscreen / minimize |
 | Super+V | take the window out of the layout (floating) and back |
 | Alt+Tab | next window (also brings minimized ones back) |
@@ -129,7 +130,7 @@ Without writing anything, you already have the usual keys:
 | Super+1 … 9 | go to a workspace |
 | Super+Shift+1 … 9 | move the window to a workspace |
 | Super + drag | move (left button) or resize (right button) a window |
-| Ctrl+Alt+Backspace | quit — always, you can never lock yourself in |
+| Ctrl+Alt+Backspace | quit — always, even on a locked screen: you can never lock yourself in |
 
 Add your own, or replace these, with `bind`:
 
@@ -285,7 +286,23 @@ Fullscreen windows never get effects. The names come from `dev.caulis.core` (`Ef
 `Border`, `Shadow`, `Blur`) and `dev.caulis.render.Color`; IntelliJ adds the imports when you
 press Alt+Enter on a red name.
 
-## 10. Touchpad gestures
+## 10. Locking the screen
+
+Super+L starts the screen locker — `swaylock` unless you choose another:
+
+```kotlin
+lockCommand = "swaylock -c 1e1e2e" // or "gtklock", "hyprlock", ...
+```
+
+While the screen is locked nothing of your desktop is visible and only the locker gets the
+keyboard and the mouse; it unlocks when you type your password. If the locker crashes, the
+screen turns dark red and *stays locked*: switch to a text console (Ctrl+Alt+F2), log in and
+start a new locker for that session — e.g. `WAYLAND_DISPLAY=wayland-1 swaylock`, with the
+socket name the compositor printed when it started — then come back (Ctrl+Alt+F1 or
+whichever console the session is on). Ctrl+Alt+Backspace still quits the compositor, as
+always.
+
+## 11. Touchpad gestures
 
 | Gesture | What it does |
 | --- | --- |
@@ -302,7 +319,7 @@ overviewPinchFingers = 4      // 0 = off
 swipe(fingers = 3, Direction.UP) { desktop.toggleOverview() }
 ```
 
-## 11. On the real screen
+## 12. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 
@@ -319,7 +336,7 @@ exitAfterSeconds = 60
 
 Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles.
 
-## 12. Your own layout
+## 13. Your own layout
 
 Describe it with building blocks — no arithmetic:
 

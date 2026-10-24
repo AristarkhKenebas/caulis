@@ -2,10 +2,12 @@ package dev.caulis.core
 
 import dev.caulis.ffi.SharedMemory
 import dev.caulis.protocol.client.Connection
+import dev.caulis.protocol.client.extsessionlockv1.ExtSessionLockManagerV1
 import dev.caulis.protocol.client.linuxdmabufv1.ZwpLinuxDmabufV1
 import dev.caulis.protocol.client.presentationtime.WpPresentation
 import dev.caulis.protocol.client.wlrlayershellunstablev1.ZwlrLayerShellV1
 import dev.caulis.protocol.client.wayland.WlCompositor
+import dev.caulis.protocol.client.wayland.WlOutput
 import dev.caulis.protocol.client.wayland.WlRegistry
 import dev.caulis.protocol.client.wayland.WlSeat
 import dev.caulis.protocol.client.wayland.WlShm
@@ -36,6 +38,8 @@ class TestClient(val connection: Connection) : AutoCloseable {
     val presentation = registry.bind(names.getValue("wp_presentation"), WpPresentation, 1)
     val dmabuf: ZwpLinuxDmabufV1? = names["zwp_linux_dmabuf_v1"]?.let { registry.bind(it, ZwpLinuxDmabufV1, 4) }
     val layerShell: ZwlrLayerShellV1? = names["zwlr_layer_shell_v1"]?.let { registry.bind(it, ZwlrLayerShellV1, 4) }
+    val sessionLock: ExtSessionLockManagerV1? = names["ext_session_lock_manager_v1"]?.let { registry.bind(it, ExtSessionLockManagerV1, 1) }
+    val output: WlOutput? = names["wl_output"]?.let { registry.bind(it, WlOutput, 4) }
     private val memory = SharedMemory.create("pictures", MAX_SIZE.toLong() * MAX_SIZE * 4)
 
     /** A window and what the compositor last asked of it. */

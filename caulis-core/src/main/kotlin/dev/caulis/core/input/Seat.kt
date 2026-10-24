@@ -40,6 +40,19 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
     var pointerFocus: Surface? = null
         private set
 
+    /**
+     * Which surfaces may get the keyboard and the pointer at all (all by default). While the
+     * session is locked only the locker's surfaces may: whatever else asks for the focus then
+     * gets nothing, and keys never reach a surface this says no to — even one that had the
+     * focus before.
+     */
+    var mayFocus: (Surface) -> Boolean = { true }
+        set(value) {
+            field = value
+            keyboardFocus?.let { if (!value(it)) focusKeyboard(null) }
+            pointerFocus?.let { if (!value(it)) pointerMotion(0, null, 0.0, 0.0) }
+        }
+
     /** The cursor picture the focused client asked for (null = hidden or default). */
     var cursorSurface: Surface? = null
         private set
@@ -115,7 +128,8 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
     // --- keyboard ---------------------------------------------------------------------
 
     /** Gives the keyboard to [surface] (null = nobody). */
-    fun focusKeyboard(surface: Surface?) {
+    fun focusKeyboard(wanted: Surface?) {
+        val surface = wanted?.takeIf(mayFocus)
         val old = keyboardFocus
         if (old === surface) return
         keyboardFocus = surface
@@ -139,7 +153,7 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
         if (pressed) pressedKeys += evdevCode else pressedKeys -= evdevCode
         val modifiersChanged = keyboardState.update(evdevCode, pressed)
-        val focus = keyboardFocus ?: return
+        val focus = keyboardFocus?.takeIf(mayFocus) ?: return
         val serial = display.nextSerial()
         val state = if (pressed) WlKeyboard.KeyState.PRESSED else WlKeyboard.KeyState.RELEASED
         for (keyboard in keyboardsOf(focus.resource.client)) {
@@ -186,7 +200,8 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
      * The pointer moved. [surface] is what is under it now (null = nothing), [x], [y] the
      * position inside that surface. Sends leave/enter when the surface changes.
      */
-    fun pointerMotion(timeMillis: Int, surface: Surface?, x: Double, y: Double) {
+    fun pointerMotion(timeMillis: Int, under: Surface?, x: Double, y: Double) {
+        val surface = under?.takeIf(mayFocus)
         val old = pointerFocus
         if (old !== surface) {
             if (old != null && old.resource.isAlive) {
@@ -218,7 +233,7 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
 
     /** A mouse button changed ([button] = Linux code, e.g. 272 = left). */
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean) {
-        val focus = pointerFocus ?: return
+        val focus = pointerFocus?.takeIf(mayFocus) ?: return
         val serial = display.nextSerial()
         val state = if (pressed) WlPointer.ButtonState.PRESSED else WlPointer.ButtonState.RELEASED
         pointersOf(focus.resource.client).forEach {
@@ -232,7 +247,7 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
      * [value120] the wheel steps in 1/120 (a full notch = 120; 0 for touchpads).
      */
     fun pointerAxis(timeMillis: Int, vertical: Boolean, value: Double, value120: Int) {
-        val focus = pointerFocus ?: return
+        val focus = pointerFocus?.takeIf(mayFocus) ?: return
         val axis = if (vertical) WlPointer.Axis.VERTICAL_SCROLL else WlPointer.Axis.HORIZONTAL_SCROLL
         pointersOf(focus.resource.client).forEach {
             if (value120 != 0) it.sendAxisValue120(axis, value120) // ignored by older clients

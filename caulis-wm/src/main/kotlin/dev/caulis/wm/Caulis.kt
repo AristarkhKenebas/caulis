@@ -75,6 +75,13 @@ class Caulis {
     var keyboardLayouts = "us"
     var keyboardOptions = ""
 
+    /**
+     * The screen locker [lock] (and the default Super+L) starts, e.g. "swaylock -c 1e1e2e",
+     * "gtklock" or "hyprlock". While it runs, nothing of the desktop is visible and only it
+     * gets the keyboard; it unlocks when you type your password.
+     */
+    var lockCommand = "swaylock"
+
     /** The terminal [openTerminal] (and the default Super+Return) starts. */
     var terminal = "foot"
 
@@ -242,6 +249,7 @@ class Caulis {
 
     fun layout(layout: Layout): Caulis = apply { this.layout = layout }
     fun terminal(command: String): Caulis = apply { terminal = command }
+    fun lockCommand(command: String): Caulis = apply { lockCommand = command }
     fun mode(mode: Mode): Caulis = apply { this.mode = mode }
     fun keyboard(layouts: String, options: String = ""): Caulis = apply {
         keyboardLayouts = layouts
@@ -275,6 +283,9 @@ class Caulis {
 
     fun openTerminal() = launch(terminal)
 
+    /** Locks the screen with [lockCommand]. */
+    fun lock() = launch(lockCommand)
+
     fun closeFocused() = desktop.closeFocused()
 
     /** Stops the compositor; [run] returns. */
@@ -303,9 +314,15 @@ class Caulis {
         @JvmStatic
         fun create() = Caulis()
 
+        /** The usual swipes: four fingers left / right = next / previous workspace. */
+        val defaultSwipes: List<Triple<Int, Direction, Caulis.() -> Unit>> = listOf(
+            Triple(4, Direction.LEFT) { desktop.switchTo(desktop.activeWorkspace.number + 1) },
+            Triple(4, Direction.RIGHT) { desktop.switchTo((desktop.activeWorkspace.number - 1).coerceAtLeast(1)) },
+        )
+
         /**
          * The usual keys, active unless [useDefaultBindings] is false:
-         * Super+Return terminal, Super+Q close, Super+Up maximize, Super+F fullscreen,
+         * Super+Return terminal, Super+Q close, Super+L lock the screen, Super+Up maximize, Super+F fullscreen,
          * Super+Down minimize, Super+V float/tile, Alt+Tab next window, Super+Tab overview
          * (the whole workspace zoomed out; click a window to go there), Super+Left/Right
          * focus neighbour, Super+1..9 workspace, Super+Shift+1..9 move window there.
@@ -315,15 +332,10 @@ class Caulis {
          * Super+R rotate, Super+B balance, Super+W next column width, Super+S / Super+Shift+S
          * next window side by side / below (manual tiling).
          */
-        /** The usual swipes: four fingers left / right = next / previous workspace. */
-        val defaultSwipes: List<Triple<Int, Direction, Caulis.() -> Unit>> = listOf(
-            Triple(4, Direction.LEFT) { desktop.switchTo(desktop.activeWorkspace.number + 1) },
-            Triple(4, Direction.RIGHT) { desktop.switchTo((desktop.activeWorkspace.number - 1).coerceAtLeast(1)) },
-        )
-
         val defaultBindings: List<Pair<String, Caulis.() -> Unit>> = buildList {
             add("Super+Return" to { openTerminal() })
             add("Super+Q" to { closeFocused() })
+            add("Super+L" to { lock() })
             add("Super+Up" to { focusedWindow?.let { desktop.setMaximized(it, !it.maximized) } })
             add("Super+F" to { focusedWindow?.let { desktop.setFullscreen(it, !it.fullscreen) } })
             add("Super+Down" to { focusedWindow?.let(desktop::minimize) })

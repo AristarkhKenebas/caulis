@@ -4,6 +4,7 @@ import dev.caulis.core.input.Seat
 import dev.caulis.event.EventLoop
 import dev.caulis.geometry.Rect
 import dev.caulis.protocol.xdgshell.XdgToplevel
+import dev.caulis.render.Color
 import dev.caulis.render.GpuTarget
 import dev.caulis.render.Renderer
 import dev.caulis.tiling.Floating
@@ -23,7 +24,7 @@ class Desktop(
     private val compositor: Compositor,
     width: Int,
     height: Int,
-) : XdgShell.Listener, LayerShell.Listener {
+) : XdgShell.Listener, LayerShell.Listener, SessionLockManager.Listener {
 
     /** Size of the desktop in pixels. */
     var width = width
@@ -39,6 +40,7 @@ class Desktop(
 
     // The desktop changed size: maximized and fullscreen windows follow it, layouts re-arrange.
     private fun refitWindows() {
+        lock?.surfaces?.forEach { it.configure(it.output?.width ?: width, it.output?.height ?: height) }
         arrangeLayers(refit = false)
         for (pad in shownPads) placeScratchpad(pad, appearing = emptySet())
         for (workspace in workspaces.values) {
@@ -71,6 +73,8 @@ class Desktop(
         views -= view
         for (feedback in view.inFlight) feedback.discard()
         view.inFlight.clear()
+        lockShownOn -= view
+        confirmLockIfShown() // one screen less to wait for
     }
 
     init {
@@ -323,6 +327,106 @@ class Desktop(
         }
     }
 
+    // --- session lock --------------------------------------------------------------------------
+
+    /**
+     * True while the session is locked (by a screen locker such as swaylock): nothing of the
+     * desktop is shown, and keys and the pointer go to the locker only. Unlocking is the
+     * locker's job (after the user typed the password); if it crashes, the session stays
+     * locked and a newly started locker takes over.
+     */
+    var locked = false
+        private set
+
+    /** The colour behind the locker (and all there is until it has drawn). */
+    var lockColor: Color = Color(0f, 0f, 0f)
+
+    /** The colour shown when the locker crashed: start a new one (e.g. from a text console). */
+    var abandonedLockColor: Color = Color(0.35f, 0.05f, 0.05f)
+
+    // The locker in charge (it may have crashed).
+    private var lock: SessionLock? = null
+
+    // Waiting for every screen to show the locked picture before telling the locker.
+    private var lockPending = false
+    private val lockShownOn = HashSet<DesktopView>()
+
+    private val lockListeners = ArrayList<(Boolean) -> Unit>()
+
+    /** Runs [listener] when the session gets locked (true) or unlocked (false). */
+    fun onLockChanged(listener: (Boolean) -> Unit) {
+        lockListeners += listener
+    }
+
+    private fun lockSurfaces(): List<LockSurface> = lock?.surfaces?.filter { it.mapped } ?: emptyList()
+
+    // Surfaces that may get input while locked: the current locker's (with their subsurfaces).
+    private fun belongsToLocker(surface: Surface): Boolean {
+        var current: Surface = surface
+        while (true) current = current.subsurface?.parent ?: break
+        val owner = current.roleObject as? LockSurface ?: return false
+        return owner.lock === lock
+    }
+
+    override fun lockRequested(lock: SessionLock): Boolean {
+        if (locked && this.lock?.alive == true) return false // another locker is in charge
+        this.lock = lock
+        val wasLocked = locked
+        locked = true
+        // Nothing may go on behind the locker: no menus, no overview, no dragging.
+        grabs.toList().asReversed().forEach { it.dismiss() }
+        grabs.clear()
+        endGrab()
+        if (inOverview) {
+            inOverview = false
+            cameraFrom = Camera.NONE
+            cameraTo = Camera.NONE
+        }
+        seat.mayFocus = ::belongsToLocker
+        lockPending = true
+        lockShownOn.clear()
+        confirmLockIfShown()
+        changed()
+        if (!wasLocked) notify(lockListeners, true, "lock")
+        return true
+    }
+
+    // The locker hears "locked" once every screen shows the locked picture.
+    private fun confirmLockIfShown() {
+        if (!lockPending || !views.all { it in lockShownOn }) return
+        lockPending = false
+        lock?.confirmLocked()
+    }
+
+    override fun lockSurfaceCommitted(surface: LockSurface) {
+        if (surface.lock !== lock) return // an earlier locker's leftovers
+        if (surface.mapped && seat.keyboardFocus == null) seat.focusKeyboard(surface.surface)
+        changed()
+        // The pointer may be over it now.
+        val hit = surfaceAt(pointerX, pointerY)
+        seat.pointerMotion((System.nanoTime() / 1_000_000).toInt(), hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
+    }
+
+    override fun unlockRequested(lock: SessionLock) {
+        if (lock !== this.lock) return
+        this.lock = null
+        locked = false
+        lockPending = false
+        seat.mayFocus = { true }
+        seat.focusKeyboard(exclusiveLayer()?.surface ?: focusedWindow?.surface)
+        changed()
+        pointerMoved((System.nanoTime() / 1_000_000).toInt(), pointerX, pointerY)
+        notify(lockListeners, false, "unlock")
+    }
+
+    override fun lockAbandoned(lock: SessionLock) {
+        if (lock !== this.lock) return
+        // The locker crashed: the session stays locked (that is the point of a lock).
+        lockPending = false
+        log.log(System.Logger.Level.WARNING, "The screen locker quit without unlocking; the session stays locked until a new locker is started")
+        changed()
+    }
+
     // --- scratchpads (special workspaces) -----------------------------------------------------
 
     private val scratchpads = LinkedHashMap<String, Scratchpad>()
@@ -548,7 +652,7 @@ class Desktop(
      * Windows keep their sizes: only their pictures get smaller.
      */
     fun setOverview(on: Boolean) {
-        if (on == inOverview) return
+        if (on == inOverview || (on && locked)) return
         endGrab()
         val now = System.nanoTime()
         cameraFrom = cameraAt(now)
@@ -589,6 +693,7 @@ class Desktop(
      * following the fingers of a pinch. Finish with [endOverviewGesture].
      */
     fun setOverviewProgress(progress: Double) {
+        if (locked) return
         val target = overviewTarget ?: overviewCamera().also { overviewTarget = it }
         val camera = Camera.NONE.mix(target, progress.coerceIn(0.0, 1.0))
         cameraFrom = camera
@@ -1077,7 +1182,7 @@ class Desktop(
      * held (an app cannot grab the pointer on its own). A tiled window starts floating.
      */
     fun beginMove(window: Window) {
-        if (buttonsHeld == 0 || window !in windows || window.fullscreen) return
+        if (locked || buttonsHeld == 0 || window !in windows || window.fullscreen) return
         if (window.maximized) {
             // Dragging a maximized window: it gets its old size back, under the pointer.
             val floating = floatingRects[window] ?: currentRect(window)
@@ -1093,7 +1198,7 @@ class Desktop(
 
     /** Resizes [window] with the pointer at [edges] (XdgToplevel.ResizeEdge) until the button is released. */
     fun beginResize(window: Window, edges: Int) {
-        if (buttonsHeld == 0 || window !in windows || window.maximized || window.fullscreen) return
+        if (locked || buttonsHeld == 0 || window !in windows || window.maximized || window.fullscreen) return
         if (window.tiled) {
             floatingRects[window] = currentRect(window)
             setFloating(window, true)
@@ -1283,6 +1388,10 @@ class Desktop(
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean, passToApps: Boolean = true) {
         buttonsHeld = (buttonsHeld + if (pressed) 1 else -1).coerceAtLeast(0)
         if (!passToApps) return
+        if (locked) {
+            seat.pointerButton(timeMillis, button, pressed) // only the locker can be under the pointer
+            return
+        }
         if (inOverview) {
             if (pressed) overviewClick()
             return
@@ -1337,6 +1446,11 @@ class Desktop(
     class Hit(val surface: Surface, val localX: Double, val localY: Double, val root: Surface)
 
     private fun surfaceAt(x: Double, y: Double): Hit? {
+        if (locked) {
+            // Only the locker is there.
+            for (lockSurface in lockSurfaces()) hitTree(lockSurface.surface, x, y, lockSurface.surface)?.let { return it }
+            return null
+        }
         for (popup in popups.asReversed()) {
             val (px, py) = popupOrigin(popup)
             hitTree(popup.surface, x - px, y - py, popup.surface)?.let { return it }
@@ -1461,6 +1575,10 @@ class Desktop(
     fun presented(view: DesktopView, nanos: Long, refreshNanos: Long, sequence: Long, flags: Int) {
         Presentation.presented(view.inFlight, nanos, refreshNanos, sequence, flags)
         view.inFlight.clear()
+        if (lockPending && view.showsLock) {
+            lockShownOn += view
+            confirmLockIfShown()
+        }
     }
 
     /**
@@ -1481,6 +1599,7 @@ class Desktop(
         compare(view, items)
         takeFeedbacks(view)
         val bounds = Rect(0, 0, target.width, target.height)
+        view.showsLock = locked
         val repaint = withBlurReach(items, view.takeRepaint(age, bounds) ?: return, bounds)
         renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], clip = repaint)
         for (item in items) {
@@ -1595,6 +1714,18 @@ class Desktop(
     private fun scene(): List<DrawItem> {
         if (sceneVersion == version) return scene
         val all = ArrayList<DrawItem>()
+        if (locked) {
+            // Nothing of the desktop: a plain colour and the locker's pictures.
+            val full = Rect(0, 0, width, height)
+            val color = if (lock?.alive == true) lockColor else abandonedLockColor
+            all += DrawItem.Color(LOCK_BACKGROUND, full, color.red, color.green, color.blue, covers = listOf(full))
+            for (lockSurface in lockSurfaces()) addTree(all, lockSurface.surface, 0, 0)
+            sceneVisible.clear()
+            for (item in all) if (item is DrawItem.Picture) sceneVisible += item.surface
+            scene = all
+            sceneVersion = version
+            return all
+        }
         val now = System.nanoTime()
         val camera = cameraAt(now)
         val (fullscreen, normal) = stackingOrder().partition { it.fullscreen }
@@ -1774,6 +1905,7 @@ class Desktop(
         val BACKGROUND = floatArrayOf(0.16f, 0.18f, 0.22f)
         const val CURSOR_BORDER = "cursor border"
         const val CURSOR_FILL = "cursor fill"
+        const val LOCK_BACKGROUND = "lock background"
 
         /**
          * How long a layout change waits for every window to draw in its new size before

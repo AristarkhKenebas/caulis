@@ -8,6 +8,7 @@ import dev.caulis.core.FrameStats
 import dev.caulis.core.LayerShell
 import dev.caulis.core.LinuxDmabuf
 import dev.caulis.core.Presentation
+import dev.caulis.core.SessionLockManager
 import dev.caulis.core.Shm
 import dev.caulis.core.XdgShell
 import dev.caulis.core.input.Gesture
@@ -50,6 +51,9 @@ internal class Running(
 
     val keys = KeyBindings()
 
+    // The only keys of ours while the screen is locked; everything else goes to the locker.
+    private val lockedKeys = KeyBindings()
+
     init {
         Shm(display)
         if (renderer.renderNode != null) LinuxDmabuf(display, renderer)
@@ -57,6 +61,7 @@ internal class Running(
         Presentation(display)
         XdgShell(display).listener = desktop
         LayerShell(display).listener = desktop
+        SessionLockManager(display).listener = desktop
         desktop.layout = config.layout
         socket = config.socketDirectory?.let(display::addSocket) ?: display.addSocket()
 
@@ -84,9 +89,11 @@ internal class Running(
         config.windowClosed.forEach { action -> desktop.onWindowClosed { window -> action(config, window) } }
         config.focusChanged.forEach { action -> desktop.onFocusChanged { window -> action(config, window) } }
         config.workspaceChanged.forEach { action -> desktop.onWorkspaceChanged { workspace -> action(config, workspace.number) } }
-        // Never locked in: quitting and text consoles always work.
-        keys.bind("Ctrl+Alt+BackSpace") { quit() }
-        if (switchConsole != null) for (n in 1..12) keys.bind("Ctrl+Alt+F$n") { switchConsole(n) }
+        // Never locked in: quitting and text consoles always work (also while the screen is locked).
+        for (bindings in listOf(keys, lockedKeys)) {
+            bindings.bind("Ctrl+Alt+BackSpace") { quit() }
+            if (switchConsole != null) for (n in 1..12) bindings.bind("Ctrl+Alt+F$n") { switchConsole(n) }
+        }
     }
 
     fun quit() = loop.stop()
@@ -141,7 +148,10 @@ internal class Running(
 
     /** A key from the keyboard: the compositor's combination, or passed to the focused program. */
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
-        if (!keys.key(evdevCode, pressed)) desktop.key(timeMillis, evdevCode, pressed)
+        val (active, other) = if (desktop.locked) lockedKeys to keys else keys to lockedKeys
+        // A key pressed before locking may be released after it (Super+L): both must see the release.
+        if (!pressed) other.key(evdevCode, false)
+        if (!active.key(evdevCode, pressed)) desktop.key(timeMillis, evdevCode, pressed)
     }
 
     /**
@@ -149,7 +159,7 @@ internal class Running(
      * (from the nearest corner). Everything else goes to the program under the pointer.
      */
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean) {
-        if (pressed && keys.isHeld(Modifier.SUPER) && (button == BTN_LEFT || button == BTN_RIGHT)) {
+        if (pressed && !desktop.locked && keys.isHeld(Modifier.SUPER) && (button == BTN_LEFT || button == BTN_RIGHT)) {
             val window = desktop.windowAt(desktop.pointerX, desktop.pointerY)
             if (window != null) {
                 desktop.pointerButton(timeMillis, button, true, passToApps = false)
@@ -187,6 +197,7 @@ internal class Running(
                 swipeX = 0.0
                 swipeY = 0.0
                 gestureUse = when {
+                    desktop.locked -> GestureUse.PROGRAM // the locker's
                     gesture.fingers == config.dragViewFingers -> GestureUse.DRAG
                     swipes.any { it.first == gesture.fingers } -> GestureUse.SWIPE
                     else -> GestureUse.PROGRAM
@@ -209,7 +220,7 @@ internal class Running(
             }
             is Gesture.PinchBegin -> {
                 gestureFingers = gesture.fingers
-                gestureUse = if (gesture.fingers == config.overviewPinchFingers) GestureUse.PINCH else GestureUse.PROGRAM
+                gestureUse = if (gesture.fingers == config.overviewPinchFingers && !desktop.locked) GestureUse.PINCH else GestureUse.PROGRAM
                 pinchStartedOpen = desktop.inOverview
                 pinchProgress = if (pinchStartedOpen) 1.0 else 0.0
             }

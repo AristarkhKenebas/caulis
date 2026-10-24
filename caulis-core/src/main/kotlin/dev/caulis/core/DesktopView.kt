@@ -16,6 +16,9 @@ class DesktopView internal constructor() {
     // What the last frame on this screen showed, in drawing order.
     internal var shown: List<DrawItem> = emptyList()
 
+    // True if the last frame drawn here showed the locked session (nothing of the desktop).
+    internal var showsLock = false
+
     // Programs waiting to hear when the frame being shown now reaches the screen.
     internal val inFlight = ArrayList<WpPresentationFeedback>()
 
@@ -44,6 +47,7 @@ class DesktopView internal constructor() {
      * screen, so the next frame we draw must be complete.
      */
     internal fun shownWithoutDrawing() {
+        showsLock = false
         pending = null
         everything = false
         fullNextTime = true

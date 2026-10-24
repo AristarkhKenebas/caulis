@@ -1,0 +1,133 @@
+// Generated from ext-session-lock-v1.xml. Do not edit: run ./gradlew :caulis-protocol:generateProtocols
+@file:Suppress("unused", "UNUSED_PARAMETER", "RedundantVisibilityModifier")
+
+package dev.caulis.protocol.extsessionlockv1
+
+import dev.caulis.protocol.Client
+import dev.caulis.protocol.MessageReader
+import dev.caulis.protocol.ProtocolException
+import dev.caulis.protocol.Resource
+import dev.caulis.protocol.ResourceType
+import dev.caulis.protocol.wayland.WlDisplay
+
+/**
+ * A surface displayed while the session is locked
+ *
+ * The client may use lock surfaces to display a screensaver, render a
+ * dialog to enter a password and unlock the session, or however else it
+ * sees fit.
+ *
+ * On binding this interface the compositor will immediately send the
+ * first configure event. After making the ack_configure request in
+ * response to this event the client should attach and commit the first
+ * buffer. Committing the surface before acking the first configure is a
+ * protocol error. Committing the surface with a null buffer at any time
+ * is a protocol error.
+ *
+ * The compositor is free to handle keyboard/pointer focus for lock
+ * surfaces however it chooses. A reasonable way to do this would be to
+ * give the first lock surface created keyboard focus and change keyboard
+ * focus if the user clicks on other surfaces.
+ */
+public class ExtSessionLockSurfaceV1 private constructor(client: Client, id: Int, version: Int) : Resource(client, id, version) {
+
+    override val type: ResourceType<ExtSessionLockSurfaceV1> get() = Companion
+
+    /** Handles the requests clients send to this object; set by the code that implements ext_session_lock_surface_v1. */
+    public var requests: Requests? = null
+
+    public interface Requests {
+        /**
+         * Destroy the lock surface object
+         *
+         * This informs the compositor that the lock surface object will no
+         * longer be used.
+         *
+         * It is recommended for a lock client to destroy lock surfaces if
+         * their corresponding wl_output global is removed.
+         *
+         * If a lock surface on an active output is destroyed before the
+         * ext_session_lock_v1.unlock_and_destroy event is sent, the compositor
+         * must fall back to rendering a solid color.
+         */
+        public fun destroy(resource: ExtSessionLockSurfaceV1)
+
+        /**
+         * Ack a configure event
+         *
+         * When a configure event is received, if a client commits the surface
+         * in response to the configure event, then the client must make an
+         * ack_configure request sometime before the commit request, passing
+         * along the serial of the configure event.
+         *
+         * If the client receives multiple configure events before it can
+         * respond to one, it only has to ack the last configure event.
+         *
+         * A client is not required to commit immediately after sending an
+         * ack_configure request - it may even ack_configure several times
+         * before its next surface commit.
+         *
+         * A client may send multiple ack_configure requests before committing,
+         * but only the last request sent before a commit indicates which
+         * configure event the client really is responding to.
+         *
+         * Sending an ack_configure request consumes the configure event
+         * referenced by the given serial, as well as all older configure events
+         * sent on this object.
+         *
+         * It is a protocol error to issue multiple ack_configure requests
+         * referencing the same configure event or to issue an ack_configure
+         * request referencing a configure event older than the last configure
+         * event acked for a given lock surface.
+         */
+        public fun ackConfigure(resource: ExtSessionLockSurfaceV1, serial: Int)
+    }
+
+    /**
+     * The client should resize its surface
+     *
+     * This event is sent once on binding the interface and may be sent again
+     * at the compositor's discretion, for example if output geometry changes.
+     *
+     * The width and height are in surface-local coordinates and are exact
+     * requirements. Failing to match these surface dimensions in the next
+     * commit after acking a configure is a protocol error.
+     */
+    public fun sendConfigure(serial: Int, width: Int, height: Int) {
+        if (!isAlive || !client.isConnected) return
+        event(0).uint(serial).uint(width).uint(height).end()
+    }
+
+    public object Error {
+        /** surface committed before first ack_configure request */
+        public const val COMMIT_BEFORE_FIRST_ACK: Int = 0
+        /** surface committed with a null buffer */
+        public const val NULL_BUFFER: Int = 1
+        /** failed to match ack'd width/height */
+        public const val DIMENSIONS_MISMATCH: Int = 2
+        /** serial provided in ack_configure is invalid */
+        public const val INVALID_SERIAL: Int = 3
+    }
+
+    override fun dispatch(opcode: Int, args: MessageReader) {
+        val handler = requests
+            ?: throw ProtocolException(client.displayObject, WlDisplay.Error.IMPLEMENTATION, "ext_session_lock_surface_v1 is not implemented")
+        when (opcode) {
+            0 -> {
+                args.end()
+                handler.destroy(this)
+                client.destroyResource(this)
+            }
+            1 -> {
+                val serial = args.uint()
+                args.end()
+                handler.ackConfigure(this, serial)
+            }
+            else -> throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, "unknown ext_session_lock_surface_v1 request $opcode")
+        }
+    }
+
+    public companion object : ResourceType<ExtSessionLockSurfaceV1>("ext_session_lock_surface_v1", 1) {
+        internal override fun create(client: Client, id: Int, version: Int): ExtSessionLockSurfaceV1 = ExtSessionLockSurfaceV1(client, id, version)
+    }
+}

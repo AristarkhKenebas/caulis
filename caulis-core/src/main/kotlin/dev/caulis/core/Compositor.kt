@@ -91,7 +91,7 @@ class Compositor(val display: Display, private val renderer: Renderer?) {
 class Surface internal constructor(val resource: WlSurface, private val compositor: Compositor) {
 
     /** What the surface is used as. A surface gets a role once and keeps it. */
-    enum class Role { XDG_TOPLEVEL, XDG_POPUP, LAYER, SUBSURFACE, CURSOR }
+    enum class Role { XDG_TOPLEVEL, XDG_POPUP, LAYER, LOCK, SUBSURFACE, CURSOR }
 
     var role: Role? = null
         private set

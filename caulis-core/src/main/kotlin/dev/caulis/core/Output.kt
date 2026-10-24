@@ -33,6 +33,7 @@ class Output(
         output.requests = object : WlOutput.Requests {
             override fun release(resource: WlOutput) {}
         }
+        output.data = this
         bound += output
         output.onDestroy { bound -= output }
         output.sendGeometry(0, 0, physicalWidthMm, physicalHeightMm,
