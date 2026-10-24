@@ -23,7 +23,7 @@ class Desktop(
     private val compositor: Compositor,
     width: Int,
     height: Int,
-) : XdgShell.Listener {
+) : XdgShell.Listener, LayerShell.Listener {
 
     /** Size of the desktop in pixels. */
     var width = width
@@ -39,10 +39,17 @@ class Desktop(
 
     // The desktop changed size: maximized and fullscreen windows follow it, layouts re-arrange.
     private fun refitWindows() {
+        arrangeLayers(refit = false)
         for (pad in shownPads) placeScratchpad(pad, appearing = emptySet())
         for (workspace in workspaces.values) {
             for (window in workspace.windows + workspace.minimized) {
-                if ((window.maximized || window.fullscreen) && window.shell.configured) window.configure(width, height)
+                if (!window.shell.configured) continue
+                if (window.fullscreen) {
+                    window.configure(width, height)
+                } else if (window.maximized) {
+                    window.configure(usableArea.width, usableArea.height)
+                    moveSmoothly(window, usableArea.x, usableArea.y)
+                }
             }
             arrange(workspace)
         }
@@ -199,6 +206,123 @@ class Desktop(
     private fun workspaceOf(window: Window): Workspace? =
         workspaces.values.firstOrNull { window in it.windows || window in it.minimized }
 
+    // --- panels, docks, bars, wallpapers (layer shell) -------------------------------------------
+
+    private val layerSurfaces = ArrayList<LayerSurface>()
+
+    /** Panels, docks, wallpapers, ... that are set up (configured), any layer. */
+    val layers: List<LayerSurface> get() = layerSurfaces
+
+    /**
+     * The part of the desktop that panels and docks leave free (their "exclusive zones"):
+     * windows are tiled and maximized in here.
+     */
+    var usableArea = Rect(0, 0, width, height)
+        private set
+
+    // The panel with the keyboard (a launcher, or one clicked that wants it), if any.
+    private var layerFocus: LayerSurface? = null
+
+    override fun layerCommitted(layer: LayerSurface) {
+        if (layer !in layerSurfaces) layerSurfaces += layer
+        arrangeLayers()
+        updateLayerKeyboard()
+        changed()
+    }
+
+    override fun layerUnmapped(layer: LayerSurface) {
+        layerSurfaces -= layer
+        popups.filter { it.layerParent === layer }.forEach { it.dismiss() }
+        if (layerFocus === layer) {
+            // It had the keyboard: back to the window (or the next launcher that wants it).
+            layerFocus = null
+            seat.focusKeyboard(focusedWindow?.surface)
+        }
+        arrangeLayers()
+        updateLayerKeyboard()
+        changed()
+    }
+
+    // Places all layer surfaces, the way wlroots-based compositors do: first those that
+    // reserve space (each takes it from its edge), then the others in what is left.
+    private fun arrangeLayers(refit: Boolean = true) {
+        val full = Rect(0, 0, width, height)
+        var usable = full
+        val ordered = layerSurfaces.sortedByDescending { it.current.layer } // overlay first
+        for (layer in ordered.filter { it.current.exclusiveZone > 0 }) {
+            placeLayer(layer, full)
+            usable = reserve(usable, layer)
+        }
+        for (layer in ordered.filter { it.current.exclusiveZone <= 0 }) {
+            placeLayer(layer, if (layer.current.exclusiveZone < 0) full else usable)
+        }
+        if (usable != usableArea) {
+            usableArea = usable
+            if (refit) refitWindows()
+        }
+    }
+
+    private fun placeLayer(layer: LayerSurface, bounds: Rect) {
+        val s = layer.current
+        val anchor = s.anchor
+        fun has(edge: Int) = anchor and edge != 0
+        val width = if (s.width == 0) bounds.width - s.marginLeft - s.marginRight else s.width
+        val height = if (s.height == 0) bounds.height - s.marginTop - s.marginBottom else s.height
+        val x = when {
+            has(ANCHOR_LEFT) && !has(ANCHOR_RIGHT) -> bounds.x + s.marginLeft
+            has(ANCHOR_RIGHT) && !has(ANCHOR_LEFT) -> bounds.right - width - s.marginRight
+            else -> bounds.x + s.marginLeft + (bounds.width - s.marginLeft - s.marginRight - width) / 2
+        }
+        val y = when {
+            has(ANCHOR_TOP) && !has(ANCHOR_BOTTOM) -> bounds.y + s.marginTop
+            has(ANCHOR_BOTTOM) && !has(ANCHOR_TOP) -> bounds.bottom - height - s.marginBottom
+            else -> bounds.y + s.marginTop + (bounds.height - s.marginTop - s.marginBottom - height) / 2
+        }
+        layer.configure(width.coerceAtLeast(1), height.coerceAtLeast(1))
+        layer.x = x
+        layer.y = y
+    }
+
+    // The area left after [layer] took its exclusive zone from its edge.
+    private fun reserve(area: Rect, layer: LayerSurface): Rect {
+        val s = layer.current
+        val edge = when {
+            s.exclusiveEdge != 0 -> s.exclusiveEdge
+            // Anchored to one edge, or to one edge and both of its neighbours (a bar).
+            s.anchor in setOf(ANCHOR_TOP, ANCHOR_TOP or ANCHOR_LEFT or ANCHOR_RIGHT) -> ANCHOR_TOP
+            s.anchor in setOf(ANCHOR_BOTTOM, ANCHOR_BOTTOM or ANCHOR_LEFT or ANCHOR_RIGHT) -> ANCHOR_BOTTOM
+            s.anchor in setOf(ANCHOR_LEFT, ANCHOR_LEFT or ANCHOR_TOP or ANCHOR_BOTTOM) -> ANCHOR_LEFT
+            s.anchor in setOf(ANCHOR_RIGHT, ANCHOR_RIGHT or ANCHOR_TOP or ANCHOR_BOTTOM) -> ANCHOR_RIGHT
+            else -> return area // anchored to opposite edges or a corner: reserves nothing
+        }
+        return when (edge) {
+            ANCHOR_TOP -> (s.exclusiveZone + s.marginTop).let { Rect(area.x, area.y + it, area.width, (area.height - it).coerceAtLeast(1)) }
+            ANCHOR_BOTTOM -> (s.exclusiveZone + s.marginBottom).let { Rect(area.x, area.y, area.width, (area.height - it).coerceAtLeast(1)) }
+            ANCHOR_LEFT -> (s.exclusiveZone + s.marginLeft).let { Rect(area.x + it, area.y, (area.width - it).coerceAtLeast(1), area.height) }
+            else -> (s.exclusiveZone + s.marginRight).let { Rect(area.x, area.y, (area.width - it).coerceAtLeast(1), area.height) }
+        }
+    }
+
+    // A launcher that wants the keyboard (top or overlay layer) gets it and keeps it while open.
+    private fun exclusiveLayer(): LayerSurface? = layerSurfaces.lastOrNull {
+        it.mapped && it.current.keyboard == KEYBOARD_EXCLUSIVE && it.current.layer >= LayerShell.Layer.TOP
+    }
+
+    private fun updateLayerKeyboard() {
+        val exclusive = exclusiveLayer()
+        when {
+            exclusive != null -> if (layerFocus !== exclusive) {
+                layerFocus = exclusive
+                seat.focusKeyboard(exclusive.surface)
+            }
+            layerFocus?.let { !it.mapped || it.current.keyboard == KEYBOARD_NONE } == true -> {
+                // The panel that had the keyboard is gone or does not want it: back to the window.
+                layerFocus = null
+                seat.focusKeyboard(focusedWindow?.surface)
+            }
+        }
+    }
+
     // --- scratchpads (special workspaces) -----------------------------------------------------
 
     private val scratchpads = LinkedHashMap<String, Scratchpad>()
@@ -331,7 +455,7 @@ class Desktop(
         val tiled = workspace.tiledWindows() + listOfNotNull(extra)
         if (tiled.isEmpty()) return emptyMap()
         val top = workspace.windows.lastOrNull { it in tiled } ?: extra
-        val rects = workspace.model.arrange(tiled, Rect(0, 0, width, height), top)
+        val rects = workspace.model.arrange(tiled, usableArea, top)
         val targets = tiled.zip(rects).associate { (window, rect) -> window to fit(window, rect) }
         if (extra == null) place(targets)
         return targets
@@ -630,6 +754,7 @@ class Desktop(
     // The layout decides the size before the first frame, so a new window never shows up
     // in a wrong size first (R1). Maximized/fullscreen apps get the whole desktop.
     override fun initialSize(window: Window): Pair<Int, Int> {
+        if (window.maximized && !window.fullscreen) return usableArea.width to usableArea.height
         scratchpadFor(window)?.let { pad ->
             window.tiled = pad.style is Scratchpad.Overlay // told in the very first configure
             return padTargets(pad, extra = window).getValue(window).let { it.width to it.height }
@@ -664,8 +789,8 @@ class Desktop(
         if (window.maximized || window.fullscreen) {
             // Started maximized: if it is ever restored, it gets a sensible floating place.
             floatingRects[window] = Rect(floatingPlace.x, floatingPlace.y, width * 2 / 3, height * 2 / 3)
-            window.x = 0
-            window.y = 0
+            window.x = if (window.fullscreen) 0 else usableArea.x
+            window.y = if (window.fullscreen) 0 else usableArea.y
         }
         // Its own tile was decided before the first frame: it appears there right away.
         val targets = arrange(workspace)
@@ -721,6 +846,19 @@ class Desktop(
 
     // --- window states: maximized, fullscreen, minimized ----------------------------------
 
+    /** The surface that gets key presses now: a window, a menu, a panel or a launcher. */
+    val keyboardFocus: Surface? get() = seat.keyboardFocus
+
+    /** Open menus (popups), in the order they opened. */
+    val openPopups: List<Popup> get() = popups
+
+    /** Where [popup] is on screen. */
+    fun screenRect(popup: Popup): Rect {
+        val (x, y) = popupOrigin(popup)
+        val visible = popup.shell.visibleRect
+        return Rect(x + visible.x, y + visible.y, visible.width, visible.height)
+    }
+
     /** The window that has the keyboard, if any. */
     val focusedWindow: Window? get() = padFocus?.takeIf { it.activated } ?: windows.lastOrNull()?.takeIf { it.activated }
 
@@ -774,8 +912,10 @@ class Desktop(
         val workspace = workspaceOf(window)
         if (window.maximized || window.fullscreen) {
             if (!window.tiled && window.shell.mapped) floatingRects[window] = currentRect(window)
-            moveSmoothly(window, 0, 0)
-            window.configure(width, height)
+            // Fullscreen covers everything; maximized leaves panels and docks free.
+            val area = if (window.fullscreen) Rect(0, 0, width, height) else usableArea
+            moveSmoothly(window, area.x, area.y)
+            window.configure(area.width, area.height)
         } else if (workspace != null && window in workspace.tiledWindows()) {
             window.tiled = false // makes arrange send the tile size again
         } else {
@@ -1011,7 +1151,10 @@ class Desktop(
             pad.windows += window
             window.setActivated(true)
             padFocus = window
-            seat.focusKeyboard(window.surface)
+            if (exclusiveLayer() == null) {
+                layerFocus = null
+                seat.focusKeyboard(window.surface)
+            }
             if (window !== lastFocused) {
                 lastFocused = window
                 notify(focusListeners, window, "focus")
@@ -1036,7 +1179,10 @@ class Desktop(
             list += window
             window.setActivated(true)
         }
-        seat.focusKeyboard(window?.surface)
+        if (exclusiveLayer() == null) {
+            layerFocus = null
+            seat.focusKeyboard(window?.surface)
+        }
         if (window !== lastFocused) {
             lastFocused = window
             notify(focusListeners, window, "focus")
@@ -1098,8 +1244,15 @@ class Desktop(
                 hideScratchpad(overlay)
                 return
             }
+            // A click on a panel that wants the keyboard on demand gives it the keyboard.
+            (hit?.root?.roleObject as? LayerSurface)?.let { layer ->
+                if (layer.current.keyboard != KEYBOARD_NONE && exclusiveLayer() == null) {
+                    layerFocus = layer
+                    seat.focusKeyboard(layer.surface)
+                }
+            }
             val window = hit?.root?.roleObject as? Window
-            if (window != null && window !== focusedWindow) focus(window)
+            if (window != null && (window !== focusedWindow || layerFocus != null)) focus(window)
         }
         seat.pointerButton(timeMillis, button, pressed)
     }
@@ -1123,6 +1276,7 @@ class Desktop(
             val (px, py) = popupOrigin(popup)
             hitTree(popup.surface, x - px, y - py, popup.surface)?.let { return it }
         }
+        layerAt(LayerShell.Layer.OVERLAY, x, y)?.let { return it }
         for (pad in shownPads.asReversed()) {
             if (pad.leaving) continue
             for (window in pad.windows.asReversed()) {
@@ -1130,9 +1284,23 @@ class Desktop(
                 hitTree(window.surface, x - (window.x - visible.x), y - (window.y - visible.y), window.surface)?.let { return it }
             }
         }
-        for (window in stackingOrder().asReversed()) {
-            val visible = window.shell.visibleRect
-            hitTree(window.surface, x - (window.x - visible.x), y - (window.y - visible.y), window.surface)?.let { return it }
+        val (fullscreen, normal) = stackingOrder().partition { it.fullscreen }
+        for (window in fullscreen.asReversed()) windowHit(window, x, y)?.let { return it }
+        layerAt(LayerShell.Layer.TOP, x, y)?.let { return it }
+        for (window in normal.asReversed()) windowHit(window, x, y)?.let { return it }
+        layerAt(LayerShell.Layer.BOTTOM, x, y)?.let { return it }
+        return layerAt(LayerShell.Layer.BACKGROUND, x, y)
+    }
+
+    private fun windowHit(window: Window, x: Double, y: Double): Hit? {
+        val visible = window.shell.visibleRect
+        return hitTree(window.surface, x - (window.x - visible.x), y - (window.y - visible.y), window.surface)
+    }
+
+    private fun layerAt(layer: LayerShell.Layer, x: Double, y: Double): Hit? {
+        for (surface in layerSurfaces.asReversed()) {
+            if (!surface.mapped || surface.current.layer != layer) continue
+            hitTree(surface.surface, x - surface.x, y - surface.y, surface.surface)?.let { return it }
         }
         return null
     }
@@ -1152,7 +1320,7 @@ class Desktop(
 
     // Where a popup's surface starts on the output.
     private fun popupOrigin(popup: Popup): Pair<Int, Int> {
-        val (parentX, parentY) = visibleOrigin(popup.parent)
+        val (parentX, parentY) = popup.parent?.let(::visibleOrigin) ?: popup.layerParent?.let { it.x to it.y } ?: (0 to 0)
         val visible = popup.shell.visibleRect
         return (parentX + popup.x - visible.x) to (parentY + popup.y - visible.y)
     }
@@ -1161,7 +1329,7 @@ class Desktop(
     private fun visibleOrigin(shell: ShellSurface): Pair<Int, Int> = when (val role = shell.role) {
         is Window -> role.x to role.y
         is Popup -> {
-            val (parentX, parentY) = visibleOrigin(role.parent)
+            val (parentX, parentY) = role.parent?.let(::visibleOrigin) ?: role.layerParent?.let { it.x to it.y } ?: (0 to 0)
             (parentX + role.x) to (parentY + role.y)
         }
         else -> 0 to 0
@@ -1339,7 +1507,13 @@ class Desktop(
         val all = ArrayList<DrawItem>()
         val now = System.nanoTime()
         val camera = cameraAt(now)
-        for (window in stackingOrder()) addWindow(all, window, now, camera = camera)
+        val (fullscreen, normal) = stackingOrder().partition { it.fullscreen }
+        addLayers(all, LayerShell.Layer.BACKGROUND)
+        addLayers(all, LayerShell.Layer.BOTTOM)
+        for (window in normal) addWindow(all, window, now, camera = camera)
+        addLayers(all, LayerShell.Layer.TOP)
+        // Fullscreen windows cover panels and bars (not notifications on the overlay layer).
+        for (window in fullscreen) addWindow(all, window, now, camera = camera)
         // Shown scratchpads above every workspace, the last shown on top.
         for (pad in shownPads) {
             val overlay = pad.style as? Scratchpad.Overlay
@@ -1348,6 +1522,7 @@ class Desktop(
             }
             for (window in pad.windows) addWindow(all, window, now, leaving = pad.leaving)
         }
+        addLayers(all, LayerShell.Layer.OVERLAY)
         for (popup in popups) {
             if (camera !== Camera.NONE) break // menus are not part of the overview
             val (x, y) = popupOrigin(popup)
@@ -1361,6 +1536,10 @@ class Desktop(
         scene = kept
         sceneVersion = version
         return kept
+    }
+
+    private fun addLayers(all: MutableList<DrawItem>, layer: LayerShell.Layer) {
+        for (surface in layerSurfaces) if (surface.mapped && surface.current.layer == layer) addTree(all, surface.surface, surface.x, surface.y)
     }
 
     // A window where it is (or on its way, see glides); a leaving one only while it moves.
@@ -1493,6 +1672,13 @@ class Desktop(
         const val TRANSACTION_TIMEOUT_MILLIS = 200L
 
         const val KEY_ESC = 1
+
+        private const val ANCHOR_TOP = 1
+        private const val ANCHOR_BOTTOM = 2
+        private const val ANCHOR_LEFT = 4
+        private const val ANCHOR_RIGHT = 8
+        private const val KEYBOARD_NONE = 0
+        private const val KEYBOARD_EXCLUSIVE = 1
 
         /** How often programs nobody sees may draw a frame (they must not freeze completely). */
         const val HIDDEN_REFRESH_MILLIS = 1000L

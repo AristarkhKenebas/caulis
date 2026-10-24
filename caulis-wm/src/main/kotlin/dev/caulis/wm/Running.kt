@@ -4,6 +4,7 @@ import dev.caulis.core.Compositor
 import dev.caulis.core.DataDeviceManager
 import dev.caulis.core.Desktop
 import dev.caulis.core.FrameStats
+import dev.caulis.core.LayerShell
 import dev.caulis.core.LinuxDmabuf
 import dev.caulis.core.Presentation
 import dev.caulis.core.Shm
@@ -54,6 +55,7 @@ internal class Running(
         DataDeviceManager(display, seat)
         Presentation(display)
         XdgShell(display).listener = desktop
+        LayerShell(display).listener = desktop
         desktop.layout = config.layout
         socket = config.socketDirectory?.let(display::addSocket) ?: display.addSocket()
 

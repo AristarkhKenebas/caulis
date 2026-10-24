@@ -230,7 +230,24 @@ The key shows or hides it; the first press starts the program. By default a wind
 to a scratchpad when its app id is the scratchpad's name — that is why the terminal above is
 started with `--app-id terminal`.
 
-## 8. Touchpad gestures
+## 8. Panels, docks, wallpapers, launchers
+
+Programs made for that (they use the *layer shell*) work as they are — Waybar, eww, swaybg,
+fuzzel, mako, or a dock you write yourself. Start them with the compositor:
+
+```kotlin
+onStart {
+    launch("swaybg -i ~/Pictures/wallpaper.jpg")
+    launch("waybar")
+}
+bind("Super+D") { launch("fuzzel") }
+```
+
+A bar that reserves space (as Waybar does) keeps it free: tiled and maximized windows stay
+next to it, never under it. `desktop.usableArea` is what is left for windows. A launcher gets
+the keyboard while it is open; fullscreen windows cover bars, but not notifications.
+
+## 9. Touchpad gestures
 
 | Gesture | What it does |
 | --- | --- |
@@ -247,7 +264,7 @@ overviewPinchFingers = 4      // 0 = off
 swipe(fingers = 3, Direction.UP) { desktop.toggleOverview() }
 ```
 
-## 9. On the real screen
+## 10. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 
@@ -264,7 +281,7 @@ exitAfterSeconds = 60
 
 Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles.
 
-## 10. Your own layout
+## 11. Your own layout
 
 Describe it with building blocks — no arithmetic:
 

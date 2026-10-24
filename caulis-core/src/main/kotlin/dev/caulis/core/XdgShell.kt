@@ -145,12 +145,9 @@ class ShellSurface internal constructor(
                     resource.postError(XdgSurface.Error.ALREADY_CONSTRUCTED, "already has a role")
                     return
                 }
+                // Without a parent, another shell adopts it before its first commit (a panel's
+                // menu: zwlr_layer_surface_v1.get_popup).
                 val parentShell = parent?.dataAs<ShellSurface>()
-                if (parentShell == null) {
-                    // Popups without a parent are only for other shells (layer-shell); not supported yet.
-                    resource.postError(XdgWmBase.Error.INVALID_POPUP_PARENT, "popups need a parent")
-                    return
-                }
                 val rules = positioner.dataAs<Positioner>()!!
                 if (rules.width <= 0 || rules.height <= 0) {
                     resource.postError(XdgWmBase.Error.INVALID_POSITIONER, "positioner has no size")
@@ -408,9 +405,14 @@ class Window internal constructor(val resource: XdgToplevel, val shell: ShellSur
 class Popup internal constructor(
     val resource: XdgPopup,
     val shell: ShellSurface,
-    val parent: ShellSurface,
+    /** The window or menu it belongs to; null for a panel's menu (see [layerParent]). */
+    val parent: ShellSurface?,
     private var rules: Positioner.Rules,
 ) {
+    /** The panel (layer surface) it belongs to, if a panel opened it. */
+    var layerParent: LayerSurface? = null
+        internal set
+
     val surface: Surface get() = shell.surface
 
     /** Position of the popup's visible area relative to the parent's visible area. */
