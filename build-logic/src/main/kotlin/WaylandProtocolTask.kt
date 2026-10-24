@@ -68,8 +68,8 @@ abstract class WaylandProtocolTask : DefaultTask() {
 
 internal class ProtocolModel(val name: String, val fileName: String, val interfaces: List<InterfaceModel>) {
     private val shortName = name.replace("_", "").replace("-", "").lowercase()
-    val packageName = "dev.tessera.protocol.$shortName"
-    val clientPackageName = "dev.tessera.protocol.client.$shortName"
+    val packageName = "dev.caulis.protocol.$shortName"
+    val clientPackageName = "dev.caulis.protocol.client.$shortName"
 }
 
 internal class InterfaceModel(
@@ -177,7 +177,7 @@ internal class KotlinWriter(
     private val name = iface.className
 
     fun write(): String {
-        line("// Generated from ${protocol.fileName}. Do not edit: run ./gradlew :tessera-protocol:generateProtocols")
+        line("// Generated from ${protocol.fileName}. Do not edit: run ./gradlew :caulis-protocol:generateProtocols")
         line("@file:Suppress(\"unused\", \"UNUSED_PARAMETER\", \"RedundantVisibilityModifier\")")
         line()
         line("package ${protocol.packageName}")
@@ -207,15 +207,15 @@ internal class KotlinWriter(
 
     private fun imports() {
         val names = sortedSetOf(
-            "dev.tessera.protocol.Client",
-            "dev.tessera.protocol.MessageReader",
-            "dev.tessera.protocol.ProtocolException",
-            "dev.tessera.protocol.Resource",
-            "dev.tessera.protocol.ResourceType",
-            "dev.tessera.protocol.wayland.WlDisplay",
+            "dev.caulis.protocol.Client",
+            "dev.caulis.protocol.MessageReader",
+            "dev.caulis.protocol.ProtocolException",
+            "dev.caulis.protocol.Resource",
+            "dev.caulis.protocol.ResourceType",
+            "dev.caulis.protocol.wayland.WlDisplay",
         )
         val all = iface.requests + iface.events
-        if (all.any { message -> message.args.any { it.type == "fd" } }) names += "dev.tessera.ffi.Fd"
+        if (all.any { message -> message.args.any { it.type == "fd" } }) names += "dev.caulis.ffi.Fd"
         for (message in all) {
             for (arg in message.args) {
                 val target = arg.interfaceName?.let { classes[it] } ?: continue
@@ -429,7 +429,7 @@ internal class ClientKotlinWriter(
     private val name = iface.className
 
     fun write(): String {
-        line("// Generated from ${protocol.fileName}. Do not edit: run ./gradlew :tessera-protocol:generateProtocols")
+        line("// Generated from ${protocol.fileName}. Do not edit: run ./gradlew :caulis-protocol:generateProtocols")
         line("@file:Suppress(\"unused\", \"UNUSED_PARAMETER\", \"RedundantVisibilityModifier\")")
         line()
         line("package ${protocol.clientPackageName}")
@@ -459,13 +459,13 @@ internal class ClientKotlinWriter(
 
     private fun imports() {
         val names = sortedSetOf(
-            "dev.tessera.protocol.client.Connection",
-            "dev.tessera.protocol.client.EventReader",
-            "dev.tessera.protocol.client.Proxy",
-            "dev.tessera.protocol.client.ProxyType",
+            "dev.caulis.protocol.client.Connection",
+            "dev.caulis.protocol.client.EventReader",
+            "dev.caulis.protocol.client.Proxy",
+            "dev.caulis.protocol.client.ProxyType",
         )
         val all = iface.requests + iface.events
-        if (all.any { message -> message.args.any { it.type == "fd" } }) names += "dev.tessera.ffi.Fd"
+        if (all.any { message -> message.args.any { it.type == "fd" } }) names += "dev.caulis.ffi.Fd"
         for (message in all) {
             for (arg in message.args) names += arg.interfaceName?.let { classes[it] } ?: continue
         }

@@ -1,7 +1,7 @@
 # All versions of the project live here, in one place.
 
 [versions]
-# The JDK that compiles, tests and runs Tessera.
+# The JDK that compiles, tests and runs Caulis.
 java = "27"
 # Bytecode version of the compiled classes. Kotlin 2.4 can produce at most 26;
 # raise to the same value as `java` once Kotlin supports it (expected in 2.5).
@@ -10,7 +10,7 @@ kotlin = "2.4.21"
 junit = "6.1.3"
 
 # jextract turns C headers into Java FFM bindings. It is only needed to regenerate
-# bindings (./gradlew :tessera-native:jextract), not for a normal build.
+# bindings (./gradlew :caulis-native:jextract), not for a normal build.
 # Newest build at https://jdk.java.net/jextract/ ; the generated code runs on any JDK 22+.
 jextract = "25-jextract+2-4"
 jextract-url = "https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_linux-x64_bin.tar.gz"

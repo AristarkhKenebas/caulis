@@ -1,11 +1,11 @@
 plugins {
-    id("tessera.application")
+    id("caulis.application")
 }
 
 dependencies {
-    implementation(project(":tessera-native"))
+    implementation(project(":caulis-native"))
 }
 
 application {
-    mainClass = "dev.tessera.examples.minimal.MainKt"
+    mainClass = "dev.caulis.examples.minimal.MainKt"
 }

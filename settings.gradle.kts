@@ -1,4 +1,4 @@
-rootProject.name = "tessera"
+rootProject.name = "caulis"
 
 // Shared build settings (Java version, Kotlin, tests) live in build-logic.
 pluginManagement {
@@ -12,10 +12,10 @@ dependencyResolutionManagement {
 }
 
 include(
-    "tessera-native",
-    "tessera-protocol",
-    "tessera-render",
-    "tessera-core",
+    "caulis-native",
+    "caulis-protocol",
+    "caulis-render",
+    "caulis-core",
     "examples:minimal",
-    "apps:tessera",
+    "apps:iriswm",
 )
