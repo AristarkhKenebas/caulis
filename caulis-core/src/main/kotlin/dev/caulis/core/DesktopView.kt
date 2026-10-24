@@ -81,7 +81,7 @@ class DesktopView internal constructor() {
     }
 }
 
-/** One thing to draw: a client's picture or a plain coloured rectangle. */
+/** One thing to draw: a client's picture, a plain coloured rectangle, or a window effect. */
 internal sealed class DrawItem {
     abstract val rect: Rect
 
@@ -89,7 +89,7 @@ internal sealed class DrawItem {
     abstract val key: Any
 
     /** Parts that hide whatever is below them (desktop coordinates). */
-    abstract val covers: List<Rect>
+    open val covers: List<Rect> get() = emptyList()
 
     class Picture(
         val surface: Surface,
@@ -97,6 +97,10 @@ internal sealed class DrawItem {
         override val rect: Rect,
         val opaque: Boolean,
         override val covers: List<Rect>,
+        val alpha: Float = 1f,
+        /** Only the part inside is drawn, with [radius] round corners (null = all of it). */
+        val clip: Rect? = null,
+        val radius: Float = 0f,
     ) : DrawItem() {
         override val key: Any get() = surface
     }
@@ -111,14 +115,54 @@ internal sealed class DrawItem {
         val alpha: Float = 1f,
     ) : DrawItem()
 
+    /** A window's shadow (cast by [box], blurred over [softness]; [rect] is all it touches). */
+    data class Shadow(
+        override val key: Any,
+        val box: Rect,
+        val radius: Float,
+        val softness: Float,
+        val color: dev.caulis.render.Color,
+        val cutOut: Rect,
+        val cutOutRadius: Float,
+    ) : DrawItem() {
+        override val rect: Rect = Rect(
+            box.x - Math.ceil(softness.toDouble()).toInt(), box.y - Math.ceil(softness.toDouble()).toInt(),
+            box.width + 2 * Math.ceil(softness.toDouble()).toInt(), box.height + 2 * Math.ceil(softness.toDouble()).toInt(),
+        )
+    }
+
+    /** A frame [width] wide along the inside of [rect]. */
+    data class Border(
+        override val key: Any,
+        override val rect: Rect,
+        val radius: Float,
+        val width: Float,
+        val color: dev.caulis.render.Color,
+    ) : DrawItem()
+
+    /** Blurs what is below [rect]; reads pixels up to [reach] around it. */
+    data class Blur(
+        override val key: Any,
+        override val rect: Rect,
+        val radius: Float,
+        val size: Int,
+        val passes: Int,
+    ) : DrawItem() {
+        val reach: Int get() = dev.caulis.render.blurReach(size, passes)
+    }
+
     /** True if [other] (the same thing last frame) looks different apart from its content. */
     fun differsFrom(other: DrawItem): Boolean = when {
         rect != other.rect -> true
-        this is Picture && other is Picture -> opaque != other.opaque
+        this is Picture && other is Picture -> opaque != other.opaque || alpha != other.alpha || clip != other.clip || radius != other.radius
         this is Color && other is Color -> red != other.red || green != other.green || blue != other.blue || alpha != other.alpha
+        this is Shadow || this is Border || this is Blur -> this != other
         else -> true
     }
 }
+
+/** Identifies an effect of [owner] (a window or panel) from frame to frame. */
+internal data class EffectKey(val kind: String, val owner: Any)
 
 /**
  * Leaves out what nobody can see: items outside [bounds], or completely behind something

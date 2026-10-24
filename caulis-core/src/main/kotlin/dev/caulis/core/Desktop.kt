@@ -661,6 +661,71 @@ class Desktop(
         if (chosen != null) focus(chosen)
     }
 
+    // --- effects ---------------------------------------------------------------------------
+
+    /**
+     * How windows look: rounded corners, borders, shadows, blur, transparency (see [Effects]).
+     * Off by default. Per window it can be changed with [windowEffects].
+     */
+    var effects: Effects = Effects.NONE
+        set(value) {
+            field = value
+            changed()
+        }
+
+    /**
+     * The effects of one window, e.g. no blur for a video player or no shadow for menus:
+     * `desktop.windowEffects = { if (it.appId == "mpv") desktop.effects.copy(blur = null) else desktop.effects }`.
+     * Fullscreen windows never get effects.
+     */
+    var windowEffects: (Window) -> Effects = { effects }
+        set(value) {
+            field = value
+            changed()
+        }
+
+    /**
+     * The effects of panels, docks and other layer surfaces (none by default), e.g. blur
+     * behind a see-through bar: `{ if (it.namespace == "waybar") Effects(blur = Blur()) else Effects.NONE }`.
+     */
+    var layerEffects: (LayerSurface) -> Effects = { Effects.NONE }
+        set(value) {
+            field = value
+            changed()
+        }
+
+    // How one window or panel is drawn: its picture clipped and faded, effects below it.
+    private class Look(val clip: Rect?, val radius: Float, val alpha: Float) {
+        companion object {
+            val PLAIN = Look(null, 0f, 1f)
+        }
+    }
+
+    // Adds the effects that go below [owner]'s picture at [rect] (on screen, zoomed by [scale]),
+    // and returns how the picture itself is drawn.
+    private fun addEffects(all: MutableList<DrawItem>, owner: Any, surface: Surface, local: Rect, rect: Rect, scale: Double, fx: Effects, focused: Boolean): Look {
+        if (fx == Effects.NONE || rect.isEmpty) return Look.PLAIN
+        val radius = (fx.cornerRadius * scale).toFloat()
+        val alpha = if (focused) fx.opacity else fx.inactiveOpacity
+        fx.shadow?.let { shadow ->
+            val box = rect.translate((shadow.offsetX * scale).roundToInt(), (shadow.offsetY * scale).roundToInt())
+            all += DrawItem.Shadow(EffectKey("shadow", owner), box, radius, (shadow.softness * scale).toFloat().coerceAtLeast(1f), shadow.color, rect, radius)
+        }
+        fx.blur?.let { blur ->
+            // Only worth it where one can see through the window.
+            val seeThrough = alpha < 1f || surface.opaqueRects().none { it.contains(local) }
+            if (seeThrough) all += DrawItem.Blur(EffectKey("blur", owner), rect, radius, (blur.size * scale).roundToInt().coerceAtLeast(1), blur.passes)
+        }
+        fx.border?.let { border ->
+            val width = (border.width * scale).roundToInt().coerceAtLeast(1)
+            val outer = Rect(rect.x - width, rect.y - width, rect.width + 2 * width, rect.height + 2 * width)
+            val color = if (focused) border.focused else border.unfocused
+            // One pixel more, under the window's edge: its soft edge then blends into the border, not the background.
+            all += DrawItem.Border(EffectKey("border", owner), outer, if (radius > 0f) radius + width else 0f, width + 1f, color)
+        }
+        return Look(if (radius > 0f) rect else null, radius, alpha)
+    }
+
     // --- smooth movement -------------------------------------------------------------------
 
     /**
@@ -1415,17 +1480,42 @@ class Desktop(
         val items = items()
         compare(view, items)
         takeFeedbacks(view)
-        val repaint = view.takeRepaint(age, Rect(0, 0, target.width, target.height)) ?: return
+        val bounds = Rect(0, 0, target.width, target.height)
+        val repaint = withBlurReach(items, view.takeRepaint(age, bounds) ?: return, bounds)
         renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], clip = repaint)
         for (item in items) {
             if (item.rect.intersect(repaint) == null) continue
             val r = item.rect
             when (item) {
-                is DrawItem.Picture -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, item.opaque)
+                is DrawItem.Picture -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, item.opaque, item.alpha, item.clip, item.radius)
                 is DrawItem.Color -> renderer.drawColor(r.x, r.y, r.width, r.height, item.red, item.green, item.blue, item.alpha)
+                is DrawItem.Shadow -> renderer.drawShadow(item.box, item.radius, item.softness, item.color, item.cutOut, item.cutOutRadius)
+                is DrawItem.Border -> renderer.drawRoundedRect(r, item.radius, item.color, item.width)
+                is DrawItem.Blur -> renderer.drawBlur(r, item.radius, item.size, item.passes)
             }
         }
         renderer.end()
+    }
+
+    /**
+     * Blur reads the pixels around its area, so they must be fresh in this frame: if anything
+     * near a blurred area is redrawn, the whole area and its surroundings are redrawn.
+     */
+    private fun withBlurReach(items: List<DrawItem>, repaint: Rect, bounds: Rect): Rect {
+        var result = repaint
+        var grew = true
+        while (grew) {
+            grew = false
+            for (item in items) {
+                if (item !is DrawItem.Blur) continue
+                val reach = item.reach
+                val around = Rect(item.rect.x - reach, item.rect.y - reach, item.rect.width + 2 * reach, item.rect.height + 2 * reach).intersect(bounds) ?: continue
+                if (around.intersect(result) == null || result.contains(around)) continue
+                result = result.union(around)
+                grew = true
+            }
+        }
+        return result
     }
 
     /**
@@ -1539,7 +1629,13 @@ class Desktop(
     }
 
     private fun addLayers(all: MutableList<DrawItem>, layer: LayerShell.Layer) {
-        for (surface in layerSurfaces) if (surface.mapped && surface.current.layer == layer) addTree(all, surface.surface, surface.x, surface.y)
+        for (layerSurface in layerSurfaces) {
+            if (!layerSurface.mapped || layerSurface.current.layer != layer) continue
+            val surface = layerSurface.surface
+            val rect = Rect(layerSurface.x, layerSurface.y, surface.width, surface.height)
+            val look = addEffects(all, layerSurface, surface, Rect(0, 0, surface.width, surface.height), rect, 1.0, layerEffects(layerSurface), focused = true)
+            addTree(all, surface, layerSurface.x, layerSurface.y, look = look)
+        }
     }
 
     // A window where it is (or on its way, see glides); a leaving one only while it moves.
@@ -1561,23 +1657,37 @@ class Desktop(
         // While gliding (or zoomed out), the picture is stretched to the in-between size.
         val scaleX = if (target.width > 0) rect.width.toDouble() / target.width else 1.0
         val scaleY = if (target.height > 0) rect.height.toDouble() / target.height else 1.0
-        addTree(all, window.surface, rect.x - (visibleRect.x * scaleX).roundToInt(), rect.y - (visibleRect.y * scaleY).roundToInt(), scaleX, scaleY)
+        val fx = if (window.fullscreen) Effects.NONE else windowEffects(window)
+        val look = addEffects(all, window, window.surface, visibleRect, rect, minOf(scaleX, scaleY), fx, focused = window === focusedWindow)
+        addTree(all, window.surface, rect.x - (visibleRect.x * scaleX).roundToInt(), rect.y - (visibleRect.y * scaleY).roundToInt(), scaleX, scaleY, look)
     }
 
-    private fun addTree(items: MutableList<DrawItem>, surface: Surface, x: Int, y: Int, scaleX: Double = 1.0, scaleY: Double = 1.0) {
+    private fun addTree(
+        items: MutableList<DrawItem>, surface: Surface, x: Int, y: Int,
+        scaleX: Double = 1.0, scaleY: Double = 1.0, look: Look = Look.PLAIN,
+    ) {
         val scaled = scaleX != 1.0 || scaleY != 1.0
         for (child in surface.stack) {
             if (child === surface) {
                 val texture = surface.texture ?: continue
                 val rect = Rect(x, y, (surface.width * scaleX).roundToInt(), (surface.height * scaleY).roundToInt())
-                // A stretched picture hides nothing for sure (its edges move every frame).
-                val covers = if (scaled) emptyList() else surface.opaqueRects().map { it.translate(x, y) }
-                items += DrawItem.Picture(surface, texture, rect, surface.opaque, covers)
+                // A stretched or faded picture hides nothing for sure (its edges move every frame).
+                val covers = if (scaled || look.alpha < 1f) emptyList() else coversOf(surface.opaqueRects().map { it.translate(x, y) }, look)
+                items += DrawItem.Picture(surface, texture, rect, surface.opaque, covers, look.alpha, look.clip, look.radius)
             } else {
                 val sub = child.subsurface ?: continue
-                addTree(items, child, x + (sub.x * scaleX).roundToInt(), y + (sub.y * scaleY).roundToInt(), scaleX, scaleY)
+                addTree(items, child, x + (sub.x * scaleX).roundToInt(), y + (sub.y * scaleY).roundToInt(), scaleX, scaleY, look)
             }
         }
+    }
+
+    // What an opaque picture still hides when clipped with round corners: everything but the corners.
+    private fun coversOf(opaque: List<Rect>, look: Look): List<Rect> {
+        val clip = look.clip ?: return opaque
+        val r = Math.ceil(look.radius.toDouble()).toInt()
+        val wide = Rect(clip.x, clip.y + r, clip.width, clip.height - 2 * r)
+        val tall = Rect(clip.x + r, clip.y, clip.width - 2 * r, clip.height)
+        return opaque.flatMap { listOfNotNull(it.intersect(wide), it.intersect(tall)) }
     }
 
     private fun addCursor(items: MutableList<DrawItem>) {

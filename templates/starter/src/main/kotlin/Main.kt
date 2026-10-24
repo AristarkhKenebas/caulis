@@ -1,3 +1,4 @@
+import dev.caulis.core.Effects
 import dev.caulis.tiling.Dwindle
 import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Gaps
@@ -11,6 +12,10 @@ fun main() = caulis {
     // How windows are placed: Floating, Dwindle(), MasterStack(), BinaryTree(),
     // ScrollingColumns(), Canvas() ... — or your own.
     layout = Dwindle(Gaps(inner = 8, outer = 8))
+
+    // How windows look: round corners, a border around the focused one, soft shadows.
+    // Effects.NONE turns it all off; blur and transparency: see the guide.
+    effects = Effects.MODERN
 
     // Keyboard layouts, as for setxkbmap: "us", "us,de", "us,ru" ...
     keyboardLayouts = "us"

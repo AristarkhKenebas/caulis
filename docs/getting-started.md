@@ -247,7 +247,45 @@ A bar that reserves space (as Waybar does) keeps it free: tiled and maximized wi
 next to it, never under it. `desktop.usableArea` is what is left for windows. A launcher gets
 the keyboard while it is open; fullscreen windows cover bars, but not notifications.
 
-## 9. Touchpad gestures
+## 9. Round corners, borders, shadows, blur
+
+Off by default; the template switches on a common look:
+
+```kotlin
+effects = Effects.MODERN // round corners, a border around the focused window, soft shadows
+```
+
+Or choose each part yourself (leave out what you do not want):
+
+```kotlin
+effects = Effects(
+    cornerRadius = 12,
+    border = Border(width = 2, focused = Color.hex("#89b4fa"), unfocused = Color.hex("#45475a")),
+    shadow = Shadow(softness = 24, offsetY = 6),
+    blur = Blur(size = 4, passes = 2), // frosted glass behind see-through windows
+    inactiveOpacity = 0.9f,            // windows without the focus are a bit see-through
+)
+```
+
+Blur only shows where you can see through a window: a terminal with a transparent
+background (for foot: `colors-dark.alpha=0.8` in its config) or with `inactiveOpacity`
+below 1. Some windows look better without some effects — a video should stay solid:
+
+```kotlin
+effectsFor { window, fx -> if (window.appId == "mpv") fx.copy(blur = null, inactiveOpacity = 1f) else fx }
+```
+
+Panels get no effects unless you ask, by the name they give themselves:
+
+```kotlin
+panelEffects { if (it.namespace == "waybar") Effects(blur = Blur()) else null }
+```
+
+Fullscreen windows never get effects. The names come from `dev.caulis.core` (`Effects`,
+`Border`, `Shadow`, `Blur`) and `dev.caulis.render.Color`; IntelliJ adds the imports when you
+press Alt+Enter on a red name.
+
+## 10. Touchpad gestures
 
 | Gesture | What it does |
 | --- | --- |
@@ -264,7 +302,7 @@ overviewPinchFingers = 4      // 0 = off
 swipe(fingers = 3, Direction.UP) { desktop.toggleOverview() }
 ```
 
-## 10. On the real screen
+## 11. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 
@@ -281,7 +319,7 @@ exitAfterSeconds = 60
 
 Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles.
 
-## 11. Your own layout
+## 12. Your own layout
 
 Describe it with building blocks — no arithmetic:
 

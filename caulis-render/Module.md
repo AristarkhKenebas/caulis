@@ -5,7 +5,8 @@ technology behind it can change (OpenGL ES today, Vulkan later).
 
 # Package dev.caulis.render
 
-The renderer interface, GPU pictures, shared GPU buffers (dma-buf) and rectangles.
+The renderer interface, GPU pictures, shared GPU buffers (dma-buf), colours, and the
+drawing behind window effects: rounded clipping, borders, shadows and blur.
 
 # Package dev.caulis.render.gles
 

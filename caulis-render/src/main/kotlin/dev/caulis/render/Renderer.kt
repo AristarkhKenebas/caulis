@@ -48,11 +48,39 @@ interface Renderer : AutoCloseable {
      */
     fun begin(target: GpuTarget, red: Float, green: Float, blue: Float, clip: Rect? = null)
 
-    /** Draws [texture] stretched over the rectangle. [opaque] ignores its alpha (XRGB pictures). */
-    fun drawTexture(texture: GpuTexture, x: Int, y: Int, width: Int, height: Int, opaque: Boolean, alpha: Float = 1f)
+    /**
+     * Draws [texture] stretched over the rectangle. [opaque] ignores its alpha (XRGB pictures).
+     * With a [clip], only the part inside it is drawn, its corners rounded by [cornerRadius]
+     * (with soft, anti-aliased edges).
+     */
+    fun drawTexture(
+        texture: GpuTexture, x: Int, y: Int, width: Int, height: Int, opaque: Boolean,
+        alpha: Float = 1f, clip: Rect? = null, cornerRadius: Float = 0f,
+    )
 
     /** Fills the rectangle with a colour. */
     fun drawColor(x: Int, y: Int, width: Int, height: Int, red: Float, green: Float, blue: Float, alpha: Float = 1f)
+
+    /**
+     * Fills [box] with [color], its corners rounded by [cornerRadius]. With a [borderWidth],
+     * only a frame that wide along the inside of [box] is drawn (a window border).
+     */
+    fun drawRoundedRect(box: Rect, cornerRadius: Float, color: Color, borderWidth: Float = 0f)
+
+    /**
+     * A soft shadow of the rounded rectangle [box], blurred over [softness] pixels (it reaches
+     * that far beyond [box]). Nothing is drawn inside [cutOut] (e.g. the window casting it,
+     * so the shadow does not show through a see-through window).
+     */
+    fun drawShadow(box: Rect, cornerRadius: Float, softness: Float, color: Color, cutOut: Rect? = null, cutOutRadius: Float = cornerRadius)
+
+    /**
+     * Blurs what was drawn so far under [area] (frosted glass behind a see-through window),
+     * its corners rounded by [cornerRadius]. [size] is how strong the blur is, [passes] how
+     * smooth (each pass doubles the reach). It reads pixels up to [blurReach] beyond [area],
+     * so those must have been drawn in this frame too.
+     */
+    fun drawBlur(area: Rect, cornerRadius: Float, size: Int, passes: Int)
 
     /**
      * Ends the frame: hands the drawing to the GPU. Whoever reads a [GpuBuffer] afterwards
@@ -61,6 +89,12 @@ interface Renderer : AutoCloseable {
      */
     fun end()
 }
+
+/** How far beyond its area [Renderer.drawBlur] with [size] and [passes] reads pixels. */
+fun blurReach(size: Int, passes: Int): Int = size * (2 shl passes.coerceIn(1, MAX_BLUR_PASSES))
+
+/** More blur passes than this make no visible difference (and cost a lot). */
+const val MAX_BLUR_PASSES = 6
 
 /** A picture on the GPU. */
 interface GpuTexture : AutoCloseable {

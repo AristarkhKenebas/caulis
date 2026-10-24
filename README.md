@@ -41,6 +41,9 @@ val Mine = tiling("Mine") {
 
 Change layouts while running: windows glide to their new places.
 
+Round corners, borders, shadows and blur behind see-through windows are one line:
+`effects = Effects.MODERN.copy(blur = Blur())`.
+
 ## Modules
 
 | Module | What it is |

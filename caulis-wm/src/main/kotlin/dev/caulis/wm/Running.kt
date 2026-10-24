@@ -3,6 +3,7 @@ package dev.caulis.wm
 import dev.caulis.core.Compositor
 import dev.caulis.core.DataDeviceManager
 import dev.caulis.core.Desktop
+import dev.caulis.core.Effects
 import dev.caulis.core.FrameStats
 import dev.caulis.core.LayerShell
 import dev.caulis.core.LinuxDmabuf
@@ -67,6 +68,13 @@ internal class Running(
 
         // The user's rules and events (dialogs and fixed-size windows always float).
         val defaultRule = desktop.floatRule
+        desktop.effects = config.effects
+        desktop.windowEffects = { window ->
+            config.effectRules.fold(desktop.effects) { fx, rule -> safely("effectsFor", fx) { rule(window, fx) } }
+        }
+        desktop.layerEffects = { layer ->
+            config.panelEffectRules.firstNotNullOfOrNull { rule -> safely("panelEffects", null) { rule(layer) } } ?: Effects.NONE
+        }
         desktop.floatRule = { window -> defaultRule(window) || config.floatRules.any { rule -> safely("floatWhen", false) { rule(window) } } }
         for (pad in config.scratchpads) {
             desktop.addScratchpad(pad.name, pad.style) { window -> safely("scratchpad ${pad.name}", false) { pad.match(window) } }

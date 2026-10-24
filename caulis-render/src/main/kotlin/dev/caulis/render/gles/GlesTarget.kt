@@ -9,8 +9,13 @@ internal abstract class GlesFramebuffer(final override val width: Int, final ove
 
     private var framebuffer = 0
 
+    /** The texture holding the picture (the renderer reads it back for blur). */
+    var colorTexture = 0
+        private set
+
     /** Attaches [textureId] as the picture to draw into. Called once by subclasses. */
     protected fun attach(textureId: Int) {
+        colorTexture = textureId
         framebuffer = Gl.generate(Gles::glGenFramebuffers)
         Gles.glBindFramebuffer(Gles.GL_FRAMEBUFFER(), framebuffer)
         Gles.glFramebufferTexture2D(Gles.GL_FRAMEBUFFER(), Gles.GL_COLOR_ATTACHMENT0(), Gles.GL_TEXTURE_2D(), textureId, 0)

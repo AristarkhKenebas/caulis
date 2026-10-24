@@ -4,6 +4,7 @@ import dev.caulis.ffi.Fd
 import dev.caulis.ffi.c.gles.Gles
 import dev.caulis.geometry.Rect
 import dev.caulis.render.Dmabuf
+import dev.caulis.render.Color
 import dev.caulis.render.DmabufFormat
 import dev.caulis.render.GpuBuffer
 import dev.caulis.render.GpuTarget
@@ -23,13 +24,17 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
 
     override val renderNode: java.nio.file.Path? get() = egl.renderNode
 
-    private val textured = Program(VERTEX, TEXTURE_FRAGMENT)
-    private val solid = Program(VERTEX, COLOR_FRAGMENT)
+    private val textured = Program(Shaders.VERTEX, Shaders.TEXTURE)
+    private val solid = Program(Shaders.VERTEX, Shaders.COLOR)
+    private val rounded = Program(Shaders.VERTEX, Shaders.ROUNDED)
+    private val shadow = Program(Shaders.VERTEX, Shaders.SHADOW)
     private val vertexArray = Gl.generate(Gles::glGenVertexArrays)
     private val vertexBuffer = Gl.generate(Gles::glGenBuffers)
 
     private var targetWidth = 1f
     private var targetHeight = 1f
+    private var target: GlesFramebuffer? = null
+    private var clip: Rect? = null
 
     init {
         // One unit square as a triangle strip; the vertex shader moves and scales it.
@@ -42,6 +47,12 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         Gles.glVertexAttribPointer(0, 2, Gles.GL_FLOAT(), Gles.GL_FALSE().toByte(), 0, java.lang.foreign.MemorySegment.NULL)
         Gles.glEnableVertexAttribArray(0)
         Gl.check("creating the quad renderer")
+    }
+
+    private val blur = GlesBlur { program, rect, width, height ->
+        Gles.glUniform4f(program.uniform("rect"), rect.x.toFloat(), rect.y.toFloat(), rect.width.toFloat(), rect.height.toFloat())
+        Gles.glUniform2f(program.uniform("target"), width.toFloat(), height.toFloat())
+        Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
     }
 
     private val images = DmabufImages(egl)
@@ -69,33 +80,48 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
 
     override fun begin(target: GpuTarget, red: Float, green: Float, blue: Float, clip: Rect?) {
         target as GlesFramebuffer
+        this.target = target
+        this.clip = clip
+        bindTarget(target, clip)
+        Gles.glClearColor(red, green, blue, 1f)
+        Gles.glClear(Gles.GL_COLOR_BUFFER_BIT())
+    }
+
+    private fun bindTarget(target: GlesFramebuffer, clip: Rect?) {
         target.bind()
         targetWidth = target.width.toFloat()
         targetHeight = target.height.toFloat()
-        // Pixel row y is framebuffer row y (see VERTEX), so the clip needs no flipping.
+        // Pixel row y is framebuffer row y (see Shaders.VERTEX), so the clip needs no flipping.
         if (clip != null) {
             Gles.glEnable(Gles.GL_SCISSOR_TEST())
             Gles.glScissor(clip.x, clip.y, clip.width, clip.height)
         } else {
             Gles.glDisable(Gles.GL_SCISSOR_TEST())
         }
-        Gles.glClearColor(red, green, blue, 1f)
-        Gles.glClear(Gles.GL_COLOR_BUFFER_BIT())
         // Wayland pixels have premultiplied alpha.
         Gles.glEnable(Gles.GL_BLEND())
         Gles.glBlendFunc(Gles.GL_ONE(), Gles.GL_ONE_MINUS_SRC_ALPHA())
         Gles.glBindVertexArray(vertexArray)
     }
 
-    override fun drawTexture(texture: GpuTexture, x: Int, y: Int, width: Int, height: Int, opaque: Boolean, alpha: Float) {
+    override fun drawTexture(
+        texture: GpuTexture, x: Int, y: Int, width: Int, height: Int, opaque: Boolean,
+        alpha: Float, clip: Rect?, cornerRadius: Float,
+    ) {
         texture as GlTexture
         textured.use()
         setRect(textured, x, y, width, height)
+        Gles.glUniform4f(textured.uniform("source"), 0f, 0f, 1f, 1f)
         Gles.glActiveTexture(Gles.GL_TEXTURE0())
         Gles.glBindTexture(Gles.GL_TEXTURE_2D(), texture.id)
         Gles.glUniform1i(textured.uniform("image"), 0)
         Gles.glUniform1f(textured.uniform("alpha"), alpha)
         Gles.glUniform1i(textured.uniform("opaque"), if (opaque) 1 else 0)
+        Gles.glUniform1i(textured.uniform("clipped"), if (clip != null) 1 else 0)
+        if (clip != null) {
+            setBox(textured, "clip", clip)
+            Gles.glUniform1f(textured.uniform("radius"), radiusFor(clip, cornerRadius))
+        }
         Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
     }
 
@@ -104,6 +130,42 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         setRect(solid, x, y, width, height)
         Gles.glUniform4f(solid.uniform("color"), red * alpha, green * alpha, blue * alpha, alpha)
         Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
+    }
+
+    override fun drawRoundedRect(box: Rect, cornerRadius: Float, color: Color, borderWidth: Float) {
+        if (box.isEmpty) return
+        rounded.use()
+        setRect(rounded, box.x, box.y, box.width, box.height)
+        setColor(rounded, color)
+        setBox(rounded, "outer", box)
+        Gles.glUniform1f(rounded.uniform("radius"), radiusFor(box, cornerRadius))
+        Gles.glUniform1f(rounded.uniform("border"), borderWidth)
+        Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
+    }
+
+    override fun drawShadow(box: Rect, cornerRadius: Float, softness: Float, color: Color, cutOut: Rect?, cutOutRadius: Float) {
+        if (box.isEmpty) return
+        val reach = Math.ceil(softness.toDouble()).toInt().coerceAtLeast(1)
+        shadow.use()
+        setRect(shadow, box.x - reach, box.y - reach, box.width + 2 * reach, box.height + 2 * reach)
+        setColor(shadow, color)
+        setBox(shadow, "shape", box)
+        Gles.glUniform1f(shadow.uniform("radius"), radiusFor(box, cornerRadius))
+        // The blur fades out at about three sigmas.
+        Gles.glUniform1f(shadow.uniform("sigma"), (softness / 3f).coerceAtLeast(0.5f))
+        Gles.glUniform1i(shadow.uniform("cut"), if (cutOut != null) 1 else 0)
+        if (cutOut != null) {
+            setBox(shadow, "cutOut", cutOut)
+            Gles.glUniform1f(shadow.uniform("cutRadius"), radiusFor(cutOut, cutOutRadius))
+        }
+        Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
+    }
+
+    override fun drawBlur(area: Rect, cornerRadius: Float, size: Int, passes: Int) {
+        val target = target ?: return
+        if (area.isEmpty || size <= 0) return
+        blur.blur(target, area, radiusFor(area, cornerRadius), size, passes)
+        bindTarget(target, clip)
     }
 
     override fun end() {
@@ -115,9 +177,22 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         Gles.glUniform2f(program.uniform("target"), targetWidth, targetHeight)
     }
 
+    private fun setBox(program: Program, name: String, box: Rect) =
+        Gles.glUniform4f(program.uniform(name), box.x.toFloat(), box.y.toFloat(), box.width.toFloat(), box.height.toFloat())
+
+    // Premultiplied, as everything we draw.
+    private fun setColor(program: Program, color: Color) =
+        Gles.glUniform4f(program.uniform("color"), color.red * color.alpha, color.green * color.alpha, color.blue * color.alpha, color.alpha)
+
+    // Corners cannot be rounder than half the box.
+    private fun radiusFor(box: Rect, radius: Float) = radius.coerceIn(0f, minOf(box.width, box.height) / 2f)
+
     override fun close() {
         textured.close()
         solid.close()
+        rounded.close()
+        shadow.close()
+        blur.close()
         Gl.delete(vertexBuffer, Gles::glDeleteBuffers)
         Gl.delete(vertexArray, Gles::glDeleteVertexArrays)
         egl.close()
@@ -133,39 +208,6 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
          * got from libseat (then its buffers can be shown on screen). [device] is not closed.
          */
         fun createOn(device: Fd): GlesRenderer = GlesRenderer(EglContext.createOn(device.value, owned = null))
-
-
-        // Pixel rectangle -> OpenGL coordinates. Pixel row 0 goes to framebuffer row 0, so
-        // reading the framebuffer back gives the top row first.
-        private const val VERTEX = """#version 300 es
-            layout(location = 0) in vec2 corner;
-            uniform vec4 rect;    // x, y, width, height in pixels
-            uniform vec2 target;  // size of the render target in pixels
-            out vec2 uv;
-            void main() {
-                vec2 pixel = rect.xy + corner * rect.zw;
-                gl_Position = vec4(pixel / target * 2.0 - 1.0, 0.0, 1.0);
-                uv = corner;
-            }"""
-
-        private const val TEXTURE_FRAGMENT = """#version 300 es
-            precision mediump float;
-            in vec2 uv;
-            uniform sampler2D image;
-            uniform float alpha;
-            uniform bool opaque;
-            out vec4 color;
-            void main() {
-                vec4 pixel = texture(image, uv);
-                if (opaque) pixel.a = 1.0;
-                color = pixel * alpha;
-            }"""
-
-        private const val COLOR_FRAGMENT = """#version 300 es
-            precision mediump float;
-            uniform vec4 color;
-            out vec4 fragment;
-            void main() { fragment = color; }"""
     }
 }
 

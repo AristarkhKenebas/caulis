@@ -22,6 +22,7 @@ class ScreenTestServer : AutoCloseable {
     private val started = CompletableFuture<String>()
     private lateinit var loop: EventLoop
     private lateinit var desktop: Desktop
+    private lateinit var renderer: GlesRenderer
 
     /** Runs [action] on the server's thread with its window manager and returns the result. */
     fun <T> onServer(action: (Desktop) -> T): T {
@@ -34,6 +35,26 @@ class ScreenTestServer : AutoCloseable {
             }
         }
         return result.get(5, TimeUnit.SECONDS)
+    }
+
+    /**
+     * Draws the whole desktop as it looks now into a fresh picture and returns its pixels,
+     * row by row from the top, each 0xAARRGGBB.
+     */
+    fun screenshot(): IntArray = onServer { desktop ->
+        renderer.createTarget(WIDTH, HEIGHT).use { target ->
+            val view = desktop.createView()
+            try {
+                desktop.render(view, target, age = 0)
+            } finally {
+                desktop.removeView(view)
+            }
+            java.lang.foreign.Arena.ofConfined().use { arena ->
+                val pixels = arena.allocate(WIDTH.toLong() * HEIGHT * 4)
+                target.readPixels(pixels, WIDTH * 4)
+                pixels.toArray(java.lang.foreign.ValueLayout.JAVA_INT)
+            }
+        }
     }
 
     /** Frames drawn so far (written on the server thread). */
@@ -51,6 +72,7 @@ class ScreenTestServer : AutoCloseable {
             EventLoop().use { eventLoop ->
                 loop = eventLoop
                 GlesRenderer.create().use { renderer ->
+                    this.renderer = renderer
                     Display(eventLoop).use { display ->
                         Keymap.fromNames().use { keymap ->
                             Seat(display, keymap).use { seat ->

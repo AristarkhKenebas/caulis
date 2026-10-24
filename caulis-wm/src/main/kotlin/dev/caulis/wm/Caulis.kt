@@ -1,6 +1,8 @@
 package dev.caulis.wm
 
 import dev.caulis.core.Desktop
+import dev.caulis.core.Effects
+import dev.caulis.core.LayerSurface
 import dev.caulis.core.Scratchpad
 import dev.caulis.core.Window
 import dev.caulis.tiling.Floating
@@ -57,6 +59,18 @@ class Caulis {
             running?.desktop?.layout = value
         }
 
+    /**
+     * How windows look: rounded corners, a border, shadows, blur, transparency. Off by
+     * default; e.g. `effects = Effects.MODERN` or
+     * `effects = Effects(cornerRadius = 10, shadow = Shadow(), blur = Blur(), inactiveOpacity = 0.9f)`.
+     * Can also be changed while running.
+     */
+    var effects: Effects = Effects.NONE
+        set(value) {
+            field = value
+            running?.desktop?.effects = value
+        }
+
     /** Keyboard layouts as for `setxkbmap`, e.g. "us,ru", and options, e.g. "grp:win_space_toggle". */
     var keyboardLayouts = "us"
     var keyboardOptions = ""
@@ -93,6 +107,8 @@ class Caulis {
     internal val bindings = ArrayList<Pair<String, Caulis.() -> Unit>>()
     internal val startActions = ArrayList<Caulis.() -> Unit>()
     internal val floatRules = ArrayList<(Window) -> Boolean>()
+    internal val effectRules = ArrayList<(Window, Effects) -> Effects>()
+    internal val panelEffectRules = ArrayList<(LayerSurface) -> Effects?>()
     internal val scratchpads = ArrayList<ScratchpadSetup>()
     internal val swipes = ArrayList<Triple<Int, Direction, Caulis.() -> Unit>>()
 
@@ -134,6 +150,26 @@ class Caulis {
     @JvmSynthetic
     fun floatWhen(rule: (Window) -> Boolean) {
         floatRules += rule
+    }
+
+    /**
+     * Changes the [effects] of some windows: [rule] gets a window and the effects it would
+     * have, and returns the ones it gets, e.g. no blur and full opacity for videos:
+     * `effectsFor { window, fx -> if (window.appId == "mpv") fx.copy(blur = null, inactiveOpacity = 1f) else fx }`.
+     */
+    @JvmSynthetic
+    fun effectsFor(rule: (Window, Effects) -> Effects) {
+        effectRules += rule
+    }
+
+    /**
+     * Effects for panels, docks and bars (none by default), by what they call themselves:
+     * `panelEffects { if (it.namespace == "waybar") Effects(blur = Blur()) else null }`.
+     * Null = no effects.
+     */
+    @JvmSynthetic
+    fun panelEffects(rule: (LayerSurface) -> Effects?) {
+        panelEffectRules += rule
     }
 
     /**
@@ -214,6 +250,9 @@ class Caulis {
     fun bind(combination: String, action: Consumer<Caulis>): Caulis = apply { bind(combination) { action.accept(this) } }
     fun onStart(action: Consumer<Caulis>): Caulis = apply { onStart { action.accept(this) } }
     fun floatWhen(rule: java.util.function.Predicate<Window>): Caulis = apply { floatWhen { rule.test(it) } }
+    fun effects(effects: Effects): Caulis = apply { this.effects = effects }
+    fun effectsFor(rule: java.util.function.BiFunction<Window, Effects, Effects>): Caulis = apply { effectsFor { window, fx -> rule.apply(window, fx) } }
+    fun panelEffects(rule: java.util.function.Function<LayerSurface, Effects?>): Caulis = apply { panelEffects { rule.apply(it) } }
     fun scratchpad(name: String, key: String?, command: String?, style: Scratchpad.Style): Caulis =
         apply { scratchpad(name, key, command, style) { it.appId == name } }
     fun onWindowOpened(action: java.util.function.BiConsumer<Caulis, Window>): Caulis = apply { onWindowOpened { action.accept(this, it) } }
