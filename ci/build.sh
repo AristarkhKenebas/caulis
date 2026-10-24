@@ -19,5 +19,11 @@ echo "== Caulis: build and test"
 echo "== irisWM: build, test and package"
 (cd apps/iriswm && ./gradlew "${gradle_options[@]}" build distTar distZip)
 
+echo "== The project template still builds"
+template_dir="$(mktemp -d)"
+templates/new-compositor.sh "$template_dir/template-check" > /dev/null
+(cd "$template_dir/template-check" && ./gradlew "${gradle_options[@]}" build)
+rm -rf "$template_dir"
+
 echo "== Done"
 ls -l apps/iriswm/build/distributions

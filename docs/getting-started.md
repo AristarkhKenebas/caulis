@@ -21,7 +21,15 @@ git clone <caulis repository> ~/caulis
 
 ## 2. Create your project
 
-Make a folder with three files.
+The quickest way — a ready project from the template:
+
+```sh
+~/caulis/templates/new-compositor.sh ~/my-compositor
+cd ~/my-compositor
+./gradlew run
+```
+
+Then skip to step 3. If you prefer to see every piece, make a folder with three files:
 
 `settings.gradle.kts`:
 

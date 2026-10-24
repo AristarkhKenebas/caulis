@@ -179,12 +179,18 @@ class Caulis {
         running?.quit()
     }
 
-    /** Starts the compositor and returns when it is closed. Throws if it cannot start. */
+    /**
+     * Starts the compositor and returns when it is closed. First checks that everything
+     * it needs is there; throws [CannotStartException] with plain explanations if not.
+     */
     fun run() {
         val nested = when (mode) {
             Mode.AUTO -> !System.getenv("WAYLAND_DISPLAY").isNullOrEmpty()
             Mode.NESTED -> true
             Mode.SCREEN -> false
+        }
+        if (!Preflight.report(Preflight.check(this, nested), title)) {
+            throw CannotStartException("$title cannot start (see the problems listed above)")
         }
         if (nested) runNested(this) else runOnScreen(this)
     }
@@ -226,6 +232,8 @@ fun caulis(configure: Caulis.() -> Unit) {
     val compositor = Caulis().apply(configure)
     try {
         compositor.run()
+    } catch (e: CannotStartException) {
+        exitProcess(1) // the reasons were already printed
     } catch (e: Exception) {
         System.err.println("The compositor stopped: ${e.message}")
         e.cause?.let { System.err.println("  (${it.message})") }
@@ -234,3 +242,6 @@ fun caulis(configure: Caulis.() -> Unit) {
         exitProcess(1)
     }
 }
+
+/** The compositor cannot start because something it needs is missing (explained on stderr). */
+class CannotStartException(message: String) : RuntimeException(message)

@@ -26,7 +26,8 @@ Caulis.create()
         .run();
 ```
 
-**New here? Start with [Your first compositor](docs/getting-started.md).**
+**New here? Start with [Your first compositor](docs/getting-started.md)**, or create a
+ready project right away: `templates/new-compositor.sh ~/my-compositor`.
 
 See `examples/` (`minimal`, `minimal-java`, `custom-layout`, `window-rules`). Layouts: `Floating`, `Dwindle`,
 `MasterStack`, `Scrolling` — or your own (implement `Layout`: windows and an area in,
