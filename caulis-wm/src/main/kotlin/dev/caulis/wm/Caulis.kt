@@ -5,6 +5,7 @@ import dev.caulis.core.Effects
 import dev.caulis.core.LayerSurface
 import dev.caulis.core.Scratchpad
 import dev.caulis.core.Window
+import dev.caulis.core.cursor.CursorTheme
 import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Direction
 import dev.caulis.tiling.Layout
@@ -81,6 +82,40 @@ class Caulis {
      * gets the keyboard; it unlocks when you type your password.
      */
     var lockCommand = "swaylock"
+
+    /**
+     * The cursor theme, e.g. "Bibata-Modern-Ice", "Adwaita", "breeze_cursors". Null = the
+     * default: Bibata if the project uses `caulis-cursor-bibata` (the template does), else
+     * the system's. [CursorTheme.available] lists what is there.
+     */
+    var cursorTheme: String? = null
+        set(value) {
+            field = value
+            running?.applyCursor()
+        }
+
+    /** The cursor size in pixels (24 is usual; 32 or 48 for a bigger one). Null = `XCURSOR_SIZE` or 24. */
+    var cursorSize: Int? = null
+        set(value) {
+            require(value == null || value in 8..512) { "cursorSize must be between 8 and 512" }
+            field = value
+            running?.applyCursor()
+        }
+
+    /** Hide the cursor while typing; it comes back when the mouse moves. */
+    var hideCursorWhileTyping = false
+        set(value) {
+            field = value
+            running?.applyCursor()
+        }
+
+    /** Hide the cursor after the mouse was still for this many seconds (0 = never). */
+    var hideCursorAfterSeconds = 0
+        set(value) {
+            require(value >= 0) { "hideCursorAfterSeconds must not be negative" }
+            field = value
+            running?.applyCursor()
+        }
 
     /** The terminal [openTerminal] (and the default Super+Return) starts. */
     var terminal = "foot"
@@ -250,6 +285,10 @@ class Caulis {
     fun layout(layout: Layout): Caulis = apply { this.layout = layout }
     fun terminal(command: String): Caulis = apply { terminal = command }
     fun lockCommand(command: String): Caulis = apply { lockCommand = command }
+    fun cursor(theme: String?, size: Int?): Caulis = apply {
+        cursorTheme = theme
+        cursorSize = size
+    }
     fun mode(mode: Mode): Caulis = apply { this.mode = mode }
     fun keyboard(layouts: String, options: String = ""): Caulis = apply {
         keyboardLayouts = layouts

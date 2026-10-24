@@ -15,6 +15,9 @@ tasks.withType<JavaCompile>().configureEach { options.release = 26 }
 
 dependencies {
     implementation("dev.caulis:caulis-wm:0.1.0-SNAPSHOT")
+    // The Bibata cursor (GPL-3.0, unlike Caulis itself). Remove this line for the system's
+    // cursor theme, or if your compositor must not contain GPL files.
+    implementation("dev.caulis:caulis-cursor-bibata:0.1.0-SNAPSHOT")
 }
 
 application {

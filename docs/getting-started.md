@@ -286,7 +286,24 @@ Fullscreen windows never get effects. The names come from `dev.caulis.core` (`Ef
 `Border`, `Shadow`, `Blur`) and `dev.caulis.render.Color`; IntelliJ adds the imports when you
 press Alt+Enter on a red name.
 
-## 10. Locking the screen
+## 10. The cursor
+
+The template comes with the Bibata cursor. Choose another theme and size:
+
+```kotlin
+cursorTheme = "Bibata-Modern-Ice" // white; "Bibata-Modern-Amber"; or any installed theme: "Adwaita", ...
+cursorSize = 32                   // 24 is usual; bigger for big screens or tired eyes
+hideCursorWhileTyping = true      // it comes back when the mouse moves
+hideCursorAfterSeconds = 5        // hide it when the mouse is still (0 = never)
+```
+
+Programs show the same cursor: modern ones ask the compositor for it by name, older ones
+are told the theme and size. If the theme you name is not installed, the log says so and
+lists the ones that are. Without `caulis-cursor-bibata` in `build.gradle.kts` the system's
+theme is used (Bibata is GPL-3.0; remove that line if your compositor must not contain GPL
+files).
+
+## 11. Locking the screen
 
 Super+L starts the screen locker — `swaylock` unless you choose another:
 
@@ -302,7 +319,7 @@ socket name the compositor printed when it started — then come back (Ctrl+Alt+
 whichever console the session is on). Ctrl+Alt+Backspace still quits the compositor, as
 always.
 
-## 11. Touchpad gestures
+## 12. Touchpad gestures
 
 | Gesture | What it does |
 | --- | --- |
@@ -319,7 +336,7 @@ overviewPinchFingers = 4      // 0 = off
 swipe(fingers = 3, Direction.UP) { desktop.toggleOverview() }
 ```
 
-## 12. On the real screen
+## 13. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 
@@ -336,7 +353,7 @@ exitAfterSeconds = 60
 
 Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles.
 
-## 13. Your own layout
+## 14. Your own layout
 
 Describe it with building blocks — no arithmetic:
 

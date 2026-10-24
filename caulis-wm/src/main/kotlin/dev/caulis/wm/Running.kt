@@ -11,6 +11,8 @@ import dev.caulis.core.Presentation
 import dev.caulis.core.SessionLockManager
 import dev.caulis.core.Shm
 import dev.caulis.core.XdgShell
+import dev.caulis.core.cursor.CursorTheme
+import dev.caulis.core.input.CursorShape
 import dev.caulis.core.input.Gesture
 import dev.caulis.core.input.KeyBindings
 import dev.caulis.core.input.KeyBindings.Modifier
@@ -54,6 +56,9 @@ internal class Running(
     // The only keys of ours while the screen is locked; everything else goes to the locker.
     private val lockedKeys = KeyBindings()
 
+    // Where a cursor theme that came with a library is put for programs that draw their own cursor.
+    private var cursorFolder: java.nio.file.Path? = null
+
     init {
         Shm(display)
         if (renderer.renderNode != null) LinuxDmabuf(display, renderer)
@@ -62,6 +67,8 @@ internal class Running(
         XdgShell(display).listener = desktop
         LayerShell(display).listener = desktop
         SessionLockManager(display).listener = desktop
+        CursorShape(display, seat)
+        applyCursor()
         desktop.layout = config.layout
         socket = config.socketDirectory?.let(display::addSocket) ?: display.addSocket()
 
@@ -98,6 +105,25 @@ internal class Running(
 
     fun quit() = loop.stop()
 
+
+    /** Applies the cursor settings (theme, size, hiding). */
+    fun applyCursor() {
+        val theme = CursorTheme.load(config.cursorTheme, config.cursorSize)
+        if (!theme.found) {
+            log.log(System.Logger.Level.WARNING, "The cursor theme \"${theme.name}\" is not installed; using the system's. " +
+                "Installed: ${CursorTheme.available().joinToString()}")
+        }
+        desktop.cursorTheme = theme
+        desktop.hideCursorWhileTyping = config.hideCursorWhileTyping
+        desktop.hideCursorAfterMillis = config.hideCursorAfterSeconds * 1000L
+        cursorFolder = safely("cursor theme files", null) {
+            // On disk, once (a theme is tens of megabytes; the runtime folder is in memory).
+            val cache = System.getenv("XDG_CACHE_HOME")?.takeIf { it.isNotBlank() } ?: (System.getProperty("user.home") + "/.cache")
+            val folder = java.nio.file.Path.of(cache, "caulis", "icons")
+            if (theme.exportTo(folder)) folder else null
+        }
+    }
+
     // When each scratchpad's program was started (so a second press does not start it twice).
     private val startedAt = HashMap<String, Long>()
 
@@ -121,6 +147,13 @@ internal class Running(
             val builder = ProcessBuilder("/bin/sh", "-c", command)
             builder.environment().apply {
                 put("WAYLAND_DISPLAY", socket)
+                // Programs that draw their own cursor use the same theme and size.
+                val theme = desktop.cursorTheme
+                put("XCURSOR_THEME", theme.name)
+                put("XCURSOR_SIZE", theme.size.toString())
+                cursorFolder?.let { folder ->
+                    put("XCURSOR_PATH", (listOf(folder) + CursorTheme.searchPath()).joinToString(":"))
+                }
                 remove("DISPLAY") // no X11 server inside (yet)
             }
             builder.redirectOutput(ProcessBuilder.Redirect.DISCARD)

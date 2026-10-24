@@ -17,6 +17,11 @@ fun main() = caulis {
     // Effects.NONE turns it all off; blur and transparency: see the guide.
     effects = Effects.MODERN
 
+    // The cursor: Bibata comes with the project ("Bibata-Modern-Ice" is the white one,
+    // "Bibata-Modern-Amber" the amber one); any installed theme works too, e.g. "Adwaita".
+    cursorTheme = "Bibata-Modern-Classic"
+    cursorSize = 24
+
     // Keyboard layouts, as for setxkbmap: "us", "us,de", "us,ru" ...
     keyboardLayouts = "us"
 

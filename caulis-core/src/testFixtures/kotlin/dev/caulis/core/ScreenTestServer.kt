@@ -84,6 +84,7 @@ class ScreenTestServer : AutoCloseable {
                                 XdgShell(display).listener = desktop
                                 LayerShell(display).listener = desktop
                                 SessionLockManager(display).listener = desktop
+                                dev.caulis.core.input.CursorShape(display, seat)
                                 Output(display, "TEST-1", "Test screen", WIDTH, HEIGHT, 60_000)
                                 runScreen(eventLoop, renderer, desktop)
                                 started.complete(display.addSocket(runtimeDir))

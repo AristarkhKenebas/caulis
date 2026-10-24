@@ -24,6 +24,7 @@ include(
     "caulis-render",
     "caulis-core",
     "caulis-wm",
+    "caulis-cursor-bibata",
     "examples:minimal",
     "examples:minimal-java",
     "examples:custom-layout",

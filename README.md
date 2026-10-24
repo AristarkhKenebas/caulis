@@ -55,6 +55,7 @@ Round corners, borders, shadows and blur behind see-through windows are one line
 | `caulis-tiling` | the layout language and the built-in layouts (pure Kotlin) |
 | `caulis-core` | surfaces, windows, input, outputs, the nested and screen backends |
 | `caulis-wm` | `caulis { }`: a running compositor in a few lines |
+| `caulis-cursor-bibata` | the Bibata cursor themes, ready to use (optional; GPL-3.0, as Bibata) |
 
 ## Requirements
 
@@ -70,4 +71,5 @@ Round corners, borders, shadows and blur behind see-through windows are one line
 
 ## License
 
-[MPL-2.0](LICENSE)
+[MPL-2.0](LICENSE), except `caulis-cursor-bibata`, which is GPL-3.0 as the Bibata cursors
+it contains (see [its license](caulis-cursor-bibata/LICENSE)).

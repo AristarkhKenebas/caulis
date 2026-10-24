@@ -74,10 +74,10 @@ class SessionLockTest {
         client.waitFor { locker.locked }
         assertTrue(server.onServer { it.locked })
         // "locked" only comes once the screen shows nothing of the desktop.
-        // Everything but our own cursor (a 12 px square at the pointer) is the lock colour.
+        // Everything but the cursor (from whatever cursor theme is installed) is the lock colour.
         val shot = server.screenshot()
         val (px, py) = server.onServer { it.pointerX.toInt() to it.pointerY.toInt() }
-        val other = shot.indices.filter { shot[it] != RED && (it % width - px !in 0 until 12 || it / width - py !in 0 until 12) }
+        val other = shot.indices.filter { shot[it] != RED && (it % width - px !in -64..64 || it / width - py !in -64..64) }
         assertTrue(other.isEmpty(), "only the lock colour on screen, but ${other.size} pixels differ")
         // Even asking for it, a window cannot get the keyboard now.
         server.onServer { d -> d.focus(d.windows.first()) }

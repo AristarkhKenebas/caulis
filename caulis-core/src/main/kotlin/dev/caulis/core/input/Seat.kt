@@ -53,7 +53,7 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
             pointerFocus?.let { if (!value(it)) pointerMotion(0, null, 0.0, 0.0) }
         }
 
-    /** The cursor picture the focused client asked for (null = hidden or default). */
+    /** The cursor picture the client under the pointer drew itself (null = none: see [cursorShape]). */
     var cursorSurface: Surface? = null
         private set
     var cursorHotspotX = 0
@@ -61,8 +61,12 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
     var cursorHotspotY = 0
         private set
 
-    /** True if the focused client wants the default cursor (it set none yet). */
-    var cursorIsDefault = true
+    /**
+     * The cursor the client under the pointer asked for by name ("default", "text",
+     * "pointer", ... see [dev.caulis.core.cursor.CursorTheme.SHAPES]), drawn from the cursor
+     * theme. Null if it drew its own ([cursorSurface]) or hid the cursor.
+     */
+    var cursorShape: String? = "default"
         private set
 
     /** Called when the cursor picture changes (the window manager redraws it). */
@@ -118,11 +122,19 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
             cursorSurface = target
             cursorHotspotX = hotspotX
             cursorHotspotY = hotspotY
-            cursorIsDefault = false
+            cursorShape = null
             onCursorChange()
         }
 
         override fun release(resource: WlPointer) {}
+    }
+
+    // A client asks for a cursor by name (cursor-shape-v1); only the one under the pointer may.
+    internal fun setCursorShape(client: Client, shape: String) {
+        if (pointerFocus?.resource?.client !== client) return
+        cursorSurface = null
+        cursorShape = shape
+        onCursorChange()
     }
 
     // --- keyboard ---------------------------------------------------------------------
@@ -213,7 +225,7 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
             }
             pointerFocus = surface
             cursorSurface = null
-            cursorIsDefault = true
+            cursorShape = "default"
             if (surface != null) {
                 val serial = display.nextSerial()
                 pointersOf(surface.resource.client).forEach {

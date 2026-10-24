@@ -1,11 +1,13 @@
 package dev.caulis.core
 
+import dev.caulis.core.cursor.CursorTheme
 import dev.caulis.core.input.Seat
 import dev.caulis.event.EventLoop
 import dev.caulis.geometry.Rect
 import dev.caulis.protocol.xdgshell.XdgToplevel
 import dev.caulis.render.Color
 import dev.caulis.render.GpuTarget
+import dev.caulis.render.GpuTexture
 import dev.caulis.render.Renderer
 import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Layout
@@ -1365,6 +1367,7 @@ class Desktop(
     // --- input ------------------------------------------------------------------------
 
     fun pointerMoved(timeMillis: Int, x: Double, y: Double) {
+        cursorActive()
         pointerX = x.coerceIn(0.0, width - 1.0)
         pointerY = y.coerceIn(0.0, height - 1.0)
         grab?.let { current ->
@@ -1387,6 +1390,7 @@ class Desktop(
      */
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean, passToApps: Boolean = true) {
         buttonsHeld = (buttonsHeld + if (pressed) 1 else -1).coerceAtLeast(0)
+        cursorActive()
         if (!passToApps) return
         if (locked) {
             seat.pointerButton(timeMillis, button, pressed) // only the locker can be under the pointer
@@ -1431,10 +1435,14 @@ class Desktop(
         seat.pointerButton(timeMillis, button, pressed)
     }
 
-    fun pointerAxis(timeMillis: Int, vertical: Boolean, value: Double, value120: Int) =
+    fun pointerAxis(timeMillis: Int, vertical: Boolean, value: Double, value120: Int) {
+        cursorActive()
         seat.pointerAxis(timeMillis, vertical, value, value120)
+    }
 
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
+        // Typing (not just holding Ctrl or Super): the cursor makes way.
+        if (pressed && hideCursorWhileTyping && evdevCode !in MODIFIER_KEYS && seat.keyboardFocus != null) hideCursor()
         if (inOverview && pressed) {
             if (evdevCode == KEY_ESC) setOverview(false)
             return // new key presses are not for programs while the overview is open...
@@ -1611,6 +1619,7 @@ class Desktop(
                 is DrawItem.Shadow -> renderer.drawShadow(item.box, item.radius, item.softness, item.color, item.cutOut, item.cutOutRadius)
                 is DrawItem.Border -> renderer.drawRoundedRect(r, item.radius, item.color, item.width)
                 is DrawItem.Blur -> renderer.drawBlur(r, item.radius, item.size, item.passes)
+                is DrawItem.Image -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, opaque = false)
             }
         }
         renderer.end()
@@ -1689,10 +1698,11 @@ class Desktop(
     private var itemsVersion = -1L
     private var itemsPointerX = Double.NaN
     private var itemsPointerY = Double.NaN
+    private var itemsCursorVersion = -1L
 
     /** Everything to draw now, bottom to top, the cursor last. */
     private fun items(): List<DrawItem> {
-        if (itemsVersion == version && itemsPointerX == pointerX && itemsPointerY == pointerY) return items
+        if (itemsVersion == version && itemsPointerX == pointerX && itemsPointerY == pointerY && itemsCursorVersion == cursorVersion) return items
         val all = ArrayList<DrawItem>(scene().size + 2)
         all += scene
         visible.clear()
@@ -1704,6 +1714,7 @@ class Desktop(
         itemsVersion = version
         itemsPointerX = pointerX
         itemsPointerY = pointerY
+        itemsCursorVersion = cursorVersion
         return all
     }
 
@@ -1822,17 +1833,146 @@ class Desktop(
     }
 
     private fun addCursor(items: MutableList<DrawItem>) {
+        if (cursorHidden) return
         val x = pointerX.toInt()
         val y = pointerY.toInt()
-        val cursor = seat.cursorSurface
-        when {
-            cursor != null && cursor.hasContent -> addTree(items, cursor, x - seat.cursorHotspotX, y - seat.cursorHotspotY)
-            seat.cursorIsDefault -> {
-                // A simple default cursor until cursor themes are supported.
-                items += DrawItem.Color(CURSOR_BORDER, Rect(x, y, 12, 12), 0f, 0f, 0f)
-                items += DrawItem.Color(CURSOR_FILL, Rect(x + 1, y + 1, 10, 10), 1f, 1f, 1f)
+        val shape = cursorShapeNow()
+        if (shape == null) {
+            // The program drew its own cursor (or hid it).
+            val own = seat.cursorSurface
+            if (own != null && own.hasContent) addTree(items, own, x - seat.cursorHotspotX, y - seat.cursorHotspotY)
+            return
+        }
+        if (shape != shownShape) {
+            shownShape = shape
+            shapeSince = System.nanoTime()
+        }
+        val cursor = cursorTheme.cursor(shape) ?: cursorTheme.cursor("default")
+        if (cursor == null) {
+            // No cursor theme at all: a plain square, so the pointer can still be seen.
+            items += DrawItem.Color(CURSOR_BORDER, Rect(x, y, 12, 12), 0f, 0f, 0f)
+            items += DrawItem.Color(CURSOR_FILL, Rect(x + 1, y + 1, 10, 10), 1f, 1f, 1f)
+            return
+        }
+        val (image, untilNext) = cursor.frameAt((System.nanoTime() - shapeSince) / 1_000_000)
+        // Themes have a few sizes; the nearest one is stretched to the size wanted.
+        val scale = cursorTheme.size.toDouble() / image.nominalSize
+        val rect = Rect(
+            x - (image.hotspotX * scale).roundToInt(), y - (image.hotspotY * scale).roundToInt(),
+            (image.width * scale).roundToInt().coerceAtLeast(1), (image.height * scale).roundToInt().coerceAtLeast(1),
+        )
+        items += DrawItem.Image(CURSOR_IMAGE, cursorTexture(image), rect)
+        if (cursor.animated) nextCursorFrameIn(untilNext)
+    }
+
+    // --- the cursor ------------------------------------------------------------------------
+
+    /**
+     * The cursor theme and size, e.g. `CursorTheme.load("Bibata-Modern-Ice", 32)`. By default
+     * a theme that came with a library (caulis-cursor-bibata), else the system's.
+     */
+    var cursorTheme: CursorTheme = CursorTheme.load()
+        set(value) {
+            field = value
+            for (texture in cursorTextures.values) texture.close()
+            cursorTextures.clear()
+            cursorChanged()
+        }
+
+    /** Hide the cursor while typing (it comes back when the mouse moves). */
+    var hideCursorWhileTyping = false
+
+    /** Hide the cursor when the mouse has not moved for this long, in milliseconds (0 = never). */
+    var hideCursorAfterMillis = 0L
+        set(value) {
+            field = value
+            cursorActive()
+        }
+
+    // Changes only the cursor makes (a hidden cursor, the next frame of an animated one).
+    private var cursorVersion = 0L
+    private var cursorHidden = false
+    private val cursorTextures = HashMap<dev.caulis.core.cursor.CursorImage, GpuTexture>()
+    private var shownShape: String? = null
+    private var shapeSince = 0L
+    private var cursorFrameTimer: EventLoop.Timer? = null
+    private var cursorIdleTimer: EventLoop.Timer? = null
+
+    private fun cursorChanged() {
+        cursorVersion++
+        onChange()
+    }
+
+    /**
+     * The cursor shown now, by name ("default", "text", "grabbing", ...), or null while the
+     * program under the pointer shows a picture of its own (or none).
+     */
+    val cursorShape: String? get() = cursorShapeNow()
+
+    // The cursor the window manager shows: its own while it moves or resizes a window or
+    // nothing is under the pointer, else what the program there asked for (null = the
+    // program's own picture).
+    private fun cursorShapeNow(): String? {
+        val current = grab
+        return when {
+            current is Grab.Move -> "grabbing"
+            current is Grab.Resize -> resizeCursor(current.edges)
+            inOverview -> "default"
+            seat.pointerFocus == null -> "default"
+            else -> seat.cursorShape
+        }
+    }
+
+    private fun resizeCursor(edges: Int): String = when (edges) {
+        XdgToplevel.ResizeEdge.TOP -> "n-resize"
+        XdgToplevel.ResizeEdge.BOTTOM -> "s-resize"
+        XdgToplevel.ResizeEdge.LEFT -> "w-resize"
+        XdgToplevel.ResizeEdge.RIGHT -> "e-resize"
+        XdgToplevel.ResizeEdge.TOP_LEFT -> "nw-resize"
+        XdgToplevel.ResizeEdge.TOP_RIGHT -> "ne-resize"
+        XdgToplevel.ResizeEdge.BOTTOM_LEFT -> "sw-resize"
+        XdgToplevel.ResizeEdge.BOTTOM_RIGHT -> "se-resize"
+        else -> "all-resize"
+    }
+
+    // Each cursor picture goes to the GPU once.
+    private fun cursorTexture(image: dev.caulis.core.cursor.CursorImage): GpuTexture = cursorTextures.getOrPut(image) {
+        renderer.createTexture(image.width, image.height).also { texture ->
+            java.lang.foreign.Arena.ofConfined().use { arena ->
+                // Premultiplied 0xAARRGGBB ints are the BGRA bytes the texture wants.
+                texture.upload(arena.allocateFrom(java.lang.foreign.ValueLayout.JAVA_INT, *image.pixels), 0, image.height)
             }
         }
+    }
+
+    private fun nextCursorFrameIn(millis: Long) {
+        if (cursorFrameTimer != null) return
+        cursorFrameTimer = compositor.display.loop.after(millis.coerceIn(1, 1000)) {
+            cursorFrameTimer = null
+            cursorChanged()
+        }
+    }
+
+    // The mouse was used: the cursor shows again, and the idle countdown starts over.
+    private fun cursorActive() {
+        cursorIdleTimer?.cancel()
+        cursorIdleTimer = null
+        if (cursorHidden) {
+            cursorHidden = false
+            cursorChanged()
+        }
+        if (hideCursorAfterMillis > 0) {
+            cursorIdleTimer = compositor.display.loop.after(hideCursorAfterMillis) {
+                cursorIdleTimer = null
+                hideCursor()
+            }
+        }
+    }
+
+    private fun hideCursor() {
+        if (cursorHidden) return
+        cursorHidden = true
+        cursorChanged()
     }
 
     // --- programs nobody sees -------------------------------------------------------------
@@ -1906,6 +2046,10 @@ class Desktop(
         const val CURSOR_BORDER = "cursor border"
         const val CURSOR_FILL = "cursor fill"
         const val LOCK_BACKGROUND = "lock background"
+        const val CURSOR_IMAGE = "cursor"
+
+        // Ctrl, Shift, Alt, AltGr, Super (left and right): pressing them alone is not typing.
+        val MODIFIER_KEYS = setOf(29, 97, 42, 54, 56, 100, 125, 126)
 
         /**
          * How long a layout change waits for every window to draw in its new size before
