@@ -292,7 +292,43 @@ Fullscreen windows never get effects. The names come from `dev.caulis.core` (`Ef
 `Border`, `Shadow`, `Blur`) and `dev.caulis.render.Color`; IntelliJ adds the imports when you
 press Alt+Enter on a red name.
 
-## 10. Bigger or smaller: the scale
+## 10. Title bars
+
+Who draws them — the programs (the default), the compositor, or nobody:
+
+```kotlin
+titleBars = TitleBars.COMPOSITOR                                       // the same for every window
+titleBarsFor { if (it.appId == "mpv") TitleBars.NONE else null }       // some programs differently
+```
+
+The compositor's bars have the title, minimize / maximize / close buttons, drag to move,
+double click to maximize, and floating windows can be resized at their edges. Their look:
+
+```kotlin
+titleBarStyle = TitleBarStyle(
+    height = 32, font = "Inter", fontSize = 13, centerTitle = false,
+    buttons = listOf(TitleButton.CLOSE, TitleButton.MINIMIZE, TitleButton.MAXIMIZE), buttonsLeft = true, // like macOS
+    focusedBackground = Color.hex("#1e1e2e"), focusedText = Color.hex("#cdd6f4"),
+)
+```
+
+or entirely your own drawing (Java2D; sizes are pixels, `bar.scale` is the screen's scale):
+
+```kotlin
+titleBarStyle = TitleBarStyle(painter = { g, bar ->
+    g.color = java.awt.Color(if (bar.focused) 0x3355ff else 0x444444)
+    g.fillRect(0, 0, bar.width, bar.height)
+    g.color = java.awt.Color.WHITE
+    g.drawString(bar.title, (8 * bar.scale).toInt(), bar.height * 2 / 3)
+})
+```
+
+Programs are asked to leave their own bar out (Qt, Chromium and Electron apps such as
+Spotify, mpv, foot, Alacritty, GTK 3 apps do); the compositor draws one only when they
+agreed, so there are never two. GTK 4 / libadwaita apps keep theirs — it is part of their
+window. Fullscreen windows never have a title bar.
+
+## 11. Bigger or smaller: the scale
 
 ```kotlin
 scale = 1.25 // or 1.5, 2.0 ... — fractions are fine
@@ -304,7 +340,7 @@ whole scale and are shrunk a little). The cursor is loaded in its scaled size, w
 without gaps or overlaps at any fraction, and screenshots have the screen's full
 resolution. The scale can be changed while running.
 
-## 11. The cursor
+## 12. The cursor
 
 The template comes with the Bibata cursor. Choose another theme and size:
 
@@ -324,7 +360,7 @@ Programs show the same cursor: modern ones ask the compositor for it by name, ol
 are told the theme and size. If the theme you name is not installed, the log says so and
 lists the ones that are.
 
-## 12. Locking the screen
+## 13. Locking the screen
 
 Super+L starts the screen locker — `swaylock` unless you choose another:
 
@@ -340,7 +376,7 @@ socket name the compositor printed when it started — then come back (Ctrl+Alt+
 whichever console the session is on). Ctrl+Alt+Backspace still quits the compositor, as
 always.
 
-## 13. Screenshots and screen sharing
+## 14. Screenshots and screen sharing
 
 Programs made for wlroots-style compositors work as they are:
 
@@ -381,7 +417,7 @@ windows can be shared too; a shared window keeps drawing at full speed even whil
 hidden or on another workspace. While the screen is locked, pictures show the lock and no
 window is given out.
 
-## 14. Touchpad gestures
+## 15. Touchpad gestures
 
 | Gesture | What it does |
 | --- | --- |
@@ -398,7 +434,7 @@ overviewPinchFingers = 4      // 0 = off
 swipe(fingers = 3, Direction.UP) { desktop.toggleOverview() }
 ```
 
-## 15. On the real screen
+## 16. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 
@@ -415,7 +451,7 @@ exitAfterSeconds = 60
 
 Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles.
 
-## 16. Your own layout
+## 17. Your own layout
 
 Describe it with building blocks — no arithmetic:
 

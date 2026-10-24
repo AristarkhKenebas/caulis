@@ -93,6 +93,7 @@ class ScreenTestServer : AutoCloseable {
                                 SessionLockManager(display).listener = desktop
                                 dev.caulis.core.input.CursorShape(display, seat)
                                 XdgOutputManager(display)
+                                ServerDecorations(display, desktop)
                                 ScreenCapture(display, desktop, renderer, ForeignToplevels(display, desktop))
                                 output = Output(display, "TEST-1", "Test screen", WIDTH, HEIGHT, 60_000)
                                 runScreen(eventLoop, renderer, desktop)

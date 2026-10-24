@@ -7,6 +7,7 @@ import dev.caulis.core.Desktop
 import dev.caulis.core.Effects
 import dev.caulis.core.ForeignToplevels
 import dev.caulis.core.ScreenCapture
+import dev.caulis.core.ServerDecorations
 import dev.caulis.core.FrameStats
 import dev.caulis.core.LayerShell
 import dev.caulis.core.LinuxDmabuf
@@ -77,6 +78,7 @@ internal class Running(
         SessionLockManager(display).listener = desktop
         CursorShape(display, seat)
         XdgOutputManager(display)
+        ServerDecorations(display, desktop)
         ScreenCapture(display, desktop, renderer, ForeignToplevels(display, desktop))
         applyCursor()
         desktop.layout = config.layout
@@ -91,6 +93,11 @@ internal class Running(
         // The user's rules and events (dialogs and fixed-size windows always float).
         val defaultRule = desktop.floatRule
         desktop.effects = config.effects
+        desktop.titleBars = config.titleBars
+        desktop.titleBarStyle = config.titleBarStyle
+        if (config.titleBarRules.isNotEmpty()) {
+            desktop.titleBarsFor = { window -> config.titleBarRules.firstNotNullOfOrNull { rule -> safely("titleBarsFor", null) { rule(window) } } }
+        }
         desktop.animationMillis = config.animationMillis
         desktop.scale = config.scale
         desktop.windowEffects = { window ->

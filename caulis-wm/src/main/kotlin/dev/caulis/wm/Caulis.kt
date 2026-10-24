@@ -4,6 +4,8 @@ import dev.caulis.core.Desktop
 import dev.caulis.core.Effects
 import dev.caulis.core.LayerSurface
 import dev.caulis.core.Scratchpad
+import dev.caulis.core.TitleBarStyle
+import dev.caulis.core.TitleBars
 import dev.caulis.core.Window
 import dev.caulis.core.cursor.CursorTheme
 import dev.caulis.log.Log
@@ -94,6 +96,35 @@ class Caulis {
             field = value
             running?.applyScale()
         }
+
+    /**
+     * Who draws windows' title bars: [TitleBars.PROGRAM] (each program its own, the default),
+     * [TitleBars.COMPOSITOR] (the same for all, see [titleBarStyle]) or [TitleBars.NONE].
+     * Programs that do not take part (GTK 4 apps) always draw their own — never two bars.
+     */
+    var titleBars: TitleBars = TitleBars.PROGRAM
+        set(value) {
+            field = value
+            running?.desktop?.titleBars = value
+        }
+
+    /** How the compositor's title bars look: height, font, colours, buttons, or a painter of your own. */
+    var titleBarStyle: TitleBarStyle = TitleBarStyle()
+        set(value) {
+            field = value
+            running?.desktop?.titleBarStyle = value
+        }
+
+    internal val titleBarRules = ArrayList<(Window) -> TitleBars?>()
+
+    /**
+     * Title bars for some programs: `titleBarsFor { if (it.appId == "spotify") TitleBars.COMPOSITOR else null }`
+     * (null = [titleBars]). The first rule with an answer wins.
+     */
+    @JvmSynthetic
+    fun titleBarsFor(rule: (Window) -> TitleBars?) {
+        titleBarRules += rule
+    }
 
     /** Keyboard layouts as for `setxkbmap`, e.g. "us,ru", and options, e.g. "grp:win_space_toggle". */
     var keyboardLayouts = "us"
@@ -349,6 +380,8 @@ class Caulis {
     fun terminal(command: String): Caulis = apply { terminal = command }
     fun lockCommand(command: String): Caulis = apply { lockCommand = command }
     fun scale(scale: Double): Caulis = apply { this.scale = scale }
+    fun titleBars(titleBars: TitleBars): Caulis = apply { this.titleBars = titleBars }
+    fun titleBarsFor(rule: java.util.function.Function<Window, TitleBars?>): Caulis = apply { titleBarsFor { rule.apply(it) } }
     fun logLevel(level: Int): Caulis = apply { logLevel = level }
     fun logArea(area: String, level: Int): Caulis = apply { log(area, level) }
     fun cursor(theme: String?, size: Int?): Caulis = apply {

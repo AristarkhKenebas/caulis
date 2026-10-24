@@ -285,6 +285,13 @@ class Window internal constructor(val resource: XdgToplevel, val shell: ShellSur
     /** Placed by a tiling layout (apps then draw without shadows and rounded corners). */
     var tiled = false
 
+    /**
+     * True if the program agreed not to draw its own title bar (xdg-decoration or the KDE
+     * protocol): the compositor draws one, or none. False for programs that draw their own.
+     */
+    var serverDecorated = false
+        internal set
+
     private var capabilitiesSent = false
 
     private var configuredWidth = 0

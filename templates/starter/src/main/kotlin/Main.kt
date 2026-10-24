@@ -1,4 +1,5 @@
 import dev.caulis.core.Effects
+import dev.caulis.core.TitleBars
 import dev.caulis.tiling.Dwindle
 import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Gaps
@@ -16,6 +17,10 @@ fun main() = caulis {
     // How windows look: round corners, a border around the focused one, soft shadows.
     // Effects.NONE turns it all off; blur and transparency: see the guide.
     effects = Effects.MODERN
+
+    // Title bars drawn by the compositor, the same for all windows (TitleBars.PROGRAM: each
+    // program its own; TitleBars.NONE: none). Their look: titleBarStyle, see the guide.
+    titleBars = TitleBars.COMPOSITOR
 
     // The cursor: Bibata comes with the project ("Bibata-Modern-Ice" is the white one,
     // "Bibata-Modern-Amber" the amber one); Caulis's own sharp ones are "Caulis" and

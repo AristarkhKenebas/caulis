@@ -122,7 +122,7 @@ internal sealed class DrawItem {
     ) : DrawItem()
 
     /** A picture of our own (a cursor from the theme). */
-    class Image(override val key: Any, val texture: GpuTexture, override val rect: Rect) : DrawItem()
+    class Image(override val key: Any, val texture: GpuTexture, override val rect: Rect, val clip: Rect? = null, val radius: Float = 0f) : DrawItem()
 
     /** A window's shadow (cast by [box], blurred over [softness]; [rect] is all it touches). */
     data class Shadow(

@@ -48,6 +48,9 @@ class TestClient(val connection: Connection) : AutoCloseable {
         var height = 0
         var states: Set<Int> = emptySet()
 
+        /** True once the compositor asked it to close (e.g. its close button was clicked). */
+        @Volatile var closeRequested = false
+
         /** Draws a picture of the size the compositor asked for (or [defaultWidth] x [defaultHeight]). */
         fun draw(defaultWidth: Int = 64, defaultHeight: Int = 64) = draw(surface, width.takeIf { it > 0 } ?: defaultWidth, height.takeIf { it > 0 } ?: defaultHeight)
     }
@@ -64,6 +67,10 @@ class TestClient(val connection: Connection) : AutoCloseable {
                 window.height = height
                 val values = ByteBuffer.wrap(states).order(ByteOrder.nativeOrder())
                 window.states = buildSet { while (values.remaining() >= 4) add(values.int) }
+            }
+
+            override fun close(proxy: XdgToplevel) {
+                window.closeRequested = true
             }
         }
         xdgSurface.events = object : XdgSurface.Events {
