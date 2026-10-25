@@ -374,6 +374,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getPixelWidth ()I
 	public final fun getPlacementFor ()Lkotlin/jvm/functions/Function1;
 	public final fun getPointerConstraints ()Ldev/caulis/core/input/PointerConstraints;
+	public final fun getPointerWindow ()Ldev/caulis/core/Window;
 	public final fun getPointerX ()D
 	public final fun getPointerY ()D
 	public final fun getPreviousWorkspaceNumber ()Ljava/lang/Integer;

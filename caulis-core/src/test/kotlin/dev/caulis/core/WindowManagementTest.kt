@@ -34,6 +34,35 @@ class WindowManagementTest {
     }
 
     @Test
+    fun `a window pressed in keeps the pointer outside it until the button is let go`() = withServer { server, client ->
+        server.onServer { d ->
+            d.layout = dev.caulis.tiling.Columns(dev.caulis.tiling.Gaps(0, 0))
+            d.animationMillis = 0
+        }
+        val left = client.window()
+        left.draw()
+        val right = client.window()
+        right.draw()
+        client.waitFor { server.onServer { d -> d.windows.size == 2 && d.windows.all { it.x >= 0 } } }
+        client.waitFor { server.onServer { d -> d.windows.map { it.x }.toSet().size } == 2 }
+        // Each drawn at the size of its column (the first was drawn before the screen was shared).
+        client.waitFor { left.width in 1 until 640 && right.width in 1 until 640 }
+        left.draw()
+        right.draw()
+        client.waitFor { server.onServer { d -> d.windows.all { it.visibleRect.width < 640 } } }
+        server.onServer { d ->
+            val (a, b) = d.windows.sortedBy { it.x }
+            d.pointerMoved(0, a.x + 20.0, a.y + 20.0)
+            assertEquals(a, d.pointerWindow)
+            d.pointerButton(0, BTN_LEFT, true)
+            d.pointerMoved(0, b.x + 20.0, b.y + 20.0) // selecting past the edge
+            assertEquals(a, d.pointerWindow, "the window the press was in keeps it")
+            d.pointerButton(0, BTN_LEFT, false)
+            assertEquals(b, d.pointerWindow, "let go: the one under the pointer gets it")
+        }
+    }
+
+    @Test
     fun `an app can start maximized`() = withServer { _, client ->
         val window = client.window { toplevel -> toplevel.setMaximized() }
         assertTrue(XdgToplevel.State.MAXIMIZED in window.states, "the first configure already says so")

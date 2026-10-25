@@ -22,6 +22,7 @@ fun main() = caulis {
     keyboardLayouts = "us,ru"
     keyboardOptions = "grp:win_space_toggle,caps:none"
     input.touchpads.naturalScroll = true // the content follows the fingers, as on a phone
+    focusFollowsMouse = true // the window under the pointer gets the keyboard (not while a button is held)
     terminal = "foot"
     layout = Dwindle(Gaps(inner = 8, outer = 10))
     effects = Effects.MODERN

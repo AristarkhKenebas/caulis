@@ -3607,6 +3607,15 @@ class Desktop(
             onChange() // only our cursor moves; programs do not see it
             return
         }
+        // Buttons held since a press in a program: it keeps the pointer, wherever it goes.
+        pressedIn?.let { (surface, origin) ->
+            if (buttonsHeld > 0 && !locked && surface.resource.isAlive) {
+                seat.pointerMotion(timeMillis, surface, pointerX - origin.first, pointerY - origin.second)
+                onChange()
+                return
+            }
+            pressedIn = null
+        }
         // Over one of our title bars: the program does not see the pointer, the bar may light up.
         val decoration = decorationAt(pointerX, pointerY)
         val hover = (decoration as? Decoration.Bar)?.let { it.window to it.button }
@@ -3670,6 +3679,8 @@ class Desktop(
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean, passToApps: Boolean = true) {
         inputLog.trace { "Button $button ${if (pressed) "pressed" else "released"} at ${pointerX.toInt()},${pointerY.toInt()}${if (passToApps) "" else " (for the window manager)"}" }
         buttonsHeld = (buttonsHeld + if (pressed) 1 else -1).coerceAtLeast(0)
+        // The last button let go: the program the press was in lets go of the pointer.
+        val releasedFrom = if (!pressed && buttonsHeld == 0) pressedIn.also { pressedIn = null } else null
         cursorActive()
         if (!passToApps) return
         if (locked) {
@@ -3731,9 +3742,25 @@ class Desktop(
                 val clicked = monitorAt(pointerX, pointerY)
                 if (clicked !== focusedMonitor && hit?.root?.roleObject !is LayerSurface) focusMonitor(clicked)
             }
+            // The first button: the pointer stays with this program until the last one is let
+            // go, outside its window too (selecting text past the edge, dragging a slider).
+            if (buttonsHeld == 1 && hit != null && hit.surface === seat.pointerFocus) {
+                pressedIn = hit.surface to (pointerX - hit.localX to pointerY - hit.localY)
+            }
         }
         seat.pointerButton(timeMillis, button, pressed)
+        if (releasedFrom != null) movePointer(timeMillis, pointerX, pointerY) // the one under the pointer gets it now
     }
+
+    /**
+     * The window that gets the pointer now: the one under it, or — while buttons are held —
+     * the one they were pressed in (null: none, a panel, or our own title bar).
+     */
+    val pointerWindow: Window? get() = seat.pointerFocus?.let(::ownerOf) as? Window
+
+    // The surface the held buttons were pressed in, and where its top left corner was (desktop
+    // units): pointer moves go to it until they are let go (Wayland's implicit grab).
+    private var pressedIn: Pair<Surface, Pair<Double, Double>>? = null
 
     fun pointerAxis(timeMillis: Int, vertical: Boolean, value: Double, value120: Int) {
         inputLog.trace { "Scroll ${if (vertical) "vertical" else "horizontal"} $value ($value120/120)" }
