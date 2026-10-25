@@ -209,8 +209,8 @@ class OffOrType(val value: SettingType) : SettingType() {
     object Off
 }
 
-/** One field of a [SectionType]. */
-class Field(val name: String, val type: SettingType, val description: String)
+/** One field of a [SectionType]; a [required] one must be there. */
+class Field(val name: String, val type: SettingType, val description: String, val required: Boolean = false)
 
 /** An object with known fields (all of them optional); unknown names are mistakes. */
 class SectionType(val fields: List<Field>, private val description: String = "a section") : SettingType() {
@@ -230,6 +230,7 @@ class SectionType(val fields: List<Field>, private val description: String = "a 
             }
             out[name] = field.type.read(value, at, problems) ?: continue
         }
+        for (field in fields) if (field.required && field.name !in given) problems.add(path, json, "it needs \"${field.name}\"")
         return if (problems.all.size == before) out else null
     }
 
@@ -244,7 +245,8 @@ class SectionType(val fields: List<Field>, private val description: String = "a 
 
     override fun jsonSchema() =
         """{"type":"object","additionalProperties":false,"properties":{""" +
-            fields.joinToString(",") { "${quote(it.name)}:" + it.type.jsonSchema().dropLast(1) + ""","description":${quote(it.description)}}""" } + "}}"
+            fields.joinToString(",") { "${quote(it.name)}:" + it.type.jsonSchema().dropLast(1) + ""","description":${quote(it.description)}}""" } + "}" +
+            fields.filter { it.required }.takeIf { it.isNotEmpty() }?.joinToString(",", ""","required":[""", "]") { quote(it.name) }.orEmpty() + "}"
 
     private fun distance(a: String, b: String): Int {
         val d = Array(a.length + 1) { IntArray(b.length + 1) }

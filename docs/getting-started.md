@@ -1294,6 +1294,45 @@ caulis.on("lid", function(closed) if closed then caulis.run("lock") end end)
 
 (In Lua it is `repeating`: `repeat` is a word of the language.)
 
+## 29. Everyday things: idle, screens, clipboard managers, games
+
+These work by themselves — the programs that use them just do:
+
+| | What | Programs |
+|---|---|---|
+| Idle | told after so long without input, and when someone is back | swayidle, hypridle |
+| Keep awake | a window on screen keeps the computer from counting as idle | mpv, Firefox, VLC playing |
+| Screens off and on | DPMS | swayidle, wlopm |
+| Monitors arranged | see every monitor (on or off), change mode, place, scale, turn | kanshi, wlr-randr, nwg-displays, way-displays |
+| Night light | warmer colours | wlsunset, gammastep |
+| Clipboard managers | read and set the clipboard without a window | cliphist, clipman, wl-copy / wl-paste |
+| Middle-click paste | what is selected is pasted with the middle button | GTK, Qt, terminals |
+| Focus requests | a link opens the browser and brings it forward; anything else asking only marks its window urgent | xdg-activation: Firefox, Telegram, ... |
+| Games, 3D | the pointer held in place or inside the window, and the mouse's own movement | pointer-constraints, relative-pointer: games, Blender, Wine |
+
+Your own say:
+
+```kotlin
+onIdle(300, resume = { run("dpms on") }) { run("dpms off") }   // screens off after 5 minutes
+onIdle(600) { lock() }                                           // locked after 10
+fullscreenKeepsAwake = true        // a fullscreen window keeps it awake too (videos, games)
+focusOnActivate = false            // focus requests only mark windows urgent
+wakeScreensOnInput = true          // a key or the mouse switches dark screens on (the default)
+monitor("DP-2") { transform = Transform.ROTATE_90 }   // a screen standing on its side
+```
+
+Actions for keys and scripts: `dpms off` / `dpms on` / `dpms toggle` (all screens, or one:
+`dpms off HDMI-A-1`), `keep-awake on|off|toggle` (no idle timers while on), `focus-urgent`.
+Windows that want attention are `urgent` on the IPC socket (bars show them). In config.json:
+
+```json
+{
+  "idle": [ { "after": 300, "action": "dpms off", "resume": "dpms on" }, { "after": 600, "action": "lock" } ],
+  "fullscreenKeepsAwake": true,
+  "monitors": { "DP-2": { "transform": "90" } }
+}
+```
+
 ## When something goes wrong
 
 ### Look in the log

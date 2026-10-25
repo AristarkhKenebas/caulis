@@ -77,15 +77,20 @@ class CaulisTest {
     }
 
     // Runs [configure]d Caulis nested in a test server until [test] is done.
-    internal fun withCaulis(configure: Caulis.() -> Unit, test: (Caulis, TestClient) -> Unit) {
+    // [headless]: on monitors of its own that are nowhere on screen (they can change mode, turn, switch off).
+    internal fun withCaulis(configure: Caulis.() -> Unit, headless: Boolean = false, test: (Caulis, TestClient) -> Unit) {
         assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
         val socketDirectory = Files.createTempDirectory("caulis-wm-test")
         TestServer(gpu = true).use { outer ->
             val caulis = Caulis().apply {
                 useConfigFile = false // never the config.json of whoever runs the tests
                 configure()
-                mode = Caulis.Mode.NESTED
-                nestedIn = outer.socketPath
+                if (headless) {
+                    mode = Caulis.Mode.HEADLESS
+                } else {
+                    mode = Caulis.Mode.NESTED
+                    nestedIn = outer.socketPath
+                }
                 this.socketDirectory = socketDirectory
                 exitAfterSeconds = 30 // never hang the test run
             }

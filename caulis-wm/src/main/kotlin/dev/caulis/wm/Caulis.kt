@@ -371,6 +371,9 @@ class Caulis {
 
         /** False: the monitor is not used at all. */
         var enabled = true
+
+        /** How it is turned: Transform.ROTATE_90 for a screen standing on its side (null: as it is). */
+        var transform: dev.caulis.core.Transform? = null
     }
 
     internal val monitorSettings = LinkedHashMap<String, MonitorSettings>()
@@ -722,6 +725,36 @@ class Caulis {
     /** The keyboard gets to the window under the pointer as soon as the pointer is over it. */
     var focusFollowsMouse = false
 
+    /** A window asking for the focus with a good token gets it (false: it is only marked urgent). */
+    var focusOnActivate = true
+
+    /**
+     * A key, a click or the pointer moving switches screens on again that were switched off
+     * (dpms off) — after a second, so the key that switched them off does not.
+     */
+    var wakeScreensOnInput = true
+
+    /** A fullscreen window on screen keeps the computer awake (videos, games): no idle timers then. */
+    var fullscreenKeepsAwake = false
+
+    internal class IdleWatch(val seconds: Long, val idle: Caulis.() -> Unit, val resume: Caulis.() -> Unit)
+    internal val idleWatches = ArrayList<IdleWatch>()
+
+    /**
+     * Runs [idle] after [seconds] without a key, a click or the pointer moving, and [resume]
+     * when someone is back. Programs that keep a window on screen (video players), and
+     * [fullscreenKeepsAwake], hold it off:
+     *
+     * ```
+     * onIdle(300, resume = { run("dpms on") }) { run("dpms off") }
+     * onIdle(600) { lock() }
+     * ```
+     */
+    fun onIdle(seconds: Long, resume: Caulis.() -> Unit = {}, idle: Caulis.() -> Unit) {
+        require(seconds in 1..86_400) { "onIdle: 1 to 86400 seconds, not $seconds" }
+        idleWatches += IdleWatch(seconds, idle, resume)
+    }
+
     internal val lidActions = ArrayList<Caulis.(Boolean) -> Unit>()
 
     /** Runs [action] when the laptop's lid closes (true) or opens (false); on the screen only. */
@@ -919,7 +952,7 @@ class Caulis {
     internal fun addableLists(): List<MutableList<*>> = listOf(
         titleBarRules, noticeListeners, bindings, startActions, floatRules, effectRules, panelEffectRules,
         scratchpads, swipes, windowOpened, windowClosed, focusChanged, workspaceChanged, reloadActions, rules,
-        workspaceRules, lidActions,
+        workspaceRules, lidActions, idleWatches,
     )
 
     /** The window manager (workspaces, focus, layouts). Only while running. */

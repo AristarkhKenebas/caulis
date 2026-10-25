@@ -1,0 +1,217 @@
+package dev.caulis.wm
+
+import dev.caulis.protocol.client.extidlenotifyv1.ExtIdleNotificationV1
+import dev.caulis.protocol.client.extidlenotifyv1.ExtIdleNotifierV1
+import dev.caulis.protocol.client.idleinhibitunstablev1.ZwpIdleInhibitManagerV1
+import dev.caulis.protocol.client.pointerconstraintsunstablev1.ZwpLockedPointerV1
+import dev.caulis.protocol.client.pointerconstraintsunstablev1.ZwpPointerConstraintsV1
+import dev.caulis.protocol.client.relativepointerunstablev1.ZwpRelativePointerManagerV1
+import dev.caulis.protocol.client.relativepointerunstablev1.ZwpRelativePointerV1
+import dev.caulis.protocol.client.wlroutputmanagementunstablev1.ZwlrOutputConfigurationV1
+import dev.caulis.protocol.client.wlroutputmanagementunstablev1.ZwlrOutputHeadV1
+import dev.caulis.protocol.client.wlroutputmanagementunstablev1.ZwlrOutputManagerV1
+import dev.caulis.protocol.client.wlroutputmanagementunstablev1.ZwlrOutputModeV1
+import dev.caulis.protocol.client.wlroutputpowermanagementunstablev1.ZwlrOutputPowerManagerV1
+import dev.caulis.protocol.client.wlroutputpowermanagementunstablev1.ZwlrOutputPowerV1
+import dev.caulis.protocol.client.xdgactivationv1.XdgActivationTokenV1
+import dev.caulis.protocol.client.xdgactivationv1.XdgActivationV1
+import org.junit.jupiter.api.Assumptions.assumeTrue
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.concurrent.TimeUnit
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+
+/** The protocols of everyday use: clipboard managers, focus requests, idle, games, monitors. */
+class DailyProtocolsTest {
+
+    private val harness = CaulisTest()
+
+    // Runs wl-copy / wl-paste against the compositor (they use data-control, needing no window).
+    private fun tool(socket: Path, vararg command: String, input: String? = null): String {
+        val process = ProcessBuilder(*command).apply {
+            environment()["WAYLAND_DISPLAY"] = socket.toString()
+            environment()["XDG_RUNTIME_DIR"] = socket.parent.toString()
+            redirectErrorStream(true)
+        }.start()
+        input?.let { process.outputStream.use { out -> out.write(it.toByteArray()) } } ?: process.outputStream.close()
+        // wl-copy stays to serve what it copied: only paste is waited for.
+        if (command[0] == "wl-copy") {
+            Thread.sleep(500)
+            return ""
+        }
+        assertTrue(process.waitFor(5, TimeUnit.SECONDS), "${command.joinToString(" ")} finished")
+        return process.inputStream.readAllBytes().decodeToString()
+    }
+
+    @Test
+    fun `clipboard managers copy and paste, the selection too`() = with(harness) {
+        assumeTrue(listOf("wl-copy", "wl-paste").all { name -> System.getenv("PATH").orEmpty().split(':').any { Files.isExecutable(Path.of(it, name)) } }, "no wl-clipboard")
+        withCaulis({}) { caulis, _ ->
+            val socket = caulis.socketDirectory!!.resolve(caulis.onLoop { it.socket })
+            tool(socket, "wl-copy", input = "from the clipboard")
+            assertEquals("from the clipboard", tool(socket, "wl-paste", "--no-newline"))
+            tool(socket, "wl-copy", "--primary", input = "selected")
+            assertEquals("selected", tool(socket, "wl-paste", "--primary", "--no-newline"))
+            assertEquals("from the clipboard", tool(socket, "wl-paste", "--no-newline"), "two separate things")
+        }
+    }
+
+    @Test
+    fun `a window asking for the focus gets it with a good token, else it is marked urgent`() = with(harness) {
+        withCaulis({}) { caulis, client ->
+            val first = client.window { it.setAppId("first") }.also { it.draw() }
+            client.waitFor { caulis.onLoop { r -> r.desktop.focusedWindow?.appId } == "first" }
+            val second = client.window { it.setAppId("second") }.also { it.draw() }
+            client.waitFor { caulis.onLoop { r -> r.desktop.focusedWindow?.appId } == "second" }
+
+            val activation = client.bind("xdg_activation_v1", XdgActivationV1, 1)
+            fun token(): String {
+                var received: String? = null
+                val request = activation.getActivationToken()
+                request.events = object : XdgActivationTokenV1.Events {
+                    override fun done(proxy: XdgActivationTokenV1, token: String) {
+                        received = token
+                    }
+                }
+                request.commit()
+                client.waitFor { received != null }
+                return received!!
+            }
+            // The program has the keyboard: its token is good.
+            activation.activate(token(), first.surface)
+            client.waitFor { caulis.onLoop { r -> r.desktop.focusedWindow?.appId } == "first" }
+
+            // A made-up token: only "urgent".
+            activation.activate("not a token", second.surface)
+            client.waitFor { caulis.onLoop { r -> r.desktop.allWindows.single { it.appId == "second" }.urgent } }
+            assertEquals("first", caulis.onLoop { r -> r.desktop.focusedWindow?.appId })
+            caulis.onLoop { r -> r.config.run("focus-urgent") }
+            assertEquals("second", caulis.onLoop { r -> r.desktop.focusedWindow?.appId })
+            assertFalse(caulis.onLoop { r -> r.desktop.focusedWindow!!.urgent }, "the focus clears it")
+        }
+    }
+
+    @Test
+    fun `idle - told after a while without input, and when someone is back, unless a window keeps it awake`() = with(harness) {
+        withCaulis({}) { caulis, client ->
+            val notifier = client.bind("ext_idle_notifier_v1", ExtIdleNotifierV1, 1)
+            var idle = false
+            var resumed = false
+            notifier.getIdleNotification(300, client.seat).events = object : ExtIdleNotificationV1.Events {
+                override fun idled(proxy: ExtIdleNotificationV1) { idle = true }
+                override fun resumed(proxy: ExtIdleNotificationV1) { resumed = true }
+            }
+            client.waitFor { idle }
+            caulis.onLoop { r -> r.key(0, 30, true); r.key(0, 30, false) }
+            client.waitFor { resumed }
+
+            // A video player keeps its window on screen: no idle.
+            val video = client.window().also { it.draw() }
+            client.waitFor { caulis.onLoop { r -> r.desktop.windows.isNotEmpty() } }
+            client.bind("zwp_idle_inhibit_manager_v1", ZwpIdleInhibitManagerV1, 1).createInhibitor(video.surface)
+            var idleAgain = false
+            notifier.getIdleNotification(200, client.seat).events = object : ExtIdleNotificationV1.Events {
+                override fun idled(proxy: ExtIdleNotificationV1) { idleAgain = true }
+                override fun resumed(proxy: ExtIdleNotificationV1) {}
+            }
+            val until = System.nanoTime() + 700_000_000
+            client.waitFor { System.nanoTime() > until }
+            assertFalse(idleAgain, "kept awake")
+        }
+    }
+
+    @Test
+    fun `a game locks the pointer and gets the movement itself`() = with(harness) {
+        withCaulis({}) { caulis, client ->
+            val game = client.window().also { it.draw(400, 300) }
+            client.waitFor { caulis.onLoop { r -> r.desktop.focusedWindow != null } }
+            val pointer = client.seat.getPointer()
+            var moved = 0.0
+            client.bind("zwp_relative_pointer_manager_v1", ZwpRelativePointerManagerV1, 1).getRelativePointer(pointer).events =
+                object : ZwpRelativePointerV1.Events {
+                    override fun relativeMotion(proxy: ZwpRelativePointerV1, utimeHi: Int, utimeLo: Int, dx: Double, dy: Double, dxUnaccel: Double, dyUnaccel: Double) {
+                        moved += dxUnaccel
+                    }
+                }
+            // The pointer over the game first.
+            val (x, y) = caulis.onLoop { r -> r.desktop.windows.single().let { it.x + 50.0 to it.y + 50.0 } }
+            caulis.onLoop { r -> r.desktop.pointerMoved(0, x, y) }
+            var locked = false
+            client.bind("zwp_pointer_constraints_v1", ZwpPointerConstraintsV1, 1)
+                .lockPointer(game.surface, pointer, null, ZwpPointerConstraintsV1.Lifetime.PERSISTENT).events = object : ZwpLockedPointerV1.Events {
+                override fun locked(proxy: ZwpLockedPointerV1) { locked = true }
+                override fun unlocked(proxy: ZwpLockedPointerV1) { locked = false }
+            }
+            client.waitFor { locked }
+            caulis.onLoop { r -> r.desktop.pointerMovedBy(0, 30.0, 0.0, 20.0, 0.0) }
+            client.waitFor { moved == 20.0 }
+            assertEquals(x, caulis.onLoop { r -> r.desktop.pointerX }, "the pointer stays where it is")
+        }
+    }
+
+    @Test
+    fun `programs arrange headless monitors and switch screens off`() = with(harness) {
+        withCaulis({}, headless = true) { caulis, client ->
+            val manager = client.bind("zwlr_output_manager_v1", ZwlrOutputManagerV1, 4)
+            val heads = LinkedHashMap<ZwlrOutputHeadV1, String>()
+            val modes = ArrayList<Pair<ZwlrOutputModeV1, Pair<Int, Int>>>()
+            var latest = 0
+            manager.events = object : ZwlrOutputManagerV1.Events {
+                override fun head(proxy: ZwlrOutputManagerV1, head: ZwlrOutputHeadV1) {
+                    head.events = object : ZwlrOutputHeadV1.Events {
+                        override fun name(proxy: ZwlrOutputHeadV1, name: String) { heads[proxy] = name }
+                        override fun mode(proxy: ZwlrOutputHeadV1, mode: ZwlrOutputModeV1) {
+                            mode.events = object : ZwlrOutputModeV1.Events {
+                                override fun size(proxy: ZwlrOutputModeV1, width: Int, height: Int) { modes += proxy to (width to height) }
+                            }
+                        }
+                    }
+                }
+
+                override fun done(proxy: ZwlrOutputManagerV1, serial: Int) {
+                    latest = serial
+                }
+            }
+            client.waitFor { latest != 0 && heads.isNotEmpty() }
+            assertEquals(listOf("HEADLESS-1"), heads.values.toList())
+            val (mode, _) = modes.first { it.second == (1280 to 720) }
+
+            var result = ""
+            val configuration = manager.createConfiguration(latest)
+            configuration.events = object : ZwlrOutputConfigurationV1.Events {
+                override fun succeeded(proxy: ZwlrOutputConfigurationV1) { result = "ok" }
+                override fun failed(proxy: ZwlrOutputConfigurationV1) { result = "failed" }
+                override fun cancelled(proxy: ZwlrOutputConfigurationV1) { result = "cancelled" }
+            }
+            val head = configuration.enableHead(heads.keys.single())
+            head.setMode(mode)
+            head.setTransform(1) // 90: standing on its side
+            head.setScale(2.0)
+            configuration.apply()
+            client.waitFor { result != "" }
+            assertEquals("ok", result)
+            caulis.onLoop { r ->
+                val monitor = r.desktop.monitors.single()
+                assertEquals(720 to 1280, monitor.pixelWidth to monitor.pixelHeight, "turned: width and height traded")
+                assertEquals(2.0, monitor.scale)
+                assertEquals(dev.caulis.core.Transform.ROTATE_90, monitor.transform)
+            }
+
+            var power = -1
+            client.bind("zwlr_output_power_manager_v1", ZwlrOutputPowerManagerV1, 1).getOutputPower(client.output!!).also { p ->
+                p.events = object : ZwlrOutputPowerV1.Events {
+                    override fun mode(proxy: ZwlrOutputPowerV1, mode: Int) { power = mode }
+                }
+                client.waitFor { power == 1 }
+                p.setMode(0)
+            }
+            client.waitFor { power == 0 }
+            assertFalse(caulis.onLoop { r -> r.desktop.monitors.single().powered })
+            caulis.onLoop { r -> r.config.run("dpms on") }
+            client.waitFor { power == 1 }
+        }
+    }
+}

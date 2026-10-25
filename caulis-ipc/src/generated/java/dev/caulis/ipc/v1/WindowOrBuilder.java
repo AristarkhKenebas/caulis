@@ -143,4 +143,14 @@ public interface WindowOrBuilder extends
    * @return The x11.
    */
   boolean getX11();
+
+  /**
+   * <pre>
+   * It wants attention (it asked for the focus and did not get it).
+   * </pre>
+   *
+   * <code>bool urgent = 14;</code>
+   * @return The urgent.
+   */
+  boolean getUrgent();
 }

@@ -203,6 +203,42 @@ class Desktop(
         for (each in monitorList) monitorChanged(each)
     }
 
+    /**
+     * Turns [monitor] ([Transform.ROTATE_90] for a screen standing on its side): its size and
+     * what programs are told follow. The backend draws it turned (if it can, see [MonitorControl.canTransform]).
+     */
+    fun setTransform(monitor: Monitor, transform: Transform) {
+        if (transform == monitor.transform) return
+        val swap = transform.sideways != monitor.transform.sideways
+        monitor.transform = transform
+        monitor.output?.setTransform(transform)
+        layoutLog.info { "Monitor ${monitor.name} turned: $transform" }
+        if (swap) resizeMonitor(monitor, monitor.pixelHeight, monitor.pixelWidth) else for (each in monitorList) monitorChanged(each)
+        changed()
+    }
+
+    /** Switches [monitor]'s screen off (false) or on again (DPMS); false if the backend cannot. */
+    fun setPower(monitor: Monitor, on: Boolean): Boolean {
+        if (monitor.powered == on) return true
+        val done = monitor.control?.setPower(on) ?: false
+        if (done) {
+            monitor.powered = on
+            layoutLog.info { "Monitor ${monitor.name} ${if (on) "on" else "off"}" }
+            if (on) for (view in views) if (view.monitor === monitor) view.damageEverything()
+            changed()
+            powerListeners.toList().forEach { it(monitor) }
+        }
+        return done
+    }
+
+    private val powerListeners = ArrayList<(Monitor) -> Unit>()
+
+    /** Runs [listener] when a monitor's screen is switched off or on. */
+    fun onPowerChanged(listener: (Monitor) -> Unit): AutoCloseable {
+        powerListeners += listener
+        return AutoCloseable { powerListeners -= listener }
+    }
+
     /** Puts [monitor] at [x], [y] on the desktop (units); null: to the right of the others. */
     fun moveMonitor(monitor: Monitor, x: Int?, y: Int?) {
         monitor.fixedPosition = if (x != null && y != null) x to y else null
@@ -2926,7 +2962,21 @@ class Desktop(
      * Raises [window], marks it active and gives it the keyboard (null = nothing focused).
      * A minimized window comes back; a window on another workspace brings that workspace.
      */
+    /** Marks [window] as wanting attention (or not); bars and the IPC socket show it, the focus clears it. */
+    fun setUrgent(window: Window, urgent: Boolean) {
+        if (window.urgent == urgent) return
+        window.urgent = urgent
+        focusLog.info { "$window ${if (urgent) "wants attention" else "no longer wants attention"}" }
+        if (window.mapped) notify(windowInfoListeners, window, "window-info-changed")
+        windowListChanged()
+        changed()
+    }
+
+    /** The windows that want attention, oldest first. */
+    val urgentWindows: List<Window> get() = allWindows.filter { it.urgent }
+
     fun focus(window: Window?) {
+        if (window != null && window.urgent) setUrgent(window, false)
         val pad = window?.let(::scratchpadOf)
         // Everything else loses the "active" look.
         for (other in scratchpads.values.flatMap { it.windows }) if (other !== window) other.setActivated(false)
@@ -3004,17 +3054,32 @@ class Desktop(
      * The mouse or touchpad moved by ([dx], [dy]) desktop units: across monitors as
      * [monitorEdges] says. (A tablet or a nested window gives places instead: [pointerMoved].)
      */
-    fun pointerMovedBy(timeMillis: Int, dx: Double, dy: Double) {
+    fun pointerMovedBy(timeMillis: Int, dx: Double, dy: Double, rawDx: Double = dx, rawDy: Double = dy) {
+        // Games and 3D programs hear the movement itself; a lock holds the pointer, a confinement keeps it in.
+        pointerConstraints?.let { pc ->
+            pc.relativeMotion(timeMillis, dx, dy, rawDx, rawDy)
+            when (val c = constraintNow()) {
+                null -> {}
+                else -> if (c.locks) {
+                    onUserActivity()
+                    seat.pointerFrame()
+                    return
+                } else {
+                    val (cx, cy) = confined(c, pointerX + dx, pointerY + dy)
+                    return movePointer(timeMillis, cx, cy)
+                }
+            }
+        }
         val from = monitorAt(pointerX, pointerY)
         val x = pointerX + dx
         val y = pointerY + dy
-        if (from.contains(x, y)) return pointerMoved(timeMillis, x, y)
+        if (from.contains(x, y)) return movePointer(timeMillis, x, y)
         when (monitorEdges) {
             MonitorEdges.TOUCHING -> {
                 // Onto the monitor there, if there is one; else it stays at this one's edge.
                 val onto = monitorList.firstOrNull { it.contains(x, y) }
                 if (onto != null) {
-                    pointerMoved(timeMillis, x, y)
+                    movePointer(timeMillis, x, y)
                 } else {
                     // Along the edge it can still go (sliding along it, not stuck).
                     val alongX = x.coerceIn(from.area.x.toDouble(), from.area.right - 1.0)
@@ -3022,7 +3087,7 @@ class Desktop(
                     val sideways = monitorList.firstOrNull { it !== from && it.contains(x, alongY) }?.let { x to alongY }
                         ?: monitorList.firstOrNull { it !== from && it.contains(alongX, y) }?.let { alongX to y }
                     val (nx, ny) = sideways ?: (alongX to alongY)
-                    pointerMoved(timeMillis, nx, ny)
+                    movePointer(timeMillis, nx, ny)
                 }
             }
             MonitorEdges.PROPORTIONAL -> {
@@ -3035,7 +3100,7 @@ class Desktop(
                 val horizontal = maxOf(overRight, overLeft) >= maxOf(overDown, overUp)
                 val next = if (horizontal) monitorPast(from, if (overRight > 0) 1 else -1, 0) else monitorPast(from, 0, if (overDown > 0) 1 else -1)
                 if (next == null) {
-                    pointerMoved(timeMillis, x.coerceIn(area.x.toDouble(), area.right - 1.0), y.coerceIn(area.y.toDouble(), area.bottom - 1.0))
+                    movePointer(timeMillis, x.coerceIn(area.x.toDouble(), area.right - 1.0), y.coerceIn(area.y.toDouble(), area.bottom - 1.0))
                     return
                 }
                 val to = next.area
@@ -3043,11 +3108,11 @@ class Desktop(
                     // The same share of the height; just inside the new monitor's near edge.
                     val share = ((y - area.y) / area.height).coerceIn(0.0, 1.0)
                     val nx = if (overRight > 0) to.x + overRight.coerceAtMost(to.width - 1.0) else to.right - 1 - overLeft.coerceAtMost(to.width - 1.0)
-                    pointerMoved(timeMillis, nx, to.y + share * (to.height - 1))
+                    movePointer(timeMillis, nx, to.y + share * (to.height - 1))
                 } else {
                     val share = ((x - area.x) / area.width).coerceIn(0.0, 1.0)
                     val ny = if (overDown > 0) to.y + overDown.coerceAtMost(to.height - 1.0) else to.bottom - 1 - overUp.coerceAtMost(to.height - 1.0)
-                    pointerMoved(timeMillis, to.x + share * (to.width - 1), ny)
+                    movePointer(timeMillis, to.x + share * (to.width - 1), ny)
                 }
             }
         }
@@ -3075,7 +3140,56 @@ class Desktop(
         }))
     }
 
+    /** Someone moved the pointer (for idle timers; keys and clicks are told by whoever handles them). */
+    var onUserActivity: () -> Unit = {}
+
+    /** Pointer constraints and relative motion (games); null: none. */
+    var pointerConstraints: dev.caulis.core.input.PointerConstraints? = null
+
+    // The lock in force at the last motion (to put the pointer at its hint when it ends).
+    private var lastLock: dev.caulis.core.input.PointerConstraints.Constraint? = null
+
+    // The constraint working now (none during a grab, the overview or a lock screen).
+    private fun constraintNow(): dev.caulis.core.input.PointerConstraints.Constraint? {
+        val now = if (grab == null && !inOverview && !locked) pointerConstraints?.current() else null
+        val ended = lastLock
+        if (ended != null && ended !== now) {
+            // A lock let go: the pointer goes where the program said it should be.
+            ended.hint?.let { (hx, hy) -> surfaceOrigin(ended.surface)?.let { (ox, oy) -> pointerX = ox + hx; pointerY = oy + hy } }
+        }
+        lastLock = now?.takeIf { it.locks }
+        return now
+    }
+
+    // [x], [y] kept inside the confinement (the part of the region the pointer is in).
+    private fun confined(c: dev.caulis.core.input.PointerConstraints.Constraint, x: Double, y: Double): Pair<Double, Double> {
+        val (ox, oy) = surfaceOrigin(c.surface) ?: return x to y
+        val rects = c.region?.solidRects()?.takeIf { it.isNotEmpty() } ?: listOf(Rect(0, 0, c.surface.width, c.surface.height))
+        val px = pointerX - ox
+        val py = pointerY - oy
+        val rect = rects.firstOrNull { px >= it.x && py >= it.y && px < it.right && py < it.bottom } ?: return x to y
+        return (x - ox).coerceIn(rect.x.toDouble(), rect.right - 1.0) + ox to (y - oy).coerceIn(rect.y.toDouble(), rect.bottom - 1.0) + oy
+    }
+
     fun pointerMoved(timeMillis: Int, x: Double, y: Double) {
+        // From an absolute position (nested, tablets): the movement counts for constraints too.
+        pointerConstraints?.let { pc ->
+            if (x != pointerX || y != pointerY) pc.relativeMotion(timeMillis, x - pointerX, y - pointerY, x - pointerX, y - pointerY)
+            constraintNow()?.let { c ->
+                if (c.locks) {
+                    onUserActivity()
+                    seat.pointerFrame()
+                    return
+                }
+                val (cx, cy) = confined(c, x, y)
+                return movePointer(timeMillis, cx, cy)
+            }
+        }
+        movePointer(timeMillis, x, y)
+    }
+
+    private fun movePointer(timeMillis: Int, x: Double, y: Double) {
+        onUserActivity()
         inputLog.trace { "Pointer at ${String.format("%.1f, %.1f", x, y)}" }
         cursorActive()
         // On a monitor: past an edge with no monitor beyond, it stops there.
@@ -3152,7 +3266,7 @@ class Desktop(
             // The button that started a move or resize ends it; the app does not see it.
             if (!pressed && buttonsHeld == 0) {
                 endGrab()
-                pointerMoved(timeMillis, pointerX, pointerY) // the app under the pointer gets it back
+                movePointer(timeMillis, pointerX, pointerY) // the app under the pointer gets it back
             }
             return
         }

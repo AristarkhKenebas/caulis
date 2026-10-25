@@ -52,8 +52,30 @@ internal fun runOnScreen(config: Caulis) {
                     val view = desktop.createView(place)
                     shown[monitor] = Shown(output, place, view)
                     val stats = if (config.stats) FrameStats(monitor.name) else null
-                    val present = running.timed(stats, monitor::present)
-                    val presentDirect = if (config.directScanout) monitor::presentDirect else null
+                    // A turned monitor gets its picture turned on the way (and no direct scanout then).
+                    val rotator = dev.caulis.core.Rotator(backend.renderer)
+                    val present = running.timed(stats) { draw -> monitor.present(rotator.wrap(place.transform, draw)) }
+                    val presentDirect: ((dev.caulis.core.DmabufBuffer) -> Boolean)? =
+                        if (config.directScanout) ({ buffer -> place.transform == dev.caulis.core.Transform.NORMAL && monitor.presentDirect(buffer) }) else null
+                    place.control = object : dev.caulis.core.MonitorControl {
+                        override val modes get() = monitor.modes.map { dev.caulis.core.MonitorMode(it.width, it.height, it.refreshMillihertz, it.preferred) }
+                        override val currentMode get() = monitor.mode?.let { dev.caulis.core.MonitorMode(it.width, it.height, it.refreshMillihertz, it.preferred) }
+                        override val canTransform get() = true
+                        override val gammaSize get() = monitor.gammaSize
+
+                        override fun setMode(mode: dev.caulis.core.MonitorMode): Boolean {
+                            val wanted = monitor.modes.firstOrNull { it.width == mode.width && it.height == mode.height && it.refreshMillihertz == mode.refreshMillihertz }
+                                ?: monitor.modes.filter { it.width == mode.width && it.height == mode.height }.minByOrNull { Math.abs(it.refreshMillihertz - mode.refreshMillihertz) }
+                                ?: return false
+                            if (!monitor.changeMode(wanted)) return false
+                            val turned = place.transform.sideways
+                            desktop.resizeMonitor(place, if (turned) wanted.height else wanted.width, if (turned) wanted.width else wanted.height)
+                            return true
+                        }
+
+                        override fun setPower(on: Boolean) = monitor.setPower(on)
+                        override fun setGamma(red: ShortArray?, green: ShortArray?, blue: ShortArray?) = monitor.setGamma(red, green, blue)
+                    }
                     monitor.onFrame = { desktop.refresh(view, present, force = monitor.needsPicture, presentDirect = presentDirect) }
                     monitor.onPresented = { nanos, refreshNanos, sequence, zeroCopy ->
                         stats?.presented(nanos, refreshNanos)
@@ -70,9 +92,23 @@ internal fun runOnScreen(config: Caulis) {
                     }
                 }
 
+                // Programs that arrange monitors (kanshi, wlr-randr) see the ones switched off too.
+                running.outputManagement.heads = object : dev.caulis.core.Heads {
+                    override fun heads() = backend.plugged().map { p ->
+                        dev.caulis.core.Head(
+                            p.name, listOfNotNull(p.edid?.make, p.edid?.model).joinToString(" ").ifEmpty { p.name },
+                            p.edid?.make ?: "Unknown", p.edid?.model ?: p.name, p.edid?.serial.orEmpty(), p.widthMm, p.heightMm,
+                            p.modes.map { dev.caulis.core.MonitorMode(it.width, it.height, it.refreshMillihertz, it.preferred) },
+                            p.output?.let { shown[it]?.monitor },
+                        )
+                    }
+
+                    override fun setEnabled(name: String, on: Boolean) = backend.setEnabled(name, on)
+                }
+
                 val input = backend.input
                 input.onKey = running::key
-                input.onPointerMotion = { time, dx, dy -> desktop.pointerMovedBy(time, dx, dy) }
+                input.onPointerMotion = { time, dx, dy, rawDx, rawDy -> desktop.pointerMovedBy(time, dx, dy, rawDx, rawDy) }
                 // Touchscreens and tablets: across the first monitor.
                 input.onPointerMotionAbsolute = { time, x, y ->
                     val area = desktop.monitors.first().area

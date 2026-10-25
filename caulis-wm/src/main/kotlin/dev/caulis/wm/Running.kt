@@ -124,6 +124,38 @@ internal class Running(
             }
         }
 
+    /** Windows asking for the focus (xdg-activation); set in init. */
+    lateinit var activation: dev.caulis.core.Activation
+        private set
+
+    /** Idle timers (ext-idle-notify, onIdle); set in init. */
+    lateinit var idle: dev.caulis.core.Idle
+        private set
+
+    // When screens were last switched off (input right after it does not wake them).
+    private var screensOffAt = 0L
+
+    // Someone did something: idle timers start over, and dark screens light up again.
+    private fun userActive() {
+        idle.activity()
+        if (config.wakeScreensOnInput && System.nanoTime() - screensOffAt > 1_000_000_000L) {
+            for (monitor in desktop.monitors) if (!monitor.powered) desktop.setPower(monitor, true)
+        }
+    }
+
+    /** Switches the screens off (or on) — all of them, or the monitor [name]; false if one could not. */
+    fun setScreens(on: Boolean, name: String? = null): Boolean {
+        if (!on) screensOffAt = System.nanoTime()
+        return desktop.monitors.filter { name == null || it.name.equals(name, ignoreCase = true) }.map { desktop.setPower(it, on) }.all { it }
+    }
+
+    /** Programs that arrange monitors (kanshi, wlr-randr); set in init. */
+    lateinit var outputManagement: dev.caulis.core.OutputManagement
+        private set
+
+    // The configuration's own idle timers (replaced on a reload).
+    private val idleWatches = ArrayList<AutoCloseable>()
+
     // keyboard-shortcuts-inhibit (set in init).
     private lateinit var shortcutsInhibit: dev.caulis.core.input.ShortcutsInhibit
 
@@ -172,6 +204,8 @@ internal class Running(
     private val launcher = Launcher(
         environment = { env ->
             env["WAYLAND_DISPLAY"] = socket
+            // A good activation token: its first window may take the focus.
+            env["XDG_ACTIVATION_TOKEN"] = activation.issue()
             ipc?.let { env[dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE] = it.path.toString() } ?: env.remove(dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE)
             env["XDG_CURRENT_DESKTOP"] = config.desktopName
             // X11 programs (started now or later by these) reach Xwayland here.
@@ -194,6 +228,15 @@ internal class Running(
         Shm(display)
         if (renderer.renderNode != null) LinuxDmabuf(display, renderer)
         val clipboard = DataDeviceManager(display, seat)
+        dev.caulis.core.PrimarySelection(display, seat, clipboard)
+        dev.caulis.core.DataControl(display, clipboard)
+        activation = dev.caulis.core.Activation(display, seat, desktop)
+        idle = dev.caulis.core.Idle(display, loop, desktop)
+        desktop.onUserActivity = ::userActive
+        desktop.pointerConstraints = dev.caulis.core.input.PointerConstraints(display, seat)
+        dev.caulis.core.OutputPower(display, desktop)
+        dev.caulis.core.GammaControl(display, desktop)
+        outputManagement = dev.caulis.core.OutputManagement(display, desktop)
         Presentation(display)
         XdgShell(display).listener = desktop
         LayerShell(display).listener = desktop
@@ -288,6 +331,13 @@ internal class Running(
         desktop.doubleClickMillis = config.doubleClickMillis
         desktop.lockColor = config.lockColor
         desktop.focusFollowsMouse = config.focusFollowsMouse
+        activation.focusOnActivate = config.focusOnActivate
+        idle.fullscreenInhibits = config.fullscreenKeepsAwake
+        idleWatches.forEach(AutoCloseable::close)
+        idleWatches.clear()
+        for (watch in config.idleWatches) {
+            idleWatches += idle.watch(watch.seconds * 1000L, onIdle = { safely("onIdle") { watch.idle(config) } }, onResume = { safely("onIdle resume") { watch.resume(config) } })
+        }
         seat.repeatRate = config.repeatRate
         seat.repeatDelay = config.repeatDelay
         inputDevices?.settings = config.input
@@ -477,6 +527,7 @@ internal class Running(
         for (monitor in desktop.monitors) config.monitorSettings[monitor.name]?.scale?.let { desktop.setScale(monitor, it) }
         xwayland?.rescaled()
         ipc?.changed()
+        outputManagement.changed()
         log.info { "Scale ${config.scale}${desktop.monitors.filter { it.scale != config.scale }.joinToString("") { ", ${it.name} ${it.scale}" }}" }
         applyCursor() // programs that draw their own cursor get the new size
     }
@@ -490,8 +541,10 @@ internal class Running(
         val x = settings?.x
         val y = settings?.y
         val monitor = desktop.addMonitor(name, output, pixelWidth, pixelHeight, settings?.scale ?: config.scale, x, y)
+        settings?.transform?.let { desktop.setTransform(monitor, it) }
         xwayland?.rescaled() // the largest scale may be another now
         ipc?.changed() // subscribers hear of the monitors
+        outputManagement.changed()
         return monitor
     }
 
@@ -500,6 +553,7 @@ internal class Running(
         desktop.removeMonitor(monitor)
         xwayland?.rescaled()
         ipc?.changed()
+        outputManagement.changed()
     }
 
     /** Applies changed monitor settings (scale and place) to the monitors there are. */
@@ -507,10 +561,12 @@ internal class Running(
         for (monitor in desktop.monitors) {
             val settings = config.monitorSettings[monitor.name] ?: continue
             settings.scale?.let { desktop.setScale(monitor, it) }
+            settings.transform?.let { desktop.setTransform(monitor, it) }
             desktop.moveMonitor(monitor, settings.x, settings.y)
         }
         xwayland?.rescaled()
         ipc?.changed()
+        outputManagement.changed()
     }
 
     /** Applies the cursor settings (theme, size, hiding). */
@@ -566,6 +622,7 @@ internal class Running(
 
     /** A key from the keyboard: the compositor's combination, or passed to the focused program. */
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
+        userActive()
         val active = activeKeys()
         // A key pressed before locking may be released after it (Super+L): all must see the release.
         if (!pressed) for (other in allKeys()) if (other !== active) other.key(evdevCode, false)
@@ -602,6 +659,7 @@ internal class Running(
 
     /** The mouse wheel or a touchpad scrolled: a combination with the wheel, or the program under the pointer. */
     fun pointerAxis(timeMillis: Int, vertical: Boolean, value: Double, value120: Int) {
+        userActive()
         val active = activeKeys()
         if (value120 != 0 && !desktop.locked) {
             val (back, forth) = if (vertical) KeyBindings.WHEEL_UP to KeyBindings.WHEEL_DOWN else KeyBindings.WHEEL_LEFT to KeyBindings.WHEEL_RIGHT
@@ -625,6 +683,7 @@ internal class Running(
      * (from the nearest corner). Everything else goes to the program under the pointer.
      */
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean) {
+        userActive()
         // A combination with a mouse button ("Super+MouseSide", "MouseBack").
         val active = activeKeys()
         if (!pressed) for (other in allKeys()) if (other !== active) other.key(button, false)
@@ -674,6 +733,7 @@ internal class Running(
 
     /** A touchpad gesture: the compositor's own (see [Caulis.dragViewFingers] ...) or the program's. */
     fun gesture(gesture: Gesture) = safely("gesture") {
+        userActive()
         gesturesLog.trace { "$gesture (fingers ${gestureFingers}, use $gestureUse)" }
         when (gesture) {
             is Gesture.SwipeBegin -> {

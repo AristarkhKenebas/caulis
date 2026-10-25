@@ -294,6 +294,7 @@ class LuaConfig : ConfigLanguage {
                 set("fullscreen", LuaValue.valueOf(w.fullscreen))
                 set("minimized", LuaValue.valueOf(d.isMinimized(w)))
                 set("x11", LuaValue.valueOf(w is dev.caulis.xwayland.XWindow))
+                set("urgent", LuaValue.valueOf(w.urgent))
                 set("x", w.x)
                 set("y", w.y)
                 set("width", w.visibleRect.width)

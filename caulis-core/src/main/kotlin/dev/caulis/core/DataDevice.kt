@@ -33,6 +33,33 @@ class DataDeviceManager(display: Display, private val seat: Seat) {
     private var selection: ClipboardData? = null
     private val changeListeners = ArrayList<(ClipboardData?) -> Unit>()
 
+    /** The primary selection: what is selected (pasted with the middle button), or null. */
+    var primary: ClipboardData? = null
+        private set
+    private val primaryListeners = ArrayList<(ClipboardData?) -> Unit>()
+
+    /** Puts [data] in the primary selection (null empties it). */
+    fun setPrimary(data: ClipboardData?) {
+        val old = primary
+        if (old === data) return
+        primary = data
+        log.trace { "Primary selection: ${data?.let { "$it (${it.mimeTypes.joinToString()})" } ?: "empty"}" }
+        old?.cancelled()
+        for (listener in primaryListeners.toList()) {
+            try {
+                listener(data)
+            } catch (e: Exception) {
+                log.error("A primary selection listener failed", e)
+            }
+        }
+    }
+
+    /** Calls [listener] whenever the primary selection changes; close the result to stop. */
+    fun onPrimaryChanged(listener: (ClipboardData?) -> Unit): AutoCloseable {
+        primaryListeners += listener
+        return AutoCloseable { primaryListeners -= listener }
+    }
+
     // A program's wl_data_source.
     private class Source(val resource: WlDataSource) : ClipboardData {
         override val mimeTypes = ArrayList<String>()

@@ -1806,6 +1806,126 @@ public class Input extends Input$shared {
         }
     }
 
+    private static class libinput_event_pointer_get_dx_unaccelerated {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_pointer_get_dx_unaccelerated");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_pointer_get_dx_unaccelerated(struct libinput_event_pointer *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_pointer_get_dx_unaccelerated$descriptor() {
+        return libinput_event_pointer_get_dx_unaccelerated.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_pointer_get_dx_unaccelerated(struct libinput_event_pointer *event)
+     * }
+     */
+    public static MethodHandle libinput_event_pointer_get_dx_unaccelerated$handle() {
+        return libinput_event_pointer_get_dx_unaccelerated.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_pointer_get_dx_unaccelerated(struct libinput_event_pointer *event)
+     * }
+     */
+    public static MemorySegment libinput_event_pointer_get_dx_unaccelerated$address() {
+        return libinput_event_pointer_get_dx_unaccelerated.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_pointer_get_dx_unaccelerated(struct libinput_event_pointer *event)
+     * }
+     */
+    public static double libinput_event_pointer_get_dx_unaccelerated(MemorySegment event) {
+        var mh$ = libinput_event_pointer_get_dx_unaccelerated.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_pointer_get_dx_unaccelerated", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_pointer_get_dy_unaccelerated {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_pointer_get_dy_unaccelerated");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_pointer_get_dy_unaccelerated(struct libinput_event_pointer *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_pointer_get_dy_unaccelerated$descriptor() {
+        return libinput_event_pointer_get_dy_unaccelerated.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_pointer_get_dy_unaccelerated(struct libinput_event_pointer *event)
+     * }
+     */
+    public static MethodHandle libinput_event_pointer_get_dy_unaccelerated$handle() {
+        return libinput_event_pointer_get_dy_unaccelerated.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_pointer_get_dy_unaccelerated(struct libinput_event_pointer *event)
+     * }
+     */
+    public static MemorySegment libinput_event_pointer_get_dy_unaccelerated$address() {
+        return libinput_event_pointer_get_dy_unaccelerated.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_pointer_get_dy_unaccelerated(struct libinput_event_pointer *event)
+     * }
+     */
+    public static double libinput_event_pointer_get_dy_unaccelerated(MemorySegment event) {
+        var mh$ = libinput_event_pointer_get_dy_unaccelerated.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_pointer_get_dy_unaccelerated", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
     private static class libinput_event_pointer_get_absolute_x_transformed {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             Input.C_DOUBLE,

@@ -244,4 +244,31 @@ class ConfigFileTest {
         assertTrue("1 to" in problems("{ \"input\": { \"pointers\": { \"speed\": 3 } } }").single())
         assertTrue("needs an \"action\"" in problems("{ \"bind\": { \"Super+B\": { \"repeat\": true } } }").single())
     }
+
+    @Test
+    fun `idle timers, turned monitors, activation`() {
+        val read = ConfigFile.read(
+            """
+            {
+              "monitors": { "DP-2": { "transform": "90" }, "eDP-1": { "transform": "flipped-180" } },
+              "idle": [ { "after": 300, "action": "dpms off", "resume": "dpms on" }, { "after": 600, "action": "lock" } ],
+              "focusOnActivate": false,
+              "fullscreenKeepsAwake": true,
+              "bind": { "Super+U": "focus-urgent", "Super+Shift+I": "keep-awake toggle" }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(emptyList(), read.problems)
+        val caulis = Caulis()
+        Settings.apply(caulis, read.values)
+        val field = Caulis::class.java.getDeclaredField("monitorSettings").apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        val monitors = field.get(caulis) as Map<String, Caulis.MonitorSettings>
+        assertEquals(dev.caulis.core.Transform.ROTATE_90, monitors.getValue("DP-2").transform)
+        assertEquals(dev.caulis.core.Transform.FLIPPED_180, monitors.getValue("eDP-1").transform)
+        assertEquals(2, caulis.idleWatches.size)
+        assertEquals(false to true, caulis.focusOnActivate to caulis.fullscreenKeepsAwake)
+        assertTrue("it needs \"after\"" in problems("{ \"idle\": [ { \"action\": \"lock\" } ] }").single())
+        assertTrue("is not on, off or toggle" in problems("{ \"bind\": { \"Super+D\": \"dpms sideways\" } }").single())
+    }
 }

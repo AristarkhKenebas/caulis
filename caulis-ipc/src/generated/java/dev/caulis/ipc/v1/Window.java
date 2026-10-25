@@ -533,6 +533,44 @@ public  final class Window extends
     x11_ = false;
   }
 
+  public static final int URGENT_FIELD_NUMBER = 14;
+  private boolean urgent_;
+  /**
+   * <pre>
+   * It wants attention (it asked for the focus and did not get it).
+   * </pre>
+   *
+   * <code>bool urgent = 14;</code>
+   * @return The urgent.
+   */
+  @java.lang.Override
+  public boolean getUrgent() {
+    return urgent_;
+  }
+  /**
+   * <pre>
+   * It wants attention (it asked for the focus and did not get it).
+   * </pre>
+   *
+   * <code>bool urgent = 14;</code>
+   * @param value The urgent to set.
+   */
+  private void setUrgent(boolean value) {
+    
+    urgent_ = value;
+  }
+  /**
+   * <pre>
+   * It wants attention (it asked for the focus and did not get it).
+   * </pre>
+   *
+   * <code>bool urgent = 14;</code>
+   */
+  private void clearUrgent() {
+
+    urgent_ = false;
+  }
+
   public static dev.caulis.ipc.v1.Window parseFrom(
       java.nio.ByteBuffer data)
       throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1171,6 +1209,46 @@ public  final class Window extends
       return this;
     }
 
+    /**
+     * <pre>
+     * It wants attention (it asked for the focus and did not get it).
+     * </pre>
+     *
+     * <code>bool urgent = 14;</code>
+     * @return The urgent.
+     */
+    @java.lang.Override
+    public boolean getUrgent() {
+      return instance.getUrgent();
+    }
+    /**
+     * <pre>
+     * It wants attention (it asked for the focus and did not get it).
+     * </pre>
+     *
+     * <code>bool urgent = 14;</code>
+     * @param value The urgent to set.
+     * @return This builder for chaining.
+     */
+    public Builder setUrgent(boolean value) {
+      copyOnWrite();
+      instance.setUrgent(value);
+      return this;
+    }
+    /**
+     * <pre>
+     * It wants attention (it asked for the focus and did not get it).
+     * </pre>
+     *
+     * <code>bool urgent = 14;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearUrgent() {
+      copyOnWrite();
+      instance.clearUrgent();
+      return this;
+    }
+
     // @@protoc_insertion_point(builder_scope:caulis.ipc.v1.Window)
   }
   @java.lang.Override
@@ -1201,11 +1279,12 @@ public  final class Window extends
             "fullscreen_",
             "minimized_",
             "x11_",
+            "urgent_",
           };
           java.lang.String info =
-              "\u0000\r\u0000\u0001\u0001\r\r\u0000\u0000\u0000\u0001\u0003\u0002\u0208\u0003\u0208" +
-              "\u0004\u0004\u0005\u000b\u0006\u0208\u0007\u1009\u0000\b\u0007\t\u0007\n\u0007\u000b" +
-              "\u0007\f\u0007\r\u0007";
+              "\u0000\u000e\u0000\u0001\u0001\u000e\u000e\u0000\u0000\u0000\u0001\u0003\u0002\u0208" +
+              "\u0003\u0208\u0004\u0004\u0005\u000b\u0006\u0208\u0007\u1009\u0000\b\u0007\t\u0007" +
+              "\n\u0007\u000b\u0007\f\u0007\r\u0007\u000e\u0007";
           return newMessageInfo(DEFAULT_INSTANCE, info, objects);
       }
       case GET_DEFAULT_INSTANCE: {

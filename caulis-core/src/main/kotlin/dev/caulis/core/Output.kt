@@ -52,8 +52,7 @@ class Output(
         output.data = this
         bound += output
         output.onDestroy { bound -= output }
-        output.sendGeometry(0, 0, physicalWidthMm, physicalHeightMm,
-            WlOutput.Subpixel.UNKNOWN, make, model, WlOutput.Transform.NORMAL)
+        sendGeometry(output)
         sendMode(output)
         output.sendScale(integerScale)
         output.sendName(name)
@@ -135,8 +134,27 @@ class Output(
         if (xdg.version < 3) xdg.sendDone()
     }
 
+    /** How the monitor is turned; programs are told (they may draw turned themselves). */
+    var transform: Transform = Transform.NORMAL
+        private set
+
+    /** Turns the monitor: [width] and [height] are the turned size from now on (see [resize]). */
+    fun setTransform(newTransform: Transform) {
+        if (newTransform == transform) return
+        transform = newTransform
+        for (output in bound) {
+            sendGeometry(output)
+            sendMode(output)
+        }
+        for (output in bound) output.sendDone()
+    }
+
+    private fun sendGeometry(output: WlOutput) = output.sendGeometry(0, 0, physicalWidthMm, physicalHeightMm, WlOutput.Subpixel.UNKNOWN, make, model, transform.ordinal)
+
+    // The mode is the screen's own (not turned) size.
     private fun sendMode(output: WlOutput) =
-        output.sendMode(WlOutput.Mode.CURRENT or WlOutput.Mode.PREFERRED, width, height, refreshMillihertz)
+        if (transform.sideways) output.sendMode(WlOutput.Mode.CURRENT or WlOutput.Mode.PREFERRED, height, width, refreshMillihertz)
+        else output.sendMode(WlOutput.Mode.CURRENT or WlOutput.Mode.PREFERRED, width, height, refreshMillihertz)
 
     companion object {
         const val VERSION = 4

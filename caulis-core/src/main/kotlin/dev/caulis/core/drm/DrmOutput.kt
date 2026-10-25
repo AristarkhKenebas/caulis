@@ -179,7 +179,7 @@ class DrmOutput internal constructor(
      */
     fun present(draw: (target: GpuTarget, age: Int) -> Unit) {
         val current = mode ?: return
-        if (!isSessionActive() || flipPending) return
+        if (!isSessionActive() || flipPending || !powered) return
         val slot = slots.first { it !== shown }
         frameNumber++
         val age = if (slot.drawnInFrame == 0L) 0 else (frameNumber - slot.drawnInFrame).toInt()
@@ -213,7 +213,7 @@ class DrmOutput internal constructor(
      */
     fun presentDirect(buffer: DmabufBuffer): Boolean {
         val current = mode ?: return false
-        if (!isSessionActive() || flipPending || needsModeset) return false
+        if (!isSessionActive() || flipPending || needsModeset || !powered) return false
         if (buffer.width != current.width || buffer.height != current.height) return false
         val framebuffer = buffer.attachment(this) { ScanoutFramebuffer(device, device.importFramebuffer(buffer.dmabuf)) }
         val id = framebuffer.id ?: return false
@@ -310,6 +310,80 @@ class DrmOutput internal constructor(
             nextFrame()
         }
     }
+
+    /** False while the screen is switched off (DPMS): nothing is drawn. */
+    var powered = true
+        private set
+
+    /** Switches the screen off (the CRTC goes inactive) or on again (a full mode set, then a picture). */
+    fun setPower(on: Boolean): Boolean {
+        if (on == powered) return true
+        if (mode == null) return false
+        if (!on) {
+            if (isSessionActive()) {
+                val result = device.commit(Drm.DRM_MODE_ATOMIC_ALLOW_MODESET()) { request ->
+                    request.set(crtcId, crtcProps, "ACTIVE", 0)
+                }
+                if (result != 0) {
+                    log.warn("$name could not be switched off ($result)")
+                    return false
+                }
+            }
+            releaseDirect()
+            queued = null
+            powered = false
+        } else {
+            powered = true
+            needsModeset = true
+            slots.forEach { it.drawnInFrame = 0 }
+            scheduleFrame(0)
+        }
+        log.info { "$name ${if (on) "on" else "off"}" }
+        return true
+    }
+
+    /** Runs the monitor in [wanted] from now on (tested first); false if it does not take it. */
+    fun changeMode(wanted: Mode): Boolean {
+        if (wanted == mode) return true
+        if (!tryMode(wanted)) return false
+        mode = wanted
+        needsModeset = true
+        scheduleFrame(0)
+        log.info { "$name: $wanted" }
+        return true
+    }
+
+    /** Entries of the monitor's gamma table (0: it has none). */
+    val gammaSize: Int get() = crtcProps["GAMMA_LUT_SIZE"]?.value?.toInt() ?: 0
+
+    /** Uses the gamma table [red], [green], [blue] ([gammaSize] each); null: the monitor's own. */
+    fun setGamma(red: ShortArray?, green: ShortArray?, blue: ShortArray?): Boolean {
+        if (crtcProps["GAMMA_LUT"] == null || !isSessionActive()) return false
+        val blob = if (red == null || green == null || blue == null) {
+            0
+        } else {
+            val size = red.size
+            if (size != gammaSize || green.size != size || blue.size != size) return false
+            // struct drm_color_lut { u16 red, green, blue, reserved }
+            Arena.ofConfined().use { temp ->
+                val table = temp.allocate(size * 8L)
+                for (i in 0 until size) {
+                    table.set(java.lang.foreign.ValueLayout.JAVA_SHORT, i * 8L, red[i])
+                    table.set(java.lang.foreign.ValueLayout.JAVA_SHORT, i * 8L + 2, green[i])
+                    table.set(java.lang.foreign.ValueLayout.JAVA_SHORT, i * 8L + 4, blue[i])
+                    table.set(java.lang.foreign.ValueLayout.JAVA_SHORT, i * 8L + 6, 0)
+                }
+                device.createBlob(table)
+            }
+        }
+        val result = device.commit(0) { request -> request.set(crtcId, crtcProps, "GAMMA_LUT", blob.toLong()) }
+        if (gammaBlob != 0) device.destroyBlob(gammaBlob)
+        gammaBlob = blob
+        if (result != 0) log.warn("$name: the gamma table was refused ($result)")
+        return result == 0
+    }
+
+    private var gammaBlob = 0
 
     /** Turns the monitor off (it was unplugged, or Caulis stops using it). */
     internal fun stop() {

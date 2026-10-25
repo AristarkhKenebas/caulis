@@ -47,6 +47,7 @@ let
       "position" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck (lib.types.listOf (lib.types.ints.between (-10000) (10000))) (l: builtins.length l >= 2 && builtins.length l <= 2)); default = null; description = "[x, y] on the desktop, in units"; };
       "mode" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck (lib.types.listOf (lib.types.addCheck lib.types.number (x: x >= 1 && x <= 20000) // { description = "a number from 1 to 20000"; })) (l: builtins.length l >= 2 && builtins.length l <= 3)); default = null; description = "[width, height] or [width, height, hz]"; };
       "enabled" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "false: not used"; };
+      "transform" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "normal" "90" "180" "270" "flipped" "flipped-90" "flipped-180" "flipped-270" ]); default = null; description = "turned clockwise (a screen on its side: 90)"; };
     }; })); default = null; description = "settings per monitor, by connector (\"DP-2\", \"eDP-1\", ...)"; };
     "keyboard" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
       "layouts" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "as for setxkbmap: \"us,ru\""; };
@@ -113,6 +114,14 @@ let
         "clickMethod" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "areas" "fingers" ]); default = null; description = "touchpads: a click by the area pressed or by the number of fingers"; };
       }; })); default = null; description = "single devices by name (--devices lists them; * matches anything)"; };
     }; }); default = null; description = "mice, touchpads, focus"; };
+    "idle" = lib.mkOption { type = lib.types.nullOr (lib.types.listOf (lib.types.submodule { options = {
+      "after" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (1) (86400)); default = null; description = "seconds without input"; };
+      "action" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "what happens then (\"dpms off\", \"lock\", \"exec ...\")"; };
+      "resume" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "what happens when someone is back"; };
+    }; })); default = null; description = "what happens when nobody uses the computer"; };
+    "focusOnActivate" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "a window asking for the focus with a good token gets it (false: only marked urgent)"; };
+    "fullscreenKeepsAwake" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "a fullscreen window keeps idle timers off"; };
+    "wakeScreensOnInput" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "input switches dark screens on again"; };
     "lid" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
       "close" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "when the laptop's lid closes"; };
       "open" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "when it opens"; };

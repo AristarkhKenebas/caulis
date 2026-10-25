@@ -65,6 +65,10 @@ abstract class Window : LayoutWindow {
      */
     open val needsTitleBar: Boolean get() = false
 
+    /** True when the window wants attention (it asked for the focus and did not get it); the focus clears it. */
+    var urgent = false
+        internal set
+
     /** True while the window has the keyboard focus (shown as the "active" window). */
     var activated = false
         @JvmName("markActivated") // not to clash with setActivated() below on the JVM

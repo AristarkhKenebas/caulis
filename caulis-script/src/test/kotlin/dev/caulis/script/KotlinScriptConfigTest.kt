@@ -92,4 +92,12 @@ class KotlinScriptConfigTest {
         assertEquals(3, blocks.size)
         assertEquals(emptyList(), apply(blocks.joinToString("\n") + "\nonLid { closed -> if (closed) lock() }").second)
     }
+
+    @Test
+    fun `the everyday guide's Kotlin is right`() {
+        val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter("## 29.").substringBefore("\n## ")
+        val block = section.substringAfter("```kotlin\n").substringBefore("```")
+        assertTrue("onIdle" in block)
+        assertEquals(emptyList(), apply(block).second)
+    }
 }

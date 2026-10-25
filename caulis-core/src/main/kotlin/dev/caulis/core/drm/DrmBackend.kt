@@ -83,6 +83,28 @@ class DrmBackend private constructor(
     /** Finds the connected monitors and turns them on. Set the callbacks before calling this. */
     fun start() = rescan()
 
+    // Monitors a program or the user switched off while running (by name).
+    private val switchedOff = HashSet<String>()
+
+    /** A monitor plugged in, used or not. */
+    class Plugged(val name: String, val edid: Edid?, val widthMm: Int, val heightMm: Int, val modes: List<DrmOutput.Mode>, val output: DrmOutput?)
+
+    /** Every monitor plugged in now, used or not. */
+    fun plugged(): List<Plugged> = connectedConnectors().map { (id, info) -> Plugged(info.name, info.edid, info.widthMm, info.heightMm, info.modes, active[id]) }
+
+    /** Uses the monitor [name] again, or stops using it (it stays plugged in, dark); false if it is not plugged in. */
+    fun setEnabled(name: String, on: Boolean): Boolean {
+        val connected = connectedConnectors().entries.firstOrNull { it.value.name == name } ?: return false
+        if (on) {
+            switchedOff -= name
+            rescan()
+            return connected.key in active
+        }
+        switchedOff += name
+        removeOutput(connected.key)
+        return true
+    }
+
     // --- monitors -----------------------------------------------------------------------
 
     private fun rescan() {
@@ -95,7 +117,7 @@ class DrmBackend private constructor(
         // New: find a CRTC and plane for it and turn it on.
         for ((connectorId, info) in connected) {
             if (connectorId in active) continue
-            if (!enabled(info.name)) {
+            if (!enabled(info.name) || info.name in switchedOff) {
                 log.info("Monitor ${info.name} is turned off by the settings")
                 continue
             }

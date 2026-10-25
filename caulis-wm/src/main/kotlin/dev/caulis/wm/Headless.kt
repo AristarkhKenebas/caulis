@@ -12,6 +12,9 @@ import dev.caulis.render.gles.GlesRenderer
  * monitors. For trying a compositor while sitting in another one, tests, and virtual
  * monitors to share.
  */
+// Modes a headless monitor offers besides its own.
+private val COMMON_MODES = listOf(3840 to 2160, 2560 to 1440, 1920 to 1080, 1680 to 1050, 1280 to 720)
+
 internal fun runHeadless(config: Caulis) {
     EventLoop().use { loop ->
         GlesRenderer.create().use { renderer ->
@@ -32,18 +35,43 @@ internal fun runHeadless(config: Caulis) {
                     val output = Output(running.display, name, "${config.title} (headless)", width, height, (hz * 1000).toInt(), scale = settings?.scale ?: config.scale)
                     val monitor = running.addMonitor(name, output, width, height)
                     val view = desktop.createView(monitor)
-                    val target = renderer.createTarget(width, height)
+                    var target = renderer.createTarget(width, height)
+                    val rotator = dev.caulis.core.Rotator(renderer)
                     var sequence = 0L
                     var waiting = false
+                    var mode = dev.caulis.core.MonitorMode(width, height, (hz * 1000).toInt(), preferred = true)
                     // A frame when something changed, at most one per refresh (as a monitor would).
                     fun tick() {
-                        if (waiting) return
+                        if (waiting || !monitor.powered) return
                         waiting = true
                         loop.after(refreshNanos / 1_000_000) {
                             waiting = false
-                            if (desktop.refresh(view, { draw -> draw(target, 1) }, presentDirect = { false })) {
+                            if (desktop.refresh(view, { draw -> rotator.wrap(monitor.transform, draw)(target, 1) }, presentDirect = { false })) {
                                 desktop.presented(view, System.nanoTime(), refreshNanos, ++sequence, WpPresentationFeedback.Kind.VSYNC)
                             }
+                        }
+                    }
+                    fun change(wanted: dev.caulis.core.MonitorMode): Boolean {
+                        if (wanted.width !in 64..16384 || wanted.height !in 64..16384) return false
+                        target.close()
+                        target = renderer.createTarget(wanted.width, wanted.height)
+                        mode = wanted
+                        val turned = monitor.transform.sideways
+                        desktop.resizeMonitor(monitor, if (turned) wanted.height else wanted.width, if (turned) wanted.width else wanted.height)
+                        return true
+                    }
+                    // Headless monitors take any mode, turn, and switch off (they just stop drawing).
+                    monitor.control = object : dev.caulis.core.MonitorControl {
+                        override val modes get() = (listOf(mode) + COMMON_MODES.map { (w, h) -> dev.caulis.core.MonitorMode(w, h, 60_000) }).distinctBy { it.width to it.height }
+                        override val currentMode get() = mode
+                        override val canTransform get() = true
+                        override val customModes get() = true
+
+                        override fun setMode(mode: dev.caulis.core.MonitorMode): Boolean = change(mode)
+
+                        override fun setPower(on: Boolean): Boolean {
+                            if (on) loop.post { tick() }
+                            return true
                         }
                     }
                     ticks += ::tick

@@ -28,7 +28,8 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
 
     /** Input, in Linux key/button codes; times are milliseconds. */
     var onKey: (timeMillis: Int, evdevCode: Int, pressed: Boolean) -> Unit = { _, _, _ -> }
-    var onPointerMotion: (timeMillis: Int, dx: Double, dy: Double) -> Unit = { _, _, _ -> }
+    /** The pointer moved by dx, dy (accelerated) and rawDx, rawDy (the mouse's own movement). */
+    var onPointerMotion: (timeMillis: Int, dx: Double, dy: Double, rawDx: Double, rawDy: Double) -> Unit = { _, _, _, _, _ -> }
 
     /** Absolute position (touch screens, tablets, virtual machines) as 0..1 of the screen. */
     var onPointerMotionAbsolute: (timeMillis: Int, x: Double, y: Double) -> Unit = { _, _, _ -> }
@@ -159,6 +160,8 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
                     Input.libinput_event_pointer_get_time(pointer),
                     Input.libinput_event_pointer_get_dx(pointer),
                     Input.libinput_event_pointer_get_dy(pointer),
+                    Input.libinput_event_pointer_get_dx_unaccelerated(pointer),
+                    Input.libinput_event_pointer_get_dy_unaccelerated(pointer),
                 )
             }
 

@@ -233,6 +233,12 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
      * The pointer moved. [surface] is what is under it now (null = nothing), [x], [y] the
      * position inside that surface. Sends leave/enter when the surface changes.
      */
+    /** Ends a group of pointer events for the program under the pointer (after relative motion alone). */
+    fun pointerFrame() {
+        val focus = pointerFocus ?: return
+        pointersOf(focus.resource.client).forEach { it.sendFrame() }
+    }
+
     fun pointerMotion(timeMillis: Int, under: Surface?, unitX: Double, unitY: Double) {
         val surface = under?.takeIf { it.resource.isAlive && mayFocus(it) }
         // Surfaces in screen pixels (Xwayland's) get the position in their pixels.

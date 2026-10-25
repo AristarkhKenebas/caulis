@@ -190,7 +190,7 @@ object Settings {
                 ListType(
                     SectionType(
                         listOf(
-                            Field("workspace", IntegerType(1, 99), "its number"),
+                            Field("workspace", IntegerType(1, 99), "its number", required = true),
                             Field("name", TextType("a name"), "its name for bars (\"web\")"),
                             Field("monitor", TextType("a connector"), "its home monitor (\"DP-2\")"),
                             Field("layout", layoutSection, "its own layout"),
@@ -227,6 +227,7 @@ object Settings {
                             Field("position", ListType(sizeInt, 2, 2), "[x, y] on the desktop, in units"),
                             Field("mode", ListType(DecimalType(1.0, 20_000.0), 2, 3), "[width, height] or [width, height, hz]"),
                             Field("enabled", FlagType, "false: not used"),
+                            Field("transform", ChoiceType(listOf("normal", "90", "180", "270", "flipped", "flipped-90", "flipped-180", "flipped-270")), "turned clockwise (a screen on its side: 90)"),
                         ),
                         "a monitor",
                     ),
@@ -262,6 +263,23 @@ object Settings {
                 ),
                 "mice, touchpads, focus",
             ),
+            Field(
+                "idle",
+                ListType(
+                    SectionType(
+                        listOf(
+                            Field("after", IntegerType(1, 86_400), "seconds without input", required = true),
+                            Field("action", ActionType, "what happens then (\"dpms off\", \"lock\", \"exec ...\")"),
+                            Field("resume", ActionType, "what happens when someone is back"),
+                        ),
+                        "an idle timer",
+                    ),
+                ),
+                "what happens when nobody uses the computer",
+            ),
+            Field("focusOnActivate", FlagType, "a window asking for the focus with a good token gets it (false: only marked urgent)"),
+            Field("fullscreenKeepsAwake", FlagType, "a fullscreen window keeps idle timers off"),
+            Field("wakeScreensOnInput", FlagType, "input switches dark screens on again"),
             Field("lid", SectionType(listOf(Field("close", ActionType, "when the laptop's lid closes"), Field("open", ActionType, "when it opens")), "the lid"), "the laptop's lid"),
             Field("cursor", SectionType(listOf(Field("theme", TextType("a cursor theme"), "an installed cursor theme"), Field("size", IntegerType(8, 256), "its size")), "the cursor"), "the cursor"),
             Field("terminal", TextType("a command"), "the terminal the terminal key opens"),
@@ -409,6 +427,11 @@ object Settings {
                 (m["position"] as List<Int>?)?.let { position(it[0], it[1]) }
                 (m["mode"] as List<Double>?)?.let { mode(it[0].toInt(), it[1].toInt(), it.getOrNull(2)) }
                 (m["enabled"] as Boolean?)?.let { enabled = it }
+                (m["transform"] as String?)?.let { t ->
+                    val flipped = t.startsWith("flipped")
+                    val degrees = t.substringAfter("flipped").removePrefix("-").ifEmpty { "0" }.let { if (it == "normal") "0" else it }.toInt()
+                    transform = dev.caulis.core.Transform.entries.first { it.flipped == flipped && it.degrees == degrees }
+                }
             }
         }
         section("keyboard")?.let { k ->
@@ -444,6 +467,15 @@ object Settings {
                 device(d, caulis.input.devices.getOrPut(name) { dev.caulis.core.input.DeviceSettings() })
             }
         }
+        (values["idle"] as List<Map<String, Any?>>?)?.forEach { i ->
+            val action = i["action"] as (Caulis.() -> Unit)? ?: {}
+            val resume = i["resume"] as (Caulis.() -> Unit)? ?: {}
+            val after = i["after"] as Int? ?: return@forEach // (its check said so: "after" is required)
+            caulis.onIdle(after.toLong(), resume = resume, idle = action)
+        }
+        (values["focusOnActivate"] as Boolean?)?.let { caulis.focusOnActivate = it }
+        (values["fullscreenKeepsAwake"] as Boolean?)?.let { caulis.fullscreenKeepsAwake = it }
+        (values["wakeScreensOnInput"] as Boolean?)?.let { caulis.wakeScreensOnInput = it }
         section("lid")?.let { l ->
             val close = l["close"] as (Caulis.() -> Unit)?
             val open = l["open"] as (Caulis.() -> Unit)?

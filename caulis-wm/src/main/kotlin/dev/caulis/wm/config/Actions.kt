@@ -52,6 +52,9 @@ object Actions {
         Triple("layout", "name", "switches the layout"),
         Triple("scale", "number", "sets the scale"),
         Triple("notify", "text", "shows a notice"),
+        Triple("focus-urgent", "", "focuses the window that wants attention"),
+        Triple("dpms", "on|off|toggle [monitor]", "switches the screens (or one) off or on"),
+        Triple("keep-awake", "on|off|toggle", "no idle timers while on"),
         Triple("mode", "name|reset", "turns a key mode on (\"mode resize\"), or back to the usual keys"),
     )
 
@@ -77,6 +80,12 @@ object Actions {
             "up" -> Direction.UP
             "down" -> Direction.DOWN
             else -> throw IllegalArgumentException("\"$argument\" is not left, right, up or down")
+        }
+        fun onOffToggle(): (Boolean) -> Boolean = when (needs("on, off or toggle").lowercase()) {
+            "on" -> ({ true })
+            "off" -> ({ false })
+            "toggle" -> ({ !it })
+            else -> throw IllegalArgumentException("\"$argument\" is not on, off or toggle")
         }
         fun number(): Int = needs("a number").toIntOrNull()?.takeIf { it in 1..99 } ?: throw IllegalArgumentException("\"$argument\" is not a workspace number (1 to 99)")
         // A workspace: a number, or next, prev, back, empty (worked out when it runs).
@@ -147,6 +156,18 @@ object Actions {
             "scale" -> (needs("a number").toDoubleOrNull()?.takeIf { it in 0.5..4.0 } ?: throw IllegalArgumentException("\"$argument\" is not a scale (0.5 to 4)"))
                 .let { s -> { _ -> scale = s } }
             "notify" -> needs("a text").let { message -> { _ -> notify(message, NoticeLevel.INFO) } }
+            "dpms" -> {
+                val words = needs("on, off or toggle").split(Regex("\\s+"))
+                val name = words.getOrNull(1)
+                when (words[0].lowercase()) {
+                    "on" -> { _ -> running?.setScreens(true, name) }
+                    "off" -> { _ -> running?.setScreens(false, name) }
+                    "toggle" -> { _ -> running?.let { r -> r.setScreens(desktop.monitors.none { !it.powered }.not(), name) } }
+                    else -> throw IllegalArgumentException("\"${words[0]}\" is not on, off or toggle")
+                }
+            }
+            "focus-urgent" -> { _ -> desktop.urgentWindows.firstOrNull()?.let(desktop::focus) }
+            "keep-awake" -> onOffToggle().let { change -> { _ -> running?.idle?.let { it.inhibitedByUser = change(it.inhibitedByUser) } } }
             "mode" -> needs("a mode name, or reset").let { mode -> { _ -> enterMode(mode.takeIf { it != "reset" && it != "default" }) } }
             else -> {
                 val near = all.map { it.first }.minByOrNull { distance(it, name) }?.takeIf { distance(it, name) <= 2 }

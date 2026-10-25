@@ -41,6 +41,17 @@ class Monitor internal constructor(
     lateinit var workspace: Workspace
         internal set
 
+    /** How it is turned (its size is the turned one: width and height traded when sideways). */
+    var transform: Transform = Transform.NORMAL
+        internal set
+
+    /** False while its screen is switched off (DPMS); everything on it stays. */
+    var powered = true
+        internal set
+
+    /** What the backend can do with it (modes, power, gamma), or null. */
+    var control: MonitorControl? = null
+
     // Set from the position the user gave (else it is placed after the others).
     internal var fixedPosition: Pair<Int, Int>? = null
 

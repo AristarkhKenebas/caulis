@@ -310,6 +310,7 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
             .setFullscreen(window.fullscreen)
             .setMinimized(desktop.isMinimized(window))
             .setX11(window is dev.caulis.xwayland.XWindow)
+            .setUrgent(window.urgent)
         if (withPlace) builder.setRect(rect(DesktopRect(window.x, window.y, window.visibleRect.width, window.visibleRect.height)))
         return builder.build()
     }

@@ -275,6 +275,7 @@ val jextractInput = tasks.register<JextractTask>("jextractInput") {
         "function libinput_event_keyboard_get_key_state", "function libinput_event_keyboard_get_time",
         "function libinput_event_get_pointer_event", "function libinput_event_pointer_get_time",
         "function libinput_event_pointer_get_dx", "function libinput_event_pointer_get_dy",
+        "function libinput_event_pointer_get_dx_unaccelerated", "function libinput_event_pointer_get_dy_unaccelerated",
         "function libinput_event_pointer_get_absolute_x_transformed",
         "function libinput_event_pointer_get_absolute_y_transformed",
         "function libinput_event_pointer_get_button", "function libinput_event_pointer_get_button_state",

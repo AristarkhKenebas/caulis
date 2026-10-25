@@ -183,7 +183,8 @@
                 "type": "boolean",
                 "description": "it always exists, even empty"
               }
-            }
+            },
+            "required": ["workspace"]
           },
           "minItems": 0,
           "maxItems": 1000,
@@ -233,6 +234,10 @@
           "enabled": {
             "type": "boolean",
             "description": "false: not used"
+          },
+          "transform": {
+            "enum": ["normal", "90", "180", "270", "flipped", "flipped-90", "flipped-180", "flipped-270"],
+            "description": "turned clockwise (a screen on its side: 90)"
           }
         }
       },
@@ -518,6 +523,47 @@
         }
       },
       "description": "mice, touchpads, focus"
+    },
+    "idle": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 86400,
+            "description": "seconds without input"
+          },
+          "action": {
+            "type": "string",
+            "minLength": 1,
+            "description": "what happens then (\"dpms off\", \"lock\", \"exec ...\")"
+          },
+          "resume": {
+            "type": "string",
+            "minLength": 1,
+            "description": "what happens when someone is back"
+          }
+        },
+        "required": ["after"]
+      },
+      "minItems": 0,
+      "maxItems": 1000,
+      "description": "what happens when nobody uses the computer"
+    },
+    "focusOnActivate": {
+      "type": "boolean",
+      "description": "a window asking for the focus with a good token gets it (false: only marked urgent)"
+    },
+    "fullscreenKeepsAwake": {
+      "type": "boolean",
+      "description": "a fullscreen window keeps idle timers off"
+    },
+    "wakeScreensOnInput": {
+      "type": "boolean",
+      "description": "input switches dark screens on again"
     },
     "lid": {
       "type": "object",

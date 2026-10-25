@@ -171,6 +171,8 @@ message Window {
   bool minimized = 12;
   // An X11 program (through Xwayland).
   bool x11 = 13;
+  // It wants attention (it asked for the focus and did not get it).
+  bool urgent = 14;
 }
 
 message Workspace {

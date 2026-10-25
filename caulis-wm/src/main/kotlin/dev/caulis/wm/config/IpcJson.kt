@@ -31,6 +31,7 @@ internal object IpcJson {
             "fullscreen" to flag(w.fullscreen),
             "minimized" to flag(w.minimized),
             "x11" to flag(w.x11),
+            "urgent" to flag(w.urgent),
         )
         if (w.hasRect()) fields["rect"] = rect(w.rect)
         return JsonValue.Obj(fields, 0, 0)
