@@ -25,6 +25,9 @@ dokka-gradle-plugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", vers
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 # The Kotlin compiler, run inside the compositor for fast hot reload (caulis-reload only).
 kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlin" }
+# Kotlin's incremental compilation (Build Tools API, as the Gradle plugin uses it) — caulis-reload only.
+kotlin-build-tools-api = { module = "org.jetbrains.kotlin:kotlin-build-tools-api", version.ref = "kotlin" }
+kotlin-build-tools-impl = { module = "org.jetbrains.kotlin:kotlin-build-tools-impl", version.ref = "kotlin" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }

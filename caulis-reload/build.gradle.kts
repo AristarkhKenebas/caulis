@@ -9,6 +9,8 @@ plugins {
 dependencies {
     api(project(":caulis-wm"))
     implementation(libs.kotlin.compiler)
+    implementation(libs.kotlin.build.tools.api)
+    runtimeOnly(libs.kotlin.build.tools.impl)
 }
 
 // Its tests run the Kotlin compiler (heavy for a few seconds): after the tests that run

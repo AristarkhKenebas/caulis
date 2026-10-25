@@ -2,7 +2,8 @@
 
 Fast hot reload, for development only: when you save a file, your configuration is compiled
 right inside the running compositor (the Kotlin compiler, and the JDK's own for Java files)
-instead of a Gradle build — about one to two seconds from saving to seeing it. Without this
+instead of a Gradle build, incrementally (only what changed, and what depends on it) —
+well under a second from saving to seeing it. Without this
 module, hot reload uses the project's Gradle and takes several seconds.
 
 Add it to the `run` task only (the starter project does), not to what you install: it

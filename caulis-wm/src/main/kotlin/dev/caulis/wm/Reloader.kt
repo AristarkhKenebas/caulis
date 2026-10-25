@@ -93,16 +93,8 @@ internal class Reloader private constructor(
     private fun warmUp() {
         val started = System.nanoTime()
         if (compiler != null) {
-            // A compiler in a JVM gets faster for several runs (its code is compiled to machine
-            // code bit by bit): a few rounds, unless a real change comes first.
-            val folder = project.root.resolve("build/caulis-reload/warm-up")
-            for (round in 1..WARM_UP_ROUNDS) {
-                fresh(folder)
-                val result = compiler.compile(project.root, compileClasspath(), folder)
-                log.trace { "Warm-up compile $round done after ${(System.nanoTime() - started) / 1_000_000} ms (${if (result.compiled) "compiled" else "did not compile"})" }
-                if (!result.compiled || closed || changesWaiting()) break
-            }
-            folder.toFile().deleteRecursively()
+            compiler.warmUp(project.root, compileClasspath(), WARM_UP_ROUNDS) { closed || changesWaiting() }
+            log.trace { "Warm-up done in ${(System.nanoTime() - started) / 1_000_000} ms" }
         } else {
             // (The configuration's own compile task once more, so the Kotlin compiler warms up too.)
             compile("compileKotlin", "--rerun")?.let { (status, _) -> log.trace { "Warm-up build done in ${(System.nanoTime() - started) / 1_000_000} ms (status $status)" } }
@@ -264,6 +256,7 @@ internal class Reloader private constructor(
 
     override fun close() {
         closed = true
+        runCatching { compiler?.close() }
         build?.destroy()
         watcher.close()
         thread.interrupt()

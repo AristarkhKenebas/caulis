@@ -24,6 +24,25 @@ interface ReloadCompiler {
      */
     fun compile(root: Path, classpath: List<Path>, output: Path): Result
 
+    /**
+     * Compiles [rounds] times without using the result, so the first real change is quick
+     * too (a compiler in a JVM gets faster over several runs); stops early when [stop] says so.
+     */
+    fun warmUp(root: Path, classpath: List<Path>, rounds: Int, stop: () -> Boolean) {
+        for (round in 1..rounds) {
+            val folder = java.nio.file.Files.createTempDirectory("caulis-warm-up")
+            try {
+                if (!compile(root, classpath, folder).compiled) return
+            } finally {
+                folder.toFile().deleteRecursively()
+            }
+            if (stop()) return
+        }
+    }
+
+    /** The compositor stops. */
+    fun close() {}
+
     /** Whether it compiled, and the problems as "src/main/kotlin/Main.kt:15: Unresolved reference 'x'". */
     class Result(val compiled: Boolean, val problems: List<String>)
 }

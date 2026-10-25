@@ -8,6 +8,7 @@ import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.config.JvmTarget
+import org.jetbrains.kotlin.buildtools.api.arguments.enums.JvmTarget as BuildToolsJvmTarget
 import org.jetbrains.kotlin.config.Services
 import java.io.File
 import java.nio.file.Files
@@ -23,15 +24,16 @@ import kotlin.io.path.isRegularFile
 import kotlin.io.path.readText
 
 /**
- * Compiles a project's sources in this JVM: Kotlin with the Kotlin compiler, then Java
- * with the JDK's own (javax.tools), against the classes the compositor runs with. Both
- * stay loaded and warm, so a change takes well under a second instead of a Gradle build.
+ * Compiles a project's sources in this JVM: Kotlin with the Kotlin compiler — incrementally,
+ * only what changed and what depends on it ([IncrementalKotlin]) — then Java with the JDK's
+ * own (javax.tools), against the classes the compositor runs with. Everything stays loaded
+ * and warm, so a change takes well under a second instead of a Gradle build.
  *
  * Projects that need more than plain compiling — compiler plugins (serialization,
  * Compose, all-open, ...), annotation processors, KSP/kapt, own source sets or compiler
  * flags — are left to Gradle ([cannotCompile] says why).
  */
-class InProcessCompiler : ReloadCompiler {
+class InProcessCompiler : ReloadCompiler, AutoCloseable {
 
     private val log = Logger("reload")
 
@@ -43,7 +45,51 @@ class InProcessCompiler : ReloadCompiler {
         return "${build.fileName} uses ${needs.second}, which only its Gradle build knows how to do"
     }
 
-    override fun compile(root: Path, classpath: List<Path>, output: Path): ReloadCompiler.Result {
+    override fun compile(root: Path, classpath: List<Path>, output: Path): ReloadCompiler.Result = compile(root, classpath, output, force = false)
+
+    override fun warmUp(root: Path, classpath: List<Path>, rounds: Int, stop: () -> Boolean) {
+        // The first round compiles everything (and makes the incremental caches), the others
+        // everything again (incrementally there would be nothing to do, and nothing warms up).
+        for (round in 1..rounds) {
+            val folder = Files.createTempDirectory(root.resolve("build").also(Files::createDirectories), "caulis-warm-up")
+            val started = System.nanoTime()
+            val result = try {
+                compile(root, classpath, folder, force = round > 1)
+            } finally {
+                folder.toFile().deleteRecursively()
+            }
+            log.trace { "Warm-up compile $round in ${(System.nanoTime() - started) / 1_000_000} ms (${if (result.compiled) "compiled" else "did not compile"})" }
+            if (!result.compiled || stop()) break
+        }
+    }
+
+    // Kotlin's incremental compilation for the project, or null while it is not there (yet)
+    // or does not work here (then each compile is a whole one).
+    private var incremental: IncrementalKotlin? = null
+    private var incrementalRoot: Path? = null
+    private var incrementalBroken = false
+
+    private fun incrementalFor(root: Path): IncrementalKotlin? {
+        if (incrementalBroken) return null
+        if (incrementalRoot == root) return incremental
+        incremental?.close()
+        incremental = try {
+            IncrementalKotlin(root, root.fileName.toString())
+        } catch (e: Throwable) {
+            if (e is VirtualMachineError) throw e
+            log.warn("Kotlin's incremental compilation is not available ($e): each change compiles everything")
+            incrementalBroken = true
+            null
+        }
+        incrementalRoot = root
+        return incremental
+    }
+
+    override fun close() {
+        incremental?.close()
+    }
+
+    private fun compile(root: Path, classpath: List<Path>, output: Path, force: Boolean): ReloadCompiler.Result {
         val main = root.resolve("src/main")
         val sources = listOf("kotlin", "java").map(main::resolve).filter { it.isDirectory() }.flatMap { folder ->
             Files.walk(folder).use { all -> all.filter { it.isRegularFile() && it.extension in setOf("kt", "java") }.toList() }
@@ -54,6 +100,7 @@ class InProcessCompiler : ReloadCompiler {
         // The compiler's own jars are there only for compiling: nothing to look through.
         val against = classpath.filter { entry -> TOOLING.none { entry.fileName.toString().startsWith(it) } }
         val problems = ArrayList<String>()
+        // "src/main/kotlin/Main.kt:15: " for a place in the project.
         fun where(path: String?, line: Int): String {
             if (path == null) return ""
             val shown = runCatching { root.relativize(Path.of(path)) }.getOrDefault(Path.of(path))
@@ -61,7 +108,22 @@ class InProcessCompiler : ReloadCompiler {
         }
 
         // Kotlin first (it reads the Java files for their declarations), then Java against it.
+        // Incrementally if that works: only what changed (and what depends on it) is compiled.
+        var whole = kotlin.isNotEmpty()
         if (kotlin.isNotEmpty()) {
+            val ic = incrementalFor(root)
+            val started = System.nanoTime()
+            when (ic?.compile(kotlin + java, against, buildToolsTarget(), problems, ::where, force)) {
+                true -> {
+                    copyTree(ic.classes, output)
+                    whole = false
+                    log.trace { "Kotlin (incremental): ${(System.nanoTime() - started) / 1_000_000} ms" }
+                }
+                false -> return ReloadCompiler.Result(false, problems.ifEmpty { listOf("the Kotlin compiler found mistakes") })
+                null -> problems.clear() // not available or broken: the whole way below
+            }
+        }
+        if (whole) {
             val started = System.nanoTime()
             val collector = object : MessageCollector {
                 var errors = false
@@ -125,6 +187,23 @@ class InProcessCompiler : ReloadCompiler {
         return ReloadCompiler.Result(true, emptyList())
     }
 
+    // Copies the compiled classes, so the new version has a folder of its own (the incremental
+    // one changes with the next compile, while the version before may still load from it).
+    private fun copyTree(from: Path, to: Path) {
+        Files.walk(from).use { all ->
+            all.forEach { file ->
+                val target = to.resolve(from.relativize(file).toString())
+                if (Files.isDirectory(file)) Files.createDirectories(target) else Files.copy(file, target)
+            }
+        }
+    }
+
+    // The same, for the Build Tools API.
+    private fun buildToolsTarget(): BuildToolsJvmTarget {
+        val wanted = jvmTarget()
+        return BuildToolsJvmTarget.entries.firstOrNull { it.stringValue == wanted } ?: BuildToolsJvmTarget.entries.last()
+    }
+
     // The newest bytecode the Kotlin compiler writes that this JVM runs.
     private fun jvmTarget(): String {
         val runtime = Runtime.version().feature()
@@ -134,7 +213,10 @@ class InProcessCompiler : ReloadCompiler {
 
     private companion object {
         // Jars on the classpath only because of this module.
-        val TOOLING = listOf("kotlin-compiler-embeddable", "kotlin-daemon-embeddable", "kotlin-build-tools-api", "kotlin-script-runtime", "caulis-reload")
+        val TOOLING = listOf(
+            "kotlin-compiler-embeddable", "kotlin-compiler-runner", "kotlin-daemon-embeddable", "kotlin-daemon-client",
+            "kotlin-build-tools", "kotlin-tooling-core", "kotlin-script-runtime", "caulis-reload",
+        )
 
         // What in a build file means plain compiling is not enough, and what it is called.
         val GRADLE_ONLY = listOf(

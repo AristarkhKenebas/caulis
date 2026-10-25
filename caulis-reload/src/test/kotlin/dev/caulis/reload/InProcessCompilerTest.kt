@@ -23,6 +23,7 @@ class InProcessCompilerTest {
 
     @AfterTest
     fun cleanUp() {
+        compiler.close()
         root.toFile().deleteRecursively()
     }
 
@@ -63,6 +64,44 @@ class InProcessCompilerTest {
             }
         }
         assertTrue(millis < 5000, "warm compiles take well under a Gradle build: $millis ms")
+    }
+
+    @Test
+    fun `only what changed is compiled again, and the result is complete`() {
+        project()
+        fun compileNow(): Pair<Path, Long> {
+            val output = Files.createTempDirectory(root, "out")
+            val started = System.nanoTime()
+            val result = compiler.compile(root, classpath, output)
+            assertTrue(result.compiled, result.problems.joinToString("\n"))
+            return output to (System.nanoTime() - started) / 1_000_000
+        }
+        fun name(output: Path): String = URLClassLoader(arrayOf(output.toUri().toURL()), javaClass.classLoader).use { loader ->
+            loader.loadClass("Names").getField("INSTANCE").get(null).let { it.javaClass.getMethod("name").invoke(it) as String }
+        }
+        compileNow() // everything, the first time
+        val times = ArrayList<Long>()
+        repeat(4) { round ->
+            Thread.sleep(20) // (a new modification time)
+            file("src/main/kotlin/Names.kt", """object Names { fun name() = "compositor $round" }""")
+            val (output, millis) = compileNow()
+            times += millis
+            assertEquals("compositor $round", name(output), "the change is in")
+            assertTrue(Files.exists(output.resolve("MainKt.class")) && Files.exists(output.resolve("Greeting.class")), "and everything else too")
+        }
+        println("incremental: $times ms")
+
+        // A file that goes away: its class goes too.
+        file("src/main/kotlin/Extra.kt", "object Extra")
+        assertTrue(Files.exists(compileNow().first.resolve("Extra.class")))
+        Files.delete(root.resolve("src/main/kotlin/Extra.kt"))
+        assertFalse(Files.exists(compileNow().first.resolve("Extra.class")))
+
+        // A mistake, then fixed: the classes are right again.
+        file("src/main/kotlin/Names.kt", """object Names { fun name() = nope }""")
+        assertFalse(compiler.compile(root, classpath, Files.createTempDirectory(root, "out")).compiled)
+        file("src/main/kotlin/Names.kt", """object Names { fun name() = "fixed" }""")
+        assertEquals("fixed", name(compileNow().first))
     }
 
     @Test
