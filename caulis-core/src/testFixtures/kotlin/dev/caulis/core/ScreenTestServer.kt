@@ -36,6 +36,14 @@ class ScreenTestServer(
     private lateinit var renderer: GlesRenderer
     private val outputs = ArrayList<Output>()
 
+    /**
+     * Called (on the server's thread) with every frame that reaches a pretend screen: the
+     * monitor's name and its pixels, row by row from the top, 0xAARRGGBB — what is really
+     * shown, after drawing only what changed.
+     */
+    @Volatile
+    var onFrameShown: ((String, IntArray) -> Unit)? = null
+
     /** Scales the pretend screens (the desktop and its monitors), as a user's setting does. */
     fun setScale(scale: Double) = onServer { desktop ->
         desktop.scale = scale
@@ -141,6 +149,15 @@ class ScreenTestServer(
             })
             if (drew) {
                 framesDrawn++
+                onFrameShown?.let { look ->
+                    // What is on the pretend screen now (after drawing only what changed).
+                    java.lang.foreign.Arena.ofConfined().use { arena ->
+                        val pixels = arena.allocate(WIDTH.toLong() * HEIGHT * 4)
+                        renderer.finish()
+                        target.readPixels(pixels, WIDTH * 4)
+                        look(monitor.name, pixels.toArray(java.lang.foreign.ValueLayout.JAVA_INT))
+                    }
+                }
                 desktop.presented(view, System.nanoTime(), REFRESH_NANOS, ++sequence, WpPresentationFeedback.Kind.VSYNC)
             }
             loop.after(16) { tick() }

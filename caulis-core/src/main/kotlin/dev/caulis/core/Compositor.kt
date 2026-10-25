@@ -196,7 +196,7 @@ class Surface internal constructor(val resource: WlSurface, private val composit
             nativeScale != null -> Math.round(current.bufferWidth / nativeScale!!).toInt()
             current.viewportWidth > 0 -> current.viewportWidth
             current.viewportSource != null -> current.viewportSource!![2].toInt()
-            else -> current.bufferWidth / current.scale
+            else -> turnedWidth / current.scale
         }
     val height: Int
         get() = when {
@@ -204,8 +204,13 @@ class Surface internal constructor(val resource: WlSurface, private val composit
             nativeScale != null -> Math.round(current.bufferHeight / nativeScale!!).toInt()
             current.viewportHeight > 0 -> current.viewportHeight
             current.viewportSource != null -> current.viewportSource!![3].toInt()
-            else -> current.bufferHeight / current.scale
+            else -> turnedHeight / current.scale
         }
+
+    // The buffer's size the way it is shown (a buffer turned sideways trades width and height).
+    private val sideways: Boolean get() = current.transform % 2 == 1
+    private val turnedWidth: Int get() = if (sideways) current.bufferHeight else current.bufferWidth
+    private val turnedHeight: Int get() = if (sideways) current.bufferWidth else current.bufferHeight
 
     /**
      * The part of the picture to show, as fractions of the texture (u, v, width, height), or
@@ -214,8 +219,8 @@ class Surface internal constructor(val resource: WlSurface, private val composit
     val textureSource: FloatArray?
         get() {
             val source = current.viewportSource ?: return null
-            val w = current.bufferWidth.toDouble() / current.scale
-            val h = current.bufferHeight.toDouble() / current.scale
+            val w = turnedWidth.toDouble() / current.scale
+            val h = turnedHeight.toDouble() / current.scale
             if (w <= 0 || h <= 0) return null
             return floatArrayOf((source[0] / w).toFloat(), (source[1] / h).toFloat(), (source[2] / w).toFloat(), (source[3] / h).toFloat())
         }
@@ -240,10 +245,13 @@ class Surface internal constructor(val resource: WlSurface, private val composit
     // (the largest of theirs). Null: not shown yet (the compositor's default).
     private var placedOutputs: List<Output>? = null
     private var placedScale: Double? = null
+    private var toldTurns: List<Int> = emptyList()
 
     /** The compositor shows this surface on [outputs], where its program should draw at [scale]. */
     internal fun placeOn(outputs: List<Output>, scale: Double) {
-        if (outputs == placedOutputs && scale == placedScale) return
+        // (A monitor turned meanwhile: the program hears the new preferred turn.)
+        if (outputs == placedOutputs && scale == placedScale && outputs.map { it.transform.ordinal } == toldTurns) return
+        toldTurns = outputs.map { it.transform.ordinal }
         placedOutputs = outputs
         placedScale = scale
         tellScale()
@@ -293,6 +301,9 @@ class Surface internal constructor(val resource: WlSurface, private val composit
 
     // Tells the program which monitors it is on (enter, leave) and the scale to draw at —
     // only what changed.
+    // The buffer transform the program was told to prefer last (-1: none yet).
+    private var toldBufferTransform = -1
+
     internal fun tellScale() {
         if (!resource.isAlive) return
         val wanted = (placedOutputs ?: compositor.defaultOutputs()).flatMap { it.resourcesOf(resource.client) }.toSet()
@@ -307,6 +318,13 @@ class Surface internal constructor(val resource: WlSurface, private val composit
         if (resource.version >= 6 && toldBufferScale != whole) {
             toldBufferScale = whole
             resource.sendPreferredBufferScale(whole)
+        }
+        // The monitors' turn (one that all of them share): a program drawing its buffer turned
+        // so can be shown directly on a monitor standing on its side.
+        val turn = (placedOutputs ?: compositor.defaultOutputs()).map { it.transform }.distinct().singleOrNull() ?: Transform.NORMAL
+        if (resource.version >= 6 && toldBufferTransform != turn.ordinal) {
+            toldBufferTransform = turn.ordinal
+            resource.sendPreferredBufferTransform(turn.ordinal)
         }
         val fraction = preferredFraction()
         val fractional = fractionalScale?.takeIf { it.isAlive }
@@ -377,8 +395,8 @@ class Surface internal constructor(val resource: WlSurface, private val composit
             }
             return
         }
-        if (current.viewportSource != null || current.viewportWidth > 0) {
-            // Buffer pixels and surface units differ by an arbitrary factor: redraw it all.
+        if (current.viewportSource != null || current.viewportWidth > 0 || current.transform != WlOutput.Transform.NORMAL) {
+            // Buffer pixels and surface units differ by an arbitrary factor (or the buffer is turned): redraw it all.
             if (current.damage.isNotEmpty()) changes += Rect(0, 0, width, height)
             return
         }

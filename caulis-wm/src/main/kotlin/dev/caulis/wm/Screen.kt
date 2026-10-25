@@ -50,13 +50,15 @@ internal fun runOnScreen(config: Caulis) {
                     // Each refresh: draw what changed (if anything), then tell programs
                     // their last frame is on screen.
                     val view = desktop.createView(place)
+                    // The pointer on the display's cursor plane: it moves without new pictures.
+                    if (config.hardwareCursor) view.hardwareCursor = monitor.hardwareCursor
                     shown[monitor] = Shown(output, place, view)
                     val stats = if (config.stats) FrameStats(monitor.name) else null
-                    // A turned monitor gets its picture turned on the way (and no direct scanout then).
+                    // A turned monitor gets its picture turned on the way (a program's buffer turned the same way is shown directly).
                     val rotator = dev.caulis.core.Rotator(backend.renderer)
                     val present = running.timed(stats) { draw -> monitor.present(rotator.wrap(place.transform, draw)) }
                     val presentDirect: ((dev.caulis.core.DmabufBuffer) -> Boolean)? =
-                        if (config.directScanout) ({ buffer -> place.transform == dev.caulis.core.Transform.NORMAL && monitor.presentDirect(buffer) }) else null
+                        if (config.directScanout) monitor::presentDirect else null
                     place.control = object : dev.caulis.core.MonitorControl {
                         override val modes get() = monitor.modes.map { dev.caulis.core.MonitorMode(it.width, it.height, it.refreshMillihertz, it.preferred) }
                         override val currentMode get() = monitor.mode?.let { dev.caulis.core.MonitorMode(it.width, it.height, it.refreshMillihertz, it.preferred) }
@@ -80,7 +82,9 @@ internal fun runOnScreen(config: Caulis) {
                     monitor.onPresented = { nanos, refreshNanos, sequence, zeroCopy ->
                         stats?.presented(nanos, refreshNanos)
                         // Exact: the kernel's own timestamp of the refresh that showed it.
-                        val flags = if (zeroCopy) EXACT_PRESENTATION or WpPresentationFeedback.Kind.ZERO_COPY else EXACT_PRESENTATION
+                        // Exact times only when the kernel gives them on the monotonic clock.
+                        val exact = if (backend.device.monotonicTimestamps) EXACT_PRESENTATION else WpPresentationFeedback.Kind.VSYNC
+                        val flags = if (zeroCopy) exact or WpPresentationFeedback.Kind.ZERO_COPY else exact
                         desktop.presented(view, nanos, refreshNanos, sequence, flags)
                     }
                 }

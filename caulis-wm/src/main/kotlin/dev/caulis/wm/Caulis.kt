@@ -381,7 +381,7 @@ class Caulis {
     /**
      * Settings of the monitor at connector [name], e.g.
      * `monitor("DP-2") { scale = 1.5; position(1920, 0) }` or `monitor("HDMI-A-1") { enabled = false }`.
-     * Can be changed while running (scale and position).
+     * Can be changed while running (all of it: only what differs changes).
      */
     fun monitor(name: String, settings: MonitorSettings.() -> Unit) {
         monitorSettings.getOrPut(name) { MonitorSettings(name) }.apply(settings)
@@ -590,6 +590,12 @@ class Caulis {
 
     /** Print frame timing every few seconds. */
     var stats = false
+
+    /**
+     * The pointer on the display's own cursor plane (screen mode): it moves without new
+     * pictures being drawn, with less delay. Off: always drawn into the pictures.
+     */
+    var hardwareCursor = true
 
     /** Show fullscreen programs' pictures directly on the monitor (screen mode). */
     var directScanout = true

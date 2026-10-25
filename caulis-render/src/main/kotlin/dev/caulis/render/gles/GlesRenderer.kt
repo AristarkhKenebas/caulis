@@ -182,11 +182,12 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
 
     override fun drawTexture(
         texture: GpuTexture, x: Int, y: Int, width: Int, height: Int, opaque: Boolean,
-        alpha: Float, clip: Rect?, cornerRadius: Float, source: FloatArray?,
+        alpha: Float, clip: Rect?, cornerRadius: Float, source: FloatArray?, transform: Int,
     ) {
         texture as GlTexture
         textured.use()
         setRect(textured, x, y, width, height)
+        Gles.glUniform1i(textured.uniform("transform"), transform)
         if (source != null) {
             Gles.glUniform4f(textured.uniform("source"), source[0], source[1], source[2], source[3])
         } else {
@@ -376,6 +377,9 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
          * got from libseat (then its buffers can be shown on screen). [device] is not closed.
          */
         fun createOn(device: Fd): GlesRenderer = GlesRenderer(EglContext.createOn(device.value, owned = null))
+
+        /** The same, closing [device] with the renderer when [owned]. */
+        fun createOn(device: Fd, owned: Boolean): GlesRenderer = GlesRenderer(EglContext.createOn(device.value, owned = if (owned) device else null))
     }
 }
 

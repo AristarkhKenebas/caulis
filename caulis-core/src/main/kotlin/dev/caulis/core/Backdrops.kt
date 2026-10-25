@@ -169,14 +169,17 @@ internal class Backdrops(
             }
         }
         Thread.ofVirtual().name("background-image").start {
-            val image = try {
-                ImageIO.read(path.toFile()) ?: error("not a picture Java can read (PNG, JPEG, BMP, GIF)")
-            } catch (e: Exception) {
+            // (Also errors: Java's 2D graphics that cannot start says so with one; the background
+            // then stays [Background.Image.behind], and the log says why.)
+            val argb = try {
+                val image = ImageIO.read(path.toFile()) ?: error("not a picture Java can read (PNG, JPEG, BMP, GIF)")
+                BufferedImage(image.width, image.height, BufferedImage.TYPE_INT_ARGB_PRE).also { argb ->
+                    argb.createGraphics().apply { drawImage(image, 0, 0, null); dispose() }
+                }
+            } catch (e: Throwable) {
                 log.warn("The background picture $path could not be read: ${e.message ?: e}")
                 return@start
             }
-            val argb = BufferedImage(image.width, image.height, BufferedImage.TYPE_INT_ARGB_PRE)
-            argb.createGraphics().apply { drawImage(image, 0, 0, null); dispose() }
             loop.post {
                 pictures[path] = Picture(upload(argb), argb.width, argb.height)
                 log.info { "Background picture $path: ${argb.width}x${argb.height}" }

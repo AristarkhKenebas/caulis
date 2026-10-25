@@ -55,6 +55,9 @@ internal class Running(
     var config: Caulis = initialConfig
         private set
 
+    // Monitors switched off because the configuration says enabled = false.
+    private val disabledByConfig = config.monitorSettings.values.filter { !it.enabled }.mapTo(HashSet()) { it.name }
+
     private val log = Logger("config")
     private val clientsLog = Logger("clients")
     private val cursorLog = Logger("cursor")
@@ -508,7 +511,13 @@ internal class Running(
         next.applyLogSettings()
         applyConfig()
         if (desktop.layout != next.layout) desktop.layout = next.layout
-        if (same || before.scale != next.scale || before.monitorSettings.values.map { it.scale } != next.monitorSettings.values.map { it.scale }) applyScale()
+        if (same || before.scale != next.scale || before.monitorSettings.mapValues { it.value.scale } != next.monitorSettings.mapValues { it.value.scale }) applyScale()
+        // A turn taken out of the configuration: the monitor stands as it is again.
+        for (monitor in desktop.monitors) {
+            if (before.monitorSettings[monitor.name]?.transform != null && next.monitorSettings[monitor.name]?.transform == null) {
+                desktop.setTransform(monitor, dev.caulis.core.Transform.NORMAL)
+            }
+        }
         applyMonitorSettings()
         applyCursor()
         // Margins of the new rules: windows take them at once.
@@ -523,8 +532,10 @@ internal class Running(
 
     /** Applies the scale to the desktop, the monitors (their own where set) and the programs. */
     fun applyScale() {
-        desktop.scale = config.scale
-        for (monitor in desktop.monitors) config.monitorSettings[monitor.name]?.scale?.let { desktop.setScale(monitor, it) }
+        // Each monitor straight to its scale (one with its own never passes through the
+        // usual one: programs would draw twice, and the screen change twice).
+        desktop.defaultScale = config.scale
+        for (monitor in desktop.monitors) desktop.setScale(monitor, config.monitorSettings[monitor.name]?.scale ?: config.scale)
         xwayland?.rescaled()
         ipc?.changed()
         outputManagement.changed()
@@ -556,17 +567,55 @@ internal class Running(
         outputManagement.changed()
     }
 
-    /** Applies changed monitor settings (scale and place) to the monitors there are. */
+    /**
+     * Applies changed monitor settings (mode, scale, turn, place, on or off) to the monitors
+     * there are; only what differs changes.
+     */
     fun applyMonitorSettings() {
         for (monitor in desktop.monitors) {
             val settings = config.monitorSettings[monitor.name] ?: continue
+            applyMode(monitor, settings)
             settings.scale?.let { desktop.setScale(monitor, it) }
             settings.transform?.let { desktop.setTransform(monitor, it) }
             desktop.moveMonitor(monitor, settings.x, settings.y)
         }
+        // Off and on again, as the configuration says now (the last monitor stays: else nothing shows).
+        val heads = outputManagement.heads
+        for (monitor in desktop.monitors.toList()) {
+            if (config.monitorSettings[monitor.name]?.enabled != false) continue
+            if (desktop.monitors.size <= 1) {
+                log.warn("Monitor ${monitor.name} stays on: it is the only one (enabled = false is for one of several)")
+            } else if (heads.setEnabled(monitor.name, false)) {
+                disabledByConfig += monitor.name
+                log.info { "Monitor ${monitor.name} switched off (enabled = false)" }
+            }
+        }
+        for (name in disabledByConfig.toList()) {
+            if (config.monitorSettings[name]?.enabled == false) continue
+            disabledByConfig -= name
+            if (heads.setEnabled(name, true)) log.info { "Monitor $name used again" }
+        }
         xwayland?.rescaled()
         ipc?.changed()
         outputManagement.changed()
+    }
+
+    // The mode the configuration asks of [monitor] (mode(width, height, refreshHz)), if it is another.
+    private fun applyMode(monitor: Monitor, settings: Caulis.MonitorSettings) {
+        val width = settings.width ?: return
+        val height = settings.height ?: return
+        val control = monitor.control ?: return
+        val hz = settings.refreshHz
+        val wanted = control.modes.filter { it.width == width && it.height == height }
+            .minByOrNull { mode -> hz?.let { Math.abs(mode.refreshMillihertz / 1000.0 - it) } ?: -mode.refreshMillihertz.toDouble() }
+            ?: if (control.customModes) dev.caulis.core.MonitorMode(width, height, ((hz ?: 60.0) * 1000).toInt()) else null
+        if (wanted == null) {
+            log.warn("Monitor ${monitor.name} has no mode ${width}x$height (it has ${control.modes.joinToString()})")
+            return
+        }
+        val current = control.currentMode
+        if (current != null && current.width == wanted.width && current.height == wanted.height && current.refreshMillihertz == wanted.refreshMillihertz) return
+        if (control.setMode(wanted)) log.info { "Monitor ${monitor.name}: mode $wanted" } else log.warn("Monitor ${monitor.name} could not take the mode $wanted")
     }
 
     /** Applies the cursor settings (theme, size, hiding). */

@@ -4,6 +4,7 @@ import dev.caulis.core.libinput.InputDevices
 import dev.caulis.core.session.Session
 import dev.caulis.event.EventLoop
 import dev.caulis.ffi.CStrings
+import dev.caulis.ffi.Device
 import dev.caulis.ffi.Fd
 import dev.caulis.ffi.c.drm.Drm
 import dev.caulis.ffi.c.drm._drmModeConnector
@@ -112,7 +113,13 @@ class DrmBackend private constructor(
         // Gone (or a different monitor in the same socket): remove.
         for ((connectorId, output) in active.toList()) {
             val now = connected[connectorId]
-            if (now == null || now.edid != output.edid) removeOutput(connectorId)
+            // Gone, another monitor, or the same one with other modes (its menu switched DP 1.2/1.4).
+            if (now == null || now.edid != output.edid || now.modes.map { it.toString() } != output.modes.map { it.toString() }) {
+                removeOutput(connectorId)
+            } else if (now.linkBad) {
+                log.info("Monitor ${output.name}: the link failed; setting it up anew")
+                output.relink()
+            }
         }
         // New: find a CRTC and plane for it and turn it on.
         for ((connectorId, info) in connected) {
@@ -131,6 +138,48 @@ class DrmBackend private constructor(
             log.info("Monitor ${output.name} (${output.edid?.model ?: "unknown"}) at ${output.mode}")
             onOutputAdded(output)
         }
+        switchOffOthers()
+    }
+
+    // CRTCs, planes and connectors we do not drive are switched off: what the firmware or
+    // another session left must not stay lit (and hold a CRTC).
+    private fun switchOffOthers() {
+        if (!session.active) return
+        val resources = Drm.drmModeGetResources(device.fd)
+        if (resources == MemorySegment.NULL) return
+        val (crtcs, connectors) = try {
+            val crtcCount = _drmModeRes.count_crtcs(resources)
+            val crtcIds = _drmModeRes.crtcs(resources).reinterpret(crtcCount * 4L)
+            val connectorCount = _drmModeRes.count_connectors(resources)
+            val connectorIds = _drmModeRes.connectors(resources).reinterpret(connectorCount * 4L)
+            (0 until crtcCount).map { crtcIds.getAtIndex(JAVA_INT, it.toLong()) } to
+                (0 until connectorCount).map { connectorIds.getAtIndex(JAVA_INT, it.toLong()) }
+        } finally {
+            Drm.drmModeFreeResources(resources)
+        }
+        val ourCrtcs = active.values.map { it.crtcId }.toSet()
+        val ourPlanes = usedPlanes()
+        val result = device.commit(Drm.DRM_MODE_ATOMIC_ALLOW_MODESET()) { request ->
+            for (connector in connectors) {
+                if (connector in active) continue
+                val props = device.properties(connector, Drm.DRM_MODE_OBJECT_CONNECTOR())
+                if ((props["CRTC_ID"]?.value ?: 0L) != 0L) request.set(connector, props, "CRTC_ID", 0)
+            }
+            for (crtc in crtcs) {
+                if (crtc in ourCrtcs) continue
+                val props = device.properties(crtc, Drm.DRM_MODE_OBJECT_CRTC())
+                if ((props["ACTIVE"]?.value ?: 0L) == 0L) continue
+                request.set(crtc, props, "ACTIVE", 0)
+                request.set(crtc, props, "MODE_ID", 0)
+            }
+            for (plane in planes()) {
+                if (plane.id in ourPlanes || plane.currentCrtc == 0 || plane.currentCrtc in ourCrtcs) continue
+                val props = device.properties(plane.id, Drm.DRM_MODE_OBJECT_PLANE())
+                request.set(plane.id, props, "FB_ID", 0)
+                request.set(plane.id, props, "CRTC_ID", 0)
+            }
+        }
+        if (result != 0) log.info { "Switching off what others left lit was refused ($result)" }
     }
 
     private fun removeOutput(connectorId: Int) {
@@ -149,6 +198,10 @@ class DrmBackend private constructor(
         val heightMm: Int,
         val modes: List<DrmOutput.Mode>,
         val possibleCrtcs: Int,
+        /** The link failed (DisplayPort training, a dock): it needs a mode set. */
+        val linkBad: Boolean = false,
+        /** The CRTC it is on now (the firmware's, another session's), 0: none. */
+        val currentCrtc: Int = 0,
     )
 
     private fun connectedConnectors(): Map<Int, ConnectorInfo> {
@@ -167,7 +220,10 @@ class DrmBackend private constructor(
                     val modes = readModes(connector)
                     if (modes.isEmpty()) continue
                     val id = _drmModeConnector.connector_id(connector)
-                    val edidBlob = device.properties(id, Drm.DRM_MODE_OBJECT_CONNECTOR())["EDID"]?.value ?: 0
+                    val props = device.properties(id, Drm.DRM_MODE_OBJECT_CONNECTOR())
+                    // A VR headset is not a monitor of the desktop (it is lent to its program).
+                    if (props["non-desktop"]?.value == 1L) continue
+                    val edidBlob = props["EDID"]?.value ?: 0
                     result[id] = ConnectorInfo(
                         id = id,
                         name = "${connectorTypeName(_drmModeConnector.connector_type(connector))}-${_drmModeConnector.connector_type_id(connector)}",
@@ -176,6 +232,8 @@ class DrmBackend private constructor(
                         heightMm = _drmModeConnector.mmHeight(connector),
                         modes = modes,
                         possibleCrtcs = Drm.drmModeConnectorGetPossibleCrtcs(fd, connector),
+                        linkBad = props["link-status"]?.value == LINK_STATUS_BAD,
+                        currentCrtc = props["CRTC_ID"]?.value?.toInt() ?: 0,
                     )
                 } finally {
                     Drm.drmModeFreeConnector(connector)
@@ -196,8 +254,14 @@ class DrmBackend private constructor(
             val info = all.asSlice(i * size, size)
             val clock = _drmModeModeInfo.clock(info).toLong() // kHz
             val htotal = _drmModeModeInfo.htotal(info).toLong() and 0xffff
-            val vtotal = _drmModeModeInfo.vtotal(info).toLong() and 0xffff
-            val refresh = if (htotal > 0 && vtotal > 0) (clock * 1_000_000 / (htotal * vtotal)).toInt() else _drmModeModeInfo.vrefresh(info) * 1000
+            var vtotal = _drmModeModeInfo.vtotal(info).toLong() and 0xffff
+            // As wlroots: interlaced modes refresh twice, double-scanned ones half as often; rounded.
+            val flags = _drmModeModeInfo.flags(info)
+            if (flags and DRM_MODE_FLAG_INTERLACE != 0) vtotal /= 2
+            if (flags and DRM_MODE_FLAG_DBLSCAN != 0) vtotal *= 2
+            val vscan = (_drmModeModeInfo.vscan(info).toInt() and 0xffff).toLong()
+            if (vscan > 1) vtotal *= vscan
+            val refresh = if (htotal > 0 && vtotal > 0) ((clock * 1_000_000 + htotal * vtotal / 2) / (htotal * vtotal)).toInt() else _drmModeModeInfo.vrefresh(info) * 1000
             DrmOutput.Mode(
                 width = _drmModeModeInfo.hdisplay(info).toInt() and 0xffff,
                 height = _drmModeModeInfo.vdisplay(info).toInt() and 0xffff,
@@ -223,7 +287,10 @@ class DrmBackend private constructor(
             Drm.drmModeFreeResources(resources)
         }
         val used = active.values.map { it.crtcId }.toSet()
-        val index = crtcIds.indices.firstOrNull { info.possibleCrtcs and (1 shl it) != 0 && crtcIds[it] !in used }
+        fun usable(i: Int) = info.possibleCrtcs and (1 shl i) != 0 && crtcIds[i] !in used
+        // The CRTC it is on already, if it is free (no flicker, nothing to take from another
+        // monitor); else the first free one it can use.
+        val index = crtcIds.indexOf(info.currentCrtc).takeIf { it >= 0 && usable(it) } ?: crtcIds.indices.firstOrNull(::usable)
         if (index == null) {
             log.warn("No free display controller (CRTC) for ${info.name}")
             return null
@@ -232,10 +299,13 @@ class DrmBackend private constructor(
         val planes = planes()
         val primary = planes.firstOrNull { it.type == Drm.DRM_PLANE_TYPE_PRIMARY().toLong() && it.possibleCrtcs and (1 shl index) != 0 && it.id !in usedPlanes() }
             ?: return null.also { log.warn("No primary plane for ${info.name}") }
-        val stray = planes.filter { it.currentCrtc == crtc && it.id != primary.id }.map { it.id }
+        // A cursor plane of its own, if the display has one for this CRTC (the pointer then moves without frames).
+        val cursorPlane = planes.firstOrNull { it.type == Drm.DRM_PLANE_TYPE_CURSOR().toLong() && it.possibleCrtcs and (1 shl index) != 0 && it.id !in usedPlanes() }?.id ?: 0
+        // Planes still on this CRTC (another session's cursor or overlays): asked at every mode set.
+        val stray = { planes().filter { it.currentCrtc == crtc && it.id != primary.id && it.id != cursorPlane }.map { it.id } }
         return DrmOutput(
             loop, device, renderer, { session.active }, info.id, crtc, primary.id, info.name, info.edid,
-            info.widthMm, info.heightMm, info.modes, stray,
+            info.widthMm, info.heightMm, info.modes, stray, cursorPlane,
         )
     }
 
@@ -264,7 +334,7 @@ class DrmBackend private constructor(
         }
     }
 
-    private fun usedPlanes(): Set<Int> = active.values.map { it.planeId }.toSet()
+    private fun usedPlanes(): Set<Int> = active.values.flatMap { listOf(it.planeId, it.cursorPlaneId) }.filter { it != 0 }.toSet()
 
     // --- hotplug ------------------------------------------------------------------------
 
@@ -318,6 +388,9 @@ class DrmBackend private constructor(
 
     companion object {
         private const val HOTPLUG_SETTLE_MILLIS = 500L
+        private const val LINK_STATUS_BAD = 1L
+        private const val DRM_MODE_FLAG_INTERLACE = 1 shl 4
+        private const val DRM_MODE_FLAG_DBLSCAN = 1 shl 5
 
         /**
          * Opens the session, the GPU and the input devices. Throws with a readable message
@@ -325,7 +398,7 @@ class DrmBackend private constructor(
          */
         fun open(
             loop: EventLoop,
-            createRenderer: (Fd) -> Renderer = { GlesRenderer.createOn(it) },
+            createRenderer: (Fd) -> Renderer = { GlesRenderer.createOn(it, owned = true) },
         ): DrmBackend {
             val session = Session.open(loop)
             try {
@@ -338,7 +411,17 @@ class DrmBackend private constructor(
                         continue
                     }
                     try {
-                        val renderer = createRenderer(Fd.borrow(device.fd))
+                        // The renderer (GBM, EGL) gets a descriptor of its own for the same GPU, as
+                        // in wlroots: buffer handles are counted per descriptor, so the display's
+                        // imports (direct scanout) never close a handle the GPU driver still uses.
+                        val own = rendererDevice(card, device)
+                        device.sharedWithRenderer = own == null
+                        val renderer = try {
+                            createRenderer(own ?: Fd.borrow(device.fd))
+                        } catch (e: Exception) {
+                            own?.close()
+                            throw e
+                        }
                         return DrmBackend(loop, session, device, renderer)
                     } catch (e: Exception) {
                         device.close()
@@ -350,6 +433,27 @@ class DrmBackend private constructor(
                 session.close()
                 throw e
             }
+        }
+
+        // A second descriptor of the GPU behind [device]: its card node opened once more, else
+        // its render node; null if neither opens (then the renderer shares the display's).
+        private fun rendererDevice(card: Path, device: DrmDevice): Fd? {
+            val log = dev.caulis.log.Logger("drm")
+            try {
+                return Device.open(card).also { log.info { "Drawing on a descriptor of its own ($card)" } }
+            } catch (e: Exception) {
+                // (No rights to the card node itself: seatd without the video group.)
+            }
+            val renderNode = CStrings.takeOwned(Drm.drmGetRenderDeviceNameFromFd(device.fd))
+            if (renderNode != null) {
+                try {
+                    return Device.open(Path.of(renderNode)).also { log.info { "Drawing on $renderNode" } }
+                } catch (e: Exception) {
+                    log.warn("$renderNode cannot be opened: ${e.message}")
+                }
+            }
+            log.warn("Drawing on the display's own descriptor (buffer handles of direct scanout are kept then)")
+            return null
         }
 
         /** /dev/dri/card* — the one the firmware used for the boot screen first. */

@@ -11,11 +11,18 @@ internal object Shaders {
         uniform vec4 rect;    // x, y, width, height in pixels
         uniform vec2 target;  // size of the render target in pixels
         uniform vec4 source;  // the part of the texture to show: u, v, width, height
+        uniform int transform; // the texture is turned (0..7, wl_output's numbers): read it turned back
         out vec2 uv;
         void main() {
             vec2 pixel = rect.xy + corner * rect.zw;
             gl_Position = vec4(pixel / target * 2.0 - 1.0, 0.0, 1.0);
-            uv = source.xy + corner * source.zw;
+            vec2 p = source.xy + corner * source.zw;
+            if (transform >= 4) p.x = 1.0 - p.x;
+            int turn = transform - (transform >= 4 ? 4 : 0);
+            if (turn == 1) p = vec2(1.0 - p.y, p.x);
+            else if (turn == 2) p = vec2(1.0 - p.x, 1.0 - p.y);
+            else if (turn == 3) p = vec2(p.y, 1.0 - p.x);
+            uv = p;
         }"""
 
     // Signed distance from p to a rounded box (x, y, width, height): < 0 inside.

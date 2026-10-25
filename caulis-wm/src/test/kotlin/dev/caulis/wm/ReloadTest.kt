@@ -1,6 +1,7 @@
 package dev.caulis.wm
 
 import dev.caulis.core.NoticeLevel
+import dev.caulis.core.Transform
 import dev.caulis.tiling.BinaryTree
 import dev.caulis.tiling.Dwindle
 import dev.caulis.tiling.Gaps
@@ -64,6 +65,54 @@ class ReloadTest {
             val fixed = caulis.reloaded {} // the mistake is fixed
             caulis.onLoop { it.reconfigure(fixed) }
             client.waitFor { fixed.onLoop { r -> r.desktop.notices.none { it.level == NoticeLevel.WARNING } } }
+        }
+    }
+
+    @Test
+    fun `changed monitors in the configuration - mode, scale, turn - change straight to the new settings`() = with(harness) {
+        val lines = java.util.concurrent.CopyOnWriteArrayList<String>()
+        dev.caulis.log.Log.listener = { lines += it }
+        try {
+            withCaulis({
+                log("layout", 2)
+                headlessMonitors = 2
+                monitor("HEADLESS-1") { mode(1920, 1080) }
+                monitor("HEADLESS-2") { mode(1920, 1080); scale = 2.0; transform = Transform.ROTATE_90 }
+            }, headless = true) { caulis, _ ->
+                lines.clear()
+                val next = caulis.reloaded {
+                    log("layout", 2)
+                    headlessMonitors = 2
+                    scale = 1.5
+                    monitor("HEADLESS-1") { mode(1280, 720) }
+                    monitor("HEADLESS-2") { mode(1920, 1080); scale = 1.25 } // no longer turned
+                }
+                caulis.onLoop { it.reconfigure(next) }
+                next.onLoop { r ->
+                    val (first, second) = r.desktop.monitors
+                    assertEquals(1280 to 720, first.pixelWidth to first.pixelHeight, "the new mode")
+                    assertEquals(1.5, first.scale)
+                    assertEquals(Transform.NORMAL, second.transform, "the turn taken out: upright again")
+                    assertEquals(1920 to 1080, second.pixelWidth to second.pixelHeight)
+                    assertEquals(1.25, second.scale)
+                }
+                // Its own scale came at once, not through the usual one first.
+                assertEquals(listOf("2.0 → 1.25"), lines.filter { "HEADLESS-2: scale" in it }.map { it.substringAfter("scale ") })
+
+                // The same again: nothing changes, nothing is laid out anew.
+                lines.clear()
+                next.onLoop { it.reconfigure(caulis.reloaded {
+                    log("layout", 2)
+                    headlessMonitors = 2
+                    scale = 1.5
+                    monitor("HEADLESS-1") { mode(1280, 720) }
+                    monitor("HEADLESS-2") { mode(1920, 1080); scale = 1.25 }
+                }) }
+                assertTrue(lines.none { "HEADLESS-" in it && ("scale" in it || "mode" in it || "turned" in it) }, lines.joinToString("\n"))
+            }
+        } finally {
+            dev.caulis.log.Log.listener = null
+            dev.caulis.log.Log.clearLevel("layout")
         }
     }
 

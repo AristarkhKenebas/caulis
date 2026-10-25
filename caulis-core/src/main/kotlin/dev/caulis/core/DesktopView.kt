@@ -20,6 +20,14 @@ class DesktopView internal constructor(monitor: Monitor) {
     // What the last frame on this screen showed, in drawing order.
     internal var shown: List<DrawItem> = emptyList()
 
+    /** The monitor's cursor plane, if the backend has one for it (the cursor then needs no frames). */
+    var hardwareCursor: HardwareCursor? = null
+
+    // The cursor is on the plane now (so the frames leave it out).
+    internal var cursorOnPlane = false
+    // What the plane's picture shows (redrawn when this changes).
+    internal var planeCursorKey: Any? = null
+
     // True if the last frame drawn here showed the locked session (nothing of the desktop).
     internal var showsLock = false
 
@@ -162,6 +170,8 @@ internal sealed class DrawItem {
         val radius: Float = 0f,
         /** The part of the texture shown (wp_viewport), or null for all. */
         val source: FloatArray? = null,
+        /** How the program turned its buffer (wl_surface.set_buffer_transform). */
+        val transform: Int = 0,
     ) : DrawItem() {
         override val key: Any get() = surface
     }

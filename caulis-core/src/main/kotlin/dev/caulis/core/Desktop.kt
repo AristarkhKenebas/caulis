@@ -97,8 +97,15 @@ class Desktop(
             for (monitor in monitorList) setScale(monitor, value)
         }
 
-    // What monitors without a scale of their own get.
-    private var defaultScale = 1.0
+    /**
+     * What monitors added later get; setting it changes no monitor there is (for setting each
+     * one's own at once, without a step through this one).
+     */
+    var defaultScale = 1.0
+        set(value) {
+            require(value in 0.5..4.0) { "a scale must be between 0.5 and 4, not $value" }
+            field = value
+        }
 
     /** The largest scale of all monitors (X11 programs draw at it and are made smaller elsewhere). */
     val largestScale: Double get() = monitorList.maxOf { it.scale }
@@ -107,6 +114,7 @@ class Desktop(
     fun setScale(monitor: Monitor, value: Double) {
         require(value in 0.5..4.0) { "a scale must be between 0.5 and 4, not $value" }
         if (value == monitor.scale) return
+        layoutLog.info { "Monitor ${monitor.name}: scale ${monitor.scale} → $value" }
         fadeFromNow(monitor) // the old picture melts into the new one instead of jumping
         monitor.scale = value
         monitor.output?.rescale(value)
@@ -241,7 +249,9 @@ class Desktop(
 
     /** Puts [monitor] at [x], [y] on the desktop (units); null: to the right of the others. */
     fun moveMonitor(monitor: Monitor, x: Int?, y: Int?) {
-        monitor.fixedPosition = if (x != null && y != null) x to y else null
+        val place = if (x != null && y != null) x to y else null
+        if (place == monitor.fixedPosition) return // (windows are not laid out again for nothing)
+        monitor.fixedPosition = place
         placeMonitors()
         for (each in monitorList) monitorChanged(each)
     }
@@ -3448,8 +3458,9 @@ class Desktop(
             version++
             onChange()
         }
+        placeHardwareCursor(view)
         val draw = force || needsRedraw(view)
-        val direct = if (draw && !force && presentDirect != null) directCandidate(view.monitor) else null
+        val direct = if (draw && !force && presentDirect != null) directCandidate(view) else null
         if (direct != null && presentDirect!!(direct)) {
             // Nothing drawn: the program's own picture is on screen.
             view.shownWithoutDrawing()
@@ -3484,8 +3495,70 @@ class Desktop(
      * showed last time (windows that moved, opened, closed, the cursor, ...).
      */
     fun needsRedraw(view: DesktopView): Boolean {
-        compare(view, items())
+        compare(view, itemsFor(view))
         return view.hasChanges
+    }
+
+    // What [view]'s frames show: all, or all but the cursor while it is on the cursor plane.
+    private fun itemsFor(view: DesktopView): List<DrawItem> {
+        val all = items()
+        if (!view.cursorOnPlane) return all
+        if (itemsWithoutCursorOf !== all) {
+            itemsWithoutCursor = all.subList(0, itemsCursorStart.coerceAtMost(all.size))
+            itemsWithoutCursorOf = all
+        }
+        return itemsWithoutCursor
+    }
+
+    private var itemsWithoutCursor: List<DrawItem> = emptyList()
+    private var itemsWithoutCursorOf: List<DrawItem>? = null
+
+    // Puts the cursor on [view]'s cursor plane if it can be there (on this monitor, fitting the
+    // plane, the monitor not turned); else back into the frames. Called before each frame.
+    private fun placeHardwareCursor(view: DesktopView) {
+        val plane = view.hardwareCursor
+        if (plane == null) {
+            view.cursorOnPlane = false
+            return
+        }
+        val monitor = view.monitor
+        val all = items()
+        val cursor = all.subList(itemsCursorStart.coerceAtMost(all.size), all.size)
+        fun intoFrames() {
+            if (view.cursorOnPlane || view.planeCursorKey != null) plane.hide()
+            view.cursorOnPlane = false
+            view.planeCursorKey = null
+        }
+        if (cursor.isEmpty()) {
+            // No cursor at all (hidden): nothing on the plane, nothing in the frames.
+            if (view.planeCursorKey != null) plane.hide()
+            view.planeCursorKey = null
+            view.cursorOnPlane = true
+            return
+        }
+        if (monitor.transform != Transform.NORMAL || locked) return intoFrames()
+        val bounds = cursor.map { it.rect }.reduce(Rect::union)
+        if (bounds.intersect(monitor.area) == null) {
+            // On another monitor: none here.
+            if (view.planeCursorKey != null) plane.hide()
+            view.planeCursorKey = null
+            view.cursorOnPlane = true
+            return
+        }
+        val pixels = monitor.toPixels(bounds)
+        if (pixels.width > plane.width || pixels.height > plane.height) return intoFrames()
+        // A new picture when the cursor looks different (another shape, its next frame, the
+        // program drew a new one, another size or scale); else it only moves.
+        val key = listOf(cursor.map { item -> (item as? DrawItem.Picture)?.surface ?: (item as? DrawItem.Image)?.texture ?: item.key }, pixels.width, pixels.height, monitor.scale,
+            cursorVersion, if (cursor.any { it is DrawItem.Picture }) version else 0L)
+        val draw: ((GpuTarget) -> Unit)? = if (key == view.planeCursorKey) null else { target ->
+            renderer.begin(target, 0f, 0f, 0f, alpha = 0f)
+            draw(cursor, null, { r -> monitor.toPixels(r).let { Rect(it.x - pixels.x, it.y - pixels.y, it.width, it.height) } }, monitor.scale, monitor)
+            renderer.end()
+        }
+        if (!plane.show(pixels.x, pixels.y, draw)) return intoFrames()
+        view.planeCursorKey = key
+        view.cursorOnPlane = true
     }
 
     /**
@@ -3493,7 +3566,7 @@ class Desktop(
      * previous frame; 0 = unknown, then everything is drawn).
      */
     fun render(view: DesktopView, target: GpuTarget, age: Int) {
-        val items = items()
+        val items = itemsFor(view)
         compare(view, items)
         takeFeedbacks(view)
         val monitor = view.monitor
@@ -3540,7 +3613,7 @@ class Desktop(
             if (monitor != null && item.only != null && item.only !== monitor) continue // (a sliding workspace of another monitor)
             val r = p(item.rect)
             when (item) {
-                is DrawItem.Picture -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, item.opaque, item.alpha, item.clip?.let(p), item.radius * s, item.source)
+                is DrawItem.Picture -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, item.opaque, item.alpha, item.clip?.let(p), item.radius * s, item.source, item.transform)
                 is DrawItem.Color -> renderer.drawColor(r.x, r.y, r.width, r.height, item.red, item.green, item.blue, item.alpha)
                 is DrawItem.Shadow -> {
                     val drawn = renderer.drawShadow(p(item.box), item.radius * s, item.softness * s, item.paint, p(item.cutOut), item.cutOutRadius * s, item.alpha, item.time)
@@ -3594,14 +3667,19 @@ class Desktop(
      * cursor drawn by us, nothing above it), if it is a GPU buffer exactly as big as the
      * screen. Such a picture can go to the display as it is.
      */
-    private fun directCandidate(monitor: Monitor): DmabufBuffer? {
-        val all = items().filter { it.rect.intersect(monitor.area) != null }
+    private fun directCandidate(view: DesktopView): DmabufBuffer? {
+        val monitor = view.monitor
+        // (A cursor on the cursor plane is no reason to draw: it is shown over the program's picture.)
+        val all = itemsFor(view).filter { it.rect.intersect(monitor.area) != null }
         val only = all.singleOrNull() as? DrawItem.Picture ?: return null
         val window = only.surface.roleObject as? Window ?: return null
         if (!window.fullscreen || only.rect != monitor.area) return null
         val buffer = only.surface.current.buffer?.dataAs<DmabufBuffer>() ?: return null
-        // Exactly the monitor's pixels: shown as it is.
-        return buffer.takeIf { it.width == monitor.pixelWidth && it.height == monitor.pixelHeight }
+        // Turned as the monitor is (a program drawing for a screen on its side does so), and
+        // exactly the screen's own pixels: shown as it is.
+        if (only.surface.current.transform != monitor.transform.ordinal) return null
+        val (width, height) = if (monitor.transform.sideways) monitor.pixelHeight to monitor.pixelWidth else monitor.pixelWidth to monitor.pixelHeight
+        return buffer.takeIf { it.width == width && it.height == height }
     }
 
     // The visible programs' "tell me when it is shown" requests now belong to this frame.
@@ -3894,7 +3972,7 @@ class Desktop(
                 val rect = Rect(x, y, (surface.width * scaleX).roundToInt(), (surface.height * scaleY).roundToInt())
                 // A stretched or faded picture hides nothing for sure (its edges move every frame).
                 val covers = if (scaled || look.alpha < 1f) emptyList() else coversOf(surface.opaqueRects().map { it.translate(x, y) }, look)
-                items += DrawItem.Picture(surface, texture, rect, surface.opaque, covers, look.alpha, look.clip, look.radius, surface.textureSource)
+                items += DrawItem.Picture(surface, texture, rect, surface.opaque, covers, look.alpha, look.clip, look.radius, surface.textureSource, surface.current.transform)
             } else {
                 val sub = child.subsurface ?: continue
                 addTree(items, child, x + (sub.x * scaleX).roundToInt(), y + (sub.y * scaleY).roundToInt(), scaleX, scaleY, look)

@@ -31,7 +31,22 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
     val fd: Int get() = device.fd.value
 
     private val arena = Arena.ofShared()
-    private val flipHandlers = HashMap<Int, (nanos: Long, sequence: Long) -> Unit>()
+
+    /** Flip times are the monotonic clock's (else they are not exact enough to report as the hardware's). */
+    var monotonicTimestamps = false
+        private set
+
+    // The kernel takes buffer layouts (modifiers) with framebuffers.
+    private var modifiersSupported = false
+
+    /** A capability of the display (drmGetCap), or -1 if it does not say. */
+    internal fun capability(capability: Int): Long = cap(capability)
+
+    private fun cap(capability: Int): Long = Arena.ofConfined().use { temp ->
+        val value = temp.allocate(JAVA_LONG)
+        if (Drm.drmGetCap(fd, capability.toLong(), value) != 0) -1L else value.get(JAVA_LONG, 0)
+    }
+    private val flipHandlers = HashMap<Int, (nanos: Long, sequence: Long, serial: Long) -> Unit>()
     private val eventContext: MemorySegment
 
     init {
@@ -48,20 +63,24 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
             throw e
         }
 
+        monotonicTimestamps = cap(Drm.DRM_CAP_TIMESTAMP_MONOTONIC()) == 1L
+        modifiersSupported = cap(Drm.DRM_CAP_ADDFB2_MODIFIERS()) == 1L
+
         // "A new picture is on screen" events, per CRTC (one CRTC drives one monitor).
         eventContext = _drmEventContext.allocate(arena)
         _drmEventContext.version(eventContext, 3)
-        _drmEventContext.page_flip_handler2(eventContext, _drmEventContext.page_flip_handler2.allocate({ _, sequence, seconds, micros, crtc, _ ->
+        _drmEventContext.page_flip_handler2(eventContext, _drmEventContext.page_flip_handler2.allocate({ _, sequence, seconds, micros, crtc, userData ->
             Upcalls.guard("page_flip_handler2") {
                 // The kernel's timestamp of the refresh that showed the picture (monotonic clock).
                 val nanos = Integer.toUnsignedLong(seconds) * 1_000_000_000 + Integer.toUnsignedLong(micros) * 1_000
-                flipHandlers[crtc]?.invoke(nanos, Integer.toUnsignedLong(sequence))
+                // userData: the serial of the commit this flip belongs to (see commit).
+                flipHandlers[crtc]?.invoke(nanos, Integer.toUnsignedLong(sequence), userData.address())
             }
         }, arena))
         loop.add(device.fd) { Drm.drmHandleEvent(fd, eventContext) }
     }
 
-    internal fun onFlip(crtc: Int, handler: (nanos: Long, sequence: Long) -> Unit) {
+    internal fun onFlip(crtc: Int, handler: (nanos: Long, sequence: Long, serial: Long) -> Unit) {
         flipHandlers[crtc] = handler
     }
 
@@ -119,8 +138,23 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
         Drm.drmModeDestroyPropertyBlob(fd, id)
     }
 
-    /** Registers [buffer] as something the display can show; returns the framebuffer id. */
-    internal fun addFramebuffer(buffer: GpuBuffer): Int = Arena.ofConfined().use { temp ->
+    /**
+     * True when the renderer draws on this same descriptor (it could not get one of its own):
+     * then buffer handles here are shared with the GPU driver and must not be closed.
+     */
+    internal var sharedWithRenderer = false
+
+    /**
+     * Registers [buffer] (the renderer's) as something the display can show; returns the
+     * framebuffer id. Through a dma-buf: the renderer's handles belong to its own descriptor.
+     */
+    internal fun addFramebuffer(buffer: GpuBuffer): Int {
+        if (sharedWithRenderer) return addFramebufferShared(buffer)
+        return buffer.export().use { dmabuf -> importFramebuffer(dmabuf) } ?: error("the display cannot show the renderer's buffer")
+    }
+
+    // The renderer's handles are this descriptor's own (it draws here too).
+    private fun addFramebufferShared(buffer: GpuBuffer): Int = Arena.ofConfined().use { temp ->
         val handles = temp.allocate(JAVA_INT, 4)
         val pitches = temp.allocate(JAVA_INT, 4)
         val offsets = temp.allocate(JAVA_INT, 4)
@@ -151,6 +185,9 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
         val offsets = temp.allocate(JAVA_INT, 4)
         val modifiers = temp.allocate(JAVA_LONG, 4)
         val explicitModifier = buffer.modifier != Dmabuf.MODIFIER_INVALID
+        // A layout other than plain rows cannot be told to a kernel without modifiers (wlroots does the same).
+        if (explicitModifier && !modifiersSupported && buffer.modifier != MODIFIER_LINEAR) return@use null
+        val withModifier = explicitModifier && modifiersSupported
         val opened = LinkedHashSet<Int>()
         try {
             val handle = temp.allocate(JAVA_INT)
@@ -161,34 +198,58 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
                 handles.setAtIndex(JAVA_INT, index.toLong(), value)
                 pitches.setAtIndex(JAVA_INT, index.toLong(), plane.stride)
                 offsets.setAtIndex(JAVA_INT, index.toLong(), plane.offset)
-                if (explicitModifier) modifiers.setAtIndex(JAVA_LONG, index.toLong(), buffer.modifier)
+                if (withModifier) modifiers.setAtIndex(JAVA_LONG, index.toLong(), buffer.modifier)
             }
             val id = temp.allocate(JAVA_INT)
-            val flags = if (explicitModifier) Drm.DRM_MODE_FB_MODIFIERS() else 0
+            val flags = if (withModifier) Drm.DRM_MODE_FB_MODIFIERS() else 0
             val result = Drm.drmModeAddFB2WithModifiers(
                 fd, buffer.width, buffer.height, buffer.format, handles, pitches, offsets, modifiers, id, flags,
             )
             if (result == 0) id.get(JAVA_INT, 0) else null
         } finally {
-            // The framebuffer keeps its own reference to the memory.
-            for (value in opened) Drm.drmCloseBufferHandle(fd, value)
+            // The framebuffer keeps its own reference to the memory. (With the renderer on this
+            // descriptor, the handle may be the GPU driver's own: then it stays.)
+            if (!sharedWithRenderer) for (value in opened) Drm.drmCloseBufferHandle(fd, value)
         }
     }
 
+    /**
+     * Lets go of framebuffer [id]. Closed, not removed: a picture still on screen stays there
+     * until the next one (drmModeRmFB would switch the screen off). Old libdrm has no
+     * drmModeCloseFB: then it is removed.
+     */
     internal fun removeFramebuffer(id: Int) {
+        val close = closeFb
+        if (close != null) {
+            val result = close.invokeExact(fd, id) as Int
+            if (result != -22) return // -EINVAL: the kernel is too old for it
+        }
         Drm.drmModeRmFB(fd, id)
+    }
+
+    // drmModeCloseFB (libdrm 2.4.117 and later), if there is one.
+    private val closeFb: java.lang.invoke.MethodHandle? by lazy {
+        try {
+            val lookup = java.lang.foreign.SymbolLookup.libraryLookup("libdrm.so.2", arena)
+            lookup.find("drmModeCloseFB").map { symbol ->
+                java.lang.foreign.Linker.nativeLinker().downcallHandle(symbol, java.lang.foreign.FunctionDescriptor.of(JAVA_INT, JAVA_INT, JAVA_INT))
+            }.orElse(null)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     /**
      * Sends one atomic request built by [build]. Returns 0 on success or a negative
      * error number (e.g. the mode does not work with this monitor).
      */
-    internal fun commit(flags: Int, build: (AtomicRequest) -> Unit): Int {
+    internal fun commit(flags: Int, serial: Long = 0, build: (AtomicRequest) -> Unit): Int {
         val request = Drm.drmModeAtomicAlloc()
         check(request != MemorySegment.NULL) { "drmModeAtomicAlloc failed" }
         try {
             build(AtomicRequest(request))
-            return Drm.drmModeAtomicCommit(fd, request, flags, MemorySegment.NULL)
+            // The serial comes back with the flip event: flips are matched to their commit.
+            return Drm.drmModeAtomicCommit(fd, request, flags, MemorySegment.ofAddress(serial))
         } finally {
             Drm.drmModeAtomicFree(request)
         }
@@ -200,6 +261,17 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
             val id = properties[property]?.id ?: error("DRM object $objectId has no property $property")
             Drm.drmModeAtomicAddProperty(request, objectId, id, value)
         }
+
+        /** Sets [property] if the object has it (drivers differ in what they offer); false if not. */
+        fun setIfPresent(objectId: Int, properties: Map<String, Property>, property: String, value: Long): Boolean {
+            val id = properties[property]?.id ?: return false
+            Drm.drmModeAtomicAddProperty(request, objectId, id, value)
+            return true
+        }
+    }
+
+    private companion object {
+        const val MODIFIER_LINEAR = 0L
     }
 
     override fun close() {

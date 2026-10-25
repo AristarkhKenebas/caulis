@@ -73,6 +73,12 @@ interface Renderer : AutoCloseable {
         alpha: Float = 1f, clip: Rect? = null, cornerRadius: Float = 0f,
         /** Only this part of the texture (u, v, width, height as fractions), or null for all. */
         source: FloatArray? = null,
+        /**
+         * How the texture is turned (wl_output's transform numbers, 0..7, as a program says with
+         * wl_surface.set_buffer_transform): it is drawn turned back, upright. [source] is in
+         * the upright picture.
+         */
+        transform: Int = 0,
     )
 
     /**
