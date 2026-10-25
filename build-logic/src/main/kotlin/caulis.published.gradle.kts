@@ -18,10 +18,35 @@ java {
     withSourcesJar()
 }
 
-// Maven Central wants a javadoc jar: the Dokka pages of this module go into it.
+// Maven Central wants a javadoc jar. A small page saying where the documentation is goes into
+// it, not the Dokka pages (megabytes per module, against Central's size limit per month): IDEs
+// show the KDoc from the sources jar, and the pages are on the website (./gradlew dokkaGenerate).
+val javadocPage by tasks.registering {
+    val name = project.name
+    val description = provider { project.description.orEmpty() }
+    val website = providers.gradleProperty("caulis.website")
+    val page = layout.buildDirectory.file("javadoc-page/index.html")
+    inputs.property("description", description)
+    inputs.property("website", website.orElse(""))
+    outputs.file(page)
+    doLast {
+        page.get().asFile.writeText(
+            """
+            |<!DOCTYPE html>
+            |<html><head><meta charset="utf-8"><title>$name</title></head><body>
+            |<h1>$name</h1>
+            |<p>${description.get()}</p>
+            |<p>The documentation: <a href="${website.getOrElse("")}">${website.getOrElse("")}</a>.
+            |The KDoc of every class is in the sources jar (your IDE shows it).</p>
+            |</body></html>
+            |""".trimMargin(),
+        )
+    }
+}
+
 val javadocJar by tasks.registering(Jar::class) {
     archiveClassifier = "javadoc"
-    from(tasks.named("dokkaGeneratePublicationHtml"))
+    from(javadocPage)
 }
 
 // The license goes into every jar (GPL wants its text with the work: Bibata has its own).

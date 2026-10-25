@@ -14,20 +14,20 @@ kotlin {
 tasks.withType<JavaCompile>().configureEach { options.release = 26 }
 
 dependencies {
-    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.0-SNAPSHOT")
+    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.1")
     // The Bibata cursor (GPL-3.0, unlike Caulis itself). Remove this line for the system's
     // cursor theme, or if your compositor must not contain GPL files.
-    implementation("io.github.aristarkhkenebas:caulis-cursor-bibata:0.1.0-SNAPSHOT")
+    implementation("io.github.aristarkhkenebas:caulis-cursor-bibata:0.1.0")
     // Settings in Lua (config.lua) or as a Kotlin script (config.kts) in ~/.config/<name>, for
     // people who use your compositor without building it — add what you want them to have.
     // (caulis-script is big: it contains the Kotlin compiler.)
-    // implementation("io.github.aristarkhkenebas:caulis-lua:0.1.0-SNAPSHOT")
-    // implementation("io.github.aristarkhkenebas:caulis-script:0.1.0-SNAPSHOT")
+    // implementation("io.github.aristarkhkenebas:caulis-lua:0.1.1")
+    // implementation("io.github.aristarkhkenebas:caulis-script:0.1.1")
     // Your own bar, dock, launcher in Compose: compose { } in your configuration (needs google()
     // in the repositories above).
-    // implementation("io.github.aristarkhkenebas:caulis-compose:0.1.0-SNAPSHOT")
+    // implementation("io.github.aristarkhkenebas:caulis-compose:0.1.1")
     // Screenshots (Print): add it and call screenshots() in your configuration.
-    // implementation("io.github.aristarkhkenebas:caulis-screenshot:0.1.0-SNAPSHOT")
+    // implementation("io.github.aristarkhkenebas:caulis-screenshot:0.1.1")
 }
 
 application {
@@ -47,7 +47,7 @@ application {
 // is compiled right inside it, taken on in about a second. Not in what installDist builds.
 val development by configurations.creating
 dependencies {
-    development("io.github.aristarkhkenebas:caulis-reload:0.1.0-SNAPSHOT")
+    development("io.github.aristarkhkenebas:caulis-reload:0.1.1")
 }
 tasks.named<JavaExec>("run") {
     classpath += development

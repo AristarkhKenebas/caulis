@@ -24,6 +24,15 @@ case "$version" in *-SNAPSHOT) echo "A release has no -SNAPSHOT: $version" >&2; 
 cd "$(dirname "$0")/.."
 rm -rf build/staging-deploy build/central-bundle.zip
 ./gradlew publishAllPublicationsToStagingRepository -Pcaulis.version="$version"
+# A module version Central has already (the Bibata themes, between their releases) is not sent again.
+for dir in build/staging-deploy/io/github/aristarkhkenebas/*/*/; do
+    module=$(basename "$(dirname "$dir")")
+    v=$(basename "$dir")
+    if curl -sfI "https://repo1.maven.org/maven2/io/github/aristarkhkenebas/$module/$v/$module-$v.pom" >/dev/null; then
+        echo "$module $v is on Maven Central already: left out"
+        rm -rf "$dir"
+    fi
+done
 (cd build/staging-deploy && zip -qr ../central-bundle.zip .)
 echo "Uploading build/central-bundle.zip ($(du -h build/central-bundle.zip | cut -f1))..."
 curl --fail-with-body \
