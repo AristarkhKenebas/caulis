@@ -23,6 +23,8 @@ dependencies {
     // (caulis-script is big: it contains the Kotlin compiler.)
     // implementation("dev.caulis:caulis-lua:0.1.0-SNAPSHOT")
     // implementation("dev.caulis:caulis-script:0.1.0-SNAPSHOT")
+    // Screenshots (Print): add it and call screenshots() in your configuration.
+    // implementation("dev.caulis:caulis-screenshot:0.1.0-SNAPSHOT")
 }
 
 application {

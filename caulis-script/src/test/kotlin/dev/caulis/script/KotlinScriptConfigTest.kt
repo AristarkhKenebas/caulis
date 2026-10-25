@@ -89,8 +89,16 @@ class KotlinScriptConfigTest {
     fun `the input guide's Kotlin is right`() {
         val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter("## 28.").substringBefore("\n## ")
         val blocks = section.split("```kotlin\n").drop(1).map { it.substringBefore("```") }
-        assertEquals(3, blocks.size)
+        assertEquals(4, blocks.size)
         assertEquals(emptyList(), apply(blocks.joinToString("\n") + "\nonLid { closed -> if (closed) lock() }").second)
+    }
+
+    @Test
+    fun `the display modes' Kotlin is right`() {
+        val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter("**A laptop with a projector").substringBefore("\n## ")
+        val block = section.substringAfter("```kotlin\n").substringBefore("```")
+        assertTrue("useDisplays" in block)
+        assertEquals(emptyList(), apply(block).second)
     }
 
     @Test

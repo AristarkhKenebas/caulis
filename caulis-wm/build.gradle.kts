@@ -15,4 +15,6 @@ dependencies {
     testImplementation(testFixtures(project(":caulis-core")))
     // config.lua while running (LuaLiveTest).
     testImplementation(project(":caulis-lua"))
+    // Screenshots through an overlay, and the actions a module adds (ScreenshotTest).
+    testImplementation(project(":caulis-screenshot"))
 }

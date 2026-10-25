@@ -13,7 +13,7 @@ dependencies {
     // Every published module (see caulis.published).
     for (module in listOf(
         "caulis-log", "caulis-native", "caulis-geometry", "caulis-tiling", "caulis-protocol", "caulis-render", "caulis-core",
-        "caulis-xwayland", "caulis-ipc", "caulis-wm", "caulis-reload", "caulis-lua", "caulis-script", "caulis-cursor-bibata",
+        "caulis-xwayland", "caulis-ipc", "caulis-wm", "caulis-screenshot", "caulis-reload", "caulis-lua", "caulis-script", "caulis-cursor-bibata",
     )) {
         dokka(project(":$module"))
     }

@@ -60,6 +60,13 @@ class DrmBackend private constructor(
     /** Whether the monitor at a connector (e.g. "HDMI-A-1") is used at all. */
     var enabled: (name: String) -> Boolean = { true }
 
+    /**
+     * Monitors were plugged in or out (each one plugged in now, used or not): called before
+     * they are turned on, so [enabled] and [preferredMode] can answer for the new set.
+     */
+    var onPluggedChanged: (List<Plugged>) -> Unit = {}
+    private var pluggedBefore: Set<String>? = null
+
     /** The mode a monitor should use first, if it has it (else its preferred one). */
     var preferredMode: (name: String, modes: List<DrmOutput.Mode>) -> DrmOutput.Mode? = { _, _ -> null }
 
@@ -72,21 +79,27 @@ class DrmBackend private constructor(
 
     init {
         session.onActiveChanged { nowActive ->
-            if (nowActive) {
-                // The monitors we had first (whatever the rescan meets), then another program
-                // may have changed them meanwhile: look again.
-                active.values.toList().forEach { output ->
-                    try {
-                        output.resume()
-                    } catch (e: Throwable) {
-                        if (e is OutOfMemoryError) throw e
-                        log.error("${output.name} could not resume: $e", e)
-                    }
-                }
-                rescan()
-            }
+            // (Another program may have changed the monitors meanwhile.)
+            if (nowActive) wake()
         }
         watchHotplug()
+    }
+
+    /**
+     * The monitors are set up anew and drawn whole: back on this console, or after the
+     * computer slept (a monitor may have been reset, unplugged or plugged in meanwhile).
+     */
+    fun wake() {
+        // The monitors we had first (whatever the rescan meets), then look again.
+        active.values.toList().forEach { output ->
+            try {
+                output.resume()
+            } catch (e: Throwable) {
+                if (e is OutOfMemoryError) throw e
+                log.error("${output.name} could not resume: $e", e)
+            }
+        }
+        rescan()
     }
 
     /** Finds the connected monitors and turns them on. Set the callbacks before calling this. */
@@ -118,6 +131,11 @@ class DrmBackend private constructor(
 
     private fun rescan() {
         val connected = connectedConnectors()
+        val names = connected.values.map { "${it.name} ${it.edid?.make}/${it.edid?.model}/${it.edid?.serial}" }.toSet()
+        if (names != pluggedBefore) {
+            pluggedBefore = names
+            onPluggedChanged(connected.map { (id, info) -> Plugged(info.name, info.edid, info.widthMm, info.heightMm, info.modes, active[id]) })
+        }
         // Gone (or a different monitor in the same socket): remove.
         for ((connectorId, output) in active.toList()) {
             val now = connected[connectorId]

@@ -792,6 +792,22 @@ bottom, whatever the sizes:
 monitorEdges = MonitorEdges.PROPORTIONAL   // MonitorEdges.TOUCHING is the default
 ```
 
+**A laptop with a projector or a monitor.** One never seen before is used beside the
+laptop's screen, and the choice is shown at once: *Extend*, *Mirror*, *Laptop screen only*,
+*Other screen only*. The laptop's display key (F7 on many, `XF86Display`) shows it any time:
+each press moves to the next one, which is used a moment after the last press. What you chose
+is kept for that set of monitors (in `~/.local/state/<configName>/displays`): the same
+projector next week comes back the same way. A mirror shows the laptop's picture as large as
+the other screen allows (its own size when the projector has it, black bars when the shapes
+differ). With the lid closed, the laptop's screen is off while another one is in use.
+
+```kotlin
+keys.displays = "Super+P"          // another key for the choice (null: none)
+displayChooserOnPlug = false       // a new monitor is just used beside the laptop's screen
+lidTurnsScreenOff = false
+useDisplays(DisplayMode.MIRROR)    // from your own code; the action: "displays mirror"
+```
+
 To try it without a second monitor, run nested in several windows — each one a monitor
 (`NESTED-1`, `NESTED-2`, ...):
 
@@ -935,7 +951,31 @@ always.
 
 ## 19. Screenshots and screen sharing
 
-Programs made for wlroots-style compositors work as they are:
+**Caulis's own screenshots** (the module `dev.caulis:caulis-screenshot`, if you want it in
+your compositor):
+
+```kotlin
+screenshots()                                            // Print, Shift+Print, Alt+Print
+screenshots { folder = Path.of("/tmp/shots"); copy = false; keys(choose = "Super+Shift+S") }
+```
+
+Print freezes the screen and shows a toolbar: *Area* (drag a part; drag it or its edges to
+change it, a click without dragging takes the window there as the part), *Window* (click
+one: it is taken whole, even where others cover it, with its round corners see-through),
+*Screen* (click a monitor), *Pointer* (in the picture or not), *Timer* (3, 5 or 10 seconds).
+Enter, Space, a double click or *Capture* takes it; Ctrl+C only copies it; Tab and R/W/S
+choose the kind; the arrow keys move the part (Shift: by ten, Ctrl: resize it); Escape or
+the right button cancels. Shift+Print takes the monitor with the pointer at once, Alt+Print
+the focused window. Each one is saved as PNG in `~/Pictures/Screenshots` (your
+`XDG_PICTURES_DIR`) and put on the clipboard; the part chosen last is offered again. With the
+module in the compositor, config.json and Lua have the action too: `"Print": "screenshot"`,
+`screenshot window`, `screenshot focused`, `screenshot monitor`.
+
+Your own tools inside the compositor work the same way: `desktop.openOverlay(overlay)`
+shows something of yours above everything, with the keyboard and the mouse, until
+`desktop.closeOverlay()` (see `Overlay`).
+
+Programs made for wlroots-style compositors work as they are too:
 
 ```kotlin
 bind("Print") { launch("grim ~/Pictures/screenshot.png") }               // the whole screen
@@ -1381,6 +1421,26 @@ While a mode is on, the usual keys are off (keys not named in it go to programs)
 the text consoles always work. Bars show the mode: the IPC socket tells `key-mode-changed`.
 
 The laptop's lid: `onLid { closed -> if (closed) lock() }`.
+
+**A laptop's own keys** work without any `bind`: volume (`XF86AudioRaiseVolume`, ...), the
+microphone (`XF86AudioMicMute`), brightness (`XF86MonBrightnessUp/Down`), the touchpad
+(`XF86TouchpadToggle`), music (`XF86AudioPlay/Next/Prev`) — each shown in a small pill near the
+bottom of the screen. Volume uses PipeWire's `wpctl`, music `playerctl`, brightness goes
+through the login session (no root, no extra program). A key of your own replaces them; a
+key that does nothing yet is named in the log (`The key XF86Favorites is not bound`), so you
+know what to `bind`. The same as actions: `volume +5`, `volume mute`, `mic-mute`,
+`brightness -5`, `touchpad toggle`, `media play-pause`.
+
+**Sleep and hibernation.** Before the computer sleeps the screen is locked (so it wakes up
+locked) — `lockBeforeSleep = false` to leave it. Your own steps:
+
+```kotlin
+onSleep { run("media stop") }          // before sleeping (or hibernating)
+onWake { launch("notify-send 'Good morning'") }
+```
+
+On waking the monitors come back by themselves, and one plugged in or out while asleep is
+found. `loginctl lock-session` locks it too.
 
 In config.json (and Nix, and Lua) the same:
 

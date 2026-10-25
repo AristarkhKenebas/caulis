@@ -137,7 +137,16 @@ let
     "lid" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
       "close" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "when the laptop's lid closes"; };
       "open" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "when it opens"; };
+      "turnsScreenOff" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "the laptop's screen is off while the lid is closed and another monitor is in use"; };
     }; }); default = null; description = "the laptop's lid"; };
+    "sleep" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
+      "lock" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "lock the screen before the computer sleeps"; };
+      "before" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "just before it sleeps"; };
+      "after" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "when it woke up"; };
+    }; }); default = null; description = "sleep and hibernation"; };
+    "displays" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
+      "chooserOnPlug" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "a monitor never seen before shows the display modes"; };
+    }; }); default = null; description = "a laptop with a monitor or projector"; };
     "cursor" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
       "theme" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "an installed cursor theme"; };
       "size" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (8) (256)); default = null; description = "its size"; };
@@ -171,6 +180,17 @@ let
       "quit" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the quit key (false: off)"; };
       "consoles" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the consoles key (false: off)"; };
       "restoreShortcuts" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the restoreShortcuts key (false: off)"; };
+      "volumeUp" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the volumeUp key (false: off)"; };
+      "volumeDown" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the volumeDown key (false: off)"; };
+      "volumeMute" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the volumeMute key (false: off)"; };
+      "micMute" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the micMute key (false: off)"; };
+      "brightnessUp" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the brightnessUp key (false: off)"; };
+      "brightnessDown" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the brightnessDown key (false: off)"; };
+      "touchpad" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the touchpad key (false: off)"; };
+      "displays" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the displays key (false: off)"; };
+      "mediaPlay" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the mediaPlay key (false: off)"; };
+      "mediaNext" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the mediaNext key (false: off)"; };
+      "mediaPrevious" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the mediaPrevious key (false: off)"; };
       "windowDrag" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the windowDrag key (false: off)"; };
     }; }); default = null; description = "the usual keys, changed or turned off"; };
     "bind" = lib.mkOption { type = lib.types.nullOr (lib.types.attrsOf (lib.types.either lib.types.str (lib.types.submodule { options = {

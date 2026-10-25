@@ -123,6 +123,34 @@ class Keys internal constructor() {
      */
     var restoreShortcuts by key("Super+Escape")
 
+    // --- a laptop's keys (they work on a locked screen too; volume and brightness repeat) --------
+
+    /** Louder, quieter, sound off or on (PipeWire's wpctl). */
+    var volumeUp by key("XF86AudioRaiseVolume")
+    var volumeDown by key("XF86AudioLowerVolume")
+    var volumeMute by key("XF86AudioMute")
+
+    /** The microphone off or on. */
+    var micMute by key("XF86AudioMicMute")
+
+    /** The screen brighter or darker (through the login session, else brightnessctl). */
+    var brightnessUp by key("XF86MonBrightnessUp")
+    var brightnessDown by key("XF86MonBrightnessDown")
+
+    /** The touchpad off or on (a laptop's touchpad key; its "on" and "off" keys work too). */
+    var touchpad by key("XF86TouchpadToggle")
+
+    /**
+     * The display modes of a laptop with a monitor or projector (laptop screen only, mirror,
+     * extend, other screen only): each press the next one, used a moment after the last.
+     */
+    var displays by key("XF86Display")
+
+    /** Music players (playerctl): play or pause, the next and the previous song. */
+    var mediaPlay by key("XF86AudioPlay")
+    var mediaNext by key("XF86AudioNext")
+    var mediaPrevious by key("XF86AudioPrev")
+
     /** Hold these and drag a window: left button moves it, right button resizes it. Null: off. */
     var windowDrag by modifiers("Super")
 
@@ -221,9 +249,32 @@ class Keys internal constructor() {
         add("columnWidth", columnWidth) { desktop.tilingCommand(TilingCommand.CycleWidth) }
         add("splitBeside", splitBeside) { desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = true)) }
         add("splitBelow", splitBelow) { desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = false)) }
+        add("volumeUp", volumeUp) { running?.system?.volume(5) }
+        add("volumeDown", volumeDown) { running?.system?.volume(-5) }
+        add("volumeMute", volumeMute) { running?.system?.volume(mute = true) }
+        add("micMute", micMute) { running?.system?.microphone() }
+        add("brightnessUp", brightnessUp) { running?.system?.brightness(5) }
+        add("brightnessDown", brightnessDown) { running?.system?.brightness(-5) }
+        add("touchpad", touchpad) { running?.system?.touchpad(null) }
+        if (touchpad != null) {
+            add("touchpad", "XF86TouchpadOn") { running?.system?.touchpad(true) }
+            add("touchpad", "XF86TouchpadOff") { running?.system?.touchpad(false) }
+        }
+        add("displays", displays) { running?.displays?.next() ?: desktop.showLevel("Display modes are for the real screen") }
+        add("mediaPlay", mediaPlay) { running?.system?.media("play-pause") }
+        add("mediaNext", mediaNext) { running?.system?.media("next") }
+        add("mediaPrevious", mediaPrevious) { running?.system?.media("previous") }
     }
+
+    /** True for the usual keys that repeat while held (volume, brightness). */
+    internal fun repeats(name: String): Boolean = name in REPEATING
+
+    /** True for the usual keys that also work on a locked screen. */
+    internal fun whileLocked(name: String): Boolean = name in LOCKED
 
     private companion object {
         val GROUPS = setOf("workspace", "moveToWorkspace", "move", "resize", "preselect", "consoles", "windowDrag")
+        val REPEATING = setOf("volumeUp", "volumeDown", "brightnessUp", "brightnessDown")
+        val LOCKED = REPEATING + setOf("volumeMute", "micMute", "mediaPlay", "mediaNext", "mediaPrevious")
     }
 }

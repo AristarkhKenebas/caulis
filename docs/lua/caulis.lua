@@ -16,6 +16,8 @@
 ---@field fullscreenKeepsAwake? boolean a fullscreen window keeps idle timers off
 ---@field wakeScreensOnInput? boolean input switches dark screens on again
 ---@field lid? caulis.Settings.lid the laptop's lid
+---@field sleep? caulis.Settings.sleep sleep and hibernation
+---@field displays? caulis.Settings.displays a laptop with a monitor or projector
 ---@field cursor? caulis.Settings.cursor the cursor
 ---@field terminal? string the terminal the terminal key opens
 ---@field lockCommand? string the screen locker
@@ -174,6 +176,15 @@
 ---@class caulis.Settings.lid
 ---@field close? string when the laptop's lid closes
 ---@field open? string when it opens
+---@field turnsScreenOff? boolean the laptop's screen is off while the lid is closed and another monitor is in use
+
+---@class caulis.Settings.sleep
+---@field lock? boolean lock the screen before the computer sleeps
+---@field before? string just before it sleeps
+---@field after? string when it woke up
+
+---@class caulis.Settings.displays
+---@field chooserOnPlug? boolean a monitor never seen before shows the display modes
 
 ---@class caulis.Settings.cursor
 ---@field theme? string an installed cursor theme
@@ -205,6 +216,17 @@
 ---@field quit? false|string the quit key (false: off)
 ---@field consoles? false|string the consoles key (false: off)
 ---@field restoreShortcuts? false|string the restoreShortcuts key (false: off)
+---@field volumeUp? false|string the volumeUp key (false: off)
+---@field volumeDown? false|string the volumeDown key (false: off)
+---@field volumeMute? false|string the volumeMute key (false: off)
+---@field micMute? false|string the micMute key (false: off)
+---@field brightnessUp? false|string the brightnessUp key (false: off)
+---@field brightnessDown? false|string the brightnessDown key (false: off)
+---@field touchpad? false|string the touchpad key (false: off)
+---@field displays? false|string the displays key (false: off)
+---@field mediaPlay? false|string the mediaPlay key (false: off)
+---@field mediaNext? false|string the mediaNext key (false: off)
+---@field mediaPrevious? false|string the mediaPrevious key (false: off)
 ---@field windowDrag? false|string the windowDrag key (false: off)
 
 ---@class caulis.Settings.rules

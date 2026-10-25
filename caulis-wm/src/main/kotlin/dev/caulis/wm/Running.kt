@@ -98,6 +98,15 @@ internal class Running(
     private val compositor = Compositor(display, renderer)
     val desktop = Desktop(renderer, seat, compositor, width, height)
 
+    /** logind (on the screen): sleep and wake, lock requests, brightness. Null elsewhere. */
+    internal val logind: dev.caulis.core.Logind? = if (switchConsole != null) dev.caulis.core.Logind.connect(loop) else null
+
+    /** The backend wakes its monitors after sleep (set by the screen backend). */
+    var wakeMonitors: () -> Unit = {}
+
+    /** A laptop's keys: volume, microphone, brightness, touchpad, music players. */
+    internal val system = SystemControls(this)
+
     /** Numbers for windows (the IPC socket, scripts). */
     val windowIds = WindowIds(desktop, loop)
     private val pointerGestures = PointerGestures(display, seat)
@@ -129,9 +138,17 @@ internal class Running(
                 if (switch == dev.caulis.core.libinput.Switch.LID) {
                     log.info { "The lid is ${if (on) "closed" else "open"}" }
                     for (action in config.lidActions) safely("onLid") { action(config, on) }
+                    displays?.lid(on)
                 }
             }
         }
+
+    /** The display modes of a laptop with another monitor (on the screen only; set by it). */
+    internal var displays: Displays? = null
+
+    /** The clipboard (programs' and ours); set in init. */
+    lateinit var clipboard: DataDeviceManager
+        private set
 
     /** Windows asking for the focus (xdg-activation); set in init. */
     lateinit var activation: dev.caulis.core.Activation
@@ -249,6 +266,7 @@ internal class Running(
     // Starts programs: Wayland first, X11 when that fails.
     private val launcher = Launcher(
         environment = { env ->
+            for ((name, value) in config.environment) if (value == null) env.remove(name) else env[name] = value
             env["WAYLAND_DISPLAY"] = socket
             // A good activation token: its first window may take the focus.
             env["XDG_ACTIVATION_TOKEN"] = activation.issue()
@@ -273,10 +291,15 @@ internal class Running(
     init {
         Shm(display)
         if (renderer.renderNode != null) LinuxDmabuf(display, renderer)
-        val clipboard = DataDeviceManager(display, seat)
+        clipboard = DataDeviceManager(display, seat)
         dev.caulis.core.PrimarySelection(display, seat, clipboard)
         dev.caulis.core.DataControl(display, clipboard)
         activation = dev.caulis.core.Activation(display, seat, desktop)
+        logind?.let { l ->
+            l.onSleep = { ready -> goingToSleep(ready) }
+            l.onWake = ::wokeUp
+            l.onLock = { lock -> if (lock && !desktop.locked) safely("lock") { config.lock() } }
+        }
         idle = dev.caulis.core.Idle(display, loop, desktop)
         desktop.onUserActivity = ::userActive
         desktop.pointerConstraints = dev.caulis.core.input.PointerConstraints(display, seat)
@@ -353,6 +376,27 @@ internal class Running(
         desktop.floatRule = { window -> defaultRule(window) || config.floatRules.any { rule -> safely("floatWhen", false) { rule(window) } } }
         desktop.onWindowOpened { window -> launcher.windowOpened(window.pid) }
         applyConfig()
+    }
+
+    // The computer is about to sleep: your onSleep, the screen locked (when asked for), then [ready].
+    private fun goingToSleep(ready: () -> Unit) {
+        config.sleepActions.toList().forEach { action -> safely("onSleep") { action(config) } }
+        if (!config.lockBeforeSleep || desktop.locked) return ready()
+        safely("the lock before sleep") { config.lock() }
+        // Sleep once the locker shows (or after a while: logind does not wait for ever anyway).
+        val since = System.nanoTime()
+        fun check() {
+            if (desktop.locked || System.nanoTime() - since > 3_000_000_000) ready() else loop.after(50) { check() }
+        }
+        check()
+    }
+
+    // The computer woke up: the monitors are set up anew (sleep may have reset them), the idle
+    // timers start over, and your onWake runs.
+    private fun wokeUp() {
+        safely("waking the monitors") { wakeMonitors() }
+        userActive()
+        config.wakeActions.toList().forEach { action -> safely("onWake") { action(config) } }
     }
 
     /** Hands the background rule over again (it was changed while running). */
@@ -463,7 +507,10 @@ internal class Running(
             taken.put(parsed, name)?.takeIf { it != name }?.let { other ->
                 log.warn("keys.$name and keys.$other are both $combination: keys.$name wins")
             }
-            keys.bind(combination) { safely(combination) { action(config) } }
+            val options = KeyBindings.Options(repeat = config.keys.repeats(name))
+            val run = { safely(combination) { action(config) } }
+            keys.bind(combination, options, run)
+            if (config.keys.whileLocked(name)) lockedKeys.bind(combination, options, run)
         }
         modeKeys.clear()
         for (binding in config.bindings) {
@@ -777,14 +824,27 @@ internal class Running(
         val active = activeKeys()
         // A key pressed before locking may be released after it (Super+L): all must see the release.
         if (!pressed) for (other in allKeys()) if (other !== active) other.key(evdevCode, false)
-        if (!active.key(evdevCode, pressed)) desktop.key(timeMillis, evdevCode, pressed)
+        if (!active.key(evdevCode, pressed)) {
+            // A special key (a laptop's Fn keys, media keys) nobody binds: said once, with its
+            // name, so it can be bound. Never a typing key, never while the screen is locked.
+            if (pressed && evdevCode >= FIRST_SPECIAL_KEY && evdevCode !in 0x100..0x15f && !desktop.locked && unboundSeen.add(evdevCode)) {
+                val name = KeyBindings.nameOf(evdevCode)
+                log.info { "The key ${name ?: "with code $evdevCode"} is not bound${name?.let { ": bind(\"$it\") { ... } binds it" } ?: ""}" }
+            }
+            desktop.key(timeMillis, evdevCode, pressed)
+        }
     }
+
+    // Special keys said once already (see key).
+    private val unboundSeen = HashSet<Int>()
 
     // The keys that are the compositor's now.
     private fun activeKeys(): KeyBindings = when {
         desktop.locked -> lockedKeys
         // A window keeps the keys (a nested compositor): only quit, consoles and restoreShortcuts are ours.
         shortcutsInhibit.active -> inhibitedKeys
+        // An overlay of the compositor's own (a screenshot chooser) has the keys: only quit and consoles stay.
+        desktop.overlay != null -> inhibitedKeys
         else -> keyMode?.let(modeKeys::get) ?: keys
     }
 
@@ -839,7 +899,7 @@ internal class Running(
         val active = activeKeys()
         if (!pressed) for (other in allKeys()) if (other !== active) other.key(button, false)
         if (active.key(button, pressed)) return
-        if (pressed && !desktop.locked && dragging() && (button == BTN_LEFT || button == BTN_RIGHT)) {
+        if (pressed && !desktop.locked && desktop.overlay == null && dragging() && (button == BTN_LEFT || button == BTN_RIGHT)) {
             val window = desktop.windowAt(desktop.pointerX, desktop.pointerY)
             if (window != null) {
                 desktop.pointerButton(timeMillis, button, true, passToApps = false)
@@ -977,7 +1037,10 @@ internal class Running(
     }
 
     override fun close() {
+        logind?.close()
+        displays?.close()
         configWatches.forEach(AutoCloseable::close)
+        system.close()
         configReloads.shutdownNow()
         ipc?.close()
         reloader?.close()
@@ -995,6 +1058,9 @@ internal class Running(
         const val STARTING_NANOS = 5_000_000_000L
         const val BTN_LEFT = 0x110
         const val BTN_RIGHT = 0x111
+
+        // From here on, keys are no typing keys (media, laptop, F13..F24); 0x100..0x15f are buttons.
+        const val FIRST_SPECIAL_KEY = 113
 
         // Keys that always exist when a configuration has none at all.
         const val EMERGENCY_QUIT = "Super+Shift+Escape"

@@ -652,9 +652,45 @@
           "type": "string",
           "minLength": 1,
           "description": "when it opens"
+        },
+        "turnsScreenOff": {
+          "type": "boolean",
+          "description": "the laptop's screen is off while the lid is closed and another monitor is in use"
         }
       },
       "description": "the laptop's lid"
+    },
+    "sleep": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lock": {
+          "type": "boolean",
+          "description": "lock the screen before the computer sleeps"
+        },
+        "before": {
+          "type": "string",
+          "minLength": 1,
+          "description": "just before it sleeps"
+        },
+        "after": {
+          "type": "string",
+          "minLength": 1,
+          "description": "when it woke up"
+        }
+      },
+      "description": "sleep and hibernation"
+    },
+    "displays": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "chooserOnPlug": {
+          "type": "boolean",
+          "description": "a monitor never seen before shows the display modes"
+        }
+      },
+      "description": "a laptop with a monitor or projector"
     },
     "cursor": {
       "type": "object",
@@ -1066,6 +1102,171 @@
             }
           ],
           "description": "the restoreShortcuts key (false: off)"
+        },
+        "volumeUp": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the volumeUp key (false: off)"
+        },
+        "volumeDown": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the volumeDown key (false: off)"
+        },
+        "volumeMute": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the volumeMute key (false: off)"
+        },
+        "micMute": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the micMute key (false: off)"
+        },
+        "brightnessUp": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the brightnessUp key (false: off)"
+        },
+        "brightnessDown": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the brightnessDown key (false: off)"
+        },
+        "touchpad": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the touchpad key (false: off)"
+        },
+        "displays": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the displays key (false: off)"
+        },
+        "mediaPlay": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the mediaPlay key (false: off)"
+        },
+        "mediaNext": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the mediaNext key (false: off)"
+        },
+        "mediaPrevious": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the mediaPrevious key (false: off)"
         },
         "windowDrag": {
           "anyOf": [

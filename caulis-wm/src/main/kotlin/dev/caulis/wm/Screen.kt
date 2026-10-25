@@ -28,15 +28,55 @@ internal fun runOnScreen(config: Caulis) {
                 // Monitors: each one becomes a wl_output and a monitor of the desktop, with its own view.
                 class Shown(val output: Output, val monitor: dev.caulis.core.Monitor, val view: DesktopView)
                 val shown = LinkedHashMap<DrmOutput, Shown>()
-                desktop.onChange = { shown.keys.forEach(DrmOutput::requestFrame) }
-                backend.enabled = { name -> config.monitorSettings[name]?.enabled != false }
+                // Monitors showing another's picture (a projector mirroring the laptop's screen).
+                class Mirrored(val view: DesktopView, val mirror: dev.caulis.core.Mirror)
+                val mirrored = LinkedHashMap<DrmOutput, Mirrored>()
+                desktop.onChange = {
+                    shown.keys.forEach(DrmOutput::requestFrame)
+                    mirrored.keys.forEach(DrmOutput::requestFrame)
+                }
+                running.wakeMonitors = { backend.wake() }
+
+                // The laptop's display modes (its key, a projector plugged in).
+                fun identity(name: String, edid: dev.caulis.core.drm.Edid?) = edid?.let { "${it.make} ${it.model} ${it.serial}".trim() } ?: name
+                val displays = Displays(running, loop, object : Displays.Screens {
+                    override fun plugged() = backend.plugged().map { Displays.Screen(it.name, identity(it.name, it.edid), it.output != null) }
+                    override fun setEnabled(name: String, on: Boolean) {
+                        backend.setEnabled(name, on)
+                    }
+                    override fun mirroring(name: String) = mirrored.keys.any { it.name == name }
+                })
+                running.displays = displays
+                backend.onPluggedChanged = { now -> displays.pluggedChanged(now.map { Displays.Screen(it.name, identity(it.name, it.edid), it.output != null) }) }
+                backend.enabled = { name -> config.monitorSettings[name]?.enabled != false && displays.wants(name) }
+                fun mirrorSource() = shown.values.firstOrNull { Displays.builtIn(it.monitor.name) }
                 backend.preferredMode = { name, modes ->
-                    config.monitorSettings[name]?.let { wish ->
+                    // A mirror: the laptop's own size if it has it, else the largest of its shape.
+                    val source = mirrorSource()?.monitor?.takeIf { displays.mirrors(name) }
+                    source?.let { s ->
+                        modes.filter { it.width == s.pixelWidth && it.height == s.pixelHeight }.maxByOrNull { it.refreshMillihertz }
+                            ?: modes.filter { it.width * s.pixelHeight == it.height * s.pixelWidth }.maxByOrNull { it.width.toLong() * it.height }
+                    } ?: config.monitorSettings[name]?.let { wish ->
                         modes.filter { it.width == wish.width && it.height == wish.height }
                             .minByOrNull { mode -> wish.refreshHz?.let { Math.abs(mode.refreshMillihertz / 1000.0 - it) } ?: -mode.refreshMillihertz.toDouble() }
                     }
                 }
-                backend.onOutputAdded = { monitor ->
+                fun mirror(monitor: DrmOutput, source: Shown) {
+                    val view = desktop.createView(source.monitor)
+                    val mirror = dev.caulis.core.Mirror(backend.renderer)
+                    mirrored[monitor] = Mirrored(view, mirror)
+                    monitor.onFrame = { desktop.refresh(view, { draw -> monitor.present(mirror.wrap(view.monitor, draw)) }, force = monitor.needsPicture) }
+                    monitor.onPresented = { nanos, refreshNanos, sequence, _ ->
+                        desktop.presented(view, nanos, refreshNanos, sequence, WpPresentationFeedback.Kind.VSYNC)
+                    }
+                    println("${monitor.name} mirrors ${source.monitor.name}")
+                }
+                backend.onOutputAdded = add@{ monitor ->
+                    val source = mirrorSource()
+                    if (source != null && displays.mirrors(monitor.name)) {
+                        mirror(monitor, source)
+                        return@add
+                    }
                     val mode = monitor.mode!!
                     val edid = monitor.edid
                     val output = Output(
@@ -89,6 +129,10 @@ internal fun runOnScreen(config: Caulis) {
                     }
                 }
                 backend.onOutputRemoved = { monitor ->
+                    mirrored.remove(monitor)?.let { gone ->
+                        desktop.removeView(gone.view)
+                        gone.mirror.close()
+                    }
                     shown.remove(monitor)?.let { gone ->
                         desktop.removeView(gone.view)
                         running.removeMonitor(gone.monitor)

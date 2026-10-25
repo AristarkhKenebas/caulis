@@ -52,6 +52,21 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
             for (device in devices.values) configure(device)
         }
 
+    /**
+     * Touchpads off by hand (a laptop's touchpad key), whatever the settings say; true again
+     * gives them back as the settings say.
+     */
+    var touchpadsOn = true
+        set(value) {
+            if (field == value) return
+            field = value
+            log.info { "Touchpads ${if (value) "on" else "off"}" }
+            for (device in devices.values) configure(device)
+        }
+
+    /** True if there is a touchpad at all. */
+    val hasTouchpad: Boolean get() = devices.values.any { InputDevice.Kind.TOUCHPAD in it.kinds }
+
     /** The devices there are now. */
     val list: List<InputDevice> get() = devices.values.toList()
 
@@ -259,7 +274,7 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
         fun flag(value: Boolean?, on: Int, off: Int, set: (Int) -> Int) = value?.let { set(if (it) on else off) }
         val modes = Input.libinput_device_config_send_events_get_modes(d)
         val mode = when {
-            s.enabled == false -> Input.LIBINPUT_CONFIG_SEND_EVENTS_DISABLED()
+            s.enabled == false || (touchpad && !touchpadsOn) -> Input.LIBINPUT_CONFIG_SEND_EVENTS_DISABLED()
             s.offWithMouse == true && modes and Input.LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE() != 0 -> Input.LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE()
             else -> Input.LIBINPUT_CONFIG_SEND_EVENTS_ENABLED()
         }

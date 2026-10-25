@@ -393,7 +393,35 @@ object Settings {
             Field("focusOnActivate", FlagType, "a window asking for the focus with a good token gets it (false: only marked urgent)"),
             Field("fullscreenKeepsAwake", FlagType, "a fullscreen window keeps idle timers off"),
             Field("wakeScreensOnInput", FlagType, "input switches dark screens on again"),
-            Field("lid", SectionType(listOf(Field("close", ActionType, "when the laptop's lid closes"), Field("open", ActionType, "when it opens")), "the lid"), "the laptop's lid"),
+            Field(
+                "lid",
+                SectionType(
+                    listOf(
+                        Field("close", ActionType, "when the laptop's lid closes"),
+                        Field("open", ActionType, "when it opens"),
+                        Field("turnsScreenOff", FlagType, "the laptop's screen is off while the lid is closed and another monitor is in use"),
+                    ),
+                    "the lid",
+                ),
+                "the laptop's lid",
+            ),
+            Field(
+                "sleep",
+                SectionType(
+                    listOf(
+                        Field("lock", FlagType, "lock the screen before the computer sleeps"),
+                        Field("before", ActionType, "just before it sleeps"),
+                        Field("after", ActionType, "when it woke up"),
+                    ),
+                    "sleep",
+                ),
+                "sleep and hibernation",
+            ),
+            Field(
+                "displays",
+                SectionType(listOf(Field("chooserOnPlug", FlagType, "a monitor never seen before shows the display modes")), "the display modes"),
+                "a laptop with a monitor or projector",
+            ),
             Field("cursor", SectionType(listOf(Field("theme", TextType("a cursor theme"), "an installed cursor theme"), Field("size", IntegerType(8, 256), "its size")), "the cursor"), "the cursor"),
             Field("terminal", TextType("a command"), "the terminal the terminal key opens"),
             Field("lockCommand", TextType("a command"), "the screen locker"),
@@ -626,8 +654,15 @@ object Settings {
         section("lid")?.let { l ->
             val close = l["close"] as (Caulis.() -> Unit)?
             val open = l["open"] as (Caulis.() -> Unit)?
-            caulis.onLid { closed -> (if (closed) close else open)?.invoke(this) }
+            if (close != null || open != null) caulis.onLid { closed -> (if (closed) close else open)?.invoke(this) }
+            (l["turnsScreenOff"] as Boolean?)?.let { caulis.lidTurnsScreenOff = it }
         }
+        section("sleep")?.let { z ->
+            (z["lock"] as Boolean?)?.let { caulis.lockBeforeSleep = it }
+            (z["before"] as (Caulis.() -> Unit)?)?.let { caulis.onSleep(it) }
+            (z["after"] as (Caulis.() -> Unit)?)?.let { caulis.onWake(it) }
+        }
+        section("displays")?.let { d -> (d["chooserOnPlug"] as Boolean?)?.let { caulis.displayChooserOnPlug = it } }
         (values["rules"] as List<Map<String, Any?>>?)?.forEach { r -> rules += rule(caulis, r) }
         (values["panelRules"] as List<Map<String, Any?>>?)?.forEach { r ->
             caulis.panelRule {

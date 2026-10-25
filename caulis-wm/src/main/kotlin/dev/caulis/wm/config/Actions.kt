@@ -5,6 +5,7 @@ import dev.caulis.core.Window
 import dev.caulis.tiling.Direction
 import dev.caulis.tiling.TilingCommand
 import dev.caulis.wm.Caulis
+import dev.caulis.wm.DisplayMode
 
 /**
  * Things to do, written as text — for keys in a configuration file, and for other programs
@@ -23,7 +24,14 @@ import dev.caulis.wm.Caulis
 object Actions {
 
     /** Every action, its argument and what it does (for the documentation and messages). */
-    val all: List<Triple<String, String, String>> = listOf(
+    val all: List<Triple<String, String, String>> get() = builtIn + providers.flatMap { it.actions }
+
+    // Actions of modules on the classpath (caulis-screenshot's "screenshot", ...).
+    private val providers: List<ActionProvider> by lazy {
+        java.util.ServiceLoader.load(ActionProvider::class.java, Actions::class.java.classLoader).toList()
+    }
+
+    private val builtIn: List<Triple<String, String, String>> = listOf(
         Triple("close", "", "closes the focused window"),
         Triple("quit", "", "quits the compositor"),
         Triple("lock", "", "locks the screen"),
@@ -59,6 +67,12 @@ object Actions {
         Triple("dpms", "on|off|toggle [monitor]", "switches the screens (or one) off or on"),
         Triple("keep-awake", "on|off|toggle", "no idle timers while on"),
         Triple("mode", "name|reset", "turns a key mode on (\"mode resize\"), or back to the usual keys"),
+        Triple("volume", "+5|-5|mute", "louder, quieter, or sound off and on (wpctl), shown on screen"),
+        Triple("mic-mute", "", "the microphone off or on"),
+        Triple("brightness", "+5|-5", "the screen brighter or darker"),
+        Triple("touchpad", "on|off|toggle", "the touchpad on or off"),
+        Triple("media", "play-pause|next|previous|stop", "the music player (playerctl)"),
+        Triple("displays", "next|extend|mirror|laptop|external", "how the laptop's screen and a monitor or projector are used together"),
     )
 
     /**
@@ -183,8 +197,33 @@ object Actions {
             }
             "focus-urgent" -> { _ -> desktop.urgentWindows.firstOrNull()?.let(desktop::focus) }
             "keep-awake" -> onOffToggle().let { change -> { _ -> running?.idle?.let { it.inhibitedByUser = change(it.inhibitedByUser) } } }
+            "volume" -> needs("+5, -5 or mute").let { word ->
+                if (word == "mute") { _ -> running?.system?.volume(mute = true) }
+                else (word.removePrefix("+").toIntOrNull() ?: throw IllegalArgumentException("\"$word\" is not +5, -5 or mute")).let { step -> { _ -> running?.system?.volume(step) } }
+            }
+            "mic-mute" -> { _ -> running?.system?.microphone() }
+            "brightness" -> (needs("+5 or -5").removePrefix("+").toIntOrNull() ?: throw IllegalArgumentException("\"$argument\" is not +5 or -5"))
+                .let { step -> { _ -> running?.system?.brightness(step) } }
+            "touchpad" -> when (argument.ifEmpty { "toggle" }) {
+                "on" -> { _ -> running?.system?.touchpad(true) }
+                "off" -> { _ -> running?.system?.touchpad(false) }
+                "toggle" -> { _ -> running?.system?.touchpad(null) }
+                else -> throw IllegalArgumentException("\"$argument\" is not on, off or toggle")
+            }
+            "media" -> {
+                val command = needs("play-pause, next, previous or stop")
+                require(command in setOf("play-pause", "next", "previous", "stop")) { "\"$command\" is not play-pause, next, previous or stop" }
+                val action: Caulis.(Window?) -> Unit = { _ -> running?.system?.media(command) }
+                action
+            }
+            "displays" -> when (val word = argument.ifEmpty { "next" }) {
+                "next" -> { _ -> running?.displays?.next() }
+                else -> (DisplayMode.of(word) ?: throw IllegalArgumentException("\"$word\" is not next, extend, mirror, laptop or external"))
+                    .let { mode -> { _ -> useDisplays(mode) } }
+            }
             "mode" -> needs("a mode name, or reset").let { mode -> { _ -> enterMode(mode.takeIf { it != "reset" && it != "default" }) } }
             else -> {
+                for (provider in providers) provider.parse(name, argument)?.let { return it }
                 val near = all.map { it.first }.minByOrNull { distance(it, name) }?.takeIf { distance(it, name) <= 2 }
                 throw IllegalArgumentException("\"$name\" is not an action" + (near?.let { " (did you mean \"$it\"?)" } ?: ""))
             }
@@ -200,4 +239,20 @@ object Actions {
         }
         return d[a.length][b.length]
     }
+}
+
+/**
+ * More actions for text configurations (config.json, Lua, keys, caulisctl), from a module:
+ * listed in `META-INF/services/dev.caulis.wm.config.ActionProvider`, found when it is on the
+ * classpath (as caulis-screenshot adds "screenshot").
+ */
+interface ActionProvider {
+    /** Its actions: name, argument and what it does. */
+    val actions: List<Triple<String, String, String>>
+
+    /**
+     * What the action [name] with [argument] does, or null if it is not one of these. Throws
+     * IllegalArgumentException with a plain message for a wrong argument.
+     */
+    fun parse(name: String, argument: String): (Caulis.(Window?) -> Unit)?
 }

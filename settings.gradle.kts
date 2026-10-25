@@ -27,6 +27,7 @@ include(
     "caulis-xwayland",
     "caulis-ipc",
     "caulis-wm",
+    "caulis-screenshot",
     "caulis-reload",
     "caulis-lua",
     "caulis-script",
@@ -36,5 +37,6 @@ include(
     "examples:minimal-java",
     "examples:custom-layout",
     "examples:window-rules",
+    "examples:desktop",
 )
 

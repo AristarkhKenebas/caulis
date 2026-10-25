@@ -81,6 +81,7 @@ Wayland way when they can, and through X11 when that fails.
 | `caulis-xwayland` | X11 programs: Xwayland started on demand, their window manager, the shared clipboard |
 | `caulis-ipc` | the IPC socket's messages (`caulis.proto`, for programs in any language) and a JVM client |
 | `caulis-wm` | `caulis { }`: a running compositor in a few lines |
+| `caulis-screenshot` | screenshots in the compositor: an area, a window or a screen, saved and copied (optional) |
 | `caulis-lua` | `config.lua`: the configuration in Lua — settings, keys, rules and events (optional) |
 | `caulis-script` | `config.kts`: the configuration as a Kotlin script, compiled by the compositor (optional; contains the Kotlin compiler) |
 | `caulis-reload` | fast hot reload while developing: compiles your configuration inside the running compositor (optional, `run` task only) |

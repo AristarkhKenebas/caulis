@@ -490,6 +490,12 @@ class Caulis {
     var desktopName = "caulis"
 
     /**
+     * More environment for the programs it starts, e.g. `environment["MOZ_ENABLE_WAYLAND"] = "1"`;
+     * null takes a variable away. (WAYLAND_DISPLAY, DISPLAY and the like are set by Caulis itself.)
+     */
+    val environment = LinkedHashMap<String, String?>()
+
+    /**
      * The name of your compositor's folder of settings, shaders and pictures:
      * `~/.config/<configName>` (or `$XDG_CONFIG_HOME/<configName>`), see [configFolder].
      */
@@ -1044,12 +1050,15 @@ class Caulis {
     internal fun addableLists(): List<MutableList<*>> = listOf(
         titleBarRules, noticeListeners, bindings, startActions, floatRules, effectRules, panelEffectRules, panelRules,
         scratchpads, swipes, windowOpened, windowClosed, focusChanged, workspaceChanged, reloadActions, rules,
-        windowChanged, monitorAdded, monitorRemoved, unloadActions, waitingTimers,
+        windowChanged, monitorAdded, monitorRemoved, unloadActions, waitingTimers, sleepActions, wakeActions,
         workspaceRules, lidActions, idleWatches,
     )
 
     /** The window manager (workspaces, focus, layouts). Only while running. */
     val desktop: Desktop get() = checkNotNull(running) { "Caulis is not running yet" }.desktop
+
+    /** The clipboard: what is on it, and putting something there yourself (once it runs). */
+    val clipboard: dev.caulis.core.DataDeviceManager get() = checkNotNull(running) { "Caulis is not running yet" }.clipboard
 
     /** The window with the keyboard focus, if any. */
     val focusedWindow: Window? get() = running?.desktop?.focusedWindow
@@ -1121,6 +1130,15 @@ class Caulis {
     }
 
     /**
+     * Runs [action] soon on the compositor's thread — callable from any thread (work done on
+     * one of your own, then shown). Nothing happens if the compositor is not running.
+     */
+    fun post(action: Caulis.() -> Unit) {
+        val r = running ?: return
+        r.loop.post { r.safely("posted work") { action(this) } }
+    }
+
+    /**
      * Runs [action] every [millis] from now on, on the compositor's thread, until the result is
      * closed (or the configuration is reloaded). Asked for in the configuration itself, it
      * starts when it runs.
@@ -1161,6 +1179,44 @@ class Caulis {
 
     /** Locks the screen with [lockCommand]. */
     fun lock() = launch(lockCommand)
+
+    /**
+     * Lock the screen before the computer sleeps (suspend, hibernate), so it wakes up locked
+     * ([lockCommand]; it needs logind, on the screen).
+     */
+    var lockBeforeSleep = true
+
+    /**
+     * A monitor or projector never seen before is used beside the laptop's screen, and the
+     * display modes are shown so another can be chosen at once (the laptop's display key, F7 on
+     * many, shows them any time: [Keys.displays]). False: it is just used beside it.
+     */
+    var displayChooserOnPlug = true
+
+    /** With the lid closed, the laptop's screen is off while another monitor is in use. */
+    var lidTurnsScreenOff = true
+
+    /** The way the laptop's screen and another monitor are used together (on the screen only; else nothing happens). */
+    fun useDisplays(mode: DisplayMode) {
+        running?.displays?.use(mode)
+    }
+
+    internal val sleepActions = ArrayList<Caulis.() -> Unit>()
+    internal val wakeActions = ArrayList<Caulis.() -> Unit>()
+
+    /** Runs [action] just before the computer sleeps (the screen is being locked meanwhile). */
+    @JvmSynthetic
+    fun onSleep(action: Caulis.() -> Unit): AutoCloseable = listenTo(sleepActions, action)
+
+    /** Runs [action] when the computer woke up. */
+    @JvmSynthetic
+    fun onWake(action: Caulis.() -> Unit): AutoCloseable = listenTo(wakeActions, action)
+
+    // (These are called when it happens: nothing to hand to the desktop.)
+    private fun <T> listenTo(list: MutableList<T>, action: T): AutoCloseable {
+        list += action
+        return AutoCloseable { list -= action }
+    }
 
     fun closeFocused() = desktop.closeFocused()
 

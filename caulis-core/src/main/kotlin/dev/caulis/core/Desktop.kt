@@ -22,7 +22,8 @@ import kotlin.math.roundToInt
  * everything — only the parts that changed (see [DesktopView]).
  */
 class Desktop(
-    private val renderer: Renderer,
+    /** What draws everything (for pictures of your own: [Overlay], screenshots). */
+    val renderer: Renderer,
     private val seat: Seat,
     private val compositor: Compositor,
     screenWidth: Int,
@@ -74,6 +75,7 @@ class Desktop(
         appearingPictures.values.forEach { it.close() }
         appearingPictures.clear()
         backdrops.close()
+        osd.close()
     }
 
     // --- monitors, size and scale ---------------------------------------------------------
@@ -810,6 +812,7 @@ class Desktop(
     private val lockLog = Logger("lock")
     private val cursorLog = Logger("cursor")
     private val renderLog = Logger("render")
+    private val overlayLog = Logger("overlay")
     private var lastFocused: Window? = null
 
     // --- workspaces -----------------------------------------------------------------------
@@ -1457,6 +1460,7 @@ class Desktop(
             cameraFrom = Camera.NONE
             cameraTo = Camera.NONE
         }
+        closeOverlay()
         seat.mayFocus = ::belongsToLocker
         lockPending = true
         lockShownOn.clear()
@@ -2030,6 +2034,86 @@ class Desktop(
     @JvmOverloads
     fun notify(text: String, level: NoticeLevel = NoticeLevel.INFO, title: String? = null): Notice =
         noticeBoard.add(level, text, title, if (this::focusedMonitor.isInitialized) focusedMonitor.name else null)
+
+    private val osd = Osd(renderer)
+
+    /** What the on-screen display says now ("Volume 45 %"), or null when it is not shown. */
+    val onScreenDisplay: String? get() = osd.look?.title
+
+    /**
+     * Shows what a key changed on the on-screen display (a pill at the bottom of the focused
+     * monitor): [title] ("Volume 45 %", "Touchpad off") and, with a [level] 0..1, a bar —
+     * grey when [off] (muted). A new one replaces it at once; it goes by itself.
+     */
+    @JvmOverloads
+    fun showLevel(title: String, level: Double? = null, off: Boolean = false) {
+        osd.show(Osd.Look(title, level, off))
+        changed()
+    }
+
+    /**
+     * The on-screen display with a short list: [title] and [choices], the one at [chosen]
+     * marked (a key pressed again moves the mark; see the display modes of a laptop's key).
+     */
+    fun showChoices(title: String, choices: List<String>, chosen: Int) {
+        osd.show(Osd.Look(title, null, false, choices, chosen))
+        changed()
+    }
+
+    /** The [Overlay] open now (it has the keyboard and the pointer), or null. */
+    var overlay: Overlay? = null
+        private set
+
+    /** Opens [overlay] above everything (one closes the one open before). */
+    fun openOverlay(overlay: Overlay) {
+        if (locked) return
+        closeOverlay()
+        this.overlay = overlay
+        endGrab()
+        overlayLog.info { "Open: $overlay" }
+        seat.pointerMotion(0, null, 0.0, 0.0) // the program under the pointer loses it
+        overlay.pointerMoved(pointerX, pointerY)
+        changed()
+        cursorChanged()
+    }
+
+    /** Closes the [overlay] open now (if any); programs get the keyboard and pointer again. */
+    fun closeOverlay() {
+        val open = overlay ?: return
+        overlay = null
+        brokenOverlay = null
+        overlayLog.info { "Closed: $open" }
+        changed()
+        try {
+            open.closed()
+        } catch (e: Throwable) {
+            e.rethrowIfFatal()
+            overlayLog.error("$open failed while closing", e)
+        }
+        movePointer(0, pointerX, pointerY) // the program under the pointer gets it back
+        cursorChanged()
+    }
+
+    /** The [overlay] looks different now: drawn again. */
+    fun redrawOverlay() {
+        if (overlay != null) changed()
+    }
+
+    // An overlay that failed to draw (closed before the next frame).
+    private var brokenOverlay: Overlay? = null
+
+    // Runs [action] on the overlay; one that fails is closed (never the compositor with it).
+    private inline fun withOverlay(action: (Overlay) -> Unit): Boolean {
+        val open = overlay ?: return false
+        try {
+            action(open)
+        } catch (e: Throwable) {
+            e.rethrowIfFatal()
+            overlayLog.error("$open failed; closing it", e)
+            closeOverlay()
+        }
+        return true
+    }
 
     /** Closes [notice] (it fades away). */
     fun dismiss(notice: Notice) = noticeBoard.dismiss(notice)
@@ -3497,6 +3581,10 @@ class Desktop(
         pointerX = x.coerceIn(on.area.x.toDouble(), on.area.right - 1.0)
         pointerY = y.coerceIn(on.area.y.toDouble(), on.area.bottom - 1.0)
         if (!locked) noticeBoard.pointerAt(pointerX, pointerY)
+        if (!locked && withOverlay { it.pointerMoved(pointerX, pointerY) }) {
+            onChange()
+            return
+        }
         grab?.let { current ->
             continueGrab(current)
             onChange()
@@ -3558,6 +3646,7 @@ class Desktop(
             seat.pointerButton(timeMillis, button, pressed) // only the locker can be under the pointer
             return
         }
+        if (withOverlay { it.pointerButton(button, pressed) }) return
         if (inOverview) {
             if (pressed) overviewClick()
             return
@@ -3619,6 +3708,7 @@ class Desktop(
     fun pointerAxis(timeMillis: Int, vertical: Boolean, value: Double, value120: Int) {
         inputLog.trace { "Scroll ${if (vertical) "vertical" else "horizontal"} $value ($value120/120)" }
         cursorActive()
+        if (!locked && withOverlay { it.scroll(vertical, if (value120 != 0) value120 / 120.0 else value / 15.0) }) return
         seat.pointerAxis(timeMillis, vertical, value, value120)
     }
 
@@ -3627,6 +3717,10 @@ class Desktop(
         inputLog.trace { if (locked) "A key (not logged while locked)" else "Key $evdevCode ${if (pressed) "pressed" else "released"} → ${seat.keyboardFocus}" }
         // Typing (not just holding Ctrl or Super): the cursor makes way.
         if (pressed && hideCursorWhileTyping && evdevCode !in MODIFIER_KEYS && seat.keyboardFocus != null) hideCursor()
+        if (!locked && overlay != null) {
+            withOverlay { it.key(evdevCode, pressed) }
+            if (pressed) return // ...as with the overview below
+        }
         if (inOverview && pressed) {
             if (evdevCode == KEY_ESC) setOverview(false)
             return // new key presses are not for programs while the overview is open...
@@ -3755,7 +3849,8 @@ class Desktop(
          */
         presentDirect: ((DmabufBuffer) -> Boolean)? = null,
     ): Boolean {
-        val noticesMoving = noticeBoard.animating() // (also lets go of those that faded away)
+        if (brokenOverlay != null && brokenOverlay === overlay) closeOverlay()
+        val noticesMoving = noticeBoard.animating() || osd.animating(System.nanoTime()) // (also lets go of those that faded away)
         // Each asked every time (they move their animations on: none may be skipped by another).
         val fadingNow = fading()
         val animatingNow = animating()
@@ -4153,6 +4248,22 @@ class Desktop(
         if (camera === Camera.NONE) for ((surface, place) in unmanaged) addTree(all, surface, place.first, place.second)
         // Our own notices above everything (not on a locked screen: nothing of the desktop is).
         for (monitor in monitorList) all += noticeBoard.items(monitor, monitorList, noticeFallback(monitor))
+        if (!locked) overlay?.takeIf { it !== brokenOverlay }?.let { open ->
+            for (monitor in monitorList) {
+                val canvas = OverlayCanvas(monitor, "overlay ${monitor.name}")
+                try {
+                    open.draw(monitor, canvas)
+                } catch (e: Throwable) {
+                    e.rethrowIfFatal()
+                    overlayLog.error("$open failed to draw; closing it", e)
+                    brokenOverlay = open
+                    onChange()
+                    break
+                }
+                if (brokenOverlay !== open) all += canvas.items
+            }
+        }
+        if (!locked) all += osd.items(focusedMonitor, System.nanoTime())
 
         // Leave out what nobody can see; only the rest counts as visible.
         val kept = cullHidden(all, desktopBounds())
@@ -4396,6 +4507,7 @@ class Desktop(
         return when {
             current is Grab.Move -> "grabbing"
             current is Grab.Resize -> resizeCursor(current.edges)
+            overlay != null && !locked -> overlay?.cursor ?: "default"
             inOverview -> "default"
             noticeBoard.hovering -> "default" // our notice, not the program below it
             decorationCursor != null -> decorationCursor

@@ -1,0 +1,4 @@
+* { font-family: "Inter", "Cantarell", sans-serif; font-size: 13px; }
+window#waybar { background: rgba(30, 32, 38, 0.82); color: #eceef2; }
+#custom-caulis, #clock, #network, #bluetooth, #wireplumber, #backlight, #battery, #tray { padding: 0 10px; }
+#custom-caulis { font-weight: bold; }

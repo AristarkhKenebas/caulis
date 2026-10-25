@@ -191,10 +191,20 @@ class KeyBindings {
             for (name in listOf("super", "win", "windows", "logo", "mod4", "meta", "cmd", "command", "os", "lsuper", "rsuper", "superl", "superr")) put(name, Modifier.SUPER)
         }
 
+        // Each key code's first name, as written above (for messages: "XF86Favorites").
+        private val FIRST_NAMES = HashMap<Int, String>()
+
+        /** The usual name of the Linux key code [code] ("XF86AudioMute", "F7"), or null. */
+        @JvmStatic
+        fun nameOf(code: Int): String? = FIRST_NAMES[code]
+
         // Linux key codes (<linux/input-event-codes.h>) by every name people give them
         // (compared without case, "_" and "-"; X11 key names like "XF86AudioMute" work too).
         private val KEYS: Map<String, Int> = buildMap {
-            fun names(code: Int, vararg names: String) = names.forEach { put(normalize(it), code) }
+            fun names(code: Int, vararg names: String) {
+                FIRST_NAMES.putIfAbsent(code, names.first())
+                names.forEach { put(normalize(it), code) }
+            }
             "qwertyuiop".forEachIndexed { i, c -> names(16 + i, c.toString()) }
             "asdfghjkl".forEachIndexed { i, c -> names(30 + i, c.toString()) }
             "zxcvbnm".forEachIndexed { i, c -> names(44 + i, c.toString()) }
@@ -257,6 +267,26 @@ class KeyBindings {
             names(166, "XF86AudioStop", "Stop")
             names(224, "XF86MonBrightnessDown", "BrightnessDown")
             names(225, "XF86MonBrightnessUp", "BrightnessUp")
+            // Laptop keys (Fn with F1..F12 on most laptops; the names X11 gives them).
+            names(227, "XF86Display", "SwitchVideoMode", "Display", "Projector")
+            names(530, "XF86TouchpadToggle", "TouchpadToggle")
+            names(531, "XF86TouchpadOn", "TouchpadOn")
+            names(532, "XF86TouchpadOff", "TouchpadOff")
+            names(634, "XF86SelectiveScreenshot", "SelectiveScreenshot", "ScreenshotKey")
+            names(364, "XF86Favorites", "Favorites", "Star")
+            names(247, "XF86RFKill", "RFKill", "AirplaneMode")
+            names(238, "XF86WLAN", "WLAN", "WiFi")
+            names(237, "XF86Bluetooth", "Bluetooth")
+            names(212, "XF86WebCam", "Camera")
+            names(140, "XF86Calculator", "Calculator")
+            names(148, "XF86Launch1", "Prog1")
+            names(149, "XF86Launch2", "Prog2")
+            names(202, "XF86Launch3", "Prog3")
+            names(203, "XF86Launch4", "Prog4")
+            names(142, "XF86Sleep", "Sleep")
+            names(116, "XF86PowerOff", "Power", "PowerButton")
+            names(217, "XF86Search", "Search")
+            names(244, "XF86MonBrightnessAuto", "BrightnessAuto")
             // Mouse buttons (also "mouse:272" and so on) and the wheel.
             names(0x110, "MouseLeft", "LeftButton", "Button1")
             names(0x111, "MouseRight", "RightButton", "Button3")

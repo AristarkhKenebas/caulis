@@ -1,0 +1,25 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 30,
+  "modules-left": ["custom/caulis"],
+  "modules-center": ["clock"],
+  "modules-right": ["tray", "network", "bluetooth", "wireplumber", "backlight", "battery"],
+  "custom/caulis": { "format": "Caulis", "tooltip": false, "on-click": "fuzzel" },
+  "clock": { "format": "{:%a %d %b  %H:%M}", "tooltip-format": "{:%A, %d %B %Y}" },
+  "network": {
+    "format-wifi": "Wi-Fi {essid} {signalStrength}%",
+    "format-ethernet": "Ethernet",
+    "format-disconnected": "No network",
+    "on-click": "foot --app-id caulis-wifi nmtui"
+  },
+  "bluetooth": {
+    "format": "BT {status}",
+    "format-connected": "BT {device_alias}",
+    "on-click": "blueman-manager || foot --app-id caulis-bluetooth bluetoothctl"
+  },
+  "wireplumber": { "format": "Sound {volume}%", "format-muted": "Muted", "on-click": "pavucontrol" },
+  "backlight": { "format": "Light {percent}%" },
+  "battery": { "format": "Battery {capacity}%", "format-charging": "Charging {capacity}%" },
+  "tray": { "spacing": 8 }
+}
