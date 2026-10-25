@@ -117,6 +117,12 @@ class Keys internal constructor() {
      */
     var consoles by modifiers("Ctrl+Alt")
 
+    /**
+     * While a window keeps the compositor's keys for itself (a compositor you run in a window,
+     * a virtual machine): this key takes them back. Null: off.
+     */
+    var restoreShortcuts by key("Super+Escape")
+
     /** Hold these and drag a window: left button moves it, right button resizes it. Null: off. */
     var windowDrag by modifiers("Super")
 
@@ -179,7 +185,7 @@ class Keys internal constructor() {
 
     // The combinations the usual keys make now, with their names and what they do (not quit,
     // consoles and windowDrag: the compositor binds those itself).
-    internal fun bindings(): List<Triple<String, String, Caulis.() -> Unit>> = buildList {
+    internal fun bindings(workspaces: Int = 9): List<Triple<String, String, Caulis.() -> Unit>> = buildList {
         fun add(name: String, combination: String?, action: Caulis.() -> Unit) {
             if (combination != null) add(Triple(name, combination, action))
         }
@@ -195,7 +201,8 @@ class Keys internal constructor() {
         add("overview", overview) { desktop.toggleOverview() }
         add("focusLeft", focusLeft) { desktop.focusDirection(-1, 0) }
         add("focusRight", focusRight) { desktop.focusDirection(1, 0) }
-        for (n in 1..9) {
+        // (Only as many as there are workspaces: none when there is just one.)
+        for (n in (if (workspaces > 1) 1..minOf(9, workspaces) else IntRange.EMPTY)) {
             add("workspace", workspace?.let { "$it+$n" }) { desktop.switchTo(n) }
             add("moveToWorkspace", moveToWorkspace?.let { "$it+$n" }) { focusedWindow?.let { desktop.moveToWorkspace(it, n) } }
         }

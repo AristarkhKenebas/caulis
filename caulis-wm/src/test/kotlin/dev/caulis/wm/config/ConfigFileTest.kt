@@ -182,4 +182,28 @@ class ConfigFileTest {
         assertTrue(example.contains("\"layout\""))
         assertEquals(emptyList(), ConfigFile.read(example).problems)
     }
+
+    @Test
+    fun `workspaces and the primary monitor`() {
+        val read = ConfigFile.read(
+            """
+            {
+              "workspaceMode": "primary-only",
+              "primaryMonitor": "DP-2",
+              "workspaces": { "count": 5, "rules": [ { "workspace": 2, "name": "web", "monitor": "DP-2", "layout": { "name": "columns" }, "persistent": true } ] },
+              "bind": { "Super+Tab": "workspace back", "Super+P": "focus-monitor primary", "Super+Shift+P": "move-to-monitor HDMI-A-1" }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(emptyList(), read.problems)
+        val caulis = Caulis()
+        Settings.apply(caulis, read.values)
+        assertEquals(dev.caulis.core.WorkspaceMode.PRIMARY_ONLY, caulis.workspaceMode)
+        assertEquals("DP-2", caulis.primaryMonitor)
+        assertEquals(5, caulis.workspaceCount)
+        val rule = caulis.workspaceRules.single()
+        assertEquals("web" to "Columns", rule.name to rule.layout?.name)
+        assertTrue("1 to 99" in problems("{ \"workspaces\": { \"count\": 0 } }").single())
+        assertTrue("is not a workspace" in problems("{ \"bind\": { \"Super+Tab\": \"workspace sideways\" } }").single())
+    }
 }

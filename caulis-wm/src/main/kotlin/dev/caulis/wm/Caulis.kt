@@ -13,6 +13,7 @@ import dev.caulis.core.TitleBarStyle
 import dev.caulis.core.TitleBars
 import dev.caulis.core.Window
 import dev.caulis.core.WorkspaceMode
+import dev.caulis.core.WorkspaceRule
 import dev.caulis.core.cursor.CursorTheme
 import dev.caulis.core.input.KeyBindings
 import dev.caulis.log.Log
@@ -59,6 +60,13 @@ class Caulis {
 
         /** Directly on the screen (from a text console). */
         SCREEN,
+
+        /**
+         * On monitors that are nowhere on screen ([headlessMonitors] of them): for trying a
+         * compositor from inside another one, tests, and virtual monitors to share.
+         * `CAULIS_MODE=headless` chooses it without changing the code.
+         */
+        HEADLESS,
     }
 
     var mode = Mode.AUTO
@@ -291,11 +299,42 @@ class Caulis {
     // --- monitors -------------------------------------------------------------------------
 
     /**
-     * How workspaces behave with several monitors: each shows its own and Super+N changes
-     * the one with the focus ([WorkspaceMode.PER_MONITOR], as i3 and sway), or one workspace
-     * spans them all and Super+N switches every monitor ([WorkspaceMode.SPANNING], as GNOME).
+     * How workspaces behave with several monitors (only after a restart):
+     *
+     * - [WorkspaceMode.PER_MONITOR] — numbers shared, Super+N shows N where the focus is (sway, Hyprland)
+     * - [WorkspaceMode.PINNED] — workspaces are screens: each stays on its monitor (one bar for all)
+     * - [WorkspaceMode.SEPARATE] — each monitor has its own 1, 2, 3, ... (dwm, awesome)
+     * - [WorkspaceMode.SPANNING] — one workspace over all monitors (GNOME)
+     * - [WorkspaceMode.PRIMARY_ONLY] — only the [primaryMonitor] switches; the others are plain screens
      */
     var workspaceMode = WorkspaceMode.PER_MONITOR
+
+    /** The primary monitor's connector ("DP-2"); null: the first one. See [WorkspaceMode.PRIMARY_ONLY]. */
+    var primaryMonitor: String? = null
+
+    /**
+     * How many workspaces there are (1 to 99; Super+1..9 reach the first nine). 1: no
+     * workspaces at all — one desktop per monitor, and the workspace keys are free.
+     */
+    var workspaceCount = 9
+        set(value) {
+            require(value in 1..99) { "workspaceCount is 1 to 99, not $value" }
+            field = value
+        }
+
+    internal val workspaceRules = ArrayList<WorkspaceRule>()
+
+    /**
+     * How workspace [number] is:
+     *
+     * ```
+     * workspace(1) { name = "web"; monitor = "DP-2" }          // always on DP-2
+     * workspace(3) { layout = ScrollingColumns(); persistent = true }
+     * ```
+     */
+    fun workspace(number: Int, configure: WorkspaceRule.() -> Unit) {
+        workspaceRules += WorkspaceRule(number).apply(configure)
+    }
 
     /** What one monitor should be like; see [monitor]. */
     class MonitorSettings internal constructor(
@@ -346,6 +385,12 @@ class Caulis {
      * its own (named NESTED-1, NESTED-2, ...) — to try out a desktop with several monitors.
      */
     var nestedMonitors = 1
+
+    /**
+     * Headless ([Mode.HEADLESS]): how many monitors (HEADLESS-1, HEADLESS-2, ...); their size
+     * is their [monitor] mode, else 1920x1080.
+     */
+    var headlessMonitors = 1
 
     /**
      * Start programs the Wayland way when they can (GTK, Qt, Electron, Firefox are told to
@@ -779,6 +824,7 @@ class Caulis {
     internal fun addableLists(): List<MutableList<*>> = listOf(
         titleBarRules, noticeListeners, bindings, startActions, floatRules, effectRules, panelEffectRules,
         scratchpads, swipes, windowOpened, windowClosed, focusChanged, workspaceChanged, reloadActions, rules,
+        workspaceRules,
     )
 
     /** The window manager (workspaces, focus, layouts). Only while running. */
@@ -871,17 +917,24 @@ class Caulis {
         // Whose main() this is (to run it again when config.json changes).
         Reloader.startedFrom = Thread.currentThread().stackTrace.lastOrNull { it.methodName == "main" }?.className
         applyLogSettings()
-        val nested = when (mode) {
-            Mode.AUTO -> !System.getenv("WAYLAND_DISPLAY").isNullOrEmpty()
-            Mode.NESTED -> true
-            Mode.SCREEN -> false
+        // CAULIS_MODE=headless|nested|screen chooses without changing the code.
+        val chosen = System.getenv("CAULIS_MODE")?.takeIf { it.isNotBlank() }?.let { value ->
+            Mode.entries.firstOrNull { it.name.equals(value, ignoreCase = true) } ?: throw CannotStartException("CAULIS_MODE=$value: there are ${Mode.entries.joinToString { it.name.lowercase() }}")
+        } ?: mode
+        val actual = when (chosen) {
+            Mode.AUTO -> if (System.getenv("WAYLAND_DISPLAY").isNullOrEmpty()) Mode.SCREEN else Mode.NESTED
+            else -> chosen
         }
-        val problems = Preflight.check(this, nested)
+        val problems = Preflight.check(this, nested = actual == Mode.NESTED, headless = actual == Mode.HEADLESS)
         if (!Preflight.report(problems, title)) {
             throw CannotStartException("$title cannot start (see the problems listed above)")
         }
         startWarnings = problems.filter { !it.fatal }
-        if (nested) runNested(this) else runOnScreen(this)
+        when (actual) {
+            Mode.NESTED -> runNested(this)
+            Mode.HEADLESS -> runHeadless(this)
+            else -> runOnScreen(this)
+        }
     }
 
     // The log settings from code, then CAULIS_LOG / CAULIS_LOG_FILE on top (they win).

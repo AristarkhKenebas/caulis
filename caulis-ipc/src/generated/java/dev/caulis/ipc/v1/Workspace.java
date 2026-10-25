@@ -17,6 +17,7 @@ public  final class Workspace extends
   private Workspace() {
     monitor_ = "";
     layout_ = "";
+    name_ = "";
   }
   public static final int NUMBER_FIELD_NUMBER = 1;
   private int number_;
@@ -251,6 +252,73 @@ public  final class Workspace extends
       com.google.protobuf.ByteString value) {
     checkByteStringIsUtf8(value);
     layout_ = value.toStringUtf8();
+
+  }
+
+  public static final int NAME_FIELD_NUMBER = 6;
+  private java.lang.String name_;
+  /**
+   * <pre>
+   * Its name from the configuration ("web"); empty: none.
+   * </pre>
+   *
+   * <code>string name = 6;</code>
+   * @return The name.
+   */
+  @java.lang.Override
+  public java.lang.String getName() {
+    return name_;
+  }
+  /**
+   * <pre>
+   * Its name from the configuration ("web"); empty: none.
+   * </pre>
+   *
+   * <code>string name = 6;</code>
+   * @return The bytes for name.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getNameBytes() {
+    return com.google.protobuf.ByteString.copyFromUtf8(name_);
+  }
+  /**
+   * <pre>
+   * Its name from the configuration ("web"); empty: none.
+   * </pre>
+   *
+   * <code>string name = 6;</code>
+   * @param value The name to set.
+   */
+  private void setName(
+      java.lang.String value) {
+    java.util.Objects.requireNonNull(value);
+
+    name_ = value;
+  }
+  /**
+   * <pre>
+   * Its name from the configuration ("web"); empty: none.
+   * </pre>
+   *
+   * <code>string name = 6;</code>
+   */
+  private void clearName() {
+
+    name_ = getDefaultInstance().getName();
+  }
+  /**
+   * <pre>
+   * Its name from the configuration ("web"); empty: none.
+   * </pre>
+   *
+   * <code>string name = 6;</code>
+   * @param value The bytes for name to set.
+   */
+  private void setNameBytes(
+      com.google.protobuf.ByteString value) {
+    checkByteStringIsUtf8(value);
+    name_ = value.toStringUtf8();
 
   }
 
@@ -597,6 +665,75 @@ public  final class Workspace extends
       return this;
     }
 
+    /**
+     * <pre>
+     * Its name from the configuration ("web"); empty: none.
+     * </pre>
+     *
+     * <code>string name = 6;</code>
+     * @return The name.
+     */
+    @java.lang.Override
+    public java.lang.String getName() {
+      return instance.getName();
+    }
+    /**
+     * <pre>
+     * Its name from the configuration ("web"); empty: none.
+     * </pre>
+     *
+     * <code>string name = 6;</code>
+     * @return The bytes for name.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getNameBytes() {
+      return instance.getNameBytes();
+    }
+    /**
+     * <pre>
+     * Its name from the configuration ("web"); empty: none.
+     * </pre>
+     *
+     * <code>string name = 6;</code>
+     * @param value The name to set.
+     * @return This builder for chaining.
+     */
+    public Builder setName(
+        java.lang.String value) {
+      copyOnWrite();
+      instance.setName(value);
+      return this;
+    }
+    /**
+     * <pre>
+     * Its name from the configuration ("web"); empty: none.
+     * </pre>
+     *
+     * <code>string name = 6;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearName() {
+      copyOnWrite();
+      instance.clearName();
+      return this;
+    }
+    /**
+     * <pre>
+     * Its name from the configuration ("web"); empty: none.
+     * </pre>
+     *
+     * <code>string name = 6;</code>
+     * @param value The bytes for name to set.
+     * @return This builder for chaining.
+     */
+    public Builder setNameBytes(
+        com.google.protobuf.ByteString value) {
+      copyOnWrite();
+      instance.setNameBytes(value);
+      return this;
+    }
+
     // @@protoc_insertion_point(builder_scope:caulis.ipc.v1.Workspace)
   }
   @java.lang.Override
@@ -618,10 +755,11 @@ public  final class Workspace extends
             "active_",
             "windows_",
             "layout_",
+            "name_",
           };
           java.lang.String info =
-              "\u0000\u0005\u0000\u0000\u0001\u0005\u0005\u0000\u0000\u0000\u0001\u000b\u0002\u0208" +
-              "\u0003\u0007\u0004\u000b\u0005\u0208";
+              "\u0000\u0006\u0000\u0000\u0001\u0006\u0006\u0000\u0000\u0000\u0001\u000b\u0002\u0208" +
+              "\u0003\u0007\u0004\u000b\u0005\u0208\u0006\u0208";
           return newMessageInfo(DEFAULT_INSTANCE, info, objects);
       }
       case GET_DEFAULT_INSTANCE: {

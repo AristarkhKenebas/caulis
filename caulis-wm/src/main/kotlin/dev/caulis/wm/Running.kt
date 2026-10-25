@@ -101,6 +101,12 @@ internal class Running(
     // The only keys of ours while the screen is locked; everything else goes to the locker.
     private val lockedKeys = KeyBindings()
 
+    // The keys that still work while a window keeps the others (a nested compositor, a VM).
+    private val inhibitedKeys = KeyBindings()
+
+    // keyboard-shortcuts-inhibit (set in init).
+    private lateinit var shortcutsInhibit: dev.caulis.core.input.ShortcutsInhibit
+
     // Takes on changed code while running (null when off or not started from a project).
     private var reloader: Reloader? = null
 
@@ -173,12 +179,16 @@ internal class Running(
         LayerShell(display).listener = desktop
         SessionLockManager(display).listener = desktop
         CursorShape(display, seat)
+        shortcutsInhibit = dev.caulis.core.input.ShortcutsInhibit(display, seat)
         XdgOutputManager(display)
         ServerDecorations(display, desktop)
         xwayland = if (config.xwayland) safely("Xwayland", null) { Xwayland(display, desktop, loop, clipboard, wholeScaleWorlds = config.sharpJavaScaling) } else null
         ScreenCapture(display, desktop, renderer, ForeignToplevels(display, desktop))
         applyCursor()
         desktop.workspaceMode = config.workspaceMode // before the monitors come
+        desktop.primaryMonitorName = config.primaryMonitor
+        desktop.workspaceCount = config.workspaceCount
+        desktop.workspaceRules = config.workspaceRules
         desktop.layout = config.layout
         socket = config.socketDirectory?.let(display::addSocket) ?: display.addSocket()
         // The IPC socket beside the Wayland one: bars, scripts and tools talk to us there.
@@ -257,9 +267,13 @@ internal class Running(
         desktop.resizeBorder = config.resizeBorder
         desktop.doubleClickMillis = config.doubleClickMillis
         desktop.lockColor = config.lockColor
+        desktop.workspaceCount = config.workspaceCount
+        desktop.workspaceRules = config.workspaceRules
+        desktop.primaryMonitorName = config.primaryMonitor
 
         keys.clear()
         lockedKeys.clear()
+        inhibitedKeys.clear()
         bindKeys()
         for (pad in config.scratchpads) {
             // A scratchpad asks the configuration of the moment which windows are its own.
@@ -282,10 +296,11 @@ internal class Running(
 
         // Quitting and text consoles also work while the screen is locked (when they are on).
         val usual = config.keys
-        for (bindings in listOf(keys, lockedKeys)) {
+        for (bindings in listOf(keys, lockedKeys, inhibitedKeys)) {
             usual.quit?.let { bindings.bind(it) { quit() } }
             if (switchConsole != null) usual.consoles?.let { modifiers -> for (n in 1..12) bindings.bind("$modifiers+F$n") { switchConsole.invoke(n) } }
         }
+        usual.restoreShortcuts?.let { inhibitedKeys.bind(it) { shortcutsInhibit.restore() } }
         if (usual.quit == null && (usual.consoles == null || switchConsole == null)) {
             log.warn("No key quits and none switches to a text console (keys.quit and keys.consoles are off): if a program takes the whole screen, only another computer (ssh) or the power button gets you out")
         }
@@ -294,7 +309,7 @@ internal class Running(
     // The usual keys first, the user's own after them (later ones win on the same combination).
     private fun bindKeys() {
         // Those you changed after the others: on the same keys, yours wins over a default one.
-        val usual = config.keys.bindings().sortedBy { config.keys.changed(it.first) }
+        val usual = config.keys.bindings(config.workspaceCount).sortedBy { config.keys.changed(it.first) }
         val taken = HashMap<Pair<Set<KeyBindings.Modifier>, Int>, String>()
         for ((name, combination, action) in usual) {
             val parsed = KeyBindings.parse(combination)
@@ -502,9 +517,14 @@ internal class Running(
 
     /** A key from the keyboard: the compositor's combination, or passed to the focused program. */
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
-        val (active, other) = if (desktop.locked) lockedKeys to keys else keys to lockedKeys
-        // A key pressed before locking may be released after it (Super+L): both must see the release.
-        if (!pressed) other.key(evdevCode, false)
+        val active = when {
+            desktop.locked -> lockedKeys
+            // A window keeps the keys (a nested compositor): only quit, consoles and restoreShortcuts are ours.
+            shortcutsInhibit.active -> inhibitedKeys
+            else -> keys
+        }
+        // A key pressed before locking may be released after it (Super+L): all must see the release.
+        if (!pressed) for (other in listOf(keys, lockedKeys, inhibitedKeys)) if (other !== active) other.key(evdevCode, false)
         if (!active.key(evdevCode, pressed)) desktop.key(timeMillis, evdevCode, pressed)
     }
 

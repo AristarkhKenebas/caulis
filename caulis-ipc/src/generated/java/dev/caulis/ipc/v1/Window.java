@@ -194,7 +194,8 @@ public  final class Window extends
   private int workspace_;
   /**
    * <pre>
-   * The number of its workspace; 0: none (in a scratchpad).
+   * The number of its workspace; 0: none (in a scratchpad, or on a monitor's own screen when
+   * only the primary monitor has workspaces).
    * </pre>
    *
    * <code>uint32 workspace = 5;</code>
@@ -206,7 +207,8 @@ public  final class Window extends
   }
   /**
    * <pre>
-   * The number of its workspace; 0: none (in a scratchpad).
+   * The number of its workspace; 0: none (in a scratchpad, or on a monitor's own screen when
+   * only the primary monitor has workspaces).
    * </pre>
    *
    * <code>uint32 workspace = 5;</code>
@@ -218,7 +220,8 @@ public  final class Window extends
   }
   /**
    * <pre>
-   * The number of its workspace; 0: none (in a scratchpad).
+   * The number of its workspace; 0: none (in a scratchpad, or on a monitor's own screen when
+   * only the primary monitor has workspaces).
    * </pre>
    *
    * <code>uint32 workspace = 5;</code>
@@ -807,7 +810,8 @@ public  final class Window extends
 
     /**
      * <pre>
-     * The number of its workspace; 0: none (in a scratchpad).
+     * The number of its workspace; 0: none (in a scratchpad, or on a monitor's own screen when
+     * only the primary monitor has workspaces).
      * </pre>
      *
      * <code>uint32 workspace = 5;</code>
@@ -819,7 +823,8 @@ public  final class Window extends
     }
     /**
      * <pre>
-     * The number of its workspace; 0: none (in a scratchpad).
+     * The number of its workspace; 0: none (in a scratchpad, or on a monitor's own screen when
+     * only the primary monitor has workspaces).
      * </pre>
      *
      * <code>uint32 workspace = 5;</code>
@@ -833,7 +838,8 @@ public  final class Window extends
     }
     /**
      * <pre>
-     * The number of its workspace; 0: none (in a scratchpad).
+     * The number of its workspace; 0: none (in a scratchpad, or on a monitor's own screen when
+     * only the primary monitor has workspaces).
      * </pre>
      *
      * <code>uint32 workspace = 5;</code>

@@ -150,24 +150,51 @@ object Settings {
         "a window rule",
     )
 
+    private val layoutSection = SectionType(
+        listOf(
+            Field("name", ChoiceType(Layouts.names), "how windows are arranged"),
+            Field("gaps", gaps, "space around and between windows"),
+            Field("ratio", DecimalType(0.1, 0.9), "the main window's share (master layouts)"),
+            Field("side", ChoiceType(listOf("left", "right", "top", "bottom")), "the main window's side (master-stack)"),
+        ),
+        "the layout",
+    )
+
+    private val workspaces = SectionType(
+        listOf(
+            Field("count", IntegerType(1, 99), "how many there are (1: no workspaces, one desktop)"),
+            Field(
+                "rules",
+                ListType(
+                    SectionType(
+                        listOf(
+                            Field("workspace", IntegerType(1, 99), "its number"),
+                            Field("name", TextType("a name"), "its name for bars (\"web\")"),
+                            Field("monitor", TextType("a connector"), "its home monitor (\"DP-2\")"),
+                            Field("layout", layoutSection, "its own layout"),
+                            Field("persistent", FlagType, "it always exists, even empty"),
+                        ),
+                        "a workspace rule",
+                    ),
+                ),
+                "how single workspaces are",
+            ),
+        ),
+        "workspaces",
+    )
+
     /** The whole file. */
     val root = SectionType(
         listOf(
-            Field(
-                "layout",
-                SectionType(
-                    listOf(
-                        Field("name", ChoiceType(Layouts.names), "how windows are arranged"),
-                        Field("gaps", gaps, "space around and between windows"),
-                        Field("ratio", DecimalType(0.1, 0.9), "the main window's share (master layouts)"),
-                        Field("side", ChoiceType(listOf("left", "right", "top", "bottom")), "the main window's side (master-stack)"),
-                    ),
-                    "the layout",
-                ),
-                "how windows are arranged",
-            ),
+            Field("layout", layoutSection, "how windows are arranged"),
             Field("scale", DecimalType(0.5, 4.0), "how big everything is (1.0, 1.25, 1.5, 2.0, ...)"),
-            Field("workspaceMode", ChoiceType(listOf("per-monitor", "spanning")), "a workspace per monitor, or one over all"),
+            Field(
+                "workspaceMode",
+                ChoiceType(listOf("per-monitor", "pinned", "separate", "spanning", "primary-only")),
+                "shared numbers on any monitor, pinned to monitors, each monitor its own, one over all, or only on the primary monitor",
+            ),
+            Field("primaryMonitor", TextType("a connector"), "the primary monitor (\"DP-2\")"),
+            Field("workspaces", workspaces, "how many workspaces, and how each is"),
             Field("monitorEdges", ChoiceType(listOf("touching", "proportional")), "how the mouse goes between monitors of different sizes"),
             Field(
                 "monitors",
@@ -308,19 +335,22 @@ object Settings {
         val bindings = ArrayList<Pair<String, Caulis.() -> Unit>>()
         val startup = ArrayList<Caulis.() -> Unit>()
 
-        section("layout")?.let { l ->
-            val g = l["gaps"] as? Map<String, Any?>
-            val outer = g?.get("outer") as Int? ?: 8
-            val gaps = Gaps(
-                inner = g?.get("inner") as Int? ?: 8, outer = outer,
-                top = g?.get("top") as Int? ?: outer, right = g?.get("right") as Int? ?: outer,
-                bottom = g?.get("bottom") as Int? ?: outer, left = g?.get("left") as Int? ?: outer,
-            )
-            val side = (l["side"] as String?)?.let { Side.valueOf(it.uppercase()) } ?: Side.LEFT
-            caulis.layout = Layouts.byName(l["name"] as String? ?: "dwindle", gaps, l["ratio"] as Double?, side)()
-        }
+        section("layout")?.let { caulis.layout = layout(it) }
         (values["scale"] as Double?)?.let { caulis.scale = it }
-        (values["workspaceMode"] as String?)?.let { caulis.workspaceMode = if (it == "spanning") WorkspaceMode.SPANNING else WorkspaceMode.PER_MONITOR }
+        (values["workspaceMode"] as String?)?.let { caulis.workspaceMode = WorkspaceMode.valueOf(it.uppercase().replace('-', '_')) }
+        (values["primaryMonitor"] as String?)?.let { caulis.primaryMonitor = it }
+        section("workspaces")?.let { w ->
+            (w["count"] as Int?)?.let { caulis.workspaceCount = it }
+            (w["rules"] as List<Map<String, Any?>>?)?.forEach { r ->
+                val number = r["workspace"] as Int? ?: return@forEach
+                caulis.workspace(number) {
+                    name = r["name"] as String?
+                    monitor = r["monitor"] as String?
+                    layout = (r["layout"] as Map<String, Any?>?)?.let(::layout)
+                    persistent = r["persistent"] as Boolean? ?: false
+                }
+            }
+        }
         (values["monitorEdges"] as String?)?.let { caulis.monitorEdges = if (it == "proportional") MonitorEdges.PROPORTIONAL else MonitorEdges.TOUCHING }
         (values["monitors"] as Map<String, Map<String, Any?>>?)?.forEach { (name, m) ->
             caulis.monitor(name) {
@@ -401,6 +431,19 @@ object Settings {
         }
         (values["logLevel"] as Int?)?.let { caulis.logLevel = it }
         return Added(rules, bindings, startup)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun layout(l: Map<String, Any?>): Layout {
+        val g = l["gaps"] as? Map<String, Any?>
+        val outer = g?.get("outer") as Int? ?: 8
+        val gaps = Gaps(
+            inner = g?.get("inner") as Int? ?: 8, outer = outer,
+            top = g?.get("top") as Int? ?: outer, right = g?.get("right") as Int? ?: outer,
+            bottom = g?.get("bottom") as Int? ?: outer, left = g?.get("left") as Int? ?: outer,
+        )
+        val side = (l["side"] as String?)?.let { Side.valueOf(it.uppercase()) } ?: Side.LEFT
+        return Layouts.byName(l["name"] as String? ?: "dwindle", gaps, l["ratio"] as Double?, side)()
     }
 
     private fun windowAnimation(name: String): WindowAnimation = when (name) {

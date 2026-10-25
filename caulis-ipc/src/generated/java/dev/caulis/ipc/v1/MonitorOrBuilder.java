@@ -101,4 +101,14 @@ public interface MonitorOrBuilder extends
    * @return The focused.
    */
   boolean getFocused();
+
+  /**
+   * <pre>
+   * The primary monitor.
+   * </pre>
+   *
+   * <code>bool primary = 9;</code>
+   * @return The primary.
+   */
+  boolean getPrimary();
 }

@@ -17,7 +17,7 @@ internal object Preflight {
     class Problem(val fatal: Boolean, val message: String, val fix: String)
 
     /** Everything wrong for running [config] in the given mode ([nested] or on the screen). */
-    fun check(config: Caulis, nested: Boolean): List<Problem> = buildList {
+    fun check(config: Caulis, nested: Boolean, headless: Boolean = false): List<Problem> = buildList {
         // Talking to C libraries needs an explicit permission from Java.
         if (!Caulis::class.java.module.isNativeAccessEnabled) {
             add(
@@ -56,7 +56,7 @@ internal object Preflight {
             if (socket == null || !Files.exists(socket)) {
                 add(Problem(true, "There is no Wayland session to open a window in (WAYLAND_DISPLAY=${display ?: "not set"}).", "Start it inside a Wayland desktop, or from a text console (Ctrl+Alt+F3) to use the whole screen."))
             }
-        } else {
+        } else if (!headless) {
             if (Files.getAttribute(Path.of("/proc/self"), "unix:uid") == 0) {
                 add(Problem(true, "Running as root.", "Start it as your normal user; a compositor never needs root."))
             }

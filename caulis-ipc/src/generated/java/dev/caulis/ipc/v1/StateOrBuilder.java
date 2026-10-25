@@ -125,4 +125,24 @@ public interface StateOrBuilder extends
    * @return The locked.
    */
   boolean getLocked();
+
+  /**
+   * <pre>
+   * The connector of the primary monitor.
+   * </pre>
+   *
+   * <code>string primary_monitor = 8;</code>
+   * @return The primaryMonitor.
+   */
+  java.lang.String getPrimaryMonitor();
+  /**
+   * <pre>
+   * The connector of the primary monitor.
+   * </pre>
+   *
+   * <code>string primary_monitor = 8;</code>
+   * @return The bytes for primaryMonitor.
+   */
+  com.google.protobuf.ByteString
+      getPrimaryMonitorBytes();
 }

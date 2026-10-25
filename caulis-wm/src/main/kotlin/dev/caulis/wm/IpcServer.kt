@@ -316,6 +316,7 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
         .setPixelHeight(monitor.pixelHeight)
         .setWorkspace(monitor.workspace.number)
         .setFocused(monitor === desktop.focusedMonitor)
+        .setPrimary(monitor === desktop.primaryMonitor)
         .build()
 
     private fun windows() = desktop.allWindows.filter { it.mapped }
@@ -330,6 +331,7 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
                     .setActive(workspace === desktop.activeWorkspace)
                     .setWindows(workspace.windows.size + workspace.minimized.size)
                     .setLayout(workspace.layout.name)
+                    .setName(workspace.name.orEmpty())
                     .build()
             },
         )
@@ -338,6 +340,7 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
         .setFocusedMonitor(desktop.focusedMonitor.name)
         .setScale(desktop.scale)
         .setLocked(desktop.locked)
+        .setPrimaryMonitor(desktop.primaryMonitor.name)
         .build()
 
     // --- what changes ----------------------------------------------------------------------------

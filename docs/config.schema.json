@@ -75,8 +75,122 @@
       "description": "how big everything is (1.0, 1.25, 1.5, 2.0, ...)"
     },
     "workspaceMode": {
-      "enum": ["per-monitor", "spanning"],
-      "description": "a workspace per monitor, or one over all"
+      "enum": ["per-monitor", "pinned", "separate", "spanning", "primary-only"],
+      "description": "shared numbers on any monitor, pinned to monitors, each monitor its own, one over all, or only on the primary monitor"
+    },
+    "primaryMonitor": {
+      "type": "string",
+      "minLength": 1,
+      "description": "the primary monitor (\"DP-2\")"
+    },
+    "workspaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 99,
+          "description": "how many there are (1: no workspaces, one desktop)"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "workspace": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 99,
+                "description": "its number"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "its name for bars (\"web\")"
+              },
+              "monitor": {
+                "type": "string",
+                "minLength": 1,
+                "description": "its home monitor (\"DP-2\")"
+              },
+              "layout": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "enum": ["floating", "dwindle", "spiral", "grid", "columns", "rows", "monocle", "master-stack", "centered-master", "master-strips", "tree", "tree-spiral", "manual", "scrolling-columns", "canvas"],
+                    "description": "how windows are arranged"
+                  },
+                  "gaps": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "inner": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 500,
+                        "description": "space between tiled windows"
+                      },
+                      "outer": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 500,
+                        "description": "space between them and the screen's edges"
+                      },
+                      "top": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 500,
+                        "description": "space at the top edge (else outer)"
+                      },
+                      "right": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 500,
+                        "description": "space at the right edge (else outer)"
+                      },
+                      "bottom": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 500,
+                        "description": "space at the bottom edge (else outer)"
+                      },
+                      "left": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 500,
+                        "description": "space at the left edge (else outer)"
+                      }
+                    },
+                    "description": "space around and between windows"
+                  },
+                  "ratio": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 0.9,
+                    "description": "the main window's share (master layouts)"
+                  },
+                  "side": {
+                    "enum": ["left", "right", "top", "bottom"],
+                    "description": "the main window's side (master-stack)"
+                  }
+                },
+                "description": "its own layout"
+              },
+              "persistent": {
+                "type": "boolean",
+                "description": "it always exists, even empty"
+              }
+            }
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "description": "how single workspaces are"
+        }
+      },
+      "description": "how many workspaces, and how each is"
     },
     "monitorEdges": {
       "enum": ["touching", "proportional"],
@@ -536,6 +650,21 @@
             }
           ],
           "description": "the consoles key (false: off)"
+        },
+        "restoreShortcuts": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the restoreShortcuts key (false: off)"
         },
         "windowDrag": {
           "anyOf": [

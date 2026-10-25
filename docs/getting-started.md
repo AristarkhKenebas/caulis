@@ -142,6 +142,33 @@ goes by itself.
 It works when you start with `./gradlew run` (from the project); an installed compositor
 does not watch its sources (and contains no compiler). Turn it off with `hotReload = false`.
 
+### Make a compositor from inside one
+
+Once your desktop itself is a Caulis compositor (yours, or one made with it), the one you
+are making runs as a window inside it — `./gradlew run` from a terminal there — and you
+keep writing code next to it, every save taken on at once. While that window has the
+keyboard, **all** keys go to it, Super ones too (it asks your desktop for that through the
+keyboard-shortcuts-inhibit protocol); **Super+Escape** gives your desktop its keys back,
+clicking the window again gives them to it once more (`keys.restoreShortcuts` changes the
+key). Quitting and the text consoles stay your desktop's. GNOME and KDE honour the same
+request too (GNOME asks you once whether to allow it).
+
+Without any window at all — for scripts, tests, or a monitor to share — it runs
+**headless**: on monitors that are nowhere on screen, drawn on the GPU all the same.
+Programs connect as usual; screenshots (`grim`), screen sharing and the IPC socket (step 25)
+see everything:
+
+```sh
+CAULIS_MODE=headless ./gradlew run              # or mode = Caulis.Mode.HEADLESS in Main.kt
+WAYLAND_DISPLAY=wayland-1 foot &                 # programs inside it
+WAYLAND_DISPLAY=wayland-1 grim shot.png          # what it shows
+my-compositor --state
+```
+
+`headlessMonitors = 2` gives two; each is 1920x1080 unless `monitor("HEADLESS-1") { mode(2560, 1440) }`
+says otherwise. `CAULIS_MODE=nested` and `CAULIS_MODE=screen` choose the other modes the
+same way.
+
 ## 4. Keys
 
 Without writing anything, you already have the usual keys. Each has a name (left column):
@@ -625,8 +652,34 @@ already shows it, goes there. A window opens on the monitor with the focus; `mov
 monitor("eDP-1") { scale = 1.5 }                       // the laptop's own screen
 monitor("DP-2") { scale = 1.0; position(1280, 0); mode(2560, 1440, 144.0) }
 monitor("HDMI-A-1") { enabled = false }                // not used at all
-workspaceMode = WorkspaceMode.SPANNING                 // one workspace over all monitors, as GNOME
+primaryMonitor = "DP-2"                                // the main one (else the first)
 ```
+
+**How workspaces and monitors go together** — `workspaceMode`, one of five (it changes
+after a restart):
+
+| `WorkspaceMode.` | | Like |
+|---|---|---|
+| `PER_MONITOR` (default) | Numbers are shared; `Super+N` shows N on the monitor with the focus, or goes to where it is shown. | sway, Hyprland |
+| `PINNED` | Workspaces are screens: each stays on the monitor that showed it first (or its rule's), and `Super+2` may simply be "the second monitor". One bar shows them all. | i3 with assigned outputs |
+| `SEPARATE` | Every monitor has its own 1, 2, 3, ...; `Super+N` switches the one with the focus. Windows move between monitors freely. | dwm, awesome, qtile |
+| `SPANNING` | One workspace over all monitors; `Super+N` switches them all. | GNOME |
+| `PRIMARY_ONLY` | Only the primary monitor has workspaces (and, usually, the bar); every other monitor is one screen of its own — move windows there, nothing switches there. If the primary monitor is unplugged, the next one takes its workspaces. | GNOME's "workspaces on primary display only" |
+
+**Workspaces as you like them** — how many, and each one on its own:
+
+```kotlin
+workspaceCount = 5                                     // 1: no workspaces at all, one desktop
+workspace(1) { name = "web"; monitor = "DP-2" }        // always on DP-2
+workspace(3) { name = "chat"; persistent = true }      // always there, even empty (bars show it)
+workspace(4) { layout = ScrollingColumns() }           // its own layout
+```
+
+Names go to bars and programs (the IPC socket, step 25). Actions for keys (step 23) reach
+them by number or relatively: `workspace back` (the one before — "back and forth"),
+`workspace next`, `workspace prev`, `workspace empty` (the first one with no windows), and
+the same for `move-to-workspace`. Monitors: `focus-monitor` and `move-to-monitor` with
+`left`, `right`, `up`, `down`, `next`, `primary` or a connector.
 
 The names are the connectors; the log lists them (level 2) when the compositor starts.
 Without `position`, monitors stand side by side in the order they were found. Scale and

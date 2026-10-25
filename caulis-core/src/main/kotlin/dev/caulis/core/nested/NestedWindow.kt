@@ -168,6 +168,7 @@ class NestedWindow(
         var dmabufVersion = 0
         var gesturesName = 0
         var gesturesVersion = 0
+        var inhibitName = 0
         val registry = connection.display.getRegistry()
         registry.events = object : WlRegistry.Events {
             override fun global(proxy: WlRegistry, name: Int, `interface`: String, versionArg: Int) {
@@ -183,6 +184,7 @@ class NestedWindow(
                         gesturesName = name
                         gesturesVersion = versionArg
                     }
+                    "zwp_keyboard_shortcuts_inhibit_manager_v1" -> inhibitName = name
                     "wl_seat" -> if (seatName == 0) {
                         seatName = name
                         seatVersion = versionArg
@@ -219,6 +221,13 @@ class NestedWindow(
         toplevel = xdgSurface.getToplevel()
         toplevel.setTitle(title)
         toplevel.setAppId(appId)
+        // Every key comes to us while we have the keyboard — Super too — if the outer session
+        // lets windows keep its shortcuts (it offers a way back, e.g. Super+Escape).
+        val outerSeat = seat
+        if (inhibitName != 0 && outerSeat != null) {
+            registry.bind(inhibitName, dev.caulis.protocol.client.keyboardshortcutsinhibitunstablev1.ZwpKeyboardShortcutsInhibitManagerV1, 1)
+                .inhibitShortcuts(surface, outerSeat)
+        }
 
         toplevel.events = object : XdgToplevel.Events {
             override fun configure(proxy: XdgToplevel, width: Int, height: Int, states: ByteArray) {

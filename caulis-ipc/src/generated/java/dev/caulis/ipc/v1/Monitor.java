@@ -361,6 +361,44 @@ public  final class Monitor extends
     focused_ = false;
   }
 
+  public static final int PRIMARY_FIELD_NUMBER = 9;
+  private boolean primary_;
+  /**
+   * <pre>
+   * The primary monitor.
+   * </pre>
+   *
+   * <code>bool primary = 9;</code>
+   * @return The primary.
+   */
+  @java.lang.Override
+  public boolean getPrimary() {
+    return primary_;
+  }
+  /**
+   * <pre>
+   * The primary monitor.
+   * </pre>
+   *
+   * <code>bool primary = 9;</code>
+   * @param value The primary to set.
+   */
+  private void setPrimary(boolean value) {
+    
+    primary_ = value;
+  }
+  /**
+   * <pre>
+   * The primary monitor.
+   * </pre>
+   *
+   * <code>bool primary = 9;</code>
+   */
+  private void clearPrimary() {
+
+    primary_ = false;
+  }
+
   public static dev.caulis.ipc.v1.Monitor parseFrom(
       java.nio.ByteBuffer data)
       throws com.google.protobuf.InvalidProtocolBufferException {
@@ -821,6 +859,46 @@ public  final class Monitor extends
       return this;
     }
 
+    /**
+     * <pre>
+     * The primary monitor.
+     * </pre>
+     *
+     * <code>bool primary = 9;</code>
+     * @return The primary.
+     */
+    @java.lang.Override
+    public boolean getPrimary() {
+      return instance.getPrimary();
+    }
+    /**
+     * <pre>
+     * The primary monitor.
+     * </pre>
+     *
+     * <code>bool primary = 9;</code>
+     * @param value The primary to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPrimary(boolean value) {
+      copyOnWrite();
+      instance.setPrimary(value);
+      return this;
+    }
+    /**
+     * <pre>
+     * The primary monitor.
+     * </pre>
+     *
+     * <code>bool primary = 9;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPrimary() {
+      copyOnWrite();
+      instance.clearPrimary();
+      return this;
+    }
+
     // @@protoc_insertion_point(builder_scope:caulis.ipc.v1.Monitor)
   }
   @java.lang.Override
@@ -846,10 +924,11 @@ public  final class Monitor extends
             "pixelHeight_",
             "workspace_",
             "focused_",
+            "primary_",
           };
           java.lang.String info =
-              "\u0000\b\u0000\u0001\u0001\b\b\u0000\u0000\u0000\u0001\u0208\u0002\u1009\u0000\u0003" +
-              "\u1009\u0001\u0004\u0000\u0005\u000b\u0006\u000b\u0007\u000b\b\u0007";
+              "\u0000\t\u0000\u0001\u0001\t\t\u0000\u0000\u0000\u0001\u0208\u0002\u1009\u0000\u0003" +
+              "\u1009\u0001\u0004\u0000\u0005\u000b\u0006\u000b\u0007\u000b\b\u0007\t\u0007";
           return newMessageInfo(DEFAULT_INSTANCE, info, objects);
       }
       case GET_DEFAULT_INSTANCE: {

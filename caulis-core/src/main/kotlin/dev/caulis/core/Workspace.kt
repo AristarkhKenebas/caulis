@@ -9,17 +9,22 @@ import dev.caulis.tiling.TilingModel
  * one workspace; windows on the others keep running slowly (see [Desktop]).
  */
 class Workspace internal constructor(
-    /** 1, 2, 3, ... — what Super+1, Super+2, ... switch to. */
+    /** 1, 2, 3, ... — what Super+1, Super+2, ... switch to; 0: a monitor's own screen ([WorkspaceMode.PRIMARY_ONLY]). */
     val number: Int,
     layout: Layout,
     /**
-     * The monitor it belongs to when every monitor has its own part of each workspace
-     * ([WorkspaceMode.SPANNING]); null when workspaces go wherever they are shown.
+     * The monitor it belongs to when every monitor has workspaces of its own
+     * ([WorkspaceMode.SPANNING], [WorkspaceMode.SEPARATE], a monitor's own screen with
+     * [WorkspaceMode.PRIMARY_ONLY]); null when workspaces go wherever they are shown.
      */
     internal val homeMonitor: String? = null,
 ) {
     // The name of the monitor that showed it last (it goes back there when that monitor returns).
     internal var lastMonitorName: String? = null
+
+    /** Its name from its rule ("web"), or null. */
+    var name: String? = null
+        internal set
 
     /** The monitor it is shown on now, or was last (its windows are placed in its area). */
     var monitor: Monitor? = null

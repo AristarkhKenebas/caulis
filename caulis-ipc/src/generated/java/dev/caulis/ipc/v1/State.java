@@ -19,6 +19,7 @@ public  final class State extends
     workspaces_ = emptyProtobufList();
     monitors_ = emptyProtobufList();
     focusedMonitor_ = "";
+    primaryMonitor_ = "";
   }
   public static final int WINDOWS_FIELD_NUMBER = 1;
   private com.google.protobuf.Internal.ProtobufList<dev.caulis.ipc.v1.Window> windows_;
@@ -569,6 +570,73 @@ public  final class State extends
   private void clearLocked() {
 
     locked_ = false;
+  }
+
+  public static final int PRIMARY_MONITOR_FIELD_NUMBER = 8;
+  private java.lang.String primaryMonitor_;
+  /**
+   * <pre>
+   * The connector of the primary monitor.
+   * </pre>
+   *
+   * <code>string primary_monitor = 8;</code>
+   * @return The primaryMonitor.
+   */
+  @java.lang.Override
+  public java.lang.String getPrimaryMonitor() {
+    return primaryMonitor_;
+  }
+  /**
+   * <pre>
+   * The connector of the primary monitor.
+   * </pre>
+   *
+   * <code>string primary_monitor = 8;</code>
+   * @return The bytes for primaryMonitor.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPrimaryMonitorBytes() {
+    return com.google.protobuf.ByteString.copyFromUtf8(primaryMonitor_);
+  }
+  /**
+   * <pre>
+   * The connector of the primary monitor.
+   * </pre>
+   *
+   * <code>string primary_monitor = 8;</code>
+   * @param value The primaryMonitor to set.
+   */
+  private void setPrimaryMonitor(
+      java.lang.String value) {
+    java.util.Objects.requireNonNull(value);
+
+    primaryMonitor_ = value;
+  }
+  /**
+   * <pre>
+   * The connector of the primary monitor.
+   * </pre>
+   *
+   * <code>string primary_monitor = 8;</code>
+   */
+  private void clearPrimaryMonitor() {
+
+    primaryMonitor_ = getDefaultInstance().getPrimaryMonitor();
+  }
+  /**
+   * <pre>
+   * The connector of the primary monitor.
+   * </pre>
+   *
+   * <code>string primary_monitor = 8;</code>
+   * @param value The bytes for primaryMonitor to set.
+   */
+  private void setPrimaryMonitorBytes(
+      com.google.protobuf.ByteString value) {
+    checkByteStringIsUtf8(value);
+    primaryMonitor_ = value.toStringUtf8();
+
   }
 
   public static dev.caulis.ipc.v1.State parseFrom(
@@ -1259,6 +1327,75 @@ public  final class State extends
       return this;
     }
 
+    /**
+     * <pre>
+     * The connector of the primary monitor.
+     * </pre>
+     *
+     * <code>string primary_monitor = 8;</code>
+     * @return The primaryMonitor.
+     */
+    @java.lang.Override
+    public java.lang.String getPrimaryMonitor() {
+      return instance.getPrimaryMonitor();
+    }
+    /**
+     * <pre>
+     * The connector of the primary monitor.
+     * </pre>
+     *
+     * <code>string primary_monitor = 8;</code>
+     * @return The bytes for primaryMonitor.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getPrimaryMonitorBytes() {
+      return instance.getPrimaryMonitorBytes();
+    }
+    /**
+     * <pre>
+     * The connector of the primary monitor.
+     * </pre>
+     *
+     * <code>string primary_monitor = 8;</code>
+     * @param value The primaryMonitor to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPrimaryMonitor(
+        java.lang.String value) {
+      copyOnWrite();
+      instance.setPrimaryMonitor(value);
+      return this;
+    }
+    /**
+     * <pre>
+     * The connector of the primary monitor.
+     * </pre>
+     *
+     * <code>string primary_monitor = 8;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPrimaryMonitor() {
+      copyOnWrite();
+      instance.clearPrimaryMonitor();
+      return this;
+    }
+    /**
+     * <pre>
+     * The connector of the primary monitor.
+     * </pre>
+     *
+     * <code>string primary_monitor = 8;</code>
+     * @param value The bytes for primaryMonitor to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPrimaryMonitorBytes(
+        com.google.protobuf.ByteString value) {
+      copyOnWrite();
+      instance.setPrimaryMonitorBytes(value);
+      return this;
+    }
+
     // @@protoc_insertion_point(builder_scope:caulis.ipc.v1.State)
   }
   @java.lang.Override
@@ -1285,10 +1422,11 @@ public  final class State extends
             "focusedMonitor_",
             "scale_",
             "locked_",
+            "primaryMonitor_",
           };
           java.lang.String info =
-              "\u0000\u0007\u0000\u0000\u0001\u0007\u0007\u0000\u0003\u0000\u0001\u001b\u0002\u001b" +
-              "\u0003\u001b\u0004\u0003\u0005\u0208\u0006\u0000\u0007\u0007";
+              "\u0000\b\u0000\u0000\u0001\b\b\u0000\u0003\u0000\u0001\u001b\u0002\u001b\u0003\u001b" +
+              "\u0004\u0003\u0005\u0208\u0006\u0000\u0007\u0007\b\u0208";
           return newMessageInfo(DEFAULT_INSTANCE, info, objects);
       }
       case GET_DEFAULT_INSTANCE: {

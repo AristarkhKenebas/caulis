@@ -75,4 +75,24 @@ public interface WorkspaceOrBuilder extends
    */
   com.google.protobuf.ByteString
       getLayoutBytes();
+
+  /**
+   * <pre>
+   * Its name from the configuration ("web"); empty: none.
+   * </pre>
+   *
+   * <code>string name = 6;</code>
+   * @return The name.
+   */
+  java.lang.String getName();
+  /**
+   * <pre>
+   * Its name from the configuration ("web"); empty: none.
+   * </pre>
+   *
+   * <code>string name = 6;</code>
+   * @return The bytes for name.
+   */
+  com.google.protobuf.ByteString
+      getNameBytes();
 }

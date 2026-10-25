@@ -17,7 +17,30 @@ let
       "side" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "left" "right" "top" "bottom" ]); default = null; description = "the main window's side (master-stack)"; };
     }; }); default = null; description = "how windows are arranged"; };
     "scale" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck lib.types.number (x: x >= 0.5 && x <= 4) // { description = "a number from 0.5 to 4"; }); default = null; description = "how big everything is (1.0, 1.25, 1.5, 2.0, ...)"; };
-    "workspaceMode" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "per-monitor" "spanning" ]); default = null; description = "a workspace per monitor, or one over all"; };
+    "workspaceMode" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "per-monitor" "pinned" "separate" "spanning" "primary-only" ]); default = null; description = "shared numbers on any monitor, pinned to monitors, each monitor its own, one over all, or only on the primary monitor"; };
+    "primaryMonitor" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "the primary monitor (\"DP-2\")"; };
+    "workspaces" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
+      "count" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (1) (99)); default = null; description = "how many there are (1: no workspaces, one desktop)"; };
+      "rules" = lib.mkOption { type = lib.types.nullOr (lib.types.listOf (lib.types.submodule { options = {
+        "workspace" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (1) (99)); default = null; description = "its number"; };
+        "name" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "its name for bars (\"web\")"; };
+        "monitor" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "its home monitor (\"DP-2\")"; };
+        "layout" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
+          "name" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "floating" "dwindle" "spiral" "grid" "columns" "rows" "monocle" "master-stack" "centered-master" "master-strips" "tree" "tree-spiral" "manual" "scrolling-columns" "canvas" ]); default = null; description = "how windows are arranged"; };
+          "gaps" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
+            "inner" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (500)); default = null; description = "space between tiled windows"; };
+            "outer" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (500)); default = null; description = "space between them and the screen's edges"; };
+            "top" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (500)); default = null; description = "space at the top edge (else outer)"; };
+            "right" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (500)); default = null; description = "space at the right edge (else outer)"; };
+            "bottom" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (500)); default = null; description = "space at the bottom edge (else outer)"; };
+            "left" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (500)); default = null; description = "space at the left edge (else outer)"; };
+          }; }); default = null; description = "space around and between windows"; };
+          "ratio" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck lib.types.number (x: x >= 0.1 && x <= 0.9) // { description = "a number from 0.1 to 0.9"; }); default = null; description = "the main window's share (master layouts)"; };
+          "side" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "left" "right" "top" "bottom" ]); default = null; description = "the main window's side (master-stack)"; };
+        }; }); default = null; description = "its own layout"; };
+        "persistent" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "it always exists, even empty"; };
+      }; })); default = null; description = "how single workspaces are"; };
+    }; }); default = null; description = "how many workspaces, and how each is"; };
     "monitorEdges" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "touching" "proportional" ]); default = null; description = "how the mouse goes between monitors of different sizes"; };
     "monitors" = lib.mkOption { type = lib.types.nullOr (lib.types.attrsOf (lib.types.submodule { options = {
       "scale" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck lib.types.number (x: x >= 0.5 && x <= 4) // { description = "a number from 0.5 to 4"; }); default = null; description = "its own scale"; };
@@ -61,6 +84,7 @@ let
       "splitBelow" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the splitBelow key (false: off)"; };
       "quit" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the quit key (false: off)"; };
       "consoles" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the consoles key (false: off)"; };
+      "restoreShortcuts" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the restoreShortcuts key (false: off)"; };
       "windowDrag" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the windowDrag key (false: off)"; };
     }; }); default = null; description = "the usual keys, changed or turned off"; };
     "bind" = lib.mkOption { type = lib.types.nullOr (lib.types.attrsOf lib.types.str); default = null; description = "your own keys: combination → action (\"exec firefox\", \"workspace 3\", ...)"; };

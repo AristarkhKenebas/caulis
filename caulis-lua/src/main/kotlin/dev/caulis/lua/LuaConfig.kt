@@ -299,6 +299,7 @@ class LuaConfig : ConfigLanguage {
                         set("width", m.area.width)
                         set("height", m.area.height)
                         set("focused", LuaValue.valueOf(m === d.focusedMonitor))
+                        set("primary", LuaValue.valueOf(m === d.primaryMonitor))
                     },
                 )
             }

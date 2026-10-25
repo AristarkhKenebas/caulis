@@ -45,13 +45,14 @@ internal object IpcJson {
         "pixelHeight" to number(m.pixelHeight),
         "workspace" to number(m.workspace),
         "focused" to flag(m.focused),
+        "primary" to flag(m.primary),
     )
 
     fun state(s: State) = obj(
         "windows" to list(s.windowsList.map(::window)),
         "workspaces" to list(
             s.workspacesList.map {
-                obj("number" to number(it.number), "monitor" to text(it.monitor), "active" to flag(it.active), "windows" to number(it.windows), "layout" to text(it.layout))
+                obj("number" to number(it.number), "monitor" to text(it.monitor), "active" to flag(it.active), "windows" to number(it.windows), "layout" to text(it.layout), "name" to text(it.name))
             },
         ),
         "monitors" to list(s.monitorsList.map(::monitor)),
@@ -59,6 +60,7 @@ internal object IpcJson {
         "focusedMonitor" to text(s.focusedMonitor),
         "scale" to number(s.scale),
         "locked" to flag(s.locked),
+        "primaryMonitor" to text(s.primaryMonitor),
     )
 
     /** An event: `{"event": "window-opened", ...}`. */

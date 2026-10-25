@@ -128,6 +128,8 @@ message State {
   double scale = 6;
   // True while the screen is locked.
   bool locked = 7;
+  // The connector of the primary monitor.
+  string primary_monitor = 8;
 }
 
 message Window {
@@ -137,7 +139,8 @@ message Window {
   string title = 3;
   // Its process (0: unknown).
   int32 pid = 4;
-  // The number of its workspace; 0: none (in a scratchpad).
+  // The number of its workspace; 0: none (in a scratchpad, or on a monitor's own screen when
+  // only the primary monitor has workspaces).
   uint32 workspace = 5;
   // The connector of its monitor.
   string monitor = 6;
@@ -162,6 +165,8 @@ message Workspace {
   uint32 windows = 4;
   // Its layout's name ("Dwindle", "Master", ...).
   string layout = 5;
+  // Its name from the configuration ("web"); empty: none.
+  string name = 6;
 }
 
 message Monitor {
@@ -177,6 +182,8 @@ message Monitor {
   // The number of the workspace it shows.
   uint32 workspace = 7;
   bool focused = 8;
+  // The primary monitor.
+  bool primary = 9;
 }
 
 message Rect {

@@ -32,8 +32,10 @@ object Actions {
         Triple("overview", "", "opens or closes the overview"),
         Triple("next-window", "", "focuses the next window"),
         Triple("dump-state", "", "writes the state to the log"),
-        Triple("workspace", "number", "shows a workspace"),
-        Triple("move-to-workspace", "number", "moves the focused window to a workspace"),
+        Triple("workspace", "number|next|prev|back|empty", "shows a workspace (back: the one before; empty: the first empty one)"),
+        Triple("move-to-workspace", "number|next|prev|back|empty", "moves the focused window to a workspace"),
+        Triple("focus-monitor", "left|right|up|down|next|primary|connector", "gives the focus to another monitor"),
+        Triple("move-to-monitor", "left|right|up|down|next|primary|connector", "moves the focused window to another monitor"),
         Triple("focus", "left|right", "focuses the window beside"),
         Triple("move", "left|right|up|down", "moves the window in the layout (or to the monitor beside)"),
         Triple("resize", "left|right|up|down", "resizes the window in the layout"),
@@ -76,6 +78,31 @@ object Actions {
             else -> throw IllegalArgumentException("\"$argument\" is not left, right, up or down")
         }
         fun number(): Int = needs("a number").toIntOrNull()?.takeIf { it in 1..99 } ?: throw IllegalArgumentException("\"$argument\" is not a workspace number (1 to 99)")
+        // A workspace: a number, or next, prev, back, empty (worked out when it runs).
+        fun workspaceTarget(): Caulis.() -> Int? {
+            val word = needs("a workspace").lowercase()
+            word.toIntOrNull()?.let { n -> if (n !in 1..99) throw IllegalArgumentException("\"$argument\" is not a workspace number (1 to 99)"); return { n } }
+            return when (word) {
+                "next" -> ({ desktop.workspaceAfter(1) })
+                "prev", "previous" -> ({ desktop.workspaceAfter(-1) })
+                "back" -> ({ desktop.previousWorkspaceNumber })
+                "empty" -> ({ desktop.firstEmptyWorkspace() })
+                else -> throw IllegalArgumentException("\"$argument\" is not a workspace (a number, next, prev, back or empty)")
+            }
+        }
+        // A monitor: a direction from the focused one, next, primary, or a connector.
+        fun monitorTarget(): Caulis.() -> dev.caulis.core.Monitor? {
+            val word = needs("a monitor")
+            return when (word.lowercase()) {
+                "left" -> ({ desktop.monitorBeside(-1, 0) })
+                "right" -> ({ desktop.monitorBeside(1, 0) })
+                "up" -> ({ desktop.monitorBeside(0, -1) })
+                "down" -> ({ desktop.monitorBeside(0, 1) })
+                "next" -> ({ desktop.monitors.let { all -> all[(all.indexOf(desktop.focusedMonitor) + 1) % all.size] } })
+                "primary" -> ({ desktop.primaryMonitor })
+                else -> ({ desktop.monitors.firstOrNull { it.name.equals(word, ignoreCase = true) } })
+            }
+        }
         // On the window given (or the focused one).
         fun window(action: Caulis.(Window) -> Unit): Caulis.(Window?) -> Unit = { given -> (given ?: focusedWindow)?.let { action(it) } }
         // From the focused window: the one given gets the focus first.
@@ -92,8 +119,10 @@ object Actions {
             "overview" -> { _ -> desktop.toggleOverview() }
             "next-window" -> { _ -> desktop.cycleFocus() }
             "dump-state" -> { _ -> dumpState() }
-            "workspace" -> number().let { n -> { _ -> desktop.switchTo(n) } }
-            "move-to-workspace" -> number().let { n -> window { desktop.moveToWorkspace(it, n) } }
+            "workspace" -> workspaceTarget().let { target -> { _ -> target()?.let(desktop::switchTo) } }
+            "move-to-workspace" -> workspaceTarget().let { target -> window { w -> target()?.let { desktop.moveToWorkspace(w, it) } } }
+            "focus-monitor" -> monitorTarget().let { target -> { _ -> target()?.let(desktop::focusMonitor) } }
+            "move-to-monitor" -> monitorTarget().let { target -> window { w -> target()?.let { desktop.moveToMonitor(w, it) } } }
             "focus" -> direction().let { d ->
                 focused { desktop.focusDirection(if (d == Direction.LEFT) -1 else if (d == Direction.RIGHT) 1 else 0, if (d == Direction.UP) -1 else if (d == Direction.DOWN) 1 else 0) }
             }

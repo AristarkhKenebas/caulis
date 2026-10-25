@@ -71,16 +71,61 @@ class Monitor internal constructor(
  */
 enum class WorkspaceMode {
     /**
-     * Each monitor shows a workspace of its own (as i3, sway, Hyprland): Super+N shows
-     * workspace N on the monitor with the focus — or, if another monitor shows it, goes there.
+     * Each monitor shows a workspace; the numbers are shared (as sway, Hyprland): Super+N
+     * shows workspace N on the monitor with the focus — or, if another monitor shows it,
+     * goes there. A workspace with a home monitor ([WorkspaceRule.monitor]) always goes there.
      */
     PER_MONITOR,
+
+    /**
+     * Workspaces are screens: each one has its monitor (the one in its rule, else the one
+     * that showed it first) and stays there — Super+2 may simply be "the second monitor".
+     * Fits one bar showing all workspaces.
+     */
+    PINNED,
+
+    /**
+     * Every monitor has workspaces of its own, 1, 2, 3, ... (as dwm, awesome, qtile): Super+N
+     * switches the monitor with the focus; windows move between monitors freely.
+     */
+    SEPARATE,
 
     /**
      * A workspace spans all monitors (as GNOME): Super+N switches every monitor to its part
      * of workspace N at once.
      */
     SPANNING,
+
+    /**
+     * Only the primary monitor ([Desktop.primaryMonitor]) has workspaces; every other monitor
+     * is one screen of its own (workspace number 0) — windows can be moved there, nothing
+     * switches there.
+     */
+    PRIMARY_ONLY,
+}
+
+/**
+ * How workspace [number] is: its name, its monitor, its own layout. Desktop.workspaceRules
+ * (Caulis: `workspace(3) { name = "web"; monitor = "DP-2" }`).
+ */
+class WorkspaceRule(val number: Int) {
+    init {
+        require(number in 1..99) { "workspaces are numbered 1 to 99, not $number" }
+    }
+
+    /** A name for bars and other programs ("web", "chat"); null: its number. */
+    var name: String? = null
+
+    /** Its home monitor (a connector, "DP-2"): it is always shown there while that one is plugged in. */
+    var monitor: String? = null
+
+    /** Its own layout (null: the desktop's). */
+    var layout: dev.caulis.tiling.Layout? = null
+
+    /** It always exists, even empty (bars always show it). */
+    var persistent = false
+
+    override fun toString() = "workspace $number" + listOfNotNull(name?.let { "\"$it\"" }, monitor?.let { "on $it" }, layout?.let { it.name }, "persistent".takeIf { persistent }).joinToString(", ", " (", ")").takeIf { it != " ()" }.orEmpty()
 }
 
 /**
