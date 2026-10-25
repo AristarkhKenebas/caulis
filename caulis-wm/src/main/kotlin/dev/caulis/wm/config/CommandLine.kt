@@ -1,5 +1,8 @@
 package dev.caulis.wm.config
 
+import dev.caulis.ipc.CaulisIpc
+import dev.caulis.ipc.IpcException
+import dev.caulis.ipc.v1.EventKind
 import dev.caulis.wm.Caulis
 import java.nio.file.Path
 
@@ -10,6 +13,13 @@ import java.nio.file.Path
  * my-compositor --check-config [file]     the file's mistakes (exit 1), or "ok" (exit 0)
  * my-compositor --print-json-schema       the JSON Schema of config.json (for editors)
  * my-compositor --print-nix-options       the Nix options of config.json (for the Nix module)
+ *
+ * And, to a running one (its IPC socket, see caulis.proto), with JSON for scripts:
+ *
+ * my-compositor --do <action> [--window <id>]   runs an action ("exec firefox", "workspace 2", ...)
+ * my-compositor --state                          what is on screen
+ * my-compositor --events [kind ...]              what changes, a line each (kinds: windows,
+ *                                                focus, workspaces, monitors, notices, config, lock)
  * ```
  */
 object CommandLine {
@@ -37,8 +47,55 @@ object CommandLine {
                 println(nixOptions())
                 0
             }
+            "--do", "--state", "--events" -> talk(caulis, arguments)
             else -> null
         }
+    }
+
+    // Talks to the running compositor (as a program would, through its IPC socket).
+    private fun talk(caulis: Caulis, arguments: List<String>): Int {
+        val ipc = try {
+            CaulisIpc.connect(CaulisIpc.findSocket(name = caulis.configName))
+        } catch (e: java.io.IOException) {
+            System.err.println("${caulis.configName} does not seem to run: ${e.message}")
+            return 2
+        }
+        ipc.use {
+            try {
+                when (arguments[0]) {
+                    "--do" -> {
+                        val words = arguments.drop(1)
+                        val at = words.indexOf("--window")
+                        val window = if (at >= 0) words.getOrNull(at + 1)?.toLongOrNull() ?: return usage("--window needs a window id (see --state)") else 0L
+                        val action = (if (at >= 0) words.take(at) + words.drop(at + 2) else words).joinToString(" ")
+                        if (action.isBlank()) return usage("--do needs an action, e.g. --do workspace 2")
+                        ipc.run(action, window)
+                    }
+                    "--state" -> println(Json.write(IpcJson.state(ipc.state())))
+                    "--events" -> {
+                        val kinds = arguments.drop(1).map { name ->
+                            EventKind.entries.firstOrNull { it.name == "EVENT_KIND_" + name.uppercase().replace('-', '_') && it != EventKind.EVENT_KIND_UNSPECIFIED }
+                                ?: return usage("\"$name\" is not a kind of event (windows, focus, workspaces, monitors, notices, config, lock)")
+                        }
+                        ipc.subscribe(*kinds.toTypedArray())
+                        while (true) {
+                            val event = ipc.nextEvent() ?: break
+                            println(Json.writeLine(IpcJson.event(event)))
+                            System.out.flush()
+                        }
+                    }
+                }
+            } catch (e: IpcException) {
+                System.err.println(e.message)
+                return 1
+            }
+        }
+        return 0
+    }
+
+    private fun usage(message: String): Int {
+        System.err.println(message)
+        return 2
     }
 
     /** The JSON Schema of config.json. */

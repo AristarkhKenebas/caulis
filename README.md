@@ -79,6 +79,7 @@ Wayland way when they can, and through X11 when that fails.
 | `caulis-tiling` | the layout language and the built-in layouts (pure Kotlin) |
 | `caulis-core` | surfaces, windows, input, outputs, the nested and screen backends |
 | `caulis-xwayland` | X11 programs: Xwayland started on demand, their window manager, the shared clipboard |
+| `caulis-ipc` | the IPC socket's messages (`caulis.proto`, for programs in any language) and a JVM client |
 | `caulis-wm` | `caulis { }`: a running compositor in a few lines |
 | `caulis-reload` | fast hot reload while developing: compiles your configuration inside the running compositor (optional, `run` task only) |
 | `caulis-cursor-bibata` | the Bibata cursor themes, ready to use (optional; GPL-3.0, as Bibata) |

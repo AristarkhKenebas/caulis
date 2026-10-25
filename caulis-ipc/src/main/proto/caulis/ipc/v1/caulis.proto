@@ -1,0 +1,255 @@
+// The Caulis IPC protocol: how other programs — bars, docks, scripts, tools, in any language —
+// talk to a running compositor made with Caulis: run actions, ask what is on screen, and hear
+// what changes.
+//
+// THE SOCKET
+//   $CAULIS_SOCKET, set for every program the compositor starts. Otherwise
+//   $XDG_RUNTIME_DIR/<name>-<wayland display>.sock, e.g. /run/user/1000/caulis-wayland-1.sock.
+//   Only programs of the same user may connect.
+//
+// MESSAGES
+//   Each message is preceded by its size in bytes as a varint: what protobuf libraries call
+//   "length-delimited" (Java: writeDelimitedTo / parseDelimitedFrom; Go: protodelim;
+//   Python: write _VarintBytes(len(data)) + data). A message may be at most 1 MiB.
+//
+//   The program sends Request messages; the compositor sends Message messages: a Reply to
+//   each request (in the order of the requests, with the same id) and, after Subscribe,
+//   Events as things happen.
+//
+// VERSIONS
+//   Fields and messages are only ever added: programs written for this version keep working.
+//   A change that would break them gets a new package (caulis.ipc.v2) and socket.
+
+syntax = "proto3";
+
+package caulis.ipc.v1;
+
+option java_package = "dev.caulis.ipc.v1";
+option java_multiple_files = true;
+option java_outer_classname = "CaulisIpcProto";
+
+// --- from a program ----------------------------------------------------------------------
+
+message Request {
+  // Comes back in the Reply (any number the program likes).
+  uint32 id = 1;
+
+  oneof what {
+    Hello hello = 2;
+    Run run = 3;
+    GetState get_state = 4;
+    Subscribe subscribe = 5;
+    CheckConfig check_config = 6;
+  }
+}
+
+// Who is there. Reply: hello.
+message Hello {}
+
+// Runs an action, written as in config.json's "bind": "close", "exec firefox",
+// "workspace 3", "move-to-workspace 2", "layout dwindle", "notify Hello", ...
+// Reply: done, or error (not an action, no such window, the session is locked).
+message Run {
+  string action = 1;
+  // The window it acts on (Window.id); 0: the focused one. Actions that move in the layout
+  // (focus, move, resize, ...) give that window the focus first.
+  uint64 window = 2;
+}
+
+// What is on screen now. Reply: state.
+message GetState {}
+
+// Events from now on: those of the kinds given (none given: all). Reply: done; then
+// Event messages until the program disconnects. Subscribing again replaces the kinds.
+message Subscribe {
+  repeated EventKind kinds = 1;
+}
+
+// Checks the text of a config.json without applying it. Reply: problems (empty: all is well).
+message CheckConfig {
+  string text = 1;
+}
+
+// --- from the compositor -----------------------------------------------------------------
+
+message Message {
+  oneof what {
+    Reply reply = 1;
+    Event event = 2;
+  }
+}
+
+message Reply {
+  // The id of the request.
+  uint32 id = 1;
+
+  oneof what {
+    Done done = 2;
+    // What went wrong, in words.
+    string error = 3;
+    ServerInfo hello = 4;
+    State state = 5;
+    Problems problems = 6;
+  }
+}
+
+message Done {}
+
+message ServerInfo {
+  // The compositor's name (its folder of settings, e.g. "caulis", "iriswm").
+  string name = 1;
+  // The version of Caulis it is made with.
+  string caulis_version = 2;
+  // The protocol version: 1 for caulis.ipc.v1.
+  uint32 protocol = 3;
+  // Its Wayland socket (WAYLAND_DISPLAY) and its X11 display (DISPLAY, empty: none).
+  string wayland_display = 4;
+  string x11_display = 5;
+}
+
+message Problems {
+  // As the compositor reports them: "line 3: layout.gaps.inner: 0 to 500, not 1000".
+  repeated string problems = 1;
+}
+
+// --- what is on screen -------------------------------------------------------------------
+
+message State {
+  // Every window: on all workspaces (minimized ones too) and in scratchpads.
+  repeated Window windows = 1;
+  // The workspaces that exist (shown or with windows), by number.
+  repeated Workspace workspaces = 2;
+  repeated Monitor monitors = 3;
+  // Window.id of the window with the keyboard; 0: none.
+  uint64 focused_window = 4;
+  // The connector of the monitor with the focus.
+  string focused_monitor = 5;
+  // The scale everything is drawn at (monitors may have their own).
+  double scale = 6;
+  // True while the screen is locked.
+  bool locked = 7;
+}
+
+message Window {
+  // Stays the same while the window is open; never used again for another one.
+  uint64 id = 1;
+  string app_id = 2;
+  string title = 3;
+  // Its process (0: unknown).
+  int32 pid = 4;
+  // The number of its workspace; 0: none (in a scratchpad).
+  uint32 workspace = 5;
+  // The connector of its monitor.
+  string monitor = 6;
+  // Where it is, in desktop units.
+  Rect rect = 7;
+  bool focused = 8;
+  bool floating = 9;
+  bool maximized = 10;
+  bool fullscreen = 11;
+  bool minimized = 12;
+  // An X11 program (through Xwayland).
+  bool x11 = 13;
+}
+
+message Workspace {
+  uint32 number = 1;
+  // The monitor showing it; empty: not shown.
+  string monitor = 2;
+  // Shown on the monitor with the focus.
+  bool active = 3;
+  // How many windows are on it (minimized ones too).
+  uint32 windows = 4;
+  // Its layout's name ("Dwindle", "Master", ...).
+  string layout = 5;
+}
+
+message Monitor {
+  // The connector: "eDP-1", "DP-2", "HDMI-A-1", ...
+  string name = 1;
+  // Where it is on the desktop and how big, in desktop units.
+  Rect area = 2;
+  // What panels and docks leave free.
+  Rect usable_area = 3;
+  double scale = 4;
+  uint32 pixel_width = 5;
+  uint32 pixel_height = 6;
+  // The number of the workspace it shows.
+  uint32 workspace = 7;
+  bool focused = 8;
+}
+
+message Rect {
+  int32 x = 1;
+  int32 y = 2;
+  int32 width = 3;
+  int32 height = 4;
+}
+
+// --- what changes ------------------------------------------------------------------------
+
+enum EventKind {
+  EVENT_KIND_UNSPECIFIED = 0;
+  // window_opened, window_closed, window_changed
+  EVENT_KIND_WINDOWS = 1;
+  // focus_changed
+  EVENT_KIND_FOCUS = 2;
+  // workspace_shown
+  EVENT_KIND_WORKSPACES = 3;
+  // monitors_changed
+  EVENT_KIND_MONITORS = 4;
+  // notice
+  EVENT_KIND_NOTICES = 5;
+  // config_reloaded
+  EVENT_KIND_CONFIG = 6;
+  // lock_changed
+  EVENT_KIND_LOCK = 7;
+}
+
+message Event {
+  oneof what {
+    Window window_opened = 1;
+    // Window.id of the window that went away.
+    uint64 window_closed = 2;
+    // Its title, app id, workspace, monitor or state changed (not its place on screen:
+    // that changes in every animation; ask GetState).
+    Window window_changed = 3;
+    // Window.id of the window with the keyboard now; 0: none.
+    uint64 focus_changed = 4;
+    WorkspaceShown workspace_shown = 5;
+    // The monitors now (one came, went, or changed its scale, size or place).
+    Monitors monitors_changed = 6;
+    Notice notice = 7;
+    ConfigReloaded config_reloaded = 8;
+    // True: the screen got locked; false: unlocked.
+    bool lock_changed = 9;
+  }
+}
+
+message WorkspaceShown {
+  uint32 number = 1;
+  // The monitor it is shown on.
+  string monitor = 2;
+}
+
+message Monitors {
+  repeated Monitor monitors = 1;
+}
+
+message Notice {
+  enum Level {
+    LEVEL_UNSPECIFIED = 0;
+    LEVEL_INFO = 1;
+    LEVEL_WARNING = 2;
+    LEVEL_ERROR = 3;
+  }
+  Level level = 1;
+  // A first line in bold; empty: none.
+  string title = 2;
+  string text = 3;
+}
+
+message ConfigReloaded {
+  // What is wrong with the new configuration (empty: nothing).
+  repeated string problems = 1;
+}

@@ -10,6 +10,9 @@ application {
         "--enable-native-access=ALL-UNNAMED",
         // Low-pause garbage collector, so frames are not delayed by GC.
         "-XX:+UseZGC",
+        // Protocol Buffers (the IPC socket) and the Kotlin compiler (hot reload) still use
+        // sun.misc.Unsafe; this keeps Java from warning about it.
+        "--sun-misc-unsafe-memory-access=allow",
     )
 }
 
@@ -20,7 +23,4 @@ dependencies {
 }
 tasks.named<JavaExec>("run") {
     classpath += development
-    // The Kotlin compiler inside uses sun.misc.Unsafe; this keeps Java from warning about it.
-    // (Added beside applicationDefaultJvmArgs: jvmArgs(...) would replace those.)
-    jvmArgumentProviders += CommandLineArgumentProvider { listOf("--sun-misc-unsafe-memory-access=allow") }
 }

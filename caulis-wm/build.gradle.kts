@@ -9,5 +9,6 @@ plugins {
 dependencies {
     api(project(":caulis-core"))
     api(project(":caulis-xwayland"))
+    api(project(":caulis-ipc"))
     testImplementation(testFixtures(project(":caulis-core")))
 }

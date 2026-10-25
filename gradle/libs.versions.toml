@@ -9,6 +9,10 @@ java = "27"
 # raise to the same value as `java` once Kotlin supports it (expected in 2.5).
 java-bytecode = "26"
 kotlin = "2.4.21"
+# Protocol Buffers: the messages of the IPC socket (caulis-ipc). The Java code made from
+# caulis.proto is kept in the repository; protoc (no newer than this runtime) is only needed
+# to make it again: ./gradlew :caulis-ipc:generateProto
+protobuf = "4.36.2"
 junit = "6.1.3"
 # Builds the API documentation website from the code comments.
 dokka = "2.2.0"
@@ -28,6 +32,7 @@ kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", 
 # Kotlin's incremental compilation (Build Tools API, as the Gradle plugin uses it) — caulis-reload only.
 kotlin-build-tools-api = { module = "org.jetbrains.kotlin:kotlin-build-tools-api", version.ref = "kotlin" }
 kotlin-build-tools-impl = { module = "org.jetbrains.kotlin:kotlin-build-tools-impl", version.ref = "kotlin" }
+protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }

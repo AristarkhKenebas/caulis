@@ -25,6 +25,7 @@ include(
     "caulis-render",
     "caulis-core",
     "caulis-xwayland",
+    "caulis-ipc",
     "caulis-wm",
     "caulis-reload",
     "caulis-cursor-bibata",

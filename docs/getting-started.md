@@ -76,7 +76,7 @@ dependencies {
 application {
     mainClass = "MainKt"
     // Caulis talks to C libraries (graphics, input) and needs this permission.
-    applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED", "-XX:+UseZGC")
+    applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED", "-XX:+UseZGC", "--sun-misc-unsafe-memory-access=allow")
 }
 ```
 
@@ -1012,6 +1012,55 @@ compositor, offers its session at login, and puts the settings in
 
 Not on NixOS? GPU drivers come from the system there; to run a compositor built with Nix
 on another distribution, start it through [nixGL](https://github.com/nix-community/nixGL).
+
+## 25. Other programs: the IPC socket
+
+Bars, docks, scripts and tools — in any language — talk to your running compositor through
+its IPC socket: run the actions of step 23, ask what is on screen, hear what changes. Every
+program it starts finds the socket in `$CAULIS_SOCKET`.
+
+From a shell, your compositor's own program does it, with JSON:
+
+```sh
+my-compositor --do workspace 2
+my-compositor --do exec firefox --private-window
+my-compositor --do close --window 7               # a window by its id (see --state)
+my-compositor --state | jq -r '.windows[].title'
+my-compositor --events focus workspaces           # a line of JSON per event, until stopped
+```
+
+```json
+{"event":"window-opened","window":{"id":2,"appId":"foot","title":"~","workspace":1,"monitor":"DP-2","focused":true,...}}
+{"event":"focus-changed","id":2}
+{"event":"workspace-shown","number":2,"monitor":"DP-2"}
+```
+
+A mistake says what is wrong (and exits with 1): `"worksapce" is not an action (did you mean
+"workspace"?)`. Kinds of events: `windows`, `focus`, `workspaces`, `monitors`, `notices`,
+`config`, `lock`.
+
+Programs that run all the time (a bar) talk to the socket directly instead of starting a
+program for each question. What goes over it is described in
+[`caulis.proto`](../caulis-ipc/src/main/proto/caulis/ipc/v1/caulis.proto) — Protocol
+Buffers, so Python, Rust, Go, C++, JavaScript, ... make their code from it with `protoc`.
+[`examples/ipc`](../examples/ipc) has a Python program that follows the focused window's
+title; on the JVM, `caulis-ipc` has a client:
+
+```kotlin
+CaulisIpc.connect().use { ipc ->
+    ipc.run("workspace 2")
+    println(ipc.state().windowsList.map { it.title })
+    ipc.subscribe(EventKind.EVENT_KIND_FOCUS)
+    while (true) println(ipc.nextEvent() ?: break)
+}
+```
+
+- Only programs of your own user can connect.
+- While the screen is locked, programs cannot move or close windows (only `exec`, `lock`,
+  `notify` and `dump-state` work then).
+- A program that subscribes to events but does not read them is disconnected rather than
+  making the compositor keep everything for it.
+- Turn the socket off with `ipc = false`.
 
 ## When something goes wrong
 

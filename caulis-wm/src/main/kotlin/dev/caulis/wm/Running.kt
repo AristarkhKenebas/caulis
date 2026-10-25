@@ -133,10 +133,17 @@ internal class Running(
     // X11 programs (null if turned off). Declared before init, which sets it.
     private var xwayland: Xwayland? = null
 
+    /** The X11 display programs reach Xwayland at (DISPLAY), or null. */
+    val x11Display: String? get() = xwayland?.displayName
+
+    // The IPC socket (null if turned off). Declared before init, which sets it.
+    private var ipc: IpcServer? = null
+
     // Starts programs: Wayland first, X11 when that fails.
     private val launcher = Launcher(
         environment = { env ->
             env["WAYLAND_DISPLAY"] = socket
+            ipc?.let { env[dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE] = it.path.toString() } ?: env.remove(dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE)
             env["XDG_CURRENT_DESKTOP"] = config.desktopName
             // X11 programs (started now or later by these) reach Xwayland here.
             xwayland?.let { env["DISPLAY"] = it.displayName } ?: env.remove("DISPLAY")
@@ -171,6 +178,12 @@ internal class Running(
         desktop.workspaceMode = config.workspaceMode // before the monitors come
         desktop.layout = config.layout
         socket = config.socketDirectory?.let(display::addSocket) ?: display.addSocket()
+        // The IPC socket beside the Wayland one: bars, scripts and tools talk to us there.
+        ipc = if (config.ipc) {
+            safely("the IPC socket", null) {
+                IpcServer(this, IpcServer.socketPath(config.socketDirectory ?: dev.caulis.protocol.Display.defaultRuntimeDir(), config.configName, socket))
+            }
+        } else null
 
         desktop.scale = config.scale
         xwayland?.rescaled() // (made before the scale was set)
@@ -378,6 +391,7 @@ internal class Running(
             if (shownMargins.put(window, margins) != margins) desktop.marginsChanged(window)
         }
         next.reloadActions.forEach { action -> safely("onReload") { action(next) } }
+        ipc?.configReloaded(next.configProblems)
         return restartOnly to notes
     }
 
@@ -386,6 +400,7 @@ internal class Running(
         desktop.scale = config.scale
         for (monitor in desktop.monitors) config.monitorSettings[monitor.name]?.scale?.let { desktop.setScale(monitor, it) }
         xwayland?.rescaled()
+        ipc?.changed()
         log.info { "Scale ${config.scale}${desktop.monitors.filter { it.scale != config.scale }.joinToString("") { ", ${it.name} ${it.scale}" }}" }
         applyCursor() // programs that draw their own cursor get the new size
     }
@@ -400,6 +415,7 @@ internal class Running(
         val y = settings?.y
         val monitor = desktop.addMonitor(name, output, pixelWidth, pixelHeight, settings?.scale ?: config.scale, x, y)
         xwayland?.rescaled() // the largest scale may be another now
+        ipc?.changed() // subscribers hear of the monitors
         return monitor
     }
 
@@ -407,6 +423,7 @@ internal class Running(
     fun removeMonitor(monitor: Monitor) {
         desktop.removeMonitor(monitor)
         xwayland?.rescaled()
+        ipc?.changed()
     }
 
     /** Applies changed monitor settings (scale and place) to the monitors there are. */
@@ -417,6 +434,7 @@ internal class Running(
             desktop.moveMonitor(monitor, settings.x, settings.y)
         }
         xwayland?.rescaled()
+        ipc?.changed()
     }
 
     /** Applies the cursor settings (theme, size, hiding). */
@@ -619,6 +637,7 @@ internal class Running(
     }
 
     override fun close() {
+        ipc?.close()
         reloader?.close()
         logNotices.close()
         xwayland?.close()

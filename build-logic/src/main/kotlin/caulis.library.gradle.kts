@@ -48,6 +48,8 @@ tasks.withType<Test>().configureEach {
     // Caulis calls C libraries through the Foreign Function & Memory API.
     // Java asks for an explicit permission to do that.
     jvmArgs("--enable-native-access=ALL-UNNAMED")
+    // Protocol Buffers and the Kotlin compiler still use sun.misc.Unsafe: no warnings about it.
+    jvmArgs("--sun-misc-unsafe-memory-access=allow")
 }
 
 // API documentation (./gradlew dokkaGenerate at the top level builds the whole website).

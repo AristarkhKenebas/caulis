@@ -40,6 +40,29 @@ object Json {
     /** [value] as text, two spaces in per level (short lists of numbers stay on one line). */
     fun write(value: JsonValue): String = buildString { write(value, "") }
 
+    /** [value] as text on one line (a line per event, for scripts). */
+    fun writeLine(value: JsonValue): String = buildString { line(value) }
+
+    private fun StringBuilder.line(value: JsonValue) {
+        when (value) {
+            is JsonValue.Obj -> {
+                append('{')
+                value.fields.entries.forEachIndexed { i, (name, v) ->
+                    if (i > 0) append(',')
+                    append(quote(name)).append(':')
+                    line(v)
+                }
+                append('}')
+            }
+            is JsonValue.Arr -> {
+                append('[')
+                value.items.forEachIndexed { i, v -> if (i > 0) append(','); line(v) }
+                append(']')
+            }
+            else -> write(value, "")
+        }
+    }
+
     private fun StringBuilder.write(value: JsonValue, indent: String) {
         val inner = "$indent  "
         when (value) {

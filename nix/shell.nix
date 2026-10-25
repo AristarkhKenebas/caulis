@@ -10,6 +10,7 @@ pkgs.mkShell {
     jdk
     pkgs.xwayland # for X11 programs
     pkgs.wayland-utils # wayland-info: what a compositor offers
+    pkgs.protobuf # protoc: the IPC socket's code from caulis.proto (./gradlew :caulis-ipc:generateProto)
   ];
 
   env = {

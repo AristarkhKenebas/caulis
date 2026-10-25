@@ -383,6 +383,16 @@
   "com/google/errorprone#error_prone_parent/2.27.0": {
    "pom": "sha256-+oGCnQSVWd9pJ/nJpv1rvQn4tQ5tRzaucsgwC2w9dlQ="
   },
+  "com/google/protobuf#protobuf-bom/4.36.2": {
+   "pom": "sha256-1lkquqM14CUChU4j9UJaavSr+qWArUTdY9Kgf2o5ZkU="
+  },
+  "com/google/protobuf#protobuf-javalite/4.36.2": {
+   "jar": "sha256-j0+T0IyzcTDssLxp03bX0nw2/wTdsbsnQwsGyqn6Bi4=",
+   "pom": "sha256-yEU45IVihJ7jrV318AtF7He8fAUS9sv7QiNIkDKfT0g="
+  },
+  "com/google/protobuf#protobuf-parent/4.36.2": {
+   "pom": "sha256-rKdv5XH8kEU2fRTkWm+theKmuPH1tBHSo4bfCJ4hEbI="
+  },
   "org/codehaus/woodstox#stax2-api/4.2.1": {
    "jar": "sha256-Z4Vn5ItRpCxlxpnyZlOa09Z21LGlsK19iezoudV3JXk=",
    "pom": "sha256-edpBDIwPRqP46K2zDWwkzNYGW272v96HvZfpiB6gouc="

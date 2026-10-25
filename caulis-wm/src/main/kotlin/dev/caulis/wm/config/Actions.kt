@@ -1,6 +1,7 @@
 package dev.caulis.wm.config
 
 import dev.caulis.core.NoticeLevel
+import dev.caulis.core.Window
 import dev.caulis.tiling.Direction
 import dev.caulis.tiling.TilingCommand
 import dev.caulis.wm.Caulis
@@ -52,10 +53,17 @@ object Actions {
     )
 
     /**
-     * What [text] does, ready to run on a [Caulis]; throws with a plain message (and a
-     * guess) when it is not an action.
+     * What [text] does, ready to run on a [Caulis] (on the focused window); throws with a
+     * plain message (and a guess) when it is not an action.
      */
-    fun parse(text: String): Caulis.() -> Unit {
+    fun parse(text: String): Caulis.() -> Unit = parseFor(text).let { action -> { action(null) } }
+
+    /**
+     * What [text] does to a window: the one given, or the focused one (null). Moving in the
+     * layout, resizing and focusing beside work from the focused window, so a window given
+     * gets the focus first.
+     */
+    fun parseFor(text: String): Caulis.(Window?) -> Unit {
         val trimmed = text.trim()
         val name = trimmed.substringBefore(' ').lowercase().replace('_', '-')
         val argument = trimmed.substringAfter(' ', "").trim()
@@ -68,38 +76,47 @@ object Actions {
             else -> throw IllegalArgumentException("\"$argument\" is not left, right, up or down")
         }
         fun number(): Int = needs("a number").toIntOrNull()?.takeIf { it in 1..99 } ?: throw IllegalArgumentException("\"$argument\" is not a workspace number (1 to 99)")
+        // On the window given (or the focused one).
+        fun window(action: Caulis.(Window) -> Unit): Caulis.(Window?) -> Unit = { given -> (given ?: focusedWindow)?.let { action(it) } }
+        // From the focused window: the one given gets the focus first.
+        fun focused(action: Caulis.() -> Unit): Caulis.(Window?) -> Unit = { given ->
+            if (given != null && given !== focusedWindow) desktop.focus(given)
+            action()
+        }
         return when (name) {
-            "close" -> ({ closeFocused() })
-            "quit" -> ({ quit() })
-            "lock" -> ({ lock() })
-            "terminal" -> ({ openTerminal() })
-            "exec" -> needs("a command").let { command -> { launch(command) } }
-            "overview" -> ({ desktop.toggleOverview() })
-            "next-window" -> ({ desktop.cycleFocus() })
-            "dump-state" -> ({ dumpState() })
-            "workspace" -> number().let { n -> { desktop.switchTo(n) } }
-            "move-to-workspace" -> number().let { n -> { focusedWindow?.let { desktop.moveToWorkspace(it, n) } } }
-            "focus" -> direction().let { d -> { desktop.focusDirection(if (d == Direction.LEFT) -1 else if (d == Direction.RIGHT) 1 else 0, if (d == Direction.UP) -1 else if (d == Direction.DOWN) 1 else 0) } }
-            "move" -> direction().let { d -> { desktop.tilingCommand(TilingCommand.Move(d)) || moveToMonitorBeside(d) } }
-            "resize" -> direction().let { d -> { desktop.tilingCommand(TilingCommand.Resize(d)) } }
+            "close" -> window { it.close() }
+            "quit" -> { _ -> quit() }
+            "lock" -> { _ -> lock() }
+            "terminal" -> { _ -> openTerminal() }
+            "exec" -> needs("a command").let { command -> { _ -> launch(command) } }
+            "overview" -> { _ -> desktop.toggleOverview() }
+            "next-window" -> { _ -> desktop.cycleFocus() }
+            "dump-state" -> { _ -> dumpState() }
+            "workspace" -> number().let { n -> { _ -> desktop.switchTo(n) } }
+            "move-to-workspace" -> number().let { n -> window { desktop.moveToWorkspace(it, n) } }
+            "focus" -> direction().let { d ->
+                focused { desktop.focusDirection(if (d == Direction.LEFT) -1 else if (d == Direction.RIGHT) 1 else 0, if (d == Direction.UP) -1 else if (d == Direction.DOWN) 1 else 0) }
+            }
+            "move" -> direction().let { d -> focused { desktop.tilingCommand(TilingCommand.Move(d)) || moveToMonitorBeside(d) } }
+            "resize" -> direction().let { d -> focused { desktop.tilingCommand(TilingCommand.Resize(d)) } }
             "preselect" -> direction().let { d ->
-                {
+                focused {
                     desktop.tilingCommand(TilingCommand.Preselect(d)) || desktop.tilingCommand(TilingCommand.Pan(d)) || desktop.tilingCommand(TilingCommand.Consume(d))
                 }
             }
-            "maximize" -> ({ focusedWindow?.let { desktop.setMaximized(it, !it.maximized) } })
-            "fullscreen" -> ({ focusedWindow?.let { desktop.setFullscreen(it, !it.fullscreen) } })
-            "minimize" -> ({ focusedWindow?.let(desktop::minimize) })
-            "float" -> ({ focusedWindow?.let { desktop.setFloating(it, !desktop.isFloating(it)) } })
-            "rotate" -> ({ desktop.tilingCommand(TilingCommand.Rotate) })
-            "balance" -> ({ desktop.tilingCommand(TilingCommand.Balance) })
-            "column-width" -> ({ desktop.tilingCommand(TilingCommand.CycleWidth) })
-            "split-beside" -> ({ desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = true)) })
-            "split-below" -> ({ desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = false)) })
-            "layout" -> Layouts.byName(needs("a layout name")).let { make -> { layout = make() } }
+            "maximize" -> window { desktop.setMaximized(it, !it.maximized) }
+            "fullscreen" -> window { desktop.setFullscreen(it, !it.fullscreen) }
+            "minimize" -> window { desktop.minimize(it) }
+            "float" -> window { desktop.setFloating(it, !desktop.isFloating(it)) }
+            "rotate" -> focused { desktop.tilingCommand(TilingCommand.Rotate) }
+            "balance" -> focused { desktop.tilingCommand(TilingCommand.Balance) }
+            "column-width" -> focused { desktop.tilingCommand(TilingCommand.CycleWidth) }
+            "split-beside" -> focused { desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = true)) }
+            "split-below" -> focused { desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = false)) }
+            "layout" -> Layouts.byName(needs("a layout name")).let { make -> { _ -> layout = make() } }
             "scale" -> (needs("a number").toDoubleOrNull()?.takeIf { it in 0.5..4.0 } ?: throw IllegalArgumentException("\"$argument\" is not a scale (0.5 to 4)"))
-                .let { s -> { scale = s } }
-            "notify" -> needs("a text").let { message -> { notify(message, NoticeLevel.INFO) } }
+                .let { s -> { _ -> scale = s } }
+            "notify" -> needs("a text").let { message -> { _ -> notify(message, NoticeLevel.INFO) } }
             else -> {
                 val near = all.map { it.first }.minByOrNull { distance(it, name) }?.takeIf { distance(it, name) <= 2 }
                 throw IllegalArgumentException("\"$name\" is not an action" + (near?.let { " (did you mean \"$it\"?)" } ?: ""))

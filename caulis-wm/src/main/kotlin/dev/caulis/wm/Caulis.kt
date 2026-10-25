@@ -522,6 +522,13 @@ class Caulis {
      */
     var useConfigFile = true
 
+    /**
+     * Open the IPC socket (`$XDG_RUNTIME_DIR/<configName>-<wayland display>.sock`, see
+     * caulis.proto): bars, scripts and tools run actions, ask what is on screen and hear what
+     * changes — `my-compositor --do "workspace 2"`, `--state`, `--events`.
+     */
+    var ipc = true
+
     /** Print frame timing every few seconds. */
     var stats = false
 
