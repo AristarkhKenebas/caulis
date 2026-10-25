@@ -297,6 +297,15 @@ public class Xcb extends Xcb$shared {
     public static int XCB_ATOM_INTEGER() {
         return XCB_ATOM_INTEGER;
     }
+    private static final int XCB_ATOM_RESOURCE_MANAGER = (int)23L;
+    /**
+     * {@snippet lang=c :
+     * enum xcb_atom_enum_t.XCB_ATOM_RESOURCE_MANAGER = 23
+     * }
+     */
+    public static int XCB_ATOM_RESOURCE_MANAGER() {
+        return XCB_ATOM_RESOURCE_MANAGER;
+    }
     private static final int XCB_ATOM_STRING = (int)31L;
     /**
      * {@snippet lang=c :

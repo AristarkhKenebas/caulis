@@ -25,7 +25,11 @@ import java.lang.foreign.ValueLayout.JAVA_INT
  */
 internal class XConnection(fd: Int) : AutoCloseable {
 
-    val c: MemorySegment = Xcb.xcb_connect_to_fd(fd, MemorySegment.NULL)
+    private val connection: MemorySegment = Xcb.xcb_connect_to_fd(fd, MemorySegment.NULL)
+    private var open = true
+
+    /** XCB's connection; using it once closed is an error here, never a use of freed memory. */
+    val c: MemorySegment get() = if (open) connection else throw IllegalStateException("the X connection is closed")
 
     /** The root window and what new windows of ours need. */
     val root: Int
@@ -122,20 +126,33 @@ internal class XConnection(fd: Int) : AutoCloseable {
     fun property(window: Int, property: Int, type: Int = Xcb.XCB_GET_PROPERTY_TYPE_ANY(), maxBytes: Int = 1 shl 20, delete: Boolean = false): Property? =
         Arena.ofConfined().use { arena ->
             val cookie = Xcb.xcb_get_property(arena, c, if (delete) 1 else 0, window, property, type, 0, maxBytes / 4)
-            val reply = Xcb.xcb_get_property_reply(c, cookie, MemorySegment.NULL)
-            if (reply == MemorySegment.NULL) return null
-            try {
-                val header = reply.reinterpret(xcb_get_property_reply_t.layout().byteSize())
-                val actualType = xcb_get_property_reply_t.type(header)
-                if (actualType == NONE) return null
-                val format = xcb_get_property_reply_t.format(header).toInt() and 0xff
-                val length = Xcb.xcb_get_property_value_length(reply)
-                val value = Xcb.xcb_get_property_value(reply).reinterpret(length.toLong())
-                Property(actualType, format, value.toArray(JAVA_BYTE))
-            } finally {
-                free(reply)
-            }
+            reply(Xcb.xcb_get_property_reply(c, cookie, MemorySegment.NULL))
         }
+
+    /**
+     * Reads several properties of [window] at once: all requests go out together, then the
+     * answers are collected — one round trip instead of one per property. Absent ones: null.
+     */
+    fun properties(window: Int, wanted: Collection<Int>, maxBytes: Int = 1 shl 20): Map<Int, Property?> = Arena.ofConfined().use { arena ->
+        val cookies = wanted.distinct().map { it to Xcb.xcb_get_property(arena, c, 0, window, it, Xcb.XCB_GET_PROPERTY_TYPE_ANY(), 0, maxBytes / 4) }
+        cookies.associate { (atom, cookie) -> atom to reply(Xcb.xcb_get_property_reply(c, cookie, MemorySegment.NULL)) }
+    }
+
+    // A get-property reply as a Property (and freed), or null.
+    private fun reply(reply: MemorySegment): Property? {
+        if (reply == MemorySegment.NULL) return null
+        try {
+            val header = reply.reinterpret(xcb_get_property_reply_t.layout().byteSize())
+            val actualType = xcb_get_property_reply_t.type(header)
+            if (actualType == NONE) return null
+            val format = xcb_get_property_reply_t.format(header).toInt() and 0xff
+            val length = Xcb.xcb_get_property_value_length(reply)
+            val value = Xcb.xcb_get_property_value(reply).reinterpret(length.toLong())
+            return Property(actualType, format, value.toArray(JAVA_BYTE))
+        } finally {
+            free(reply)
+        }
+    }
 
     /** Sets [property] of [window] to 32-bit [values] of [type]. */
     fun setProperty(window: Int, property: Int, type: Int, values: IntArray) = Arena.ofConfined().use { arena ->
@@ -353,7 +370,9 @@ internal class XConnection(fd: Int) : AutoCloseable {
     }
 
     override fun close() {
-        Xcb.xcb_disconnect(c)
+        if (!open) return
+        open = false
+        Xcb.xcb_disconnect(connection)
     }
 
     companion object {

@@ -80,7 +80,10 @@ class ScaleTest {
 
     @Test
     fun `a picture drawn at the exact scale is shown pixel for pixel`() = withServer { server, client ->
-        server.onServer { it.layout = Floating }
+        server.onServer {
+            it.layout = Floating
+            it.animationMillis = 0 // the picture itself, not the change of scale melting in
+        }
         server.setScale(1.5)
         // As a program with fractional scaling does: a 300 x 150 pixel buffer for a 200 x 100 window.
         val window = client.window()
@@ -165,6 +168,31 @@ class ScaleTest {
         }
         assertEquals(200 to 26, size, "the viewport's size, not the buffer's")
         assertEquals(true to false, input, "the input region came along too")
+    }
+
+    @Test
+    fun `a scale change melts the old picture into the new one`() = withServer { server, client ->
+        server.onServer {
+            it.layout = Floating
+            it.animationMillis = 200 // (fading needs animations on)
+        }
+        val window = client.window()
+        window.draw(100, 100)
+        client.waitFor { server.onServer { d -> d.windows.firstOrNull()?.let(d::screenRect) != null } }
+        val place = server.onServer { d -> d.toPixels(d.screenRect(d.windows.first())!!) }
+        // A point just outside the window now, inside it at scale 2.
+        val x = place.right + place.width / 2
+        val y = place.y + place.height / 2
+        val before = server.screenshot()[y * pixelsWide + x]
+        server.setScale(2.0)
+        window.draw()
+        client.connection.roundtrip()
+        // Looked at again and again while it melts (a quarter of a second): somewhere in between, a mix.
+        val samples = (1..12).map { Thread.sleep(25); server.screenshot()[y * pixelsWide + x] }
+        Thread.sleep(300)
+        val after = server.screenshot()[y * pixelsWide + x]
+        assertEquals(BLACK, after, "the window is there now")
+        assertTrue(samples.any { it != before && it != after }, "a mix in between: ${Integer.toHexString(before)} ${samples.map(Integer::toHexString)} ${Integer.toHexString(after)}")
     }
 
     @Test

@@ -118,6 +118,67 @@ class XwaylandTest {
     }
 
     @Test
+    fun `programs that only know whole scales get an Xwayland of their own`() {
+        // The first program connecting is "Java at scale 2", the next ones are ordinary.
+        var programs = 0
+        withX(scale = 1.5, wholeScaleOf = { if (programs++ == 0) 2 else null }) { server, xwayland, client ->
+            XProgram(xwayland.displayName).use { java ->
+                XProgram(xwayland.displayName).use { ordinary ->
+                    val javaWindow = java.window("java", RED)
+                    ordinary.window("ordinary", RED)
+                    val shown = waitFor { server.onServer { d -> d.windows.firstOrNull { it.title == "java" } } }
+                    waitFor { server.onServer { d -> d.windows.firstOrNull { it.title == "ordinary" } } }
+                    val units = waitFor { server.onServer { d -> d.screenRect(shown) } }
+                    // In its own X server: two X pixels per desktop unit ...
+                    val size = waitFor {
+                        java.pump()
+                        java.x.geometry(javaWindow)?.takeIf { it[2] == units.width * 2 && it[3] == units.height * 2 }
+                    }
+                    assertEquals(units.width * 2 to units.height * 2, size[2] to size[3])
+                    // ... and on the screen exactly as big as at 1.5 (made smaller, so sharp).
+                    val pixels = server.onServer { d -> d.toPixels(units) }
+                    waitFor {
+                        val screen = server.screenshot()
+                        val y = pixels.y + pixels.height / 2
+                        (screen[y * ScreenTestServer.WIDTH + pixels.x + 2] == RED && screen[y * ScreenTestServer.WIDTH + pixels.right - 3] == RED).takeIf { it }
+                    }
+                    // Copy in one X server, paste in the other: through the Wayland clipboard.
+                    java.copy("from the whole-scale world".toByteArray())
+                    // (the copying program answers its X server's questions meanwhile)
+                    val pasted = waitFor { java.pump(); ordinary.paste(client) { java.pump() }?.takeIf { it.isNotEmpty() } }
+                    assertEquals("from the whole-scale world", pasted.decodeToString())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `after a scale change running programs keep theirs, new ones get the new one`() = withX(scale = 1.5) { server, xwayland, _ ->
+        XProgram(xwayland.displayName).use { old ->
+            val oldWindow = old.window("old", RED)
+            val oldShown = waitFor { server.onServer { d -> d.windows.firstOrNull { it.title == "old" } } }
+            server.setScale(1.0)
+            server.onServer { xwayland.rescaled() }
+            XProgram(xwayland.displayName).use { new ->
+                val newWindow = new.window("new", RED)
+                val newShown = waitFor { server.onServer { d -> d.windows.firstOrNull { it.title == "new" } } }
+                // The old one still draws at 1.5 X pixels per unit, the new one at 1.
+                waitFor {
+                    old.pump()
+                    val units = server.onServer { d -> d.screenRect(oldShown) } ?: return@waitFor null
+                    old.x.geometry(oldWindow)?.takeIf { it[2] == Math.round(units.width * 1.5).toInt() }
+                }
+                waitFor {
+                    new.pump()
+                    val units = server.onServer { d -> d.screenRect(newShown) } ?: return@waitFor null
+                    new.x.geometry(newWindow)?.takeIf { it[2] == units.width }
+                }
+            }
+        }
+        Unit
+    }
+
+    @Test
     fun `on a scaled screen X11 windows are sized in real pixels`() = withX(scale = 2.0) { server, xwayland, _ ->
         XProgram(xwayland.displayName).use { program ->
             val window = program.window("scaled", RED)
@@ -160,18 +221,19 @@ class XwaylandTest {
         }
     }
 
-    // More than X takes in one request: it must go in pieces (INCR).
-    private fun bigText() = ByteArray(1_000_000) { ('a' + it % 26).code.toByte() }
+    // More than X takes in one request: it must go in pieces (INCR), streamed (8 MB is far more than is ever held).
+    private fun bigText() = ByteArray(8_000_000) { ('a' + it % 26).code.toByte() }
 
     // ==== the test setup =======================================================================
 
-    private fun withX(scale: Double = 1.0, test: (ScreenTestServer, Xwayland, TestClient) -> Unit) {
+    // (The test process draws with Java2D, so it looks like a Java program: by default none is.)
+    private fun withX(scale: Double = 1.0, wholeScaleOf: (Int) -> Int? = { null }, test: (ScreenTestServer, Xwayland, TestClient) -> Unit) {
         assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
         assumeTrue(System.getenv("PATH").orEmpty().split(':').any { Files.isExecutable(Path.of(it, "Xwayland")) }, "Xwayland is not installed")
         ScreenTestServer().use { server ->
             if (scale != 1.0) server.setScale(scale)
             server.onServer { it.animationMillis = 0 }
-            val xwayland = server.onServer { Xwayland(server.display, it, server.loop, server.clipboard) }
+            val xwayland = server.onServer { Xwayland(server.display, it, server.loop, server.clipboard, wholeScaleOf = wholeScaleOf) }
             try {
                 TestClient(Connection.connect(server.socketPath)).use { client ->
                     // A focused Wayland window: the clipboard is offered to the focused program.
@@ -247,12 +309,12 @@ class XwaylandTest {
         private var pasted = ByteArrayOutputStream()
         private var complete = false
 
-        fun paste(client: TestClient): ByteArray? {
+        fun paste(client: TestClient, meanwhile: () -> Unit = {}): ByteArray? {
             answered = false; refused = false; receivingPieces = false; complete = false
             pasted = ByteArrayOutputStream()
             x.convertSelection(helper, clipboard, utf8, property)
             x.flush()
-            client.waitFor { pump(); refused || complete }
+            client.waitFor { meanwhile(); pump(); refused || complete }
             return if (refused) null else pasted.toByteArray()
         }
 

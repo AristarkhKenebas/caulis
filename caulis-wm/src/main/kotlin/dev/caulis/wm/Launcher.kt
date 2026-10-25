@@ -18,8 +18,12 @@ internal class Launcher(
     private val post: (() -> Unit) -> Unit,
     private val settings: () -> Settings,
 ) {
-    /** What the user chose: prefer Wayland (and fall back), programs that always go through X11. */
-    class Settings(val waylandFirst: Boolean, val x11Programs: Set<String>)
+    /**
+     * What the user chose: prefer Wayland (and fall back), programs that always go through
+     * X11; the screen's [scale], and whether whole-scale programs get an X server of their own
+     * ([sharpWholeScales]: then they draw at the next whole scale up and are shown smaller).
+     */
+    class Settings(val waylandFirst: Boolean, val x11Programs: Set<String>, val scale: Double = 1.0, val sharpWholeScales: Boolean = false)
 
     private val log = Logger("clients")
 
@@ -57,6 +61,7 @@ internal class Launcher(
             builder.environment().apply {
                 environment(this)
                 put("_JAVA_AWT_WM_NONREPARENTING", "1") // Java on X11: windows are not inside frames here
+                javaScale(this)
                 if (throughX) {
                     remove("WAYLAND_DISPLAY")
                     remove("WAYLAND_SOCKET")
@@ -76,6 +81,17 @@ internal class Launcher(
         } catch (e: Exception) {
             log.warn("\"$command\" could not be started: ${e.message}")
         }
+    }
+
+    // Java (Swing, AWT on X11) reads neither Xft.dpi nor the X cursor size, only its own
+    // scale — and in whole numbers only (on X11 it has no fractional scale at all, not even
+    // with -Dsun.java2d.uiScale). With an X server of its own it draws at the next whole one
+    // up (1.5 -> 2) and is shown smaller, sharp and the right size; else at the nearest.
+    private fun javaScale(env: MutableMap<String, String>) {
+        if (System.getenv("J2D_UISCALE") != null) return
+        val settings = settings()
+        val whole = if (settings.sharpWholeScales) Math.ceil(settings.scale - 1e-9).toInt() else Math.round(settings.scale).toInt()
+        if (whole > 1) env["J2D_UISCALE"] = whole.toString() else env.remove("J2D_UISCALE")
     }
 
     private fun ended(started: Started, status: Int, throughX: Boolean) {

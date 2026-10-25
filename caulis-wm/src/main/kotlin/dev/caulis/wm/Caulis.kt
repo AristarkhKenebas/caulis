@@ -139,6 +139,14 @@ class Caulis {
      */
     var waylandFirst = true
 
+    /**
+     * Java programs (Swing, AWT) on a fractional scale such as 1.5: they can only draw at whole
+     * scales, so they get an X server of their own, draw at the next whole scale (2) and are
+     * shown at exactly yours — sharp and the right size. Off = they draw at the nearest whole
+     * scale with the other X11 programs (sharp, but up to a third too big or too small).
+     */
+    var sharpJavaScaling = true
+
     /** Programs always started through X11, by name: `x11Programs += "steam"`. */
     val x11Programs: MutableSet<String> = LinkedHashSet()
 
@@ -398,6 +406,7 @@ class Caulis {
     fun scale(scale: Double): Caulis = apply { this.scale = scale }
     fun waylandFirst(on: Boolean): Caulis = apply { waylandFirst = on }
     fun x11Program(name: String): Caulis = apply { x11Programs += name }
+    fun sharpJavaScaling(on: Boolean): Caulis = apply { sharpJavaScaling = on }
     fun titleBars(titleBars: TitleBars): Caulis = apply { this.titleBars = titleBars }
     fun titleBarsFor(rule: java.util.function.Function<Window, TitleBars?>): Caulis = apply { titleBarsFor { rule.apply(it) } }
     fun logLevel(level: Int): Caulis = apply { logLevel = level }

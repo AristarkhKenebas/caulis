@@ -144,9 +144,29 @@ class ScreenTestServer : AutoCloseable {
         socketName = started.get(10, TimeUnit.SECONDS)
     }
 
+    // If the server's loop stands still for long, what it waits for is printed (for tests that fail rarely).
+    @Volatile
+    private var closing = false
+    private val watchdog = Thread({
+        var reported = 0L
+        while (!closing) {
+            Thread.sleep(500)
+            val since = loop.lastIterationNanos
+            if (System.nanoTime() - since > 2_000_000_000 && since != reported && !closing) {
+                reported = since
+                System.err.println("The test server's loop has stood still for 2 s, at:\n" + thread.stackTrace.joinToString("\n") { "    at $it" })
+            }
+        }
+    }, "screen-test-watchdog").apply { isDaemon = true }
+
+    init {
+        watchdog.start()
+    }
+
     val socketPath: Path get() = runtimeDir.resolve(socketName)
 
     override fun close() {
+        closing = true
         loop.stop()
         thread.join(5000)
         runtimeDir.toFile().deleteRecursively()

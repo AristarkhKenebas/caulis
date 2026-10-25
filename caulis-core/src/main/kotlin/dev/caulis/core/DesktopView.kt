@@ -121,8 +121,11 @@ internal sealed class DrawItem {
         val alpha: Float = 1f,
     ) : DrawItem()
 
-    /** A picture of our own (a cursor from the theme). */
-    class Image(override val key: Any, val texture: GpuTexture, override val rect: Rect, val clip: Rect? = null, val radius: Float = 0f) : DrawItem()
+    /** A picture of our own (a cursor from the theme, a title bar, the frame before a scale change). */
+    class Image(
+        override val key: Any, val texture: GpuTexture, override val rect: Rect, val clip: Rect? = null, val radius: Float = 0f,
+        val alpha: Float = 1f,
+    ) : DrawItem()
 
     /** A window's shadow (cast by [box], blurred over [softness]; [rect] is all it touches). */
     data class Shadow(
@@ -163,7 +166,7 @@ internal sealed class DrawItem {
     /** True if [other] (the same thing last frame) looks different apart from its content. */
     fun differsFrom(other: DrawItem): Boolean = when {
         rect != other.rect -> true
-        this is Image && other is Image -> texture !== other.texture
+        this is Image && other is Image -> texture !== other.texture || alpha != other.alpha
         this is Picture && other is Picture -> opaque != other.opaque || alpha != other.alpha || clip != other.clip || radius != other.radius ||
             !java.util.Arrays.equals(source, other.source)
         this is Color && other is Color -> red != other.red || green != other.green || blue != other.blue || alpha != other.alpha

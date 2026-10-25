@@ -33,10 +33,15 @@ class Xwm internal constructor(
     private val loop: EventLoop,
     private val surfaceFor: (serial: Long) -> Surface?,
     clipboard: DataDeviceManager? = null,
+    /** How many of X's pixels one desktop unit is: the screen's scale, or a whole number (a world of its own). */
+    private val pixelScale: () -> Double = { desktop.scale },
 ) : AutoCloseable {
 
     private val log = Logger("xwayland")
     private val windows = HashMap<Int, XWindow>()
+
+    // X's stacking order as it reports it (kept in step with the desktop's, see restack).
+    private val stack = XStack()
     private val checkWindow: Int
     private var xfixesEvent = -1
 
@@ -56,14 +61,24 @@ class Xwm internal constructor(
     /** Window types that float (dialogs, tool palettes, splash screens). */
     internal val floatingTypes: Set<Int>
 
-    // Window types of self-placing windows that do not take the keyboard when shown.
-    private val noFocusTypes: Set<Int>
+    private var watching = true
+    private var focusWatch: AutoCloseable? = null
+
+    private var warnedOld = false
+
+    // A program taking the keyboard again and again is given up on for a while (no endless tug of war).
+    private val refusals = HashMap<Int, LongArray>() // window -> (count, since, given up until)
+
+    // Events that came in while we waited for a reply outside dispatch() are handled next turn.
+    private var drainPosted = false
+
+    // What _NET_CLIENT_LIST_STACKING says now.
+    private var listedStacking: List<Int> = emptyList()
 
     init {
         x.intern(ATOMS)
         popupTypes = POPUP_TYPES.map { atom("_NET_WM_WINDOW_TYPE_$it") }.toSet()
         floatingTypes = FLOATING_TYPES.map { atom("_NET_WM_WINDOW_TYPE_$it") }.toSet()
-        noFocusTypes = NO_FOCUS_TYPES.map { atom("_NET_WM_WINDOW_TYPE_$it") }.toSet()
         // Become the window manager: be told about every window, place them ourselves.
         val mask = Xcb.XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT() or Xcb.XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY() or Xcb.XCB_EVENT_MASK_PROPERTY_CHANGE()
         check(x.changeAttributesChecked(x.root, Xcb.XCB_CW_EVENT_MASK(), intArrayOf(mask))) { "another X window manager is running" }
@@ -91,31 +106,19 @@ class Xwm internal constructor(
         // Our own connection does not keep Xwayland running once the programs are gone.
         if (!x.letServerTerminate()) log.trace { "This Xwayland cannot stop by itself (XFixes older than 6)" }
         updateCursor()
+        tellResources()
         x.flush()
 
-        loop.add(dev.caulis.ffi.Fd.borrow(x.fd)) { dispatch() }
-        // Waiting for replies above may have read events into XCB's queue already; the socket
-        // will not say so again: handle them now.
-        dispatch()
-        // Focus moving to a Wayland window takes it away from the X ones (their menus close).
-        desktop.onFocusChanged { window ->
-            if (window !is XWindow) focus(null)
-            restack() // the focused window may have come to the front
-            x.flush()
-        }
-        log.info("Window manager of X11 programs ready")
     }
 
     internal fun atom(name: String) = x.atom(name)
 
     /** Desktop units -> X pixels and back (X works in the screen's real pixels). */
-    internal fun toPixels(units: Int): Int = Math.round(units * desktop.scale).toInt()
-    internal fun toUnits(pixels: Int): Int = Math.round(pixels / desktop.scale).toInt()
+    internal fun toPixels(units: Int): Int = Math.round(units * pixelScale()).toInt()
+    internal fun toUnits(pixels: Int): Int = Math.round(pixels / pixelScale()).toInt()
 
     // --- events ----------------------------------------------------------------------------
 
-    private var watching = true
-    private var warnedOld = false
 
     private fun dispatch() {
         while (true) {
@@ -144,6 +147,7 @@ class Xwm internal constructor(
             Xcb.XCB_CREATE_NOTIFY() -> created(event)
             Xcb.XCB_DESTROY_NOTIFY() -> {
                 val id = xcb_destroy_notify_event_t.window(event)
+                stack.destroyed(id)
                 clipboard.windowGone(id)
                 windows.remove(id)?.let(::gone)
             }
@@ -155,13 +159,7 @@ class Xwm internal constructor(
             }
             Xcb.XCB_UNMAP_NOTIFY() -> windows[xcb_unmap_notify_event_t.window(event)]?.let(::unmapped)
             Xcb.XCB_CONFIGURE_REQUEST() -> configureRequested(event)
-            Xcb.XCB_CONFIGURE_NOTIFY() -> windows[xcb_configure_notify_event_t.window(event)]?.let { window ->
-                window.xGeometry = Rect(
-                    xcb_configure_notify_event_t.x(event).toInt(), xcb_configure_notify_event_t.y(event).toInt(),
-                    xcb_configure_notify_event_t.width(event).toInt() and 0xffff, xcb_configure_notify_event_t.height(event).toInt() and 0xffff,
-                )
-                if (window.unmanaged && window.inDesktop) showUnmanaged(window)
-            }
+            Xcb.XCB_CONFIGURE_NOTIFY() -> configured(event)
             Xcb.XCB_PROPERTY_NOTIFY() -> if (!clipboard.propertyChanged(event)) {
                 windows[xcb_property_notify_event_t.window(event)]?.let { window -> propertyChanged(window, xcb_property_notify_event_t.atom(event)) }
             }
@@ -172,8 +170,19 @@ class Xwm internal constructor(
         }
     }
 
+    private fun configured(event: MemorySegment) {
+        stack.placedAbove(xcb_configure_notify_event_t.window(event), xcb_configure_notify_event_t.above_sibling(event))
+        val window = windows[xcb_configure_notify_event_t.window(event)] ?: return
+        window.xGeometry = Rect(
+            xcb_configure_notify_event_t.x(event).toInt(), xcb_configure_notify_event_t.y(event).toInt(),
+            xcb_configure_notify_event_t.width(event).toInt() and 0xffff, xcb_configure_notify_event_t.height(event).toInt() and 0xffff,
+        )
+        if (window.unmanaged && window.inDesktop) showUnmanaged(window)
+    }
+
     private fun created(event: MemorySegment) {
         val id = xcb_create_notify_event_t.window(event)
+        stack.created(id)
         if (id == checkWindow || clipboard.owns(id)) return
         val window = XWindow(this, id, xcb_create_notify_event_t.override_redirect(event).toInt() != 0)
         window.xGeometry = Rect(
@@ -188,8 +197,10 @@ class Xwm internal constructor(
     }
 
     private fun mapRequested(window: XWindow) {
-        readProperties(window)
-        readStartingState(window)
+        readProperties(window) {
+            readEverything(it)
+            startingState(it)
+        }
         x.setProperty(window.id, atom("WM_STATE"), atom("WM_STATE"), intArrayOf(NORMAL_STATE, XConnection.NONE))
         x.map(window.id)
         window.xMapped = true
@@ -208,6 +219,7 @@ class Xwm internal constructor(
     }
 
     private fun gone(window: XWindow) {
+        refusals.remove(window.id)
         hide(window)
         if (focused === window) focused = null
         updateClientList()
@@ -221,8 +233,6 @@ class Xwm internal constructor(
         if (window.unmanaged) {
             showUnmanaged(window)
             window.inDesktop = true
-            // A launcher or a game placing itself wants the keys; menus and tooltips do not.
-            if (window.windowTypes.none { it in noFocusTypes }) desktop.focusUnmanaged(surface)
             restack()
             return
         }
@@ -261,7 +271,7 @@ class Xwm internal constructor(
         if (window.xSurface === surface) return
         window.xSurface = surface
         surface.roleObject = window
-        surface.nativeScale = desktop.scale // its pictures are in the screen's pixels
+        surface.nativeScale = pixelScale() // its pictures are in X's pixels
         surface.onCommit {
             if (window.xSurface !== surface) return@onCommit
             if (!window.inDesktop) show(window) else if (!window.unmanaged) desktop.windowCommitted(window)
@@ -280,7 +290,31 @@ class Xwm internal constructor(
 
     // --- properties ------------------------------------------------------------------------
 
-    private fun readProperties(window: XWindow) {
+    // Properties fetched together for readProperties (one round trip), else read one by one.
+    private var fetched: Map<Int, XConnection.Property?>? = null
+
+    private fun prop(window: XWindow, atom: Int): XConnection.Property? =
+        fetched?.let { if (atom in it) return it[atom] }.let { x.property(window.id, atom) }
+
+    private val windowProperties: List<Int> by lazy {
+        listOf(
+            atom("_NET_WM_NAME"), Xcb.XCB_ATOM_WM_NAME(), Xcb.XCB_ATOM_WM_CLASS(), Xcb.XCB_ATOM_WM_TRANSIENT_FOR(),
+            Xcb.XCB_ATOM_WM_NORMAL_HINTS(), Xcb.XCB_ATOM_WM_HINTS(), atom("WM_PROTOCOLS"), atom("_NET_WM_WINDOW_TYPE"),
+            atom("_MOTIF_WM_HINTS"), atom("_NET_WM_PID"), atom("_NET_WM_STATE"),
+        )
+    }
+
+    // Fetches all the window's properties together, then reads them ([read]: everything).
+    private fun readProperties(window: XWindow, read: (XWindow) -> Unit = ::readEverything) {
+        fetched = x.properties(window.id, windowProperties)
+        try {
+            read(window)
+        } finally {
+            fetched = null
+        }
+    }
+
+    private fun readEverything(window: XWindow) {
         readTitle(window)
         readClass(window)
         readParent(window)
@@ -289,7 +323,7 @@ class Xwm internal constructor(
         readProtocols(window)
         readTypes(window)
         readMotif(window)
-        window.netWmPid = x.property(window.id, atom("_NET_WM_PID"))?.ints()?.firstOrNull() ?: 0
+        window.netWmPid = prop(window, atom("_NET_WM_PID"))?.ints()?.firstOrNull() ?: 0
     }
 
     // Only what changed is read again (programs change _NET_WM_USER_TIME with every key).
@@ -311,7 +345,7 @@ class Xwm internal constructor(
     }
 
     private fun readTitle(window: XWindow) {
-        val value = x.property(window.id, atom("_NET_WM_NAME")) ?: x.property(window.id, Xcb.XCB_ATOM_WM_NAME()) ?: return
+        val value = prop(window, atom("_NET_WM_NAME")) ?: prop(window, Xcb.XCB_ATOM_WM_NAME()) ?: return
         // Old programs give WM_NAME as STRING: Latin-1, not UTF-8.
         val title = if (value.type == Xcb.XCB_ATOM_STRING()) String(value.bytes, Charsets.ISO_8859_1).trimEnd('\u0000') else value.text()
         window.describe(title)
@@ -319,14 +353,14 @@ class Xwm internal constructor(
 
     private fun readClass(window: XWindow) {
         // WM_CLASS is "instance\0class\0": the class names the program (as app ids do).
-        val wmClass = x.property(window.id, Xcb.XCB_ATOM_WM_CLASS())?.text()?.split('\u0000')?.filter { it.isNotEmpty() }
+        val wmClass = prop(window, Xcb.XCB_ATOM_WM_CLASS())?.text()?.split('\u0000')?.filter { it.isNotEmpty() }
         window.wmClass = wmClass?.lastOrNull() ?: ""
         if (window.wmClass.isNotEmpty()) window.describeClass(window.wmClass.lowercase())
     }
 
     // WM_TRANSIENT_FOR: the window a dialog belongs to (none once removed; never itself through others).
     private fun readParent(window: XWindow) {
-        var parent: Window? = x.property(window.id, Xcb.XCB_ATOM_WM_TRANSIENT_FOR())?.ints()?.firstOrNull()?.let { windows[it] }
+        var parent: Window? = prop(window, Xcb.XCB_ATOM_WM_TRANSIENT_FOR())?.ints()?.firstOrNull()?.let { windows[it] }
         var up = parent
         while (up != null) {
             if (up === window) {
@@ -341,7 +375,7 @@ class Xwm internal constructor(
 
     // WM_NORMAL_HINTS: flags, (x, y, w, h,) min w/h at 5/6, max at 7/8, ..., base at 15/16 (pixels).
     private fun readSizeHints(window: XWindow) {
-        val hints = x.property(window.id, Xcb.XCB_ATOM_WM_NORMAL_HINTS())?.ints()
+        val hints = prop(window, Xcb.XCB_ATOM_WM_NORMAL_HINTS())?.ints()
         var minW = 0
         var minH = 0
         var maxW = 0
@@ -358,21 +392,21 @@ class Xwm internal constructor(
 
     // WM_HINTS: flags, input, ...: "input = false" programs take the keyboard themselves (WM_TAKE_FOCUS).
     private fun readHints(window: XWindow) {
-        val hints = x.property(window.id, Xcb.XCB_ATOM_WM_HINTS())?.ints()
+        val hints = prop(window, Xcb.XCB_ATOM_WM_HINTS())?.ints()
         window.acceptsFocus = !(hints != null && hints.size >= 2 && hints[0] and INPUT_HINT != 0 && hints[1] == 0)
     }
 
     private fun readProtocols(window: XWindow) {
-        window.protocols = x.property(window.id, atom("WM_PROTOCOLS"))?.ints()?.toSet() ?: emptySet()
+        window.protocols = prop(window, atom("WM_PROTOCOLS"))?.ints()?.toSet() ?: emptySet()
     }
 
     private fun readTypes(window: XWindow) {
-        window.windowTypes = x.property(window.id, atom("_NET_WM_WINDOW_TYPE"))?.ints()?.toList() ?: emptyList()
+        window.windowTypes = prop(window, atom("_NET_WM_WINDOW_TYPE"))?.ints()?.toList() ?: emptyList()
     }
 
     // _MOTIF_WM_HINTS: flags, functions, decorations, ...: decorations say what the window manager draws.
     private fun readMotif(window: XWindow) {
-        val motif = x.property(window.id, atom("_MOTIF_WM_HINTS"))?.ints()
+        val motif = prop(window, atom("_MOTIF_WM_HINTS"))?.ints()
         window.wantsDecorations = if (motif != null && motif.size >= 3 && motif[0] and MOTIF_DECORATIONS != 0) {
             val decorations = motif[2]
             // With "all" set the others are the ones left out; without, the ones wanted.
@@ -383,8 +417,8 @@ class Xwm internal constructor(
     }
 
     // _NET_WM_STATE before the window is shown: programs that start fullscreen or maximized.
-    private fun readStartingState(window: XWindow) {
-        val states = x.property(window.id, atom("_NET_WM_STATE"))?.ints()?.toSet() ?: return
+    private fun startingState(window: XWindow) {
+        val states = prop(window, atom("_NET_WM_STATE"))?.ints()?.toSet() ?: return
         if (atom("_NET_WM_STATE_FULLSCREEN") in states) window.fullscreen = true
         if (atom("_NET_WM_STATE_MAXIMIZED_VERT") in states && atom("_NET_WM_STATE_MAXIMIZED_HORZ") in states) window.maximized = true
     }
@@ -495,34 +529,50 @@ class Xwm internal constructor(
         }
     }
 
-    // A program took X's keyboard focus (or X tells of ours).
+    // X's keyboard focus follows the desktop's, and only matters while an X window has the
+    // keyboard: a program moving it while a Wayland window is focused changes nothing, so there
+    // is nothing to fight over. Within one program it may move freely (to its dialog); another
+    // program may not take it. Self-placing windows (launchers, games, menus that grab the
+    // keyboard) get the keyboard when they take it.
     private fun focusIn(event: MemorySegment) {
         val detail = event.get(JAVA_BYTE, 1).toInt()
         val sequence = event.get(JAVA_SHORT, 2).toInt() and 0xffff
         val window = windows[event.get(JAVA_INT, 4)]
         val mode = event.get(JAVA_BYTE, 8).toInt()
-        if (detail == Xcb.XCB_NOTIFY_DETAIL_POINTER()) return
-        when (mode) {
-            // A keyboard grab (a menu, a launcher): a self-placing window gets the keys from the desktop too.
-            Xcb.XCB_NOTIFY_MODE_GRAB() -> {
-                window?.takeIf { it.unmanaged && it.inDesktop }?.xSurface?.let(desktop::focusUnmanaged)
-                return
-            }
-            Xcb.XCB_NOTIFY_MODE_UNGRAB() -> return
+        if (detail == Xcb.XCB_NOTIFY_DETAIL_POINTER() || mode == Xcb.XCB_NOTIFY_MODE_UNGRAB()) return
+        if (window != null && window.unmanaged) {
+            if (window.inDesktop) window.xSurface?.let(desktop::focusUnmanaged)
+            return
         }
+        if (mode == Xcb.XCB_NOTIFY_MODE_GRAB()) return // a grab of the window with the keyboard
         // Older than our last focus change: X tells of what was, not what is.
         if ((sequence - lastFocusRequest) and 0xffff >= 0x8000) return
-        if (window === focused) return
-        val current = focused
-        if (window != null && current != null && sameProgram(window, current)) {
-            // Within one program (its dialog, its other window): fine.
+        val current = focused ?: return // a Wayland window has the keyboard
+        if (window == null || window === current) return
+        if (sameProgram(window, current)) {
             focused = window
-            if (window.inDesktop && !window.unmanaged) desktop.focus(window)
-        } else {
-            // A program may not take the keyboard from another: it goes back.
-            log.trace { "${window ?: "A window"} took the keyboard from $current: given back" }
-            giveFocus(current)
+            if (window.inDesktop) desktop.focus(window)
+            return
         }
+        if (insists(window)) return
+        log.trace { "$window took the keyboard from $current: given back" }
+        giveFocus(current)
+    }
+
+
+    private fun insists(window: XWindow): Boolean {
+        val now = System.nanoTime()
+        val record = refusals.getOrPut(window.id) { longArrayOf(0, now, 0) }
+        if (now < record[2]) return true
+        if (now - record[1] > 1_000_000_000) {
+            record[0] = 0
+            record[1] = now
+        }
+        record[0]++
+        if (record[0] <= MAX_REFUSALS) return false
+        record[2] = now + 5_000_000_000
+        log.warn("$window keeps taking the keyboard from other programs; left alone for 5 seconds")
+        return true
     }
 
     // Windows of one X connection share the high bits of their ids.
@@ -530,8 +580,6 @@ class Xwm internal constructor(
 
     // --- what the window manager tells X ---------------------------------------------------
 
-    // Events that came in while we waited for a reply outside dispatch() are handled next turn.
-    private var drainPosted = false
 
     private fun drainSoon() {
         if (drainPosted) return
@@ -604,13 +652,23 @@ class Xwm internal constructor(
         x.flush()
     }
 
+
     // X stacks its windows as the desktop draws them (X decides by it which window a click is
-    // for), with the self-placing ones (menus) on top.
+    // for), with the self-placing ones (menus) on top; only windows out of place are moved.
     private fun restack() {
-        val managed = desktop.stacking.filterIsInstance<XWindow>().filter { it.inDesktop && it.xMapped }
-        val above = windows.values.filter { it.unmanaged && it.inDesktop }
-        for (window in managed + above) x.configure(window.id, Xcb.XCB_CONFIG_WINDOW_STACK_MODE(), intArrayOf(Xcb.XCB_STACK_MODE_ABOVE()))
-        x.setProperty(x.root, atom("_NET_CLIENT_LIST_STACKING"), Xcb.XCB_ATOM_WINDOW(), managed.map { it.id }.toIntArray())
+        val managed = desktop.stacking.filterIsInstance<XWindow>().filter { it.inDesktop && it.xMapped }.map { it.id }
+        // Menus stay on top, in the order they put themselves.
+        val above = stack.windows.filter { id -> windows[id]?.let { it.unmanaged && it.inDesktop } == true }
+        val moves = stack.moves(managed + above)
+        for (move in moves) {
+            val mode = if (move.above) Xcb.XCB_STACK_MODE_ABOVE() else Xcb.XCB_STACK_MODE_BELOW()
+            x.configure(move.window, Xcb.XCB_CONFIG_WINDOW_SIBLING() or Xcb.XCB_CONFIG_WINDOW_STACK_MODE(), intArrayOf(move.sibling, mode))
+        }
+        if (moves.isNotEmpty()) log.trace { "Restacked ${moves.size} of ${managed.size + above.size} windows" }
+        if (managed != listedStacking) {
+            listedStacking = managed
+            x.setProperty(x.root, atom("_NET_CLIENT_LIST_STACKING"), Xcb.XCB_ATOM_WINDOW(), managed.toIntArray())
+        }
     }
 
     /** Asks the program to close [window] (WM_DELETE_WINDOW), or ends it if it cannot be asked. */
@@ -633,7 +691,7 @@ class Xwm internal constructor(
      */
     internal fun updateCursor() {
         val theme = desktop.cursorTheme
-        val pixels = Math.round(theme.size * desktop.scale).toInt()
+        val pixels = Math.round(theme.size * pixelScale()).toInt()
         val image = (theme.cursor("default", pixels) ?: theme.cursor("left_ptr", pixels))?.frames?.firstOrNull()
             ?: return log.trace { "No default cursor in ${theme.name} for X" }
         if (!x.setRootCursor(image.width, image.height, image.hotspotX, image.hotspotY, image.pixels)) {
@@ -642,22 +700,55 @@ class Xwm internal constructor(
         x.flush()
     }
 
+    /**
+     * Tells X11 programs the scale in the X resources (what `xrdb` would set): the DPI and the
+     * cursor's theme and size in X's pixels. Programs read them when they start.
+     */
+    internal fun tellResources() {
+        val theme = desktop.cursorTheme
+        val resources = buildString {
+            appendLine("Xft.dpi:\t${Math.round(96 * pixelScale())}")
+            appendLine("Xcursor.size:\t${Math.round(theme.size * pixelScale())}")
+            appendLine("Xcursor.theme:\t${theme.name}")
+        }
+        x.setText(x.root, Xcb.XCB_ATOM_RESOURCE_MANAGER(), Xcb.XCB_ATOM_STRING(), resources)
+        x.flush()
+        log.trace { "X resources: ${resources.trim().replace("\n", ", ").replace("\t", " ")}" }
+    }
+
     /** The scale changed: X surfaces are in pixels of the new scale, windows go to their new places. */
     fun rescaled() {
         for (window in windows.values) {
-            window.xSurface?.nativeScale = desktop.scale
+            window.xSurface?.nativeScale = pixelScale()
             if (window.inDesktop) place(window)
             if (window.unmanaged && window.inDesktop) showUnmanaged(window)
             readSizeHints(window)
         }
         updateCursor()
+        tellResources()
     }
 
     override fun close() {
+        focusWatch?.close() // the desktop no longer tells a window manager that is gone
         clipboard.close()
         if (watching) loop.remove(dev.caulis.ffi.Fd.borrow(x.fd))
         watching = false
         x.close()
+    }
+
+    // Last in the class: from here on events are handled, and they use all the state above.
+    init {
+        loop.add(dev.caulis.ffi.Fd.borrow(x.fd)) { dispatch() }
+        // Waiting for replies above may have read events into XCB's queue already; the socket
+        // will not say so again: handle them now.
+        dispatch()
+        // Focus moving to a Wayland window takes it away from the X ones (their menus close).
+        focusWatch = desktop.onFocusChanged { window ->
+            if (window !is XWindow || windows[window.id] !== window) focus(null) // a Wayland window, or one of another X server
+            restack() // the focused window may have come to the front
+            x.flush()
+        }
+        log.info("Window manager of X11 programs ready")
     }
 
     private companion object {
@@ -672,13 +763,13 @@ class Xwm internal constructor(
         const val DECOR_ALL = 1
         const val DECOR_TITLE = 8
         const val MOVERESIZE_MOVE = 8
+        const val MAX_REFUSALS = 3
 
         // _NET_WM_MOVERESIZE directions 0..7 (top-left, top, ... left) as xdg resize edges.
         val RESIZE_EDGES = intArrayOf(5, 1, 9, 8, 10, 2, 6, 4)
 
         val POPUP_TYPES = listOf("MENU", "DROPDOWN_MENU", "POPUP_MENU", "TOOLTIP", "NOTIFICATION", "COMBO", "DND")
         val FLOATING_TYPES = listOf("DIALOG", "UTILITY", "SPLASH", "TOOLBAR")
-        val NO_FOCUS_TYPES = listOf("COMBO", "DND", "DROPDOWN_MENU", "MENU", "NOTIFICATION", "POPUP_MENU", "SPLASH", "DESKTOP", "TOOLTIP", "UTILITY")
 
         val SUPPORTED = listOf(
             "_NET_SUPPORTED", "_NET_SUPPORTING_WM_CHECK", "_NET_WM_NAME", "_NET_ACTIVE_WINDOW", "_NET_CLIENT_LIST",
@@ -690,6 +781,6 @@ class Xwm internal constructor(
         val ATOMS = SUPPORTED + listOf(
             "WM_S0", "_NET_WM_CM_S0", "UTF8_STRING", "WM_PROTOCOLS", "WM_DELETE_WINDOW", "WM_TAKE_FOCUS", "WM_STATE", "WM_CHANGE_STATE",
             "WL_SURFACE_SERIAL", "WL_SURFACE_ID", "_MOTIF_WM_HINTS", "_NET_WM_PID", "CLIPBOARD", "TARGETS", "TEXT", "INCR",
-        ) + (POPUP_TYPES + FLOATING_TYPES + NO_FOCUS_TYPES + "NORMAL").distinct().map { "_NET_WM_WINDOW_TYPE_$it" }
+        ) + (POPUP_TYPES + FLOATING_TYPES + "NORMAL").distinct().map { "_NET_WM_WINDOW_TYPE_$it" }
     }
 }

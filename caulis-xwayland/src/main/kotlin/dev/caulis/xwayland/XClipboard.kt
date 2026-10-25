@@ -13,7 +13,6 @@ import dev.caulis.ffi.c.xcb.xcb_selection_notify_event_t
 import dev.caulis.ffi.c.xcb.xcb_selection_request_event_t
 import dev.caulis.ffi.c.xcb.xcb_xfixes_selection_notify_event_t
 import dev.caulis.log.Logger
-import java.io.ByteArrayOutputStream
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout.JAVA_BYTE
@@ -28,8 +27,11 @@ import java.lang.foreign.ValueLayout.JAVA_BYTE
  * Wayland → X11: when a Wayland program copies, our helper window takes CLIPBOARD; X
  * programs asking for it get the formats or the data, read from the copying program.
  *
- * Large data goes in pieces (ICCCM's INCR) both ways. Text formats are matched up
- * (UTF8_STRING, STRING, TEXT ↔ text/plain); other formats keep their MIME names.
+ * Data streams through both ways: small data in one answer, large data in pieces
+ * (ICCCM's INCR) handed on as they come — the copying side is read only as fast as the
+ * pasting side takes it, so only a few pieces are ever held, however large the clipboard.
+ * Text formats are matched up (UTF8_STRING, STRING, TEXT ↔ text/plain); other formats
+ * keep their MIME names.
  */
 internal class XClipboard(
     private val x: XConnection,
@@ -55,18 +57,10 @@ internal class XClipboard(
     private val dataProperty = x.atom("_CAULIS_CLIPBOARD")
 
     private var listening: AutoCloseable? = null
+    private var closed = false
 
     /** True for the helper windows the clipboard uses (they are not program windows). */
     fun owns(id: Int): Boolean = id == window
-
-    init {
-        x.changeAttributes(window, Xcb.XCB_CW_EVENT_MASK(), intArrayOf(Xcb.XCB_EVENT_MASK_PROPERTY_CHANGE()))
-        if (clipboard != null) {
-            x.watchSelection(window, selection)
-            listening = clipboard.onClipboardChanged(::waylandCopied)
-            clipboard.clipboard?.let(::waylandCopied)
-        }
-    }
 
     fun handle(type: Int, event: MemorySegment) {
         if (clipboard == null) return
@@ -84,12 +78,17 @@ internal class XClipboard(
         val atom = xcb_property_notify_event_t.atom(event)
         val deleted = xcb_property_notify_event_t.state(event).toInt() == Xcb.XCB_PROPERTY_DELETE()
         if (window == this.window) {
-            if (atom == dataProperty && !deleted) receiving?.takeIf { it.incremental }?.let(::nextPiece)
+            if (atom == dataProperty && !deleted) receiving?.takeIf { it.incremental }?.nextPiece()
             return true
         }
         val transfer = sending.firstOrNull { it.requestor == window && it.property == atom } ?: return false
-        if (deleted) sendPiece(transfer)
+        if (deleted) transfer.requestorTookPiece()
         return true
+    }
+
+    /** An X window was destroyed: what was being handed to it is dropped. */
+    fun windowGone(id: Int) {
+        sending.filter { it.requestor == id }.forEach { it.stop("its window is gone") }
     }
 
     // ==== Wayland → X11 ======================================================================
@@ -97,10 +96,9 @@ internal class XClipboard(
     // What a Wayland program copied, while our window owns CLIPBOARD for it, and since when (X time).
     private var offered: ClipboardData? = null
     private var ownedSince = 0
-    private var closed = false
 
     private fun waylandCopied(data: ClipboardData?) {
-        if (data is FromX) return // it came from X: its owner is an X program
+        if (closed || isOurs(data)) return // copied in our X server: its owner is an X program there
         if (data == null) {
             if (offered != null) {
                 offered = null
@@ -115,14 +113,10 @@ internal class XClipboard(
         log.trace { "X11 programs can paste $data" }
     }
 
-    // A piece-by-piece answer to an X program, as it reads (and deletes) each piece.
-    private class Sending(val requestor: Int, val property: Int, val target: Int, val bytes: ByteArray) {
-        var offset = 0
-        var done = false
-        var timeout: EventLoop.Timer? = null
-    }
-
     private val sending = ArrayList<Sending>()
+
+    // From an X program of this X server (another one's is like a Wayland program's to us).
+    private fun isOurs(data: ClipboardData?) = data is FromX && data.server === this
 
     private fun requested(event: MemorySegment) {
         val requestor = xcb_selection_request_event_t.requestor(event)
@@ -131,128 +125,143 @@ internal class XClipboard(
         // Old programs give no property: the answer then goes into the one named like the target.
         val property = xcb_selection_request_event_t.property(event).takeIf { it != XConnection.NONE } ?: target
         val data = offered
-        fun answer(ok: Boolean) {
-            x.sendSelectionNotify(requestor, selection, target, if (ok) property else XConnection.NONE, time)
-            x.flush()
-        }
-        if (xcb_selection_request_event_t.selection(event) != selection || data == null) return answer(false)
+        if (xcb_selection_request_event_t.selection(event) != selection || data == null) return answer(requestor, target, XConnection.NONE, time)
         when (target) {
             targets -> {
                 val atoms = (listOf(targets, timestamp) + data.mimeTypes.flatMap(::atomsFor)).distinct()
                 x.setProperty(requestor, property, Xcb.XCB_ATOM_ATOM(), atoms.toIntArray())
-                answer(true)
+                answer(requestor, target, property, time)
             }
             timestamp -> {
                 x.setProperty(requestor, property, Xcb.XCB_ATOM_INTEGER(), intArrayOf(ownedSince))
-                answer(true)
+                answer(requestor, target, property, time)
             }
             else -> {
-                val mime = mimeFor(target, data.mimeTypes) ?: return answer(false)
+                val mime = mimeFor(target, data.mimeTypes) ?: return answer(requestor, target, XConnection.NONE, time)
                 log.trace { "An X11 program pastes $mime" }
-                readFromWayland(data, mime) { bytes ->
-                    if (bytes == null || offered !== data) return@readFromWayland answer(false)
-                    if (bytes.size <= MAX_PROPERTY) {
-                        x.setBytes(requestor, property, target, bytes)
-                    } else {
-                        // Too big for one request: say how big, then hand it over in pieces.
-                        if (!hearsPropertiesOf(requestor)) {
-                            x.changeAttributes(requestor, Xcb.XCB_CW_EVENT_MASK(), intArrayOf(Xcb.XCB_EVENT_MASK_PROPERTY_CHANGE()))
-                        }
-                        // A new request replaces an unfinished one into the same place.
-                        sending.filter { it.requestor == requestor && it.property == property }.forEach(::dropSending)
-                        val transfer = Sending(requestor, property, target, bytes)
-                        sending += transfer
-                        stillSending(transfer)
-                        x.setProperty(requestor, property, incr, intArrayOf(bytes.size))
-                    }
-                    answer(true)
-                }
+                // A new request replaces an unfinished one into the same place.
+                sending.filter { it.requestor == requestor && it.property == property }.forEach { it.stop("asked again") }
+                sending += Sending(requestor, property, target, time, data, mime)
             }
         }
     }
 
-    private fun sendPiece(transfer: Sending) {
-        if (transfer.done) {
-            dropSending(transfer)
-            return
-        }
-        stillSending(transfer)
-        val length = minOf(PIECE, transfer.bytes.size - transfer.offset)
-        x.setBytes(transfer.requestor, transfer.property, transfer.target, transfer.bytes, transfer.offset, length)
-        transfer.offset += length
-        transfer.done = length == 0 // an empty piece says "that was all"
+    private fun answer(requestor: Int, target: Int, property: Int, time: Int) {
+        x.sendSelectionNotify(requestor, selection, target, property, time)
         x.flush()
     }
 
-    // A program that stops taking the pieces is given up on (the data is not kept forever).
-    private fun stillSending(transfer: Sending) {
-        transfer.timeout?.cancel()
-        transfer.timeout = loop.after(TIMEOUT_MILLIS) {
-            log.trace { "An X11 program stopped taking the clipboard" }
-            dropSending(transfer)
-        }
-    }
+    /**
+     * One X program's paste of a Wayland program's clipboard: small data in one answer; more
+     * as pieces, each handed over when the X program took (deleted) the one before.
+     */
+    private inner class Sending(
+        val requestor: Int, val property: Int, val target: Int, val time: Int, data: ClipboardData, mime: String,
+    ) {
+        private val pieces = ArrayDeque<ByteArray>()
+        private var held = 0
+        private var ended = false
+        private var answered = false   // the X program was told (all of it, or "pieces follow")
+        private var wantsPiece = false // it took the last piece and waits for the next
+        private var wantsPieceAfterLast = false // the closing empty piece was sent
+        private var finished = false
+        private var timeout: EventLoop.Timer? = null
+        private val reader: PipeReader
 
-    private fun dropSending(transfer: Sending) {
-        transfer.timeout?.cancel()
-        sending -= transfer
-    }
-
-    /** An X window was destroyed: what was being handed to it is dropped. */
-    fun windowGone(id: Int) {
-        sending.filter { it.requestor == id }.forEach(::dropSending)
-    }
-
-    // Reads what the Wayland program sends as [mime] through a pipe (without blocking), then calls [done].
-    private fun readFromWayland(data: ClipboardData, mime: String, done: (ByteArray?) -> Unit) {
-        val (readEnd, writeEnd) = Fd.pipe()
-        readEnd.setNonBlocking()
-        data.send(mime, writeEnd)
-        val bytes = ByteArrayOutputStream()
-        var finished = false
-        fun finish(result: ByteArray?) {
-            if (finished) return
-            finished = true
-            loop.remove(readEnd)
-            readEnd.close()
-            done(result)
+        init {
+            val (readEnd, writeEnd) = Fd.pipe()
+            reader = PipeReader(readEnd, ::arrived, ::ended)
+            data.send(mime, writeEnd)
+            progressed()
         }
-        val timeout = loop.after(TIMEOUT_MILLIS) {
-            log.warn("The copying program did not send its clipboard in time")
-            finish(null)
-        }
-        loop.add(readEnd) {
-            val buffer = Arena.ofConfined()
-            try {
-                val chunk = buffer.allocate(PIECE.toLong())
-                while (true) {
-                    val n = try {
-                        readEnd.read(chunk)
-                    } catch (e: NativeException) {
-                        if (e.errno == Errno.EAGAIN) break
-                        if (e.errno == Errno.EINTR) continue
-                        throw e
-                    }
-                    if (n == 0L) {
-                        timeout.cancel()
-                        finish(bytes.toByteArray())
-                        break
-                    }
-                    bytes.write(chunk.asSlice(0, n).toArray(JAVA_BYTE))
-                    if (bytes.size() > MAX_SIZE) {
-                        timeout.cancel()
-                        log.warn("The clipboard is too large for X11 programs (over ${MAX_SIZE / 1_000_000} MB)")
-                        finish(null)
-                        break
-                    }
-                }
-            } catch (e: Exception) {
-                timeout.cancel()
-                log.warn("Reading the clipboard failed", e)
-                finish(null)
-            } finally {
-                buffer.close()
+
+        private fun arrived(bytes: ByteArray) {
+            pieces += bytes
+            held += bytes.size
+            progressed()
+            when {
+                !answered && held > MAX_PROPERTY -> beginPieces()
+                answered && wantsPiece -> sendPiece()
             }
+            if (held > MAX_HELD) reader.pause() // the X program is slower: the copying side waits
+        }
+
+        private fun ended(ok: Boolean) {
+            if (!ok) return stop("the copying program failed")
+            ended = true
+            if (!answered) {
+                // All of it fits in one answer.
+                x.setBytes(requestor, property, target, take(held))
+                answer(requestor, target, property, time)
+                finish()
+            } else if (wantsPiece) {
+                sendPiece()
+            }
+        }
+
+        // Too big for one answer: say "pieces follow" (and roughly how much); the X program
+        // deletes the property to ask for the first.
+        private fun beginPieces() {
+            if (!hearsPropertiesOf(requestor)) {
+                x.changeAttributes(requestor, Xcb.XCB_CW_EVENT_MASK(), intArrayOf(Xcb.XCB_EVENT_MASK_PROPERTY_CHANGE()))
+            }
+            x.setProperty(requestor, property, incr, intArrayOf(held))
+            answered = true
+            answer(requestor, target, property, time)
+        }
+
+        fun requestorTookPiece() {
+            if (finished) return
+            if (ended && pieces.isEmpty() && wantsPieceAfterLast) return finish() // it took the closing empty piece
+            wantsPiece = true
+            sendPiece()
+        }
+
+        private fun sendPiece() {
+            if (pieces.isEmpty() && !ended) return // the next comes when the copying side sends it
+            val piece = take(minOf(PIECE, held))
+            x.setBytes(requestor, property, target, piece)
+            x.flush()
+            wantsPiece = false
+            progressed()
+            if (piece.isEmpty()) wantsPieceAfterLast = true // the empty piece says "that was all"
+            if (held < MAX_HELD / 2) reader.resume()
+        }
+
+        // The first [count] bytes held, as one array.
+        private fun take(count: Int): ByteArray {
+            val result = ByteArray(count)
+            var at = 0
+            while (at < count) {
+                val first = pieces.removeFirst()
+                val used = minOf(first.size, count - at)
+                System.arraycopy(first, 0, result, at, used)
+                if (used < first.size) pieces.addFirst(first.copyOfRange(used, first.size))
+                at += used
+            }
+            held -= count
+            return result
+        }
+
+        // Neither side may stall it forever.
+        private fun progressed() {
+            timeout?.cancel()
+            timeout = loop.after(TIMEOUT_MILLIS) { stop("no progress for ${TIMEOUT_MILLIS / 1000} seconds") }
+        }
+
+        fun stop(why: String) {
+            if (finished) return
+            log.trace { "A paste into an X11 program stopped: $why" }
+            if (!answered) answer(requestor, target, XConnection.NONE, time)
+            finish()
+        }
+
+        private fun finish() {
+            finished = true
+            timeout?.cancel()
+            reader.close()
+            pieces.clear()
+            sending -= this
         }
     }
 
@@ -260,6 +269,8 @@ internal class XClipboard(
 
     /** On the Wayland clipboard: what an X program copied (the data is asked for when pasted). */
     private inner class FromX(override val mimeTypes: List<String>, val atomOf: Map<String, Int>) : ClipboardData {
+        val server: XClipboard get() = this@XClipboard
+
         override fun send(mimeType: String, fd: Fd) {
             val target = atomOf[mimeType]
             if (target == null || closed) {
@@ -282,19 +293,12 @@ internal class XClipboard(
         }
         if (owner == XConnection.NONE) {
             // The X program that had it quit: its clipboard is gone.
-            if (clipboard?.clipboard is FromX) clipboard.setClipboard(null)
+            if (isOurs(clipboard?.clipboard)) clipboard?.setClipboard(null)
             return
         }
         // An X program copied: what can it give?
         x.convertSelection(window, selection, targets, targetsProperty, xcb_xfixes_selection_notify_event_t.selection_timestamp(event))
         x.flush()
-    }
-
-    // A paste by a Wayland program, served by the X owner; one at a time (they share our property).
-    private class Receiving(val target: Int, val fd: Fd) {
-        val bytes = ByteArrayOutputStream()
-        var incremental = false
-        var timeout: EventLoop.Timer? = null
     }
 
     private val queue = ArrayDeque<Receiving>()
@@ -303,17 +307,79 @@ internal class XClipboard(
     private fun receiveNext() {
         val next = queue.removeFirstOrNull() ?: return
         receiving = next
-        x.convertSelection(window, selection, next.target, dataProperty)
-        x.flush()
-        waitForPiece(next)
+        next.ask()
     }
 
-    // The time limit is for each piece: a large clipboard may take long, a stuck one not.
-    private fun waitForPiece(transfer: Receiving) {
-        transfer.timeout?.cancel()
-        transfer.timeout = loop.after(TIMEOUT_MILLIS) {
-            log.warn("The X11 program did not send its clipboard in time")
-            received(transfer, ok = false)
+    /**
+     * One Wayland program's paste of an X program's clipboard, served by the X owner; one at
+     * a time (they share our property). Each piece goes on into the pipe as it comes; the
+     * next is asked for (by deleting the property) once the pipe took most of it.
+     */
+    private inner class Receiving(val target: Int, fd: Fd) {
+        var incremental = false
+        private val writer = PipeWriter(fd)
+        private var timeout: EventLoop.Timer? = null
+        private var waitingToAsk = false
+
+        fun ask() {
+            x.convertSelection(window, selection, target, dataProperty)
+            x.flush()
+            progressed()
+        }
+
+        fun answered(property: Int) {
+            if (property == XConnection.NONE) return done(ok = false)
+            val value = x.property(window, dataProperty, maxBytes = MAX_READ, delete = true) ?: return done(ok = false)
+            if (value.type == incr) {
+                incremental = true // the pieces follow, each as a new value of the property
+                progressed()
+            } else {
+                writer.write(value.bytes)
+                done(ok = true)
+            }
+        }
+
+        fun nextPiece() {
+            val value = x.property(window, dataProperty, maxBytes = MAX_READ) ?: return
+            progressed()
+            if (value.bytes.isEmpty()) {
+                x.deleteProperty(window, dataProperty)
+                x.flush()
+                return done(ok = true) // the empty piece: all came
+            }
+            writer.write(value.bytes)
+            // The next piece only once the pasting program keeps up.
+            if (writer.queued < MAX_HELD) askForMore() else {
+                waitingToAsk = true
+                writer.onDrained = { if (waitingToAsk) askForMore() }
+            }
+        }
+
+        private fun askForMore() {
+            waitingToAsk = false
+            x.deleteProperty(window, dataProperty)
+            x.flush()
+        }
+
+        private fun progressed() {
+            timeout?.cancel()
+            timeout = loop.after(TIMEOUT_MILLIS) {
+                log.warn("The X11 program did not send its clipboard in time")
+                done(ok = false)
+            }
+        }
+
+        fun done(ok: Boolean) {
+            if (receiving !== this) return
+            timeout?.cancel()
+            receiving = null
+            if (ok) writer.finish() else writer.close()
+            receiveNext()
+        }
+
+        fun abandon() {
+            timeout?.cancel()
+            writer.close()
         }
     }
 
@@ -322,35 +388,8 @@ internal class XClipboard(
         val property = xcb_selection_notify_event_t.property(event)
         when (xcb_selection_notify_event_t.target(event)) {
             targets -> if (property != XConnection.NONE) offerFromX()
-            else -> {
-                val transfer = receiving ?: return
-                if (property == XConnection.NONE) return received(transfer, ok = false)
-                val value = x.property(window, dataProperty, maxBytes = MAX_SIZE, delete = true) ?: return received(transfer, ok = false)
-                if (value.type == incr) {
-                    transfer.incremental = true // the pieces follow, each as a new value of the property
-                } else {
-                    transfer.bytes.write(value.bytes)
-                    received(transfer, ok = true)
-                }
-            }
+            else -> receiving?.answered(property)
         }
-    }
-
-    private fun nextPiece(transfer: Receiving) {
-        val value = x.property(window, dataProperty, maxBytes = MAX_SIZE, delete = true) ?: return
-        x.flush()
-        if (value.bytes.isEmpty()) return received(transfer, ok = true) // the empty piece: all came
-        transfer.bytes.write(value.bytes)
-        waitForPiece(transfer)
-        if (transfer.bytes.size() > MAX_SIZE) received(transfer, ok = false)
-    }
-
-    private fun received(transfer: Receiving, ok: Boolean) {
-        if (receiving !== transfer) return
-        transfer.timeout?.cancel()
-        receiving = null
-        if (ok) writeToWayland(transfer.fd, transfer.bytes.toByteArray()) else transfer.fd.close()
-        receiveNext()
     }
 
     // The X program's formats (TARGETS) became the Wayland clipboard.
@@ -374,45 +413,143 @@ internal class XClipboard(
         clipboard?.setClipboard(FromX(atomOf.keys.toList(), atomOf))
     }
 
-    // Writes [bytes] into the pasting program's pipe as it takes them, then closes it.
-    private fun writeToWayland(fd: Fd, bytes: ByteArray) {
-        try {
+    // ==== pipes, without ever blocking the compositor =========================================
+
+    /** Reads a pipe as data comes; [pause] stops reading for a while (the other side is slower). */
+    private inner class PipeReader(private val fd: Fd, private val data: (ByteArray) -> Unit, private val end: (ok: Boolean) -> Unit) {
+        private var paused = false
+        private var done = false
+
+        init {
             fd.setNonBlocking()
-        } catch (e: Exception) {
-            fd.close()
-            return
+            loop.add(fd) { readSome() }
         }
-        var offset = 0
-        val memory = Arena.ofShared()
-        val data = memory.allocate(maxOf(1, bytes.size).toLong()).also { MemorySegment.copy(bytes, 0, it, JAVA_BYTE, 0, bytes.size) }
-        fun close() {
-            if (!fd.isOpen) return
-            loop.remove(fd)
-            fd.close()
-            memory.close()
-        }
-        fun writeSome(): Boolean {
-            while (offset < bytes.size) {
+
+        private fun readSome() = Arena.ofConfined().use { arena ->
+            val buffer = arena.allocate(PIECE.toLong())
+            while (!paused && !done) {
                 val n = try {
-                    fd.write(data.asSlice(offset.toLong(), (bytes.size - offset).toLong()))
+                    fd.read(buffer)
                 } catch (e: NativeException) {
-                    if (e.errno == Errno.EAGAIN) return false
                     if (e.errno == Errno.EINTR) continue
-                    log.trace { "The pasting program stopped reading: ${e.message}" }
-                    offset = bytes.size
-                    break
+                    if (e.errno == Errno.EAGAIN) return@use
+                    return@use finish(ok = false)
                 }
-                offset += n.toInt()
+                if (n == 0L) return@use finish(ok = true)
+                data(buffer.asSlice(0, n).toArray(JAVA_BYTE))
             }
-            return true
         }
-        if (writeSome()) {
-            memory.close()
+
+        // Not watched at all while paused (a closed pipe would else wake the loop again and again).
+        fun pause() {
+            if (paused || done) return
+            paused = true
+            loop.remove(fd)
+        }
+
+        fun resume() {
+            if (!paused || done) return
+            paused = false
+            loop.add(fd) { readSome() }
+            readSome()
+        }
+
+        private fun finish(ok: Boolean) {
+            if (done) return
+            close()
+            end(ok)
+        }
+
+        fun close() {
+            if (done) return
+            done = true
+            if (!paused) loop.remove(fd)
             fd.close()
-            return
         }
-        loop.add(fd, read = false, write = true) { if (writeSome()) close() }
-        loop.after(WRITE_TIMEOUT_MILLIS) { close() } // a program that never reads
+    }
+
+    /** Writes into a pipe as fast as the reader takes it; [finish] closes it once all is written. */
+    private inner class PipeWriter(private val fd: Fd) {
+        private val pending = ArrayDeque<ByteArray>()
+        private var offset = 0 // into the first pending array
+        private var watching = false
+        private var finishing = false
+        private var timeout: EventLoop.Timer? = null
+
+        /** Bytes not written yet. */
+        var queued = 0
+            private set
+
+        /** Called each time everything queued was written. */
+        var onDrained: (() -> Unit)? = null
+
+        init {
+            runCatching { fd.setNonBlocking() }.onFailure { close() }
+        }
+
+        fun write(bytes: ByteArray) {
+            if (!fd.isOpen || bytes.isEmpty()) return
+            pending += bytes
+            queued += bytes.size
+            flush()
+        }
+
+        fun finish() {
+            finishing = true
+            flush()
+        }
+
+        private fun flush() {
+            if (!fd.isOpen) return
+            Arena.ofConfined().use { arena ->
+                while (pending.isNotEmpty()) {
+                    val head = pending.first()
+                    val chunk = arena.allocate((head.size - offset).toLong())
+                    MemorySegment.copy(head, offset, chunk, JAVA_BYTE, 0, head.size - offset)
+                    val n = try {
+                        fd.write(chunk)
+                    } catch (e: NativeException) {
+                        if (e.errno == Errno.EINTR) continue
+                        if (e.errno == Errno.EAGAIN) return@use waitForRoom()
+                        log.trace { "The pasting program stopped reading: ${e.message}" }
+                        return@use close()
+                    }
+                    offset += n.toInt()
+                    queued -= n.toInt()
+                    if (offset == head.size) {
+                        pending.removeFirst()
+                        offset = 0
+                    }
+                }
+                if (watching) {
+                    loop.remove(fd)
+                    watching = false
+                }
+                timeout?.cancel()
+                onDrained?.invoke()
+                if (finishing) close()
+            }
+        }
+
+        // The pipe is full: go on when it has room (a program that never reads is given up on).
+        private fun waitForRoom() {
+            if (!watching) {
+                watching = true
+                loop.add(fd, read = false, write = true) { flush() }
+            }
+            timeout?.cancel()
+            timeout = loop.after(WRITE_TIMEOUT_MILLIS) { close() }
+        }
+
+        fun close() {
+            timeout?.cancel()
+            if (!fd.isOpen) return
+            if (watching) loop.remove(fd)
+            watching = false
+            fd.close()
+            pending.clear()
+            queued = 0
+        }
     }
 
     // ==== formats ============================================================================
@@ -436,20 +573,33 @@ internal class XClipboard(
         closed = true
         listening?.close()
         // What an X program copied cannot be pasted once Xwayland is gone.
-        if (clipboard?.clipboard is FromX) clipboard.setClipboard(null)
-        for (transfer in queue) transfer.fd.close()
+        if (isOurs(clipboard?.clipboard)) clipboard?.setClipboard(null)
+        for (transfer in queue) transfer.abandon()
         queue.clear()
-        receiving?.let { it.timeout?.cancel(); it.fd.close() }
+        receiving?.abandon()
         receiving = null
-        sending.toList().forEach(::dropSending)
+        sending.toList().forEach { it.stop("the clipboard closed") }
         offered = null
+    }
+
+    // Last in the class: it uses the state declared above (initialized by now).
+    init {
+        x.changeAttributes(window, Xcb.XCB_CW_EVENT_MASK(), intArrayOf(Xcb.XCB_EVENT_MASK_PROPERTY_CHANGE()))
+        if (clipboard != null) {
+            x.watchSelection(window, selection)
+            listening = clipboard.onClipboardChanged(::waylandCopied)
+            clipboard.clipboard?.let(::waylandCopied)
+        }
     }
 
     private companion object {
         // One property per request stays well below X's request size limit; more goes in pieces.
         const val MAX_PROPERTY = 256 * 1024 - 1024
         const val PIECE = 64 * 1024
-        const val MAX_SIZE = 64 * 1024 * 1024
+        // At most this much is held for a slower side before the faster one is made to wait.
+        const val MAX_HELD = 4 * PIECE
+        // The largest single answer an X program may give (with BIG-REQUESTS).
+        const val MAX_READ = 1 shl 28
         const val TIMEOUT_MILLIS = 5000L
         const val WRITE_TIMEOUT_MILLIS = 60_000L
         val TEXT_TYPES = listOf("text/plain;charset=utf-8", "UTF8_STRING", "text/plain", "STRING", "TEXT")

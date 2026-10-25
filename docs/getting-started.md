@@ -338,7 +338,9 @@ Everything gets bigger by that much, and stays sharp: programs are told the scal
 at exactly that size (foot, GTK 4, Qt 6, Firefox, Chromium do; older ones draw at the next
 whole scale and are shrunk a little). The cursor is loaded in its scaled size, windows tile
 without gaps or overlaps at any fraction, and screenshots have the screen's full
-resolution. The scale can be changed while running.
+resolution. The scale can be changed while running: the old picture melts into the new
+one in a quarter of a second while programs draw themselves anew — nothing jumps, and no
+program is restarted or loses anything.
 
 ## 12. X11 programs
 
@@ -358,6 +360,20 @@ pixels, and programs are told the real DPI (`Xft.dpi`) and cursor size, so progr
 scale their text and drawing (GTK, Qt, Electron, xterm with `-fa`) are as big and as sharp
 as Wayland ones, and the cursor changes over them as it should. Very old programs with
 fixed bitmap fonts stay at their pixel size — they cannot be told otherwise.
+
+**Java programs** (Swing, AWT — most Java desktop programs) can only draw at whole scales.
+On a fractional scale they get an Xwayland of their own: they draw at the next whole scale
+(2 for 1.5) and are shown at exactly yours — made smaller, so sharp, the same size as
+everything else, every part clickable and their menus where they belong. Nothing to set up:
+the compositor knows a Java program when it connects. (IntelliJ and other JetBrains IDEs can
+also run on Wayland directly: `-Dawt.toolkit.name=WLToolkit` in their VM options.)
+`sharpJavaScaling = false` puts them with the other X11 programs instead, at the nearest whole
+scale.
+
+**Changing the scale while X11 programs run:** X11 programs learn the scale only when they
+start, so the ones running keep theirs and are shown at the right size — sharp when the
+scale goes down, a little soft when it goes up, until you start them again. X11 programs
+started after the change draw at the new scale exactly.
 
 **Wayland first.** Programs the compositor starts (`launch`, keys, `onStart`, and what you
 start from its terminals) are asked to use Wayland when they can do both — GTK, Qt,
@@ -380,9 +396,7 @@ waylandFirst = false                    // no hints; programs choose for themsel
 What you set yourself before starting the compositor (e.g. `QT_QPA_PLATFORM`) is kept.
 Some programs need a flag instead: Chromium and apps on Electron older than 28 take
 `--ozone-platform-hint=auto`, Spotify `--enable-features=UseOzonePlatform --ozone-platform=wayland`. SDL 2 games run through X11, which works well;
-`SDL_VIDEODRIVER=wayland` before the command makes those that can use Wayland. Java programs
-(Swing) run through X11 and are scaled in whole steps (1.5 → 2); for an exact size give
-them `-Dsun.java2d.uiScale=1.5`.
+`SDL_VIDEODRIVER=wayland` before the command makes those that can use Wayland.
 
 Don't want X11 at all:
 

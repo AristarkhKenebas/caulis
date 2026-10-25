@@ -41,11 +41,62 @@ class Desktop(
         set(value) {
             require(value in 0.5..4.0) { "a scale must be between 0.5 and 4, not $value" }
             if (value == field) return
+            fadeFromNow() // the old picture melts into the new one instead of jumping
             field = value
             compositor.outputScale = value
             fitToScreen()
             cursorChanged()
         }
+
+    // --- a scale change: the last frame melts into the new layout -------------------------
+
+    // The picture shown before the change, and when it began to fade.
+    private var fade: Pair<GpuTexture, Long>? = null
+    private var fadeAlpha = 1f
+
+    // Takes the picture on screen now (as a screenshot does); it fades out over the new scale,
+    // while programs draw themselves anew underneath. Without animations: no fade.
+    private fun fadeFromNow() {
+        if (animationMillis <= 0 || views.isEmpty() || pixelWidth <= 0 || pixelHeight <= 0) return
+        fade?.first?.close()
+        fade = null
+        try {
+            renderer.createTarget(pixelWidth, pixelHeight).use { target ->
+                val view = createView()
+                try {
+                    render(view, target, age = 0)
+                } finally {
+                    removeView(view)
+                }
+                java.lang.foreign.Arena.ofConfined().use { arena ->
+                    val pixels = arena.allocate(pixelWidth.toLong() * pixelHeight * 4)
+                    target.readPixels(pixels, pixelWidth * 4)
+                    val texture = renderer.createTexture(pixelWidth, pixelHeight)
+                    texture.upload(pixels, 0, pixelHeight)
+                    fade = texture to System.nanoTime()
+                    fadeAlpha = 1f
+                }
+            }
+        } catch (e: Exception) {
+            renderLog.warn("The picture before the scale change could not be kept (it changes without fading)", e)
+        }
+        version++
+        onChange()
+    }
+
+    // True while fading: each frame is more of the new one.
+    private fun fading(): Boolean {
+        val (texture, since) = fade ?: return false
+        val t = (System.nanoTime() - since) / 1_000_000.0 / SCALE_FADE_MILLIS
+        if (t >= 1.0) {
+            texture.close()
+            fade = null
+            version++
+            return false
+        }
+        fadeAlpha = (1 - t * t * (3 - 2 * t)).toFloat() // smooth at both ends
+        return true
+    }
 
     /** The screen's size in pixels (the desktop is this divided by [scale]). */
     var pixelWidth = width
@@ -272,8 +323,9 @@ class Desktop(
      * opened or closed, its title, the focus, minimized, maximized, fullscreen. Many changes
      * at once (a whole batch from the programs) are one call, at the end of the batch.
      */
-    fun onWindowListChanged(listener: () -> Unit) {
+    fun onWindowListChanged(listener: () -> Unit): AutoCloseable {
         windowListListeners += listener
+        return AutoCloseable { windowListListeners -= listener }
     }
 
     private fun windowListChanged() {
@@ -339,24 +391,28 @@ class Desktop(
     private val focusListeners = ArrayList<(Window?) -> Unit>()
     private val workspaceListeners = ArrayList<(Workspace) -> Unit>()
 
-    /** Runs [listener] when a window appears (after it got its place and the focus). */
-    fun onWindowOpened(listener: (Window) -> Unit) {
+    /** Runs [listener] when a window appears (after it got its place and the focus). Close the result to stop. */
+    fun onWindowOpened(listener: (Window) -> Unit): AutoCloseable {
         windowOpenedListeners += listener
+        return AutoCloseable { windowOpenedListeners -= listener }
     }
 
-    /** Runs [listener] when a window goes away. */
-    fun onWindowClosed(listener: (Window) -> Unit) {
+    /** Runs [listener] when a window goes away. Close the result to stop. */
+    fun onWindowClosed(listener: (Window) -> Unit): AutoCloseable {
         windowClosedListeners += listener
+        return AutoCloseable { windowClosedListeners -= listener }
     }
 
-    /** Runs [listener] when another window gets the keyboard (null = none). */
-    fun onFocusChanged(listener: (Window?) -> Unit) {
+    /** Runs [listener] when another window gets the keyboard (null = none). Close the result to stop. */
+    fun onFocusChanged(listener: (Window?) -> Unit): AutoCloseable {
         focusListeners += listener
+        return AutoCloseable { focusListeners -= listener }
     }
 
-    /** Runs [listener] when another workspace is shown. */
-    fun onWorkspaceChanged(listener: (Workspace) -> Unit) {
+    /** Runs [listener] when another workspace is shown. Close the result to stop. */
+    fun onWorkspaceChanged(listener: (Workspace) -> Unit): AutoCloseable {
         workspaceListeners += listener
+        return AutoCloseable { workspaceListeners -= listener }
     }
 
     // Calls listeners one by one; a mistake in one of them is reported and the rest go on
@@ -2095,7 +2151,7 @@ class Desktop(
          */
         presentDirect: ((DmabufBuffer) -> Boolean)? = null,
     ): Boolean {
-        if (glides.isNotEmpty() || cameraMoving(System.nanoTime())) {
+        if (glides.isNotEmpty() || cameraMoving(System.nanoTime()) || fading()) {
             // Windows are gliding (or the overview zooms): the scene changes every frame until done.
             version++
             onChange()
@@ -2173,7 +2229,7 @@ class Desktop(
                 is DrawItem.Shadow -> renderer.drawShadow(p(item.box), item.radius * s, item.softness * s, item.color, p(item.cutOut), item.cutOutRadius * s)
                 is DrawItem.Border -> renderer.drawRoundedRect(r, item.radius * s, item.color, item.width * s)
                 is DrawItem.Blur -> renderer.drawBlur(r, item.radius * s, Math.round(item.size * s).coerceAtLeast(1), item.passes)
-                is DrawItem.Image -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, opaque = false, clip = item.clip?.let(::p), cornerRadius = item.radius * s)
+                is DrawItem.Image -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, opaque = false, alpha = item.alpha, clip = item.clip?.let(::p), cornerRadius = item.radius * s)
             }
         }
     }
@@ -2261,6 +2317,8 @@ class Desktop(
         all += scene
         visible.clear()
         visible += sceneVisible
+        // The frame before a scale change, fading out over the new one (the cursor stays above).
+        fade?.let { (texture, _) -> all += DrawItem.Image(FADE_KEY, texture, Rect(0, 0, width, height), alpha = fadeAlpha) }
         val cursorStart = all.size
         itemsCursorStart = cursorStart
         addCursor(all)
@@ -2610,6 +2668,8 @@ class Desktop(
 
     private companion object {
         val BACKGROUND = floatArrayOf(0.16f, 0.18f, 0.22f)
+        const val FADE_KEY = "the frame before the scale change"
+        const val SCALE_FADE_MILLIS = 250.0
         const val CURSOR_BORDER = "cursor border"
         const val CURSOR_FILL = "cursor fill"
         const val LOCK_BACKGROUND = "lock background"

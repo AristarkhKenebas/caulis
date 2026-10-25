@@ -39,7 +39,10 @@ class TestClipboard(private val client: TestClient) {
         val source = manager.createDataSource()
         source.offer(mimeType)
         source.events = object : WlDataSource.Events {
-            override fun send(proxy: WlDataSource, mimeType: String, fd: Fd) = fd.use { writeAll(it, data) }
+            // On its own thread, as programs do: the paste may be taken only as fast as it is read.
+            override fun send(proxy: WlDataSource, mimeType: String, fd: Fd) {
+                Thread { fd.use { runCatching { writeAll(it, data) } } }.start()
+            }
         }
         device.setSelection(source, 0)
         client.connection.roundtrip()

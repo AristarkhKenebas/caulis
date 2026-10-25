@@ -17,6 +17,8 @@ class LauncherTest {
     private val dir: Path = Files.createTempDirectory("caulis-launch")
     private val thread = Executors.newSingleThreadExecutor()
     private var x11Programs = emptySet<String>()
+    private var scale = 1.0
+    private var sharp = false
     private val launcher = Launcher(
         environment = { env ->
             env["WAYLAND_DISPLAY"] = "wayland-test"
@@ -24,7 +26,7 @@ class LauncherTest {
         },
         x11Available = { true },
         post = { task -> thread.execute(task) },
-        settings = { Launcher.Settings(waylandFirst = true, x11Programs = x11Programs) },
+        settings = { Launcher.Settings(waylandFirst = true, x11Programs = x11Programs, scale = scale, sharpWholeScales = sharp) },
     )
 
     @AfterTest
@@ -38,7 +40,7 @@ class LauncherTest {
         val script = dir.resolve(name)
         Files.writeString(script, """
             #!/bin/sh
-            echo "start WAYLAND_DISPLAY=${'$'}{WAYLAND_DISPLAY:-} GDK_BACKEND=${'$'}{GDK_BACKEND:-} QT_QPA_PLATFORM=${'$'}{QT_QPA_PLATFORM:-} DISPLAY=${'$'}{DISPLAY:-}" >> "$dir/$name.log"
+            echo "start WAYLAND_DISPLAY=${'$'}{WAYLAND_DISPLAY:-} GDK_BACKEND=${'$'}{GDK_BACKEND:-} QT_QPA_PLATFORM=${'$'}{QT_QPA_PLATFORM:-} DISPLAY=${'$'}{DISPLAY:-} J2D_UISCALE=${'$'}{J2D_UISCALE:-} JDK_JAVA_OPTIONS=${'$'}{JDK_JAVA_OPTIONS:-}|" >> "$dir/$name.log"
             echo ${'$'}${'$'} > "$dir/$name.pid"
             $then
         """.trimIndent())
@@ -111,6 +113,20 @@ class LauncherTest {
         } finally {
             Log.listener = null
         }
+    }
+
+    @Test
+    fun `Java is told the nearest whole scale (it has no other on X11)`() {
+        scale = 1.5
+        launch(program("app", "exit 0"))
+        waitFor { starts("app").isNotEmpty() }
+        assertTrue("J2D_UISCALE=2 " in starts("app").single(), starts("app").single())
+        // With an X server of its own it draws at the next whole scale up, to be shown smaller (sharp).
+        scale = 1.25
+        sharp = true
+        launch(program("sharp", "exit 0"))
+        waitFor { starts("sharp").isNotEmpty() }
+        assertTrue("J2D_UISCALE=2 " in starts("sharp").single(), starts("sharp").single())
     }
 
     @Test
