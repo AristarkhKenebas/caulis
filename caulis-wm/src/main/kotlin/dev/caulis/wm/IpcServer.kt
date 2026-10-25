@@ -27,7 +27,6 @@ import java.lang.foreign.MemorySegment
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
-import java.util.IdentityHashMap
 import dev.caulis.core.Monitor as DesktopMonitor
 import dev.caulis.core.Window as DesktopWindow
 import dev.caulis.geometry.Rect as DesktopRect
@@ -49,17 +48,12 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
     private val connections = ArrayList<Connection>()
     private val ownUid = Files.getAttribute(Path.of("/proc/self"), "unix:uid") as Int
 
-    // Window ids: the same while a window is open, never used again.
-    private val ids = IdentityHashMap<DesktopWindow, Long>()
-    private val byId = HashMap<Long, DesktopWindow>()
-    private var nextId = 1L
 
     init {
         Files.deleteIfExists(path)
         listener = UnixListener.listen(path)
         Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------"))
         loop.add(listener.fd) { accept() }
-        desktop.onWindowClosed { window -> ids.remove(window)?.let(byId::remove) }
         // Anything that may change what subscribers see: compare once, at the end of the batch.
         desktop.onWindowOpened { changed() }
         desktop.onWindowClosed { changed() }
@@ -224,7 +218,7 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
         if (desktop.locked && text.trim().substringBefore(' ').lowercase() !in WHILE_LOCKED) {
             return "the screen is locked (only ${WHILE_LOCKED.joinToString()} then)"
         }
-        val window = if (windowId == 0L) null else byId[windowId] ?: return "there is no window $windowId"
+        val window = if (windowId == 0L) null else running.windowIds.window(windowId) ?: return "there is no window $windowId"
         log.info { "Run \"$text\"${if (window != null) " on window $windowId" else ""}" }
         running.config.action(window)
         changed()
@@ -291,7 +285,7 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
 
     // --- what is on screen ---------------------------------------------------------------------
 
-    private fun idOf(window: DesktopWindow): Long = ids.getOrPut(window) { (nextId++).also { byId[it] = window } }
+    private fun idOf(window: DesktopWindow): Long = running.windowIds.of(window)
 
     private fun rect(r: DesktopRect) = RectMessage.newBuilder().setX(r.x).setY(r.y).setWidth(r.width).setHeight(r.height).build()
 

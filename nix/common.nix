@@ -41,6 +41,35 @@ rec {
       '';
     };
 
+    lua = lib.mkOption {
+      type = lib.types.nullOr lib.types.lines;
+      default = null;
+      example = ''
+        caulis.bind("Super+B", function() caulis.run("exec firefox") end)
+        caulis.on("window-opened", function(w)
+          if w.appId == "music" then caulis.run("move-to-workspace 2", w.id) end
+        end)
+      '';
+      description = ''
+        config.lua: keys, rules and events as Lua functions (on top of `settings`). The
+        compositor needs the caulis-lua module; it checks the file while building.
+      '';
+    };
+
+    kotlinScript = lib.mkOption {
+      type = lib.types.nullOr lib.types.lines;
+      default = null;
+      example = ''
+        layout = MasterStack(Gaps(inner = 8))
+        onWindowOpened { window -> if (window.appId == "music") run("move-to-workspace 2", window) }
+      '';
+      description = ''
+        config.kts: a Kotlin script, everything Main.kt can say (on top of `settings` and `lua`).
+        The compositor needs the caulis-script module; it compiles and checks the file while
+        building.
+      '';
+    };
+
     files = lib.mkOption {
       type = lib.types.attrsOf lib.types.path;
       default = { };
@@ -59,23 +88,30 @@ rec {
     else
       value;
 
-  configFile =
-    cfg:
-    let
-      json = (pkgs.formats.json { }).generate "config.json" (clean cfg.settings);
-    in
+  # [file] as it is, checked by the compositor itself while building (when it is known).
+  checked =
+    cfg: name: file:
     if cfg.package == null then
-      json
+      file
     else
-      pkgs.runCommand "config.json" { nativeBuildInputs = [ cfg.package ]; } ''
+      pkgs.runCommand name { nativeBuildInputs = [ cfg.package ]; } ''
         export HOME=$TMPDIR
-        ${lib.getExe cfg.package} --check-config ${json}
-        cp ${json} $out
+        mkdir check && cp ${file} check/${name}
+        ${lib.getExe cfg.package} --check-config check/${name}
+        cp ${file} $out
       '';
+
+  configFile = cfg: checked cfg "config.json" ((pkgs.formats.json { }).generate "config.json" (clean cfg.settings));
 
   # The folder's files: config.json and [files], by path inside the folder.
   folder =
     cfg:
     { "${cfg.configName}/config.json" = configFile cfg; }
+    // lib.optionalAttrs (cfg.lua != null) {
+      "${cfg.configName}/config.lua" = checked cfg "config.lua" (pkgs.writeText "config.lua" cfg.lua);
+    }
+    // lib.optionalAttrs (cfg.kotlinScript != null) {
+      "${cfg.configName}/config.kts" = checked cfg "config.kts" (pkgs.writeText "config.kts" cfg.kotlinScript);
+    }
     // lib.mapAttrs' (name: path: lib.nameValuePair "${cfg.configName}/${name}" path) cfg.files;
 }

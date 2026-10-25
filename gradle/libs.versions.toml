@@ -13,6 +13,8 @@ kotlin = "2.4.21"
 # caulis.proto is kept in the repository; protoc (no newer than this runtime) is only needed
 # to make it again: ./gradlew :caulis-ipc:generateProto
 protobuf = "4.36.2"
+# LuaJ: Lua 5.2 on the JVM, for config.lua (caulis-lua).
+luaj = "3.0.1"
 junit = "6.1.3"
 # Builds the API documentation website from the code comments.
 dokka = "2.2.0"
@@ -33,6 +35,11 @@ kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", 
 kotlin-build-tools-api = { module = "org.jetbrains.kotlin:kotlin-build-tools-api", version.ref = "kotlin" }
 kotlin-build-tools-impl = { module = "org.jetbrains.kotlin:kotlin-build-tools-impl", version.ref = "kotlin" }
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf" }
+luaj = { module = "org.luaj:luaj-jse", version.ref = "luaj" }
+# Kotlin scripting: config.kts without Gradle (caulis-script).
+kotlin-scripting-jvm-host = { module = "org.jetbrains.kotlin:kotlin-scripting-jvm-host", version.ref = "kotlin" }
+kotlin-scripting-jvm = { module = "org.jetbrains.kotlin:kotlin-scripting-jvm", version.ref = "kotlin" }
+kotlin-scripting-common = { module = "org.jetbrains.kotlin:kotlin-scripting-common", version.ref = "kotlin" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }

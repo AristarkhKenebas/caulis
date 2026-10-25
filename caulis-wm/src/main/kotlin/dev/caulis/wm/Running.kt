@@ -88,6 +88,9 @@ internal class Running(
     val seat = Seat(display, keymap)
     private val compositor = Compositor(display, renderer)
     val desktop = Desktop(renderer, seat, compositor, width, height)
+
+    /** Numbers for windows (the IPC socket, scripts). */
+    val windowIds = WindowIds(desktop)
     private val pointerGestures = PointerGestures(display, seat)
 
     /** Socket name programs connect to, e.g. "wayland-1". */
@@ -311,7 +314,11 @@ internal class Running(
     // config.json saved again: main() runs once more (in this program, as it is) and hands over
     // its configuration with the file on top; that one is taken on.
     private fun followConfigFile() {
-        val path = config.file("config.json")
+        for (name in listOf("config.json") + dev.caulis.wm.config.ConfigFile.languageFiles.keys) followConfigFile(config.file(name))
+    }
+
+    // Takes the configuration on again when [path] changes.
+    private fun followConfigFile(path: java.nio.file.Path) {
         dev.caulis.core.FileWatch.watch(path) {
             loop.post {
                 val next = try {
@@ -323,13 +330,13 @@ internal class Running(
                 }
                 if (next == null) {
                     // main() cannot be run again here: the file onto the configuration as it is.
-                    dev.caulis.wm.config.ConfigFile.applyTo(config)
+                    config.configProblems = dev.caulis.wm.config.ConfigFile.applyTo(config)
                     reconfigure(config)
                 } else {
                     reconfigure(next)
                 }
-                log.info { "config.json taken on" }
-                desktop.notify("config.json", NoticeLevel.INFO, "Configuration reloaded")
+                log.info { "${path.fileName} taken on" }
+                desktop.notify(path.fileName.toString(), NoticeLevel.INFO, "Configuration reloaded")
             }
         }
     }
@@ -376,6 +383,11 @@ internal class Running(
         }
         // (The same configuration when config.json was applied onto it: nothing to compare.)
         val same = before === next
+        // Timers of the configuration that goes: they belong to its code.
+        if (!same) {
+            before.timers.forEach { it.cancel() }
+            before.timers.clear()
+        }
         before.running = null
         next.running = this
         config = next
@@ -479,14 +491,14 @@ internal class Running(
     fun launch(command: String, x11: Boolean = false) = launcher.launch(command, x11)
 
     // Runs the user's code; a mistake in it is reported and the compositor keeps running.
-    private fun <T> safely(what: String, fallback: T, action: () -> T): T = try {
+    internal fun <T> safely(what: String, fallback: T, action: () -> T): T = try {
         action()
     } catch (e: Exception) {
         log.error("Your code for \"$what\" failed (ignored): $e", e)
         fallback
     }
 
-    private fun safely(what: String, action: () -> Unit) = safely(what, Unit, action)
+    internal fun safely(what: String, action: () -> Unit) = safely(what, Unit, action)
 
     /** A key from the keyboard: the compositor's combination, or passed to the focused program. */
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {

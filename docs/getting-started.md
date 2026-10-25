@@ -1062,6 +1062,104 @@ CaulisIpc.connect().use { ipc ->
   making the compositor keep everything for it.
 - Turn the socket off with `ipc = false`.
 
+## 26. Lua: config.lua
+
+For the people who use your compositor, `config.json` (step 23) says *what*; `config.lua`
+can also say *when* and *how* — functions on keys, on events, on timers. Add the module to
+your compositor:
+
+```kotlin
+implementation("dev.caulis:caulis-lua:0.1.0-SNAPSHOT")
+```
+
+Then it reads `~/.config/<configName>/config.lua` by itself (after `config.json`, on top of
+it). Everything goes through one table, `caulis`:
+
+```lua
+-- Everything config.json can say, with the same names and limits.
+caulis.settings {
+  layout = { name = "master-stack", gaps = { inner = 8, outer = 12 } },
+  keys = { quit = false },
+  effects = { preset = "modern", cornerRadius = 12 },
+}
+
+-- Keys: an action as text, or a function.
+caulis.bind("Super+B", "exec firefox")
+caulis.bind("Super+M", function()
+  for _, w in ipairs(caulis.state().windows) do
+    if w.appId == "mpv" then caulis.run("minimize", w.id) end
+  end
+end)
+
+-- Rules, as in config.json.
+caulis.rule { appId = "pavucontrol", floating = true, center = true }
+
+-- Events: start, reload, window-opened, window-closed, focus-changed, workspace-changed, notice.
+caulis.on("window-opened", function(w)
+  if w.appId == "music" then caulis.run("move-to-workspace 9", w.id) end
+end)
+caulis.on("start", function()
+  caulis.after(2000, function() caulis.notify("Welcome back") end)
+end)
+
+-- Your own files next to it: require("theme") is theme.lua there.
+```
+
+| `caulis.` | |
+|---|---|
+| `settings { ... }` | settings, as config.json |
+| `rule { ... }` | a window rule, as in config.json's `rules` |
+| `bind(keys, action)` | `action`: text (`"workspace 2"`) or a function |
+| `on(event, fn)` | `fn(window)` for window events (`nil` when no window has the focus), `fn(number)` for workspace-changed, `fn(text, level)` for notice |
+| `run(action [, id])` | runs an action, on the window with that id (else the focused one) |
+| `state()` | `{ windows = {...}, monitors = {...}, focused = id, workspace = n, locked = bool }` |
+| `after(ms, fn)` | runs `fn` once, later |
+| `notify(text [, level])` · `log(text)` · `file(name)` | a notice, a line in the log, a path in the folder |
+
+A window is a table: `id`, `appId`, `title`, `pid`, `workspace`, `monitor`, `focused`,
+`floating`, `maximized`, `fullscreen`, `minimized`, `x11`, `x`, `y`, `width`, `height`.
+
+Mistakes are reported with their line, and the rest still applies:
+`config.lua:12: terminl: there is no such setting (did you mean "terminal"?)`. A mistake in a
+function (a key, an event) shows a notice when it happens; the desktop goes on. Code that runs
+too long — a loop that never ends — is stopped (half a second for a key or an event). Saving
+the file takes it on at once; `my-compositor --check-config config.lua` checks it without
+starting.
+
+## 27. Kotlin without a project: config.kts
+
+Everything `Main.kt` can say — but in one file in the compositor's folder, with no Gradle and
+no project: the compositor compiles it itself. Add the module (it contains the Kotlin
+compiler, so it makes your compositor bigger):
+
+```kotlin
+implementation("dev.caulis:caulis-script:0.1.0-SNAPSHOT")
+```
+
+`~/.config/<configName>/config.kts` is then read after `config.json` and `config.lua`, as if
+inside `caulis { }`, with Caulis's packages already imported:
+
+```kotlin
+layout = MasterStack(Gaps(inner = 8), ratio = 0.6)
+effects = Effects.MODERN.copy(cornerRadius = 14)
+bind("Super+B") { launch("firefox") }
+rule { appId("mpv"); floating = true }
+onWindowOpened { window ->
+    if (window.appId == "music") run("move-to-workspace 9", window)
+}
+```
+
+The first start after a change compiles it (a few seconds); the compiled script is kept in
+`~/.cache/<configName>/config-kts`, so the next start is quick. Saving it while running takes
+it on, like the others. A mistake is reported with its line
+(`config.kts:2: Unresolved reference 'lyaout'`), and the compositor starts anyway.
+
+Which to choose? `Main.kt` is *your* compositor — what it is. The files are what *its users*
+change: `config.json` for settings, `config.lua` for a bit of behaviour, `config.kts` for
+everything. With Nix (step 24) all of them can be written in the same place:
+`programs.caulis.settings`, `programs.caulis.lua`, `programs.caulis.kotlinScript` — each
+checked by the compositor itself while building.
+
 ## When something goes wrong
 
 ### Look in the log

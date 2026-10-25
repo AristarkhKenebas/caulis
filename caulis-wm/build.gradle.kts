@@ -11,4 +11,6 @@ dependencies {
     api(project(":caulis-xwayland"))
     api(project(":caulis-ipc"))
     testImplementation(testFixtures(project(":caulis-core")))
+    // config.lua while running (LuaLiveTest).
+    testImplementation(project(":caulis-lua"))
 }

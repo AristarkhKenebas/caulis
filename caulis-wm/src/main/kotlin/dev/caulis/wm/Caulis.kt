@@ -771,7 +771,15 @@ class Caulis {
 
     // What is wrong in config.json (shown on screen once running).
     internal var configProblems: List<String> = emptyList()
-    internal var configAdded: dev.caulis.wm.config.Settings.Added? = null
+    // What configuration files (config.json, config.lua, ...) added to the lists below, so that
+    // applying them again replaces it instead of adding it twice.
+    internal var configAdded: List<Pair<MutableList<*>, List<Any?>>> = emptyList()
+
+    // The lists a configuration file can add to.
+    internal fun addableLists(): List<MutableList<*>> = listOf(
+        titleBarRules, noticeListeners, bindings, startActions, floatRules, effectRules, panelEffectRules,
+        scratchpads, swipes, windowOpened, windowClosed, focusChanged, workspaceChanged, reloadActions, rules,
+    )
 
     /** The window manager (workspaces, focus, layouts). Only while running. */
     val desktop: Desktop get() = checkNotNull(running) { "Caulis is not running yet" }.desktop
@@ -789,6 +797,42 @@ class Caulis {
     }
 
     fun openTerminal() = launch(terminal)
+
+    /**
+     * Runs [action] written as text, as in config.json's "bind" and on the IPC socket:
+     * `run("workspace 3")`, `run("exec firefox")`, `run("close", window)` — on [window], or the
+     * focused one (null). Throws IllegalArgumentException when it is not an action.
+     */
+    fun run(action: String, window: Window? = null) {
+        dev.caulis.wm.config.Actions.parseFor(action)(this, window)
+    }
+
+    // Timers started with [after] (cancelled when this configuration is replaced by a reload).
+    internal val timers = ArrayList<dev.caulis.event.EventLoop.Timer>()
+
+    /**
+     * Runs [action] once, [millis] from now, on the compositor's thread. Only while running;
+     * close the result to cancel it. A reload cancels the timers of the configuration before.
+     */
+    fun after(millis: Long, action: Caulis.() -> Unit): AutoCloseable {
+        val r = checkNotNull(running) { "Caulis is not running yet" }
+        lateinit var timer: dev.caulis.event.EventLoop.Timer
+        timer = r.loop.after(millis.coerceAtLeast(0)) {
+            timers -= timer
+            r.safely("a timer") { action(this) }
+        }
+        timers += timer
+        return AutoCloseable {
+            timer.cancel()
+            timers -= timer
+        }
+    }
+
+    /** [window]'s number: the same while it is open, never used again (programs know it by this). */
+    fun idOf(window: Window): Long = checkNotNull(running) { "Caulis is not running yet" }.windowIds.of(window)
+
+    /** The open window with the number [id] (see [idOf]), or null. */
+    fun windowWithId(id: Long): Window? = running?.windowIds?.window(id)
 
     /** Moves the focused window to the monitor beside its own in [direction]; false if there is none. */
     fun moveToMonitorBeside(direction: Direction): Boolean {

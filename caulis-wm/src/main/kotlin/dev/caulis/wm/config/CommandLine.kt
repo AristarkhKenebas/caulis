@@ -10,7 +10,8 @@ import java.nio.file.Path
  * What a compositor built with Caulis answers on the command line instead of starting:
  *
  * ```
- * my-compositor --check-config [file]     the file's mistakes (exit 1), or "ok" (exit 0)
+ * my-compositor --check-config [file]     the file's mistakes (exit 1), or "ok" (exit 0):
+ *                                         config.json, or config.lua / config.kts
  * my-compositor --print-json-schema       the JSON Schema of config.json (for editors)
  * my-compositor --print-nix-options       the Nix options of config.json (for the Nix module)
  *
@@ -29,7 +30,15 @@ object CommandLine {
         return when (arguments.firstOrNull()) {
             "--check-config" -> {
                 val path = arguments.getOrNull(1)?.let { Path.of(it) } ?: ConfigFile.location(caulis) ?: caulis.file("config.json")
-                val problems = ConfigFile.check(path)
+                val problems = when (val extension = path.fileName.toString().substringAfterLast('.', "")) {
+                    "json" -> ConfigFile.check(path)
+                    else -> {
+                        // config.lua, config.kts: run on a configuration of their own (nothing starts).
+                        val language = ConfigFile.languages.firstOrNull { it.fileName.substringAfterLast('.') == extension }
+                            ?: return usage("$path: this compositor cannot read .$extension files" + (ConfigFile.languageFiles["config.$extension"]?.let { " (it needs $it)" } ?: ""))
+                        language.apply(Caulis().apply { configName = caulis.configName; configDir = path.toAbsolutePath().parent }, path)
+                    }
+                }
                 if (problems.isEmpty()) {
                     println("$path: ok")
                     0
