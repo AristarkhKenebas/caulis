@@ -5,7 +5,8 @@ import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Gaps
 import dev.caulis.wm.caulis
 
-// Your compositor. Change anything, then run it again with ./gradlew run
+// Your compositor. Start it with ./gradlew run, then change anything and save:
+// the change is taken on while it runs (your windows stay).
 // The guide: docs/getting-started.md in the Caulis folder.
 fun main() = caulis {
     title = "My compositor"

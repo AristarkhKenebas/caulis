@@ -15,7 +15,9 @@ fun main() = caulis {
 ```
 
 It opens as a window when started inside a Wayland session, and takes the whole screen when
-started from a text console. The same in Java:
+started from a text console. Change the code while it runs: saved, compiled and taken on in
+seconds, windows stay where they are (a mistake leaves the old version running and says
+where it is). The same in Java:
 
 ```java
 Caulis.create()

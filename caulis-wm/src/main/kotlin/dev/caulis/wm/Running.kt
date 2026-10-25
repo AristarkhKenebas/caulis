@@ -33,20 +33,26 @@ import dev.caulis.protocol.Display
 import dev.caulis.render.GpuTarget
 import dev.caulis.render.Renderer
 import dev.caulis.tiling.Direction
+import dev.caulis.tiling.RememberingLayout
 
 /**
  * A running compositor, the same in every mode: the Wayland socket, the features offered
  * to programs, the window manager, keys and starting programs.
  */
 internal class Running(
-    private val config: Caulis,
+    initialConfig: Caulis,
     val loop: EventLoop,
     val renderer: Renderer,
     width: Int,
     height: Int,
     /** Null where switching text consoles is impossible (nested mode). */
-    switchConsole: ((Int) -> Unit)?,
+    private val switchConsole: ((Int) -> Unit)?,
 ) : AutoCloseable {
+
+    // The configuration: replaced by a new one when it is reloaded (see reconfigure). Everything
+    // reads it through here, so the user's code of the moment is what runs.
+    var config: Caulis = initialConfig
+        private set
 
     private val log = Logger("config")
     private val clientsLog = Logger("clients")
@@ -66,9 +72,15 @@ internal class Running(
                 else -> NoticeLevel.INFO
             }
             val text = entry.message + (entry.cause?.let { cause -> if (cause.toString() in entry.message) "" else " — $cause" } ?: "")
-            loop.post { desktop.notify(text, level) }
+            loop.post {
+                val notice = desktop.notify(text, level)
+                if (entry.area == "config") configNotices += notice
+            }
         }
     }
+
+    // Notices about mistakes in the configuration: a reloaded one says anew what is still wrong.
+    private val configNotices = ArrayList<dev.caulis.core.Notice>()
 
     val display = Display(loop)
     private val keymap = Keymap.fromNames(layouts = config.keyboardLayouts, options = config.keyboardOptions)
@@ -84,6 +96,12 @@ internal class Running(
 
     // The only keys of ours while the screen is locked; everything else goes to the locker.
     private val lockedKeys = KeyBindings()
+
+    // Takes on changed code while running (null when off or not started from a project).
+    private var reloader: Reloader? = null
+
+    // The user's event listeners of the configuration of the moment (replaced on a reload).
+    private val configListeners = ArrayList<AutoCloseable>()
 
     // Where a cursor theme that came with a library is put for programs that draw their own cursor.
     private var cursorFolder: java.nio.file.Path? = null
@@ -130,21 +148,12 @@ internal class Running(
         desktop.layout = config.layout
         socket = config.socketDirectory?.let(display::addSocket) ?: display.addSocket()
 
-        bindKeys()
-
-        // The user's rules and events (dialogs and fixed-size windows always float).
-        val defaultRule = desktop.floatRule
-        desktop.effects = config.effects
-        desktop.titleBars = config.titleBars
-        desktop.titleBarStyle = config.titleBarStyle
-        if (config.titleBarRules.isNotEmpty()) {
-            desktop.titleBarsFor = { window -> config.titleBarRules.firstNotNullOfOrNull { rule -> safely("titleBarsFor", null) { rule(window) } } }
-        }
-        desktop.noticeStyle = config.noticeStyle
-        config.noticeListeners.forEach { action -> desktop.onNotice { notice -> safely("onNotice") { action(config, notice) } } }
-        desktop.animationMillis = config.animationMillis
         desktop.scale = config.scale
         xwayland?.rescaled() // (made before the scale was set)
+
+        // The user's rules (dialogs and fixed-size windows always float); they ask the
+        // configuration of the moment, so they need no setting again after a reload.
+        val defaultRule = desktop.floatRule
         desktop.windowEffects = { window ->
             config.effectRules.fold(desktop.effects) { fx, rule -> safely("effectsFor", fx) { rule(window, fx) } }
         }
@@ -152,20 +161,50 @@ internal class Running(
             config.panelEffectRules.firstNotNullOfOrNull { rule -> safely("panelEffects", null) { rule(layer) } } ?: Effects.NONE
         }
         desktop.floatRule = { window -> defaultRule(window) || config.floatRules.any { rule -> safely("floatWhen", false) { rule(window) } } }
+        desktop.onWindowOpened { window -> launcher.windowOpened(window.pid) }
+        applyConfig()
+    }
+
+    // What of the configuration is handed over to the desktop, keys and events — at the
+    // start and again after each reload.
+    private fun applyConfig() {
+        val config = config
+        desktop.effects = config.effects
+        desktop.titleBars = config.titleBars
+        desktop.titleBarStyle = config.titleBarStyle
+        desktop.titleBarsFor = if (config.titleBarRules.isEmpty()) null else { window ->
+            config.titleBarRules.firstNotNullOfOrNull { rule -> safely("titleBarsFor", null) { rule(window) } }
+        }
+        desktop.noticeStyle = config.noticeStyle
+        desktop.animationMillis = config.animationMillis
+
+        keys.clear()
+        lockedKeys.clear()
+        bindKeys()
         for (pad in config.scratchpads) {
-            desktop.addScratchpad(pad.name, pad.style) { window -> safely("scratchpad ${pad.name}", false) { pad.match(window) } }
+            // A scratchpad asks the configuration of the moment which windows are its own.
+            if (desktop.scratchpad(pad.name) == null) {
+                desktop.addScratchpad(pad.name, pad.style) { window ->
+                    val now = this.config.scratchpads.firstOrNull { it.name == pad.name } ?: return@addScratchpad false
+                    safely("scratchpad ${pad.name}", false) { now.match(window) }
+                }
+            }
             pad.key?.let { key -> keys.bind(key) { toggleScratchpad(pad.name) } }
         }
-        desktop.onWindowOpened { window -> launcher.windowOpened(window.pid) }
-        config.windowOpened.forEach { action -> desktop.onWindowOpened { window -> action(config, window) } }
-        config.windowClosed.forEach { action -> desktop.onWindowClosed { window -> action(config, window) } }
-        config.focusChanged.forEach { action -> desktop.onFocusChanged { window -> action(config, window) } }
-        config.workspaceChanged.forEach { action -> desktop.onWorkspaceChanged { workspace -> action(config, workspace.number) } }
+
+        configListeners.forEach(AutoCloseable::close)
+        configListeners.clear()
+        config.noticeListeners.forEach { action -> configListeners += desktop.onNotice { notice -> safely("onNotice") { action(config, notice) } } }
+        config.windowOpened.forEach { action -> configListeners += desktop.onWindowOpened { window -> action(config, window) } }
+        config.windowClosed.forEach { action -> configListeners += desktop.onWindowClosed { window -> action(config, window) } }
+        config.focusChanged.forEach { action -> configListeners += desktop.onFocusChanged { window -> action(config, window) } }
+        config.workspaceChanged.forEach { action -> configListeners += desktop.onWorkspaceChanged { workspace -> action(config, workspace.number) } }
+
         // Quitting and text consoles also work while the screen is locked (when they are on).
         val usual = config.keys
         for (bindings in listOf(keys, lockedKeys)) {
             usual.quit?.let { bindings.bind(it) { quit() } }
-            if (switchConsole != null) usual.consoles?.let { modifiers -> for (n in 1..12) bindings.bind("$modifiers+F$n") { switchConsole(n) } }
+            if (switchConsole != null) usual.consoles?.let { modifiers -> for (n in 1..12) bindings.bind("$modifiers+F$n") { switchConsole.invoke(n) } }
         }
         if (usual.quit == null && (usual.consoles == null || switchConsole == null)) {
             log.warn("No key quits and none switches to a text console (keys.quit and keys.consoles are off): if a program takes the whole screen, only another computer (ssh) or the power button gets you out")
@@ -191,6 +230,54 @@ internal class Running(
     }
 
     fun quit() = loop.stop()
+
+    /**
+     * Runs with [next] from now on (the configuration was reloaded): its keys, rules, events,
+     * looks and scale; windows and programs stay. Returns the settings that only change
+     * after a restart, and notes on what was kept.
+     */
+    fun reconfigure(next: Caulis): Pair<List<String>, List<String>> {
+        val before = config
+        val notes = ArrayList<String>()
+        // A layout that remembers the arrangement (trees, columns, a canvas) of the same kind
+        // stays as it is: a new one would forget where your windows are.
+        val shown = desktop.layout
+        if (shown !== next.layout && shown is RememberingLayout && shown.javaClass == next.layout.javaClass && shown.name == next.layout.name) {
+            next.layout = shown // (not running yet: only the setting)
+            notes += "the ${shown.name} layout keeps your arrangement; its new settings apply when you switch layouts or restart"
+        }
+        val restartOnly = buildList {
+            fun check(name: String, old: Any?, new: Any?) { if (old != new) add(name) }
+            check("mode", before.mode, next.mode)
+            check("xwayland", before.xwayland, next.xwayland)
+            check("sharpJavaScaling", before.sharpJavaScaling, next.sharpJavaScaling)
+            check("workspaceMode", before.workspaceMode, next.workspaceMode)
+            check("nestedMonitors", before.nestedMonitors, next.nestedMonitors)
+            check("keyboardLayouts", before.keyboardLayouts, next.keyboardLayouts)
+            check("keyboardOptions", before.keyboardOptions, next.keyboardOptions)
+            check("title", before.title, next.title)
+            check("appId", before.appId, next.appId)
+            check("socketDirectory", before.socketDirectory, next.socketDirectory)
+            check("stats", before.stats, next.stats)
+            for (pad in next.scratchpads) {
+                val old = before.scratchpads.firstOrNull { it.name == pad.name } ?: continue
+                check("the style of scratchpad ${pad.name}", old.style, pad.style)
+            }
+        }
+        configNotices.forEach(desktop::dismiss)
+        configNotices.clear()
+        next.running = this
+        before.running = null
+        config = next
+        next.applyLogSettings()
+        applyConfig()
+        if (desktop.layout != next.layout) desktop.layout = next.layout
+        if (before.scale != next.scale || before.monitorSettings.values.map { it.scale } != next.monitorSettings.values.map { it.scale }) applyScale()
+        applyMonitorSettings()
+        applyCursor()
+        next.reloadActions.forEach { action -> safely("onReload") { action(next) } }
+        return restartOnly to notes
+    }
 
     /** Applies the scale to the desktop, the monitors (their own where set) and the programs. */
     fun applyScale() {
@@ -419,6 +506,7 @@ internal class Running(
             config.exitAfterSeconds?.let { seconds -> loop.after(seconds * 1000) { quit() } }
             for (problem in config.startWarnings) desktop.notify("${problem.message} ${problem.fix}", NoticeLevel.WARNING)
             config.startActions.forEach { action -> safely("onStart") { action(config) } }
+            if (config.hotReload) reloader = safely("hot reload", null) { Reloader.start(this) }
             loop.run()
         } finally {
             config.running = null
@@ -426,6 +514,7 @@ internal class Running(
     }
 
     override fun close() {
+        reloader?.close()
         logNotices.close()
         xwayland?.close()
         seat.close()

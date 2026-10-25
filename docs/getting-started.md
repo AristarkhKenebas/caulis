@@ -113,6 +113,28 @@ Each new window takes half of the previous one's space — that is the `Dwindle`
 > Inside another desktop, keys with **Super** are usually taken by that desktop. Try them
 > when running on the real screen (step 7), or bind other keys while testing.
 
+### Change it while it runs
+
+Leave it running, change `Main.kt` and save: a few seconds later the compositor takes the
+change on — keys, layouts, looks, rules, events — and your windows and programs stay where
+they are. A notice at the top says *Configuration reloaded*.
+
+If the new code does not compile, or fails (a key name it does not know, an exception), the
+old configuration simply keeps running and a red notice says what is wrong and on which
+line, e.g. `Main.kt:15: Unresolved reference 'lyaout'`. Fix it and save again; the notice
+goes by itself.
+
+- A few settings only change after a restart (the notice names them): `mode`, `xwayland`,
+  `workspaceMode`, `nestedMonitors`, `keyboardLayouts`, `keyboardOptions`, `title`, ...
+- A layout that remembers your arrangement (`BinaryTree`, `ManualTiling`, `ScrollingColumns`,
+  `Canvas`) keeps it; a new kind of layout replaces it.
+- `onStart` runs only once; `onReload { }` runs after each reload.
+- Threads your own code started keep running; `exitProcess` in `main` would end everything.
+- The first change after starting can take a little longer: Gradle warms up.
+
+It works when you start with `./gradlew run` (from the project); an installed compositor
+does not watch its sources. Turn it off with `hotReload = false`.
+
 ## 4. Keys
 
 Without writing anything, you already have the usual keys. Each has a name (left column):
@@ -664,7 +686,8 @@ CAULIS_LOG=3 CAULIS_LOG_FILE=/tmp/caulis.log ./gradlew run   # everything, into 
 or in code: `logLevel = 2`, `log("windows", 3)`, `logFile = Path.of("/tmp/caulis.log")`.
 The areas: `wayland`, `clients`, `windows`, `focus`, `input`, `gestures`, `layout`,
 `layers`, `lock`, `docks`, `cursor`, `capture`, `clipboard`, `render`, `drm`, `session`,
-`nested`, `xwayland`, `notices` (messages on screen), `config` (your own code) and `native`. A line looks like this:
+`nested`, `xwayland`, `notices` (messages on screen), `reload` (changes taken on while
+running), `config` (your own code) and `native`. A line looks like this:
 
 ```
 22:02:17.646     1,524 I focus    Focus: Window("foot", foot)

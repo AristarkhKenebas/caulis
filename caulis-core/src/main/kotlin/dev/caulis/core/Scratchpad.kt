@@ -25,17 +25,17 @@ class Scratchpad internal constructor(
      * A workspace of its own above the current one, everything else dimmed by [dim]
      * (0..1) — like Hyprland's special workspace. Its windows use [layout].
      */
-    class Overlay(val layout: Layout = Dwindle(Gaps(inner = 12, outer = 48)), val dim: Float = 0.4f) : Style
+    data class Overlay(val layout: Layout = Dwindle(Gaps(inner = 12, outer = 48)), val dim: Float = 0.4f) : Style
 
     /**
      * A compact window that slides in from a screen edge — like a drop-down terminal.
      * [depth] is how far it reaches into the screen, [length] how much of the edge it
      * covers (centred), both as shares of the screen; [margin] keeps it off the edge.
      */
-    class Edge(val side: Side = Side.TOP, val depth: Double = 0.4, val length: Double = 0.6, val margin: Int = 0) : Style
+    data class Edge(val side: Side = Side.TOP, val depth: Double = 0.4, val length: Double = 0.6, val margin: Int = 0) : Style
 
     /** A floating window in the middle of the screen (like i3's scratchpad). */
-    class Center(val width: Double = 0.6, val height: Double = 0.6) : Style
+    data class Center(val width: Double = 0.6, val height: Double = 0.6) : Style
 
     /** Its windows, oldest first. */
     val windows = ArrayList<Window>()

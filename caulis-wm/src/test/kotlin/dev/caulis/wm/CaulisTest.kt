@@ -88,18 +88,30 @@ class CaulisTest {
                 this.socketDirectory = socketDirectory
                 exitAfterSeconds = 30 // never hang the test run
             }
-            val started = CompletableFuture<String>()
-            caulis.onStart { started.complete(running!!.socket) }
+            val started = CompletableFuture<Running>()
+            caulis.onStart { started.complete(running!!) }
             val thread = Thread.ofPlatform().start { caulis.run() }
+            var running: Running? = null
             try {
-                val socket = started.get(10, TimeUnit.SECONDS)
-                TestClient(Connection.connect(socketDirectory.resolve(socket))).use { client -> test(caulis, client) }
+                running = started.get(10, TimeUnit.SECONDS)
+                TestClient(Connection.connect(socketDirectory.resolve(running.socket))).use { client -> test(caulis, client) }
             } finally {
-                caulis.running?.loop?.post { caulis.quit() }
+                // (The compositor itself: after a reload it runs with another configuration.)
+                running?.let { r -> r.loop.post { r.quit() } }
                 thread.join(5000)
                 socketDirectory.toFile().deleteRecursively()
             }
         }
+    }
+
+    // A configuration as [configure] makes it, with the test's own settings (as a reload of
+    // the same main() would have them).
+    internal fun Caulis.reloaded(configure: Caulis.() -> Unit): Caulis = Caulis().also { next ->
+        next.configure()
+        next.mode = mode
+        next.nestedIn = nestedIn
+        next.socketDirectory = socketDirectory
+        next.exitAfterSeconds = exitAfterSeconds
     }
 
     // Runs [action] on the compositor's own thread and returns its result.

@@ -60,6 +60,11 @@ class KeyBindings {
         return true
     }
 
+    /** Forgets every combination (keys held down stay held). */
+    fun clear() {
+        bindings.clear()
+    }
+
     /** Forgets held keys (e.g. after switching to another terminal and back). */
     fun releaseAll() {
         held.clear()

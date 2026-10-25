@@ -361,6 +361,16 @@ class Caulis {
         Log.write("state", Log.QUIET, "D", "The state now:\n" + desktop.describe().trimEnd(), null)
     }
 
+    /**
+     * Change your code while the compositor runs: when a file in the project's `src`
+     * changes, it is compiled and taken on at once — keys, rules, looks, layouts, events;
+     * windows and programs stay where they are. If it does not compile or fails, the old
+     * configuration keeps running and a notice on screen says what is wrong. Works when
+     * started from the project (`./gradlew run`), not in an installed program. [onStart] runs
+     * only once; [onReload] after each reload.
+     */
+    var hotReload = true
+
     /** Print frame timing every few seconds. */
     var stats = false
 
@@ -419,6 +429,14 @@ class Caulis {
     fun bind(vararg combination: String, action: Caulis.() -> Unit) {
         KeyBindings.parse(combination.toList()) // a wrong name is reported here, not at the start
         bindings += combination.joinToString("+") to action
+    }
+
+    internal val reloadActions = ArrayList<Caulis.() -> Unit>()
+
+    /** Runs [action] after the configuration was reloaded (see [hotReload]); [onStart] runs only once. */
+    @JvmSynthetic
+    fun onReload(action: Caulis.() -> Unit) {
+        reloadActions += action
     }
 
     /** Runs [action] once everything is ready (e.g. to start a panel or wallpaper program). */
@@ -610,6 +628,11 @@ class Caulis {
      * it needs is there; throws [CannotStartException] with plain explanations if not.
      */
     fun run() {
+        // A reload runs main() again: hand this configuration over instead of starting.
+        Reloader.capturing.get()?.let { slot ->
+            slot[0] = this
+            throw Reloader.Captured()
+        }
         applyLogSettings()
         val nested = when (mode) {
             Mode.AUTO -> !System.getenv("WAYLAND_DISPLAY").isNullOrEmpty()
@@ -625,7 +648,7 @@ class Caulis {
     }
 
     // The log settings from code, then CAULIS_LOG / CAULIS_LOG_FILE on top (they win).
-    private fun applyLogSettings() {
+    internal fun applyLogSettings() {
         Log.level = logLevel
         for ((area, level) in logAreas) Log.setLevel(area, level)
         System.getenv("CAULIS_LOG")?.takeIf { it.isNotBlank() }?.let(Log::configure)

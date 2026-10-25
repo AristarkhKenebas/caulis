@@ -59,6 +59,7 @@ object Log {
         "nested" to "running as a window inside another session",
         "xwayland" to "X11 programs: starting Xwayland, their windows and focus",
         "notices" to "messages of the compositor on screen (mistakes in the configuration, ...)",
+        "reload" to "taking on changed code while running (hot reload): compiling, what changed",
         "config" to "your own code (key bindings, rules, events): its mistakes",
         "native" to "C libraries Caulis uses, the event loop and its watchdog",
     )
