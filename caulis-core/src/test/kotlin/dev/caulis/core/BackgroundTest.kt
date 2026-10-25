@@ -61,8 +61,9 @@ class BackgroundTest {
         try {
             server.onServer { it.background = Background.shader(WallpaperShader("not GLSL at all")) }
             server.screenshot()
-            assertNear(USUAL, server.screenshot().at(10, 10), "the usual background instead")
-            assertEquals(1, lines.count { "wallpaper shader does not work" in it })
+            assertNear(USUAL, server.screenshot().at(10, 400), "the usual background instead (below the notice)")
+            assertEquals(1, lines.count { "a wallpaper shader does not compile" in it })
+            assertEquals(1, server.onServer { d -> d.notices.count { it.title == "a wallpaper shader does not compile" } }, "and a notice says so")
         } finally {
             dev.caulis.log.Log.listener = null
         }
@@ -90,7 +91,7 @@ class BackgroundTest {
                 }
                 server.screenshot()
             }
-            assertTrue(lines.none { "shader does not work" in it }, lines.filter { "shader" in it }.joinToString("\n"))
+            assertTrue(lines.none { "does not compile" in it }, lines.filter { "shader" in it }.joinToString("\n"))
         } finally {
             dev.caulis.log.Log.listener = null
         }

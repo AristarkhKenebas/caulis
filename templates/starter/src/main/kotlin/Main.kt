@@ -11,6 +11,9 @@ import dev.caulis.wm.caulis
 fun main() = caulis {
     title = "My compositor"
 
+    // Your folder of shaders and pictures: ~/.config/my-compositor (see file("...") in the guide).
+    configName = "my-compositor"
+
     // How windows are placed: Floating, Dwindle(), MasterStack(), BinaryTree(),
     // ScrollingColumns(), Canvas() ... — or your own.
     layout = Dwindle(Gaps(inner = 8, outer = 8))

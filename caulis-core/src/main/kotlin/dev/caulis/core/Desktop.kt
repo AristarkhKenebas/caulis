@@ -34,6 +34,11 @@ class Desktop(
         // windows of its own: without this it would connect to the X server of DISPLAY (the
         // outer session's, or one that is gone) and fail when it cannot.
         if (System.getProperty("java.awt.headless") == null) System.setProperty("java.awt.headless", "true")
+        // A shader file was saved: draw with its new code (only a weak link: tests make many desktops).
+        val me = java.lang.ref.WeakReference(this)
+        WatchedText.anyChange += {
+            me.get()?.let { desktop -> desktop.compositor.display.loop.post { desktop.version++; desktop.onChange() } }
+        }
         // A window's last look, taken while its picture is still there (it may be going away).
         compositor.pictureGoing = { surface ->
             val window = allWindows.firstOrNull { it.surface === surface && it.mapped }
@@ -46,10 +51,10 @@ class Desktop(
     private val monitorList = ArrayList<Monitor>()
 
     // The backgrounds of the monitors (declared first: drawing asks for them).
-    private val backdrops = Backdrops(renderer, compositor.display.loop) {
+    private val backdrops = Backdrops(renderer, compositor.display.loop, changed = {
         version++
         onChange()
-    }
+    }, shaderWorks = { name, code, problem -> shaderWorks(name, code, problem) })
 
     // The compositor's own notices (declared first: arranging a monitor asks for their room).
     private val noticeBoard = NoticeBoard(
@@ -1973,8 +1978,32 @@ class Desktop(
         )
     }
 
-    // Shaders that did not compile, said once each.
-    private val badShaders = HashSet<WindowShader>()
+    // Shaders that do not compile now, by name: their code then, and the notice that says so.
+    private val shaderNotices = HashMap<String, Pair<String, Notice>>()
+
+    // A shader was used: a notice says what is wrong with it (once per version of its code),
+    // and goes once a new version works.
+    internal fun shaderWorks(name: String, code: String, problem: String?) {
+        val known = shaderNotices[name]
+        if (problem == null) {
+            if (known != null && known.first != code) {
+                dismiss(known.second)
+                shaderNotices -= name
+                renderLog.info { "$name works now" }
+            }
+            return
+        }
+        if (known?.first == code) return
+        known?.let { dismiss(it.second) }
+        renderLog.warn("$name does not compile (drawn without it): $problem")
+        shaderNotices[name] = code to notify(readableShaderProblem(problem), NoticeLevel.ERROR, "$name does not compile")
+    }
+
+    // "Shader failed to compile: 0:15(2): error: ..." → "line 15: ...".
+    private fun readableShaderProblem(problem: String): String =
+        problem.removePrefix("Shader failed to compile: ").lines().map { it.trim() }.filter { it.isNotEmpty() }.map { line ->
+            Regex("""^\d+:(\d+)\(\d+\): (?:error: )?(.*)$""").find(line)?.let { "line ${it.groupValues[1]}: ${it.groupValues[2]}" } ?: line
+        }.take(4).joinToString("\n")
 
     // [fx] at [alpha] of its strength (a window fading in or out).
     private fun faded(fx: Effects, alpha: Float): Effects {
@@ -2994,10 +3023,10 @@ class Desktop(
                 is DrawItem.Image -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, opaque = false, alpha = item.alpha, clip = item.clip?.let(p), cornerRadius = item.radius * s)
                 is DrawItem.Custom -> item.paint(r)
                 is DrawItem.Effect -> {
-                    val drawn = item.shader !in badShaders &&
-                        renderer.drawTextureEffect(item.texture, r.x, r.y, r.width, r.height, item.alpha, item.shader.code, item.from, item.to, item.progress)
+                    val code = item.shader.code
+                    val drawn = renderer.drawTextureEffect(item.texture, r.x, r.y, r.width, r.height, item.alpha, code, item.from, item.to, item.progress)
+                    shaderWorks(item.shader.name, code, item.shader.fileProblem ?: if (drawn) null else renderer.effectProblem(code) ?: "it does not compile")
                     if (!drawn) {
-                        if (badShaders.add(item.shader)) log.error("A window shader does not work (drawn without): ${renderer.effectProblem(item.shader.code)}")
                         val f = p(item.fallback)
                         renderer.drawTexture(item.texture, f.x, f.y, f.width, f.height, opaque = false, alpha = item.alpha)
                     }

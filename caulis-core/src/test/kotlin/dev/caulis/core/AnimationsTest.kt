@@ -80,7 +80,8 @@ class AnimationsTest {
             Thread.sleep(300)
             assertEquals(BLACK, server.screenshot().at(rect.x + rect.width / 2, rect.y + rect.height / 2), "drawn plainly")
             server.screenshot()
-            assertEquals(1, lines.count { "shader does not work" in it }, lines.joinToString("\n"))
+            assertEquals(1, lines.count { "does not compile" in it }, lines.joinToString("\n"))
+            assertEquals(1, server.onServer { d -> d.notices.count { it.title == "a window shader does not compile" } })
         } finally {
             dev.caulis.log.Log.listener = null
         }
@@ -113,7 +114,7 @@ class AnimationsTest {
             server.onServer { d -> d.minimize(d.allWindows.single()) }
             Thread.sleep(200)
             server.screenshot()
-            assertTrue(lines.none { "shader does not work" in it }, lines.filter { "shader" in it }.joinToString("\n"))
+            assertTrue(lines.none { "does not compile" in it }, lines.filter { "shader" in it }.joinToString("\n"))
         } finally {
             dev.caulis.log.Log.listener = null
         }

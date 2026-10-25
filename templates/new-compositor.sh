@@ -28,6 +28,7 @@ cp -r "$caulis/gradle/wrapper" "$target/gradle/"
 # Where the Caulis sources are (until Caulis is published, they are built along).
 echo "caulis.sources=$caulis" > "$target/gradle.properties"
 sed -i "s/^rootProject.name = .*/rootProject.name = \"$name\"/" "$target/settings.gradle.kts"
+sed -i "s/configName = \"my-compositor\"/configName = \"$name\"/; s|~/.config/my-compositor|~/.config/$name|" "$target/src/main/kotlin/Main.kt"
 sed -i "s/build\/install\/my-compositor\/bin\/my-compositor/build\/install\/$name\/bin\/$name/" "$target/README.md"
 
 echo "Created $target. Next:"

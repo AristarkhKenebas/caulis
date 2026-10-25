@@ -561,6 +561,7 @@ internal class Running(
             for (problem in config.startWarnings) desktop.notify("${problem.message} ${problem.fix}", NoticeLevel.WARNING)
             config.startActions.forEach { action -> safely("onStart") { action(config) } }
             if (config.hotReload) reloader = safely("hot reload", null) { Reloader.start(this) }
+            log.info { "Your files (shaders, pictures): ${config.configFolder}${if (java.nio.file.Files.isDirectory(config.configFolder)) "" else " (not there yet)"}" }
             loop.run()
         } finally {
             config.running = null

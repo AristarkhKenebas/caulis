@@ -370,6 +370,23 @@ background = Background.shader(WallpaperShader("""
 """, framesPerSecond = 30))
 ```
 
+Shaders are easier to write in files of their own, next to your configuration — saved,
+they are used at once (no restart, nothing else reloads), and a mistake shows up as a red
+notice with its line in your file (`line 7: 'glow' undeclared`), gone as soon as it works:
+
+```kotlin
+configName = "my-compositor"     // your folder: ~/.config/my-compositor (or $XDG_CONFIG_HOME/...)
+background = Background.shader(WallpaperShader.file(file("aurora.glsl")))
+animations = Animations(minimize = WindowAnimation { m ->
+    WindowFrame(m.from.union(m.to), shader = WindowShader.file(file("melt.glsl")), shaderFrom = m.from, shaderTo = m.to, progress = m.progress)
+})
+background = Background.image(file("walls/sea.jpg"))   // pictures too: saved again, shown anew
+```
+
+`file("aurora.glsl")` is in your folder, `file("~/walls/sea.jpg")` in your home,
+`file("/usr/share/...")` where it says; `configDir = Path.of(...)` puts the folder elsewhere.
+The log says where the folder is when the compositor starts.
+
 A shader that uses `time` or `pointer` is drawn `framesPerSecond` times a second, only
 while it can be seen (about 6% of one core at 30 per second, nested); one that does not
 compile is said once in the log and the usual background shows.

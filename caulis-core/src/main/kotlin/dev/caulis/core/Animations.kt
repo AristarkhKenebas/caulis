@@ -199,16 +199,36 @@ fun interface WindowAnimation {
  *
  * A shader that does not compile is reported in the log; the window is then drawn without.
  */
-class WindowShader(
-    /** The GLSL code with the `effect` function (and any helpers it needs). */
-    val code: String,
-) {
+class WindowShader private constructor(private val inline: String?, private val file: WatchedText?) {
+
+    /** A shader written in your code. */
+    constructor(code: String) : this(code, null)
+
+    /** The GLSL code with the `effect` function (and any helpers it needs); a file's as it is now. */
+    val code: String get() = inline ?: file!!.text
+
+    /** Why its file cannot be read now (null: it can, or it is written in code). */
+    val fileProblem: String? get() = file?.problem
+
+    /** The file it comes from (null: written in code). */
+    val path: java.nio.file.Path? get() = file?.path
+
+    /** What to call it in messages: its file's name, or "a window shader". */
+    val name: String get() = file?.path?.fileName?.toString() ?: "a window shader"
+
     // The same code is the same shader (compiled once, a mistake in it said once).
     override fun equals(other: Any?) = other is WindowShader && other.code == code
     override fun hashCode() = code.hashCode()
-    override fun toString() = "WindowShader(${code.length} characters)"
+    override fun toString() = "WindowShader(${file?.path ?: "${code.length} characters"})"
 
     companion object {
+        /**
+         * A shader from a file (e.g. next to your configuration): read again whenever you
+         * save it, and used at once — no restart, no reload of anything else.
+         */
+        @JvmStatic
+        fun file(path: java.nio.file.Path): WindowShader = WindowShader(null, WatchedText.of(path))
+
         /** The genie: rows of the picture move towards [to] one after another, the far edge last. */
         @JvmField val GENIE = WindowShader(
             """

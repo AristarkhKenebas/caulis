@@ -62,6 +62,7 @@ internal object Shaders {
             if (p.x < 0.0 || p.y < 0.0 || p.x > 1.0 || p.y > 1.0) return vec4(0.0);
             return texture(image, p);
         }
+        #line 1
         """ + code + """
         void main() { caulisColor = effect(uv) * alpha; }"""
 

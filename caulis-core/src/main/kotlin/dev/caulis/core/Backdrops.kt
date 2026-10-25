@@ -29,6 +29,8 @@ internal class Backdrops(
     private val loop: EventLoop,
     /** Something to draw changed. */
     private val changed: () -> Unit,
+    /** A shader was drawn (problem null) or could not be (see Desktop.shaderWorks). */
+    private val shaderWorks: (name: String, code: String, problem: String?) -> Unit = { _, _, _ -> },
 ) {
     private val log = Logger("render")
     private val start = System.nanoTime()
@@ -104,9 +106,13 @@ internal class Backdrops(
                 val pointer = if (inside) floatArrayOf(((pointerX - area.x) / area.width).toFloat(), ((pointerY - area.y) / area.height).toFloat()) else floatArrayOf(-1f, -1f)
                 val picture = shader.image?.let(::picture)
                 if (shader.moving) movingOn += monitor.name to shader.framesPerSecond
-                DrawItem.Custom(key, area, listOf(background, frame, alpha, pixels, picture, if (shader.moving) pointer.toList() else null)) { r ->
-                    val drawn = shader !in badShaders && renderer.drawShaded(
-                        r.x, r.y, r.width, r.height, shader.source(),
+                // One version of its code for drawing and for what is said about it (a file may change meanwhile).
+                val code = shader.code
+                val fileProblem = shader.fileProblem
+                val source = shader.source(code)
+                DrawItem.Custom(key, area, listOf(background, source, frame, alpha, pixels, picture, if (shader.moving) pointer.toList() else null)) { r ->
+                    val drawn = renderer.drawShaded(
+                        r.x, r.y, r.width, r.height, source,
                         floats = mapOf(
                             "time" to floatArrayOf(seconds.toFloat()), "size" to floatArrayOf(r.width.toFloat(), r.height.toFloat()),
                             "pointer" to pointer, "workspace" to floatArrayOf(workspace.toFloat()), "alpha" to floatArrayOf(alpha),
@@ -114,16 +120,13 @@ internal class Backdrops(
                         ints = mapOf("hasPicture" to if (picture != null) 1 else 0),
                         texture = picture?.texture,
                     )
-                    if (!drawn) {
-                        if (badShaders.add(shader)) log.error("A wallpaper shader does not work (the usual background shows): ${renderer.effectProblem(shader.source())}")
-                        fill(r, USUAL_COLOR, alpha)
-                    }
+                    shaderWorks(shader.name, code, fileProblem ?: if (drawn) null else renderer.effectProblem(source) ?: "it does not compile")
+                    if (!drawn) fill(r, USUAL_COLOR, alpha)
                 }
             }
         }
     }
 
-    private val badShaders = HashSet<WallpaperShader>()
 
     private fun fill(r: Rect, color: Color, alpha: Float) = renderer.drawColor(r.x, r.y, r.width, r.height, color.red, color.green, color.blue, color.alpha * alpha)
 
@@ -134,9 +137,20 @@ internal class Backdrops(
     // By file: its picture, or null while it is read (or when it could not be).
     private val pictures = HashMap<Path, Picture?>()
 
+    // Picture files followed for changes (a new version is read again).
+    private val followed = HashSet<Path>()
+
     private fun picture(path: Path): Picture? {
         if (path in pictures) return pictures[path]
         pictures[path] = null
+        if (followed.add(path)) {
+            FileWatch.watch(path) {
+                loop.post {
+                    pictures.remove(path)?.texture?.close()
+                    changed()
+                }
+            }
+        }
         Thread.ofVirtual().name("background-image").start {
             val image = try {
                 ImageIO.read(path.toFile()) ?: error("not a picture Java can read (PNG, JPEG, BMP, GIF)")

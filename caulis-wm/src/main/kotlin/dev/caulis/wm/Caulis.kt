@@ -421,6 +421,42 @@ class Caulis {
      */
     var desktopName = "caulis"
 
+    /**
+     * The name of your compositor's folder of settings, shaders and pictures:
+     * `~/.config/<configName>` (or `$XDG_CONFIG_HOME/<configName>`), see [configFolder].
+     */
+    var configName = "caulis"
+        set(value) {
+            require(value.isNotBlank() && '/' !in value) { "configName is a folder name, not \"$value\"" }
+            field = value
+        }
+
+    /** Another place for that folder (null: the usual one, see [configName]). */
+    var configDir: java.nio.file.Path? = null
+
+    /** Where your files go: [configDir], or `$XDG_CONFIG_HOME/<configName>`, or `~/.config/<configName>`. */
+    val configFolder: java.nio.file.Path
+        get() = configDir ?: (System.getenv("XDG_CONFIG_HOME")?.takeIf { it.startsWith("/") }?.let { java.nio.file.Path.of(it) }
+            ?: java.nio.file.Path.of(System.getProperty("user.home"), ".config")).resolve(configName)
+
+    /**
+     * A file by name: "aurora.glsl" is in [configFolder], "~/walls/sea.jpg" in your home,
+     * "/usr/share/backgrounds/x.jpg" where it says. For shaders and pictures:
+     *
+     * ```
+     * background = Background.shader(WallpaperShader.file(file("aurora.glsl")))   // ~/.config/<configName>/aurora.glsl
+     * background = Background.image(file("walls/sea.jpg"))
+     * ```
+     *
+     * Saved again while running, a shader is used at once and a picture shown anew.
+     */
+    fun file(name: String): java.nio.file.Path = when {
+        name == "~" -> java.nio.file.Path.of(System.getProperty("user.home"))
+        name.startsWith("~/") -> java.nio.file.Path.of(System.getProperty("user.home"), name.removePrefix("~/"))
+        name.startsWith("/") -> java.nio.file.Path.of(name)
+        else -> configFolder.resolve(name)
+    }
+
     /** Name of the window in nested mode (and what the outer session knows it as). */
     var title = "Caulis"
     var appId = "dev.caulis.Nested"
@@ -670,6 +706,7 @@ class Caulis {
     fun titleBars(titleBars: TitleBars): Caulis = apply { this.titleBars = titleBars }
     fun noticeStyle(style: NoticeStyle): Caulis = apply { noticeStyle = style }
     fun animations(animations: Animations): Caulis = apply { this.animations = animations }
+    fun configName(name: String): Caulis = apply { configName = name }
     fun background(background: Background): Caulis = apply { this.background = background }
     fun backgroundFor(rule: java.util.function.BiFunction<String, Int, Background?>): Caulis = apply { backgroundFor { monitor, workspace -> rule.apply(monitor, workspace) } }
     fun noticesFromLog(rule: java.util.function.Predicate<Log.Entry>): Caulis = apply { noticesFromLog = { rule.test(it) } }

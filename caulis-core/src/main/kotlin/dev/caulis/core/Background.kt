@@ -102,20 +102,47 @@ fun interface BackgroundPainter {
  * second (more costs more power; panels and windows above it are drawn again with it).
  * One that does not compile is reported once in the log, and [Background.USUAL] shows.
  */
-class WallpaperShader @JvmOverloads constructor(
-    /** The GLSL code with the `wallpaper` function (and any helpers it needs). */
-    val code: String,
+class WallpaperShader private constructor(
+    private val inline: String?,
+    private val file: WatchedText?,
     /** A picture the shader can read with `image(uv)`, or null. */
-    val image: Path? = null,
+    val image: Path?,
     /** How often a moving shader is drawn anew. */
-    val framesPerSecond: Int = 30,
+    val framesPerSecond: Int,
 ) {
+    /** A shader written in your code. */
+    @JvmOverloads
+    constructor(code: String, image: Path? = null, framesPerSecond: Int = 30) : this(code, null, image, framesPerSecond)
+
     init {
         require(framesPerSecond in 1..240) { "framesPerSecond must be 1 to 240" }
     }
 
+    /** The GLSL code with the `wallpaper` function (and any helpers it needs); a file's as it is now. */
+    val code: String get() = inline ?: file!!.text
+
+    /** Why its file cannot be read now (null: it can, or it is written in code). */
+    val fileProblem: String? get() = file?.problem
+
+    /** The file it comes from (null: written in code). */
+    val path: Path? get() = file?.path
+
+    /** What to call it in messages: its file's name, or "a wallpaper shader". */
+    val name: String get() = file?.path?.fileName?.toString() ?: "a wallpaper shader"
+
     /** True if it changes by itself (it uses `time` or `pointer`). */
-    val moving: Boolean = Regex("""\b(time|pointer)\b""").containsMatchIn(code)
+    val moving: Boolean
+        get() {
+            val now = code
+            if (now !== movingOf) {
+                movingOf = now
+                movingNow = Regex("""\b(time|pointer)\b""").containsMatchIn(now)
+            }
+            return movingNow
+        }
+
+    @Volatile private var movingOf: String? = null
+    @Volatile private var movingNow = false
 
     // The same code and picture is the same shader (compiled once, a mistake said once).
     override fun equals(other: Any?) = other is WallpaperShader && other.code == code && other.image == image && other.framesPerSecond == framesPerSecond
@@ -123,7 +150,7 @@ class WallpaperShader @JvmOverloads constructor(
     override fun toString() = "WallpaperShader(${code.length} characters${image?.let { ", $it" } ?: ""})"
 
     /** The whole fragment shader around [code], as the renderer compiles it. */
-    internal fun source(): String = """#version 300 es
+    internal fun source(code: String = this.code): String = """#version 300 es
         precision highp float;
         in vec2 uv;
         uniform float time;
@@ -135,10 +162,20 @@ class WallpaperShader @JvmOverloads constructor(
         uniform bool hasPicture;
         out vec4 caulisColor;
         vec4 image(vec2 p) { return hasPicture ? texture(picture, p) : vec4(0.0); }
+        #line 1
         """ + code + """
         void main() { caulisColor = wallpaper(uv) * alpha; }"""
 
     companion object {
+        /**
+         * A shader from a file (e.g. next to your configuration): read again whenever you
+         * save it, and drawn at once — no restart, no reload of anything else.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun file(path: Path, image: Path? = null, framesPerSecond: Int = 30): WallpaperShader =
+            WallpaperShader(null, WatchedText.of(path), image, framesPerSecond)
+
         /** A slow, soft play of colours — an example to start from. */
         @JvmField val AURORA = WallpaperShader(
             """
