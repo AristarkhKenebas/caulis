@@ -86,7 +86,6 @@ Wayland way when they can, and through X11 when that fails.
 | `caulis-lua` | `config.lua`: the configuration in Lua — settings, keys, rules and events (optional) |
 | `caulis-script` | `config.kts`: the configuration as a Kotlin script, compiled by the compositor (optional; contains the Kotlin compiler) |
 | `caulis-reload` | fast hot reload while developing: compiles your configuration inside the running compositor (optional, `run` task only) |
-| `caulis-cursor-bibata` | the Bibata cursor themes, ready to use (optional; GPL-3.0, as Bibata) |
 
 ## Requirements
 
@@ -99,7 +98,7 @@ Wayland way when they can, and through X11 when that fails.
 
 Or with [Nix](https://nixos.org): `nix develop` (or `nix-shell`) gives a shell with JDK 27,
 Xwayland and every library. The flake also has Home Manager and NixOS modules for writing a
-compositor's settings in Nix (see the guide, step 24).
+compositor's settings in Nix (see the guide, step 25).
 
 ## Build
 
@@ -110,5 +109,4 @@ compositor's settings in Nix (see the guide, step 24).
 
 ## License
 
-[MPL-2.0](LICENSE), except `caulis-cursor-bibata`, which is GPL-3.0 as the Bibata cursors
-it contains (see [its license](caulis-cursor-bibata/LICENSE)).
+[MPL-2.0](LICENSE).

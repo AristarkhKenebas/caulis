@@ -2262,6 +2262,118 @@ public final class dev/caulis/core/XdgWindow : dev/caulis/core/Window {
 	public fun getVisibleRect ()Ldev/caulis/geometry/Rect;
 }
 
+public final class dev/caulis/core/appearance/Appearance {
+	public fun <init> ()V
+	public final fun getAccentColor ()Ldev/caulis/render/Color;
+	public final fun getColorScheme ()Ldev/caulis/core/appearance/ColorScheme;
+	public final fun onChange (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun setAccentColor (Ldev/caulis/render/Color;)V
+	public final fun setColorScheme (Ldev/caulis/core/appearance/ColorScheme;)V
+}
+
+public abstract interface class dev/caulis/core/appearance/ColorSchedule {
+	public abstract fun at (Ljava/time/ZonedDateTime;)Lkotlin/Pair;
+}
+
+public final class dev/caulis/core/appearance/ColorSchedule$Sun : dev/caulis/core/appearance/ColorSchedule {
+	public fun <init> (DD)V
+	public fun at (Ljava/time/ZonedDateTime;)Lkotlin/Pair;
+	public final fun component1 ()D
+	public final fun component2 ()D
+	public final fun copy (DD)Ldev/caulis/core/appearance/ColorSchedule$Sun;
+	public static synthetic fun copy$default (Ldev/caulis/core/appearance/ColorSchedule$Sun;DDILjava/lang/Object;)Ldev/caulis/core/appearance/ColorSchedule$Sun;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLatitude ()D
+	public final fun getLongitude ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/appearance/ColorSchedule$Times : dev/caulis/core/appearance/ColorSchedule {
+	public fun <init> (Ljava/time/LocalTime;Ljava/time/LocalTime;)V
+	public fun at (Ljava/time/ZonedDateTime;)Lkotlin/Pair;
+	public final fun component1 ()Ljava/time/LocalTime;
+	public final fun component2 ()Ljava/time/LocalTime;
+	public final fun copy (Ljava/time/LocalTime;Ljava/time/LocalTime;)Ldev/caulis/core/appearance/ColorSchedule$Times;
+	public static synthetic fun copy$default (Ldev/caulis/core/appearance/ColorSchedule$Times;Ljava/time/LocalTime;Ljava/time/LocalTime;ILjava/lang/Object;)Ldev/caulis/core/appearance/ColorSchedule$Times;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDark ()Ljava/time/LocalTime;
+	public final fun getLight ()Ljava/time/LocalTime;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/appearance/ColorScheme : java/lang/Enum {
+	public static final field DARK Ldev/caulis/core/appearance/ColorScheme;
+	public static final field DEFAULT Ldev/caulis/core/appearance/ColorScheme;
+	public static final field LIGHT Ldev/caulis/core/appearance/ColorScheme;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getPortalValue ()I
+	public final fun toggled ()Ldev/caulis/core/appearance/ColorScheme;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/core/appearance/ColorScheme;
+	public static fun values ()[Ldev/caulis/core/appearance/ColorScheme;
+}
+
+public final class dev/caulis/core/appearance/GSettingsAppearance : java/lang/AutoCloseable {
+	public fun <init> (Ldev/caulis/core/appearance/Appearance;Lkotlin/Pair;Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Ldev/caulis/core/appearance/Appearance;Lkotlin/Pair;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun close ()V
+	public final fun getGtkThemes ()Lkotlin/Pair;
+	public final fun setGtkThemes (Lkotlin/Pair;)V
+	public final fun write ()V
+}
+
+public final class dev/caulis/core/appearance/PortalSettings : java/lang/AutoCloseable {
+	public static final field BUS_NAME Ljava/lang/String;
+	public static final field Companion Ldev/caulis/core/appearance/PortalSettings$Companion;
+	public static final field INTERFACE Ljava/lang/String;
+	public static final field NAMESPACE Ljava/lang/String;
+	public static final field PATH Ljava/lang/String;
+	public static final field PORTAL_FILE Ljava/lang/String;
+	public fun <init> (Ldev/caulis/core/dbus/DBusConnection;Ldev/caulis/core/appearance/Appearance;Ljava/lang/String;)V
+	public synthetic fun <init> (Ldev/caulis/core/dbus/DBusConnection;Ldev/caulis/core/appearance/Appearance;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun close ()V
+	public final fun getBusName ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/appearance/PortalSettings$Companion {
+}
+
+public abstract interface class dev/caulis/core/appearance/SunTimes {
+	public static final field Companion Ldev/caulis/core/appearance/SunTimes$Companion;
+}
+
+public final class dev/caulis/core/appearance/SunTimes$AlwaysDown : dev/caulis/core/appearance/SunTimes {
+	public static final field INSTANCE Ldev/caulis/core/appearance/SunTimes$AlwaysDown;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/appearance/SunTimes$AlwaysUp : dev/caulis/core/appearance/SunTimes {
+	public static final field INSTANCE Ldev/caulis/core/appearance/SunTimes$AlwaysUp;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/appearance/SunTimes$Companion {
+	public final fun on (Ljava/time/LocalDate;DD)Ldev/caulis/core/appearance/SunTimes;
+}
+
+public final class dev/caulis/core/appearance/SunTimes$RiseAndSet : dev/caulis/core/appearance/SunTimes {
+	public fun <init> (Ljava/time/Instant;Ljava/time/Instant;)V
+	public final fun component1 ()Ljava/time/Instant;
+	public final fun component2 ()Ljava/time/Instant;
+	public final fun copy (Ljava/time/Instant;Ljava/time/Instant;)Ldev/caulis/core/appearance/SunTimes$RiseAndSet;
+	public static synthetic fun copy$default (Ldev/caulis/core/appearance/SunTimes$RiseAndSet;Ljava/time/Instant;Ljava/time/Instant;ILjava/lang/Object;)Ldev/caulis/core/appearance/SunTimes$RiseAndSet;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getRise ()Ljava/time/Instant;
+	public final fun getSet ()Ljava/time/Instant;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/caulis/core/cursor/Cursor {
 	public fun <init> (Ljava/lang/String;Ljava/util/List;)V
 	public final fun frameAt (J)Lkotlin/Pair;

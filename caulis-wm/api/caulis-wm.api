@@ -30,12 +30,17 @@ public final class dev/caulis/wm/Caulis {
 	public final fun file (Ljava/lang/String;)Ljava/nio/file/Path;
 	public final fun floatWhen (Ljava/util/function/Predicate;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun floatWhen (Lkotlin/jvm/functions/Function1;)V
+	public final fun getAccentColor ()Ldev/caulis/render/Color;
 	public final fun getAnimationMillis ()J
 	public final fun getAnimations ()Ldev/caulis/core/Animations;
 	public final fun getAppId ()Ljava/lang/String;
+	public final fun getAppearanceToPrograms ()Ljava/lang/Boolean;
 	public final fun getBackground ()Ldev/caulis/core/Background;
 	public final fun getBackgroundChangeMillis ()J
 	public final fun getClipboard ()Ldev/caulis/core/DataDeviceManager;
+	public final fun getColorSchedule ()Ldev/caulis/core/appearance/ColorSchedule;
+	public final fun getColorScheme ()Ldev/caulis/core/appearance/ColorScheme;
+	public final fun getColorSchemeNow ()Ldev/caulis/core/appearance/ColorScheme;
 	public final fun getConfigDir ()Ljava/nio/file/Path;
 	public final fun getConfigFolder ()Ljava/nio/file/Path;
 	public final fun getConfigName ()Ljava/lang/String;
@@ -55,6 +60,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getFocusOnActivate ()Z
 	public final fun getFocusedWindow ()Ldev/caulis/core/Window;
 	public final fun getFullscreenKeepsAwake ()Z
+	public final fun getGtkThemes ()Lkotlin/Pair;
 	public final fun getHardwareCursor ()Z
 	public final fun getHeadlessMonitors ()I
 	public final fun getHideCursorAfterSeconds ()I
@@ -132,6 +138,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun notify (Ljava/lang/String;Ldev/caulis/core/NoticeLevel;)Ldev/caulis/core/Notice;
 	public final fun notify (Ljava/lang/String;Ldev/caulis/core/NoticeLevel;Ljava/lang/String;)Ldev/caulis/core/Notice;
 	public static synthetic fun notify$default (Ldev/caulis/wm/Caulis;Ljava/lang/String;Ldev/caulis/core/NoticeLevel;Ljava/lang/String;ILjava/lang/Object;)Ldev/caulis/core/Notice;
+	public final fun onColorSchemeChanged (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
 	public final synthetic fun onFocusChanged (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
 	public final synthetic fun onGesture (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
 	public final fun onIdle (JLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)V
@@ -173,11 +180,15 @@ public final class dev/caulis/wm/Caulis {
 	public final fun scratchpad (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/caulis/core/Scratchpad$Style;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun scratchpad (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/caulis/core/Scratchpad$Style;Lkotlin/jvm/functions/Function1;)V
 	public static synthetic fun scratchpad$default (Ldev/caulis/wm/Caulis;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/caulis/core/Scratchpad$Style;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun setAccentColor (Ldev/caulis/render/Color;)V
 	public final fun setAnimationMillis (J)V
 	public final fun setAnimations (Ldev/caulis/core/Animations;)V
 	public final fun setAppId (Ljava/lang/String;)V
+	public final fun setAppearanceToPrograms (Ljava/lang/Boolean;)V
 	public final fun setBackground (Ldev/caulis/core/Background;)V
 	public final fun setBackgroundChangeMillis (J)V
+	public final fun setColorSchedule (Ldev/caulis/core/appearance/ColorSchedule;)V
+	public final fun setColorScheme (Ldev/caulis/core/appearance/ColorScheme;)V
 	public final fun setConfigDir (Ljava/nio/file/Path;)V
 	public final fun setConfigName (Ljava/lang/String;)V
 	public final fun setCursorSize (Ljava/lang/Integer;)V
@@ -193,6 +204,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setFocusFollowsMouse (Z)V
 	public final fun setFocusOnActivate (Z)V
 	public final fun setFullscreenKeepsAwake (Z)V
+	public final fun setGtkThemes (Lkotlin/Pair;)V
 	public final fun setHardwareCursor (Z)V
 	public final fun setHeadlessMonitors (I)V
 	public final fun setHideCursorAfterSeconds (I)V
@@ -242,6 +254,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setXwayland (Z)V
 	public final fun sharpJavaScaling (Z)Ldev/caulis/wm/Caulis;
 	public final synthetic fun swipe (ILdev/caulis/tiling/Direction;Lkotlin/jvm/functions/Function1;)V
+	public final fun switchColorScheme (Ldev/caulis/core/appearance/ColorScheme;)V
 	public final fun terminal (Ljava/lang/String;)Ldev/caulis/wm/Caulis;
 	public final fun titleBars (Ldev/caulis/core/TitleBars;)Ldev/caulis/wm/Caulis;
 	public final fun titleBarsFor (Ljava/util/function/Function;)Ldev/caulis/wm/Caulis;
@@ -556,5 +569,15 @@ public final class dev/caulis/wm/config/Actions {
 	public final fun getAll ()Ljava/util/List;
 	public final fun parse (Ljava/lang/String;)Lkotlin/jvm/functions/Function1;
 	public final fun parseFor (Ljava/lang/String;)Lkotlin/jvm/functions/Function2;
+}
+
+public final class dev/caulis/wm/config/TextType : dev/caulis/wm/config/SettingType {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getWords ()Ljava/lang/String;
+	public fun jsonSchema ()Ljava/lang/String;
+	public fun nix ()Ljava/lang/String;
+	public fun read (Ldev/caulis/wm/config/JsonValue;Ljava/lang/String;Ldev/caulis/wm/config/Problems;)Ljava/lang/Object;
 }
 

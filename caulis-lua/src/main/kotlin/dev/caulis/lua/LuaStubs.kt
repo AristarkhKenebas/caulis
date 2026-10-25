@@ -129,7 +129,7 @@ internal object LuaStubs {
         ---@field description? string
         ---@field mode? string a key mode's own key
 
-        ---@alias caulis.Event "start"|"reload"|"unload"|"window-opened"|"window-closed"|"window-changed"|"focus-changed"|"workspace-changed"|"monitor-added"|"monitor-removed"|"notice"|"lid"
+        ---@alias caulis.Event "start"|"reload"|"unload"|"window-opened"|"window-closed"|"window-changed"|"focus-changed"|"workspace-changed"|"monitor-added"|"monitor-removed"|"notice"|"lid"|"color-scheme"
 
         ---@class caulis
         caulis = {}
@@ -182,6 +182,10 @@ internal object LuaStubs {
 
         ---@return integer
         function caulis.workspace() end
+
+        ---What programs are told now: "dark", "light" or "default".
+        ---@return "dark"|"light"|"default"
+        function caulis.colorScheme() end
 
         ---Runs fn once, millis from now.
         ---@param millis integer

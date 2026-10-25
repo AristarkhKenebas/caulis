@@ -541,6 +541,24 @@ object Settings {
             Field("overviewFill", DecimalType(0.3, 1.0), "how much of the monitor the overview's windows take"),
             Field("resizeBorder", IntegerType(0, 50), "the edge to grab floating windows by"),
             Field("doubleClickMillis", IntegerType(50, 2000), "a double click on a title bar"),
+            Field(
+                "appearance",
+                SectionType(
+                    listOf(
+                        Field("colorScheme", ChoiceType(listOf("default", "dark", "light")), "light or dark for programs (default: each its own)"),
+                        Field("darkFrom", TimeType, "with lightFrom: dark from this time of day"),
+                        Field("lightFrom", TimeType, "with darkFrom: light from this time of day"),
+                        Field("latitude", DecimalType(-90.0, 90.0), "with longitude: dark from sunset to sunrise there"),
+                        Field("longitude", DecimalType(-180.0, 180.0), "with latitude: the place (east positive)"),
+                        Field("accentColor", ColorType, "the accent colour programs are told"),
+                        Field("gtkLightTheme", TextType("a GTK theme"), "with gtkDarkTheme: GTK 3 programs' theme when light (\"Adwaita\")"),
+                        Field("gtkDarkTheme", TextType("a GTK theme"), "with gtkLightTheme: their theme when dark (\"Adwaita-dark\")"),
+                        Field("toPrograms", FlagType, "tell programs (default: on a real screen only, not nested)"),
+                    ),
+                    "light and dark",
+                ),
+                "how programs look: light or dark, by a schedule",
+            ),
             Field("hideCursorWhileTyping", FlagType, "hide the cursor while typing"),
             Field("hideCursorAfterSeconds", IntegerType(0, 3600), "hide the cursor when the mouse is still (0: never)"),
             Field("lockColor", ColorType, "behind the screen locker"),
@@ -756,6 +774,24 @@ object Settings {
         (values["overviewFill"] as Double?)?.let { caulis.overviewFill = it }
         (values["resizeBorder"] as Int?)?.let { caulis.resizeBorder = it }
         (values["doubleClickMillis"] as Int?)?.let { caulis.doubleClickMillis = it.toLong() }
+        section("appearance")?.let { a ->
+            (a["colorScheme"] as String?)?.let { caulis.colorScheme = dev.caulis.core.appearance.ColorScheme.valueOf(it.uppercase()) }
+            val darkFrom = a["darkFrom"] as java.time.LocalTime?
+            val lightFrom = a["lightFrom"] as java.time.LocalTime?
+            val latitude = a["latitude"] as Double?
+            val longitude = a["longitude"] as Double?
+            when {
+                darkFrom != null && lightFrom != null && darkFrom != lightFrom -> caulis.colorSchedule = dev.caulis.core.appearance.ColorSchedule.Times(darkFrom, lightFrom)
+                darkFrom != null || lightFrom != null -> configLog.warn("appearance: darkFrom and lightFrom go together (and differ)")
+                latitude != null && longitude != null -> caulis.colorSchedule = dev.caulis.core.appearance.ColorSchedule.Sun(latitude, longitude)
+                latitude != null || longitude != null -> configLog.warn("appearance: latitude and longitude go together")
+            }
+            (a["accentColor"] as Color?)?.let { caulis.accentColor = it }
+            val light = a["gtkLightTheme"] as String?
+            val dark = a["gtkDarkTheme"] as String?
+            if (light != null && dark != null) caulis.gtkThemes = light to dark else if (light != null || dark != null) configLog.warn("appearance: gtkLightTheme and gtkDarkTheme go together")
+            (a["toPrograms"] as Boolean?)?.let { caulis.appearanceToPrograms = it }
+        }
         (values["hideCursorWhileTyping"] as Boolean?)?.let { caulis.hideCursorWhileTyping = it }
         (values["hideCursorAfterSeconds"] as Int?)?.let { caulis.hideCursorAfterSeconds = it }
         (values["lockColor"] as Color?)?.let { caulis.lockColor = it }

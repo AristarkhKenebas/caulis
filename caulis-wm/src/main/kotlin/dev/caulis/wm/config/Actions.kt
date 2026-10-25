@@ -2,6 +2,7 @@ package dev.caulis.wm.config
 
 import dev.caulis.core.NoticeLevel
 import dev.caulis.core.Window
+import dev.caulis.core.appearance.ColorScheme
 import dev.caulis.tiling.Direction
 import dev.caulis.tiling.TilingCommand
 import dev.caulis.wm.Caulis
@@ -19,6 +20,7 @@ import dev.caulis.wm.DisplayMode
  * maximize · fullscreen · minimize · float · pin · tag +video
  * rotate · balance · column-width · split-beside · split-below
  * layout dwindle · layout-message ratio +0.05 · scale 1.5 · notify Hello
+ * color-scheme dark|light|toggle|auto
  * ```
  */
 object Actions {
@@ -73,6 +75,7 @@ object Actions {
         Triple("touchpad", "on|off|toggle | typing on|off|toggle", "the touchpad on or off; typing: off while typing (a palm on it moves nothing), or not"),
         Triple("media", "play-pause|next|previous|stop", "the music player (playerctl)"),
         Triple("displays", "next|extend|mirror|laptop|external", "how the laptop's screen and a monitor or projector are used together"),
+        Triple("color-scheme", "dark|light|default|toggle|auto", "light or dark for programs (until the schedule's next change); auto: back to the schedule"),
     )
 
     /**
@@ -225,6 +228,14 @@ object Actions {
                 "next" -> { _ -> running?.displays?.next() }
                 else -> (DisplayMode.of(word) ?: throw IllegalArgumentException("\"$word\" is not next, extend, mirror, laptop or external"))
                     .let { mode -> { _ -> useDisplays(mode) } }
+            }
+            "color-scheme" -> when (val word = argument.lowercase().ifEmpty { "toggle" }) {
+                "dark" -> ({ _ -> switchColorScheme(ColorScheme.DARK) })
+                "light" -> ({ _ -> switchColorScheme(ColorScheme.LIGHT) })
+                "default" -> ({ _ -> switchColorScheme(ColorScheme.DEFAULT) })
+                "toggle" -> ({ _ -> switchColorScheme(colorSchemeNow.toggled()) })
+                "auto" -> ({ _ -> switchColorScheme(null) })
+                else -> throw IllegalArgumentException("\"$word\" is not dark, light, default, toggle or auto")
             }
             "mode" -> needs("a mode name, or reset").let { mode -> { _ -> enterMode(mode.takeIf { it != "reset" && it != "default" }) } }
             else -> {

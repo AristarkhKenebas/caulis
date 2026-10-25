@@ -2753,6 +2753,58 @@
       "maximum": 2000,
       "description": "a double click on a title bar"
     },
+    "appearance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "colorScheme": {
+          "enum": ["default", "dark", "light"],
+          "description": "light or dark for programs (default: each its own)"
+        },
+        "darkFrom": {
+          "type": "string",
+          "pattern": "^[0-2]?[0-9]:[0-5][0-9]$",
+          "description": "with lightFrom: dark from this time of day"
+        },
+        "lightFrom": {
+          "type": "string",
+          "pattern": "^[0-2]?[0-9]:[0-5][0-9]$",
+          "description": "with darkFrom: light from this time of day"
+        },
+        "latitude": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90,
+          "description": "with longitude: dark from sunset to sunrise there"
+        },
+        "longitude": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180,
+          "description": "with latitude: the place (east positive)"
+        },
+        "accentColor": {
+          "type": "string",
+          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+          "description": "the accent colour programs are told"
+        },
+        "gtkLightTheme": {
+          "type": "string",
+          "minLength": 1,
+          "description": "with gtkDarkTheme: GTK 3 programs' theme when light (\"Adwaita\")"
+        },
+        "gtkDarkTheme": {
+          "type": "string",
+          "minLength": 1,
+          "description": "with gtkLightTheme: their theme when dark (\"Adwaita-dark\")"
+        },
+        "toPrograms": {
+          "type": "boolean",
+          "description": "tell programs (default: on a real screen only, not nested)"
+        }
+      },
+      "description": "how programs look: light or dark, by a schedule"
+    },
     "hideCursorWhileTyping": {
       "type": "boolean",
       "description": "hide the cursor while typing"

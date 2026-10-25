@@ -286,6 +286,7 @@ class LuaConfig : ConfigLanguage {
                     "monitor-added" -> caulis.onMonitorAdded { name -> call("on monitor-added", fn, LuaValue.valueOf(name)) }
                     "monitor-removed" -> caulis.onMonitorRemoved { name -> call("on monitor-removed", fn, LuaValue.valueOf(name)) }
                     "lid" -> caulis.onLid { closed -> call("on lid", fn, LuaValue.valueOf(closed)) }
+                    "color-scheme" -> caulis.onColorSchemeChanged { scheme -> call("on color-scheme", fn, LuaValue.valueOf(scheme.name.lowercase())) }
                     "notice" -> caulis.onNotice { n: Notice -> call("on notice", fn, LuaValue.valueOf(n.text), LuaValue.valueOf(n.level.name.lowercase())) }
                     else -> throw LuaError("there is no event \"$event\" (there are: ${EVENTS.joinToString()})")
                 }
@@ -309,6 +310,7 @@ class LuaConfig : ConfigLanguage {
             function("focusedWindow") { running("focusedWindow") { desktop.focusedWindow?.let(::window) ?: LuaValue.NIL } }
             function("monitors") { running("monitors") { state().get("monitors") } }
             function("workspace") { running("workspace") { LuaValue.valueOf(desktop.activeWorkspace.number) } }
+            function("colorScheme") { LuaValue.valueOf(caulis.colorSchemeNow.name.lowercase()) }
             function("after") { args ->
                 val millis = args.checklong(1)
                 val fn = args.checkfunction(2)
@@ -532,7 +534,7 @@ class LuaConfig : ConfigLanguage {
     internal companion object {
         val EVENTS = listOf(
             "start", "reload", "unload", "window-opened", "window-closed", "window-changed", "focus-changed",
-            "workspace-changed", "monitor-added", "monitor-removed", "notice", "lid",
+            "workspace-changed", "monitor-added", "monitor-removed", "notice", "lid", "color-scheme",
         )
 
         // How long Lua code may run: the whole file, and one key, event or timer.

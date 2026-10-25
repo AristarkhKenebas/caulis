@@ -21,6 +21,7 @@ public  final class State extends
     focusedMonitor_ = "";
     primaryMonitor_ = "";
     keyMode_ = "";
+    colorScheme_ = "";
   }
   public static final int WINDOWS_FIELD_NUMBER = 1;
   private com.google.protobuf.Internal.ProtobufList<dev.caulis.ipc.v1.Window> windows_;
@@ -704,6 +705,73 @@ public  final class State extends
       com.google.protobuf.ByteString value) {
     checkByteStringIsUtf8(value);
     keyMode_ = value.toStringUtf8();
+
+  }
+
+  public static final int COLOR_SCHEME_FIELD_NUMBER = 10;
+  private java.lang.String colorScheme_;
+  /**
+   * <pre>
+   * What programs are told: "dark", "light" or "default" (no wish).
+   * </pre>
+   *
+   * <code>string color_scheme = 10;</code>
+   * @return The colorScheme.
+   */
+  @java.lang.Override
+  public java.lang.String getColorScheme() {
+    return colorScheme_;
+  }
+  /**
+   * <pre>
+   * What programs are told: "dark", "light" or "default" (no wish).
+   * </pre>
+   *
+   * <code>string color_scheme = 10;</code>
+   * @return The bytes for colorScheme.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getColorSchemeBytes() {
+    return com.google.protobuf.ByteString.copyFromUtf8(colorScheme_);
+  }
+  /**
+   * <pre>
+   * What programs are told: "dark", "light" or "default" (no wish).
+   * </pre>
+   *
+   * <code>string color_scheme = 10;</code>
+   * @param value The colorScheme to set.
+   */
+  private void setColorScheme(
+      java.lang.String value) {
+    java.util.Objects.requireNonNull(value);
+
+    colorScheme_ = value;
+  }
+  /**
+   * <pre>
+   * What programs are told: "dark", "light" or "default" (no wish).
+   * </pre>
+   *
+   * <code>string color_scheme = 10;</code>
+   */
+  private void clearColorScheme() {
+
+    colorScheme_ = getDefaultInstance().getColorScheme();
+  }
+  /**
+   * <pre>
+   * What programs are told: "dark", "light" or "default" (no wish).
+   * </pre>
+   *
+   * <code>string color_scheme = 10;</code>
+   * @param value The bytes for colorScheme to set.
+   */
+  private void setColorSchemeBytes(
+      com.google.protobuf.ByteString value) {
+    checkByteStringIsUtf8(value);
+    colorScheme_ = value.toStringUtf8();
 
   }
 
@@ -1533,6 +1601,75 @@ public  final class State extends
       return this;
     }
 
+    /**
+     * <pre>
+     * What programs are told: "dark", "light" or "default" (no wish).
+     * </pre>
+     *
+     * <code>string color_scheme = 10;</code>
+     * @return The colorScheme.
+     */
+    @java.lang.Override
+    public java.lang.String getColorScheme() {
+      return instance.getColorScheme();
+    }
+    /**
+     * <pre>
+     * What programs are told: "dark", "light" or "default" (no wish).
+     * </pre>
+     *
+     * <code>string color_scheme = 10;</code>
+     * @return The bytes for colorScheme.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getColorSchemeBytes() {
+      return instance.getColorSchemeBytes();
+    }
+    /**
+     * <pre>
+     * What programs are told: "dark", "light" or "default" (no wish).
+     * </pre>
+     *
+     * <code>string color_scheme = 10;</code>
+     * @param value The colorScheme to set.
+     * @return This builder for chaining.
+     */
+    public Builder setColorScheme(
+        java.lang.String value) {
+      copyOnWrite();
+      instance.setColorScheme(value);
+      return this;
+    }
+    /**
+     * <pre>
+     * What programs are told: "dark", "light" or "default" (no wish).
+     * </pre>
+     *
+     * <code>string color_scheme = 10;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearColorScheme() {
+      copyOnWrite();
+      instance.clearColorScheme();
+      return this;
+    }
+    /**
+     * <pre>
+     * What programs are told: "dark", "light" or "default" (no wish).
+     * </pre>
+     *
+     * <code>string color_scheme = 10;</code>
+     * @param value The bytes for colorScheme to set.
+     * @return This builder for chaining.
+     */
+    public Builder setColorSchemeBytes(
+        com.google.protobuf.ByteString value) {
+      copyOnWrite();
+      instance.setColorSchemeBytes(value);
+      return this;
+    }
+
     // @@protoc_insertion_point(builder_scope:caulis.ipc.v1.State)
   }
   @java.lang.Override
@@ -1561,10 +1698,11 @@ public  final class State extends
             "locked_",
             "primaryMonitor_",
             "keyMode_",
+            "colorScheme_",
           };
           java.lang.String info =
-              "\u0000\t\u0000\u0000\u0001\t\t\u0000\u0003\u0000\u0001\u001b\u0002\u001b\u0003\u001b" +
-              "\u0004\u0003\u0005\u0208\u0006\u0000\u0007\u0007\b\u0208\t\u0208";
+              "\u0000\n\u0000\u0000\u0001\n\n\u0000\u0003\u0000\u0001\u001b\u0002\u001b\u0003\u001b" +
+              "\u0004\u0003\u0005\u0208\u0006\u0000\u0007\u0007\b\u0208\t\u0208\n\u0208";
           return newMessageInfo(DEFAULT_INSTANCE, info, objects);
       }
       case GET_DEFAULT_INSTANCE: {

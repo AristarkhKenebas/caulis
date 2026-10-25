@@ -14,6 +14,8 @@ import dev.caulis.core.TitleBars
 import dev.caulis.core.Window
 import dev.caulis.core.WorkspaceMode
 import dev.caulis.core.WorkspaceRule
+import dev.caulis.core.appearance.ColorSchedule
+import dev.caulis.core.appearance.ColorScheme
 import dev.caulis.core.cursor.CursorTheme
 import dev.caulis.core.input.KeyBindings
 import dev.caulis.core.input.InputSettings
@@ -445,9 +447,9 @@ class Caulis {
     var lockCommand = "swaylock"
 
     /**
-     * The cursor theme, e.g. "Caulis-Black", "Bibata-Modern-Ice", "Adwaita". Null = the
-     * default: Bibata if the project uses `caulis-cursor-bibata` (the template does), else
-     * `XCURSOR_THEME` if set, else Caulis's own sharp white cursors ("Caulis").
+     * The cursor theme, e.g. "Caulis-Black", "Adwaita", "Breeze". Null = the default: a theme
+     * that came with a library, else `XCURSOR_THEME` if set, else Caulis's own sharp white
+     * cursors ("Caulis").
      * [CursorTheme.available] lists what is there.
      */
     var cursorTheme: String? = null
@@ -455,6 +457,78 @@ class Caulis {
             field = value
             running?.applyCursor()
         }
+
+    // --- light and dark --------------------------------------------------------------------
+
+    /**
+     * Light or dark for programs: [ColorScheme.DARK] or [ColorScheme.LIGHT] is what GTK 4,
+     * libadwaita, Qt 6, Firefox, Chromium and Electron programs follow (through
+     * xdg-desktop-portal and gsettings). [ColorScheme.DEFAULT] (the default): nothing is said,
+     * each program looks as it does by itself. With a [colorSchedule], the schedule decides.
+     */
+    var colorScheme: ColorScheme = ColorScheme.DEFAULT
+        set(value) {
+            field = value
+            running?.applyAppearance()
+        }
+
+    /**
+     * Dark and light by themselves: `ColorSchedule.Times(dark = LocalTime.of(20, 0), light =
+     * LocalTime.of(7, 0))`, or from sunset to sunrise at a place: `ColorSchedule.Sun(55.75,
+     * 37.62)`. Null (the default): only [colorScheme]. [switchColorScheme] overrides it until
+     * its next change.
+     */
+    var colorSchedule: ColorSchedule? = null
+        set(value) {
+            field = value
+            running?.applyAppearance()
+        }
+
+    /** The accent colour programs are told (buttons, selections; libadwaita and others follow it), or null: their own. */
+    var accentColor: dev.caulis.render.Color? = null
+        set(value) {
+            field = value
+            running?.applyAppearance()
+        }
+
+    /**
+     * GTK 3 programs follow a theme, not the scheme: the GTK theme for light and for dark, e.g.
+     * `"Adwaita" to "Adwaita-dark"`, switched with the scheme. Null (the default): the theme is
+     * left as it is.
+     */
+    var gtkThemes: Pair<String, String>? = null
+        set(value) {
+            field = value
+            running?.applyAppearance()
+        }
+
+    /**
+     * Whether programs are told the scheme (the portal and gsettings, which are your whole
+     * session's). Null (the default): on a real screen only — a nested or headless compositor
+     * (a test) does not change your desktop's look.
+     */
+    var appearanceToPrograms: Boolean? = null
+        set(value) {
+            field = value
+            running?.applyAppearance()
+        }
+
+    /** The scheme programs are told now (from the schedule, by hand, or [colorScheme]). */
+    val colorSchemeNow: ColorScheme get() = running?.appearance?.colorScheme ?: colorScheme
+
+    /**
+     * Light or dark now, by hand (a key, `--do color-scheme dark`): until the schedule's next
+     * change, or for as long as the compositor runs without one. Null: back to the schedule
+     * or [colorScheme].
+     */
+    fun switchColorScheme(scheme: ColorScheme?) {
+        checkNotNull(running) { "Caulis is not running yet" }.switchColorScheme(scheme)
+    }
+
+    /** Runs [action] whenever the scheme changes (to restyle a bar of your own, ...). */
+    fun onColorSchemeChanged(action: Caulis.(ColorScheme) -> Unit): AutoCloseable = listen(colorSchemeListeners, action)
+
+    internal val colorSchemeListeners = ArrayList<Caulis.(ColorScheme) -> Unit>()
 
     /** The cursor size in pixels (24 is usual; 32 or 48 for a bigger one). Null = `XCURSOR_SIZE` or 24. */
     var cursorSize: Int? = null
@@ -1111,6 +1185,7 @@ class Caulis {
         scratchpads, swipes, windowOpened, windowClosed, focusChanged, workspaceChanged, reloadActions, rules,
         windowChanged, monitorAdded, monitorRemoved, unloadActions, waitingTimers, sleepActions, wakeActions,
         workspaceRules, lidActions, idleWatches, gestureHandlers, keyHandlers, motionHandlers, buttonHandlers, scrollHandlers,
+        colorSchemeListeners,
     )
 
     /** The window manager (workspaces, focus, layouts). Only while running. */

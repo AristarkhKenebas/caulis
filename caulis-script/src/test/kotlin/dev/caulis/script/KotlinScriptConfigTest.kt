@@ -80,17 +80,27 @@ class KotlinScriptConfigTest {
     @Test
     fun `the guide's example is right`() {
         val guide = Files.readString(Path.of("../docs/getting-started.md"))
-        val example = guide.substringAfter("## 27.").substringAfter("```kotlin\n").substringAfter("```kotlin\n").substringBefore("```")
+        val example = guide.substringAfter(". Kotlin without a project: config.kts\n").substringAfter("```kotlin\n").substringAfter("```kotlin\n").substringBefore("```")
         assertTrue("layout = " in example, example)
         assertEquals(emptyList(), apply(example).second)
     }
 
     @Test
     fun `the input guide's Kotlin is right`() {
-        val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter("## 28.").substringBefore("\n## ")
+        val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter(". Mice, touchpads, and keys that do more\n").substringBefore("\n## ")
         val blocks = section.split("```kotlin\n").drop(1).map { it.substringBefore("```") }
         assertEquals(4, blocks.size)
         assertEquals(emptyList(), apply(blocks.joinToString("\n") + "\nonLid { closed -> if (closed) lock() }").second)
+    }
+
+    @Test
+    fun `the light and dark guide's Kotlin is right`() {
+        val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter(". Light and dark\n").substringBefore("\n## ")
+        val blocks = section.split("```kotlin\n").drop(1).map { it.substringBefore("```") }
+        assertEquals(4, blocks.size)
+        // (Two schedules in a row: the second wins, both must compile.)
+        val code = blocks.joinToString("\n") // (config.kts knows ColorScheme, ColorSchedule and LocalTime)
+        assertEquals(emptyList(), apply(code).second)
     }
 
     @Test
@@ -119,7 +129,7 @@ class KotlinScriptConfigTest {
 
     @Test
     fun `the everyday guide's Kotlin is right`() {
-        val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter("## 29.").substringBefore("\n## ")
+        val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter(". Everyday things: idle, screens, clipboard managers, games\n").substringBefore("\n## ")
         val block = section.substringAfter("```kotlin\n").substringBefore("```")
         assertTrue("onIdle" in block)
         assertEquals(emptyList(), apply(block).second)

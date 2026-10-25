@@ -178,7 +178,7 @@ class ConfigFileTest {
     @Test
     fun `the guide's example is right`() {
         val guide = java.nio.file.Files.readString(java.nio.file.Path.of("../docs/getting-started.md"))
-        val example = guide.substringAfter("## 23.").substringAfter("```jsonc\n").substringBefore("```")
+        val example = guide.substringAfter(". Settings as data: config.json\n").substringAfter("```jsonc\n").substringBefore("```")
         assertTrue(example.contains("\"layout\""))
         assertEquals(emptyList(), ConfigFile.read(example).problems)
     }

@@ -446,6 +446,17 @@ let
     "overviewFill" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck lib.types.number (x: x >= 0.3 && x <= 1) // { description = "a number from 0.3 to 1"; }); default = null; description = "how much of the monitor the overview's windows take"; };
     "resizeBorder" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (50)); default = null; description = "the edge to grab floating windows by"; };
     "doubleClickMillis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (50) (2000)); default = null; description = "a double click on a title bar"; };
+    "appearance" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
+      "colorScheme" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "default" "dark" "light" ]); default = null; description = "light or dark for programs (default: each its own)"; };
+      "darkFrom" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "with lightFrom: dark from this time of day"; };
+      "lightFrom" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "with darkFrom: light from this time of day"; };
+      "latitude" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck lib.types.number (x: x >= -90 && x <= 90) // { description = "a number from -90 to 90"; }); default = null; description = "with longitude: dark from sunset to sunrise there"; };
+      "longitude" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck lib.types.number (x: x >= -180 && x <= 180) // { description = "a number from -180 to 180"; }); default = null; description = "with latitude: the place (east positive)"; };
+      "accentColor" = lib.mkOption { type = lib.types.nullOr (lib.types.strMatching "#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})"); default = null; description = "the accent colour programs are told"; };
+      "gtkLightTheme" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "with gtkDarkTheme: GTK 3 programs' theme when light (\"Adwaita\")"; };
+      "gtkDarkTheme" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "with gtkLightTheme: their theme when dark (\"Adwaita-dark\")"; };
+      "toPrograms" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "tell programs (default: on a real screen only, not nested)"; };
+    }; }); default = null; description = "how programs look: light or dark, by a schedule"; };
     "hideCursorWhileTyping" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "hide the cursor while typing"; };
     "hideCursorAfterSeconds" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (3600)); default = null; description = "hide the cursor when the mouse is still (0: never)"; };
     "lockColor" = lib.mkOption { type = lib.types.nullOr (lib.types.strMatching "#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})"); default = null; description = "behind the screen locker"; };

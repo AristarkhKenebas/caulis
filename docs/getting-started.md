@@ -10,7 +10,7 @@ can write a bit of Kotlin (or Java), you can follow along.
 - A GPU driver with OpenGL ES 3 — on almost every Linux with Mesa (AMD, Intel) or NVIDIA 545+
 - JDK 27 (Gradle can also download it for you)
 - Or just [Nix](https://nixos.org): `nix develop` in the Caulis folder (or in your project)
-  gives a shell with JDK 27, Xwayland and every library — see step 24
+  gives a shell with JDK 27, Xwayland and every library — see step 25
 - A terminal program for your compositor to open, e.g. [foot](https://codeberg.org/dnkl/foot)
 
 ## 1. Get Caulis
@@ -155,7 +155,7 @@ request too (GNOME asks you once whether to allow it).
 
 Without any window at all — for scripts, tests, or a monitor to share — it runs
 **headless**: on monitors that are nowhere on screen, drawn on the GPU all the same.
-Programs connect as usual; screenshots (`grim`), screen sharing and the IPC socket (step 25)
+Programs connect as usual; screenshots (`grim`), screen sharing and the IPC socket (step 26)
 see everything:
 
 ```sh
@@ -782,7 +782,7 @@ workspace(3) { name = "chat"; persistent = true }      // always there, even emp
 workspace(4) { layout = ScrollingColumns() }           // its own layout
 ```
 
-Names go to bars and programs (the IPC socket, step 25). Actions for keys (step 23) reach
+Names go to bars and programs (the IPC socket, step 26). Actions for keys (step 24) reach
 them by number or relatively: `workspace back` (the one before — "back and forth"),
 `workspace next`, `workspace prev`, `workspace empty` (the first one with no windows), and
 the same for `move-to-workspace`. Monitors: `focus-monitor` and `move-to-monitor` with
@@ -926,25 +926,110 @@ xwayland = false
 
 ## 17. The cursor
 
-The template comes with the Bibata cursor. Choose another theme and size:
+Caulis has its own cursors: `"Caulis"` (sharp white arrows with a black outline, as on
+Windows, the default) and `"Caulis-Black"`. Any theme installed on the system works too
+(in `/usr/share/icons` or `~/.icons`). Choose the theme and the size:
 
 ```kotlin
-cursorTheme = "Bibata-Modern-Ice" // white; "Bibata-Modern-Amber"; or any installed theme: "Adwaita", ...
+cursorTheme = "Caulis-Black"      // or an installed theme: "Adwaita", "Breeze", "Bibata-Modern-Ice", ...
 cursorSize = 32                   // 24 is usual; bigger for big screens or tired eyes
 hideCursorWhileTyping = true      // it comes back when the mouse moves
 hideCursorAfterSeconds = 5        // hide it when the mouse is still (0 = never)
 ```
 
-Caulis has its own cursors too: `"Caulis"` (sharp white arrows with a black outline, as on
-Windows) and `"Caulis-Black"`. They are used when no other theme is chosen — e.g. without
-`caulis-cursor-bibata` in `build.gradle.kts` (Bibata is GPL-3.0; remove that line if your
-compositor must not contain GPL files) — and they stand in for any cursor a theme lacks.
+Without `cursorTheme`, `XCURSOR_THEME` is used if it is set, else Caulis's own. Caulis's own
+cursors also stand in for any cursor a theme lacks.
 
 Programs show the same cursor: modern ones ask the compositor for it by name, older ones
 are told the theme and size. If the theme you name is not installed, the log says so and
 lists the ones that are.
 
-## 18. Locking the screen
+## 18. Light and dark
+
+Programs can look light or dark as the desktop says: GTK 4 and libadwaita programs, Qt 6,
+Firefox, Chromium, Electron programs (VS Code, Discord, Obsidian) and others follow it.
+
+```kotlin
+colorScheme = ColorScheme.DARK          // or LIGHT; DEFAULT (the default): each program its own
+```
+
+Or let it change by itself, at fixed times or with the sun:
+
+```kotlin
+colorSchedule = ColorSchedule.Times(dark = LocalTime.of(20, 0), light = LocalTime.of(7, 0))
+colorSchedule = ColorSchedule.Sun(latitude = 55.75, longitude = 37.62)   // dark from sunset to sunrise there
+```
+
+A key can switch it by hand. That lasts until the schedule's next change (or as long as the
+compositor runs, without a schedule). `auto` goes back to the schedule or `colorScheme`:
+
+```kotlin
+bind("Super+Shift+D") { run("color-scheme toggle") }  // also: dark, light, default, auto
+```
+
+From outside — a script, a bar's button, a cron job — the same through the IPC socket
+(step 26), and the scheme of now is in the state:
+
+```sh
+my-compositor --do color-scheme dark
+my-compositor --state | jq -r .colorScheme              # dark, light or default
+my-compositor --events appearance                       # {"event":"color-scheme-changed","colorScheme":"light"}
+```
+
+Your own parts (a bar, a Compose widget) can follow it as well: `colorSchemeNow` is the
+scheme of now, and `onColorSchemeChanged { scheme -> ... }` runs on every change (once at
+the start too, if the configuration sets one).
+
+More settings:
+
+```kotlin
+accentColor = Color(0.21f, 0.52f, 0.89f)       // buttons and selections, where programs use it
+gtkThemes = "Adwaita" to "Adwaita-dark"        // GTK 3 programs follow a theme, not the scheme
+```
+
+The same in `config.json` (step 24) and so in Lua (step 27):
+
+```json
+"appearance": {
+  "colorScheme": "dark",
+  "darkFrom": "20:00", "lightFrom": "07:00",
+  "gtkLightTheme": "Adwaita", "gtkDarkTheme": "Adwaita-dark"
+}
+```
+
+`"latitude"` and `"longitude"` instead of the two times follow the sun. In Lua,
+`caulis.colorScheme()` says the scheme of now, and `caulis.on("color-scheme", function(scheme) ... end)`
+hears every change.
+
+**How programs are told.** Caulis writes the scheme where the GTK and GNOME portals read it
+(`gsettings set org.gnome.desktop.interface color-scheme prefer-dark`). With
+`xdg-desktop-portal-gtk` or `xdg-desktop-portal-gnome` installed, as on most systems, that is
+all. Nothing is written while the scheme is `DEFAULT`, so your session's own setting stays as
+it is until you choose one.
+
+Caulis is also a portal backend of its own (the bus name
+`org.freedesktop.impl.portal.desktop.caulis`, with the accent colour too). The portal uses
+it once it knows it, as root, once:
+
+```sh
+printf '[portal]\nDBusName=org.freedesktop.impl.portal.desktop.caulis\nInterfaces=org.freedesktop.impl.portal.Settings;\n' \
+  | sudo tee /usr/share/xdg-desktop-portal/portals/caulis.portal
+```
+
+and in `~/.config/xdg-desktop-portal/<desktopName>-portals.conf` (`caulis-portals.conf` by
+default):
+
+```ini
+[preferred]
+default=gtk
+org.freedesktop.impl.portal.Settings=caulis;gtk
+```
+
+A nested or headless compositor (a test while you work) does not tell programs anything, so
+it never changes your real desktop's look; `appearanceToPrograms = true` makes it do so
+anyway. The log area `appearance` says what is told (`log("appearance", 2)`).
+
+## 19. Locking the screen
 
 Super+L starts the screen locker — `swaylock` unless you choose another:
 
@@ -960,7 +1045,7 @@ socket name the compositor printed when it started — then come back (Ctrl+Alt+
 whichever console the session is on). Ctrl+Alt+Backspace still quits the compositor, as
 always.
 
-## 19. Screenshots and screen sharing
+## 20. Screenshots and screen sharing
 
 **Caulis's own screenshots** (the module `io.github.aristarkhkenebas:caulis-screenshot`, if you want it in
 your compositor):
@@ -1025,7 +1110,7 @@ windows can be shared too; a shared window keeps drawing at full speed even whil
 hidden or on another workspace. While the screen is locked, pictures show the lock and no
 window is given out.
 
-## 20. Touchpad gestures
+## 21. Touchpad gestures
 
 | Gesture | What it does |
 | --- | --- |
@@ -1068,7 +1153,7 @@ onKey { key -> key.pressed && key.keysym == "F12" && key.modifiers == 0 && run {
 onPointerMotion { dx, dy -> false }   // (true: the pointer stays where it is)
 ```
 
-## 21. On the real screen
+## 22. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 
@@ -1086,7 +1171,7 @@ exitAfterSeconds = 60
 Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles (unless you changed
 `keys.quit` and `keys.consoles`).
 
-## 22. Your own layout
+## 23. Your own layout
 
 Describe it with building blocks — no arithmetic:
 
@@ -1188,11 +1273,11 @@ shadows in any paint (a gradient, a shader: moving ones keep frames coming) and 
 is below. `animating(now)` true keeps frames coming for a drawing that changes by itself; after
 a change of your own, `desktop.requestRedraw()`.
 
-## 23. Settings as data: config.json
+## 24. Settings as data: config.json
 
-Everything in steps 4–20 can also be said in `config.json` in the compositor's folder
+Everything in steps 4–21 can also be said in `config.json` in the compositor's folder
 (`~/.config/<configName>/config.json`) — handy for settings you change often, for people
-who use your compositor without writing Kotlin, and for Nix (step 24). The file goes on top
+who use your compositor without writing Kotlin, and for Nix (step 25). The file goes on top
 of what `Main.kt` says; what it does not mention stays as the code says.
 
 ```jsonc
@@ -1251,7 +1336,7 @@ language server) complete and check the file as you type when it starts with:
 
 Turn the file off with `useConfigFile = false` in `Main.kt`.
 
-## 24. Nix
+## 25. Nix
 
 The Caulis folder and new projects have a `flake.nix`.
 
@@ -1272,7 +1357,7 @@ nix build
 
 Nix builds without the network, so what Gradle downloads is listed in `deps.json` first.
 
-**Settings in Nix.** The settings of step 23 are also Nix options — the same ones, made
+**Settings in Nix.** The settings of step 24 are also Nix options — the same ones, made
 from the same description, so the limits match — for Home Manager:
 
 ```nix
@@ -1304,10 +1389,10 @@ compositor, offers its session at login, and puts the settings in
 Not on NixOS? GPU drivers come from the system there; to run a compositor built with Nix
 on another distribution, start it through [nixGL](https://github.com/nix-community/nixGL).
 
-## 25. Other programs: the IPC socket
+## 26. Other programs: the IPC socket
 
 Bars, docks, scripts and tools — in any language — talk to your running compositor through
-its IPC socket: run the actions of step 23, ask what is on screen, hear what changes. Every
+its IPC socket: run the actions of step 24, ask what is on screen, hear what changes. Every
 program it starts finds the socket in `$CAULIS_SOCKET`.
 
 From a shell, your compositor's own program does it, with JSON:
@@ -1328,7 +1413,7 @@ my-compositor --events focus workspaces           # a line of JSON per event, un
 
 A mistake says what is wrong (and exits with 1): `"worksapce" is not an action (did you mean
 "workspace"?)`. Kinds of events: `windows`, `focus`, `workspaces`, `monitors`, `notices`,
-`config`, `lock`.
+`config`, `lock`, `keys` (key modes), `appearance` (light or dark).
 
 Programs that run all the time (a bar) talk to the socket directly instead of starting a
 program for each question. What goes over it is described in
@@ -1353,9 +1438,9 @@ CaulisIpc.connect().use { ipc ->
   making the compositor keep everything for it.
 - Turn the socket off with `ipc = false`.
 
-## 26. Lua: config.lua
+## 27. Lua: config.lua
 
-For the people who use your compositor, `config.json` (step 23) says *what*; `config.lua`
+For the people who use your compositor, `config.json` (step 24) says *what*; `config.lua`
 can also say *when* and *how* — functions on keys, on events, on timers. Add the module to
 your compositor:
 
@@ -1437,7 +1522,7 @@ If a configuration ends up with no keys at all — every usual key off, none of 
 `Super+Shift+Escape` still quits and `Super+Return` opens a terminal, so a mistake never locks
 you in.
 
-## 27. Kotlin without a project: config.kts
+## 28. Kotlin without a project: config.kts
 
 Everything `Main.kt` can say — but in one file in the compositor's folder, with no Gradle and
 no project: the compositor compiles it itself. Add the module (it contains the Kotlin
@@ -1467,11 +1552,11 @@ it on, like the others. A mistake is reported with its line
 
 Which to choose? `Main.kt` is *your* compositor — what it is. The files are what *its users*
 change: `config.json` for settings, `config.lua` for a bit of behaviour, `config.kts` for
-everything. With Nix (step 24) all of them can be written in the same place:
+everything. With Nix (step 25) all of them can be written in the same place:
 `programs.caulis.settings`, `programs.caulis.lua`, `programs.caulis.kotlinScript` — each
 checked by the compositor itself while building.
 
-## 28. Mice, touchpads, and keys that do more
+## 29. Mice, touchpads, and keys that do more
 
 **Pointers and touchpads** — every setting is optional (the device's own default otherwise):
 
@@ -1575,7 +1660,7 @@ caulis.on("lid", function(closed) if closed then caulis.run("lock") end end)
 
 (In Lua it is `repeating`: `repeat` is a word of the language.)
 
-## 29. Everyday things: idle, screens, clipboard managers, games
+## 30. Everyday things: idle, screens, clipboard managers, games
 
 These work by themselves — the programs that use them just do:
 

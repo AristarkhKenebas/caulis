@@ -4962,8 +4962,8 @@ class Desktop(
     // --- the cursor ------------------------------------------------------------------------
 
     /**
-     * The cursor theme and size, e.g. `CursorTheme.load("Bibata-Modern-Ice", 32)`. By default
-     * a theme that came with a library (caulis-cursor-bibata), else `XCURSOR_THEME`, else
+     * The cursor theme and size, e.g. `CursorTheme.load("Adwaita", 32)`. By default
+     * a theme that came with a library, else `XCURSOR_THEME`, else
      * Caulis's own sharp cursors.
      */
     var cursorTheme: CursorTheme = CursorTheme.load()

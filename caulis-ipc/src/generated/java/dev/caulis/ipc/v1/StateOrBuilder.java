@@ -165,4 +165,24 @@ public interface StateOrBuilder extends
    */
   com.google.protobuf.ByteString
       getKeyModeBytes();
+
+  /**
+   * <pre>
+   * What programs are told: "dark", "light" or "default" (no wish).
+   * </pre>
+   *
+   * <code>string color_scheme = 10;</code>
+   * @return The colorScheme.
+   */
+  java.lang.String getColorScheme();
+  /**
+   * <pre>
+   * What programs are told: "dark", "light" or "default" (no wish).
+   * </pre>
+   *
+   * <code>string color_scheme = 10;</code>
+   * @return The bytes for colorScheme.
+   */
+  com.google.protobuf.ByteString
+      getColorSchemeBytes();
 }

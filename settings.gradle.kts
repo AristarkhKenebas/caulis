@@ -34,7 +34,6 @@ include(
     "caulis-reload",
     "caulis-lua",
     "caulis-script",
-    "caulis-cursor-bibata",
     "tools:cursors",
     "examples:minimal",
     "examples:minimal-java",

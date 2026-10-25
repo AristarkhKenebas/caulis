@@ -5,8 +5,7 @@ import java.nio.file.Path
 import java.util.ServiceLoader
 
 /**
- * Cursor themes that come with a library instead of being installed (e.g. the
- * `caulis-cursor-bibata` module). A library offers its themes by listing its provider in
+ * Cursor themes that come with a library instead of being installed. A library offers its themes by listing its provider in
  * `META-INF/services/dev.caulis.core.cursor.CursorThemeProvider`; adding the library to a
  * project is then enough.
  */
@@ -14,7 +13,7 @@ interface CursorThemeProvider {
     /** The themes it has, the preferred one first. */
     val themes: List<String>
 
-    /** A file of a theme, e.g. ("Bibata-Modern-Classic", "cursors/default"); null if it has none. */
+    /** A file of a theme, e.g. ("Caulis", "cursors/default"); null if it has none. */
     fun file(theme: String, path: String): ByteArray?
 
     /** The real files of a theme ("index.theme", "cursors/left_ptr", ...), to put them on disk for other programs. */
@@ -49,7 +48,7 @@ class Cursor(val shape: String, val frames: List<CursorImage>) {
  * A cursor the theme does not have comes from the themes it inherits, then the system's.
  */
 class CursorTheme private constructor(
-    /** The theme's name, e.g. "Bibata-Modern-Classic". */
+    /** The theme's name, e.g. "Adwaita". */
     val name: String,
     /** The size wanted, in pixels (24 is usual; 32, 48 for big screens or eyes). */
     val size: Int,
@@ -139,7 +138,7 @@ class CursorTheme private constructor(
     companion object {
         /**
          * Loads the theme [name] at [size] pixels. Without a name: a theme that came with a
-         * library (like Bibata from `caulis-cursor-bibata`), else the one in `XCURSOR_THEME`,
+         * library, else the one in `XCURSOR_THEME`,
          * else Caulis's own ([DEFAULT], sharp white arrows). Without a size: `XCURSOR_SIZE`,
          * else 24. Cursors a theme lacks come from the system's theme, then from Caulis's own,
          * so there always is one.

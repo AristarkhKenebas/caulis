@@ -182,6 +182,75 @@ internal class Running(
     // The configuration's own idle timers (replaced on a reload).
     private val idleWatches = ArrayList<AutoCloseable>()
 
+    // --- light and dark ---
+
+    /** What programs are told about how to look (light or dark, the accent colour). */
+    val appearance = dev.caulis.core.appearance.Appearance()
+    private val colorSchemes = ColorSchemes()
+    private var colorSchemeTimer: EventLoop.Timer? = null
+    // Telling programs: the portal backend (on the session bus) and gsettings. Only while wanted.
+    private var sessionBus: dev.caulis.core.dbus.DBusConnection? = null
+    private var portalSettings: dev.caulis.core.appearance.PortalSettings? = null
+    private var gsettings: dev.caulis.core.appearance.GSettingsAppearance? = null
+    private val appearanceLog = Logger("appearance")
+
+    /** The configuration's scheme, schedule, accent and GTK themes, applied (again). */
+    fun applyAppearance() {
+        val config = config
+        val toPrograms = config.appearanceToPrograms ?: (switchConsole != null)
+        if (toPrograms && gsettings == null) {
+            appearanceLog.info { "Programs are told the colour scheme (gsettings and the portal)" }
+            gsettings = dev.caulis.core.appearance.GSettingsAppearance(appearance).also { if (appearance.colorScheme != dev.caulis.core.appearance.ColorScheme.DEFAULT) it.write() }
+            sessionBus = dev.caulis.core.dbus.DBusConnection.session(loop)
+            portalSettings = sessionBus?.let { dev.caulis.core.appearance.PortalSettings(it, appearance) }
+        } else if (!toPrograms && gsettings != null) {
+            stopTellingPrograms()
+        }
+        gsettings?.gtkThemes = config.gtkThemes
+        appearance.accentColor = config.accentColor
+        if (colorSchemes.base != config.colorScheme) {
+            colorSchemes.base = config.colorScheme
+            colorSchemes.switch(null, java.time.ZonedDateTime.now()) // (set anew: it wins over one by hand)
+        }
+        colorSchemes.schedule = config.colorSchedule
+        updateColorScheme()
+    }
+
+    /** Light or dark by hand until the schedule's next change (null: back to the schedule). */
+    fun switchColorScheme(scheme: dev.caulis.core.appearance.ColorScheme?) {
+        appearanceLog.info { "Colour scheme by hand: ${scheme?.name?.lowercase() ?: "back to the schedule"}" }
+        colorSchemes.switch(scheme, java.time.ZonedDateTime.now())
+        updateColorScheme()
+    }
+
+    // The scheme of now, told; looked at again when the schedule changes it (at least hourly:
+    // the clock may be set, or the laptop asleep).
+    private fun updateColorScheme() {
+        colorSchemeTimer?.cancel()
+        colorSchemeTimer = null
+        val now = java.time.ZonedDateTime.now()
+        val (scheme, next) = colorSchemes.at(now)
+        if (appearance.colorScheme != scheme) {
+            appearance.colorScheme = scheme
+            ipc?.colorSchemeChanged(scheme)
+            for (action in config.colorSchemeListeners.toList()) safely("onColorSchemeChanged") { action(config, scheme) }
+        }
+        if (next != null) {
+            val millis = java.time.Duration.between(now, next).toMillis().coerceIn(1_000, 3_600_000)
+            appearanceLog.trace { "The colour scheme is looked at again in ${millis / 1000} s" }
+            colorSchemeTimer = loop.after(millis) { safely("the colour schedule") { updateColorScheme() } }
+        }
+    }
+
+    private fun stopTellingPrograms() {
+        portalSettings?.close()
+        portalSettings = null
+        sessionBus?.close()
+        sessionBus = null
+        gsettings?.close()
+        gsettings = null
+    }
+
     // keyboard-shortcuts-inhibit (set in init).
     private lateinit var shortcutsInhibit: dev.caulis.core.input.ShortcutsInhibit
 
@@ -396,6 +465,7 @@ internal class Running(
     private fun wokeUp() {
         safely("waking the monitors") { wakeMonitors() }
         userActive()
+        safely("the colour schedule") { updateColorScheme() } // (the clock went on while asleep)
         config.wakeActions.toList().forEach { action -> safely("onWake") { action(config) } }
     }
 
@@ -436,6 +506,7 @@ internal class Running(
         }
         seat.repeatRate = config.repeatRate
         seat.repeatDelay = config.repeatDelay
+        applyAppearance()
         inputDevices?.settings = config.input
         desktop.workspaceCount = config.workspaceCount
         desktop.workspaceRules = config.workspaceRules
@@ -1105,6 +1176,8 @@ internal class Running(
     }
 
     override fun close() {
+        colorSchemeTimer?.cancel()
+        stopTellingPrograms()
         logind?.close()
         displays?.close()
         configWatches.forEach(AutoCloseable::close)

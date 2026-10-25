@@ -26,10 +26,9 @@ fun main() = caulis {
     // program its own; TitleBars.NONE: none). Their look: titleBarStyle, see the guide.
     titleBars = TitleBars.COMPOSITOR
 
-    // The cursor: Bibata comes with the project ("Bibata-Modern-Ice" is the white one,
-    // "Bibata-Modern-Amber" the amber one); Caulis's own sharp ones are "Caulis" and
-    // "Caulis-Black"; any installed theme works too, e.g. "Adwaita".
-    cursorTheme = "Bibata-Modern-Classic"
+    // The cursor: Caulis's own sharp ones are "Caulis" (white) and "Caulis-Black"; any
+    // installed theme works too, e.g. "Adwaita" or "Breeze".
+    cursorTheme = "Caulis"
     cursorSize = 24
 
     // How much the log says: 0 nearly nothing, 1 problems, 2 what happens, 3 everything.

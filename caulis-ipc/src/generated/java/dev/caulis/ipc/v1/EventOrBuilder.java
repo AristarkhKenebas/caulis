@@ -180,5 +180,34 @@ public interface EventOrBuilder extends
   com.google.protobuf.ByteString
       getKeyModeChangedBytes();
 
+  /**
+   * <pre>
+   * "dark", "light" or "default": what programs are told now.
+   * </pre>
+   *
+   * <code>string color_scheme_changed = 11;</code>
+   * @return Whether the colorSchemeChanged field is set.
+   */
+  boolean hasColorSchemeChanged();
+  /**
+   * <pre>
+   * "dark", "light" or "default": what programs are told now.
+   * </pre>
+   *
+   * <code>string color_scheme_changed = 11;</code>
+   * @return The colorSchemeChanged.
+   */
+  java.lang.String getColorSchemeChanged();
+  /**
+   * <pre>
+   * "dark", "light" or "default": what programs are told now.
+   * </pre>
+   *
+   * <code>string color_scheme_changed = 11;</code>
+   * @return The bytes for colorSchemeChanged.
+   */
+  com.google.protobuf.ByteString
+      getColorSchemeChangedBytes();
+
   public dev.caulis.ipc.v1.Event.WhatCase getWhatCase();
 }

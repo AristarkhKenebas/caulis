@@ -36,6 +36,7 @@
 ---@field overviewFill? number how much of the monitor the overview's windows take
 ---@field resizeBorder? integer the edge to grab floating windows by
 ---@field doubleClickMillis? integer a double click on a title bar
+---@field appearance? caulis.Settings.appearance how programs look: light or dark, by a schedule
 ---@field hideCursorWhileTyping? boolean hide the cursor while typing
 ---@field hideCursorAfterSeconds? integer hide the cursor when the mouse is still (0: never)
 ---@field lockColor? string behind the screen locker
@@ -483,6 +484,17 @@
 ---@field workspaceSwipeFingers? integer fingers whose swipe changes the workspace (0: off)
 ---@field swipeDistance? number how far fingers move for a swipe
 
+---@class caulis.Settings.appearance
+---@field colorScheme? "default"|"dark"|"light" light or dark for programs (default: each its own)
+---@field darkFrom? any with lightFrom: dark from this time of day
+---@field lightFrom? any with darkFrom: light from this time of day
+---@field latitude? number with longitude: dark from sunset to sunrise there
+---@field longitude? number with latitude: the place (east positive)
+---@field accentColor? string the accent colour programs are told
+---@field gtkLightTheme? string with gtkDarkTheme: GTK 3 programs' theme when light ("Adwaita")
+---@field gtkDarkTheme? string with gtkLightTheme: their theme when dark ("Adwaita-dark")
+---@field toPrograms? boolean tell programs (default: on a real screen only, not nested)
+
 ---@class caulis.Window
 ---@field id integer the same while it is open
 ---@field appId string
@@ -546,7 +558,7 @@
 ---@field description? string
 ---@field mode? string a key mode's own key
 
----@alias caulis.Event "start"|"reload"|"unload"|"window-opened"|"window-closed"|"window-changed"|"focus-changed"|"workspace-changed"|"monitor-added"|"monitor-removed"|"notice"|"lid"
+---@alias caulis.Event "start"|"reload"|"unload"|"window-opened"|"window-closed"|"window-changed"|"focus-changed"|"workspace-changed"|"monitor-added"|"monitor-removed"|"notice"|"lid"|"color-scheme"
 
 ---@class caulis
 caulis = {}
@@ -599,6 +611,10 @@ function caulis.monitors() end
 
 ---@return integer
 function caulis.workspace() end
+
+---What programs are told now: "dark", "light" or "default".
+---@return "dark"|"light"|"default"
+function caulis.colorScheme() end
 
 ---Runs fn once, millis from now.
 ---@param millis integer

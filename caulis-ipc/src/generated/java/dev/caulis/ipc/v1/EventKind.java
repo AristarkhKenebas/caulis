@@ -79,6 +79,14 @@ public enum EventKind
    * <code>EVENT_KIND_KEYS = 8;</code>
    */
   EVENT_KIND_KEYS(8),
+  /**
+   * <pre>
+   * color_scheme_changed
+   * </pre>
+   *
+   * <code>EVENT_KIND_APPEARANCE = 9;</code>
+   */
+  EVENT_KIND_APPEARANCE(9),
   UNRECOGNIZED(-1),
   ;
 
@@ -150,6 +158,14 @@ public enum EventKind
    * <code>EVENT_KIND_KEYS = 8;</code>
    */
   public static final int EVENT_KIND_KEYS_VALUE = 8;
+  /**
+   * <pre>
+   * color_scheme_changed
+   * </pre>
+   *
+   * <code>EVENT_KIND_APPEARANCE = 9;</code>
+   */
+  public static final int EVENT_KIND_APPEARANCE_VALUE = 9;
 
 
   @java.lang.Override
@@ -181,6 +197,7 @@ public enum EventKind
       case 6: return EVENT_KIND_CONFIG;
       case 7: return EVENT_KIND_LOCK;
       case 8: return EVENT_KIND_KEYS;
+      case 9: return EVENT_KIND_APPEARANCE;
       default: return null;
     }
   }

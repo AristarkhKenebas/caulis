@@ -56,6 +56,8 @@ fun main() = caulis {
     // Many laptops send the Windows shortcuts for their keys: the display key (F7) is
     // Super+P, the screenshot key (F10) Super+Shift+S.
     bind("Super+P") { run("displays next") }
+    // Light or dark for programs, by hand (until the schedule's next change, if there is one).
+    bind("Super+Shift+D") { run("color-scheme toggle") }
     bind("Super+Shift+S") { run("screenshot") }
     // The star key (F9): notes.
     bind("XF86Favorites") { launch(if (has("obsidian")) "obsidian" else "gnome-text-editor") }

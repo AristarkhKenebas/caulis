@@ -164,14 +164,14 @@ class LuaConfigTest {
     @Test
     fun `the guide's example is right`() {
         val guide = Files.readString(Path.of("../docs/getting-started.md"))
-        val example = guide.substringAfter("## 26.").substringAfter("```lua\n").substringBefore("```")
+        val example = guide.substringAfter(". Lua: config.lua\n").substringAfter("```lua\n").substringBefore("```")
         assertTrue("caulis.settings" in example)
         assertEquals(emptyList(), apply(example).second)
     }
 
     @Test
     fun `the input guide's Lua is right`() {
-        val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter("## 28.").substringBefore("\n## ")
+        val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter(". Mice, touchpads, and keys that do more\n").substringBefore("\n## ")
         val example = section.substringAfter("```lua\n").substringBefore("```")
         assertTrue("mode = \"resize\"" in example)
         assertEquals(emptyList(), apply(example).second)

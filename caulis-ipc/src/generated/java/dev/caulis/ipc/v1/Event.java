@@ -30,6 +30,7 @@ public  final class Event extends
     CONFIG_RELOADED(8),
     LOCK_CHANGED(9),
     KEY_MODE_CHANGED(10),
+    COLOR_SCHEME_CHANGED(11),
     WHAT_NOT_SET(0);
     private final int value;
     private WhatCase(int value) {
@@ -55,6 +56,7 @@ public  final class Event extends
         case 8: return CONFIG_RELOADED;
         case 9: return LOCK_CHANGED;
         case 10: return KEY_MODE_CHANGED;
+        case 11: return COLOR_SCHEME_CHANGED;
         case 0: return WHAT_NOT_SET;
         default: return null;
       }
@@ -669,6 +671,94 @@ public  final class Event extends
     checkByteStringIsUtf8(value);
     what_ = value.toStringUtf8();
     whatCase_ = 10;
+  }
+
+  public static final int COLOR_SCHEME_CHANGED_FIELD_NUMBER = 11;
+  /**
+   * <pre>
+   * "dark", "light" or "default": what programs are told now.
+   * </pre>
+   *
+   * <code>string color_scheme_changed = 11;</code>
+   * @return Whether the colorSchemeChanged field is set.
+   */
+  @java.lang.Override
+  public boolean hasColorSchemeChanged() {
+    return whatCase_ == 11;
+  }
+  /**
+   * <pre>
+   * "dark", "light" or "default": what programs are told now.
+   * </pre>
+   *
+   * <code>string color_scheme_changed = 11;</code>
+   * @return The colorSchemeChanged.
+   */
+  @java.lang.Override
+  public java.lang.String getColorSchemeChanged() {
+    java.lang.String ref = "";
+    if (whatCase_ == 11) {
+      ref = (java.lang.String) what_;
+    }
+    return ref;
+  }
+  /**
+   * <pre>
+   * "dark", "light" or "default": what programs are told now.
+   * </pre>
+   *
+   * <code>string color_scheme_changed = 11;</code>
+   * @return The bytes for colorSchemeChanged.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getColorSchemeChangedBytes() {
+    java.lang.String ref = "";
+    if (whatCase_ == 11) {
+      ref = (java.lang.String) what_;
+    }
+    return com.google.protobuf.ByteString.copyFromUtf8(ref);
+  }
+  /**
+   * <pre>
+   * "dark", "light" or "default": what programs are told now.
+   * </pre>
+   *
+   * <code>string color_scheme_changed = 11;</code>
+   * @param value The colorSchemeChanged to set.
+   */
+  private void setColorSchemeChanged(
+      java.lang.String value) {
+    java.util.Objects.requireNonNull(value);
+    whatCase_ = 11;
+    what_ = value;
+  }
+  /**
+   * <pre>
+   * "dark", "light" or "default": what programs are told now.
+   * </pre>
+   *
+   * <code>string color_scheme_changed = 11;</code>
+   */
+  private void clearColorSchemeChanged() {
+    if (whatCase_ == 11) {
+      whatCase_ = 0;
+      what_ = null;
+    }
+  }
+  /**
+   * <pre>
+   * "dark", "light" or "default": what programs are told now.
+   * </pre>
+   *
+   * <code>string color_scheme_changed = 11;</code>
+   * @param value The bytes for colorSchemeChanged to set.
+   */
+  private void setColorSchemeChangedBytes(
+      com.google.protobuf.ByteString value) {
+    checkByteStringIsUtf8(value);
+    what_ = value.toStringUtf8();
+    whatCase_ = 11;
   }
 
   public static dev.caulis.ipc.v1.Event parseFrom(
@@ -1359,6 +1449,87 @@ public  final class Event extends
       return this;
     }
 
+    /**
+     * <pre>
+     * "dark", "light" or "default": what programs are told now.
+     * </pre>
+     *
+     * <code>string color_scheme_changed = 11;</code>
+     * @return Whether the colorSchemeChanged field is set.
+     */
+    @java.lang.Override
+    public boolean hasColorSchemeChanged() {
+      return instance.hasColorSchemeChanged();
+    }
+    /**
+     * <pre>
+     * "dark", "light" or "default": what programs are told now.
+     * </pre>
+     *
+     * <code>string color_scheme_changed = 11;</code>
+     * @return The colorSchemeChanged.
+     */
+    @java.lang.Override
+    public java.lang.String getColorSchemeChanged() {
+      return instance.getColorSchemeChanged();
+    }
+    /**
+     * <pre>
+     * "dark", "light" or "default": what programs are told now.
+     * </pre>
+     *
+     * <code>string color_scheme_changed = 11;</code>
+     * @return The bytes for colorSchemeChanged.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getColorSchemeChangedBytes() {
+      return instance.getColorSchemeChangedBytes();
+    }
+    /**
+     * <pre>
+     * "dark", "light" or "default": what programs are told now.
+     * </pre>
+     *
+     * <code>string color_scheme_changed = 11;</code>
+     * @param value The colorSchemeChanged to set.
+     * @return This builder for chaining.
+     */
+    public Builder setColorSchemeChanged(
+        java.lang.String value) {
+      copyOnWrite();
+      instance.setColorSchemeChanged(value);
+      return this;
+    }
+    /**
+     * <pre>
+     * "dark", "light" or "default": what programs are told now.
+     * </pre>
+     *
+     * <code>string color_scheme_changed = 11;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearColorSchemeChanged() {
+      copyOnWrite();
+      instance.clearColorSchemeChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * "dark", "light" or "default": what programs are told now.
+     * </pre>
+     *
+     * <code>string color_scheme_changed = 11;</code>
+     * @param value The bytes for colorSchemeChanged to set.
+     * @return This builder for chaining.
+     */
+    public Builder setColorSchemeChangedBytes(
+        com.google.protobuf.ByteString value) {
+      copyOnWrite();
+      instance.setColorSchemeChangedBytes(value);
+      return this;
+    }
+
     // @@protoc_insertion_point(builder_scope:caulis.ipc.v1.Event)
   }
   @java.lang.Override
@@ -1385,9 +1556,9 @@ public  final class Event extends
             dev.caulis.ipc.v1.ConfigReloaded.class,
           };
           java.lang.String info =
-              "\u0000\n\u0001\u0000\u0001\n\n\u0000\u0000\u0000\u0001<\u0000\u00026\u0000\u0003" +
-              "<\u0000\u00046\u0000\u0005<\u0000\u0006<\u0000\u0007<\u0000\b<\u0000\t:\u0000\n\u023b" +
-              "\u0000";
+              "\u0000\u000b\u0001\u0000\u0001\u000b\u000b\u0000\u0000\u0000\u0001<\u0000\u00026" +
+              "\u0000\u0003<\u0000\u00046\u0000\u0005<\u0000\u0006<\u0000\u0007<\u0000\b<\u0000" +
+              "\t:\u0000\n\u023b\u0000\u000b\u023b\u0000";
           return newMessageInfo(DEFAULT_INSTANCE, info, objects);
       }
       case GET_DEFAULT_INSTANCE: {

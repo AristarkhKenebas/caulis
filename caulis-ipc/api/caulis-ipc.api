@@ -278,6 +278,7 @@ public abstract interface class dev/caulis/ipc/v1/EvalOrBuilder : com/google/pro
 }
 
 public final class dev/caulis/ipc/v1/Event : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/EventOrBuilder {
+	public static final field COLOR_SCHEME_CHANGED_FIELD_NUMBER I
 	public static final field CONFIG_RELOADED_FIELD_NUMBER I
 	public static final field FOCUS_CHANGED_FIELD_NUMBER I
 	public static final field KEY_MODE_CHANGED_FIELD_NUMBER I
@@ -288,6 +289,8 @@ public final class dev/caulis/ipc/v1/Event : com/google/protobuf/GeneratedMessag
 	public static final field WINDOW_CLOSED_FIELD_NUMBER I
 	public static final field WINDOW_OPENED_FIELD_NUMBER I
 	public static final field WORKSPACE_SHOWN_FIELD_NUMBER I
+	public fun getColorSchemeChanged ()Ljava/lang/String;
+	public fun getColorSchemeChangedBytes ()Lcom/google/protobuf/ByteString;
 	public fun getConfigReloaded ()Ldev/caulis/ipc/v1/ConfigReloaded;
 	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Event;
 	public fun getFocusChanged ()J
@@ -301,6 +304,7 @@ public final class dev/caulis/ipc/v1/Event : com/google/protobuf/GeneratedMessag
 	public fun getWindowClosed ()J
 	public fun getWindowOpened ()Ldev/caulis/ipc/v1/Window;
 	public fun getWorkspaceShown ()Ldev/caulis/ipc/v1/WorkspaceShown;
+	public fun hasColorSchemeChanged ()Z
 	public fun hasConfigReloaded ()Z
 	public fun hasFocusChanged ()Z
 	public fun hasKeyModeChanged ()Z
@@ -329,6 +333,7 @@ public final class dev/caulis/ipc/v1/Event : com/google/protobuf/GeneratedMessag
 }
 
 public final class dev/caulis/ipc/v1/Event$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/EventOrBuilder {
+	public fun clearColorSchemeChanged ()Ldev/caulis/ipc/v1/Event$Builder;
 	public fun clearConfigReloaded ()Ldev/caulis/ipc/v1/Event$Builder;
 	public fun clearFocusChanged ()Ldev/caulis/ipc/v1/Event$Builder;
 	public fun clearKeyModeChanged ()Ldev/caulis/ipc/v1/Event$Builder;
@@ -340,6 +345,8 @@ public final class dev/caulis/ipc/v1/Event$Builder : com/google/protobuf/Generat
 	public fun clearWindowClosed ()Ldev/caulis/ipc/v1/Event$Builder;
 	public fun clearWindowOpened ()Ldev/caulis/ipc/v1/Event$Builder;
 	public fun clearWorkspaceShown ()Ldev/caulis/ipc/v1/Event$Builder;
+	public fun getColorSchemeChanged ()Ljava/lang/String;
+	public fun getColorSchemeChangedBytes ()Lcom/google/protobuf/ByteString;
 	public fun getConfigReloaded ()Ldev/caulis/ipc/v1/ConfigReloaded;
 	public fun getFocusChanged ()J
 	public fun getKeyModeChanged ()Ljava/lang/String;
@@ -352,6 +359,7 @@ public final class dev/caulis/ipc/v1/Event$Builder : com/google/protobuf/Generat
 	public fun getWindowClosed ()J
 	public fun getWindowOpened ()Ldev/caulis/ipc/v1/Window;
 	public fun getWorkspaceShown ()Ldev/caulis/ipc/v1/WorkspaceShown;
+	public fun hasColorSchemeChanged ()Z
 	public fun hasConfigReloaded ()Z
 	public fun hasFocusChanged ()Z
 	public fun hasKeyModeChanged ()Z
@@ -368,6 +376,8 @@ public final class dev/caulis/ipc/v1/Event$Builder : com/google/protobuf/Generat
 	public fun mergeWindowChanged (Ldev/caulis/ipc/v1/Window;)Ldev/caulis/ipc/v1/Event$Builder;
 	public fun mergeWindowOpened (Ldev/caulis/ipc/v1/Window;)Ldev/caulis/ipc/v1/Event$Builder;
 	public fun mergeWorkspaceShown (Ldev/caulis/ipc/v1/WorkspaceShown;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setColorSchemeChanged (Ljava/lang/String;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setColorSchemeChangedBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Event$Builder;
 	public fun setConfigReloaded (Ldev/caulis/ipc/v1/ConfigReloaded$Builder;)Ldev/caulis/ipc/v1/Event$Builder;
 	public fun setConfigReloaded (Ldev/caulis/ipc/v1/ConfigReloaded;)Ldev/caulis/ipc/v1/Event$Builder;
 	public fun setFocusChanged (J)Ldev/caulis/ipc/v1/Event$Builder;
@@ -388,6 +398,7 @@ public final class dev/caulis/ipc/v1/Event$Builder : com/google/protobuf/Generat
 }
 
 public final class dev/caulis/ipc/v1/Event$WhatCase : java/lang/Enum, com/google/protobuf/AbstractMessageLite$InternalOneOfEnum {
+	public static final field COLOR_SCHEME_CHANGED Ldev/caulis/ipc/v1/Event$WhatCase;
 	public static final field CONFIG_RELOADED Ldev/caulis/ipc/v1/Event$WhatCase;
 	public static final field FOCUS_CHANGED Ldev/caulis/ipc/v1/Event$WhatCase;
 	public static final field KEY_MODE_CHANGED Ldev/caulis/ipc/v1/Event$WhatCase;
@@ -407,6 +418,8 @@ public final class dev/caulis/ipc/v1/Event$WhatCase : java/lang/Enum, com/google
 }
 
 public final class dev/caulis/ipc/v1/EventKind : java/lang/Enum, com/google/protobuf/Internal$EnumLite {
+	public static final field EVENT_KIND_APPEARANCE Ldev/caulis/ipc/v1/EventKind;
+	public static final field EVENT_KIND_APPEARANCE_VALUE I
 	public static final field EVENT_KIND_CONFIG Ldev/caulis/ipc/v1/EventKind;
 	public static final field EVENT_KIND_CONFIG_VALUE I
 	public static final field EVENT_KIND_FOCUS Ldev/caulis/ipc/v1/EventKind;
@@ -436,6 +449,8 @@ public final class dev/caulis/ipc/v1/EventKind : java/lang/Enum, com/google/prot
 }
 
 public abstract interface class dev/caulis/ipc/v1/EventOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getColorSchemeChanged ()Ljava/lang/String;
+	public abstract fun getColorSchemeChangedBytes ()Lcom/google/protobuf/ByteString;
 	public abstract fun getConfigReloaded ()Ldev/caulis/ipc/v1/ConfigReloaded;
 	public abstract fun getFocusChanged ()J
 	public abstract fun getKeyModeChanged ()Ljava/lang/String;
@@ -448,6 +463,7 @@ public abstract interface class dev/caulis/ipc/v1/EventOrBuilder : com/google/pr
 	public abstract fun getWindowClosed ()J
 	public abstract fun getWindowOpened ()Ldev/caulis/ipc/v1/Window;
 	public abstract fun getWorkspaceShown ()Ldev/caulis/ipc/v1/WorkspaceShown;
+	public abstract fun hasColorSchemeChanged ()Z
 	public abstract fun hasConfigReloaded ()Z
 	public abstract fun hasFocusChanged ()Z
 	public abstract fun hasKeyModeChanged ()Z
@@ -1275,6 +1291,7 @@ public abstract interface class dev/caulis/ipc/v1/ServerInfoOrBuilder : com/goog
 }
 
 public final class dev/caulis/ipc/v1/State : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/StateOrBuilder {
+	public static final field COLOR_SCHEME_FIELD_NUMBER I
 	public static final field FOCUSED_MONITOR_FIELD_NUMBER I
 	public static final field FOCUSED_WINDOW_FIELD_NUMBER I
 	public static final field KEY_MODE_FIELD_NUMBER I
@@ -1284,6 +1301,8 @@ public final class dev/caulis/ipc/v1/State : com/google/protobuf/GeneratedMessag
 	public static final field SCALE_FIELD_NUMBER I
 	public static final field WINDOWS_FIELD_NUMBER I
 	public static final field WORKSPACES_FIELD_NUMBER I
+	public fun getColorScheme ()Ljava/lang/String;
+	public fun getColorSchemeBytes ()Lcom/google/protobuf/ByteString;
 	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/State;
 	public fun getFocusedMonitor ()Ljava/lang/String;
 	public fun getFocusedMonitorBytes ()Lcom/google/protobuf/ByteString;
@@ -1342,6 +1361,7 @@ public final class dev/caulis/ipc/v1/State$Builder : com/google/protobuf/Generat
 	public fun addWorkspaces (ILdev/caulis/ipc/v1/Workspace;)Ldev/caulis/ipc/v1/State$Builder;
 	public fun addWorkspaces (Ldev/caulis/ipc/v1/Workspace$Builder;)Ldev/caulis/ipc/v1/State$Builder;
 	public fun addWorkspaces (Ldev/caulis/ipc/v1/Workspace;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun clearColorScheme ()Ldev/caulis/ipc/v1/State$Builder;
 	public fun clearFocusedMonitor ()Ldev/caulis/ipc/v1/State$Builder;
 	public fun clearFocusedWindow ()Ldev/caulis/ipc/v1/State$Builder;
 	public fun clearKeyMode ()Ldev/caulis/ipc/v1/State$Builder;
@@ -1351,6 +1371,8 @@ public final class dev/caulis/ipc/v1/State$Builder : com/google/protobuf/Generat
 	public fun clearScale ()Ldev/caulis/ipc/v1/State$Builder;
 	public fun clearWindows ()Ldev/caulis/ipc/v1/State$Builder;
 	public fun clearWorkspaces ()Ldev/caulis/ipc/v1/State$Builder;
+	public fun getColorScheme ()Ljava/lang/String;
+	public fun getColorSchemeBytes ()Lcom/google/protobuf/ByteString;
 	public fun getFocusedMonitor ()Ljava/lang/String;
 	public fun getFocusedMonitorBytes ()Lcom/google/protobuf/ByteString;
 	public fun getFocusedWindow ()J
@@ -1372,6 +1394,8 @@ public final class dev/caulis/ipc/v1/State$Builder : com/google/protobuf/Generat
 	public fun removeMonitors (I)Ldev/caulis/ipc/v1/State$Builder;
 	public fun removeWindows (I)Ldev/caulis/ipc/v1/State$Builder;
 	public fun removeWorkspaces (I)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setColorScheme (Ljava/lang/String;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setColorSchemeBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/State$Builder;
 	public fun setFocusedMonitor (Ljava/lang/String;)Ldev/caulis/ipc/v1/State$Builder;
 	public fun setFocusedMonitorBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/State$Builder;
 	public fun setFocusedWindow (J)Ldev/caulis/ipc/v1/State$Builder;
@@ -1390,6 +1414,8 @@ public final class dev/caulis/ipc/v1/State$Builder : com/google/protobuf/Generat
 }
 
 public abstract interface class dev/caulis/ipc/v1/StateOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getColorScheme ()Ljava/lang/String;
+	public abstract fun getColorSchemeBytes ()Lcom/google/protobuf/ByteString;
 	public abstract fun getFocusedMonitor ()Ljava/lang/String;
 	public abstract fun getFocusedMonitorBytes ()Lcom/google/protobuf/ByteString;
 	public abstract fun getFocusedWindow ()J

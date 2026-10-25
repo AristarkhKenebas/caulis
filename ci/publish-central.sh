@@ -24,7 +24,7 @@ case "$version" in *-SNAPSHOT) echo "A release has no -SNAPSHOT: $version" >&2; 
 cd "$(dirname "$0")/.."
 rm -rf build/staging-deploy build/central-bundle.zip
 ./gradlew publishAllPublicationsToStagingRepository -Pcaulis.version="$version"
-# A module version Central has already (the Bibata themes, between their releases) is not sent again.
+# A module version Central has already (one not released anew) is not sent again.
 for dir in build/staging-deploy/io/github/aristarkhkenebas/*/*/; do
     module=$(basename "$(dirname "$dir")")
     v=$(basename "$dir")

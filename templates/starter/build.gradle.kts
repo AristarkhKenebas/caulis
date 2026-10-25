@@ -15,9 +15,6 @@ tasks.withType<JavaCompile>().configureEach { options.release = 26 }
 
 dependencies {
     implementation("io.github.aristarkhkenebas:caulis-wm:0.1.1")
-    // The Bibata cursor (GPL-3.0, unlike Caulis itself). Remove this line for the system's
-    // cursor theme, or if your compositor must not contain GPL files.
-    implementation("io.github.aristarkhkenebas:caulis-cursor-bibata:0.1.0")
     // Settings in Lua (config.lua) or as a Kotlin script (config.kts) in ~/.config/<name>, for
     // people who use your compositor without building it — add what you want them to have.
     // (caulis-script is big: it contains the Kotlin compiler.)

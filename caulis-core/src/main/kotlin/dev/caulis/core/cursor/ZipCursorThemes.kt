@@ -8,7 +8,7 @@ import java.util.zip.ZipFile
  * Cursor themes kept as one zip each among a library's resources, next to [owner]
  * (`<theme>.zip` in its package): the theme's files (`index.theme`, `cursors/...`), and an
  * `aliases` file of "other-name name" lines instead of links. Caulis's own themes are kept
- * this way, and so can a library's (see caulis-cursor-bibata).
+ * this way, and so can a library's.
  */
 open class ZipCursorThemes(private val owner: Class<*>, final override val themes: List<String>) : CursorThemeProvider {
 

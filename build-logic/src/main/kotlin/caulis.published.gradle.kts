@@ -49,7 +49,7 @@ val javadocJar by tasks.registering(Jar::class) {
     from(javadocPage)
 }
 
-// The license goes into every jar (GPL wants its text with the work: Bibata has its own).
+// The license goes into every jar.
 val licenseFile = layout.projectDirectory.file("LICENSE").asFile.takeIf { it.exists() } ?: rootProject.file("LICENSE")
 tasks.withType<Jar>().configureEach {
     from(licenseFile) { into("META-INF") }
@@ -76,16 +76,9 @@ publishing {
                 description = provider { project.description ?: error("${project.path} has no description (it goes into the POM)") }
                 url = setting("caulis.website")
                 licenses {
-                    if (project.name == "caulis-cursor-bibata") {
-                        license {
-                            name = "GPL-3.0-only"
-                            url = "https://www.gnu.org/licenses/gpl-3.0.txt"
-                        }
-                    } else {
-                        license {
-                            name = "MPL-2.0"
-                            url = "https://www.mozilla.org/en-US/MPL/2.0/"
-                        }
+                    license {
+                        name = "MPL-2.0"
+                        url = "https://www.mozilla.org/en-US/MPL/2.0/"
                     }
                 }
                 developers {

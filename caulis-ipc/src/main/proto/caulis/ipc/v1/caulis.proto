@@ -159,6 +159,8 @@ message State {
   string primary_monitor = 8;
   // The key mode that is on ("resize"); empty: the usual keys.
   string key_mode = 9;
+  // What programs are told: "dark", "light" or "default" (no wish).
+  string color_scheme = 10;
 }
 
 message Window {
@@ -244,6 +246,8 @@ enum EventKind {
   EVENT_KIND_LOCK = 7;
   // key_mode_changed
   EVENT_KIND_KEYS = 8;
+  // color_scheme_changed
+  EVENT_KIND_APPEARANCE = 9;
 }
 
 message Event {
@@ -265,6 +269,8 @@ message Event {
     bool lock_changed = 9;
     // Another key mode is on ("resize"); empty: the usual keys again.
     string key_mode_changed = 10;
+    // "dark", "light" or "default": what programs are told now.
+    string color_scheme_changed = 11;
   }
 }
 
