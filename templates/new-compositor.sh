@@ -27,6 +27,8 @@ mkdir -p "$target/gradle"
 cp -r "$caulis/gradle/wrapper" "$target/gradle/"
 # Where the Caulis sources are (until Caulis is published, they are built along).
 echo "caulis.sources=$caulis" > "$target/gradle.properties"
+# Its flake: Caulis from this folder, its own name.
+sed -i "s|path:CAULIS|path:$caulis|; s/my-compositor/$name/g" "$target/flake.nix" "$target/package.nix"
 sed -i "s/^rootProject.name = .*/rootProject.name = \"$name\"/" "$target/settings.gradle.kts"
 sed -i "s/configName = \"my-compositor\"/configName = \"$name\"/; s|~/.config/my-compositor|~/.config/$name|" "$target/src/main/kotlin/Main.kt"
 sed -i "s/build\/install\/my-compositor\/bin\/my-compositor/build\/install\/$name\/bin\/$name/" "$target/README.md"

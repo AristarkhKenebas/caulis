@@ -11,3 +11,7 @@ build/
 
 # OS
 .DS_Store
+
+# Nix
+result
+result-*

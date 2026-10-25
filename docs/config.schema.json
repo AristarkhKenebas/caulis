@@ -1,0 +1,1339 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Caulis configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "enum": ["floating", "dwindle", "spiral", "grid", "columns", "rows", "monocle", "master-stack", "centered-master", "master-strips", "tree", "tree-spiral", "manual", "scrolling-columns", "canvas"],
+          "description": "how windows are arranged"
+        },
+        "gaps": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "inner": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 500,
+              "description": "space between tiled windows"
+            },
+            "outer": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 500,
+              "description": "space between them and the screen's edges"
+            },
+            "top": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 500,
+              "description": "space at the top edge (else outer)"
+            },
+            "right": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 500,
+              "description": "space at the right edge (else outer)"
+            },
+            "bottom": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 500,
+              "description": "space at the bottom edge (else outer)"
+            },
+            "left": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 500,
+              "description": "space at the left edge (else outer)"
+            }
+          },
+          "description": "space around and between windows"
+        },
+        "ratio": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 0.9,
+          "description": "the main window's share (master layouts)"
+        },
+        "side": {
+          "enum": ["left", "right", "top", "bottom"],
+          "description": "the main window's side (master-stack)"
+        }
+      },
+      "description": "how windows are arranged"
+    },
+    "scale": {
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 4,
+      "description": "how big everything is (1.0, 1.25, 1.5, 2.0, ...)"
+    },
+    "workspaceMode": {
+      "enum": ["per-monitor", "spanning"],
+      "description": "a workspace per monitor, or one over all"
+    },
+    "monitorEdges": {
+      "enum": ["touching", "proportional"],
+      "description": "how the mouse goes between monitors of different sizes"
+    },
+    "monitors": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "scale": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 4,
+            "description": "its own scale"
+          },
+          "position": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -10000,
+              "maximum": 10000
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "[x, y] on the desktop, in units"
+          },
+          "mode": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 20000
+            },
+            "minItems": 2,
+            "maxItems": 3,
+            "description": "[width, height] or [width, height, hz]"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "false: not used"
+          }
+        }
+      },
+      "description": "settings per monitor, by connector (\"DP-2\", \"eDP-1\", ...)"
+    },
+    "keyboard": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "layouts": {
+          "type": "string",
+          "minLength": 1,
+          "description": "as for setxkbmap: \"us,ru\""
+        },
+        "options": {
+          "type": "string",
+          "minLength": 1,
+          "description": "e.g. \"grp:alt_shift_toggle\""
+        }
+      },
+      "description": "keyboard layouts"
+    },
+    "cursor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "theme": {
+          "type": "string",
+          "minLength": 1,
+          "description": "an installed cursor theme"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 256,
+          "description": "its size"
+        }
+      },
+      "description": "the cursor"
+    },
+    "terminal": {
+      "type": "string",
+      "minLength": 1,
+      "description": "the terminal the terminal key opens"
+    },
+    "lockCommand": {
+      "type": "string",
+      "minLength": 1,
+      "description": "the screen locker"
+    },
+    "titleBars": {
+      "enum": ["program", "compositor", "none"],
+      "description": "who draws title bars"
+    },
+    "keys": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "terminal": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the terminal key (false: off)"
+        },
+        "close": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the close key (false: off)"
+        },
+        "lock": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the lock key (false: off)"
+        },
+        "dumpState": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the dumpState key (false: off)"
+        },
+        "maximize": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the maximize key (false: off)"
+        },
+        "fullscreen": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the fullscreen key (false: off)"
+        },
+        "minimize": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the minimize key (false: off)"
+        },
+        "float": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the float key (false: off)"
+        },
+        "nextWindow": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the nextWindow key (false: off)"
+        },
+        "overview": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the overview key (false: off)"
+        },
+        "focusLeft": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the focusLeft key (false: off)"
+        },
+        "focusRight": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the focusRight key (false: off)"
+        },
+        "workspace": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the workspace key (false: off)"
+        },
+        "moveToWorkspace": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the moveToWorkspace key (false: off)"
+        },
+        "move": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the move key (false: off)"
+        },
+        "resize": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the resize key (false: off)"
+        },
+        "preselect": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the preselect key (false: off)"
+        },
+        "rotate": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the rotate key (false: off)"
+        },
+        "balance": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the balance key (false: off)"
+        },
+        "columnWidth": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the columnWidth key (false: off)"
+        },
+        "splitBeside": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the splitBeside key (false: off)"
+        },
+        "splitBelow": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the splitBelow key (false: off)"
+        },
+        "quit": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the quit key (false: off)"
+        },
+        "consoles": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the consoles key (false: off)"
+        },
+        "windowDrag": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "the windowDrag key (false: off)"
+        }
+      },
+      "description": "the usual keys, changed or turned off"
+    },
+    "bind": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "your own keys: combination → action (\"exec firefox\", \"workspace 3\", ...)"
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "appId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "windows with this app id (case does not matter)"
+          },
+          "appIdPattern": {
+            "type": "string",
+            "minLength": 1,
+            "description": "windows whose app id fits this"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "windows whose title contains this"
+          },
+          "titlePattern": {
+            "type": "string",
+            "minLength": 1,
+            "description": "windows whose title fits this"
+          },
+          "program": {
+            "type": "string",
+            "minLength": 1,
+            "description": "windows of this program (as ps shows it)"
+          },
+          "workspace": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99,
+            "description": "the workspace it opens on"
+          },
+          "monitor": {
+            "type": "string",
+            "minLength": 1,
+            "description": "the monitor it opens on"
+          },
+          "goToWorkspace": {
+            "type": "boolean",
+            "description": "show its workspace when it opens"
+          },
+          "floating": {
+            "type": "boolean",
+            "description": "float (true) or tile (false)"
+          },
+          "size": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "[width, height] when floating"
+          },
+          "position": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -10000,
+              "maximum": 10000
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "[x, y] when floating, from the monitor's free area"
+          },
+          "center": {
+            "type": "boolean",
+            "description": "in the middle of its monitor when floating"
+          },
+          "maximized": {
+            "type": "boolean",
+            "description": "starts maximized"
+          },
+          "fullscreen": {
+            "type": "boolean",
+            "description": "starts fullscreen"
+          },
+          "focus": {
+            "type": "boolean",
+            "description": "false: opens without taking the keyboard"
+          },
+          "titleBars": {
+            "enum": ["program", "compositor", "none"],
+            "description": "who draws its title bar"
+          },
+          "opacity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "how solid it is"
+          },
+          "margin": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -500,
+                "maximum": 500
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": -500,
+                  "maximum": 500
+                },
+                "minItems": 4,
+                "maxItems": 4
+              }
+            ],
+            "description": "room around it: one number, or [top, right, bottom, left]"
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 1000,
+      "description": "rules for some windows"
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preset": {
+          "enum": ["none", "modern"],
+          "description": "start from no effects, or the modern look"
+        },
+        "cornerRadius": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "how round the corners are"
+        },
+        "border": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50,
+                  "description": "its width"
+                },
+                "focused": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "gradient": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 8,
+                          "description": "colours across the window"
+                        },
+                        "conic": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 8,
+                          "description": "colours around the window's middle"
+                        },
+                        "degrees": {
+                          "type": "number",
+                          "minimum": -3600,
+                          "maximum": 3600,
+                          "description": "the gradient's direction or start"
+                        },
+                        "turnsPerSecond": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10,
+                          "description": "how fast it turns"
+                        },
+                        "rainbow": {
+                          "type": "number",
+                          "minimum": 0.5,
+                          "maximum": 600,
+                          "description": "a rainbow going round once every so many seconds"
+                        },
+                        "shader": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "a paint shader file (vec4 paint(vec2 at))"
+                        }
+                      }
+                    }
+                  ],
+                  "description": "with the focus"
+                },
+                "unfocused": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "gradient": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 8,
+                          "description": "colours across the window"
+                        },
+                        "conic": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 8,
+                          "description": "colours around the window's middle"
+                        },
+                        "degrees": {
+                          "type": "number",
+                          "minimum": -3600,
+                          "maximum": 3600,
+                          "description": "the gradient's direction or start"
+                        },
+                        "turnsPerSecond": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10,
+                          "description": "how fast it turns"
+                        },
+                        "rainbow": {
+                          "type": "number",
+                          "minimum": 0.5,
+                          "maximum": 600,
+                          "description": "a rainbow going round once every so many seconds"
+                        },
+                        "shader": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "a paint shader file (vec4 paint(vec2 at))"
+                        }
+                      }
+                    }
+                  ],
+                  "description": "without"
+                }
+              }
+            }
+          ],
+          "description": "a frame around windows"
+        },
+        "shadow": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "softness": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 200,
+                  "description": "how far it fades out"
+                },
+                "offsetX": {
+                  "type": "integer",
+                  "minimum": -200,
+                  "maximum": 200,
+                  "description": "moved right"
+                },
+                "offsetY": {
+                  "type": "integer",
+                  "minimum": -200,
+                  "maximum": 200,
+                  "description": "moved down"
+                },
+                "color": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "gradient": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 8,
+                          "description": "colours across the window"
+                        },
+                        "conic": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 8,
+                          "description": "colours around the window's middle"
+                        },
+                        "degrees": {
+                          "type": "number",
+                          "minimum": -3600,
+                          "maximum": 3600,
+                          "description": "the gradient's direction or start"
+                        },
+                        "turnsPerSecond": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10,
+                          "description": "how fast it turns"
+                        },
+                        "rainbow": {
+                          "type": "number",
+                          "minimum": 0.5,
+                          "maximum": 600,
+                          "description": "a rainbow going round once every so many seconds"
+                        },
+                        "shader": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "a paint shader file (vec4 paint(vec2 at))"
+                        }
+                      }
+                    }
+                  ],
+                  "description": "its colour or paint (a coloured one is a glow)"
+                },
+                "spread": {
+                  "type": "integer",
+                  "minimum": -100,
+                  "maximum": 200,
+                  "description": "how much bigger than the window"
+                }
+              }
+            }
+          ],
+          "description": "the shadow (of the focused window)"
+        },
+        "inactiveShadow": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "softness": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 200,
+                  "description": "how far it fades out"
+                },
+                "offsetX": {
+                  "type": "integer",
+                  "minimum": -200,
+                  "maximum": 200,
+                  "description": "moved right"
+                },
+                "offsetY": {
+                  "type": "integer",
+                  "minimum": -200,
+                  "maximum": 200,
+                  "description": "moved down"
+                },
+                "color": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "gradient": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 8,
+                          "description": "colours across the window"
+                        },
+                        "conic": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 8,
+                          "description": "colours around the window's middle"
+                        },
+                        "degrees": {
+                          "type": "number",
+                          "minimum": -3600,
+                          "maximum": 3600,
+                          "description": "the gradient's direction or start"
+                        },
+                        "turnsPerSecond": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10,
+                          "description": "how fast it turns"
+                        },
+                        "rainbow": {
+                          "type": "number",
+                          "minimum": 0.5,
+                          "maximum": 600,
+                          "description": "a rainbow going round once every so many seconds"
+                        },
+                        "shader": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "a paint shader file (vec4 paint(vec2 at))"
+                        }
+                      }
+                    }
+                  ],
+                  "description": "its colour or paint (a coloured one is a glow)"
+                },
+                "spread": {
+                  "type": "integer",
+                  "minimum": -100,
+                  "maximum": 200,
+                  "description": "how much bigger than the window"
+                }
+              }
+            }
+          ],
+          "description": "the shadow of windows without the focus"
+        },
+        "blur": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "size": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64,
+                  "description": "how strong"
+                },
+                "passes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6,
+                  "description": "how smooth"
+                }
+              }
+            }
+          ],
+          "description": "blur behind see-through windows"
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "how solid the focused window is"
+        },
+        "inactiveOpacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "how solid the others are"
+        },
+        "focusChangeMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000,
+          "description": "how long border and shadow change when the focus moves"
+        }
+      },
+      "description": "round corners, borders, shadows, blur"
+    },
+    "animations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "millis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000,
+          "description": "how long animations take (0: none at all)"
+        },
+        "windowOpen": {
+          "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"],
+          "description": "a window appearing"
+        },
+        "windowClose": {
+          "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"],
+          "description": "a window going away"
+        },
+        "minimize": {
+          "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"],
+          "description": "a window going into the dock"
+        },
+        "restore": {
+          "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"],
+          "description": "a window coming back out of the dock"
+        },
+        "windowMove": {
+          "enum": ["move", "none"],
+          "description": "windows gliding to new places"
+        },
+        "workspaceSwitch": {
+          "enum": ["slide", "slide-vertical", "fade", "none"],
+          "description": "another workspace shown"
+        },
+        "curve": {
+          "enum": ["ease-out", "ease-in-out", "linear", "overshoot"],
+          "description": "how animations move"
+        },
+        "overviewMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000,
+          "description": "the overview zooming"
+        },
+        "scaleChangeMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000,
+          "description": "the picture melting when the scale changes"
+        }
+      },
+      "description": "animations"
+    },
+    "background": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "color": {
+          "type": "string",
+          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+          "description": "one colour"
+        },
+        "gradient": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "[from, to]"
+        },
+        "degrees": {
+          "type": "number",
+          "minimum": -360,
+          "maximum": 360,
+          "description": "the gradient's direction"
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1,
+          "description": "a picture (next to the configuration, ~/..., or /...)"
+        },
+        "fit": {
+          "enum": ["fill", "fit", "stretch", "center", "tile"],
+          "description": "how the picture covers the monitor"
+        },
+        "behind": {
+          "type": "string",
+          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+          "description": "the colour around a picture that does not cover it"
+        },
+        "span": {
+          "type": "boolean",
+          "description": "one picture over all monitors"
+        },
+        "shader": {
+          "type": "string",
+          "minLength": 1,
+          "description": "a wallpaper shader file (vec4 wallpaper(vec2 at))"
+        },
+        "framesPerSecond": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 240,
+          "description": "how often a moving shader is drawn"
+        },
+        "changeMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000,
+          "description": "how long one background melts into the next"
+        }
+      },
+      "description": "what shows behind everything"
+    },
+    "notices": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "placement": {
+          "enum": ["banner", "toast", "hidden"],
+          "description": "a strip, cards in a corner, or none"
+        },
+        "bottom": {
+          "type": "boolean",
+          "description": "a banner at the bottom"
+        },
+        "room": {
+          "enum": ["push-all", "push-windows", "cover"],
+          "description": "what makes way for a banner"
+        },
+        "corner": {
+          "enum": ["top-left", "top", "top-right", "bottom-left", "bottom", "bottom-right"],
+          "description": "where toasts go"
+        },
+        "fontSize": {
+          "type": "integer",
+          "minimum": 6,
+          "maximum": 72,
+          "description": "their text size"
+        },
+        "everyMonitor": {
+          "type": "boolean",
+          "description": "on every monitor"
+        },
+        "infoSeconds": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3600,
+          "description": "how long information stays (0: until clicked)"
+        },
+        "warningSeconds": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3600,
+          "description": "how long warnings stay"
+        },
+        "errorSeconds": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3600,
+          "description": "how long errors stay"
+        }
+      },
+      "description": "the compositor's own messages"
+    },
+    "gestures": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dragViewFingers": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "fingers that drag the view (0: off)"
+        },
+        "overviewPinchFingers": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "fingers whose pinch opens the overview (0: off)"
+        },
+        "workspaceSwipeFingers": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "fingers whose swipe changes the workspace (0: off)"
+        },
+        "swipeDistance": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 1000,
+          "description": "how far fingers move for a swipe"
+        }
+      },
+      "description": "touchpad gestures"
+    },
+    "overviewFill": {
+      "type": "number",
+      "minimum": 0.3,
+      "maximum": 1,
+      "description": "how much of the monitor the overview's windows take"
+    },
+    "resizeBorder": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 50,
+      "description": "the edge to grab floating windows by"
+    },
+    "doubleClickMillis": {
+      "type": "integer",
+      "minimum": 50,
+      "maximum": 2000,
+      "description": "a double click on a title bar"
+    },
+    "hideCursorWhileTyping": {
+      "type": "boolean",
+      "description": "hide the cursor while typing"
+    },
+    "hideCursorAfterSeconds": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3600,
+      "description": "hide the cursor when the mouse is still (0: never)"
+    },
+    "lockColor": {
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+      "description": "behind the screen locker"
+    },
+    "startup": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0,
+      "maxItems": 1000,
+      "description": "programs started with the compositor"
+    },
+    "logLevel": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3,
+      "description": "how much the log says"
+    }
+  }
+}

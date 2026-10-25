@@ -88,6 +88,10 @@ Wayland way when they can, and through X11 when that fails.
 - JDK 27
 - Linux
 
+Or with [Nix](https://nixos.org): `nix develop` (or `nix-shell`) gives a shell with JDK 27,
+Xwayland and every library. The flake also has Home Manager and NixOS modules for writing a
+compositor's settings in Nix (see the guide, step 24).
+
 ## Build
 
 ```sh

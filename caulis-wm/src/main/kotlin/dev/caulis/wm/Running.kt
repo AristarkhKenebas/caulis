@@ -295,6 +295,32 @@ internal class Running(
 
     fun quit() = loop.stop()
 
+    // config.json saved again: main() runs once more (in this program, as it is) and hands over
+    // its configuration with the file on top; that one is taken on.
+    private fun followConfigFile() {
+        val path = config.file("config.json")
+        dev.caulis.core.FileWatch.watch(path) {
+            loop.post {
+                val next = try {
+                    Reloader.rerunMain()
+                } catch (e: Throwable) {
+                    if (e is VirtualMachineError) throw e
+                    log.warn("The configuration could not be read again: ${e.message ?: e}")
+                    null
+                }
+                if (next == null) {
+                    // main() cannot be run again here: the file onto the configuration as it is.
+                    dev.caulis.wm.config.ConfigFile.applyTo(config)
+                    reconfigure(config)
+                } else {
+                    reconfigure(next)
+                }
+                log.info { "config.json taken on" }
+                desktop.notify("config.json", NoticeLevel.INFO, "Configuration reloaded")
+            }
+        }
+    }
+
     /**
      * Runs with [next] from now on (the configuration was reloaded): its keys, rules, events,
      * looks and scale; windows and programs stay. Returns the settings that only change
@@ -335,13 +361,15 @@ internal class Running(
         for (window in desktop.allWindows) {
             rulesApplied.getOrPut(window) { HashSet() } += next.rules.filter { it.hasPlacement && safely("$it", false) { it.fits(window) } }.map { it.signature }
         }
-        next.running = this
+        // (The same configuration when config.json was applied onto it: nothing to compare.)
+        val same = before === next
         before.running = null
+        next.running = this
         config = next
         next.applyLogSettings()
         applyConfig()
         if (desktop.layout != next.layout) desktop.layout = next.layout
-        if (before.scale != next.scale || before.monitorSettings.values.map { it.scale } != next.monitorSettings.values.map { it.scale }) applyScale()
+        if (same || before.scale != next.scale || before.monitorSettings.values.map { it.scale } != next.monitorSettings.values.map { it.scale }) applyScale()
         applyMonitorSettings()
         applyCursor()
         // Margins of the new rules: windows take them at once.
@@ -579,6 +607,8 @@ internal class Running(
         try {
             config.exitAfterSeconds?.let { seconds -> loop.after(seconds * 1000) { quit() } }
             for (problem in config.startWarnings) desktop.notify("${problem.message} ${problem.fix}", NoticeLevel.WARNING)
+            for (problem in config.configProblems) configNotices += desktop.notify(problem, NoticeLevel.WARNING)
+            if (config.useConfigFile) followConfigFile()
             config.startActions.forEach { action -> safely("onStart") { action(config) } }
             if (config.hotReload) reloader = safely("hot reload", null) { Reloader.start(this) }
             log.info { "Your files (shaders, pictures): ${config.configFolder}${if (java.nio.file.Files.isDirectory(config.configFolder)) "" else " (not there yet)"}" }

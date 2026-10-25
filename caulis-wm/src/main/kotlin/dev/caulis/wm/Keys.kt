@@ -39,6 +39,7 @@ class Keys internal constructor() {
     // Every key by name, and what it was at first; first, as the settings below put themselves in here.
     private val values = LinkedHashMap<String, String?>()
     private val defaults = HashMap<String, String?>()
+    private val settings = HashMap<String, Setting>()
 
     /** Open the terminal ([Caulis.terminal]). */
     var terminal by key("Super+Return")
@@ -127,6 +128,18 @@ class Keys internal constructor() {
     /** A combination from its parts: `close = combo("super", "shift", "q")`. */
     fun combo(vararg parts: String): String = parts.joinToString("+")
 
+    /**
+     * Sets the key [name] (as above: "close", "workspace", ...) to [combination], or turns it
+     * off (null) — for configurations that name keys as text.
+     */
+    operator fun set(name: String, combination: String?) {
+        val setting = settings[name] ?: throw IllegalArgumentException("there is no usual key \"$name\" (there are: ${names.joinToString()})")
+        setting.assign(name, combination)
+    }
+
+    /** True if the key [name] is a group (modifiers only: "Super", "Super+Shift"). */
+    fun isGroup(name: String): Boolean = name in GROUPS
+
     /** Every usual key by name (as above) and its combination, null when off. */
     fun all(): Map<String, String?> = LinkedHashMap(values)
 
@@ -144,21 +157,24 @@ class Keys internal constructor() {
         operator fun provideDelegate(thisRef: Keys, property: KProperty<*>): Setting {
             values[property.name] = default
             defaults[property.name] = default
+            settings[property.name] = this
             return this
         }
 
-        override fun getValue(thisRef: Keys, property: KProperty<*>) = values[property.name]
-
-        override fun setValue(thisRef: Keys, property: KProperty<*>, value: String?) {
+        fun assign(name: String, value: String?) {
             if (value != null) {
                 try {
                     check(value)
                 } catch (e: IllegalArgumentException) {
-                    throw IllegalArgumentException("keys.${property.name}: ${e.message}")
+                    throw IllegalArgumentException("keys.$name: ${e.message}")
                 }
             }
-            values[property.name] = value
+            values[name] = value
         }
+
+        override fun getValue(thisRef: Keys, property: KProperty<*>) = values[property.name]
+
+        override fun setValue(thisRef: Keys, property: KProperty<*>, value: String?) = assign(property.name, value)
     }
 
     // The combinations the usual keys make now, with their names and what they do (not quit,
@@ -198,5 +214,9 @@ class Keys internal constructor() {
         add("columnWidth", columnWidth) { desktop.tilingCommand(TilingCommand.CycleWidth) }
         add("splitBeside", splitBeside) { desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = true)) }
         add("splitBelow", splitBelow) { desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = false)) }
+    }
+
+    private companion object {
+        val GROUPS = setOf("workspace", "moveToWorkspace", "move", "resize", "preselect", "consoles", "windowDrag")
     }
 }

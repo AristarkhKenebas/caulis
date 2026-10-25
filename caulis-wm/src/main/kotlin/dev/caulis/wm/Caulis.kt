@@ -515,6 +515,13 @@ class Caulis {
      */
     var hotReload = true
 
+    /**
+     * Read `config.json` from [configFolder] too — settings as data, written by hand or by the
+     * Nix module (see the guide) — on top of what the code says. Saved again while running,
+     * it is taken on at once.
+     */
+    var useConfigFile = true
+
     /** Print frame timing every few seconds. */
     var stats = false
 
@@ -755,6 +762,10 @@ class Caulis {
     // What the checks before starting warned about: shown on screen too, once running.
     internal var startWarnings: List<Preflight.Problem> = emptyList()
 
+    // What is wrong in config.json (shown on screen once running).
+    internal var configProblems: List<String> = emptyList()
+    internal var configAdded: dev.caulis.wm.config.Settings.Added? = null
+
     /** The window manager (workspaces, focus, layouts). Only while running. */
     val desktop: Desktop get() = checkNotNull(running) { "Caulis is not running yet" }.desktop
 
@@ -797,11 +808,17 @@ class Caulis {
     fun run() {
         // Java's 2D graphics only draws into pictures here (see Desktop): never into windows.
         if (System.getProperty("java.awt.headless") == null) System.setProperty("java.awt.headless", "true")
+        // --check-config, --print-nix-options, ...: answered, nothing started.
+        dev.caulis.wm.config.CommandLine.handle(this)?.let { status -> exitProcess(status) }
+        // The configuration file on top of what the code says (also on every reload).
+        if (useConfigFile) configProblems = dev.caulis.wm.config.ConfigFile.applyTo(this)
         // A reload runs main() again: hand this configuration over instead of starting.
         Reloader.capturing.get()?.let { slot ->
             slot[0] = this
             throw Reloader.Captured()
         }
+        // Whose main() this is (to run it again when config.json changes).
+        Reloader.startedFrom = Thread.currentThread().stackTrace.lastOrNull { it.methodName == "main" }?.className
         applyLogSettings()
         val nested = when (mode) {
             Mode.AUTO -> !System.getenv("WAYLAND_DISPLAY").isNullOrEmpty()

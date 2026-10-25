@@ -9,6 +9,8 @@ can write a bit of Kotlin (or Java), you can follow along.
 - Linux with a Wayland session (GNOME, KDE, Sway, ...) to try things in
 - A GPU driver with OpenGL ES 3 — on almost every Linux with Mesa (AMD, Intel) or NVIDIA 545+
 - JDK 27 (Gradle can also download it for you)
+- Or just [Nix](https://nixos.org): `nix develop` in the Caulis folder (or in your project)
+  gives a shell with JDK 27, Xwayland and every library — see step 24
 - A terminal program for your compositor to open, e.g. [foot](https://codeberg.org/dnkl/foot)
 
 ## 1. Get Caulis
@@ -894,6 +896,122 @@ Kotlin works: `if (count > 4) grid() else rest()`.
 
 Need something the blocks cannot express? Implement `Layout` yourself: it gets the windows
 and the free area, and returns one rectangle per window.
+
+## 23. Settings as data: config.json
+
+Everything in steps 4–20 can also be said in `config.json` in the compositor's folder
+(`~/.config/<configName>/config.json`) — handy for settings you change often, for people
+who use your compositor without writing Kotlin, and for Nix (step 24). The file goes on top
+of what `Main.kt` says; what it does not mention stays as the code says.
+
+```jsonc
+{
+  // Comments and trailing commas are fine.
+  "layout": { "name": "master-stack", "ratio": 0.6, "gaps": { "inner": 8, "outer": 12, "top": 40 } },
+  "scale": 1.25,
+  "keys": { "close": "Super+W", "quit": false },          // changed, and turned off
+  "bind": {
+    "Super+B": "exec firefox --private-window",
+    "Super+Shift+3": "move-to-workspace 3"
+  },
+  "rules": [ { "appId": "mpv", "floating": true, "center": true, "margin": 20 } ],
+  "effects": { "preset": "modern", "cornerRadius": 12, "border": { "width": 2, "focused": { "conic": ["#89b4fa", "#f5c2e7"], "turnsPerSecond": 0.2 } } },
+  "background": { "shader": "aurora.glsl" },
+  "startup": [ "waybar" ]
+}
+```
+
+Saved while running, it is taken on at once, like `Main.kt`. Every value is checked with the
+same limits as in Kotlin, and a mistake is reported with its line — and a guess:
+
+```
+config.json, line 3: layout.gaps.inner: 0 to 500, not 1000
+config.json, line 7: terminl: there is no such setting (did you mean "terminal"?)
+config.json, line 9: bind."Super+B": "exce firefox" is not an action (did you mean "exec"?)
+```
+
+The other settings still apply. Check a file without starting:
+
+```sh
+my-compositor --check-config                 # its config.json
+my-compositor --check-config other.json
+```
+
+**Actions** — what keys in `bind` do, written as text:
+
+| Action | Does |
+|---|---|
+| `close` · `quit` · `lock` · `terminal` | the focused window, the compositor, the screen, a terminal |
+| `exec <command>` | starts a program (the rest of the line) |
+| `workspace <n>` · `move-to-workspace <n>` | shows a workspace / moves the focused window there |
+| `focus left\|right` · `move <dir>` · `resize <dir>` · `preselect <dir>` | as the usual keys do |
+| `maximize` · `fullscreen` · `minimize` · `float` | the focused window, or back |
+| `overview` · `next-window` · `dump-state` | |
+| `rotate` · `balance` · `column-width` · `split-beside` · `split-below` | layout commands |
+| `layout <name>` · `scale <x>` · `notify <text>` | |
+
+**Every setting**, with its limits and description, is in
+[`config.schema.json`](config.schema.json). Editors (VS Code, IntelliJ, Neovim with a JSON
+language server) complete and check the file as you type when it starts with:
+
+```json
+{ "$schema": "file:///path/to/caulis/docs/config.schema.json" }
+```
+
+Turn the file off with `useConfigFile = false` in `Main.kt`.
+
+## 24. Nix
+
+The Caulis folder and new projects have a `flake.nix`.
+
+**Developing** — a shell with JDK 27, Xwayland and all the libraries Caulis looks up:
+
+```sh
+nix develop          # with flakes
+nix-shell            # without (in the Caulis folder)
+./gradlew run
+```
+
+**Building** your compositor as a package (`result/bin/my-compositor`, with a login session):
+
+```sh
+nix build .#default.mitmCache.updateScript && ./result   # once, and after changing dependencies
+nix build
+```
+
+Nix builds without the network, so what Gradle downloads is listed in `deps.json` first.
+
+**Settings in Nix.** The settings of step 23 are also Nix options — the same ones, made
+from the same description, so the limits match — for Home Manager:
+
+```nix
+{
+  imports = [ my-compositor.homeModules.default ];
+
+  programs.caulis = {
+    enable = true;
+    settings = {
+      layout = { name = "scrolling-columns"; gaps.inner = 8; };
+      keys.quit = false;
+      bind."Super+B" = "exec firefox";
+      rules = [ { appId = "mpv"; floating = true; } ];
+      background.shader = ./aurora.glsl;       # a file next to your Nix configuration
+    };
+    files."walls/sea.jpg" = ./sea.jpg;         # more files for the compositor's folder
+  };
+}
+```
+
+A mistake fails `home-manager switch` with the option's name and its limits
+(`settings.layout.gaps.inner' is not of type 'integer between 0 and 500'`, or *Did you
+mean `settings.effects.cornerRadius'?*); then the compositor itself checks the written file
+(`--check-config`) while building. After a switch the running compositor takes the new
+settings on, without restarting. For NixOS there is `nixosModules.default`: it installs the
+compositor, offers its session at login, and puts the settings in
+`/etc/xdg/<configName>/config.json` for everyone (a user's own `~/.config` file comes first).
+
+Not on NixOS? GPU drivers come from the system there; to run a compositor built with Nix
+on another distribution, start it through [nixGL](https://github.com/nix-community/nixGL).
 
 ## When something goes wrong
 

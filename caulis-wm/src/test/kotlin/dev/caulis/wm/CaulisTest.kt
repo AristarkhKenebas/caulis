@@ -82,6 +82,7 @@ class CaulisTest {
         val socketDirectory = Files.createTempDirectory("caulis-wm-test")
         TestServer(gpu = true).use { outer ->
             val caulis = Caulis().apply {
+                useConfigFile = false // never the config.json of whoever runs the tests
                 configure()
                 mode = Caulis.Mode.NESTED
                 nestedIn = outer.socketPath
@@ -121,6 +122,7 @@ class CaulisTest {
     // A configuration as [configure] makes it, with the test's own settings (as a reload of
     // the same main() would have them).
     internal fun Caulis.reloaded(configure: Caulis.() -> Unit): Caulis = Caulis().also { next ->
+        next.useConfigFile = false
         next.configure()
         next.mode = mode
         next.nestedIn = nestedIn

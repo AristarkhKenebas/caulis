@@ -331,5 +331,30 @@ internal class Reloader private constructor(
         }
 
         private fun why(reason: String) = log.info { "Hot reload is off: $reason" }
+
+        /** The class whose main() started the compositor (null: started otherwise, e.g. a test). */
+        @Volatile
+        internal var startedFrom: String? = null
+
+        /**
+         * Runs this program's main() once more, in its own class loader, and returns the
+         * configuration it hands over (null: how it was started is unknown).
+         */
+        fun rerunMain(): Caulis? {
+            val mainClass = startedFrom ?: return null
+            val command = System.getProperty("sun.java.command")?.trim()?.split(Regex("\\s+")).orEmpty()
+            val arguments = if (command.firstOrNull() == mainClass) command.drop(1) else emptyList()
+            val slot = arrayOfNulls<Caulis>(1)
+            capturing.set(slot)
+            try {
+                Class.forName(mainClass, true, Caulis::class.java.classLoader)
+                    .getMethod("main", Array<String>::class.java).invoke(null, arguments.toTypedArray())
+            } catch (e: InvocationTargetException) {
+                if (e.cause !is Captured) throw e.cause ?: e
+            } finally {
+                capturing.remove()
+            }
+            return slot[0]
+        }
     }
 }
