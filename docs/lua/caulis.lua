@@ -469,6 +469,7 @@
 ---@field placement? "banner"|"toast"|"hidden" a strip, cards in a corner, or none
 ---@field bottom? boolean a banner at the bottom
 ---@field room? "push-all"|"push-windows"|"cover" what makes way for a banner
+---@field errorRoom? "push-all"|"push-windows"|"cover" what makes way for an error's banner (else as room)
 ---@field corner? "top-left"|"top"|"top-right"|"bottom-left"|"bottom"|"bottom-right" where toasts go
 ---@field fontSize? integer their text size
 ---@field everyMonitor? boolean on every monitor

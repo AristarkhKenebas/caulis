@@ -250,6 +250,7 @@ class Caulis {
      * ```
      * noticeStyle = NoticeStyle()                                        // a strip at the top; windows and panels make way (the default)
      * noticeStyle = NoticeStyle(placement = NoticePlacement.Banner(room = Room.COVER))  // over everything
+     * noticeStyle = NoticeStyle(placement = NoticePlacement.Banner(room = Room.COVER, errorRoom = Room.PUSH_ALL))  // errors push, the rest covers
      * noticeStyle = NoticeStyle(placement = NoticePlacement.Toast())     // cards at the bottom right, like notifications
      * noticeStyle = NoticeStyle(placement = NoticePlacement.Hidden)      // not drawn: show them yourself with onNotice
      * ```

@@ -50,6 +50,12 @@ class XdgShell(private val display: Display) {
         fun fullscreenRequested(window: Window, fullscreen: Boolean) {}
         fun minimizeRequested(window: Window) {}
 
+        /**
+         * Where [popup] must stay — the monitor its window is on — relative to its parent's
+         * visible top left corner (as the popup's own place is), or null: anywhere.
+         */
+        fun popupBounds(popup: Popup): Rect? = null
+
         fun popupMapped(popup: Popup) {}
         fun popupUnmapped(popup: Popup) {}
         fun popupGrab(popup: Popup) {}
@@ -435,10 +441,10 @@ class Popup internal constructor(
     }
 
     internal fun configure() {
-        val (px, py) = rules.place()
-        x = px
-        y = py
-        resource.sendConfigure(x, y, rules.width, rules.height)
+        val box = rules.place(shell.shell.listener.popupBounds(this))
+        x = box.x
+        y = box.y
+        resource.sendConfigure(box.x, box.y, box.width, box.height)
         shell.sendConfigure()
     }
 
@@ -461,13 +467,80 @@ class Positioner internal constructor(resource: XdgPositioner) {
         var gravity: Int = XdgPositioner.Gravity.NONE,
         var offsetX: Int = 0,
         var offsetY: Int = 0,
+        /** What may be done when it does not fit (XdgPositioner.ConstraintAdjustment bits). */
+        var adjustment: Int = 0,
     ) {
-        fun copy() = Rules(width, height, anchorRect, anchor, gravity, offsetX, offsetY)
+        fun copy() = Rules(width, height, anchorRect, anchor, gravity, offsetX, offsetY, adjustment)
 
         /**
-         * Top left corner of the popup relative to the parent: take the anchor point on the
-         * anchor rectangle, then grow the popup from it in the gravity direction.
-         * (Moving popups back on screen when they do not fit comes later.)
+         * Where the popup goes, relative to the parent, kept inside [bounds] (same
+         * coordinates; null: anywhere) as far as the program allows: first turned to the
+         * other side (a menu near the bottom opens upwards), then slid along the edge, then
+         * made smaller — each only if the program said it may be.
+         */
+        fun place(bounds: Rect?): Rect {
+            var box = Rect(place().first, place().second, width, height)
+            if (bounds == null || bounds.isEmpty) return box
+            fun fitsX(r: Rect) = r.x >= bounds.x && r.right <= bounds.right
+            fun fitsY(r: Rect) = r.y >= bounds.y && r.bottom <= bounds.bottom
+            // Turned over: anchor and gravity to the other side, the offset too.
+            if (!fitsX(box) && adjustment and FLIP_X != 0) {
+                val turned = Rules(width, height, anchorRect, flipX(anchor), flipX(gravity), -offsetX, offsetY).place()
+                val other = Rect(turned.first, box.y, width, height)
+                if (fitsX(other)) box = other
+            }
+            if (!fitsY(box) && adjustment and FLIP_Y != 0) {
+                val turned = Rules(width, height, anchorRect, flipY(anchor), flipY(gravity), offsetX, -offsetY).place()
+                val other = Rect(box.x, turned.second, width, height)
+                if (fitsY(other)) box = other
+            }
+            // Slid along the edge (its start stays inside when it is bigger than the room).
+            if (!fitsX(box) && adjustment and SLIDE_X != 0) {
+                val x = if (box.right > bounds.right) bounds.right - box.width else box.x
+                box = Rect(maxOf(x, bounds.x), box.y, box.width, box.height)
+            }
+            if (!fitsY(box) && adjustment and SLIDE_Y != 0) {
+                val y = if (box.bottom > bounds.bottom) bounds.bottom - box.height else box.y
+                box = Rect(box.x, maxOf(y, bounds.y), box.width, box.height)
+            }
+            // Made smaller to what is left.
+            if (!fitsX(box) && adjustment and RESIZE_X != 0) {
+                val left = maxOf(box.x, bounds.x)
+                val right = minOf(box.right, bounds.right)
+                if (right > left) box = Rect(left, box.y, right - left, box.height)
+            }
+            if (!fitsY(box) && adjustment and RESIZE_Y != 0) {
+                val top = maxOf(box.y, bounds.y)
+                val bottom = minOf(box.bottom, bounds.bottom)
+                if (bottom > top) box = Rect(box.x, top, box.width, bottom - top)
+            }
+            return box
+        }
+
+        private fun flipX(edge: Int): Int = when (edge) {
+            XdgPositioner.Anchor.LEFT -> XdgPositioner.Anchor.RIGHT
+            XdgPositioner.Anchor.RIGHT -> XdgPositioner.Anchor.LEFT
+            XdgPositioner.Anchor.TOP_LEFT -> XdgPositioner.Anchor.TOP_RIGHT
+            XdgPositioner.Anchor.TOP_RIGHT -> XdgPositioner.Anchor.TOP_LEFT
+            XdgPositioner.Anchor.BOTTOM_LEFT -> XdgPositioner.Anchor.BOTTOM_RIGHT
+            XdgPositioner.Anchor.BOTTOM_RIGHT -> XdgPositioner.Anchor.BOTTOM_LEFT
+            else -> edge
+        }
+
+        private fun flipY(edge: Int): Int = when (edge) {
+            XdgPositioner.Anchor.TOP -> XdgPositioner.Anchor.BOTTOM
+            XdgPositioner.Anchor.BOTTOM -> XdgPositioner.Anchor.TOP
+            XdgPositioner.Anchor.TOP_LEFT -> XdgPositioner.Anchor.BOTTOM_LEFT
+            XdgPositioner.Anchor.BOTTOM_LEFT -> XdgPositioner.Anchor.TOP_LEFT
+            XdgPositioner.Anchor.TOP_RIGHT -> XdgPositioner.Anchor.BOTTOM_RIGHT
+            XdgPositioner.Anchor.BOTTOM_RIGHT -> XdgPositioner.Anchor.TOP_RIGHT
+            else -> edge
+        }
+
+        /**
+         * Top left corner of the popup relative to the parent, without bounds: take the
+         * anchor point on the anchor rectangle, then grow the popup from it in the gravity
+         * direction.
          */
         fun place(): Pair<Int, Int> {
             val r = anchorRect
@@ -535,7 +608,9 @@ class Positioner internal constructor(resource: XdgPositioner) {
                 rules.gravity = gravity
             }
 
-            override fun setConstraintAdjustment(resource: XdgPositioner, constraintAdjustment: Int) {}
+            override fun setConstraintAdjustment(resource: XdgPositioner, constraintAdjustment: Int) {
+                rules.adjustment = constraintAdjustment
+            }
 
             override fun setOffset(resource: XdgPositioner, x: Int, y: Int) {
                 rules.offsetX = x
@@ -550,6 +625,14 @@ class Positioner internal constructor(resource: XdgPositioner) {
         }
     }
 }
+
+// xdg_positioner.constraint_adjustment bits.
+private const val SLIDE_X = 1
+private const val SLIDE_Y = 2
+private const val FLIP_X = 4
+private const val FLIP_Y = 8
+private const val RESIZE_X = 16
+private const val RESIZE_Y = 32
 
 /** A list of numbers as the byte array the protocol uses for `array` arguments. */
 internal fun uintArray(values: List<Int>): ByteArray {

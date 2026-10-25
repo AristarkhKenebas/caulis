@@ -2,6 +2,8 @@ package dev.caulis.examples.desktop
 
 import dev.caulis.core.Background
 import dev.caulis.core.Effects
+import dev.caulis.core.NoticePlacement
+import dev.caulis.core.NoticeStyle
 import dev.caulis.screenshot.screenshots
 import dev.caulis.tiling.Dwindle
 import dev.caulis.tiling.Gaps
@@ -19,9 +21,12 @@ fun main() = caulis {
     configName = "caulis-desktop" // ~/.config/caulis-desktop/config.json (or config.lua) on top
     keyboardLayouts = "us,ru"
     keyboardOptions = "grp:win_space_toggle,caps:none"
+    input.touchpads.naturalScroll = true // the content follows the fingers, as on a phone
     terminal = "foot"
     layout = Dwindle(Gaps(inner = 8, outer = 10))
     effects = Effects.MODERN
+    // Notices over the bar, gone by themselves: nothing moves for them.
+    noticeStyle = NoticeStyle(placement = NoticePlacement.Banner(room = NoticePlacement.Banner.Room.COVER))
     home.resolve(".local/share/backgrounds/WhiteSur/Sonoma-light.jpg").takeIf(Files::exists)?.let { background = Background.image(it) }
 
     // Programs choose Wayland where they can (Telegram and Firefox do by themselves).

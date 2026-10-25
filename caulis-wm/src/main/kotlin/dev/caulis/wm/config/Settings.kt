@@ -509,6 +509,7 @@ object Settings {
                         Field("placement", ChoiceType(listOf("banner", "toast", "hidden")), "a strip, cards in a corner, or none"),
                         Field("bottom", FlagType, "a banner at the bottom"),
                         Field("room", ChoiceType(listOf("push-all", "push-windows", "cover")), "what makes way for a banner"),
+                        Field("errorRoom", ChoiceType(listOf("push-all", "push-windows", "cover")), "what makes way for an error's banner (else as room)"),
                         Field("corner", ChoiceType(listOf("top-left", "top", "top-right", "bottom-left", "bottom", "bottom-right")), "where toasts go"),
                         Field("fontSize", IntegerType(6, 72), "their text size"),
                         Field("everyMonitor", FlagType, "on every monitor"),
@@ -973,6 +974,7 @@ object Settings {
             "banner" -> NoticePlacement.Banner(
                 bottom = n["bottom"] as Boolean? ?: false,
                 room = (n["room"] as String?)?.let { NoticePlacement.Banner.Room.valueOf(it.uppercase().replace('-', '_')) } ?: NoticePlacement.Banner.Room.PUSH_ALL,
+                errorRoom = (n["errorRoom"] as String?)?.let { NoticePlacement.Banner.Room.valueOf(it.uppercase().replace('-', '_')) },
             )
             "toast" -> NoticePlacement.Toast((n["corner"] as String?)?.let { NoticePlacement.Toast.Corner.valueOf(it.uppercase().replace('-', '_')) } ?: NoticePlacement.Toast.Corner.BOTTOM_RIGHT)
             "hidden" -> NoticePlacement.Hidden

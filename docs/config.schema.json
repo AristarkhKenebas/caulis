@@ -2665,6 +2665,10 @@
           "enum": ["push-all", "push-windows", "cover"],
           "description": "what makes way for a banner"
         },
+        "errorRoom": {
+          "enum": ["push-all", "push-windows", "cover"],
+          "description": "what makes way for an error's banner (else as room)"
+        },
         "corner": {
           "enum": ["top-left", "top", "top-right", "bottom-left", "bottom", "bottom-right"],
           "description": "where toasts go"

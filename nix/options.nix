@@ -429,6 +429,7 @@ let
       "placement" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "banner" "toast" "hidden" ]); default = null; description = "a strip, cards in a corner, or none"; };
       "bottom" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "a banner at the bottom"; };
       "room" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "push-all" "push-windows" "cover" ]); default = null; description = "what makes way for a banner"; };
+      "errorRoom" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "push-all" "push-windows" "cover" ]); default = null; description = "what makes way for an error's banner (else as room)"; };
       "corner" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "top-left" "top" "top-right" "bottom-left" "bottom" "bottom-right" ]); default = null; description = "where toasts go"; };
       "fontSize" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (6) (72)); default = null; description = "their text size"; };
       "everyMonitor" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "on every monitor"; };

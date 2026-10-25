@@ -246,10 +246,22 @@ class DrmOutput internal constructor(
     }
 
     // The cursor changed: it goes with the next picture, or — if none is coming — on its own.
+    // Not at once: a picture drawn right after it (the same refresh) takes it along. A
+    // commit of the cursor alone would hold the monitor until the next refresh, and the
+    // picture would wait for it: with the mouse moving all the time over a window that
+    // redraws (a game), the pictures would hardly ever get through.
     private fun cursorMoved() {
         cursorDirty = true
-        if (!flipPending && !needsModeset && powered && isSessionActive() && mode != null) commitCursor()
+        if (cursorAloneQueued) return
+        cursorAloneQueued = true
+        loop.after(0) {
+            cursorAloneQueued = false
+            cursorAlone()
+        }
     }
+
+    // A check for a cursor without a picture is waiting (see cursorMoved).
+    private var cursorAloneQueued = false
 
     private fun commitCursor() {
         val serial = ++commitSerial

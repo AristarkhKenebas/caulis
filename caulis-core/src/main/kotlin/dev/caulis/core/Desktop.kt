@@ -1321,9 +1321,11 @@ class Desktop(
     private fun arrangeLayers(monitor: Monitor, refit: Boolean = true) {
         // Banners of our own notices take their room first (from panels too, or only from windows).
         val banner = noticeBoard.style.placement as? NoticePlacement.Banner
-        val bannerRoom = if (banner == null || banner.room == NoticePlacement.Banner.Room.COVER) 0
-            else noticeBoard.bannerRoom(monitor, monitorList, noticeFallback(monitor))
-        val full = if (banner?.room == NoticePlacement.Banner.Room.PUSH_ALL) withoutBanners(monitor.area, monitor, bannerRoom, banner.bottom) else monitor.area
+        fun room(kind: NoticePlacement.Banner.Room) = if (banner == null) 0 else noticeBoard.bannerRoom(monitor, monitorList, noticeFallback(monitor), kind)
+        val pushAll = room(NoticePlacement.Banner.Room.PUSH_ALL)
+        val pushWindows = room(NoticePlacement.Banner.Room.PUSH_WINDOWS)
+        val bottom = banner?.bottom == true
+        val full = withoutBanners(monitor.area, monitor, pushAll, bottom)
         var usable = full
         val ordered = layerSurfaces.filter { monitorOf(it) === monitor }.sortedByDescending { it.current.layer } // overlay first
         for (layer in ordered.filter { it.current.exclusiveZone > 0 }) {
@@ -1333,7 +1335,8 @@ class Desktop(
         for (layer in ordered.filter { it.current.exclusiveZone <= 0 }) {
             placeLayer(layer, if (layer.current.exclusiveZone < 0) full else usable)
         }
-        if (banner?.room == NoticePlacement.Banner.Room.PUSH_WINDOWS) usable = withoutBanners(usable, monitor, bannerRoom, banner.bottom)
+        // (Below the ones that push everything: those are nearest the edge.)
+        if (pushWindows > 0) usable = withoutBanners(usable, monitor, pushAll + pushWindows, bottom)
         if (usable != monitor.usableArea) {
             monitor.usableArea = usable
             if (refit) refitWindows(monitor)
@@ -3296,6 +3299,15 @@ class Desktop(
     // Surfaces visible right now; they get "frame done" at every refresh.
     private val visible = LinkedHashSet<Surface>()
 
+    // A menu stays on the monitor its window (or panel) is on.
+    override fun popupBounds(popup: Popup): Rect? {
+        val (ox, oy) = popup.parent?.let(::visibleOrigin) ?: popup.layerParent?.let { it.x to it.y } ?: return null
+        val window = generateSequence(popup.parent) { (it.role as? Popup)?.parent }.mapNotNull { it.role as? Window }.firstOrNull()
+        val monitor = window?.let { if (workspaceOf(it) != null) monitorOf(it) else null } ?: monitorAt(ox.toDouble(), oy.toDouble())
+        val area = monitor.area
+        return Rect(area.x - ox, area.y - oy, area.width, area.height)
+    }
+
     override fun popupMapped(popup: Popup) {
         popups += popup
         changed()
@@ -3397,7 +3409,7 @@ class Desktop(
                 }
             }
             if (activeWorkspace.minimizedList.remove(window)) {
-                activeWorkspace.windowList += window
+                if (window !in activeWorkspace.windowList) activeWorkspace.windowList += window
                 window.setMinimized(false)
                 // Back out of its dock icon (or up from below), as the restore animation says.
                 stopFlights(window)
@@ -3408,8 +3420,8 @@ class Desktop(
         val list = activeWorkspace.windowList
         for (other in list) if (other !== window) other.setActivated(false)
         if (window != null) {
-            list -= window
-            list += window
+            // On top of its own workspace (only if it is on this one: never into another's list).
+            if (list.remove(window)) list += window
             window.setActivated(true)
         }
         if (exclusiveLayer() == null) {
@@ -3619,6 +3631,23 @@ class Desktop(
         val hit = surfaceAt(pointerX, pointerY)
         seat.pointerMotion(timeMillis, hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
         onChange() // only the cursor moved: the rest of the scene stays as it is
+    }
+
+    // The version of the scene the pointer's program was last checked against.
+    private var pointerCheckedVersion = -1L
+
+    // Windows moved under a pointer standing still (another workspace shown, a window
+    // opened, closed or moved): the program now under it gets it — with its cursor — and the
+    // one that went away stops getting it (a game on a hidden workspace saw every move).
+    private fun pointerOntoWhatIsThere() {
+        if (pointerCheckedVersion == version) return
+        pointerCheckedVersion = version
+        if (locked || overlay != null || grab != null || inOverview || buttonsHeld > 0) return
+        if (decorationAt(pointerX, pointerY) != null) return
+        val hit = surfaceAt(pointerX, pointerY)
+        if (hit?.surface === seat.pointerFocus) return
+        inputLog.trace { "The pointer is over ${hit?.root?.roleObject ?: "nothing"} now (the windows moved)" }
+        seat.pointerMotion((System.nanoTime() / 1_000_000).toInt(), hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
     }
 
     // Our own cursor over a window's edge (resize arrows), or null.
@@ -3860,6 +3889,7 @@ class Desktop(
             version++
             onChange()
         }
+        pointerOntoWhatIsThere()
         placeHardwareCursor(view)
         // A moving screen shader: every frame anew (and the next one asked for).
         val shaderMoves = screenShader?.moving == true

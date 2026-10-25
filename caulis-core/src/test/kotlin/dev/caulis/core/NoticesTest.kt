@@ -80,6 +80,20 @@ class NoticesTest {
     }
 
     @Test
+    fun `errors can push while the other notices cover`() = withServer { server, client ->
+        server.onServer { d ->
+            d.noticeStyle = NoticeStyle(placement = NoticePlacement.Banner(room = NoticePlacement.Banner.Room.COVER, errorRoom = NoticePlacement.Banner.Room.PUSH_ALL))
+            d.notify("Saved")
+            assertEquals(0, d.monitors[0].usableArea.y, "an ordinary notice moves nothing")
+            val error = d.notify("A mistake", NoticeLevel.ERROR)
+            val room = d.monitors[0].usableArea.y
+            assertTrue(room > 0, "an error pushes the windows down")
+            d.dismiss(error)
+        }
+        client.waitFor { server.onServer { d -> d.monitors[0].usableArea.y } == 0 }
+    }
+
+    @Test
     fun `toasts in a corner take no room, the same one twice is counted`() = withServer { server, _ ->
         val (usable, count) = server.onServer { d ->
             d.noticeStyle = NoticeStyle(placement = NoticePlacement.Toast(width = 300, margin = 16), info = MAGENTA_LOOK)

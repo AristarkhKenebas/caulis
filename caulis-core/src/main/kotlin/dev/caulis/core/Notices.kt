@@ -50,9 +50,22 @@ class Notice internal constructor(
 sealed class NoticePlacement {
     /**
      * A strip across the whole monitor at its top (or [bottom]), as Hyprland shows mistakes
-     * in its configuration. [room] says what makes way for it.
+     * in its configuration. [room] says what makes way for it; [errorRoom] the same for
+     * errors alone (null: as the others) — e.g. the others over the bar, gone by themselves,
+     * and errors pushing everything down until they are closed:
+     *
+     * ```
+     * NoticeStyle(placement = NoticePlacement.Banner(room = Room.COVER, errorRoom = Room.PUSH_ALL))
+     * ```
      */
-    data class Banner @JvmOverloads constructor(val bottom: Boolean = false, val room: Room = Room.PUSH_ALL) : NoticePlacement() {
+    data class Banner @JvmOverloads constructor(
+        val bottom: Boolean = false,
+        val room: Room = Room.PUSH_ALL,
+        val errorRoom: Room? = null,
+    ) : NoticePlacement() {
+        /** What makes way for a notice of [level]. */
+        fun roomOf(level: NoticeLevel): Room = if (level == NoticeLevel.ERROR) errorRoom ?: room else room
+
         enum class Room {
             /** Windows and panels move aside: nothing is covered. */
             PUSH_ALL,
@@ -369,10 +382,13 @@ internal class NoticeBoard(
         return all.asReversed().filter(::belongs).take(style.maxShown)
     }
 
-    /** How many desktop units banners take at the edge of [monitor] (0 for other placements or when nothing is shown). */
-    fun bannerRoom(monitor: Monitor, monitors: List<Monitor>, fallback: Monitor): Int {
-        if (style.placement !is NoticePlacement.Banner) return 0
-        return shownOn(monitor, monitors, fallback).filter { it.open }.sumOf { heightOf(it, monitor.area.width, monitor.scale) }
+    /**
+     * How many desktop units the banners that make way as [room] says take at the edge of
+     * [monitor] (0 for other placements or when none is shown).
+     */
+    fun bannerRoom(monitor: Monitor, monitors: List<Monitor>, fallback: Monitor, room: NoticePlacement.Banner.Room): Int {
+        val banner = style.placement as? NoticePlacement.Banner ?: return 0
+        return shownOn(monitor, monitors, fallback).filter { it.open && banner.roomOf(it.level) == room }.sumOf { heightOf(it, monitor.area.width, monitor.scale) }
     }
 
     // Its height in desktop units when [width] units wide.
@@ -416,7 +432,10 @@ internal class NoticeBoard(
             is NoticePlacement.Banner -> {
                 val area = monitor.area
                 var offset = 0
-                for (notice in shown) {
+                // Those that push nearest the edge (in the room made for them); the ones over
+                // everything after them.
+                val ordered = shown.sortedBy { placement.roomOf(it.level).ordinal }
+                for (notice in ordered) {
                     val height = heightOf(notice, area.width, monitor.scale)
                     val y = if (placement.bottom) area.bottom - offset - height else area.y + offset
                     placed += notice to Rect(area.x, y, area.width, height)

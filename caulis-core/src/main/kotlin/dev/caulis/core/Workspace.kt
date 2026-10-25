@@ -67,8 +67,18 @@ class Workspace internal constructor(
         }
 
     internal fun add(window: Window) {
+        // Twice in the list it would be drawn, counted and listed twice: never (said, with
+        // where it came from, so the cause can be found).
+        if (window in windowList || window in minimizedList) {
+            log.warn("$window was added to workspace $number again (ignored)", IllegalStateException("added again"))
+            return
+        }
         windowList += window
         tilingOrder += window
+    }
+
+    private companion object {
+        val log = dev.caulis.log.Logger("windows")
     }
 
     internal fun remove(window: Window) {
