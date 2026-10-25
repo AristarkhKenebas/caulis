@@ -66,7 +66,7 @@ class DrmOutput internal constructor(
 
     /**
      * Called when a picture from [present] reached the screen: the moment of that refresh
-     * ([nanos], monotonic clock), the time between refreshes and the monitor's frame number.
+     * (`nanos`, monotonic clock), the time between refreshes and the monitor's frame number.
      */
     var onPresented: (nanos: Long, refreshNanos: Long, sequence: Long, zeroCopy: Boolean) -> Unit = { _, _, _, _ -> }
 

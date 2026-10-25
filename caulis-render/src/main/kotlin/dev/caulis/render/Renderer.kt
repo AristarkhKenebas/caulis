@@ -83,7 +83,7 @@ interface Renderer : AutoCloseable {
 
     /**
      * Draws [texture] into the rectangle through [effect]: GLSL (OpenGL ES 3) code with a
-     * function `vec4 effect(vec2 at)` — [at] is 0..1 in the rectangle, `window(uv)` reads
+     * function `vec4 effect(vec2 at)` — `at` is 0..1 in the rectangle, `window(uv)` reads
      * the texture (see-through outside 0..1), `progress`, `from` and `to` (x, y, width,
      * height in the rectangle's 0..1) and `size` (pixels) are there to use. Returns false
      * (drawing nothing) if the code does not compile; [effectProblem] then says why.

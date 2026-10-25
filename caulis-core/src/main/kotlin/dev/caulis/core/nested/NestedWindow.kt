@@ -76,7 +76,7 @@ class NestedWindow(
 
     /**
      * Called when the outer compositor is ready for the next frame, which roughly means the
-     * previous one is on screen ([nanos], monotonic clock). Only approximate: the outer
+     * previous one is on screen (`nanos`, monotonic clock). Only approximate: the outer
      * compositor does not say exactly when it showed our picture.
      */
     var onPresented: (nanos: Long) -> Unit = {}

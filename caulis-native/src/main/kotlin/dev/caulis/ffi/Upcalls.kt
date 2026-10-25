@@ -6,7 +6,7 @@ import dev.caulis.log.InternalCaulisApi
  * Guards code that C calls back into (upcalls: libseat, libinput, libdrm callbacks).
  *
  * An exception must never travel back into C: the JVM would stop the whole process.
- * So every callback body runs inside [guard]; an error is logged and C gets [fallback].
+ * So every callback body runs inside [guard]; an error is logged and C gets `fallback`.
  */
 @InternalCaulisApi
 object Upcalls {

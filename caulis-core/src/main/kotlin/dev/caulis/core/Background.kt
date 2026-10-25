@@ -81,7 +81,7 @@ sealed class Background {
 /** What a [BackgroundPainter] paints: [width] x [height] pixels of [monitor], [scale] pixels per unit. */
 class BackgroundLook(val width: Int, val height: Int, val scale: Double, val monitor: String, val workspace: Int)
 
-/** Paints a background into [g] (see [Background.painted]). */
+/** Paints a background into `g` (see [Background.painted]). */
 fun interface BackgroundPainter {
     fun paint(g: Graphics2D, look: BackgroundLook)
 }

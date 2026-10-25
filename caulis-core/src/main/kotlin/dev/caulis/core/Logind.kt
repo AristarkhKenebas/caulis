@@ -25,7 +25,7 @@ class Logind private constructor(private val bus: DBusConnection, private val lo
     private var sleepLock: Fd? = null
     private var session: ObjectPath? = null
 
-    /** The computer is about to sleep; call [ready] when done (the screen is locked): it then goes. */
+    /** The computer is about to sleep; call `ready` when done (the screen is locked): it then goes. */
     var onSleep: (ready: () -> Unit) -> Unit = { ready -> ready() }
 
     /** The computer woke up. */

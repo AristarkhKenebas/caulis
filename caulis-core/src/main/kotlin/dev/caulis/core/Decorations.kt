@@ -88,7 +88,7 @@ class TitleBarLook(
 )
 
 /**
- * Draws a title bar into [g] (a [TitleBarLook.width] x [TitleBarLook.height] picture, see-through
+ * Draws a title bar into `g` (a [TitleBarLook.width] x [TitleBarLook.height] picture, see-through
  * where nothing is drawn). The window's rounded corners and border are added around it.
  */
 fun interface TitleBarPainter {

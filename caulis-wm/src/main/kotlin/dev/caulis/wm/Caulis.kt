@@ -105,7 +105,7 @@ class Caulis {
      * animations = Animations(windowOpen = WindowAnimation { m -> WindowFrame(m.to, alpha = m.progress.toFloat()) })
      * ```
      *
-     * Own shaders too: [WindowShader]. See [Animations] and the guide.
+     * Own shaders too: [WindowShader][dev.caulis.core.WindowShader]. See [Animations] and the guide.
      */
     var animations: Animations = Animations()
         set(value) {
@@ -115,7 +115,7 @@ class Caulis {
 
     /**
      * What the desktop shows behind everything — a colour, a gradient, a picture, your own
-     * drawing, or a shader, still or moving (see [Background], [WallpaperShader]):
+     * drawing, or a shader, still or moving (see [Background], [WallpaperShader][dev.caulis.core.WallpaperShader]):
      *
      * ```
      * background = Background.image(Path.of("/usr/share/backgrounds/forest.jpg"))
@@ -152,8 +152,8 @@ class Caulis {
         }
 
     /**
-     * How the mouse goes between monitors of different sizes: [MonitorEdges.TOUCHING] (only
-     * where they touch, as Windows — the default) or [MonitorEdges.PROPORTIONAL] (each edge
+     * How the mouse goes between monitors of different sizes: [MonitorEdges.TOUCHING][dev.caulis.core.MonitorEdges.TOUCHING] (only
+     * where they touch, as Windows — the default) or [MonitorEdges.PROPORTIONAL][dev.caulis.core.MonitorEdges.PROPORTIONAL] (each edge
      * leads to the whole edge beside it: top corner to top corner, bottom to bottom).
      */
     var monitorEdges = dev.caulis.core.MonitorEdges.TOUCHING
@@ -862,7 +862,7 @@ class Caulis {
     }
 
     /**
-     * A shader the whole screen goes through last ([ScreenShader]): `ScreenShader.GRAYSCALE`,
+     * A shader the whole screen goes through last ([ScreenShader][dev.caulis.core.ScreenShader]): `ScreenShader.GRAYSCALE`,
      * `ScreenShader.warm(0.4f)`, your own code or file. Null: none. Can be changed while running.
      */
     var screenShader: dev.caulis.core.ScreenShader? = null

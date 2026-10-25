@@ -45,7 +45,7 @@ sealed class Paint {
     }
 
     /**
-     * A shader of your own: GLSL (OpenGL ES 3) with `vec4 paint(vec2 at)` — [at] is 0..1 in
+     * A shader of your own: GLSL (OpenGL ES 3) with `vec4 paint(vec2 at)` — `at` is 0..1 in
      * the box being filled (the window and its border, or its shadow), `time` (seconds) and
      * `size` (pixels) are there; return a plain (not premultiplied) colour. [code] is asked
      * each time it is drawn (a file can change); [name] is what messages call it.

@@ -4,8 +4,8 @@ import java.nio.file.Path
 
 /**
  * A shader the whole screen goes through last (as Hyprland's screen_shader): GLSL ES 3 code
- * with a function `vec4 effect(vec4 color, vec2 at)` — [color] is the screen's colour at
- * [at] (0..1 from the top left), the result is shown. `screenAt(vec2)` reads the screen
+ * with a function `vec4 effect(vec4 color, vec2 at)` — `color` is the screen's colour at
+ * `at` (0..1 from the top left), the result is shown. `screenAt(vec2)` reads the screen
  * elsewhere, `time` (seconds) and `size` (pixels) are there to use. A [moving] one is drawn
  * every frame (only then does `time` move).
  *

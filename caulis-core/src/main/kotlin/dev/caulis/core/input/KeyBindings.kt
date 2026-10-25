@@ -59,7 +59,7 @@ class KeyBindings {
     private var repeatingKey = 0
 
     /**
-     * Runs [task] once after a delay in milliseconds; set by whoever has a loop. Needed for
+     * Runs `task` once after a delay in milliseconds; set by whoever has a loop. Needed for
      * [Options.repeat]; without it combinations do not repeat.
      */
     var schedule: ((Long, () -> Unit) -> AutoCloseable)? = null

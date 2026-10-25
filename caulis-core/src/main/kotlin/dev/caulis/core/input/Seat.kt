@@ -163,7 +163,7 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
 
     // --- keyboard ---------------------------------------------------------------------
 
-    /** Gives the keyboard to [surface] (null = nobody). */
+    /** Gives the keyboard to `surface` (null = nobody). */
     fun focusKeyboard(wanted: Surface?) {
         val surface = wanted?.takeIf(mayFocus)
         val old = keyboardFocus
