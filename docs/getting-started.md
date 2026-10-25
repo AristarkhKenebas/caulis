@@ -150,6 +150,12 @@ keys {
 }
 ```
 
+Write keys however you like — case, spaces and order do not matter: `"Super+Shift+Q"`,
+`"super shift q"`, `"wIn+Q"`, `"Mod4+Q"`, or in parts: `combo("super", "shift", "q")`. Media
+keys (`XF86AudioRaiseVolume`, `XF86MonBrightnessUp`, ...), the number block (`KP_1`) and
+F13…F24 work too, and with a Russian layout `Super+Й` is the same key as `Super+Q`. A typo
+is reported with a guess: `Unknown key "Retrun" (did you mean Return?)`.
+
 `keys { off() }` turns all of them off except `quit` and `consoles` (turn those off yourself
 if you mean it — the log then warns that only ssh or the power button gets you out of a
 stuck screen). A wrong name ("Super+Qq") is reported right where you wrote it.
@@ -159,7 +165,11 @@ Add your own with `bind`; on the same keys as a usual one, yours wins:
 ```kotlin
 bind("Super+B") { launch("firefox") }
 bind("Super+Q") { closeFocused() }
+bind("super", "shift", "s") { launch("grim") }   // in parts
 ```
+
+If two usual keys end up on the same combination, the one you changed wins, and a notice
+on screen says so (see *Notices* below).
 
 ## 5. Layouts
 
@@ -390,7 +400,42 @@ nestedMonitors = 2
 monitor("NESTED-2") { scale = 1.0 }
 ```
 
-## 13. X11 programs
+## 13. Notices
+
+When something in your configuration is wrong — a key used twice, a rule that throws, a
+terminal that is not installed — the compositor says so on screen: a yellow strip at the
+top for warnings, a red one for errors; windows and panels make way for it. Click it to
+close it; warnings go by themselves after 12 seconds, errors stay until clicked.
+
+Where they are and how they look is yours to choose:
+
+```kotlin
+noticeStyle = NoticeStyle(placement = NoticePlacement.Toast())   // cards at the bottom right, like notifications
+noticeStyle = NoticeStyle(placement = NoticePlacement.Toast(NoticePlacement.Toast.Corner.TOP_RIGHT, width = 320))
+noticeStyle = NoticeStyle(placement = NoticePlacement.Banner(bottom = true, room = Room.COVER))  // over everything, nothing moves
+noticeStyle = NoticeStyle(
+    warning = NoticeColors(background = Color.hex("#ff9f1c"), text = Color.hex("#000000")),
+    fontSize = 15, warningSeconds = 30.0, everyMonitor = true,
+)
+```
+
+`Banner` rooms: `PUSH_ALL` (windows and panels move aside, the default), `PUSH_WINDOWS`
+(over the panels, windows move aside), `COVER` (over everything). For a look entirely your
+own, give a `painter` (a `NoticePainter`, like the title bar one: you get a `Graphics2D`
+and draw). Or don't draw them at all and show them your own way — in your panel, through
+a notification program:
+
+```kotlin
+noticeStyle = NoticeStyle(placement = NoticePlacement.Hidden)
+onNotice { notice -> ProcessBuilder("notify-send", notice.level.name, notice.text).start() }
+```
+
+Your code can show its own: `notify("Recording started")`,
+`notify("No battery found", NoticeLevel.WARNING)`. Which lines of the log become notices:
+`noticesFromLog = { (it.area == "config" && it.isWarning) || it.isError }` (the default),
+`{ false }` for none.
+
+## 14. X11 programs
 
 Older programs that only speak X11 (xterm, many games and Java programs, some Electron
 apps) run as they are: `DISPLAY` is set for everything the compositor starts, and Xwayland
@@ -452,7 +497,7 @@ Don't want X11 at all:
 xwayland = false
 ```
 
-## 14. The cursor
+## 15. The cursor
 
 The template comes with the Bibata cursor. Choose another theme and size:
 
@@ -472,7 +517,7 @@ Programs show the same cursor: modern ones ask the compositor for it by name, ol
 are told the theme and size. If the theme you name is not installed, the log says so and
 lists the ones that are.
 
-## 15. Locking the screen
+## 16. Locking the screen
 
 Super+L starts the screen locker — `swaylock` unless you choose another:
 
@@ -488,7 +533,7 @@ socket name the compositor printed when it started — then come back (Ctrl+Alt+
 whichever console the session is on). Ctrl+Alt+Backspace still quits the compositor, as
 always.
 
-## 16. Screenshots and screen sharing
+## 17. Screenshots and screen sharing
 
 Programs made for wlroots-style compositors work as they are:
 
@@ -529,7 +574,7 @@ windows can be shared too; a shared window keeps drawing at full speed even whil
 hidden or on another workspace. While the screen is locked, pictures show the lock and no
 window is given out.
 
-## 17. Touchpad gestures
+## 18. Touchpad gestures
 
 | Gesture | What it does |
 | --- | --- |
@@ -547,7 +592,7 @@ workspaceSwipeFingers = 4     // 0 = off
 swipe(fingers = 3, Direction.UP) { desktop.toggleOverview() }
 ```
 
-## 18. On the real screen
+## 19. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 
@@ -565,7 +610,7 @@ exitAfterSeconds = 60
 Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles (unless you changed
 `keys.quit` and `keys.consoles`).
 
-## 19. Your own layout
+## 20. Your own layout
 
 Describe it with building blocks — no arithmetic:
 
@@ -619,7 +664,7 @@ CAULIS_LOG=3 CAULIS_LOG_FILE=/tmp/caulis.log ./gradlew run   # everything, into 
 or in code: `logLevel = 2`, `log("windows", 3)`, `logFile = Path.of("/tmp/caulis.log")`.
 The areas: `wayland`, `clients`, `windows`, `focus`, `input`, `gestures`, `layout`,
 `layers`, `lock`, `docks`, `cursor`, `capture`, `clipboard`, `render`, `drm`, `session`,
-`nested`, `xwayland`, `config` (your own code) and `native`. A line looks like this:
+`nested`, `xwayland`, `notices` (messages on screen), `config` (your own code) and `native`. A line looks like this:
 
 ```
 22:02:17.646     1,524 I focus    Focus: Window("foot", foot)

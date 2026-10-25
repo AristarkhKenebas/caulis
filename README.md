@@ -43,7 +43,8 @@ Change layouts while running: windows glide to their new places. Every usual key
 and can be changed or turned off (`keys { close = "Super+Shift+Q"; quit = null }`).
 
 Several monitors work, each with its own workspace (or one workspace over all), panels and
-scale.
+scale. Mistakes in the configuration are shown on screen — as a strip at the top, cards in
+a corner, or however you draw them.
 
 Round corners, borders, shadows and blur behind see-through windows are one line:
 `effects = Effects.MODERN.copy(blur = Blur())`. Caulis comes with sharp cursors of its own;

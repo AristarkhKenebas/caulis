@@ -33,6 +33,20 @@ class Desktop(
 
     private val monitorList = ArrayList<Monitor>()
 
+    // The compositor's own notices (declared first: arranging a monitor asks for their room).
+    private val noticeBoard = NoticeBoard(
+        renderer, compositor.display.loop,
+        changed = {
+            version++
+            onChange()
+        },
+        roomChanged = {
+            for (monitor in monitorList.toList()) arrangeLayers(monitor)
+            version++
+            onChange()
+        },
+    )
+
     /** The monitors showing the desktop, in the order they came (the first is the main one). */
     val monitors: List<Monitor> get() = monitorList
 
@@ -370,6 +384,7 @@ class Desktop(
             appendLine("  panel \"${layer.namespace}\" (${layer.surface.resource.client.name}) on ${layer.current.layer} at ${layer.x},${layer.y} ${layer.surface.width}x${layer.surface.height}${if (layer === layerFocus) ", has the keyboard" else ""}")
         }
         if (glides.isNotEmpty()) appendLine("  moving now: ${glides.keys.joinToString { it.title.take(24) }}")
+        for (notice in notices) appendLine("  on screen: $notice")
     }
 
     private fun describe(window: Window, workspace: Workspace): String = buildString {
@@ -860,7 +875,11 @@ class Desktop(
     // Places the layer surfaces of [monitor], the way wlroots-based compositors do: first
     // those that reserve space (each takes it from its edge), then the others in what is left.
     private fun arrangeLayers(monitor: Monitor, refit: Boolean = true) {
-        val full = monitor.area
+        // Banners of our own notices take their room first (from panels too, or only from windows).
+        val banner = noticeBoard.style.placement as? NoticePlacement.Banner
+        val bannerRoom = if (banner == null || banner.room == NoticePlacement.Banner.Room.COVER) 0
+            else noticeBoard.bannerRoom(monitor, monitorList, noticeFallback(monitor))
+        val full = if (banner?.room == NoticePlacement.Banner.Room.PUSH_ALL) withoutBanners(monitor.area, monitor, bannerRoom, banner.bottom) else monitor.area
         var usable = full
         val ordered = layerSurfaces.filter { monitorOf(it) === monitor }.sortedByDescending { it.current.layer } // overlay first
         for (layer in ordered.filter { it.current.exclusiveZone > 0 }) {
@@ -870,6 +889,7 @@ class Desktop(
         for (layer in ordered.filter { it.current.exclusiveZone <= 0 }) {
             placeLayer(layer, if (layer.current.exclusiveZone < 0) full else usable)
         }
+        if (banner?.room == NoticePlacement.Banner.Room.PUSH_WINDOWS) usable = withoutBanners(usable, monitor, bannerRoom, banner.bottom)
         if (usable != monitor.usableArea) {
             monitor.usableArea = usable
             if (refit) refitWindows(monitor)
@@ -1463,6 +1483,53 @@ class Desktop(
             titleTextures.clear()
             for (window in allWindows) decorationOfChanged(window)
         }
+
+    // --- the compositor's own notices -------------------------------------------------------
+
+    /**
+     * How the compositor's notices look and where they are: a strip at the top that pushes
+     * windows down (the default), cards in a corner, not drawn at all, ... (see [NoticeStyle]).
+     */
+    var noticeStyle: NoticeStyle
+        get() = noticeBoard.style
+        set(value) {
+            noticeBoard.style = value
+        }
+
+    /**
+     * Shows [text] on screen as the compositor's own message — on the monitor with the focus
+     * (or every one, see [NoticeStyle.everyMonitor]); clicking it closes it. The same message
+     * again is counted instead of shown twice.
+     */
+    @JvmOverloads
+    fun notify(text: String, level: NoticeLevel = NoticeLevel.INFO, title: String? = null): Notice =
+        noticeBoard.add(level, text, title, if (this::focusedMonitor.isInitialized) focusedMonitor.name else null)
+
+    /** Closes [notice] (it fades away). */
+    fun dismiss(notice: Notice) = noticeBoard.dismiss(notice)
+
+    /** The notices open now, oldest first. */
+    val notices: List<Notice> get() = noticeBoard.all.filter { it.open }
+
+    /** Runs [listener] for every new notice (also with [NoticePlacement.Hidden]). Close the result to stop. */
+    fun onNotice(listener: (Notice) -> Unit): AutoCloseable {
+        noticeBoard.listeners += listener
+        return AutoCloseable { noticeBoard.listeners -= listener }
+    }
+
+    // Where notices go that belong to no monitor there is now.
+    private fun noticeFallback(monitor: Monitor) = if (this::focusedMonitor.isInitialized) focusedMonitor else monitor
+
+    // [rect] without the strip banners take at the edge of [monitor].
+    private fun withoutBanners(rect: Rect, monitor: Monitor, room: Int, bottom: Boolean): Rect {
+        if (room <= 0) return rect
+        return if (bottom) {
+            Rect(rect.x, rect.y, rect.width, (minOf(rect.bottom, monitor.area.bottom - room) - rect.y).coerceAtLeast(1))
+        } else {
+            val top = maxOf(rect.y, monitor.area.y + room)
+            Rect(rect.x, top, rect.width, (rect.bottom - top).coerceAtLeast(1))
+        }
+    }
 
     /** Who draws [window]'s title bar now. */
     fun titleBarsOf(window: Window): TitleBars = titleBarsFor?.invoke(window) ?: titleBars
@@ -2289,6 +2356,7 @@ class Desktop(
         val on = monitorAt(x, y)
         pointerX = x.coerceIn(on.area.x.toDouble(), on.area.right - 1.0)
         pointerY = y.coerceIn(on.area.y.toDouble(), on.area.bottom - 1.0)
+        if (!locked) noticeBoard.pointerAt(pointerX, pointerY)
         grab?.let { current ->
             continueGrab(current)
             onChange()
@@ -2319,6 +2387,9 @@ class Desktop(
     // Our own cursor over a window's edge (resize arrows), or null.
     private var decorationCursor: String? = null
 
+    // The button that closed a notice: its release is ours too.
+    private var noticeButton: Int? = null
+
     /**
      * A mouse button changed. With [passToApps] false it only counts as held (for a move or
      * resize the window manager starts itself, e.g. Super+drag) and no program sees it.
@@ -2342,6 +2413,17 @@ class Desktop(
                 endGrab()
                 pointerMoved(timeMillis, pointerX, pointerY) // the app under the pointer gets it back
             }
+            return
+        }
+        // A click on a notice of ours closes it (the program below sees neither press nor release).
+        if (pressed) {
+            noticeBoard.at(pointerX, pointerY)?.let { notice ->
+                dismiss(notice)
+                noticeButton = button
+                return
+            }
+        } else if (button == noticeButton) {
+            noticeButton = null
             return
         }
         // Title bars and edges of our own (no program sees these clicks).
@@ -2505,7 +2587,8 @@ class Desktop(
          */
         presentDirect: ((DmabufBuffer) -> Boolean)? = null,
     ): Boolean {
-        if (glides.isNotEmpty() || cameraMoving(System.nanoTime()) || fading()) {
+        val noticesMoving = noticeBoard.animating() // (also lets go of those that faded away)
+        if (glides.isNotEmpty() || cameraMoving(System.nanoTime()) || fading() || noticesMoving) {
             // Windows are gliding (or the overview zooms): the scene changes every frame until done.
             version++
             onChange()
@@ -2738,6 +2821,8 @@ class Desktop(
             addTree(all, popup.surface, x, y)
         }
         if (camera === Camera.NONE) for ((surface, place) in unmanaged) addTree(all, surface, place.first, place.second)
+        // Our own notices above everything (not on a locked screen: nothing of the desktop is).
+        for (monitor in monitorList) all += noticeBoard.items(monitor, monitorList, noticeFallback(monitor))
 
         // Leave out what nobody can see; only the rest counts as visible.
         val kept = cullHidden(all, desktopBounds())
@@ -2905,6 +2990,7 @@ class Desktop(
             current is Grab.Move -> "grabbing"
             current is Grab.Resize -> resizeCursor(current.edges)
             inOverview -> "default"
+            noticeBoard.hovering -> "default" // our notice, not the program below it
             decorationCursor != null -> decorationCursor
             seat.pointerFocus == null -> "default"
             else -> seat.cursorShape

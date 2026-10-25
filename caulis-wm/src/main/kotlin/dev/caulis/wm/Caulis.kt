@@ -3,6 +3,9 @@ package dev.caulis.wm
 import dev.caulis.core.Desktop
 import dev.caulis.core.Effects
 import dev.caulis.core.LayerSurface
+import dev.caulis.core.Notice
+import dev.caulis.core.NoticeLevel
+import dev.caulis.core.NoticeStyle
 import dev.caulis.core.Scratchpad
 import dev.caulis.core.TitleBarStyle
 import dev.caulis.core.TitleBars
@@ -118,6 +121,49 @@ class Caulis {
         }
 
     internal val titleBarRules = ArrayList<(Window) -> TitleBars?>()
+
+    /**
+     * How the compositor's own notices look and where they are — mistakes in your
+     * configuration, what does not work, and what you [notify]:
+     *
+     * ```
+     * noticeStyle = NoticeStyle()                                        // a strip at the top; windows and panels make way (the default)
+     * noticeStyle = NoticeStyle(placement = NoticePlacement.Banner(room = Room.COVER))  // over everything
+     * noticeStyle = NoticeStyle(placement = NoticePlacement.Toast())     // cards at the bottom right, like notifications
+     * noticeStyle = NoticeStyle(placement = NoticePlacement.Hidden)      // not drawn: show them yourself with onNotice
+     * ```
+     *
+     * Colours, font, how long each level stays and a painter of your own are in [NoticeStyle].
+     * Can be changed while running.
+     */
+    var noticeStyle: NoticeStyle = NoticeStyle()
+        set(value) {
+            field = value
+            running?.desktop?.noticeStyle = value
+        }
+
+    /**
+     * Which lines of the log become notices on screen. By default your code's mistakes and
+     * problems with the settings (the "config" area: a key used twice, a rule that failed,
+     * ...) and every error. `noticesFromLog = { false }` for none.
+     */
+    @set:JvmSynthetic
+    var noticesFromLog: (Log.Entry) -> Boolean = { entry -> (entry.area == "config" && entry.isWarning) || entry.isError }
+
+    internal val noticeListeners = ArrayList<Caulis.(Notice) -> Unit>()
+
+    /** Runs [action] for every notice (e.g. to send it to your panel when [noticeStyle] is Hidden). */
+    @JvmSynthetic
+    fun onNotice(action: Caulis.(Notice) -> Unit) {
+        noticeListeners += action
+    }
+
+    /**
+     * Shows [text] on screen as a notice of the compositor (see [noticeStyle]), e.g.
+     * `notify("Recording started")` or `notify("No battery found", NoticeLevel.WARNING)`.
+     */
+    @JvmOverloads
+    fun notify(text: String, level: NoticeLevel = NoticeLevel.INFO, title: String? = null): Notice = desktop.notify(text, level, title)
 
     /**
      * Title bars for some programs: `titleBarsFor { if (it.appId == "spotify") TitleBars.COMPOSITOR else null }`
@@ -363,11 +409,16 @@ class Caulis {
     internal val focusChanged = ArrayList<Caulis.(Window?) -> Unit>()
     internal val workspaceChanged = ArrayList<Caulis.(Int) -> Unit>()
 
-    /** Runs [action] when the key [combination] (e.g. "Super+Shift+Q") is pressed. */
+    /**
+     * Runs [action] when the key [combination] is pressed, written however you like:
+     * `bind("Super+Shift+Q")`, `bind("super shift q")`, `bind("super", "shift", "q")`,
+     * `bind("wIn+Q")`, `bind("Super+Й")` (the same key as Super+Q). A wrong name is
+     * reported right here.
+     */
     @JvmSynthetic // Java uses the Consumer version below
-    fun bind(combination: String, action: Caulis.() -> Unit) {
-        KeyBindings.parse(combination) // a wrong name is reported here, not at the start
-        bindings += combination to action
+    fun bind(vararg combination: String, action: Caulis.() -> Unit) {
+        KeyBindings.parse(combination.toList()) // a wrong name is reported here, not at the start
+        bindings += combination.joinToString("+") to action
     }
 
     /** Runs [action] once everything is ready (e.g. to start a panel or wallpaper program). */
@@ -484,6 +535,9 @@ class Caulis {
     fun x11Program(name: String): Caulis = apply { x11Programs += name }
     fun sharpJavaScaling(on: Boolean): Caulis = apply { sharpJavaScaling = on }
     fun titleBars(titleBars: TitleBars): Caulis = apply { this.titleBars = titleBars }
+    fun noticeStyle(style: NoticeStyle): Caulis = apply { noticeStyle = style }
+    fun noticesFromLog(rule: java.util.function.Predicate<Log.Entry>): Caulis = apply { noticesFromLog = { rule.test(it) } }
+    fun onNotice(action: java.util.function.BiConsumer<Caulis, Notice>): Caulis = apply { onNotice { action.accept(this, it) } }
     fun titleBarsFor(rule: java.util.function.Function<Window, TitleBars?>): Caulis = apply { titleBarsFor { rule.apply(it) } }
     fun logLevel(level: Int): Caulis = apply { logLevel = level }
     fun logArea(area: String, level: Int): Caulis = apply { log(area, level) }
@@ -498,6 +552,7 @@ class Caulis {
     }
     fun keys(configure: Consumer<Keys>): Caulis = apply { configure.accept(keys) }
     fun bind(combination: String, action: Consumer<Caulis>): Caulis = apply { bind(combination) { action.accept(this) } }
+    fun bind(combination: List<String>, action: Consumer<Caulis>): Caulis = apply { bind(*combination.toTypedArray()) { action.accept(this) } }
     fun onStart(action: Consumer<Caulis>): Caulis = apply { onStart { action.accept(this) } }
     fun floatWhen(rule: java.util.function.Predicate<Window>): Caulis = apply { floatWhen { rule.test(it) } }
     fun effects(effects: Effects): Caulis = apply { this.effects = effects }
@@ -511,6 +566,9 @@ class Caulis {
     // --- while running ------------------------------------------------------------------
 
     internal var running: Running? = null
+
+    // What the checks before starting warned about: shown on screen too, once running.
+    internal var startWarnings: List<Preflight.Problem> = emptyList()
 
     /** The window manager (workspaces, focus, layouts). Only while running. */
     val desktop: Desktop get() = checkNotNull(running) { "Caulis is not running yet" }.desktop
@@ -558,9 +616,11 @@ class Caulis {
             Mode.NESTED -> true
             Mode.SCREEN -> false
         }
-        if (!Preflight.report(Preflight.check(this, nested), title)) {
+        val problems = Preflight.check(this, nested)
+        if (!Preflight.report(problems, title)) {
             throw CannotStartException("$title cannot start (see the problems listed above)")
         }
+        startWarnings = problems.filter { !it.fatal }
         if (nested) runNested(this) else runOnScreen(this)
     }
 

@@ -1,5 +1,6 @@
 package dev.caulis.wm
 
+import dev.caulis.core.input.KeyBindings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -43,7 +44,7 @@ class KeysTest {
         var mine = 0
         withCaulis({
             keys.quit = "Ctrl+Alt+Delete"
-            bind("Super+Q") { mine++ }
+            bind("super", "q") { mine++ } // in parts, in small letters
         }) { caulis, client ->
             val window = client.window().also { it.draw() }
             client.waitFor { caulis.onLoop { it.desktop.windows.size } == 1 }
@@ -53,6 +54,19 @@ class KeysTest {
             assertEquals(false, window.closeRequested, "not closed")
             caulis.onLoop { r -> listOf(CTRL, ALT, DELETE).forEach { r.key(0, it, true) } }
             client.waitFor { caulis.running == null }
+        }
+    }
+
+    @Test
+    fun `a key used twice is shown on screen, a mistake in user code too`() = with(harness) {
+        withCaulis({
+            keys { close = "super f" } // as fullscreen
+            bind("Super+X") { error("a mistake") }
+        }) { caulis, client ->
+            client.waitFor { caulis.onLoop { r -> r.desktop.notices.any { "keys.close and keys.fullscreen are both super f: keys.close wins" in it.text } } }
+            assertEquals(dev.caulis.core.NoticeLevel.WARNING, caulis.onLoop { r -> r.desktop.notices.first().level })
+            press(caulis, SUPER, X)
+            client.waitFor { caulis.onLoop { r -> r.desktop.notices.any { it.level == dev.caulis.core.NoticeLevel.ERROR && "a mistake" in it.text } } }
         }
     }
 
@@ -67,6 +81,11 @@ class KeysTest {
         assertEquals("keys.close: Unknown key \"Qq\" in \"Super+Qq\"", wrong.message)
         assertFailsWith<IllegalArgumentException> { keys.workspace = "Q" }
         assertNull(keys.close)
+        keys.close = keys.combo("super", "shift", "q")
+        keys.workspace = "wIn ALT"
+        val made = keys.bindings().map { it.second }
+        assertEquals("super+shift+q", made.first())
+        assertEquals(setOf(KeyBindings.Modifier.SUPER, KeyBindings.Modifier.ALT) to 4, KeyBindings.parse(made[3]), "wIn ALT+3")
     }
 
     private fun CaulisTest.press(caulis: Caulis, vararg codes: Int) {

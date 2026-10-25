@@ -28,15 +28,17 @@ import kotlin.reflect.KProperty
  * the ones in front of F1..F12. Your own [Caulis.bind] wins over a usual key on the same
  * combination. [off] turns all of them off but [quit] and [consoles].
  *
- * A combination is written as people say it: modifiers (Super, Ctrl, Alt, Shift) and a key
- * (a letter, a digit, F1..F12, Return, Tab, Escape, Space, BackSpace, Delete, the arrows
- * Left/Right/Up/Down, Grave, ...), e.g. "Super+Shift+Return". A wrong name is reported
- * right where it is set.
+ * A combination is modifiers (Super, Ctrl, Alt, Shift) and a key (a letter, a digit,
+ * F1..F24, Return, Tab, Escape, Space, BackSpace, Delete, the arrows Left/Right/Up/Down,
+ * Grave, XF86AudioRaiseVolume, ...), written however you like: "Super+Shift+Return",
+ * "super shift return", "wIn+Return", or in parts: `combo("super", "shift", "return")`.
+ * A wrong name is reported right where it is set.
  */
 class Keys internal constructor() {
 
-    // Every key by name; first, as the settings below put themselves in here.
+    // Every key by name, and what it was at first; first, as the settings below put themselves in here.
     private val values = LinkedHashMap<String, String?>()
+    private val defaults = HashMap<String, String?>()
 
     /** Open the terminal ([Caulis.terminal]). */
     var terminal by key("Super+Return")
@@ -122,8 +124,14 @@ class Keys internal constructor() {
         for (name in names) if (name != "quit" && name != "consoles") values[name] = null
     }
 
+    /** A combination from its parts: `close = combo("super", "shift", "q")`. */
+    fun combo(vararg parts: String): String = parts.joinToString("+")
+
     /** Every usual key by name (as above) and its combination, null when off. */
     fun all(): Map<String, String?> = LinkedHashMap(values)
+
+    /** True if the key [name] was changed (or turned off) from what it is by default. */
+    fun changed(name: String): Boolean = values[name] != defaults[name]
 
     // --- how they are kept ------------------------------------------------------------------
 
@@ -135,6 +143,7 @@ class Keys internal constructor() {
     private inner class Setting(private val default: String?, private val check: (String) -> Unit) : ReadWriteProperty<Keys, String?> {
         operator fun provideDelegate(thisRef: Keys, property: KProperty<*>): Setting {
             values[property.name] = default
+            defaults[property.name] = default
             return this
         }
 

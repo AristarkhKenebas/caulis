@@ -58,6 +58,7 @@ object Log {
         "session" to "the seat, text consoles, devices coming and going",
         "nested" to "running as a window inside another session",
         "xwayland" to "X11 programs: starting Xwayland, their windows and focus",
+        "notices" to "messages of the compositor on screen (mistakes in the configuration, ...)",
         "config" to "your own code (key bindings, rules, events): its mistakes",
         "native" to "C libraries Caulis uses, the event loop and its watchdog",
     )
@@ -144,6 +145,29 @@ object Log {
     @JvmStatic
     var listener: ((String) -> Unit)? = null
 
+    /** One line of the log as it is written, for [watch]. */
+    class Entry(val area: String, val level: Int, val message: String, val cause: Throwable?, private val mark: String) {
+        /** Written with [Logger.error]. */
+        val isError: Boolean get() = mark == "E"
+
+        /** Written with [Logger.warn]. */
+        val isWarning: Boolean get() = mark == "W"
+
+        override fun toString() = "$mark $area $message"
+    }
+
+    private val watchers = java.util.concurrent.CopyOnWriteArrayList<(Entry) -> Unit>()
+
+    /**
+     * Runs [watcher] for every line the log gets (written or only kept, see [recent]) — on
+     * the thread that logs it. Close the result to stop.
+     */
+    @JvmStatic
+    fun watch(watcher: (Entry) -> Unit): AutoCloseable {
+        watchers += watcher
+        return AutoCloseable { watchers -= watcher }
+    }
+
     // --- the black box: the last events, kept even when they are not written ----------------
 
     private const val RECENT_LINES = 1000
@@ -174,6 +198,10 @@ object Log {
             if (error != null) append(" — ").append(error)
         }
         val shown = level <= levelOf(area)
+        if (watchers.isNotEmpty()) {
+            val entry = Entry(area, level, message, error, mark)
+            for (watcher in watchers) runCatching { watcher(entry) }
+        }
         if (level <= EVENTS) {
             synchronized(recent) {
                 if (recent.size == RECENT_LINES) recent.removeFirst()

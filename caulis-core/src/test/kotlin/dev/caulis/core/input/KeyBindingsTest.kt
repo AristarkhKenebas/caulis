@@ -50,9 +50,26 @@ class KeyBindingsTest {
         assertTrue(events.isEmpty())
     }
 
+
+    @Test
+    fun `combinations written any way people write them`() {
+        val superQ = setOf(KeyBindings.Modifier.SUPER) to 16
+        for (written in listOf("Super+Q", "super+q", "sUpEr+Q", "wIn+q", "Mod4 + Q", "super q", "Q+Super", "Meta+Q", "Super+Й", "LOGO+q")) {
+            assertEquals(superQ, KeyBindings.parse(written), written)
+        }
+        assertEquals(superQ, KeyBindings.parse(listOf("super", "q")))
+        assertEquals(setOf(KeyBindings.Modifier.CTRL, KeyBindings.Modifier.SHIFT) to 104, KeyBindings.parse("control shift page_up"))
+        assertEquals(emptySet<KeyBindings.Modifier>() to 115, KeyBindings.parse("XF86AudioRaiseVolume"))
+        assertEquals(setOf(KeyBindings.Modifier.ALT) to 12, KeyBindings.parse("Alt+-"))
+    }
+
     @Test
     fun `typos give readable errors`() {
         assertFailsWith<IllegalArgumentException> { KeyBindings().bind("Hyper+Q") {} }
         assertFailsWith<IllegalArgumentException> { KeyBindings().bind("Super+Banana") {} }
+        assertEquals("Unknown key \"Retrun\" in \"Super+Retrun\" (did you mean Return?)", assertFailsWith<IllegalArgumentException> { KeyBindings.parse("Super+Retrun") }.message)
+        assertEquals("Unknown key \"Supr\" in \"Supr+Q\" (did you mean Super?)", assertFailsWith<IllegalArgumentException> { KeyBindings.parse("Supr+Q") }.message)
+        assertTrue("one key" in assertFailsWith<IllegalArgumentException> { KeyBindings.parse("Super+Q+W") }.message!!)
+        assertTrue("no key" in assertFailsWith<IllegalArgumentException> { KeyBindings.parse("Super+Shift") }.message!!)
     }
 }

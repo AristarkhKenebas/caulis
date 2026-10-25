@@ -1,5 +1,6 @@
 package dev.caulis.wm
 
+import dev.caulis.log.Log
 import dev.caulis.log.Logger
 import dev.caulis.core.Compositor
 import dev.caulis.core.DataDeviceManager
@@ -13,6 +14,7 @@ import dev.caulis.core.FrameStats
 import dev.caulis.core.LayerShell
 import dev.caulis.core.LinuxDmabuf
 import dev.caulis.core.Monitor
+import dev.caulis.core.NoticeLevel
 import dev.caulis.core.Output
 import dev.caulis.core.Presentation
 import dev.caulis.core.SessionLockManager
@@ -50,6 +52,23 @@ internal class Running(
     private val clientsLog = Logger("clients")
     private val cursorLog = Logger("cursor")
     private val gesturesLog = Logger("gestures")
+
+    // Lines of the log that become notices (from any thread; shown on ours). Watched from the
+    // start, so mistakes found while starting (a key used twice) are shown too. Not lines
+    // about notices themselves: showing one is logged too.
+    private val logNotices: AutoCloseable = Log.watch { entry ->
+        // (A broken rule is not logged: that line would come here again.)
+        val wanted = entry.area != "notices" && try { config.noticesFromLog(entry) } catch (e: Exception) { false }
+        if (wanted) {
+            val level = when {
+                entry.isError -> NoticeLevel.ERROR
+                entry.isWarning -> NoticeLevel.WARNING
+                else -> NoticeLevel.INFO
+            }
+            val text = entry.message + (entry.cause?.let { cause -> if (cause.toString() in entry.message) "" else " — $cause" } ?: "")
+            loop.post { desktop.notify(text, level) }
+        }
+    }
 
     val display = Display(loop)
     private val keymap = Keymap.fromNames(layouts = config.keyboardLayouts, options = config.keyboardOptions)
@@ -121,6 +140,8 @@ internal class Running(
         if (config.titleBarRules.isNotEmpty()) {
             desktop.titleBarsFor = { window -> config.titleBarRules.firstNotNullOfOrNull { rule -> safely("titleBarsFor", null) { rule(window) } } }
         }
+        desktop.noticeStyle = config.noticeStyle
+        config.noticeListeners.forEach { action -> desktop.onNotice { notice -> safely("onNotice") { action(config, notice) } } }
         desktop.animationMillis = config.animationMillis
         desktop.scale = config.scale
         xwayland?.rescaled() // (made before the scale was set)
@@ -153,7 +174,8 @@ internal class Running(
 
     // The usual keys first, the user's own after them (later ones win on the same combination).
     private fun bindKeys() {
-        val usual = config.keys.bindings()
+        // Those you changed after the others: on the same keys, yours wins over a default one.
+        val usual = config.keys.bindings().sortedBy { config.keys.changed(it.first) }
         val taken = HashMap<Pair<Set<KeyBindings.Modifier>, Int>, String>()
         for ((name, combination, action) in usual) {
             val parsed = KeyBindings.parse(combination)
@@ -169,7 +191,6 @@ internal class Running(
     }
 
     fun quit() = loop.stop()
-
 
     /** Applies the scale to the desktop, the monitors (their own where set) and the programs. */
     fun applyScale() {
@@ -396,6 +417,7 @@ internal class Running(
         config.running = this
         try {
             config.exitAfterSeconds?.let { seconds -> loop.after(seconds * 1000) { quit() } }
+            for (problem in config.startWarnings) desktop.notify("${problem.message} ${problem.fix}", NoticeLevel.WARNING)
             config.startActions.forEach { action -> safely("onStart") { action(config) } }
             loop.run()
         } finally {
@@ -404,6 +426,7 @@ internal class Running(
     }
 
     override fun close() {
+        logNotices.close()
         xwayland?.close()
         seat.close()
         keymap.close()
