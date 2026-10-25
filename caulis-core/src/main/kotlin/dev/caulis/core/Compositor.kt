@@ -67,7 +67,7 @@ class Compositor(val display: Display, private val renderer: Renderer?) {
                         override fun destroy(resource: WpFractionalScaleV1) {}
                     }
                     target.fractionalScale = id
-                    id.sendPreferredScale(fractionalScale())
+                    id.sendPreferredScale(target.preferredFraction())
                 }
 
                 override fun destroy(resource: WpFractionalScaleManagerV1) {}
@@ -90,6 +90,12 @@ class Compositor(val display: Display, private val renderer: Renderer?) {
 
     /** The scale as wp_fractional_scale wants it: in 120ths. */
     internal fun fractionalScale(): Int = Math.round(outputScale * 120).toInt()
+
+    /**
+     * The monitors a surface not shown yet is on (the one where new windows open); the
+     * window manager places shown ones itself (see Surface.placeOn).
+     */
+    var defaultOutputs: () -> List<Output> = { Output.of(display) }
 
     /** The whole-number scale for programs without fractional scaling (wl_output, wl_surface). */
     val integerScale: Int get() = Math.ceil(outputScale - 1e-9).toInt().coerceAtLeast(1)
@@ -222,6 +228,23 @@ class Surface internal constructor(val resource: WlSurface, private val composit
     internal var fractionalScale: WpFractionalScaleV1? = null
     private val enteredOutputs = HashSet<WlOutput>()
     private var toldBufferScale = 0
+    private var toldFraction = 0
+
+    // Where the window manager shows it: on which monitors, and the scale to draw at there
+    // (the largest of theirs). Null: not shown yet (the compositor's default).
+    private var placedOutputs: List<Output>? = null
+    private var placedScale: Double? = null
+
+    /** The compositor shows this surface on [outputs], where its program should draw at [scale]. */
+    internal fun placeOn(outputs: List<Output>, scale: Double) {
+        if (outputs == placedOutputs && scale == placedScale) return
+        placedOutputs = outputs
+        placedScale = scale
+        tellScale()
+    }
+
+    // The scale this surface should be drawn at (in 120ths for wp_fractional_scale).
+    internal fun preferredFraction(): Int = Math.round((placedScale ?: compositor.outputScale) * 120).toInt()
 
     internal fun attachViewport(resource: WpViewport) {
         viewport = resource
@@ -262,17 +285,29 @@ class Surface internal constructor(val resource: WlSurface, private val composit
         }
     }
 
-    // Tells the program which monitors it is on and their scale (once per new monitor object).
+    // Tells the program which monitors it is on (enter, leave) and the scale to draw at —
+    // only what changed.
     internal fun tellScale() {
         if (!resource.isAlive) return
-        for (output in Output.of(compositor.display).flatMap { it.resourcesOf(resource.client) }) {
-            if (enteredOutputs.add(output)) resource.sendEnter(output)
+        val wanted = (placedOutputs ?: compositor.defaultOutputs()).flatMap { it.resourcesOf(resource.client) }.toSet()
+        for (output in enteredOutputs.toList()) {
+            if (output in wanted && output.isAlive) continue
+            enteredOutputs -= output
+            if (output.isAlive) resource.sendLeave(output)
         }
-        if (resource.version >= 6 && toldBufferScale != compositor.integerScale) {
-            toldBufferScale = compositor.integerScale
-            resource.sendPreferredBufferScale(toldBufferScale)
+        for (output in wanted) if (enteredOutputs.add(output)) resource.sendEnter(output)
+        val scale = placedScale ?: compositor.outputScale
+        val whole = Math.ceil(scale - 1e-9).toInt().coerceAtLeast(1)
+        if (resource.version >= 6 && toldBufferScale != whole) {
+            toldBufferScale = whole
+            resource.sendPreferredBufferScale(whole)
         }
-        fractionalScale?.takeIf { it.isAlive }?.sendPreferredScale(compositor.fractionalScale())
+        val fraction = preferredFraction()
+        val fractional = fractionalScale?.takeIf { it.isAlive }
+        if (fractional != null && toldFraction != fraction) {
+            toldFraction = fraction
+            fractional.sendPreferredScale(fraction)
+        }
     }
 
     /**

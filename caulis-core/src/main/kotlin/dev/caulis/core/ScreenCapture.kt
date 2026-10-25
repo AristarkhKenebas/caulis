@@ -65,16 +65,21 @@ class ScreenCapture(
         desktop.commitListeners += { surface -> windowSessions.forEach { it.committed(surface) } }
 
         display.addGlobal(ZwlrScreencopyManagerV1, WLR_VERSION) { manager ->
-            val damageViews = HashMap<Boolean, DesktopView>() // per cursor choice: what this program got last
+            val damageViews = HashMap<Pair<Boolean, Monitor>, DesktopView>() // per cursor choice and monitor: what this program got last
             manager.onDestroy { damageViews.values.forEach(desktop::removeCaptureView) }
             manager.requests = object : ZwlrScreencopyManagerV1.Requests {
-                override fun captureOutput(resource: ZwlrScreencopyManagerV1, frame: ZwlrScreencopyFrameV1, overlayCursor: Int, output: WlOutput) =
-                    WlrFrame(frame, overlayCursor != 0, null) { damageViews.getOrPut(overlayCursor != 0, desktop::createCaptureView) }.start()
+                override fun captureOutput(resource: ZwlrScreencopyManagerV1, frame: ZwlrScreencopyFrameV1, overlayCursor: Int, output: WlOutput) {
+                    val screen = Source.Screen(output.dataAs<Output>())
+                    WlrFrame(frame, overlayCursor != 0, null, screen) { m -> damageViews.getOrPut((overlayCursor != 0) to m) { desktop.createCaptureView(m) } }.start()
+                }
 
                 override fun captureOutputRegion(
                     resource: ZwlrScreencopyManagerV1, frame: ZwlrScreencopyFrameV1, overlayCursor: Int, output: WlOutput,
                     x: Int, y: Int, width: Int, height: Int,
-                ) = WlrFrame(frame, overlayCursor != 0, Rect(x, y, width, height)) { damageViews.getOrPut(overlayCursor != 0, desktop::createCaptureView) }.start()
+                ) {
+                    val screen = Source.Screen(output.dataAs<Output>())
+                    WlrFrame(frame, overlayCursor != 0, Rect(x, y, width, height), screen) { m -> damageViews.getOrPut((overlayCursor != 0) to m) { desktop.createCaptureView(m) } }.start()
+                }
 
                 override fun destroy(resource: ZwlrScreencopyManagerV1) {}
             }
@@ -83,7 +88,7 @@ class ScreenCapture(
         display.addGlobal(ExtOutputImageCaptureSourceManagerV1, 1) { manager ->
             manager.requests = object : ExtOutputImageCaptureSourceManagerV1.Requests {
                 override fun createSource(resource: ExtOutputImageCaptureSourceManagerV1, source: ExtImageCaptureSourceV1, output: WlOutput) =
-                    source(source, Source.Screen)
+                    source(source, Source.Screen(output.dataAs<Output>()))
 
                 override fun destroy(resource: ExtOutputImageCaptureSourceManagerV1) {}
             }
@@ -134,7 +139,8 @@ class ScreenCapture(
 
     // What a picture shows.
     private sealed class Source {
-        object Screen : Source()
+        /** A monitor (its output; null or unknown: the first). */
+        class Screen(val output: Output?) : Source()
         class OneWindow(val window: Window) : Source()
         object Gone : Source() // a window that closed before it was asked for
     }
@@ -147,11 +153,14 @@ class ScreenCapture(
     private var readBack: Arena? = null
     private var readBackMemory: MemorySegment? = null
 
-    private fun screenTarget(): GpuTarget {
+    // The monitor a picture of the screen shows.
+    private fun monitorOf(screen: Source.Screen): Monitor = screen.output?.let(desktop::monitorOf) ?: desktop.monitors.first()
+
+    private fun screenTarget(monitor: Monitor): GpuTarget {
         val current = screen
-        if (current != null && current.width == desktop.pixelWidth && current.height == desktop.pixelHeight) return current
+        if (current != null && current.width == monitor.pixelWidth && current.height == monitor.pixelHeight) return current
         current?.close()
-        return renderer.createTarget(desktop.pixelWidth, desktop.pixelHeight).also { screen = it }
+        return renderer.createTarget(monitor.pixelWidth, monitor.pixelHeight).also { screen = it }
     }
 
     private fun windowTarget(width: Int, height: Int): GpuTarget {
@@ -173,14 +182,14 @@ class ScreenCapture(
 
     /** The size a picture of [source] has, in pixels (null if there is nothing to show). */
     private fun sizeOf(source: Source): Pair<Int, Int>? = when (source) {
-        Source.Screen -> desktop.pixelWidth to desktop.pixelHeight
+        is Source.Screen -> monitorOf(source).let { it.pixelWidth to it.pixelHeight }
         is Source.OneWindow -> source.window.takeIf { it in desktop.allWindows }?.let(desktop::windowPixelSize)
         Source.Gone -> null
     }
 
-    // What changed (desktop units) as pixels of a picture of [part] (pixels) of the screen.
-    private fun changedPixels(changed: Rect, part: Rect): Rect =
-        desktop.toPixels(changed).intersect(part)?.translate(-part.x, -part.y) ?: Rect(0, 0, 1, 1)
+    // What changed (desktop units) as pixels of a picture of [part] (pixels) of [monitor].
+    private fun changedPixels(changed: Rect, part: Rect, monitor: Monitor): Rect =
+        monitor.toPixels(changed).intersect(part)?.translate(-part.x, -part.y) ?: Rect(0, 0, 1, 1)
 
     /**
      * Draws [source] ([part] of it, or all) into [buffer]. Returns null if done, or why the
@@ -188,7 +197,7 @@ class ScreenCapture(
      */
     private fun copyInto(source: Source, part: Rect?, cursor: Boolean, buffer: WlBuffer): String? {
         val picture = when (source) {
-            Source.Screen -> screenTarget().also { desktop.capture(it, cursor) }
+            is Source.Screen -> monitorOf(source).let { monitor -> screenTarget(monitor).also { desktop.capture(it, cursor, monitor) } }
             is Source.OneWindow -> {
                 val (w, h) = sizeOf(source) ?: return "the window is gone"
                 windowTarget(w, h).also { desktop.captureWindow(source.window, it) }
@@ -261,14 +270,16 @@ class ScreenCapture(
         val resource: ZwlrScreencopyFrameV1,
         val cursor: Boolean,
         val part: Rect?,
-        val damageView: () -> DesktopView,
+        val screen: Source.Screen,
+        val damageView: (Monitor) -> DesktopView,
     ) : Pending() {
+        private val monitor = monitorOf(screen)
         private var buffer: WlBuffer? = null
         private var withDamage = false
         private var used = false
-        // The part asked for is in desktop units; the picture is in pixels.
-        private val region: Rect = Rect(0, 0, desktop.pixelWidth, desktop.pixelHeight).let { all ->
-            part?.let { desktop.toPixels(it).intersect(all) ?: Rect(0, 0, 0, 0) } ?: all
+        // The part asked for is in desktop units from the monitor's corner; the picture is in pixels.
+        private val region: Rect = Rect(0, 0, monitor.pixelWidth, monitor.pixelHeight).let { all ->
+            part?.let { monitor.toPixels(it.translate(monitor.area.x, monitor.area.y)).intersect(all) ?: Rect(0, 0, 0, 0) } ?: all
         }
 
         fun start() {
@@ -309,9 +320,9 @@ class ScreenCapture(
             if (!resource.isAlive) return true
             val target = buffer ?: return true
             // A recording waits until something changed; a screenshot takes the picture now.
-            val changed = desktop.captureChanges(damageView(), cursor)
+            val changed = desktop.captureChanges(damageView(monitor), cursor)
             if (withDamage && changed == null) return false
-            val problem = copyInto(Source.Screen, region, cursor, target)
+            val problem = copyInto(screen, region, cursor, target)
             if (problem != null) {
                 log.warn("Cannot give ${resource.client.name} a picture: $problem")
                 resource.sendFailed()
@@ -320,7 +331,7 @@ class ScreenCapture(
             log.trace { "Gave ${resource.client.name} a picture of the screen" }
             resource.sendFlags(0)
             if (withDamage) {
-                val damage = changed?.let { changedPixels(it, region) } ?: Rect(0, 0, region.width, region.height)
+                val damage = changed?.let { changedPixels(it, region, monitor) } ?: Rect(0, 0, region.width, region.height)
                 resource.sendDamage(damage.x, damage.y, damage.width, damage.height)
             }
             val (hi, lo, nanos) = now()
@@ -335,7 +346,7 @@ class ScreenCapture(
 
     private inner class Session(val resource: ExtImageCopyCaptureSessionV1, val source: Source, val cursor: Boolean) {
         var frame: ExtFrame? = null
-        private val view = if (source is Source.Screen) desktop.createCaptureView() else null
+        private val view = (source as? Source.Screen)?.let { desktop.createCaptureView(monitorOf(it)) }
         private var keepRunning: AutoCloseable? = null
         private var size: Pair<Int, Int>? = null
         private var stopped = false
@@ -418,7 +429,7 @@ class ScreenCapture(
 
         /** What changed since the last picture, or null if nothing did (screen: a rectangle). */
         fun changes(): Rect? = when (source) {
-            Source.Screen -> desktop.captureChanges(view!!, cursor)?.let { changedPixels(it, Rect(0, 0, desktop.pixelWidth, desktop.pixelHeight)) }
+            is Source.Screen -> view!!.monitor.let { monitor -> desktop.captureChanges(view, cursor)?.let { changedPixels(it, Rect(0, 0, monitor.pixelWidth, monitor.pixelHeight), monitor) } }
             is Source.OneWindow -> if (windowChanged && !desktop.locked) {
                 windowChanged = false
                 sizeOf(source)?.let { Rect(0, 0, it.first, it.second) }

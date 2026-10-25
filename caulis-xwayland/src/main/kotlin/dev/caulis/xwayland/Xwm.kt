@@ -34,7 +34,7 @@ class Xwm internal constructor(
     private val surfaceFor: (serial: Long) -> Surface?,
     clipboard: DataDeviceManager? = null,
     /** How many of X's pixels one desktop unit is: the screen's scale, or a whole number (a world of its own). */
-    private val pixelScale: () -> Double = { desktop.scale },
+    private val pixelScale: () -> Double = { desktop.largestScale },
 ) : AutoCloseable {
 
     private val log = Logger("xwayland")

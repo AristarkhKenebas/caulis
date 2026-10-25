@@ -115,32 +115,51 @@ Each new window takes half of the previous one's space — that is the `Dwindle`
 
 ## 4. Keys
 
-Without writing anything, you already have the usual keys:
+Without writing anything, you already have the usual keys. Each has a name (left column):
 
-| Keys | What they do |
-| --- | --- |
-| Super+Return | open the terminal (`terminal = "foot"` changes which) |
-| Super+Q | close the window |
-| Super+F12 | write the state (windows, focus, panels) to the log — see *When something goes wrong* |
-| Super+L | lock the screen (`lockCommand = "swaylock"` changes the locker) |
-| Super+Up / Super+F / Super+Down | maximize / fullscreen / minimize |
-| Super+V | take the window out of the layout (floating) and back |
-| Alt+Tab | next window (also brings minimized ones back) |
-| Super+Tab | overview: the whole workspace zoomed out — click a window to go there, Escape to go back |
-| Super+Left / Super+Right | focus the neighbour |
-| Super+1 … 9 | go to a workspace |
-| Super+Shift+1 … 9 | move the window to a workspace |
-| Super + drag | move (left button) or resize (right button) a window |
-| Ctrl+Alt+Backspace | quit — always, even on a locked screen: you can never lock yourself in |
+| Name | Keys | What they do |
+| --- | --- | --- |
+| `terminal` | Super+Return | open the terminal (`terminal = "foot"` changes which) |
+| `close` | Super+Q | close the window |
+| `dumpState` | Super+F12 | write the state (windows, focus, panels) to the log — see *When something goes wrong* |
+| `lock` | Super+L | lock the screen (`lockCommand = "swaylock"` changes the locker) |
+| `maximize` / `fullscreen` / `minimize` | Super+Up / Super+F / Super+Down | maximize / fullscreen / minimize |
+| `float` | Super+V | take the window out of the layout (floating) and back |
+| `nextWindow` | Alt+Tab | next window (also brings minimized ones back) |
+| `overview` | Super+Tab | overview: the whole workspace zoomed out — click a window to go there, Escape to go back |
+| `focusLeft` / `focusRight` | Super+Left / Super+Right | focus the neighbour (or the monitor beside) |
+| `workspace` | Super + 1 … 9 | go to a workspace |
+| `moveToWorkspace` | Super+Shift + 1 … 9 | move the window to a workspace |
+| `move` | Super+Shift + arrows | move the window in the layout; past its edge, to the monitor beside |
+| `resize` | Super+Ctrl + arrows | resize the window (layouts that remember sizes) |
+| `preselect` | Super+Alt + arrows | where the next window goes / move the canvas / into the next column |
+| `rotate` / `balance` / `columnWidth` | Super+R / Super+B / Super+W | tiling: rotate, even out, next column width |
+| `splitBeside` / `splitBelow` | Super+S / Super+Shift+S | manual tiling: the next window beside / below |
+| `windowDrag` | Super + drag | move (left button) or resize (right button) a window |
+| `quit` | Ctrl+Alt+Backspace | quit — also on a locked screen, so a broken locker never shuts you out |
+| `consoles` | Ctrl+Alt + F1 … F12 | text consoles (on the real screen) — also on a locked screen |
 
-Add your own, or replace these, with `bind`:
+Change any of them, or turn it off with `null`, in `keys { }`:
+
+```kotlin
+keys {
+    close = "Super+Shift+Q"
+    dumpState = null          // off
+    workspace = "Alt"         // Alt+1 … 9; for groups you give only the modifiers
+    quit = "Ctrl+Alt+Delete"  // or null: no key quits
+}
+```
+
+`keys { off() }` turns all of them off except `quit` and `consoles` (turn those off yourself
+if you mean it — the log then warns that only ssh or the power button gets you out of a
+stuck screen). A wrong name ("Super+Qq") is reported right where you wrote it.
+
+Add your own with `bind`; on the same keys as a usual one, yours wins:
 
 ```kotlin
 bind("Super+B") { launch("firefox") }
-bind("Super+Shift+Q") { quit() }
+bind("Super+Q") { closeFocused() }
 ```
-
-Turn the defaults off with `useDefaultBindings = false`.
 
 ## 5. Layouts
 
@@ -342,7 +361,36 @@ resolution. The scale can be changed while running: the old picture melts into t
 one in a quarter of a second while programs draw themselves anew — nothing jumps, and no
 program is restarted or loses anything.
 
-## 12. X11 programs
+## 12. Several monitors
+
+Plug them in: each monitor shows a workspace of its own, the pointer and windows move
+across, panels belong to the monitor they ask for, and each monitor can have its own
+scale. `Super+N` shows workspace N on the monitor with the focus — or, when another monitor
+already shows it, goes there. A window opens on the monitor with the focus; `move`
+(Super+Shift+arrows) takes it to the monitor beside when the layout ends.
+
+```kotlin
+monitor("eDP-1") { scale = 1.5 }                       // the laptop's own screen
+monitor("DP-2") { scale = 1.0; position(1280, 0); mode(2560, 1440, 144.0) }
+monitor("HDMI-A-1") { enabled = false }                // not used at all
+workspaceMode = WorkspaceMode.SPANNING                 // one workspace over all monitors, as GNOME
+```
+
+The names are the connectors; the log lists them (level 2) when the compositor starts.
+Without `position`, monitors stand side by side in the order they were found. Scale and
+position can be changed while running. When a monitor goes away, nothing is closed: its
+workspace waits on another monitor (Super+N shows it there), and comes back by itself when
+the monitor is plugged in again — unless you showed it somewhere else meanwhile.
+
+To try it without a second monitor, run nested in several windows — each one a monitor
+(`NESTED-1`, `NESTED-2`, ...):
+
+```kotlin
+nestedMonitors = 2
+monitor("NESTED-2") { scale = 1.0 }
+```
+
+## 13. X11 programs
 
 Older programs that only speak X11 (xterm, many games and Java programs, some Electron
 apps) run as they are: `DISPLAY` is set for everything the compositor starts, and Xwayland
@@ -404,7 +452,7 @@ Don't want X11 at all:
 xwayland = false
 ```
 
-## 13. The cursor
+## 14. The cursor
 
 The template comes with the Bibata cursor. Choose another theme and size:
 
@@ -424,7 +472,7 @@ Programs show the same cursor: modern ones ask the compositor for it by name, ol
 are told the theme and size. If the theme you name is not installed, the log says so and
 lists the ones that are.
 
-## 14. Locking the screen
+## 15. Locking the screen
 
 Super+L starts the screen locker — `swaylock` unless you choose another:
 
@@ -440,7 +488,7 @@ socket name the compositor printed when it started — then come back (Ctrl+Alt+
 whichever console the session is on). Ctrl+Alt+Backspace still quits the compositor, as
 always.
 
-## 15. Screenshots and screen sharing
+## 16. Screenshots and screen sharing
 
 Programs made for wlroots-style compositors work as they are:
 
@@ -481,12 +529,12 @@ windows can be shared too; a shared window keeps drawing at full speed even whil
 hidden or on another workspace. While the screen is locked, pictures show the lock and no
 window is given out.
 
-## 16. Touchpad gestures
+## 17. Touchpad gestures
 
 | Gesture | What it does |
 | --- | --- |
 | three fingers, any direction | drag the view (a canvas, a strip of columns) right under your fingers; it settles on the nearest place when they lift |
-| four fingers left / right | next / previous workspace |
+| four fingers left / right | next / previous workspace (`workspaceSwipeFingers`) |
 | four fingers pinching in / out | open / close the overview, following your fingers |
 
 Everything else (two-finger scrolling, pinch-to-zoom in a browser or photo viewer, ...) goes
@@ -495,10 +543,11 @@ to the program under the pointer. Change it:
 ```kotlin
 dragViewFingers = 3           // 0 = off
 overviewPinchFingers = 4      // 0 = off
+workspaceSwipeFingers = 4     // 0 = off
 swipe(fingers = 3, Direction.UP) { desktop.toggleOverview() }
 ```
 
-## 17. On the real screen
+## 18. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 
@@ -513,9 +562,10 @@ by itself after a while:
 exitAfterSeconds = 60
 ```
 
-Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles.
+Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles (unless you changed
+`keys.quit` and `keys.consoles`).
 
-## 18. Your own layout
+## 19. Your own layout
 
 Describe it with building blocks — no arithmetic:
 

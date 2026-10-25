@@ -56,6 +56,12 @@ class DrmBackend private constructor(
     var onOutputAdded: (DrmOutput) -> Unit = {}
     var onOutputRemoved: (DrmOutput) -> Unit = {}
 
+    /** Whether the monitor at a connector (e.g. "HDMI-A-1") is used at all. */
+    var enabled: (name: String) -> Boolean = { true }
+
+    /** The mode a monitor should use first, if it has it (else its preferred one). */
+    var preferredMode: (name: String, modes: List<DrmOutput.Mode>) -> DrmOutput.Mode? = { _, _ -> null }
+
     private val log = dev.caulis.log.Logger("drm")
     private val arena = Arena.ofShared()
     private val udev: MemorySegment = Input.udev_new()
@@ -89,8 +95,12 @@ class DrmBackend private constructor(
         // New: find a CRTC and plane for it and turn it on.
         for ((connectorId, info) in connected) {
             if (connectorId in active) continue
+            if (!enabled(info.name)) {
+                log.info("Monitor ${info.name} is turned off by the settings")
+                continue
+            }
             val output = createOutput(info) ?: continue
-            if (!output.start()) {
+            if (!output.start(preferredMode(info.name, info.modes))) {
                 log.warn("No mode of ${info.name} works; leaving it off")
                 output.close()
                 continue

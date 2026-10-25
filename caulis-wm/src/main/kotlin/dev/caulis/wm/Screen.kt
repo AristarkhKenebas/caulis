@@ -25,30 +25,32 @@ internal fun runOnScreen(config: Caulis) {
                 val desktop = running.desktop
                 println("${config.title} is running on ${backend.device.path} (${backend.renderer.description})")
 
-                // Monitors: each one becomes a wl_output and shows the desktop.
-                // (For now every monitor shows the same desktop, sized after the first one.)
-                val outputs = LinkedHashMap<DrmOutput, Output>()
-                val views = HashMap<DrmOutput, DesktopView>()
-                desktop.onChange = { outputs.keys.forEach(DrmOutput::requestFrame) }
-                fun fitDesktop() {
-                    val first = outputs.keys.firstOrNull() ?: return
-                    desktop.resizeScreen(first.width, first.height)
+                // Monitors: each one becomes a wl_output and a monitor of the desktop, with its own view.
+                class Shown(val output: Output, val monitor: dev.caulis.core.Monitor, val view: DesktopView)
+                val shown = LinkedHashMap<DrmOutput, Shown>()
+                desktop.onChange = { shown.keys.forEach(DrmOutput::requestFrame) }
+                backend.enabled = { name -> config.monitorSettings[name]?.enabled != false }
+                backend.preferredMode = { name, modes ->
+                    config.monitorSettings[name]?.let { wish ->
+                        modes.filter { it.width == wish.width && it.height == wish.height }
+                            .minByOrNull { mode -> wish.refreshHz?.let { Math.abs(mode.refreshMillihertz / 1000.0 - it) } ?: -mode.refreshMillihertz.toDouble() }
+                    }
                 }
                 backend.onOutputAdded = { monitor ->
                     val mode = monitor.mode!!
                     val edid = monitor.edid
-                    outputs[monitor] = Output(
+                    val output = Output(
                         running.display, monitor.name, listOfNotNull(edid?.make, edid?.model).joinToString(" ").ifEmpty { monitor.name },
                         mode.width, mode.height, mode.refreshMillihertz,
                         physicalWidthMm = monitor.physicalWidthMm, physicalHeightMm = monitor.physicalHeightMm,
                         make = edid?.make ?: "Unknown", model = edid?.model ?: monitor.name,
-                        scale = config.scale,
+                        scale = config.monitorSettings[monitor.name]?.scale ?: config.scale,
                     )
-                    fitDesktop()
+                    val place = running.addMonitor(monitor.name, output, mode.width, mode.height)
                     // Each refresh: draw what changed (if anything), then tell programs
                     // their last frame is on screen.
-                    val view = desktop.createView()
-                    views[monitor] = view
+                    val view = desktop.createView(place)
+                    shown[monitor] = Shown(output, place, view)
                     val stats = if (config.stats) FrameStats(monitor.name) else null
                     val present = running.timed(stats, monitor::present)
                     val presentDirect = if (config.directScanout) monitor::presentDirect else null
@@ -61,21 +63,27 @@ internal fun runOnScreen(config: Caulis) {
                     }
                 }
                 backend.onOutputRemoved = { monitor ->
-                    outputs.remove(monitor)?.remove()
-                    views.remove(monitor)?.let(desktop::removeView)
-                    fitDesktop()
+                    shown.remove(monitor)?.let { gone ->
+                        desktop.removeView(gone.view)
+                        running.removeMonitor(gone.monitor)
+                        gone.output.remove()
+                    }
                 }
 
                 val input = backend.input
                 input.onKey = running::key
                 input.onPointerMotion = { time, dx, dy -> desktop.pointerMoved(time, desktop.pointerX + dx, desktop.pointerY + dy) }
-                input.onPointerMotionAbsolute = { time, x, y -> desktop.pointerMoved(time, x * desktop.width, y * desktop.height) }
+                // Touchscreens and tablets: across the first monitor.
+                input.onPointerMotionAbsolute = { time, x, y ->
+                    val area = desktop.monitors.first().area
+                    desktop.pointerMoved(time, area.x + x * area.width, area.y + y * area.height)
+                }
                 input.onPointerButton = running::pointerButton
                 input.onPointerAxis = desktop::pointerAxis
                 input.onGesture = running::gesture
 
                 backend.start()
-                if (outputs.isEmpty()) println("No monitor is connected yet; waiting for one.")
+                if (shown.isEmpty()) println("No monitor is connected yet; waiting for one.")
                 println("Programs inside it use WAYLAND_DISPLAY=${running.socket}. Ctrl+Alt+Backspace quits.")
                 Watchdog(loop).use { running.runLoop() }
             }

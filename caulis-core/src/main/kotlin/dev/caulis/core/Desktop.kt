@@ -25,56 +25,208 @@ class Desktop(
     private val renderer: Renderer,
     private val seat: Seat,
     private val compositor: Compositor,
-    width: Int,
-    height: Int,
+    screenWidth: Int,
+    screenHeight: Int,
 ) : XdgShell.Listener, LayerShell.Listener, SessionLockManager.Listener {
 
-    // --- size and scale ------------------------------------------------------------------------
+    // --- monitors, size and scale ---------------------------------------------------------
+
+    private val monitorList = ArrayList<Monitor>()
+
+    /** The monitors showing the desktop, in the order they came (the first is the main one). */
+    val monitors: List<Monitor> get() = monitorList
+
+    /** The monitor with the focus: new windows open there, Super+N changes its workspace. */
+    lateinit var focusedMonitor: Monitor
+        private set
+
+    // Stands in until the backend adds the first real monitor (and in tests): the size given.
+    private var placeholder: Monitor? = null
 
     /**
      * How many screen pixels one desktop unit is: 1.0, 1.25, 1.5, 2.0, ... Windows, layouts,
      * the pointer and panels are in desktop units; only drawing is in pixels, so a bigger
      * scale makes everything bigger and as sharp as the screen is. Programs are told, and
      * those that can (most today) draw at exactly this scale.
+     *
+     * The scale of the monitor with the focus; setting it sets it on every monitor (see
+     * [setScale] for one), and monitors added later get it too.
      */
-    var scale: Double = 1.0
+    var scale: Double
+        get() = focusedMonitor.scale
         set(value) {
             require(value in 0.5..4.0) { "a scale must be between 0.5 and 4, not $value" }
-            if (value == field) return
-            fadeFromNow() // the old picture melts into the new one instead of jumping
-            field = value
-            compositor.outputScale = value
-            fitToScreen()
-            cursorChanged()
+            defaultScale = value
+            for (monitor in monitorList) setScale(monitor, value)
         }
+
+    // What monitors without a scale of their own get.
+    private var defaultScale = 1.0
+
+    /** The largest scale of all monitors (X11 programs draw at it and are made smaller elsewhere). */
+    val largestScale: Double get() = monitorList.maxOf { it.scale }
+
+    /** Gives [monitor] the scale [value] (the picture melts into the new one). */
+    fun setScale(monitor: Monitor, value: Double) {
+        require(value in 0.5..4.0) { "a scale must be between 0.5 and 4, not $value" }
+        if (value == monitor.scale) return
+        fadeFromNow(monitor) // the old picture melts into the new one instead of jumping
+        monitor.scale = value
+        monitor.output?.rescale(value)
+        if (monitor === focusedMonitor) compositor.outputScale = value
+        placeMonitors() // its size in units changed: the ones beside it move
+        for (each in monitorList) monitorChanged(each)
+        cursorChanged()
+    }
+
+    /**
+     * A monitor came: it shows a workspace of its own from now on. [x], [y] (desktop units)
+     * place it; without them it goes to the right of the others. [scale] is its own, or the
+     * desktop's ([Desktop.scale]).
+     */
+    fun addMonitor(name: String, output: Output?, pixelWidth: Int, pixelHeight: Int, scale: Double = defaultScale, x: Int? = null, y: Int? = null): Monitor {
+        val monitor = Monitor(name, output, pixelWidth, pixelHeight, scale)
+        if (x != null && y != null) monitor.fixedPosition = x to y
+        val standIn = placeholder
+        if (standIn != null) {
+            // The first real monitor takes over from the stand-in: its workspace and views.
+            placeholder = null
+            monitorList -= standIn
+            monitor.workspace = standIn.workspace
+            for (view in views + captureViews) if (view.monitor === standIn) view.monitor = monitor
+            for (workspace in workspaces.values) if (workspace.monitor === standIn) workspace.monitor = monitor
+            if (workspaceMode == WorkspaceMode.SPANNING) {
+                // Workspaces of their own on this monitor from now on (the stand-in's windows go along).
+                monitorList += monitor
+                focusedMonitor = monitor
+                mergeWorkspaces(of = standIn, into = monitor)
+                monitorList -= monitor
+                monitor.workspace = workspace(monitor.workspace.number, monitor)
+            }
+        } else {
+            monitor.workspace = workspaceForNewMonitor(monitor)
+        }
+        monitor.workspace.monitor = monitor
+        monitorList += monitor
+        if (standIn != null || !::focusedMonitor.isInitialized || focusedMonitor === standIn) focusedMonitor = monitor
+        output?.rescale(scale)
+        layoutLog.info { "Monitor ${monitor.name}: ${pixelWidth}x$pixelHeight, scale $scale, workspace ${monitor.workspace.number}" }
+        placeMonitors()
+        for (each in monitorList) monitorChanged(each)
+        return monitor
+    }
+
+    /** A monitor went away: its workspaces stay (Super+N brings them back on another monitor). */
+    fun removeMonitor(monitor: Monitor) {
+        if (monitor !in monitorList) return
+        if (monitorList.size == 1) {
+            // The last one: it stays as the stand-in, so windows keep a place until a monitor comes.
+            placeholder = monitor
+            return
+        }
+        monitorList -= monitor
+        val home = if (focusedMonitor === monitor) monitorList.first() else focusedMonitor
+        layoutLog.info { "Monitor ${monitor.name} is gone; its windows stay on their workspaces (now on ${home.name})" }
+        for (view in views + captureViews) if (view.monitor === monitor) view.monitor = home
+        when (workspaceMode) {
+            WorkspaceMode.PER_MONITOR -> for (workspace in workspaces.values.toList()) if (workspace.monitor === monitor) moveWorkspace(workspace, home)
+            WorkspaceMode.SPANNING -> mergeWorkspaces(of = monitor, into = home)
+        }
+        // Panels on it close (programs like Waybar open new ones for the monitors there are).
+        for (layer in layerSurfaces.filter { monitorOf(it) === monitor }.toList()) {
+            layer.close()
+            layerMonitors -= layer
+        }
+        if (focusedMonitor === monitor) {
+            focusedMonitor = home
+            compositor.outputScale = home.scale
+            focus(home.workspace.windows.lastOrNull())
+        }
+        placeMonitors()
+        for (each in monitorList) monitorChanged(each)
+    }
+
+    /** Puts [monitor] at [x], [y] on the desktop (units); null: to the right of the others. */
+    fun moveMonitor(monitor: Monitor, x: Int?, y: Int?) {
+        monitor.fixedPosition = if (x != null && y != null) x to y else null
+        placeMonitors()
+        for (each in monitorList) monitorChanged(each)
+    }
+
+    /** [monitor] is now [pixelWidth] x [pixelHeight] pixels (a new mode, the nested window resized). */
+    fun resizeMonitor(monitor: Monitor, pixelWidth: Int, pixelHeight: Int) {
+        if (pixelWidth == monitor.pixelWidth && pixelHeight == monitor.pixelHeight) return
+        monitor.pixelWidth = pixelWidth
+        monitor.pixelHeight = pixelHeight
+        monitor.output?.resize(pixelWidth, pixelHeight)
+        placeMonitors()
+        for (each in monitorList) monitorChanged(each)
+    }
+
+    // Monitors with a position of their own keep it; the others follow in a row to the right.
+    private fun placeMonitors() {
+        var nextX = monitorList.filter { it.fixedPosition != null }.maxOfOrNull { it.fixedPosition!!.first + it.units(it.pixelWidth) } ?: 0
+        for (monitor in monitorList) {
+            val (x, y) = monitor.fixedPosition ?: (nextX to 0).also { nextX += monitor.units(monitor.pixelWidth) }
+            monitor.area = Rect(x, y, monitor.units(monitor.pixelWidth), monitor.units(monitor.pixelHeight))
+            monitor.output?.position(x, y)
+        }
+    }
+
+    // A monitor's size, place or scale changed: its panels, windows and views follow.
+    private fun monitorChanged(monitor: Monitor) {
+        arrangeLayers(monitor, refit = false)
+        refitWindows(monitor)
+        for (view in views + captureViews) if (view.monitor === monitor) view.damageEverything()
+    }
+
+    // Every surface shown learns the monitors it is on and draws at the largest of their scales.
+    private fun placeSurfaces(items: List<DrawItem>) {
+        if (monitorList.size == 1 && placeholder != null) return // no real monitor yet: the default holds
+        for (item in items) {
+            if (item !is DrawItem.Picture) continue
+            val on = monitorList.filter { it.area.intersect(item.rect) != null }
+            if (on.isEmpty()) continue
+            item.surface.placeOn(on.mapNotNull { it.output }, on.maxOf { it.scale })
+        }
+    }
+
+    // All monitors together: the box around them.
+    private fun desktopBounds(): Rect = monitorList.map { it.area }.reduce(Rect::union)
+
+    // The monitor a lock surface covers (its output's, else the first).
+    private fun lockMonitor(surface: LockSurface): Monitor =
+        surface.output?.let { output -> monitorList.firstOrNull { it.output === output } } ?: monitorList.first()
 
     // --- a scale change: the last frame melts into the new layout -------------------------
 
-    // The picture shown before the change, and when it began to fade.
-    private var fade: Pair<GpuTexture, Long>? = null
-    private var fadeAlpha = 1f
+    // The picture each monitor showed before its scale changed, and when it began to fade.
+    private val fades = HashMap<Monitor, Pair<GpuTexture, Long>>()
+    private val fadeAlphas = HashMap<Monitor, Float>()
 
-    // Takes the picture on screen now (as a screenshot does); it fades out over the new scale,
-    // while programs draw themselves anew underneath. Without animations: no fade.
-    private fun fadeFromNow() {
-        if (animationMillis <= 0 || views.isEmpty() || pixelWidth <= 0 || pixelHeight <= 0) return
-        fade?.first?.close()
-        fade = null
+    // Takes the picture on [monitor] now (as a screenshot does); it fades out over the new
+    // scale, while programs draw themselves anew underneath. Without animations: no fade.
+    private fun fadeFromNow(monitor: Monitor) {
+        if (animationMillis <= 0 || views.none { it.monitor === monitor }) return
+        val width = monitor.pixelWidth
+        val height = monitor.pixelHeight
+        if (width <= 0 || height <= 0) return
+        fades.remove(monitor)?.first?.close()
         try {
-            renderer.createTarget(pixelWidth, pixelHeight).use { target ->
-                val view = createView()
+            renderer.createTarget(width, height).use { target ->
+                val view = createView(monitor)
                 try {
                     render(view, target, age = 0)
                 } finally {
                     removeView(view)
                 }
                 java.lang.foreign.Arena.ofConfined().use { arena ->
-                    val pixels = arena.allocate(pixelWidth.toLong() * pixelHeight * 4)
-                    target.readPixels(pixels, pixelWidth * 4)
-                    val texture = renderer.createTexture(pixelWidth, pixelHeight)
-                    texture.upload(pixels, 0, pixelHeight)
-                    fade = texture to System.nanoTime()
-                    fadeAlpha = 1f
+                    val pixels = arena.allocate(width.toLong() * height * 4)
+                    target.readPixels(pixels, width * 4)
+                    val texture = renderer.createTexture(width, height)
+                    texture.upload(pixels, 0, height)
+                    fades[monitor] = texture to System.nanoTime()
+                    fadeAlphas[monitor] = 1f
                 }
             }
         } catch (e: Exception) {
@@ -84,79 +236,66 @@ class Desktop(
         onChange()
     }
 
-    // True while fading: each frame is more of the new one.
+    // True while some monitor fades: each frame is more of the new picture.
     private fun fading(): Boolean {
-        val (texture, since) = fade ?: return false
-        val t = (System.nanoTime() - since) / 1_000_000.0 / SCALE_FADE_MILLIS
-        if (t >= 1.0) {
-            texture.close()
-            fade = null
-            version++
-            return false
+        val now = System.nanoTime()
+        for ((monitor, fade) in fades.toList()) {
+            val t = (now - fade.second) / 1_000_000.0 / SCALE_FADE_MILLIS
+            if (t >= 1.0) {
+                fade.first.close()
+                fades -= monitor
+                fadeAlphas -= monitor
+                version++
+            } else {
+                fadeAlphas[monitor] = (1 - t * t * (3 - 2 * t)).toFloat() // smooth at both ends
+            }
         }
-        fadeAlpha = (1 - t * t * (3 - 2 * t)).toFloat() // smooth at both ends
-        return true
+        return fades.isNotEmpty()
     }
 
-    /** The screen's size in pixels (the desktop is this divided by [scale]). */
-    var pixelWidth = width
-        private set
-    var pixelHeight = height
-        private set
+    /** The size in pixels of the monitor with the focus. */
+    val pixelWidth: Int get() = focusedMonitor.pixelWidth
+    val pixelHeight: Int get() = focusedMonitor.pixelHeight
 
-    /** The screen is now [pixelWidth] x [pixelHeight] pixels (a monitor's mode, the nested window's size). */
-    fun resizeScreen(pixelWidth: Int, pixelHeight: Int) {
-        this.pixelWidth = pixelWidth
-        this.pixelHeight = pixelHeight
-        fitToScreen()
+    /** The first monitor is now [pixelWidth] x [pixelHeight] pixels (with one monitor: the screen). */
+    fun resizeScreen(pixelWidth: Int, pixelHeight: Int) = resizeMonitor(monitorList.first(), pixelWidth, pixelHeight)
+
+    /** A rectangle in desktop units as pixels of the monitor it is on (edges rounded the same way everywhere). */
+    fun toPixels(rect: Rect): Rect = monitorAt(rect.x + rect.width / 2.0, rect.y + rect.height / 2.0).toPixels(rect)
+
+    /** The monitor at a desktop point, or the nearest one. */
+    fun monitorAt(x: Double, y: Double): Monitor =
+        monitorList.firstOrNull { it.contains(x, y) } ?: monitorList.minBy { distance(it.area, x, y) }
+
+    private fun distance(area: Rect, x: Double, y: Double): Double {
+        val dx = maxOf(area.x - x, 0.0, x - (area.right - 1))
+        val dy = maxOf(area.y - y, 0.0, y - (area.bottom - 1))
+        return dx * dx + dy * dy
     }
 
-    // The desktop's units follow the pixels and the scale.
-    private fun fitToScreen() {
-        val logicalWidth = Math.round(pixelWidth / scale).toInt().coerceAtLeast(1)
-        val logicalHeight = Math.round(pixelHeight / scale).toInt().coerceAtLeast(1)
-        if (logicalWidth != width || logicalHeight != height) {
-            width = logicalWidth
-            height = logicalHeight
-        } else {
-            changed()
-        }
-        for (view in views) view.damageEverything()
-    }
+    /** The monitor showing [output], if any. */
+    fun monitorOf(output: Output): Monitor? = monitorList.firstOrNull { it.output === output }
 
-    /** A rectangle in desktop units as screen pixels (edges rounded the same way everywhere, so nothing overlaps or gaps). */
-    fun toPixels(rect: Rect): Rect {
-        val left = px(rect.x)
-        val top = px(rect.y)
-        return Rect(left, top, px(rect.right) - left, px(rect.bottom) - top)
-    }
+    /** The monitor a window is on: the one its workspace is shown on (or was last). */
+    fun monitorOf(window: Window): Monitor = workspaceOf(window)?.monitor ?: focusedMonitor
 
-    private fun px(value: Int): Int = Math.round(value * scale).toInt()
+    /** Size of the monitor with the focus, in desktop units. */
+    val width: Int get() = focusedMonitor.area.width
+    val height: Int get() = focusedMonitor.area.height
 
-    /** Size of the desktop in desktop units (the screen's pixels divided by [scale]). */
-    var width = width
-        set(value) {
-            field = value
-            refitWindows()
-        }
-    var height = height
-        set(value) {
-            field = value
-            refitWindows()
-        }
-
-    // The desktop changed size: maximized and fullscreen windows follow it, layouts re-arrange.
-    private fun refitWindows() {
-        lock?.surfaces?.forEach { it.configure(it.output?.width ?: width, it.output?.height ?: height) }
-        arrangeLayers(refit = false)
-        for (pad in shownPads) placeScratchpad(pad, appearing = emptySet())
+    // A monitor changed size: maximized and fullscreen windows on it follow, layouts re-arrange.
+    private fun refitWindows(monitor: Monitor) {
+        lock?.surfaces?.filter { lockMonitor(it) === monitor }?.forEach { it.configure(monitor.area.width, monitor.area.height) }
+        for (pad in shownPads) if (pad.monitor === monitor) placeScratchpad(pad, appearing = emptySet())
         for (workspace in workspaces.values) {
+            if ((workspace.monitor ?: focusedMonitor) !== monitor) continue
             for (window in workspace.windows + workspace.minimized) {
                 if (!window.configured) continue
                 if (window.fullscreen) {
-                    window.configure(width, height)
+                    window.configure(monitor.area.width, monitor.area.height)
+                    moveSmoothly(window, monitor.area.x, monitor.area.y)
                 } else if (window.maximized) {
-                    val area = withoutTitle(window, usableArea)
+                    val area = withoutTitle(window, monitor.usableArea)
                     window.configure(area.width, area.height)
                     moveSmoothly(window, area.x, area.y)
                 }
@@ -174,8 +313,8 @@ class Desktop(
 
     private val views = ArrayList<DesktopView>()
 
-    /** A view for one more screen showing this desktop. */
-    fun createView(): DesktopView = DesktopView().also { views += it }
+    /** A view of [monitor] (the first one if not said), for drawing it on its screen. */
+    fun createView(monitor: Monitor = monitorList.first()): DesktopView = DesktopView(monitor).also { views += it }
 
     fun removeView(view: DesktopView) {
         views -= view
@@ -250,8 +389,8 @@ class Desktop(
     internal val commitListeners = ArrayList<(Surface) -> Unit>()
     internal val frameListeners = ArrayList<() -> Unit>()
 
-    /** A record of what a screen recording last got (see [captureChanges]). Remove it with [removeCaptureView]. */
-    internal fun createCaptureView(): DesktopView = DesktopView().also { captureViews += it }
+    /** A record of what a recording of [monitor] last got (see [captureChanges]). Remove it with [removeCaptureView]. */
+    internal fun createCaptureView(monitor: Monitor): DesktopView = DesktopView(monitor).also { captureViews += it }
 
     internal fun removeCaptureView(view: DesktopView) {
         captureViews -= view
@@ -263,7 +402,7 @@ class Desktop(
      */
     internal fun captureChanges(view: DesktopView, cursor: Boolean): Rect? {
         compare(view, captureItems(cursor))
-        return view.takeRepaint(1, Rect(0, 0, width, height))
+        return view.takeRepaint(1, view.monitor.area)
     }
 
     // Everything on screen, with or without our cursor.
@@ -273,14 +412,14 @@ class Desktop(
     }
 
     /**
-     * Draws the whole desktop as it is on screen into [target] (as big as the desktop), with
-     * or without the [cursor]. For screenshots and screen sharing: what is on screen does not
-     * change, and programs are not told about this picture.
+     * Draws [monitor] as it is on screen into [target] (as big as the monitor in pixels),
+     * with or without the [cursor]. For screenshots and screen sharing: what is on screen
+     * does not change, and programs are not told about this picture.
      */
-    fun capture(target: GpuTarget, cursor: Boolean) {
+    fun capture(target: GpuTarget, cursor: Boolean, monitor: Monitor = monitorList.first()) {
         val items = captureItems(cursor)
         renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2])
-        draw(items, null)
+        draw(items, monitor.area, monitor::toPixels, monitor.scale)
         renderer.end()
     }
 
@@ -292,15 +431,23 @@ class Desktop(
         val visible = window.visibleRect
         val items = ArrayList<DrawItem>()
         addTree(items, window.surface, -visible.x, -visible.y)
+        val scale = monitorOf(window).scale
         renderer.begin(target, 0f, 0f, 0f, alpha = 0f)
-        draw(items, null)
+        draw(items, null, { rect -> pixelsOf(rect, scale) }, scale)
         renderer.end()
     }
 
-    /** The size [captureWindow] draws [window] at, in pixels. */
+    /** The size [captureWindow] draws [window] at, in pixels (at the scale of its monitor). */
     fun windowPixelSize(window: Window): Pair<Int, Int> {
         val visible = window.visibleRect
-        return px(visible.width).coerceAtLeast(1) to px(visible.height).coerceAtLeast(1)
+        val scale = monitorOf(window).scale
+        return Math.round(visible.width * scale).toInt().coerceAtLeast(1) to Math.round(visible.height * scale).toInt().coerceAtLeast(1)
+    }
+
+    // A rectangle in units (from 0, 0) as pixels of [scale].
+    private fun pixelsOf(rect: Rect, scale: Double): Rect {
+        fun p(v: Int) = Math.round(v * scale).toInt()
+        return Rect(p(rect.x), p(rect.y), p(rect.right) - p(rect.x), p(rect.bottom) - p(rect.y))
     }
 
     /** Asks for a refresh soon (the backend then calls [refresh]), e.g. because a screenshot waits. */
@@ -451,17 +598,71 @@ class Desktop(
             for (workspace in workspaces.values) setLayout(workspace, value)
         }
 
-    private val workspaces = TreeMap<Int, Workspace>()
+    /**
+     * How workspaces behave with several monitors: each shows its own ([WorkspaceMode.PER_MONITOR],
+     * the default), or one workspace spans them all ([WorkspaceMode.SPANNING]). Set it before
+     * monitors come.
+     */
+    var workspaceMode: WorkspaceMode = WorkspaceMode.PER_MONITOR
 
-    /** The workspace on screen. */
-    var activeWorkspace: Workspace = workspace(1)
-        private set
+    // By number; with spanning workspaces, by number and monitor.
+    private data class WorkspaceKey(val number: Int, val monitor: String?)
 
-    /** Workspaces that exist now (the active one and those with windows), in order. */
+    private val workspaces = java.util.TreeMap<WorkspaceKey, Workspace>(compareBy<WorkspaceKey> { it.number }.thenBy { it.monitor ?: "" })
+
+    /** The workspace on the monitor with the focus. */
+    val activeWorkspace: Workspace get() = focusedMonitor.workspace
+
+    init {
+        // Until the backend adds monitors: one of the size given (tests, the very first frame).
+        val standIn = Monitor("default", null, screenWidth, screenHeight, 1.0)
+        val first = Workspace(1, layout).also { it.monitor = standIn }
+        workspaces[WorkspaceKey(1, null)] = first
+        standIn.workspace = first
+        monitorList += standIn
+        placeholder = standIn
+        focusedMonitor = standIn
+    }
+
+    init {
+        // A surface not shown yet is on the monitor where new windows open.
+        compositor.defaultOutputs = { listOfNotNull(focusedMonitor.output).ifEmpty { Output.of(compositor.display) } }
+    }
+
+    /** Workspaces that exist now (those shown and those with windows), in order. */
     val allWorkspaces: Collection<Workspace> get() = workspaces.values
 
-    // The workspace with [number], created when first needed (there is no limit).
-    private fun workspace(number: Int): Workspace = workspaces.getOrPut(number) { Workspace(number, layout) }
+    // The workspace with [number] (for [monitor] when they span all monitors), created when first needed.
+    private fun workspace(number: Int, monitor: Monitor = focusedMonitor): Workspace {
+        val home = if (workspaceMode == WorkspaceMode.SPANNING) monitor.name else null
+        return workspaces.getOrPut(WorkspaceKey(number, home)) { Workspace(number, layout, home).also { it.monitor = monitor } }
+    }
+
+    // A new monitor shows: its own workspace from before (plugged in again), or the first free number.
+    private fun workspaceForNewMonitor(monitor: Monitor): Workspace {
+        if (workspaceMode == WorkspaceMode.SPANNING) return workspace(focusedMonitor.workspace.number, monitor)
+        val shown = monitorList.map { it.workspace }.toSet()
+        workspaces.values.firstOrNull { it !in shown && !it.isEmpty && it.lastMonitorName == monitor.name }?.let { return it }
+        val number = generateSequence(1) { it + 1 }.first { n -> shown.none { it.number == n } && workspaces[WorkspaceKey(n, null)]?.isEmpty != false }
+        return workspace(number, monitor)
+    }
+
+    // Spanning workspaces of a monitor that went away: their windows join the same workspace on [into].
+    private fun mergeWorkspaces(of: Monitor, into: Monitor) {
+        for (workspace in workspaces.values.filter { it.homeMonitor == of.name || (it.homeMonitor == null && of === placeholder) }.toList()) {
+            val target = workspace(workspace.number, into)
+            for (window in workspace.windows.toList() + workspace.minimized.toList()) {
+                val wasMinimized = window in workspace.minimized
+                val wasFloating = window in workspace.floating
+                workspace.remove(window)
+                workspace.model.forget(window)
+                if (wasMinimized) target.minimized += window else target.add(window)
+                if (wasFloating) target.floating += window
+            }
+            workspaces.remove(WorkspaceKey(workspace.number, workspace.homeMonitor))
+            arrange(target)
+        }
+    }
 
     /** Windows on the active workspace, bottom to top. */
     val windows: List<Window> get() = activeWorkspace.windows
@@ -469,26 +670,115 @@ class Desktop(
     /** Minimized windows of the active workspace. */
     val minimized: List<Window> get() = activeWorkspace.minimized
 
-    /** Shows workspace [number] (created if needed); its top window gets the keyboard. */
+    /**
+     * Shows workspace [number] (created if needed) on the monitor with the focus; its top
+     * window gets the keyboard. If another monitor shows it, the focus goes there instead.
+     * With spanning workspaces, every monitor switches.
+     */
     fun switchTo(number: Int) {
         if (number == activeWorkspace.number) return
         endGrab()
-        val previous = activeWorkspace
-        activeWorkspace = workspace(number)
-        // Empty workspaces disappear once you leave them (never the one on screen).
-        if (previous.isEmpty) workspaces.remove(previous.number)
-        arrange(activeWorkspace)
+        if (workspaceMode == WorkspaceMode.SPANNING) {
+            for (monitor in monitorList) show(workspace(number, monitor), on = monitor)
+        } else {
+            val target = workspace(number)
+            val elsewhere = monitorList.firstOrNull { it !== focusedMonitor && it.workspace === target }
+            if (elsewhere != null) {
+                focusMonitor(elsewhere)
+                return
+            }
+            show(target, on = focusedMonitor)
+        }
         focus(activeWorkspace.windows.lastOrNull())
-        layoutLog.info { "Workspace ${activeWorkspace.number} (${activeWorkspace.layout.name})" }
+        layoutLog.info { "Workspace ${activeWorkspace.number} (${activeWorkspace.layout.name})${if (monitorList.size > 1) " on ${focusedMonitor.name}" else ""}" }
         notify(workspaceListeners, activeWorkspace, "workspace")
     }
 
+    // [workspace] goes onto [monitor]: its floating windows keep their place relative to the
+    // monitor's corner (and stay on it), maximized and fullscreen ones fit it; tiled ones are
+    // arranged by whoever shows it.
+    private fun moveWorkspace(workspace: Workspace, monitor: Monitor) {
+        val from = workspace.monitor
+        workspace.monitor = monitor
+        if (from == null || from === monitor) return
+        val dx = monitor.area.x - from.area.x
+        val dy = monitor.area.y - from.area.y
+        for (window in workspace.windows + workspace.minimized) {
+            when {
+                window.fullscreen || window.maximized -> if (window.configured) applyState(window)
+                !window.tiled -> {
+                    window.x = (window.x + dx).coerceIn(monitor.area.x, (monitor.area.right - 50).coerceAtLeast(monitor.area.x))
+                    window.y = (window.y + dy).coerceIn(monitor.area.y, (monitor.area.bottom - 50).coerceAtLeast(monitor.area.y))
+                    floatingRects[window]?.let { floatingRects[window] = Rect(window.x, window.y, it.width, it.height) }
+                }
+            }
+        }
+    }
+
+    // [workspace] is shown on [on] now (the one shown there before is hidden, gone if empty).
+    private fun show(workspace: Workspace, on: Monitor) {
+        val previous = on.workspace
+        if (previous === workspace) return
+        on.workspace = workspace
+        moveWorkspace(workspace, on)
+        workspace.lastMonitorName = on.name
+        // Empty workspaces disappear once you leave them (never one on screen).
+        if (previous.isEmpty && monitorList.none { it.workspace === previous }) workspaces.values.remove(previous)
+        arrange(workspace)
+        changed()
+    }
+
+    /** Gives the focus to [monitor] (its top window gets the keyboard). */
+    fun focusMonitor(monitor: Monitor) {
+        if (monitor !in monitorList) return
+        setFocusedMonitor(monitor)
+        focus(monitor.workspace.windows.lastOrNull())
+    }
+
+    /** The monitor next to the focused one in a direction ([dx], [dy] = -1, 0 or 1), if any. */
+    fun monitorBeside(dx: Int, dy: Int, from: Monitor = focusedMonitor): Monitor? {
+        val cx = from.area.x + from.area.width / 2.0
+        val cy = from.area.y + from.area.height / 2.0
+        return monitorList.filter { it !== from }.filter { other ->
+            val ox = other.area.x + other.area.width / 2.0
+            val oy = other.area.y + other.area.height / 2.0
+            (dx > 0 && ox > cx) || (dx < 0 && ox < cx) || (dy > 0 && oy > cy) || (dy < 0 && oy < cy)
+        }.minByOrNull { other ->
+            val ox = other.area.x + other.area.width / 2.0 - cx
+            val oy = other.area.y + other.area.height / 2.0 - cy
+            ox * ox + oy * oy
+        }
+    }
+
+    /** Moves [window] to the workspace shown on [monitor] (it keeps its place there if floating). */
+    fun moveToMonitor(window: Window, monitor: Monitor) {
+        val from = monitorOf(window)
+        if (from === monitor) return
+        // A floating window keeps its place relative to the monitor.
+        if (!window.tiled) {
+            window.x = monitor.area.x + (window.x - from.area.x).coerceIn(0, (monitor.area.width - 50).coerceAtLeast(0))
+            window.y = monitor.area.y + (window.y - from.area.y).coerceIn(0, (monitor.area.height - 50).coerceAtLeast(0))
+        }
+        moveToWorkspace(window, monitor.workspace)
+        if (window.fullscreen || window.maximized) applyState(window)
+        focusMonitor(monitor)
+        focus(window)
+    }
+
+    private fun setFocusedMonitor(monitor: Monitor) {
+        if (focusedMonitor === monitor) return
+        focusedMonitor = monitor
+        compositor.outputScale = monitor.scale
+        focusLog.trace { "Monitor ${monitor.name}" }
+    }
+
     /** Moves [window] to workspace [number] (it stays where it is on screen if floating). */
-    fun moveToWorkspace(window: Window, number: Int) {
+    fun moveToWorkspace(window: Window, number: Int) = moveToWorkspace(window, workspace(number, monitorOf(window)))
+
+    private fun moveToWorkspace(window: Window, to: Workspace) {
         val from = workspaceOf(window) ?: return
-        val to = workspace(number)
         if (from === to) return
-        layoutLog.info { "$window moves from workspace ${from.number} to $number" }
+        layoutLog.info { "$window moves from workspace ${from.number} to ${to.number}" }
         val wasFloating = window in from.floating
         from.remove(window)
         from.model.forget(window) // it lives on the other workspace now
@@ -524,45 +814,55 @@ class Desktop(
     val layers: List<LayerSurface> get() = layerSurfaces
 
     /**
-     * The part of the desktop that panels and docks leave free (their "exclusive zones"):
-     * windows are tiled and maximized in here.
+     * The part of the monitor with the focus that panels and docks leave free (their
+     * "exclusive zones"): windows are tiled and maximized in here. Each monitor has its own
+     * ([Monitor.usableArea]).
      */
-    var usableArea = Rect(0, 0, width, height)
-        private set
+    val usableArea: Rect get() = focusedMonitor.usableArea
+
+    // The monitor of each panel that did not ask for one (the one with the focus when it came).
+    private val layerMonitors = HashMap<LayerSurface, Monitor>()
+
+    /** The monitor [layer] is on: the one its program asked for, else the one it came on. */
+    fun monitorOf(layer: LayerSurface): Monitor =
+        layer.output?.let { output -> monitorList.firstOrNull { it.output === output } }
+            ?: layerMonitors.getOrPut(layer) { focusedMonitor }
 
     // The panel with the keyboard (a launcher, or one clicked that wants it), if any.
     private var layerFocus: LayerSurface? = null
 
     override fun layerCommitted(layer: LayerSurface) {
         if (layer !in layerSurfaces) {
-            layersLog.info { "Panel \"${layer.namespace}\" (${layer.surface.resource.client.name}) on the ${layer.current.layer} layer, anchors ${layer.current.anchor}, exclusive zone ${layer.current.exclusiveZone}" }
             layerSurfaces += layer
+            layersLog.info { "Panel \"${layer.namespace}\" (${layer.surface.resource.client.name}) on the ${layer.current.layer} layer of ${monitorOf(layer).name}, anchors ${layer.current.anchor}, exclusive zone ${layer.current.exclusiveZone}" }
         }
-        arrangeLayers()
+        arrangeLayers(monitorOf(layer))
         updateLayerKeyboard()
         changed()
     }
 
     override fun layerUnmapped(layer: LayerSurface) {
         layersLog.info { "Panel \"${layer.namespace}\" is gone" }
+        val monitor = monitorOf(layer)
         layerSurfaces -= layer
+        layerMonitors -= layer
         popups.filter { it.layerParent === layer }.forEach { it.dismiss() }
         if (layerFocus === layer) {
             // It had the keyboard: back to the window (or the next launcher that wants it).
             layerFocus = null
             seat.focusKeyboard(focusedWindow?.surface)
         }
-        arrangeLayers()
+        arrangeLayers(monitor)
         updateLayerKeyboard()
         changed()
     }
 
-    // Places all layer surfaces, the way wlroots-based compositors do: first those that
-    // reserve space (each takes it from its edge), then the others in what is left.
-    private fun arrangeLayers(refit: Boolean = true) {
-        val full = Rect(0, 0, width, height)
+    // Places the layer surfaces of [monitor], the way wlroots-based compositors do: first
+    // those that reserve space (each takes it from its edge), then the others in what is left.
+    private fun arrangeLayers(monitor: Monitor, refit: Boolean = true) {
+        val full = monitor.area
         var usable = full
-        val ordered = layerSurfaces.sortedByDescending { it.current.layer } // overlay first
+        val ordered = layerSurfaces.filter { monitorOf(it) === monitor }.sortedByDescending { it.current.layer } // overlay first
         for (layer in ordered.filter { it.current.exclusiveZone > 0 }) {
             placeLayer(layer, full)
             usable = reserve(usable, layer)
@@ -570,9 +870,9 @@ class Desktop(
         for (layer in ordered.filter { it.current.exclusiveZone <= 0 }) {
             placeLayer(layer, if (layer.current.exclusiveZone < 0) full else usable)
         }
-        if (usable != usableArea) {
-            usableArea = usable
-            if (refit) refitWindows()
+        if (usable != monitor.usableArea) {
+            monitor.usableArea = usable
+            if (refit) refitWindows(monitor)
         }
     }
 
@@ -713,6 +1013,9 @@ class Desktop(
         lock?.confirmLocked()
     }
 
+    override fun lockSurfaceSize(output: Output?): Pair<Int, Int> =
+        (output?.let(::monitorOf) ?: monitorList.first()).area.let { it.width to it.height }
+
     override fun lockSurfaceCommitted(surface: LockSurface) {
         if (surface.lock !== lock) return // an earlier locker's leftovers
         if (surface.mapped && seat.keyboardFocus == null) seat.focusKeyboard(surface.surface)
@@ -798,7 +1101,11 @@ class Desktop(
         showScratchpad(pad, appearing = emptySet())
     }
 
+    // The monitor area a scratchpad is shown in.
+    private fun padArea(pad: Scratchpad): Rect = (pad.monitor?.takeIf { it in monitorList } ?: focusedMonitor).area
+
     private fun showScratchpad(pad: Scratchpad, appearing: Set<Window>) {
+        if (!pad.shown || pad.leaving) pad.monitor = focusedMonitor
         pad.shown = true
         pad.leaving = false
         shownPads -= pad
@@ -812,7 +1119,7 @@ class Desktop(
         val now = System.nanoTime()
         for (window in pad.windows) {
             val from = shownRects[window] ?: currentRect(window)
-            glides[window] = Glide(from, now, to = pad.hiddenRect(from, width, height))
+            glides[window] = Glide(from, now, to = pad.hiddenRect(from, padArea(pad)))
         }
         compositor.display.loop.after(animationMillis) {
             if (!pad.leaving) return@after // shown again meanwhile
@@ -831,10 +1138,10 @@ class Desktop(
     private fun padTargets(pad: Scratchpad, extra: Window? = null): Map<Window, Rect> {
         val windows = pad.windows + listOfNotNull(extra)
         if (pad.style is Scratchpad.Overlay) {
-            val rects = pad.workspace.model.arrange(windows, Rect(0, 0, width, height), windows.lastOrNull())
+            val rects = pad.workspace.model.arrange(windows, padArea(pad), windows.lastOrNull())
             return windows.zip(rects).associate { (window, rect) -> window to fit(window, rect) }
         }
-        val rect = pad.shownRect(width, height)
+        val rect = pad.shownRect(padArea(pad))
         return windows.associateWith { fit(it, rect) }
     }
 
@@ -848,7 +1155,7 @@ class Desktop(
             window.x = rect.x
             window.y = rect.y
             if (window in appearing && animationMillis > 0) {
-                glides[window] = Glide(pad.hiddenRect(rect, width, height), now)
+                glides[window] = Glide(pad.hiddenRect(rect, padArea(pad)), now)
             }
         }
         changed()
@@ -878,9 +1185,10 @@ class Desktop(
         val tiled = workspace.tiledWindows() + listOfNotNull(extra)
         if (tiled.isEmpty()) return emptyMap()
         val top = workspace.windows.lastOrNull { it in tiled } ?: extra
-        val rects = workspace.model.arrange(tiled, usableArea, top)
+        val area = (workspace.monitor?.takeIf { it in monitorList } ?: focusedMonitor).usableArea
+        val rects = workspace.model.arrange(tiled, area, top)
         val targets = tiled.zip(rects).associate { (window, rect) -> window to fit(window, rect) }
-        layoutLog.trace { "Arrange workspace ${workspace.number} (${workspace.layout.name}) in $usableArea: " + targets.entries.joinToString { (w, r) -> "${w.title.take(24)}=$r" } }
+        layoutLog.trace { "Arrange workspace ${workspace.number} (${workspace.layout.name}) in $area: " + targets.entries.joinToString { (w, r) -> "${w.title.take(24)}=$r" } }
         if (extra == null) place(targets)
         return targets
     }
@@ -1001,12 +1309,17 @@ class Desktop(
 
     private fun cameraMoving(now: Long) = cameraTo !== cameraFrom && (now - cameraStart) < cameraMillis * 1_000_000
 
-    // Fits all windows of the workspace (and the current screen) into 90% of the screen.
+    // Fits all windows of the workspace (and its monitor) into 90% of the monitor with the focus.
     private fun overviewCamera(): Camera {
-        var box = Rect(0, 0, width, height)
+        val area = focusedMonitor.area
+        var box = area
         for (window in activeWorkspace.windows) box = box.union(currentRect(window))
-        val scale = minOf(1.0, width * 0.9 / box.width, height * 0.9 / box.height)
-        return Camera(scale, width / 2.0 - (box.x + box.width / 2.0) * scale, height / 2.0 - (box.y + box.height / 2.0) * scale)
+        val scale = minOf(1.0, area.width * 0.9 / box.width, area.height * 0.9 / box.height)
+        return Camera(
+            scale,
+            area.x + area.width / 2.0 - (box.x + box.width / 2.0) * scale,
+            area.y + area.height / 2.0 - (box.y + box.height / 2.0) * scale,
+        )
     }
 
     // The overview's camera while a pinch opens or closes it (null = no pinch going on).
@@ -1068,7 +1381,7 @@ class Desktop(
         val workspace = activeWorkspace
         workspace.model.command(TilingCommand.PanBy(-dx, -dy), focusedWindow?.takeIf { it.tiled })
         arrange(workspace)
-        val screen = Rect(0, 0, width, height)
+        val screen = focusedMonitor.area
         fun visibleShare(window: Window): Double {
             val target = pending[window] ?: currentRect(window)
             val inView = target.intersect(screen) ?: return 0.0
@@ -1188,7 +1501,10 @@ class Desktop(
     private var titlePressed: Pair<Window, TitleButton>? = null
 
     private fun titleTexture(window: Window, bar: Rect): GpuTexture {
-        val pixels = toPixels(Rect(0, 0, bar.width, titleBarStyle.height))
+        // At the scale of the window's monitor.
+        val scale = monitorOf(window).scale
+        fun px(value: Int) = Math.round(value * scale).toInt()
+        val pixels = pixelsOf(Rect(0, 0, bar.width, titleBarStyle.height), scale)
         val hovered = titleHover?.takeIf { it.first === window }?.second
         val pressed = titlePressed?.takeIf { it.first === window }?.second
         val key = listOf(window.title, window.appId, window === focusedWindow, window.maximized, hovered, pressed, pixels.width, pixels.height, scale)
@@ -1430,12 +1746,12 @@ class Desktop(
     }
 
     // The next free spot of the cascade (top left, stepping down and right).
-    private fun cascadeRect(windowWidth: Int, windowHeight: Int): Rect {
+    private fun cascadeRect(windowWidth: Int, windowHeight: Int, area: Rect = focusedMonitor.area): Rect {
         val step = 32
-        val x = (40 + cascade * step).coerceAtMost((width - windowWidth).coerceAtLeast(0))
-        val y = (40 + cascade * step).coerceAtMost((height - windowHeight).coerceAtLeast(0))
+        val x = (40 + cascade * step).coerceAtMost((area.width - windowWidth).coerceAtLeast(0))
+        val y = (40 + cascade * step).coerceAtMost((area.height - windowHeight).coerceAtLeast(0))
         cascade = (cascade + 1) % 8
-        return Rect(x, y, windowWidth, windowHeight)
+        return Rect(area.x + x, area.y + y, windowWidth, windowHeight)
     }
 
     /** True if [window] floats (placed by hand) rather than being tiled by the layout. */
@@ -1463,12 +1779,12 @@ class Desktop(
     // The layout decides the size before the first frame, so a new window never shows up
     // in a wrong size first (R1). Maximized/fullscreen apps get the whole desktop.
     override fun initialSize(window: Window): Pair<Int, Int> {
-        if (window.maximized && !window.fullscreen) return withoutTitle(window, usableArea).let { it.width to it.height }
+        if (window.maximized && !window.fullscreen) return withoutTitle(window, focusedMonitor.usableArea).let { it.width to it.height }
         scratchpadFor(window)?.let { pad ->
             window.tiled = pad.style is Scratchpad.Overlay // told in the very first configure
             return padTargets(pad, extra = window).getValue(window).let { it.width to it.height }
         }
-        if (window.maximized || window.fullscreen) return width to height
+        if (window.maximized || window.fullscreen) return focusedMonitor.area.let { it.width to it.height }
         if (floatRule(window)) return 0 to 0
         val target = arrange(activeWorkspace, extra = window)[window] ?: return 0 to 0
         window.tiled = true
@@ -1500,8 +1816,9 @@ class Desktop(
         if (window.maximized || window.fullscreen) {
             // Started maximized: if it is ever restored, it gets a sensible floating place.
             floatingRects[window] = Rect(floatingPlace.x, floatingPlace.y, width * 2 / 3, height * 2 / 3)
-            window.x = if (window.fullscreen) 0 else usableArea.x
-            window.y = if (window.fullscreen) 0 else usableArea.y + titleHeight(window)
+            val monitor = workspace.monitor ?: focusedMonitor
+            window.x = if (window.fullscreen) monitor.area.x else monitor.usableArea.x
+            window.y = if (window.fullscreen) monitor.area.y else monitor.usableArea.y + titleHeight(window)
         }
         // Its own tile was decided before the first frame: it appears there right away.
         val targets = arrange(workspace)
@@ -1560,7 +1877,7 @@ class Desktop(
         changed()
     }
 
-    override fun bounds(window: Window): Pair<Int, Int> = width to height
+    override fun bounds(window: Window): Pair<Int, Int> = monitorOf(window).area.let { it.width to it.height }
 
     // --- window states: maximized, fullscreen, minimized ----------------------------------
 
@@ -1632,8 +1949,9 @@ class Desktop(
         val workspace = workspaceOf(window)
         if (window.maximized || window.fullscreen) {
             if (!window.tiled && window.mapped) floatingRects[window] = currentRect(window)
-            // Fullscreen covers everything; maximized leaves panels and docks free.
-            val area = if (window.fullscreen) Rect(0, 0, width, height) else withoutTitle(window, usableArea)
+            // Fullscreen covers its monitor; maximized leaves panels and docks free.
+            val monitor = monitorOf(window)
+            val area = if (window.fullscreen) monitor.area else withoutTitle(window, monitor.usableArea)
             moveSmoothly(window, area.x, area.y)
             window.configure(area.width, area.height)
         } else if (workspace != null && window in workspace.tiledWindows()) {
@@ -1686,9 +2004,17 @@ class Desktop(
      * to the right in a scrolling layout. Scrolling and canvas layouts then bring it into view.
      */
     fun focusDirection(dx: Int, dy: Int) {
-        val from = focusedWindow ?: return focus(windows.lastOrNull())
+        val from = focusedWindow
+        if (from == null) {
+            // Nothing focused here: the monitor beside, if there is one.
+            val beside = monitorBeside(dx, dy)
+            if (beside != null) focusMonitor(beside) else focus(windows.lastOrNull())
+            return
+        }
         val origin = currentRect(from)
-        val candidates = windows.filter { it !== from }.map { it to currentRect(it) }.filter { (_, rect) ->
+        // Windows on every monitor count: past the last one here comes the next monitor.
+        val shown = stackingOrder()
+        val candidates = shown.filter { it !== from }.map { it to currentRect(it) }.filter { (_, rect) ->
             (dx > 0 && rect.x >= origin.right - 1) || (dx < 0 && rect.right <= origin.x + 1) ||
                 (dy > 0 && rect.y >= origin.bottom - 1) || (dy < 0 && rect.bottom <= origin.y + 1)
         }
@@ -1697,7 +2023,7 @@ class Desktop(
             val distanceY = (rect.y + rect.height / 2) - (origin.y + origin.height / 2)
             distanceX.toLong() * distanceX + distanceY.toLong() * distanceY
         }
-        nearest?.let { focus(it.first) }
+        if (nearest != null) focus(nearest.first) else monitorBeside(dx, dy)?.let(::focusMonitor) // an empty monitor
     }
 
     /** Asks the focused window to close. */
@@ -1711,11 +2037,15 @@ class Desktop(
     /** The windows on screen bottom to top, as they are drawn (X11 windows are stacked the same way). */
     val stacking: List<Window> get() = stackingOrder()
 
-    // Windows bottom to top as drawn: tiled ones, floating ones above them, fullscreen on top.
-    private fun stackingOrder(): List<Window> {
-        val (fullscreen, others) = windows.partition { it.fullscreen }
-        return others.filter { it.tiled } + others.filter { !it.tiled } + fullscreen
+    // Windows bottom to top as drawn, on every monitor: tiled ones, floating ones above
+    // them, fullscreen on top.
+    private fun stackingOrder(): List<Window> = shownWorkspaces().flatMap { workspace ->
+        val (fullscreen, others) = workspace.windows.partition { it.fullscreen }
+        others.filter { it.tiled } + others.filter { !it.tiled } + fullscreen
     }
+
+    // The workspaces on screen, one per monitor.
+    private fun shownWorkspaces(): List<Workspace> = monitorList.map { it.workspace }.distinct()
 
     // --- moving and resizing with the pointer ---------------------------------------------
 
@@ -1814,7 +2144,18 @@ class Desktop(
     private fun endGrab() {
         val ended = grab ?: return
         grab = null
-        if (ended is Grab.Move) floatingRects[ended.window] = currentRect(ended.window)
+        if (ended is Grab.Move) {
+            floatingRects[ended.window] = currentRect(ended.window)
+            // Dropped on another monitor: it belongs to the workspace shown there now.
+            val rect = currentRect(ended.window)
+            val target = monitorAt(rect.x + rect.width / 2.0, rect.y + rect.height / 2.0)
+            val from = monitorOf(ended.window)
+            if (target !== from && workspaceOf(ended.window) != null) {
+                moveToWorkspace(ended.window, target.workspace)
+                setFocusedMonitor(target)
+                focus(ended.window)
+            }
+        }
         if (ended is Grab.Resize) {
             if (ended.window.resizing) {
                 ended.window.resizing = false
@@ -1897,10 +2238,15 @@ class Desktop(
         if (window != null) {
             val workspace = workspaceOf(window)
             if (workspace != null && workspace !== activeWorkspace) {
-                activeWorkspace = workspace
-                arrange(workspace)
-                layoutLog.info { "Workspace ${workspace.number} (${workspace.layout.name})" }
-                notify(workspaceListeners, workspace, "workspace")
+                // Its monitor gets the focus; a workspace on no monitor comes onto the focused one.
+                val showing = monitorList.firstOrNull { it.workspace === workspace }
+                if (showing != null) {
+                    setFocusedMonitor(showing)
+                } else {
+                    show(workspace, on = focusedMonitor)
+                    layoutLog.info { "Workspace ${workspace.number} (${workspace.layout.name})" }
+                    notify(workspaceListeners, workspace, "workspace")
+                }
             }
             if (activeWorkspace.minimized.remove(window)) {
                 activeWorkspace.windows += window
@@ -1939,8 +2285,10 @@ class Desktop(
     fun pointerMoved(timeMillis: Int, x: Double, y: Double) {
         inputLog.trace { "Pointer at ${String.format("%.1f, %.1f", x, y)}" }
         cursorActive()
-        pointerX = x.coerceIn(0.0, width - 1.0)
-        pointerY = y.coerceIn(0.0, height - 1.0)
+        // On a monitor: past an edge with no monitor beyond, it stops there.
+        val on = monitorAt(x, y)
+        pointerX = x.coerceIn(on.area.x.toDouble(), on.area.right - 1.0)
+        pointerY = y.coerceIn(on.area.y.toDouble(), on.area.bottom - 1.0)
         grab?.let { current ->
             continueGrab(current)
             onChange()
@@ -2020,7 +2368,13 @@ class Desktop(
                 }
             }
             val window = hit?.root?.roleObject as? Window
-            if (window != null && (window !== focusedWindow || layerFocus != null)) focus(window)
+            if (window != null && (window !== focusedWindow || layerFocus != null)) {
+                focus(window)
+            } else if (window == null) {
+                // A click on another monitor's free space: new windows open there now.
+                val clicked = monitorAt(pointerX, pointerY)
+                if (clicked !== focusedMonitor && hit?.root?.roleObject !is LayerSurface) focusMonitor(clicked)
+            }
         }
         seat.pointerButton(timeMillis, button, pressed)
     }
@@ -2157,7 +2511,7 @@ class Desktop(
             onChange()
         }
         val draw = force || needsRedraw(view)
-        val direct = if (draw && !force && presentDirect != null) directCandidate() else null
+        val direct = if (draw && !force && presentDirect != null) directCandidate(view.monitor) else null
         if (direct != null && presentDirect!!(direct)) {
             // Nothing drawn: the program's own picture is on screen.
             view.shownWithoutDrawing()
@@ -2204,32 +2558,34 @@ class Desktop(
         val items = items()
         compare(view, items)
         takeFeedbacks(view)
-        val bounds = Rect(0, 0, width, height)
+        val monitor = view.monitor
+        val bounds = monitor.area
         view.showsLock = locked
         val repaint = withBlurReach(items, view.takeRepaint(age, bounds) ?: return, bounds)
         // In pixels, one more around it: a fractional scale must not leave a half-drawn edge.
-        val clip = Rect(px(repaint.x) - 1, px(repaint.y) - 1, px(repaint.right) - px(repaint.x) + 2, px(repaint.bottom) - px(repaint.y) + 2)
+        val pixels = monitor.toPixels(repaint)
+        val clip = Rect(pixels.x - 1, pixels.y - 1, pixels.width + 2, pixels.height + 2)
             .intersect(Rect(0, 0, target.width, target.height)) ?: return
-        renderLog.trace { "Frame: redraw $repaint ($clip in pixels) of ${target.width}x${target.height} (buffer age $age), ${items.size} things to draw" }
+        renderLog.trace { "Frame of ${monitor.name}: redraw $repaint ($clip in pixels) of ${target.width}x${target.height} (buffer age $age), ${items.size} things to draw" }
         renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], clip = clip)
-        draw(items, repaint)
+        draw(items, repaint, monitor::toPixels, monitor.scale)
         renderer.end()
     }
 
-    // Draws [items] (only those touching [repaint]) into the frame begun.
-    private fun draw(items: List<DrawItem>, repaint: Rect?) {
+    // Draws [items] (only those touching [repaint]) into the frame begun; [p] turns desktop
+    // units into the target's pixels, at [scale].
+    private fun draw(items: List<DrawItem>, repaint: Rect?, p: (Rect) -> Rect, scale: Double) {
         val s = scale.toFloat()
-        fun p(rect: Rect): Rect = toPixels(rect) // desktop units -> the target's pixels
         for (item in items) {
             if (repaint != null && item.rect.intersect(repaint) == null) continue
             val r = p(item.rect)
             when (item) {
-                is DrawItem.Picture -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, item.opaque, item.alpha, item.clip?.let(::p), item.radius * s, item.source)
+                is DrawItem.Picture -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, item.opaque, item.alpha, item.clip?.let(p), item.radius * s, item.source)
                 is DrawItem.Color -> renderer.drawColor(r.x, r.y, r.width, r.height, item.red, item.green, item.blue, item.alpha)
                 is DrawItem.Shadow -> renderer.drawShadow(p(item.box), item.radius * s, item.softness * s, item.color, p(item.cutOut), item.cutOutRadius * s)
                 is DrawItem.Border -> renderer.drawRoundedRect(r, item.radius * s, item.color, item.width * s)
                 is DrawItem.Blur -> renderer.drawBlur(r, item.radius * s, Math.round(item.size * s).coerceAtLeast(1), item.passes)
-                is DrawItem.Image -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, opaque = false, alpha = item.alpha, clip = item.clip?.let(::p), cornerRadius = item.radius * s)
+                is DrawItem.Image -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, opaque = false, alpha = item.alpha, clip = item.clip?.let(p), cornerRadius = item.radius * s)
             }
         }
     }
@@ -2260,13 +2616,14 @@ class Desktop(
      * cursor drawn by us, nothing above it), if it is a GPU buffer exactly as big as the
      * screen. Such a picture can go to the display as it is.
      */
-    private fun directCandidate(): DmabufBuffer? {
-        val all = items()
+    private fun directCandidate(monitor: Monitor): DmabufBuffer? {
+        val all = items().filter { it.rect.intersect(monitor.area) != null }
         val only = all.singleOrNull() as? DrawItem.Picture ?: return null
         val window = only.surface.roleObject as? Window ?: return null
-        if (!window.fullscreen || only.rect != Rect(0, 0, width, height)) return null
+        if (!window.fullscreen || only.rect != monitor.area) return null
         val buffer = only.surface.current.buffer?.dataAs<DmabufBuffer>() ?: return null
-        return buffer.takeIf { it.width == width && it.height == height && only.surface.current.scale == 1 }
+        // Exactly the monitor's pixels: shown as it is.
+        return buffer.takeIf { it.width == monitor.pixelWidth && it.height == monitor.pixelHeight }
     }
 
     // The visible programs' "tell me when it is shown" requests now belong to this frame.
@@ -2318,7 +2675,7 @@ class Desktop(
         visible.clear()
         visible += sceneVisible
         // The frame before a scale change, fading out over the new one (the cursor stays above).
-        fade?.let { (texture, _) -> all += DrawItem.Image(FADE_KEY, texture, Rect(0, 0, width, height), alpha = fadeAlpha) }
+        for ((monitor, fade) in fades) all += DrawItem.Image("$FADE_KEY ${monitor.name}", fade.first, monitor.area, alpha = fadeAlphas[monitor] ?: 1f)
         val cursorStart = all.size
         itemsCursorStart = cursorStart
         addCursor(all)
@@ -2339,11 +2696,12 @@ class Desktop(
         if (sceneVersion == version) return scene
         val all = ArrayList<DrawItem>()
         if (locked) {
-            // Nothing of the desktop: a plain colour and the locker's pictures.
-            val full = Rect(0, 0, width, height)
+            // Nothing of the desktop: a plain colour and the locker's pictures, on every monitor.
             val color = if (lock?.alive == true) lockColor else abandonedLockColor
-            all += DrawItem.Color(LOCK_BACKGROUND, full, color.red, color.green, color.blue, covers = listOf(full))
-            for (lockSurface in lockSurfaces()) addTree(all, lockSurface.surface, 0, 0)
+            for (monitor in monitorList) {
+                all += DrawItem.Color("$LOCK_BACKGROUND ${monitor.name}", monitor.area, color.red, color.green, color.blue, covers = listOf(monitor.area))
+            }
+            for (lockSurface in lockSurfaces()) lockMonitor(lockSurface).area.let { addTree(all, lockSurface.surface, it.x, it.y) }
             sceneVisible.clear()
             for (item in all) if (item is DrawItem.Picture) sceneVisible += item.surface
             scene = all
@@ -2355,17 +2713,21 @@ class Desktop(
         val (fullscreen, normal) = stackingOrder().partition { it.fullscreen }
         addLayers(all, LayerShell.Layer.BACKGROUND)
         addLayers(all, LayerShell.Layer.BOTTOM)
-        for (window in normal) addWindow(all, window, now, camera = camera)
+        // The overview's camera is on the monitor with the focus only.
+        fun cameraFor(window: Window) = if (window in activeWorkspace.windows || window in activeWorkspace.minimized) camera else Camera.NONE
+        for (window in normal) addWindow(all, window, now, camera = cameraFor(window))
         addLayers(all, LayerShell.Layer.TOP)
         // Windows on their way into the dock (above it, so they are seen going into their icon).
-        for (window in activeWorkspace.minimized) if (window in glides) addWindow(all, window, now, leaving = true, camera = camera)
+        for (workspace in shownWorkspaces()) {
+            for (window in workspace.minimized) if (window in glides) addWindow(all, window, now, leaving = true, camera = cameraFor(window))
+        }
         // Fullscreen windows cover panels and bars (not notifications on the overlay layer).
-        for (window in fullscreen) addWindow(all, window, now, camera = camera)
+        for (window in fullscreen) addWindow(all, window, now, camera = cameraFor(window))
         // Shown scratchpads above every workspace, the last shown on top.
         for (pad in shownPads) {
             val overlay = pad.style as? Scratchpad.Overlay
             if (overlay != null && !pad.leaving) {
-                all += DrawItem.Color("dim ${pad.name}", Rect(0, 0, width, height), 0f, 0f, 0f, alpha = overlay.dim)
+                all += DrawItem.Color("dim ${pad.name}", padArea(pad), 0f, 0f, 0f, alpha = overlay.dim)
             }
             for (window in pad.windows) addWindow(all, window, now, leaving = pad.leaving)
         }
@@ -2378,9 +2740,10 @@ class Desktop(
         if (camera === Camera.NONE) for ((surface, place) in unmanaged) addTree(all, surface, place.first, place.second)
 
         // Leave out what nobody can see; only the rest counts as visible.
-        val kept = cullHidden(all, Rect(0, 0, width, height))
+        val kept = cullHidden(all, desktopBounds())
         sceneVisible.clear()
         for (item in kept) if (item is DrawItem.Picture) sceneVisible += item.surface
+        placeSurfaces(kept)
         scene = kept
         sceneVersion = version
         return kept
@@ -2468,8 +2831,8 @@ class Desktop(
             shownShape = shape
             shapeSince = System.nanoTime()
         }
-        // Loaded in the size it has on screen, so it is sharp at any scale.
-        val pixels = Math.round(cursorTheme.size * scale).toInt()
+        // Loaded in the size it has on screen (the monitor it is on), so it is sharp at any scale.
+        val pixels = Math.round(cursorTheme.size * monitorAt(pointerX, pointerY).scale).toInt()
         val cursor = cursorTheme.cursor(shape, pixels) ?: cursorTheme.cursor("default", pixels)
         if (cursor == null) {
             // Only if even Caulis's own cursors could not be read (a broken jar): a plain square.

@@ -39,7 +39,11 @@ val Mine = tiling("Mine") {
 }
 ```
 
-Change layouts while running: windows glide to their new places.
+Change layouts while running: windows glide to their new places. Every usual key has a name
+and can be changed or turned off (`keys { close = "Super+Shift+Q"; quit = null }`).
+
+Several monitors work, each with its own workspace (or one workspace over all), panels and
+scale.
 
 Round corners, borders, shadows and blur behind see-through windows are one line:
 `effects = Effects.MODERN.copy(blur = Blur())`. Caulis comes with sharp cursors of its own;

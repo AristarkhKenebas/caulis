@@ -12,6 +12,7 @@ import dev.caulis.xwayland.Xwayland
 import dev.caulis.core.FrameStats
 import dev.caulis.core.LayerShell
 import dev.caulis.core.LinuxDmabuf
+import dev.caulis.core.Monitor
 import dev.caulis.core.Output
 import dev.caulis.core.Presentation
 import dev.caulis.core.SessionLockManager
@@ -22,7 +23,6 @@ import dev.caulis.core.cursor.CursorTheme
 import dev.caulis.core.input.CursorShape
 import dev.caulis.core.input.Gesture
 import dev.caulis.core.input.KeyBindings
-import dev.caulis.core.input.KeyBindings.Modifier
 import dev.caulis.core.input.Keymap
 import dev.caulis.core.input.PointerGestures
 import dev.caulis.core.input.Seat
@@ -90,7 +90,7 @@ internal class Running(
         },
         x11Available = { xwayland != null },
         post = loop::post,
-        settings = { Launcher.Settings(config.waylandFirst, config.x11Programs.toSet(), desktop.scale, config.xwayland && config.sharpJavaScaling) },
+        settings = { Launcher.Settings(config.waylandFirst, config.x11Programs.toSet(), desktop.largestScale, config.xwayland && config.sharpJavaScaling) },
     )
 
     init {
@@ -107,14 +107,11 @@ internal class Running(
         xwayland = if (config.xwayland) safely("Xwayland", null) { Xwayland(display, desktop, loop, clipboard, wholeScaleWorlds = config.sharpJavaScaling) } else null
         ScreenCapture(display, desktop, renderer, ForeignToplevels(display, desktop))
         applyCursor()
+        desktop.workspaceMode = config.workspaceMode // before the monitors come
         desktop.layout = config.layout
         socket = config.socketDirectory?.let(display::addSocket) ?: display.addSocket()
 
-        // Defaults first, the user's own bindings after them (later ones win).
-        if (config.useDefaultBindings) {
-            Caulis.defaultBindings.forEach { (combination, action) -> keys.bind(combination) { safely(combination) { action(config) } } }
-        }
-        config.bindings.forEach { (combination, action) -> keys.bind(combination) { safely(combination) { action(config) } } }
+        bindKeys()
 
         // The user's rules and events (dialogs and fixed-size windows always float).
         val defaultRule = desktop.floatRule
@@ -143,23 +140,73 @@ internal class Running(
         config.windowClosed.forEach { action -> desktop.onWindowClosed { window -> action(config, window) } }
         config.focusChanged.forEach { action -> desktop.onFocusChanged { window -> action(config, window) } }
         config.workspaceChanged.forEach { action -> desktop.onWorkspaceChanged { workspace -> action(config, workspace.number) } }
-        // Never locked in: quitting and text consoles always work (also while the screen is locked).
+        // Quitting and text consoles also work while the screen is locked (when they are on).
+        val usual = config.keys
         for (bindings in listOf(keys, lockedKeys)) {
-            bindings.bind("Ctrl+Alt+BackSpace") { quit() }
-            if (switchConsole != null) for (n in 1..12) bindings.bind("Ctrl+Alt+F$n") { switchConsole(n) }
+            usual.quit?.let { bindings.bind(it) { quit() } }
+            if (switchConsole != null) usual.consoles?.let { modifiers -> for (n in 1..12) bindings.bind("$modifiers+F$n") { switchConsole(n) } }
+        }
+        if (usual.quit == null && (usual.consoles == null || switchConsole == null)) {
+            log.warn("No key quits and none switches to a text console (keys.quit and keys.consoles are off): if a program takes the whole screen, only another computer (ssh) or the power button gets you out")
+        }
+    }
+
+    // The usual keys first, the user's own after them (later ones win on the same combination).
+    private fun bindKeys() {
+        val usual = config.keys.bindings()
+        val taken = HashMap<Pair<Set<KeyBindings.Modifier>, Int>, String>()
+        for ((name, combination, action) in usual) {
+            val parsed = KeyBindings.parse(combination)
+            taken.put(parsed, name)?.takeIf { it != name }?.let { other ->
+                log.warn("keys.$name and keys.$other are both $combination: keys.$name wins")
+            }
+            keys.bind(combination) { safely(combination) { action(config) } }
+        }
+        for ((combination, action) in config.bindings) {
+            taken[KeyBindings.parse(combination)]?.let { name -> log.info { "bind(\"$combination\") replaces keys.$name" } }
+            keys.bind(combination) { safely(combination) { action(config) } }
         }
     }
 
     fun quit() = loop.stop()
 
 
-    /** Applies the scale to the desktop, the monitors and the programs. */
+    /** Applies the scale to the desktop, the monitors (their own where set) and the programs. */
     fun applyScale() {
         desktop.scale = config.scale
-        for (output in Output.of(display)) output.rescale(config.scale)
+        for (monitor in desktop.monitors) config.monitorSettings[monitor.name]?.scale?.let { desktop.setScale(monitor, it) }
         xwayland?.rescaled()
-        log.info { "Scale ${config.scale}" }
+        log.info { "Scale ${config.scale}${desktop.monitors.filter { it.scale != config.scale }.joinToString("") { ", ${it.name} ${it.scale}" }}" }
         applyCursor() // programs that draw their own cursor get the new size
+    }
+
+    /**
+     * A monitor came (the backend's): it gets its settings (scale, place) and shows a
+     * workspace from now on.
+     */
+    fun addMonitor(name: String, output: Output?, pixelWidth: Int, pixelHeight: Int): Monitor {
+        val settings = config.monitorSettings[name]
+        val x = settings?.x
+        val y = settings?.y
+        val monitor = desktop.addMonitor(name, output, pixelWidth, pixelHeight, settings?.scale ?: config.scale, x, y)
+        xwayland?.rescaled() // the largest scale may be another now
+        return monitor
+    }
+
+    /** A monitor went away (the backend's). */
+    fun removeMonitor(monitor: Monitor) {
+        desktop.removeMonitor(monitor)
+        xwayland?.rescaled()
+    }
+
+    /** Applies changed monitor settings (scale and place) to the monitors there are. */
+    fun applyMonitorSettings() {
+        for (monitor in desktop.monitors) {
+            val settings = config.monitorSettings[monitor.name] ?: continue
+            settings.scale?.let { desktop.setScale(monitor, it) }
+            desktop.moveMonitor(monitor, settings.x, settings.y)
+        }
+        xwayland?.rescaled()
     }
 
     /** Applies the cursor settings (theme, size, hiding). */
@@ -226,7 +273,7 @@ internal class Running(
      * (from the nearest corner). Everything else goes to the program under the pointer.
      */
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean) {
-        if (pressed && !desktop.locked && keys.isHeld(Modifier.SUPER) && (button == BTN_LEFT || button == BTN_RIGHT)) {
+        if (pressed && !desktop.locked && dragging() && (button == BTN_LEFT || button == BTN_RIGHT)) {
             val window = desktop.windowAt(desktop.pointerX, desktop.pointerY)
             if (window != null) {
                 desktop.pointerButton(timeMillis, button, true, passToApps = false)
@@ -239,6 +286,12 @@ internal class Running(
             }
         }
         desktop.pointerButton(timeMillis, button, pressed)
+    }
+
+    // The modifiers for dragging windows are held (and no others).
+    private fun dragging(): Boolean {
+        val modifiers = config.keys.windowDrag ?: return false
+        return keys.heldModifiers() == KeyBindings.modifiers(modifiers)
     }
 
     // --- touchpad gestures --------------------------------------------------------------------
@@ -254,7 +307,14 @@ internal class Running(
     private var pinchStartedOpen = false
     private var pinchProgress = 0.0
 
-    private val swipes get() = (if (config.useDefaultBindings) Caulis.defaultSwipes else emptyList()) + config.swipes
+    private val swipes: List<Triple<Int, Direction, Caulis.() -> Unit>> get() = buildList {
+        val fingers = config.workspaceSwipeFingers
+        if (fingers > 0) {
+            add(Triple(fingers, Direction.LEFT) { desktop.switchTo(desktop.activeWorkspace.number + 1) })
+            add(Triple(fingers, Direction.RIGHT) { desktop.switchTo((desktop.activeWorkspace.number - 1).coerceAtLeast(1)) })
+        }
+        addAll(config.swipes) // the user's own win (the last one fits)
+    }
 
     /** A touchpad gesture: the compositor's own (see [Caulis.dragViewFingers] ...) or the program's. */
     fun gesture(gesture: Gesture) = safely("gesture") {
@@ -282,7 +342,7 @@ internal class Running(
             is Gesture.SwipeEnd -> when (gestureUse) {
                 GestureUse.DRAG -> desktop.endViewDrag()
                 GestureUse.SWIPE -> if (!gesture.cancelled) swipeDirection()?.let { direction ->
-                    swipes.filter { it.first == gestureFingers && it.second == direction }.forEach { (_, _, action) -> action(config) }
+                    swipes.lastOrNull { it.first == gestureFingers && it.second == direction }?.let { (_, _, action) -> action(config) }
                 }
                 else -> {}
             }

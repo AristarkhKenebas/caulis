@@ -34,17 +34,15 @@ class KeyBindings {
 
     /** Runs [action] when [combination] (e.g. "Super+Shift+Q") is pressed. */
     fun bind(combination: String, action: () -> Unit) {
-        val parts = combination.split('+').map { it.trim() }.filter { it.isNotEmpty() }
-        require(parts.isNotEmpty()) { "Empty key combination" }
-        val modifiers = parts.dropLast(1).map { name ->
-            MODIFIER_NAMES[name.lowercase()] ?: throw IllegalArgumentException("Unknown modifier \"$name\" in \"$combination\"")
-        }.toSet()
-        val key = keyCode(parts.last()) ?: throw IllegalArgumentException("Unknown key \"${parts.last()}\" in \"$combination\"")
+        val (modifiers, key) = parse(combination)
         bindings += Binding(modifiers, key, action)
     }
 
     /** True while [modifier] is held down (e.g. for Super+drag to move windows). */
     fun isHeld(modifier: Modifier): Boolean = held.any { it in modifier.codes }
+
+    /** The modifiers held down now. */
+    fun heldModifiers(): Set<Modifier> = held.mapNotNull(Modifier::of).toSet()
 
     /** Handles a key; returns true if it belonged to a combination (do not pass it on). */
     fun key(evdevCode: Int, pressed: Boolean): Boolean {
@@ -53,7 +51,7 @@ class KeyBindings {
             return swallowed.remove(evdevCode)
         }
         held += evdevCode
-        val active = held.mapNotNull(Modifier::of).toSet()
+        val active = heldModifiers()
         // Exact match: Super+Q does not also fire for Super+Shift+Q.
         val binding = bindings.lastOrNull { it.key == evdevCode && it.modifiers == active } ?: return false
         swallowed += evdevCode
@@ -88,6 +86,23 @@ class KeyBindings {
             put("HOME", 102); put("END", 107); put("PAGEUP", 104); put("PAGEDOWN", 109)
             put("INSERT", 110); put("DELETE", 111); put("PRINT", 99)
         }
+
+        /**
+         * The modifiers and key code of [combination] ("Super+Shift+Q"); throws with a
+         * plain message when a name is unknown.
+         */
+        fun parse(combination: String): Pair<Set<Modifier>, Int> {
+            val parts = combination.split('+').map { it.trim() }.filter { it.isNotEmpty() }
+            require(parts.isNotEmpty()) { "Empty key combination" }
+            val key = keyCode(parts.last()) ?: throw IllegalArgumentException("Unknown key \"${parts.last()}\" in \"$combination\"")
+            return modifiers(parts.dropLast(1).joinToString("+"), combination) to key
+        }
+
+        /** The modifiers of [text] ("Super+Shift"; "" = none); throws when a name is unknown. */
+        fun modifiers(text: String, whole: String = text): Set<Modifier> =
+            text.split('+').map { it.trim() }.filter { it.isNotEmpty() }.map { name ->
+                MODIFIER_NAMES[name.lowercase()] ?: throw IllegalArgumentException("Unknown modifier \"$name\" in \"$whole\"")
+            }.toSet()
 
         /** The key code for a name like "Q", "F3", "Return"; null if unknown. */
         fun keyCode(name: String): Int? = KEYS[name.uppercase()]

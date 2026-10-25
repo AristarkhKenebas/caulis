@@ -44,6 +44,16 @@ class Scratchpad internal constructor(
     var shown = false
         internal set
 
+    /** The monitor it shows on (the one with the focus when it was shown). */
+    var monitor: Monitor? = null
+        internal set
+
+    // Its place and its hiding place on a monitor of [area] (desktop units).
+    internal fun shownRect(area: Rect): Rect = shownRect(area.width, area.height).translate(area.x, area.y)
+
+    internal fun hiddenRect(shown: Rect, area: Rect): Rect =
+        hiddenRect(shown.translate(-area.x, -area.y), area.width, area.height).translate(area.x, area.y)
+
     // Hiding: still drawn while its windows glide away.
     internal var leaving = false
 

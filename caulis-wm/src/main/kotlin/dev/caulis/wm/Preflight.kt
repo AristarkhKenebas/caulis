@@ -65,11 +65,12 @@ internal object Preflight {
             }
         }
 
-        if (config.useDefaultBindings && !commandExists(config.terminal)) {
+        val terminalKey = config.keys.terminal
+        if (terminalKey != null && !commandExists(config.terminal)) {
             add(
                 Problem(
                     fatal = false,
-                    message = "The terminal \"${config.terminal}\" is not installed, so Super+Return will do nothing.",
+                    message = "The terminal \"${config.terminal}\" is not installed, so $terminalKey will do nothing.",
                     fix = "Install it, or choose another one: terminal = \"alacritty\" (or kitty, wezterm, ...).",
                 ),
             )

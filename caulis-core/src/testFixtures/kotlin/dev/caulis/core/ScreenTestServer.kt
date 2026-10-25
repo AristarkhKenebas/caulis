@@ -16,7 +16,12 @@ import java.util.concurrent.TimeUnit
  * on the GPU into an off-screen picture, as on a monitor. For tests of what happens around
  * frames (presentation-time, hidden windows). Needs a GPU.
  */
-class ScreenTestServer : AutoCloseable {
+class ScreenTestServer(
+    /** How many pretend monitors (TEST-1, TEST-2, ...), each [WIDTH] x [HEIGHT], side by side. */
+    private val monitorCount: Int = 1,
+    /** How workspaces behave on them (set before they come). */
+    private val workspaceMode: WorkspaceMode = WorkspaceMode.PER_MONITOR,
+) : AutoCloseable {
 
     val runtimeDir: Path = Files.createTempDirectory("caulis-screen-test")
     private val started = CompletableFuture<String>()
@@ -29,12 +34,11 @@ class ScreenTestServer : AutoCloseable {
         private set
     private lateinit var desktop: Desktop
     private lateinit var renderer: GlesRenderer
-    private lateinit var output: Output
+    private val outputs = ArrayList<Output>()
 
-    /** Scales the pretend screen (the desktop and its monitor), as a user's setting does. */
+    /** Scales the pretend screens (the desktop and its monitors), as a user's setting does. */
     fun setScale(scale: Double) = onServer { desktop ->
         desktop.scale = scale
-        output.rescale(scale)
     }
 
     /** Runs [action] on the server's thread with its window manager and returns the result. */
@@ -54,9 +58,9 @@ class ScreenTestServer : AutoCloseable {
      * Draws the whole desktop as it looks now into a fresh picture and returns its pixels,
      * row by row from the top, each 0xAARRGGBB.
      */
-    fun screenshot(): IntArray = onServer { desktop ->
+    fun screenshot(monitor: Int = 0): IntArray = onServer { desktop ->
         renderer.createTarget(WIDTH, HEIGHT).use { target ->
-            val view = desktop.createView()
+            val view = desktop.createView(desktop.monitors[monitor])
             try {
                 desktop.render(view, target, age = 0)
             } finally {
@@ -103,8 +107,12 @@ class ScreenTestServer : AutoCloseable {
                                 XdgOutputManager(display)
                                 ServerDecorations(display, desktop)
                                 ScreenCapture(display, desktop, renderer, ForeignToplevels(display, desktop))
-                                output = Output(display, "TEST-1", "Test screen", WIDTH, HEIGHT, 60_000)
-                                runScreen(eventLoop, renderer, desktop)
+                                desktop.workspaceMode = workspaceMode
+                                for (n in 1..monitorCount) {
+                                    val output = Output(display, "TEST-$n", "Test screen $n", WIDTH, HEIGHT, 60_000)
+                                    outputs += output
+                                    runScreen(eventLoop, renderer, desktop, desktop.addMonitor("TEST-$n", output, WIDTH, HEIGHT))
+                                }
                                 started.complete(display.addSocket(runtimeDir))
                                 eventLoop.run()
                             }
@@ -118,9 +126,9 @@ class ScreenTestServer : AutoCloseable {
     }
 
     // Refreshes every 16 ms, like a 60 Hz monitor, and reports each drawn frame as shown.
-    private fun runScreen(loop: EventLoop, renderer: GlesRenderer, desktop: Desktop) {
+    private fun runScreen(loop: EventLoop, renderer: GlesRenderer, desktop: Desktop, monitor: Monitor) {
         val target = renderer.createTarget(WIDTH, HEIGHT)
-        val view = desktop.createView()
+        val view = desktop.createView(monitor)
         var sequence = 0L
         fun tick() {
             // A pretend display that can show programs' buffers directly.

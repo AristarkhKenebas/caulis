@@ -13,7 +13,7 @@ class DesktopViewTest {
 
     @Test
     fun `the first frame draws everything, then only changes`() {
-        val view = DesktopView()
+        val view = DesktopView(TEST_MONITOR)
         assertTrue(view.hasChanges)
         assertEquals(screen, view.takeRepaint(age = 0, bounds = screen))
         assertFalse(view.hasChanges)
@@ -25,7 +25,7 @@ class DesktopViewTest {
 
     @Test
     fun `an older buffer also gets what changed in the frames it missed`() {
-        val view = DesktopView()
+        val view = DesktopView(TEST_MONITOR)
         view.takeRepaint(0, screen) // frame 1: everything
         view.damage(Rect(0, 0, 10, 10))
         view.takeRepaint(1, screen) // frame 2
@@ -36,7 +36,7 @@ class DesktopViewTest {
 
     @Test
     fun `unknown or very old buffers are drawn completely`() {
-        val view = DesktopView()
+        val view = DesktopView(TEST_MONITOR)
         view.takeRepaint(0, screen)
         view.damage(Rect(1, 1, 1, 1))
         assertEquals(screen, view.takeRepaint(age = 9, bounds = screen))
@@ -46,7 +46,7 @@ class DesktopViewTest {
 
     @Test
     fun `after a program's own picture was on screen, the next drawn frame is complete`() {
-        val view = DesktopView()
+        val view = DesktopView(TEST_MONITOR)
         view.takeRepaint(0, screen)
         view.damage(Rect(1, 1, 1, 1))
         view.shownWithoutDrawing()
@@ -57,7 +57,7 @@ class DesktopViewTest {
 
     @Test
     fun `changes outside the screen are cut off`() {
-        val view = DesktopView()
+        val view = DesktopView(TEST_MONITOR)
         view.takeRepaint(0, screen)
         view.damage(Rect(90, 90, 50, 50))
         assertEquals(Rect(90, 90, 10, 10), view.takeRepaint(1, screen))
@@ -92,3 +92,6 @@ class CullHiddenTest {
         assertEquals(listOf("edge"), cullHidden(listOf(outside, edge), screen).map { it.key })
     }
 }
+
+// Damage bookkeeping does not depend on the monitor; any will do.
+private val TEST_MONITOR = Monitor("TEST", null, 640, 480, 1.0)

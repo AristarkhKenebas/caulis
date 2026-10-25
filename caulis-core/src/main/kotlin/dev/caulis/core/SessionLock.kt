@@ -27,6 +27,9 @@ class SessionLockManager(display: Display) {
         /** A locker's surface committed (also its first picture). */
         fun lockSurfaceCommitted(surface: LockSurface) {}
 
+        /** How big a lock surface on [output] is (desktop units): its monitor's size. */
+        fun lockSurfaceSize(output: Output?): Pair<Int, Int> = (output?.width ?: 0) to (output?.height ?: 0)
+
         /** The locker unlocks (the user typed the right password), or gave up before the lock took hold. */
         fun unlockRequested(lock: SessionLock) {}
 
@@ -89,7 +92,8 @@ class SessionLock internal constructor(val resource: ExtSessionLockV1, internal 
                 surfaces += lockSurface
                 id.onDestroy { surfaces -= lockSurface }
                 // As big as its monitor (or the desktop until monitors are known).
-                lockSurface.configure(monitor?.width ?: 0, monitor?.height ?: 0)
+                val (width, height) = manager.listener.lockSurfaceSize(monitor)
+                lockSurface.configure(width, height)
             }
 
             override fun destroy(resource: ExtSessionLockV1) {

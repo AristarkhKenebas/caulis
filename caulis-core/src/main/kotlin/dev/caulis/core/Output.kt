@@ -75,6 +75,21 @@ class Output(
     /** This monitor's wl_output objects that [client] has. */
     fun resourcesOf(client: dev.caulis.protocol.Client): List<WlOutput> = bound.filter { it.client === client && it.isAlive }
 
+    /** Where the monitor is on the desktop, in desktop units (xdg-output tells programs). */
+    var x = 0
+        private set
+    var y = 0
+        private set
+
+    /** Moves the monitor on the desktop and tells the programs that ask (xdg-output). */
+    fun position(newX: Int, newY: Int) {
+        if (newX == x && newY == y) return
+        x = newX
+        y = newY
+        for ((xdg, output) in xdgOutputs.toList()) sendLogical(xdg, output)
+        for (output in bound) output.sendDone()
+    }
+
     /** Changes the size and tells every client that uses this output. */
     fun resize(newWidth: Int, newHeight: Int) {
         if (newWidth == width && newHeight == height) return
@@ -102,14 +117,15 @@ class Output(
 
     private fun sendLogical(xdg: dev.caulis.protocol.xdgoutputunstablev1.ZxdgOutputV1, output: WlOutput) {
         if (!xdg.isAlive) return
-        xdg.sendLogicalPosition(0, 0)
         // The desktop's own units: the pixels divided by the (fractional) scale — but in pixels
         // of their own for programs that work in pixels (Xwayland, see reportScaledTo).
         val perUnit = scaledFor(display)(xdg.client, this)
         val units = (width / scale) to (height / scale)
         if (perUnit != null) {
+            xdg.sendLogicalPosition(Math.round(x * perUnit).toInt(), Math.round(y * perUnit).toInt())
             xdg.sendLogicalSize(Math.round(units.first * perUnit).toInt(), Math.round(units.second * perUnit).toInt())
         } else {
+            xdg.sendLogicalPosition(x, y)
             xdg.sendLogicalSize(Math.round(units.first).toInt(), Math.round(units.second).toInt())
         }
         if (xdg.version == 2) {

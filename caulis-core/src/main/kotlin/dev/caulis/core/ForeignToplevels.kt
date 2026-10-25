@@ -26,7 +26,7 @@ import java.nio.ByteOrder
 class ForeignToplevels(private val display: Display, private val desktop: Desktop) {
 
     // What a dock was last told about a window.
-    private data class Facts(val title: String, val appId: String, val states: Set<Int>, val parent: Window?)
+    private data class Facts(val title: String, val appId: String, val states: Set<Int>, val parent: Window?, val output: Output?)
 
     private class WlrHandle(val resource: ZwlrForeignToplevelHandleV1) {
         var told: Facts? = null
@@ -84,7 +84,7 @@ class ForeignToplevels(private val display: Display, private val desktop: Deskto
             if (window === desktop.focusedWindow) add(STATE_ACTIVATED)
             if (window.fullscreen) add(STATE_FULLSCREEN)
         }
-        return Facts(window.title, window.appId, states, window.parent?.takeIf { it.surface.resource.isAlive })
+        return Facts(window.title, window.appId, states, window.parent?.takeIf { it.surface.resource.isAlive }, desktop.monitorOf(window).output)
     }
 
     /** Tells every dock what changed since it was last told. */
@@ -182,8 +182,15 @@ class ForeignToplevels(private val display: Display, private val desktop: Deskto
                 changed = true
             }
         }
-        // All windows are on every monitor until there is more than one.
-        for (output in Output.of(display).flatMap { it.resourcesOf(client) }) {
+        // The monitor it is on (docks on each monitor show its windows); it may move.
+        val on: Set<WlOutput> = (facts.output?.let { listOf(it) } ?: Output.of(display)).flatMap { it.resourcesOf(client) }.toSet()
+        for (output in handle.outputs.toList()) {
+            if (output in on && output.isAlive) continue
+            handle.outputs -= output
+            if (output.isAlive) resource.sendOutputLeave(output)
+            changed = true
+        }
+        for (output in on) {
             if (handle.outputs.add(output)) {
                 resource.sendOutputEnter(output)
                 changed = true

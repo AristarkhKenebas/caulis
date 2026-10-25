@@ -7,7 +7,9 @@ import dev.caulis.core.Scratchpad
 import dev.caulis.core.TitleBarStyle
 import dev.caulis.core.TitleBars
 import dev.caulis.core.Window
+import dev.caulis.core.WorkspaceMode
 import dev.caulis.core.cursor.CursorTheme
+import dev.caulis.core.input.KeyBindings
 import dev.caulis.log.Log
 import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Direction
@@ -132,6 +134,65 @@ class Caulis {
      */
     var xwayland = true
 
+    // --- monitors -------------------------------------------------------------------------
+
+    /**
+     * How workspaces behave with several monitors: each shows its own and Super+N changes
+     * the one with the focus ([WorkspaceMode.PER_MONITOR], as i3 and sway), or one workspace
+     * spans them all and Super+N switches every monitor ([WorkspaceMode.SPANNING], as GNOME).
+     */
+    var workspaceMode = WorkspaceMode.PER_MONITOR
+
+    /** What one monitor should be like; see [monitor]. */
+    class MonitorSettings internal constructor(
+        /** Its connector: "eDP-1" (a laptop's screen), "DP-2", "HDMI-A-1", ... (the log lists them). */
+        val name: String,
+    ) {
+        /** Its own scale (else [Caulis.scale]). */
+        var scale: Double? = null
+
+        /** Where it is on the desktop, in desktop units (else to the right of the others). */
+        var x: Int? = null
+        var y: Int? = null
+
+        fun position(x: Int, y: Int) {
+            this.x = x
+            this.y = y
+        }
+
+        /** The mode it should use if it has it, e.g. 2560 x 1440 at 144 Hz (else its own preferred one). */
+        var width: Int? = null
+        var height: Int? = null
+        var refreshHz: Double? = null
+
+        fun mode(width: Int, height: Int, refreshHz: Double? = null) {
+            this.width = width
+            this.height = height
+            this.refreshHz = refreshHz
+        }
+
+        /** False: the monitor is not used at all. */
+        var enabled = true
+    }
+
+    internal val monitorSettings = LinkedHashMap<String, MonitorSettings>()
+
+    /**
+     * Settings of the monitor at connector [name], e.g.
+     * `monitor("DP-2") { scale = 1.5; position(1920, 0) }` or `monitor("HDMI-A-1") { enabled = false }`.
+     * Can be changed while running (scale and position).
+     */
+    fun monitor(name: String, settings: MonitorSettings.() -> Unit) {
+        monitorSettings.getOrPut(name) { MonitorSettings(name) }.apply(settings)
+        running?.applyMonitorSettings()
+    }
+
+    /**
+     * In a window inside another session: how many windows to open, each one a monitor of
+     * its own (named NESTED-1, NESTED-2, ...) — to try out a desktop with several monitors.
+     */
+    var nestedMonitors = 1
+
     /**
      * Start programs the Wayland way when they can (GTK, Qt, Electron, Firefox are told to
      * prefer it), and through X11 when that fails: a program that quits at once without a
@@ -200,11 +261,16 @@ class Caulis {
     var terminal = "foot"
 
     /**
-     * Use the usual keys (Super+Q, Super+1..9, Alt+Tab, ... see [defaultBindings]). Your own
-     * [bind] calls win over them. Ctrl+Alt+Backspace (quit) and Ctrl+Alt+F1..F12 (text
-     * consoles) are always there: you must never be locked in.
+     * The usual keys (Super+Q, Super+1..9, Alt+Tab, Ctrl+Alt+Backspace, ...): each has a
+     * name and can be changed or turned off, see [Keys]. Your own [bind] calls win over them.
      */
-    var useDefaultBindings = true
+    val keys = Keys()
+
+    /** Changes the usual keys: `keys { close = "Super+Shift+Q"; dumpState = null }` (see [Keys]). */
+    @JvmSynthetic
+    fun keys(configure: Keys.() -> Unit) {
+        keys.configure()
+    }
 
     /**
      * What programs started inside are told the desktop is called (`XDG_CURRENT_DESKTOP`).
@@ -285,6 +351,12 @@ class Caulis {
      */
     var overviewPinchFingers = 4
 
+    /**
+     * Swiping with this many fingers left / right goes to the next / previous workspace.
+     * 0 turns it off.
+     */
+    var workspaceSwipeFingers = 4
+
     internal class ScratchpadSetup(val name: String, val key: String?, val command: String?, val style: Scratchpad.Style, val match: (Window) -> Boolean)
     internal val windowOpened = ArrayList<Caulis.(Window) -> Unit>()
     internal val windowClosed = ArrayList<Caulis.(Window) -> Unit>()
@@ -294,6 +366,7 @@ class Caulis {
     /** Runs [action] when the key [combination] (e.g. "Super+Shift+Q") is pressed. */
     @JvmSynthetic // Java uses the Consumer version below
     fun bind(combination: String, action: Caulis.() -> Unit) {
+        KeyBindings.parse(combination) // a wrong name is reported here, not at the start
         bindings += combination to action
     }
 
@@ -404,6 +477,9 @@ class Caulis {
     fun terminal(command: String): Caulis = apply { terminal = command }
     fun lockCommand(command: String): Caulis = apply { lockCommand = command }
     fun scale(scale: Double): Caulis = apply { this.scale = scale }
+    fun workspaceMode(mode: WorkspaceMode): Caulis = apply { workspaceMode = mode }
+    fun monitor(name: String, settings: Consumer<MonitorSettings>): Caulis = apply { monitor(name) { settings.accept(this) } }
+    fun nestedMonitors(count: Int): Caulis = apply { nestedMonitors = count }
     fun waylandFirst(on: Boolean): Caulis = apply { waylandFirst = on }
     fun x11Program(name: String): Caulis = apply { x11Programs += name }
     fun sharpJavaScaling(on: Boolean): Caulis = apply { sharpJavaScaling = on }
@@ -420,6 +496,7 @@ class Caulis {
         keyboardLayouts = layouts
         keyboardOptions = options
     }
+    fun keys(configure: Consumer<Keys>): Caulis = apply { configure.accept(keys) }
     fun bind(combination: String, action: Consumer<Caulis>): Caulis = apply { bind(combination) { action.accept(this) } }
     fun onStart(action: Consumer<Caulis>): Caulis = apply { onStart { action.accept(this) } }
     fun floatWhen(rule: java.util.function.Predicate<Window>): Caulis = apply { floatWhen { rule.test(it) } }
@@ -451,6 +528,14 @@ class Caulis {
     }
 
     fun openTerminal() = launch(terminal)
+
+    /** Moves the focused window to the monitor beside its own in [direction]; false if there is none. */
+    fun moveToMonitorBeside(direction: Direction): Boolean {
+        val window = focusedWindow ?: return false
+        val target = desktop.monitorBeside(direction.dx, direction.dy, desktop.monitorOf(window)) ?: return false
+        desktop.moveToMonitor(window, target)
+        return true
+    }
 
     /** Locks the screen with [lockCommand]. */
     fun lock() = launch(lockCommand)
@@ -493,60 +578,6 @@ class Caulis {
         /** A new compositor with default settings (for Java; Kotlin can use [caulis]). */
         @JvmStatic
         fun create() = Caulis()
-
-        /** The usual swipes: four fingers left / right = next / previous workspace. */
-        val defaultSwipes: List<Triple<Int, Direction, Caulis.() -> Unit>> = listOf(
-            Triple(4, Direction.LEFT) { desktop.switchTo(desktop.activeWorkspace.number + 1) },
-            Triple(4, Direction.RIGHT) { desktop.switchTo((desktop.activeWorkspace.number - 1).coerceAtLeast(1)) },
-        )
-
-        /**
-         * The usual keys, active unless [useDefaultBindings] is false:
-         * Super+Return terminal, Super+Q close, Super+L lock the screen, Super+F12 write the
-         * state to the log, Super+Up maximize, Super+F fullscreen,
-         * Super+Down minimize, Super+V float/tile, Alt+Tab next window, Super+Tab overview
-         * (the whole workspace zoomed out; click a window to go there), Super+Left/Right
-         * focus neighbour, Super+1..9 workspace, Super+Shift+1..9 move window there.
-         * For layouts that remember things: Super+Shift+arrows move the window,
-         * Super+Ctrl+arrows resize it, Super+Alt+arrows preselect where the next window
-         * goes (trees) / move the view (canvas) / move into the next column (columns),
-         * Super+R rotate, Super+B balance, Super+W next column width, Super+S / Super+Shift+S
-         * next window side by side / below (manual tiling).
-         */
-        val defaultBindings: List<Pair<String, Caulis.() -> Unit>> = buildList {
-            add("Super+Return" to { openTerminal() })
-            add("Super+Q" to { closeFocused() })
-            add("Super+F12" to { dumpState() })
-            add("Super+L" to { lock() })
-            add("Super+Up" to { focusedWindow?.let { desktop.setMaximized(it, !it.maximized) } })
-            add("Super+F" to { focusedWindow?.let { desktop.setFullscreen(it, !it.fullscreen) } })
-            add("Super+Down" to { focusedWindow?.let(desktop::minimize) })
-            add("Super+V" to { focusedWindow?.let { desktop.setFloating(it, !desktop.isFloating(it)) } })
-            add("Alt+Tab" to { desktop.cycleFocus() })
-            add("Super+Tab" to { desktop.toggleOverview() })
-            add("Super+Left" to { desktop.focusDirection(-1, 0) })
-            add("Super+Right" to { desktop.focusDirection(1, 0) })
-            for (n in 1..9) {
-                add("Super+$n" to { desktop.switchTo(n) })
-                add("Super+Shift+$n" to { focusedWindow?.let { desktop.moveToWorkspace(it, n) } })
-            }
-            for (direction in Direction.entries) {
-                val key = direction.name.lowercase().replaceFirstChar(Char::uppercase) // "Left", ...
-                add("Super+Shift+$key" to { desktop.tilingCommand(TilingCommand.Move(direction)) })
-                add("Super+Ctrl+$key" to { desktop.tilingCommand(TilingCommand.Resize(direction)) })
-                // One key, whatever fits the layout: preselect, pan the canvas, or take into a column.
-                add("Super+Alt+$key" to {
-                    desktop.tilingCommand(TilingCommand.Preselect(direction)) ||
-                        desktop.tilingCommand(TilingCommand.Pan(direction)) ||
-                        desktop.tilingCommand(TilingCommand.Consume(direction))
-                })
-            }
-            add("Super+R" to { desktop.tilingCommand(TilingCommand.Rotate) })
-            add("Super+B" to { desktop.tilingCommand(TilingCommand.Balance) })
-            add("Super+W" to { desktop.tilingCommand(TilingCommand.CycleWidth) })
-            add("Super+S" to { desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = true)) })
-            add("Super+Shift+S" to { desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = false)) })
-        }
     }
 }
 

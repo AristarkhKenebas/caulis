@@ -11,7 +11,11 @@ import dev.caulis.render.GpuTexture
  *
  * Get one per monitor from [Desktop.createView].
  */
-class DesktopView internal constructor() {
+class DesktopView internal constructor(monitor: Monitor) {
+
+    /** The monitor this view shows. */
+    var monitor: Monitor = monitor
+        internal set
 
     // What the last frame on this screen showed, in drawing order.
     internal var shown: List<DrawItem> = emptyList()

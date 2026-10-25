@@ -71,7 +71,7 @@ class Xwayland(
 
     // The scale, as the router (on its own thread) sees it.
     @Volatile
-    private var scaleNow = desktop.scale
+    private var scaleNow = desktop.largestScale
 
     // The Xwayland ordinary programs go to now: the one at the screen's scale.
     private val usual: XServer get() = direct ?: worlds.getValue(scaleNow)
@@ -107,7 +107,7 @@ class Xwayland(
             router = XRouter(public) { who -> routeOf(who.pid, wholeScaleOf).listener.path }
         } else {
             privateDir = null
-            direct = server("X11", public, { desktop.scale }, onStopped = {})
+            direct = server("X11", public, { desktop.largestScale }, onStopped = {})
             router = null
         }
         // Only our Xwaylands may tie X windows to surfaces.
@@ -122,8 +122,9 @@ class Xwayland(
             }
         }
         // Xwayland works in pixels: the screen's real ones, or a whole number per unit.
-        Output.reportScaledTo(display) { client, output ->
-            servers.firstOrNull { it.client === client }?.let { server -> if (server === usual) output.scale else server.pixelScale() }
+        Output.reportScaledTo(display) { client, _ ->
+            // One pixel space for the whole X world: every monitor in its pixels (and so its place).
+            servers.firstOrNull { it.client === client }?.pixelScale?.invoke()
         }
         log.info { "X11 programs can use DISPLAY=$displayName (Xwayland starts with the first one)" }
     }
@@ -208,8 +209,8 @@ class Xwayland(
      * follows the scale (its programs keep their DPI until they are restarted).
      */
     fun rescaled() {
-        if (direct == null) synchronized(worlds) { world(desktop.scale) }
-        scaleNow = desktop.scale
+        if (direct == null) synchronized(worlds) { world(desktop.largestScale) }
+        scaleNow = desktop.largestScale
         for (server in servers) server.rescaled()
         if (direct == null) for (server in worlds.values.toList()) if (!server.running) forgetIfOld(server)
     }

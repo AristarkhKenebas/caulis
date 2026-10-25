@@ -105,8 +105,8 @@ class DrmOutput internal constructor(
      * applying, so a mode that does not work never reaches the screen). Returns false if
      * none works; the monitor then stays off and everything else continues.
      */
-    internal fun start(): Boolean {
-        for (candidate in modes.take(MAX_MODES_TO_TRY)) {
+    internal fun start(first: Mode? = null): Boolean {
+        for (candidate in (listOfNotNull(first) + modes.take(MAX_MODES_TO_TRY)).distinct()) {
             if (tryMode(candidate)) {
                 mode = candidate
                 needsModeset = true

@@ -5,14 +5,25 @@ import dev.caulis.tiling.Layout
 import dev.caulis.tiling.TilingModel
 
 /**
- * One virtual desktop: its windows and how they are arranged ([layout]). Only the active
- * workspace is on screen; windows on the others keep running slowly (see [Desktop]).
+ * One virtual desktop: its windows and how they are arranged ([layout]). Each monitor shows
+ * one workspace; windows on the others keep running slowly (see [Desktop]).
  */
 class Workspace internal constructor(
     /** 1, 2, 3, ... — what Super+1, Super+2, ... switch to. */
     val number: Int,
     layout: Layout,
+    /**
+     * The monitor it belongs to when every monitor has its own part of each workspace
+     * ([WorkspaceMode.SPANNING]); null when workspaces go wherever they are shown.
+     */
+    internal val homeMonitor: String? = null,
 ) {
+    // The name of the monitor that showed it last (it goes back there when that monitor returns).
+    internal var lastMonitorName: String? = null
+
+    /** The monitor it is shown on now, or was last (its windows are placed in its area). */
+    var monitor: Monitor? = null
+        internal set
     /** How tiled windows are placed; change it with [Desktop.setLayout]. */
     var layout: Layout = layout
         internal set(value) {
@@ -58,5 +69,5 @@ class Workspace internal constructor(
         floating -= window
     }
 
-    override fun toString() = "Workspace($number, ${layout.name}, ${windows.size} windows)"
+    override fun toString() = "Workspace($number${homeMonitor?.let { " on $it" } ?: ""}, ${layout.name}, ${windows.size} windows)"
 }

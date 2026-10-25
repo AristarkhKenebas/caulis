@@ -22,10 +22,12 @@ import java.nio.ByteOrder
 class TestClient(val connection: Connection) : AutoCloseable {
 
     private val names = HashMap<String, Int>()
+    private val outputNames = ArrayList<Int>()
     private val registry = connection.display.getRegistry().also { registry ->
         registry.events = object : WlRegistry.Events {
             override fun global(proxy: WlRegistry, name: Int, `interface`: String, versionArg: Int) {
                 names[`interface`] = name
+                if (`interface` == "wl_output") outputNames += name
             }
         }
         connection.roundtrip()
@@ -39,7 +41,9 @@ class TestClient(val connection: Connection) : AutoCloseable {
     val dmabuf: ZwpLinuxDmabufV1? = names["zwp_linux_dmabuf_v1"]?.let { registry.bind(it, ZwpLinuxDmabufV1, 4) }
     val layerShell: ZwlrLayerShellV1? = names["zwlr_layer_shell_v1"]?.let { registry.bind(it, ZwlrLayerShellV1, 4) }
     val sessionLock: ExtSessionLockManagerV1? = names["ext_session_lock_manager_v1"]?.let { registry.bind(it, ExtSessionLockManagerV1, 1) }
-    val output: WlOutput? = names["wl_output"]?.let { registry.bind(it, WlOutput, 4) }
+    /** Every monitor (wl_output), in the order the server offered them. */
+    val outputs: List<WlOutput> = outputNames.map { registry.bind(it, WlOutput, 4) }
+    val output: WlOutput? = outputs.firstOrNull()
     private val memory = SharedMemory.create("pictures", MAX_SIZE.toLong() * MAX_SIZE * 4)
 
     /** Binds another global the server offers (e.g. "wl_data_device_manager"). */

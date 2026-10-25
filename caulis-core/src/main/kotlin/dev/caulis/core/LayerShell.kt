@@ -41,7 +41,7 @@ class LayerShell(display: Display) {
                         return
                     }
                     if (!target.assignRole(Surface.Role.LAYER, resource, ZwlrLayerShellV1.Error.ROLE)) return
-                    LayerSurface(id, target, this@LayerShell, Layer.entries[layer], namespace)
+                    LayerSurface(id, target, this@LayerShell, Layer.entries[layer], namespace, output?.dataAs<Output>())
                 }
 
                 override fun destroy(resource: ZwlrLayerShellV1) {}
@@ -65,6 +65,8 @@ class LayerSurface internal constructor(
     layer: LayerShell.Layer,
     /** What the program says it is, e.g. "waybar", "wallpaper", "notifications". */
     val namespace: String,
+    /** The monitor the program wants it on, or null: the compositor chooses (the one with the focus). */
+    val output: Output? = null,
 ) {
     /** The state the program asked for (applied on its commit). */
     class State(
