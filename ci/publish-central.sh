@@ -4,12 +4,14 @@
 #   ci/publish-central.sh 0.1.0
 #
 # Needs, once:
-#   - the namespace dev.caulis verified on central.sonatype.com (a DNS TXT record on caulis.dev);
+#   - the namespace io.github.aristarkhkenebas verified on central.sonatype.com (Namespaces:
+#     signed in with GitHub it is verified already; else Central names a public repository to
+#     create on that GitHub account, for a moment, as the proof);
 #   - a GPG key (gpg --full-generate-key), its public part on a key server
 #     (gpg --keyserver keyserver.ubuntu.com --send-keys <id>); Gradle signs with gpg's agent;
 #   - a user token from central.sonatype.com (Account → Generate User Token), given as
 #     CENTRAL_TOKEN=$(printf '%s:%s' "<username>" "<password>" | base64 -w0);
-#   - caulis.website, caulis.scm, caulis.developer.id and .name set in gradle.properties.
+#   - caulis.website, caulis.scm, caulis.developer.id and .name in gradle.properties (set).
 #
 # The upload is checked by Central and waits there: it goes out only when you press "Publish"
 # on central.sonatype.com (Deployments). Nothing is published by this script alone.

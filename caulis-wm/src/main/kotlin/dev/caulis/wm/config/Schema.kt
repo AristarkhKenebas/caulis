@@ -1,10 +1,13 @@
 package dev.caulis.wm.config
 
+import dev.caulis.log.InternalCaulisApi
+
 /**
  * What a setting of the configuration file may be: read from JSON with plain messages
  * (and where), and described for Nix (typed options) and JSON Schema (editors) — one
  * description, so the limits are the same everywhere.
  */
+@InternalCaulisApi
 abstract class SettingType {
 
     /** The value of [json] in Kotlin terms, or null after adding what is wrong to [problems]. */
@@ -21,6 +24,7 @@ abstract class SettingType {
 }
 
 /** The mistakes found in a configuration, each with where it is. */
+@InternalCaulisApi
 class Problems {
     val all = ArrayList<String>()
 
@@ -34,6 +38,7 @@ class Problems {
 internal fun quote(text: String) = "\"" + text.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
 /** A whole number from [min] to [max]. */
+@InternalCaulisApi
 class IntegerType(val min: Int, val max: Int) : SettingType() {
     override val words get() = "a whole number from $min to $max"
 
@@ -49,6 +54,7 @@ class IntegerType(val min: Int, val max: Int) : SettingType() {
 }
 
 /** A number from [min] to [max]. */
+@InternalCaulisApi
 class DecimalType(val min: Double, val max: Double) : SettingType() {
     override val words get() = "a number from ${fmt(min)} to ${fmt(max)}"
 
@@ -64,6 +70,7 @@ class DecimalType(val min: Double, val max: Double) : SettingType() {
     private fun fmt(d: Double) = if (d == Math.floor(d)) d.toLong().toString() else d.toString()
 }
 
+@InternalCaulisApi
 object FlagType : SettingType() {
     override val words get() = "true or false"
 
@@ -75,6 +82,7 @@ object FlagType : SettingType() {
 }
 
 /** Any text (not empty). */
+@InternalCaulisApi
 class TextType(private val description: String = "text") : SettingType() {
     override val words get() = description
 
@@ -89,6 +97,7 @@ class TextType(private val description: String = "text") : SettingType() {
 }
 
 /** A regular expression: checked here, so a broken one is a problem with its line, not a failure later. */
+@InternalCaulisApi
 object RegexType : SettingType() {
     override val words get() = "a regular expression"
 
@@ -111,6 +120,7 @@ object RegexType : SettingType() {
  * A file: a name next to the configuration, `~/...` or `/...` — and in Nix also a path
  * (`./aurora.glsl`), which goes into the store and so into config.json as its store path.
  */
+@InternalCaulisApi
 class FileType(private val description: String = "a file name") : SettingType() {
     private val text = TextType(description)
     override val words get() = description
@@ -120,6 +130,7 @@ class FileType(private val description: String = "a file name") : SettingType() 
 }
 
 /** One of some names (case and - or _ do not matter); read as written in [values]. */
+@InternalCaulisApi
 class ChoiceType(val values: List<String>) : SettingType() {
     override val words get() = "one of ${values.joinToString { "\"$it\"" }}"
 
@@ -134,6 +145,7 @@ class ChoiceType(val values: List<String>) : SettingType() {
 }
 
 /** A colour as "#rrggbb" or "#rrggbbaa". */
+@InternalCaulisApi
 object ColorType : SettingType() {
     private val pattern = Regex("^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
     override val words get() = "a colour, \"#rrggbb\" or \"#rrggbbaa\""
@@ -149,6 +161,7 @@ object ColorType : SettingType() {
 }
 
 /** A list of [item], [min] to [max] long. */
+@InternalCaulisApi
 class ListType(val item: SettingType, val min: Int = 0, val max: Int = 1000) : SettingType() {
     override val words get() = if (min == max) "a list of $min (${item.words})" else "a list of ${item.words}"
 
@@ -170,6 +183,7 @@ class ListType(val item: SettingType, val min: Int = 0, val max: Int = 1000) : S
 }
 
 /** Names of the caller's choosing, each with a [value] (monitors by connector, keys and their actions). */
+@InternalCaulisApi
 class MapType(val value: SettingType, private val names: String = "name") : SettingType() {
     override val words get() = "$names → ${value.words}"
 
@@ -189,6 +203,7 @@ class MapType(val value: SettingType, private val names: String = "name") : Sett
 }
 
 /** [first] or [second] (e.g. a size for all sides, or one per side). */
+@InternalCaulisApi
 class EitherType(val first: SettingType, val second: SettingType) : SettingType() {
     override val words get() = "${first.words}, or ${second.words}"
 
@@ -213,6 +228,7 @@ class EitherType(val first: SettingType, val second: SettingType) : SettingType(
 }
 
 /** A setting that can be turned off: `false` (or null in JSON) means off. */
+@InternalCaulisApi
 class OffOrType(val value: SettingType) : SettingType() {
     override val words get() = "${value.words}, or false (off)"
 
@@ -225,13 +241,16 @@ class OffOrType(val value: SettingType) : SettingType() {
     override fun jsonSchema() = """{"anyOf":[{"const":false},{"type":"null"},${value.jsonSchema()}]}"""
 
     /** What a turned-off setting reads as. */
+    @InternalCaulisApi
     object Off
 }
 
 /** One field of a [SectionType]; a [required] one must be there. */
+@InternalCaulisApi
 class Field(val name: String, val type: SettingType, val description: String, val required: Boolean = false)
 
 /** An object with known fields (all of them optional); unknown names are mistakes. */
+@InternalCaulisApi
 class SectionType(val fields: List<Field>, private val description: String = "a section") : SettingType() {
     override val words get() = description
 

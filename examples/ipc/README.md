@@ -22,7 +22,7 @@ protoc --proto_path=../../caulis-ipc/src/main/proto --python_out=. caulis/ipc/v1
 python3 focused_title.py
 ```
 
-**From Kotlin or Java** — `dev.caulis:caulis-ipc` has a client:
+**From Kotlin or Java** — `io.github.aristarkhkenebas:caulis-ipc` has a client:
 
 ```kotlin
 CaulisIpc.connect().use { ipc ->

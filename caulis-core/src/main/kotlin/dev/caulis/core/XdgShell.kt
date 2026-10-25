@@ -459,7 +459,7 @@ class Positioner internal constructor(resource: XdgPositioner) {
     val width: Int get() = rules.width
     val height: Int get() = rules.height
 
-    class Rules(
+    internal class Rules(
         var width: Int = 0,
         var height: Int = 0,
         var anchorRect: Rect = Rect(0, 0, 0, 0),
@@ -568,7 +568,7 @@ class Positioner internal constructor(resource: XdgPositioner) {
         }
     }
 
-    fun copy() = rules.copy()
+    internal fun copy() = rules.copy()
 
     init {
         resource.data = this

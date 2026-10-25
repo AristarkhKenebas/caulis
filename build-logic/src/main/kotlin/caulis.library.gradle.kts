@@ -13,8 +13,8 @@ fun library(name: String) = libs.findLibrary(name).get()
 
 fun version(name: String) = libs.findVersion(name).get().requiredVersion.toInt()
 
-// How other builds name these modules, e.g. dev.caulis:caulis-core:0.1.0-SNAPSHOT.
-group = "dev.caulis"
+// How other builds name these modules, e.g. io.github.aristarkhkenebas:caulis-core:0.1.0-SNAPSHOT.
+group = "io.github.aristarkhkenebas"
 version = libs.findVersion("caulis").get().requiredVersion
 
 kotlin {
@@ -22,6 +22,9 @@ kotlin {
     jvmToolchain(version("java"))
     compilerOptions {
         jvmTarget = JvmTarget.fromTarget(version("java-bytecode").toString())
+        // Caulis's own modules may use each other's internals (dev.caulis.log.InternalCaulisApi);
+        // other code may not. (Modules below caulis-log do not know the annotation.)
+        if (project.name !in setOf("caulis-geometry", "caulis-tiling", "caulis-ipc")) optIn.add("dev.caulis.log.InternalCaulisApi")
     }
 }
 

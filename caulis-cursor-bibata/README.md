@@ -5,7 +5,7 @@ The [Bibata](https://github.com/ful1e5/Bibata_Cursor) cursor themes by Abdulkaiz
 nothing to install.
 
 ```kotlin
-implementation("dev.caulis:caulis-cursor-bibata:0.1.0-SNAPSHOT")
+implementation("io.github.aristarkhkenebas:caulis-cursor-bibata:0.1.0-SNAPSHOT")
 ```
 
 Included: `Bibata-Modern-Classic` (black, the default), `Bibata-Modern-Ice` (white) and

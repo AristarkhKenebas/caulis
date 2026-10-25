@@ -70,7 +70,7 @@ kotlin {
 tasks.withType<JavaCompile>().configureEach { options.release = 26 }
 
 dependencies {
-    implementation("dev.caulis:caulis-wm:0.1.0-SNAPSHOT")
+    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.0-SNAPSHOT")
 }
 
 application {
@@ -951,7 +951,7 @@ always.
 
 ## 19. Screenshots and screen sharing
 
-**Caulis's own screenshots** (the module `dev.caulis:caulis-screenshot`, if you want it in
+**Caulis's own screenshots** (the module `io.github.aristarkhkenebas:caulis-screenshot`, if you want it in
 your compositor):
 
 ```kotlin
@@ -1258,7 +1258,7 @@ can also say *when* and *how* — functions on keys, on events, on timers. Add t
 your compositor:
 
 ```kotlin
-implementation("dev.caulis:caulis-lua:0.1.0-SNAPSHOT")
+implementation("io.github.aristarkhkenebas:caulis-lua:0.1.0-SNAPSHOT")
 ```
 
 Then it reads `~/.config/<configName>/config.lua` by itself (after `config.json`, on top of
@@ -1342,7 +1342,7 @@ no project: the compositor compiles it itself. Add the module (it contains the K
 compiler, so it makes your compositor bigger):
 
 ```kotlin
-implementation("dev.caulis:caulis-script:0.1.0-SNAPSHOT")
+implementation("io.github.aristarkhkenebas:caulis-script:0.1.0-SNAPSHOT")
 ```
 
 `~/.config/<configName>/config.kts` is then read after `config.json` and `config.lua`, as if

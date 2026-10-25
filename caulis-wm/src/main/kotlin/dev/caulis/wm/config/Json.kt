@@ -1,19 +1,28 @@
 package dev.caulis.wm.config
 
+import dev.caulis.log.InternalCaulisApi
+
 /**
  * A JSON value as read from a configuration file, with where it was (for messages that
  * point at the line): an object, a list, a string, a number, true/false or null.
  */
+@InternalCaulisApi
 sealed class JsonValue {
     /** Line and column (from 1) where it starts in the file. */
     abstract val line: Int
     abstract val column: Int
 
+    @InternalCaulisApi
     data class Obj(val fields: LinkedHashMap<String, JsonValue>, override val line: Int, override val column: Int) : JsonValue()
+    @InternalCaulisApi
     data class Arr(val items: List<JsonValue>, override val line: Int, override val column: Int) : JsonValue()
+    @InternalCaulisApi
     data class Str(val value: String, override val line: Int, override val column: Int) : JsonValue()
+    @InternalCaulisApi
     data class Num(val value: Double, override val line: Int, override val column: Int) : JsonValue()
+    @InternalCaulisApi
     data class Bool(val value: Boolean, override val line: Int, override val column: Int) : JsonValue()
+    @InternalCaulisApi
     data class Null(override val line: Int, override val column: Int) : JsonValue()
 
     /** What it is, in words, for messages. */
@@ -29,12 +38,14 @@ sealed class JsonValue {
 }
 
 /** A mistake in a JSON file: what, and where. */
+@InternalCaulisApi
 class JsonException(message: String, val line: Int, val column: Int) : Exception("line $line, column $column: $message")
 
 /**
  * Reads JSON (as Nix writes it, or by hand: comments with // and /* */ and a comma after
  * the last item are forgiven, as people write them).
  */
+@InternalCaulisApi
 object Json {
 
     /** How deep lists and sections may be nested. */

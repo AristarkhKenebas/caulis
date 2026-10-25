@@ -1,10 +1,12 @@
 package dev.caulis.ffi
 
+import dev.caulis.log.InternalCaulisApi
 import dev.caulis.ffi.c.libc.LibC
 import java.lang.foreign.Arena
 import java.nio.file.Path
 
 /** Opening device files such as /dev/dri/renderD128. */
+@InternalCaulisApi
 object Device {
     /** Opens [path] for reading and writing; the descriptor is not inherited by child processes. */
     fun open(path: Path): Fd = Arena.ofConfined().use { temp ->

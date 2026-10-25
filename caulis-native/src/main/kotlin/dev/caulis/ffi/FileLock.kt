@@ -1,5 +1,6 @@
 package dev.caulis.ffi
 
+import dev.caulis.log.InternalCaulisApi
 import dev.caulis.ffi.c.libc.LibC
 import java.lang.foreign.Arena
 import java.nio.file.Path
@@ -10,6 +11,7 @@ import java.nio.file.Path
  * Uses flock(), the same kind of lock libwayland uses for `wayland-N.lock`, so Caulis
  * and other compositors see each other's locks.
  */
+@InternalCaulisApi
 class FileLock private constructor(private val fd: Fd) : AutoCloseable {
 
     override fun close() = fd.close() // closing the file releases the lock

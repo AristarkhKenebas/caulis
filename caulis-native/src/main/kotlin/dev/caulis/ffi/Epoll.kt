@@ -1,5 +1,6 @@
 package dev.caulis.ffi
 
+import dev.caulis.log.InternalCaulisApi
 import dev.caulis.ffi.c.libc.LibC
 import dev.caulis.ffi.c.libc.epoll_data
 import dev.caulis.ffi.c.libc.epoll_event
@@ -18,6 +19,7 @@ import java.lang.foreign.Arena
  *
  * Not thread-safe: use one [Epoll] from one thread (the event loop thread).
  */
+@InternalCaulisApi
 class Epoll : AutoCloseable {
 
     private val epoll = Fd.adopt(Libc.epollCreate(LibC.EPOLL_CLOEXEC()))

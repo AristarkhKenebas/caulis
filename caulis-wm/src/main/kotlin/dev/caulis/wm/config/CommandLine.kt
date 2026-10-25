@@ -1,5 +1,6 @@
 package dev.caulis.wm.config
 
+import dev.caulis.log.InternalCaulisApi
 import dev.caulis.ipc.CaulisIpc
 import dev.caulis.ipc.IpcException
 import dev.caulis.ipc.v1.EventKind
@@ -27,6 +28,7 @@ import java.nio.file.Path
  * my-compositor --print-lua-stubs                LuaLS annotations of the caulis table (for your editor)
  * ```
  */
+@InternalCaulisApi
 object CommandLine {
 
     /** The exit status if the command line asked for one of these; null: start as usual. */

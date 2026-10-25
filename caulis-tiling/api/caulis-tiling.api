@@ -1,0 +1,351 @@
+public final class dev/caulis/tiling/BinaryTree : dev/caulis/tiling/RememberingLayout {
+	public fun <init> ()V
+	public fun <init> (Ldev/caulis/tiling/Gaps;)V
+	public fun <init> (Ldev/caulis/tiling/Gaps;Ldev/caulis/tiling/Insertion;)V
+	public fun <init> (Ldev/caulis/tiling/Gaps;Ldev/caulis/tiling/Insertion;Ljava/lang/String;)V
+	public fun <init> (Ldev/caulis/tiling/Gaps;Ldev/caulis/tiling/Insertion;Ljava/lang/String;D)V
+	public synthetic fun <init> (Ldev/caulis/tiling/Gaps;Ldev/caulis/tiling/Insertion;Ljava/lang/String;DILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun createModel ()Ldev/caulis/tiling/TilingModel;
+}
+
+public final class dev/caulis/tiling/Canvas : dev/caulis/tiling/RememberingLayout {
+	public fun <init> ()V
+	public fun <init> (Ldev/caulis/tiling/Gaps;IIII)V
+	public synthetic fun <init> (Ldev/caulis/tiling/Gaps;IIIIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun createModel ()Ldev/caulis/tiling/TilingModel;
+}
+
+public final class dev/caulis/tiling/Direction : java/lang/Enum {
+	public static final field DOWN Ldev/caulis/tiling/Direction;
+	public static final field LEFT Ldev/caulis/tiling/Direction;
+	public static final field RIGHT Ldev/caulis/tiling/Direction;
+	public static final field UP Ldev/caulis/tiling/Direction;
+	public final fun getDx ()I
+	public final fun getDy ()I
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getHorizontal ()Z
+	public final fun getOpposite ()Ldev/caulis/tiling/Direction;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/tiling/Direction;
+	public static fun values ()[Ldev/caulis/tiling/Direction;
+}
+
+public final class dev/caulis/tiling/Floating : dev/caulis/tiling/Layout {
+	public static final field INSTANCE Ldev/caulis/tiling/Floating;
+	public fun arrange (Ljava/util/List;Ldev/caulis/geometry/Rect;I)Ljava/util/List;
+	public fun createModel ()Ldev/caulis/tiling/TilingModel;
+	public fun getName ()Ljava/lang/String;
+}
+
+public final class dev/caulis/tiling/Gaps {
+	public static final field Companion Ldev/caulis/tiling/Gaps$Companion;
+	public static final field MAX I
+	public fun <init> ()V
+	public fun <init> (I)V
+	public fun <init> (II)V
+	public fun <init> (III)V
+	public fun <init> (IIII)V
+	public fun <init> (IIIII)V
+	public fun <init> (IIIIII)V
+	public synthetic fun <init> (IIIIIIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5 ()I
+	public final fun component6 ()I
+	public final fun copy (IIIIII)Ldev/caulis/tiling/Gaps;
+	public static synthetic fun copy$default (Ldev/caulis/tiling/Gaps;IIIIIIILjava/lang/Object;)Ldev/caulis/tiling/Gaps;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBottom ()I
+	public final fun getInner ()I
+	public final fun getLeft ()I
+	public final fun getOuter ()I
+	public final fun getRight ()I
+	public final fun getTop ()I
+	public fun hashCode ()I
+	public final fun inset (Ldev/caulis/geometry/Rect;)Ldev/caulis/geometry/Rect;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/tiling/Gaps$Companion {
+}
+
+public final class dev/caulis/tiling/Insertion : java/lang/Enum {
+	public static final field ALTERNATE Ldev/caulis/tiling/Insertion;
+	public static final field LONGEST_SIDE Ldev/caulis/tiling/Insertion;
+	public static final field SPIRAL Ldev/caulis/tiling/Insertion;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/tiling/Insertion;
+	public static fun values ()[Ldev/caulis/tiling/Insertion;
+}
+
+public abstract interface class dev/caulis/tiling/Layout {
+	public abstract fun arrange (Ljava/util/List;Ldev/caulis/geometry/Rect;I)Ljava/util/List;
+	public fun createModel ()Ldev/caulis/tiling/TilingModel;
+	public abstract fun getName ()Ljava/lang/String;
+}
+
+public final class dev/caulis/tiling/Layout$DefaultImpls {
+	public static fun createModel (Ldev/caulis/tiling/Layout;)Ldev/caulis/tiling/TilingModel;
+}
+
+public abstract interface class dev/caulis/tiling/LayoutWindow {
+	public abstract fun getAppId ()Ljava/lang/String;
+	public abstract fun getMaxHeight ()I
+	public abstract fun getMaxWidth ()I
+	public abstract fun getMinHeight ()I
+	public abstract fun getMinWidth ()I
+	public abstract fun getTitle ()Ljava/lang/String;
+}
+
+public final class dev/caulis/tiling/Layouts {
+	public static final fun CenteredMaster (Ldev/caulis/tiling/Gaps;D)Ldev/caulis/tiling/Layout;
+	public static synthetic fun CenteredMaster$default (Ldev/caulis/tiling/Gaps;DILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun Columns (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
+	public static synthetic fun Columns$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun Dwindle (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
+	public static synthetic fun Dwindle$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun Grid (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
+	public static synthetic fun Grid$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun MasterStack (Ldev/caulis/tiling/Gaps;DLdev/caulis/tiling/Side;)Ldev/caulis/tiling/Layout;
+	public static synthetic fun MasterStack$default (Ldev/caulis/tiling/Gaps;DLdev/caulis/tiling/Side;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun MasterStrips (Ldev/caulis/tiling/Gaps;DI)Ldev/caulis/tiling/Layout;
+	public static synthetic fun MasterStrips$default (Ldev/caulis/tiling/Gaps;DIILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun Monocle (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
+	public static synthetic fun Monocle$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun Rows (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
+	public static synthetic fun Rows$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun Spiral (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
+	public static synthetic fun Spiral$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun builtInLayouts (Ldev/caulis/tiling/Gaps;)Ljava/util/List;
+	public static synthetic fun builtInLayouts$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ljava/util/List;
+}
+
+public final class dev/caulis/tiling/ManualTiling : dev/caulis/tiling/RememberingLayout {
+	public fun <init> ()V
+	public fun <init> (Ldev/caulis/tiling/Gaps;)V
+	public synthetic fun <init> (Ldev/caulis/tiling/Gaps;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun createModel ()Ldev/caulis/tiling/TilingModel;
+}
+
+public final class dev/caulis/tiling/MasterLayout : dev/caulis/tiling/RememberingLayout {
+	public fun <init> ()V
+	public fun <init> (Ldev/caulis/tiling/Gaps;)V
+	public fun <init> (Ldev/caulis/tiling/Gaps;D)V
+	public fun <init> (Ldev/caulis/tiling/Gaps;DLdev/caulis/tiling/Side;)V
+	public fun <init> (Ldev/caulis/tiling/Gaps;DLdev/caulis/tiling/Side;I)V
+	public fun <init> (Ldev/caulis/tiling/Gaps;DLdev/caulis/tiling/Side;ILdev/caulis/tiling/NewWindow;)V
+	public synthetic fun <init> (Ldev/caulis/tiling/Gaps;DLdev/caulis/tiling/Side;ILdev/caulis/tiling/NewWindow;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun createModel ()Ldev/caulis/tiling/TilingModel;
+}
+
+public final class dev/caulis/tiling/NewWindow : java/lang/Enum {
+	public static final field MASTER Ldev/caulis/tiling/NewWindow;
+	public static final field STACK_END Ldev/caulis/tiling/NewWindow;
+	public static final field STACK_TOP Ldev/caulis/tiling/NewWindow;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/tiling/NewWindow;
+	public static fun values ()[Ldev/caulis/tiling/NewWindow;
+}
+
+public abstract class dev/caulis/tiling/RememberingLayout : dev/caulis/tiling/Layout {
+	public fun <init> (Ljava/lang/String;)V
+	public fun arrange (Ljava/util/List;Ldev/caulis/geometry/Rect;I)Ljava/util/List;
+	public abstract fun createModel ()Ldev/caulis/tiling/TilingModel;
+	public fun getName ()Ljava/lang/String;
+}
+
+public final class dev/caulis/tiling/ScrollingColumns : dev/caulis/tiling/RememberingLayout {
+	public fun <init> ()V
+	public fun <init> (Ldev/caulis/tiling/Gaps;)V
+	public fun <init> (Ldev/caulis/tiling/Gaps;Ljava/util/List;)V
+	public fun <init> (Ldev/caulis/tiling/Gaps;Ljava/util/List;D)V
+	public fun <init> (Ldev/caulis/tiling/Gaps;Ljava/util/List;DZ)V
+	public synthetic fun <init> (Ldev/caulis/tiling/Gaps;Ljava/util/List;DZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun createModel ()Ldev/caulis/tiling/TilingModel;
+}
+
+public final class dev/caulis/tiling/Side : java/lang/Enum {
+	public static final field BOTTOM Ldev/caulis/tiling/Side;
+	public static final field LEFT Ldev/caulis/tiling/Side;
+	public static final field RIGHT Ldev/caulis/tiling/Side;
+	public static final field TOP Ldev/caulis/tiling/Side;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/tiling/Side;
+	public static fun values ()[Ldev/caulis/tiling/Side;
+}
+
+public final class dev/caulis/tiling/Split {
+	public static final field INSTANCE Ldev/caulis/tiling/Split;
+	public final fun evenly (Ldev/caulis/geometry/Rect;IIZ)Ljava/util/List;
+	public final fun sizes (III)Ljava/util/List;
+	public final fun two (Ldev/caulis/geometry/Rect;DIZ)Lkotlin/Pair;
+	public final fun weighted (ILjava/util/List;I)Ljava/util/List;
+}
+
+public abstract interface class dev/caulis/tiling/TilingCommand {
+}
+
+public final class dev/caulis/tiling/TilingCommand$Balance : dev/caulis/tiling/TilingCommand {
+	public static final field INSTANCE Ldev/caulis/tiling/TilingCommand$Balance;
+}
+
+public final class dev/caulis/tiling/TilingCommand$Consume : dev/caulis/tiling/TilingCommand {
+	public fun <init> (Ldev/caulis/tiling/Direction;)V
+	public final fun component1 ()Ldev/caulis/tiling/Direction;
+	public final fun copy (Ldev/caulis/tiling/Direction;)Ldev/caulis/tiling/TilingCommand$Consume;
+	public static synthetic fun copy$default (Ldev/caulis/tiling/TilingCommand$Consume;Ldev/caulis/tiling/Direction;ILjava/lang/Object;)Ldev/caulis/tiling/TilingCommand$Consume;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDirection ()Ldev/caulis/tiling/Direction;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/tiling/TilingCommand$CycleWidth : dev/caulis/tiling/TilingCommand {
+	public static final field INSTANCE Ldev/caulis/tiling/TilingCommand$CycleWidth;
+}
+
+public final class dev/caulis/tiling/TilingCommand$Message : dev/caulis/tiling/TilingCommand {
+	public static final field Companion Ldev/caulis/tiling/TilingCommand$Message$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Ldev/caulis/tiling/TilingCommand$Message;
+	public static synthetic fun copy$default (Ldev/caulis/tiling/TilingCommand$Message;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/caulis/tiling/TilingCommand$Message;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgument ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public final fun number (D)D
+	public static final fun of (Ljava/lang/String;)Ldev/caulis/tiling/TilingCommand$Message;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/tiling/TilingCommand$Message$Companion {
+	public final fun of (Ljava/lang/String;)Ldev/caulis/tiling/TilingCommand$Message;
+}
+
+public final class dev/caulis/tiling/TilingCommand$Move : dev/caulis/tiling/TilingCommand {
+	public fun <init> (Ldev/caulis/tiling/Direction;)V
+	public final fun component1 ()Ldev/caulis/tiling/Direction;
+	public final fun copy (Ldev/caulis/tiling/Direction;)Ldev/caulis/tiling/TilingCommand$Move;
+	public static synthetic fun copy$default (Ldev/caulis/tiling/TilingCommand$Move;Ldev/caulis/tiling/Direction;ILjava/lang/Object;)Ldev/caulis/tiling/TilingCommand$Move;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDirection ()Ldev/caulis/tiling/Direction;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/tiling/TilingCommand$Pan : dev/caulis/tiling/TilingCommand {
+	public fun <init> (Ldev/caulis/tiling/Direction;)V
+	public final fun component1 ()Ldev/caulis/tiling/Direction;
+	public final fun copy (Ldev/caulis/tiling/Direction;)Ldev/caulis/tiling/TilingCommand$Pan;
+	public static synthetic fun copy$default (Ldev/caulis/tiling/TilingCommand$Pan;Ldev/caulis/tiling/Direction;ILjava/lang/Object;)Ldev/caulis/tiling/TilingCommand$Pan;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDirection ()Ldev/caulis/tiling/Direction;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/tiling/TilingCommand$PanBy : dev/caulis/tiling/TilingCommand {
+	public fun <init> (II)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun copy (II)Ldev/caulis/tiling/TilingCommand$PanBy;
+	public static synthetic fun copy$default (Ldev/caulis/tiling/TilingCommand$PanBy;IIILjava/lang/Object;)Ldev/caulis/tiling/TilingCommand$PanBy;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDx ()I
+	public final fun getDy ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/tiling/TilingCommand$Preselect : dev/caulis/tiling/TilingCommand {
+	public fun <init> (Ldev/caulis/tiling/Direction;)V
+	public final fun component1 ()Ldev/caulis/tiling/Direction;
+	public final fun copy (Ldev/caulis/tiling/Direction;)Ldev/caulis/tiling/TilingCommand$Preselect;
+	public static synthetic fun copy$default (Ldev/caulis/tiling/TilingCommand$Preselect;Ldev/caulis/tiling/Direction;ILjava/lang/Object;)Ldev/caulis/tiling/TilingCommand$Preselect;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDirection ()Ldev/caulis/tiling/Direction;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/tiling/TilingCommand$Resize : dev/caulis/tiling/TilingCommand {
+	public fun <init> (Ldev/caulis/tiling/Direction;D)V
+	public synthetic fun <init> (Ldev/caulis/tiling/Direction;DILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ldev/caulis/tiling/Direction;
+	public final fun component2 ()D
+	public final fun copy (Ldev/caulis/tiling/Direction;D)Ldev/caulis/tiling/TilingCommand$Resize;
+	public static synthetic fun copy$default (Ldev/caulis/tiling/TilingCommand$Resize;Ldev/caulis/tiling/Direction;DILjava/lang/Object;)Ldev/caulis/tiling/TilingCommand$Resize;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAmount ()D
+	public final fun getDirection ()Ldev/caulis/tiling/Direction;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/tiling/TilingCommand$Rotate : dev/caulis/tiling/TilingCommand {
+	public static final field INSTANCE Ldev/caulis/tiling/TilingCommand$Rotate;
+}
+
+public final class dev/caulis/tiling/TilingCommand$SplitNext : dev/caulis/tiling/TilingCommand {
+	public fun <init> (Z)V
+	public final fun component1 ()Z
+	public final fun copy (Z)Ldev/caulis/tiling/TilingCommand$SplitNext;
+	public static synthetic fun copy$default (Ldev/caulis/tiling/TilingCommand$SplitNext;ZILjava/lang/Object;)Ldev/caulis/tiling/TilingCommand$SplitNext;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSideBySide ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/tiling/TilingKt {
+	public static final fun tiling (Ljava/lang/String;Ldev/caulis/tiling/Gaps;Lkotlin/jvm/functions/Function1;)Ldev/caulis/tiling/Layout;
+	public static synthetic fun tiling$default (Ljava/lang/String;Ldev/caulis/tiling/Gaps;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+}
+
+public abstract interface class dev/caulis/tiling/TilingModel {
+	public abstract fun arrange (Ljava/util/List;Ldev/caulis/geometry/Rect;Ldev/caulis/tiling/LayoutWindow;)Ljava/util/List;
+	public fun command (Ldev/caulis/tiling/TilingCommand;Ldev/caulis/tiling/LayoutWindow;)Z
+	public fun forget (Ldev/caulis/tiling/LayoutWindow;)V
+	public fun takeFocus ()Ldev/caulis/tiling/LayoutWindow;
+}
+
+public final class dev/caulis/tiling/TilingModel$DefaultImpls {
+	public static fun command (Ldev/caulis/tiling/TilingModel;Ldev/caulis/tiling/TilingCommand;Ldev/caulis/tiling/LayoutWindow;)Z
+	public static fun forget (Ldev/caulis/tiling/TilingModel;Ldev/caulis/tiling/LayoutWindow;)V
+	public static fun takeFocus (Ldev/caulis/tiling/TilingModel;)Ldev/caulis/tiling/LayoutWindow;
+}
+
+public final class dev/caulis/tiling/TilingScope {
+	public final fun accordion (II)V
+	public static synthetic fun accordion$default (Ldev/caulis/tiling/TilingScope;IIILjava/lang/Object;)V
+	public final fun column (ILkotlin/jvm/functions/Function1;)V
+	public static synthetic fun column$default (Ldev/caulis/tiling/TilingScope;ILkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun dwindle (I)V
+	public static synthetic fun dwindle$default (Ldev/caulis/tiling/TilingScope;IILjava/lang/Object;)V
+	public final fun getCount ()I
+	public final fun getFocused ()I
+	public final fun grid (I)V
+	public static synthetic fun grid$default (Ldev/caulis/tiling/TilingScope;IILjava/lang/Object;)V
+	public final fun monocle (I)V
+	public static synthetic fun monocle$default (Ldev/caulis/tiling/TilingScope;IILjava/lang/Object;)V
+	public final fun rest (I)V
+	public static synthetic fun rest$default (Ldev/caulis/tiling/TilingScope;IILjava/lang/Object;)V
+	public final fun row (ILkotlin/jvm/functions/Function1;)V
+	public static synthetic fun row$default (Ldev/caulis/tiling/TilingScope;ILkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun share (III)V
+	public static synthetic fun share$default (Ldev/caulis/tiling/TilingScope;IIIILjava/lang/Object;)V
+	public final fun spiral (I)V
+	public static synthetic fun spiral$default (Ldev/caulis/tiling/TilingScope;IILjava/lang/Object;)V
+	public final fun window (I)V
+	public static synthetic fun window$default (Ldev/caulis/tiling/TilingScope;IILjava/lang/Object;)V
+}
+
+public final class dev/caulis/tiling/TreesKt {
+	public static final fun BspSpiral (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
+	public static synthetic fun BspSpiral$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+}
+

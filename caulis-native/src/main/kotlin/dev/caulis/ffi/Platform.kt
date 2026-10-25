@@ -1,11 +1,13 @@
 package dev.caulis.ffi
 
+import dev.caulis.log.InternalCaulisApi
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.Linker
 import java.lang.foreign.ValueLayout
 import java.lang.invoke.MethodHandle
 
 /** Facts about the system Caulis runs on. */
+@InternalCaulisApi
 object Platform {
 
     // A ready-to-call handle to the C function `int getpid(void)`.

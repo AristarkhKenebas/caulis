@@ -1,0 +1,40 @@
+public final class dev/caulis/xwayland/WholeScalePrograms {
+	public static final field INSTANCE Ldev/caulis/xwayland/WholeScalePrograms;
+	public static final fun scaleOf (I)Ljava/lang/Integer;
+}
+
+public final class dev/caulis/xwayland/XWindow : dev/caulis/core/Window {
+	public fun close ()V
+	public fun configure (II)V
+	public fun getConfigured ()Z
+	public fun getConfiguredSize ()Lkotlin/Pair;
+	public final fun getId ()I
+	public fun getMapped ()Z
+	public fun getNeedsTitleBar ()Z
+	public final fun getOverrideRedirect ()Z
+	public fun getPid ()I
+	public fun getPrefersFloating ()Z
+	public fun getSurface ()Ldev/caulis/core/Surface;
+	public fun getVisibleRect ()Ldev/caulis/geometry/Rect;
+	public fun setActivated (Z)V
+	public fun setMinimized (Z)V
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/xwayland/Xwayland : java/lang/AutoCloseable {
+	public fun <init> (Ldev/caulis/protocol/Display;Ldev/caulis/core/Desktop;Ldev/caulis/event/EventLoop;Ldev/caulis/core/DataDeviceManager;IZLkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Ldev/caulis/protocol/Display;Ldev/caulis/core/Desktop;Ldev/caulis/event/EventLoop;Ldev/caulis/core/DataDeviceManager;IZLkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun close ()V
+	public final fun cursorChanged ()V
+	public final fun getDisplayName ()Ljava/lang/String;
+	public final fun getRunning ()Z
+	public final fun getXwm ()Ldev/caulis/xwayland/Xwm;
+	public final fun rescaled ()V
+}
+
+public final class dev/caulis/xwayland/Xwm : java/lang/AutoCloseable {
+	public fun close ()V
+	public final fun getAll ()Ljava/util/Collection;
+	public final fun rescaled ()V
+}
+

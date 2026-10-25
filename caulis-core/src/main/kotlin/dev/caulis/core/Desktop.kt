@@ -38,6 +38,7 @@ class Desktop(
         // windows of its own: without this it would connect to the X server of DISPLAY (the
         // outer session's, or one that is gone) and fail when it cannot.
         if (System.getProperty("java.awt.headless") == null) System.setProperty("java.awt.headless", "true")
+        warmUpFonts()
         // A shader file was saved: draw with its new code (only a weak link: tests make many desktops).
         val me = java.lang.ref.WeakReference(this)
         val listener: () -> Unit = {
@@ -4693,5 +4694,32 @@ class Desktop(
 
         /** How often programs nobody sees may draw a frame (they must not freeze completely). */
         const val HIDDEN_REFRESH_MILLIS = 1000L
+    }
+}
+
+// Java reads the system's fonts the first time text is measured — a second or more on a
+// cold start. Done on a thread of its own as soon as a desktop exists, so the first title
+// bar or notice does not stop the compositor for it. (Once per program.)
+private val fontsWarm = java.util.concurrent.atomic.AtomicBoolean()
+
+private fun warmUpFonts() {
+    if (!fontsWarm.compareAndSet(false, true)) return
+    Thread.ofPlatform().daemon().name("caulis-fonts").start {
+        val log = Logger("render")
+        val start = System.nanoTime()
+        try {
+            val g = java.awt.image.BufferedImage(1, 1, java.awt.image.BufferedImage.TYPE_INT_ARGB_PRE).createGraphics()
+            try {
+                for (style in listOf(java.awt.Font.PLAIN, java.awt.Font.BOLD)) {
+                    g.font = java.awt.Font(java.awt.Font.SANS_SERIF, style, 13)
+                    g.fontMetrics.stringWidth("Caulis Каулис")
+                }
+            } finally {
+                g.dispose()
+            }
+            log.info { "Fonts ready in ${(System.nanoTime() - start) / 1_000_000} ms" }
+        } catch (e: Throwable) {
+            log.warn("Fonts could not be read ahead: $e")
+        }
     }
 }

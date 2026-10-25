@@ -1,5 +1,6 @@
 package dev.caulis.core.dbus
 
+import dev.caulis.log.InternalCaulisApi
 import dev.caulis.event.EventLoop
 import dev.caulis.ffi.Fd
 import dev.caulis.ffi.UnixSocket
@@ -15,9 +16,11 @@ import java.nio.file.Path
 
 /** An object path on the bus ("/org/freedesktop/login1"): its own type, as D-Bus has it. */
 @JvmInline
+@InternalCaulisApi
 value class ObjectPath(val value: String)
 
 /** A message from the bus: a method's reply or error, or a signal. */
+@InternalCaulisApi
 class DBusMessage internal constructor(
     val type: Int,
     val serial: Int,
@@ -49,6 +52,7 @@ class DBusMessage internal constructor(
  * the session bus — on the compositor's event loop: no thread, no library. Enough of the wire
  * format for what a compositor asks: the basic types, arrays, structs, file descriptors.
  */
+@InternalCaulisApi
 class DBusConnection private constructor(private val socket: UnixSocket, private val loop: EventLoop) : AutoCloseable {
 
     private val log = Logger("dbus")

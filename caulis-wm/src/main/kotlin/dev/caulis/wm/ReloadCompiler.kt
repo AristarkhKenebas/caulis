@@ -1,5 +1,6 @@
 package dev.caulis.wm
 
+import dev.caulis.log.InternalCaulisApi
 import java.nio.file.Path
 
 /**
@@ -10,6 +11,7 @@ import java.nio.file.Path
  *
  * Found with [java.util.ServiceLoader].
  */
+@InternalCaulisApi
 interface ReloadCompiler {
 
     /**
@@ -44,5 +46,6 @@ interface ReloadCompiler {
     fun close() {}
 
     /** Whether it compiled, and the problems as "src/main/kotlin/Main.kt:15: Unresolved reference 'x'". */
+    @InternalCaulisApi
     class Result(val compiled: Boolean, val problems: List<String>)
 }

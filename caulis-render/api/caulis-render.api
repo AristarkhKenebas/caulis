@@ -1,0 +1,310 @@
+public final class dev/caulis/render/BlurTone {
+	public static final field Companion Ldev/caulis/render/BlurTone$Companion;
+	public static final field HYPRLAND Ldev/caulis/render/BlurTone;
+	public static final field NONE Ldev/caulis/render/BlurTone;
+	public fun <init> ()V
+	public fun <init> (F)V
+	public fun <init> (FF)V
+	public fun <init> (FFF)V
+	public fun <init> (FFFF)V
+	public synthetic fun <init> (FFFFILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()F
+	public final fun component2 ()F
+	public final fun component3 ()F
+	public final fun component4 ()F
+	public final fun copy (FFFF)Ldev/caulis/render/BlurTone;
+	public static synthetic fun copy$default (Ldev/caulis/render/BlurTone;FFFFILjava/lang/Object;)Ldev/caulis/render/BlurTone;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBrightness ()F
+	public final fun getContrast ()F
+	public final fun getNoise ()F
+	public final fun getVibrancy ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/render/BlurTone$Companion {
+}
+
+public final class dev/caulis/render/Color {
+	public static final field BLACK Ldev/caulis/render/Color;
+	public static final field Companion Ldev/caulis/render/Color$Companion;
+	public static final field TRANSPARENT Ldev/caulis/render/Color;
+	public static final field WHITE Ldev/caulis/render/Color;
+	public fun <init> (FFFF)V
+	public synthetic fun <init> (FFFFILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()F
+	public final fun component2 ()F
+	public final fun component3 ()F
+	public final fun component4 ()F
+	public final fun copy (FFFF)Ldev/caulis/render/Color;
+	public static synthetic fun copy$default (Ldev/caulis/render/Color;FFFFILjava/lang/Object;)Ldev/caulis/render/Color;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAlpha ()F
+	public final fun getBlue ()F
+	public final fun getGreen ()F
+	public final fun getRed ()F
+	public fun hashCode ()I
+	public static final fun hex (Ljava/lang/String;)Ldev/caulis/render/Color;
+	public fun toString ()Ljava/lang/String;
+	public final fun withAlpha (F)Ldev/caulis/render/Color;
+}
+
+public final class dev/caulis/render/Color$Companion {
+	public final fun hex (Ljava/lang/String;)Ldev/caulis/render/Color;
+}
+
+public final class dev/caulis/render/Dmabuf : java/lang/AutoCloseable {
+	public static final field Companion Ldev/caulis/render/Dmabuf$Companion;
+	public static final field MODIFIER_INVALID J
+	public static final field MODIFIER_LINEAR J
+	public fun <init> (IIIJLjava/util/List;)V
+	public fun close ()V
+	public final fun getFormat ()I
+	public final fun getHeight ()I
+	public final fun getModifier ()J
+	public final fun getPlanes ()Ljava/util/List;
+	public final fun getWidth ()I
+}
+
+public final class dev/caulis/render/Dmabuf$Companion {
+	public final fun fourcc (Ljava/lang/String;)I
+	public final fun getARGB8888 ()I
+	public final fun getXRGB8888 ()I
+}
+
+public final class dev/caulis/render/Dmabuf$Plane {
+	public fun <init> (Ldev/caulis/ffi/Fd;II)V
+	public final fun getFd ()Ldev/caulis/ffi/Fd;
+	public final fun getOffset ()I
+	public final fun getStride ()I
+}
+
+public final class dev/caulis/render/DmabufFormat {
+	public fun <init> (IJ)V
+	public final fun component1 ()I
+	public final fun component2 ()J
+	public final fun copy (IJ)Ldev/caulis/render/DmabufFormat;
+	public static synthetic fun copy$default (Ldev/caulis/render/DmabufFormat;IJILjava/lang/Object;)Ldev/caulis/render/DmabufFormat;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFormat ()I
+	public final fun getModifier ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/caulis/render/GpuBuffer : dev/caulis/render/GpuTarget {
+	public abstract fun export ()Ldev/caulis/render/Dmabuf;
+	public abstract fun getFormat ()I
+	public abstract fun getModifier ()J
+	public abstract fun getPlaneCount ()I
+	public abstract fun handle (I)I
+	public abstract fun offset (I)I
+	public abstract fun stride (I)I
+}
+
+public final class dev/caulis/render/GpuBuffer$DefaultImpls {
+	public static fun getTexture (Ldev/caulis/render/GpuBuffer;)Ldev/caulis/render/GpuTexture;
+}
+
+public final class dev/caulis/render/GpuDevices {
+	public static final field INSTANCE Ldev/caulis/render/GpuDevices;
+	public final fun number (Ljava/nio/file/Path;)J
+	public final fun sameGpu (JJ)Z
+}
+
+public abstract interface class dev/caulis/render/GpuTarget : java/lang/AutoCloseable {
+	public abstract fun getHeight ()I
+	public fun getTexture ()Ldev/caulis/render/GpuTexture;
+	public abstract fun getWidth ()I
+	public abstract fun readPixels (Ljava/lang/foreign/MemorySegment;I)V
+	public abstract fun readPixels (Ljava/lang/foreign/MemorySegment;ILdev/caulis/geometry/Rect;)V
+}
+
+public final class dev/caulis/render/GpuTarget$DefaultImpls {
+	public static fun getTexture (Ldev/caulis/render/GpuTarget;)Ldev/caulis/render/GpuTexture;
+}
+
+public abstract interface class dev/caulis/render/GpuTexture : java/lang/AutoCloseable {
+	public abstract fun getHeight ()I
+	public abstract fun getWidth ()I
+	public abstract fun upload (Ljava/lang/foreign/MemorySegment;II)V
+}
+
+public abstract class dev/caulis/render/Paint {
+	public static final field Companion Ldev/caulis/render/Paint$Companion;
+	public static final field MAX_COLORS I
+	public static final fun conic ([Ldev/caulis/render/Color;)Ldev/caulis/render/Paint;
+	public static final fun conic ([Ldev/caulis/render/Color;D)Ldev/caulis/render/Paint;
+	public static final fun conic ([Ldev/caulis/render/Color;DD)Ldev/caulis/render/Paint;
+	public abstract fun faded (F)Ldev/caulis/render/Paint;
+	public final fun firstColor ()Ldev/caulis/render/Color;
+	public abstract fun getMoving ()Z
+	public static final fun gradient ([Ldev/caulis/render/Color;)Ldev/caulis/render/Paint;
+	public static final fun gradient ([Ldev/caulis/render/Color;D)Ldev/caulis/render/Paint;
+	public static final fun gradient ([Ldev/caulis/render/Color;DD)Ldev/caulis/render/Paint;
+	public static final fun rainbow ()Ldev/caulis/render/Paint;
+	public static final fun rainbow (D)Ldev/caulis/render/Paint;
+	public static final fun shader (Ljava/lang/String;)Ldev/caulis/render/Paint;
+	public static final fun solid (Ldev/caulis/render/Color;)Ldev/caulis/render/Paint;
+}
+
+public final class dev/caulis/render/Paint$Companion {
+	public final fun conic ([Ldev/caulis/render/Color;)Ldev/caulis/render/Paint;
+	public final fun conic ([Ldev/caulis/render/Color;D)Ldev/caulis/render/Paint;
+	public final fun conic ([Ldev/caulis/render/Color;DD)Ldev/caulis/render/Paint;
+	public static synthetic fun conic$default (Ldev/caulis/render/Paint$Companion;[Ldev/caulis/render/Color;DDILjava/lang/Object;)Ldev/caulis/render/Paint;
+	public final fun gradient ([Ldev/caulis/render/Color;)Ldev/caulis/render/Paint;
+	public final fun gradient ([Ldev/caulis/render/Color;D)Ldev/caulis/render/Paint;
+	public final fun gradient ([Ldev/caulis/render/Color;DD)Ldev/caulis/render/Paint;
+	public static synthetic fun gradient$default (Ldev/caulis/render/Paint$Companion;[Ldev/caulis/render/Color;DDILjava/lang/Object;)Ldev/caulis/render/Paint;
+	public final fun rainbow ()Ldev/caulis/render/Paint;
+	public final fun rainbow (D)Ldev/caulis/render/Paint;
+	public static synthetic fun rainbow$default (Ldev/caulis/render/Paint$Companion;DILjava/lang/Object;)Ldev/caulis/render/Paint;
+	public final fun shader (Ljava/lang/String;)Ldev/caulis/render/Paint;
+	public final fun solid (Ldev/caulis/render/Color;)Ldev/caulis/render/Paint;
+}
+
+public final class dev/caulis/render/Paint$Gradient : dev/caulis/render/Paint {
+	public fun <init> (Ljava/util/List;DZD)V
+	public synthetic fun <init> (Ljava/util/List;DZDILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()D
+	public final fun component3 ()Z
+	public final fun component4 ()D
+	public final fun copy (Ljava/util/List;DZD)Ldev/caulis/render/Paint$Gradient;
+	public static synthetic fun copy$default (Ldev/caulis/render/Paint$Gradient;Ljava/util/List;DZDILjava/lang/Object;)Ldev/caulis/render/Paint$Gradient;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun faded (F)Ldev/caulis/render/Paint$Gradient;
+	public synthetic fun faded (F)Ldev/caulis/render/Paint;
+	public final fun getColors ()Ljava/util/List;
+	public final fun getConic ()Z
+	public final fun getDegrees ()D
+	public fun getMoving ()Z
+	public final fun getTurnsPerSecond ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/render/Paint$Shader : dev/caulis/render/Paint {
+	public fun <init> (Ljava/lang/String;)V
+	public fun <init> (Lkotlin/jvm/functions/Function0;Ljava/lang/String;F)V
+	public synthetic fun <init> (Lkotlin/jvm/functions/Function0;Ljava/lang/String;FILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public fun faded (F)Ldev/caulis/render/Paint$Shader;
+	public synthetic fun faded (F)Ldev/caulis/render/Paint;
+	public final fun getAlpha ()F
+	public final fun getCode ()Ljava/lang/String;
+	public fun getMoving ()Z
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/render/Paint$Solid : dev/caulis/render/Paint {
+	public fun <init> (Ldev/caulis/render/Color;)V
+	public final fun component1 ()Ldev/caulis/render/Color;
+	public final fun copy (Ldev/caulis/render/Color;)Ldev/caulis/render/Paint$Solid;
+	public static synthetic fun copy$default (Ldev/caulis/render/Paint$Solid;Ldev/caulis/render/Color;ILjava/lang/Object;)Ldev/caulis/render/Paint$Solid;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun faded (F)Ldev/caulis/render/Paint$Solid;
+	public synthetic fun faded (F)Ldev/caulis/render/Paint;
+	public final fun getColor ()Ldev/caulis/render/Color;
+	public fun getMoving ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/caulis/render/Renderer : java/lang/AutoCloseable {
+	public abstract fun begin (Ldev/caulis/render/GpuTarget;FFFLdev/caulis/geometry/Rect;F)V
+	public static synthetic fun begin$default (Ldev/caulis/render/Renderer;Ldev/caulis/render/GpuTarget;FFFLdev/caulis/geometry/Rect;FILjava/lang/Object;)V
+	public abstract fun copy (Ldev/caulis/render/GpuTarget;Ldev/caulis/geometry/Rect;Ldev/caulis/render/GpuTarget;)V
+	public abstract fun createBuffer (IIILjava/util/List;Z)Ldev/caulis/render/GpuBuffer;
+	public abstract fun createTarget (II)Ldev/caulis/render/GpuTarget;
+	public abstract fun createTexture (II)Ldev/caulis/render/GpuTexture;
+	public abstract fun drawBlur (Ldev/caulis/geometry/Rect;FIILdev/caulis/render/BlurTone;)V
+	public static synthetic fun drawBlur$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FIILdev/caulis/render/BlurTone;ILjava/lang/Object;)V
+	public abstract fun drawColor (IIIIFFFF)V
+	public static synthetic fun drawColor$default (Ldev/caulis/render/Renderer;IIIIFFFFILjava/lang/Object;)V
+	public abstract fun drawRoundedRect (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;F)V
+	public fun drawRoundedRect (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFF)Z
+	public static synthetic fun drawRoundedRect$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;FILjava/lang/Object;)V
+	public static synthetic fun drawRoundedRect$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFFILjava/lang/Object;)Z
+	public fun drawShaded (IIIILjava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;)Z
+	public static synthetic fun drawShaded$default (Ldev/caulis/render/Renderer;IIIILjava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;ILjava/lang/Object;)Z
+	public abstract fun drawShadow (Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Color;Ldev/caulis/geometry/Rect;F)V
+	public fun drawShadow (Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Paint;Ldev/caulis/geometry/Rect;FFF)Z
+	public static synthetic fun drawShadow$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Color;Ldev/caulis/geometry/Rect;FILjava/lang/Object;)V
+	public static synthetic fun drawShadow$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Paint;Ldev/caulis/geometry/Rect;FFFILjava/lang/Object;)Z
+	public abstract fun drawTexture (Ldev/caulis/render/GpuTexture;IIIIZFLdev/caulis/geometry/Rect;F[FI)V
+	public static synthetic fun drawTexture$default (Ldev/caulis/render/Renderer;Ldev/caulis/render/GpuTexture;IIIIZFLdev/caulis/geometry/Rect;F[FIILjava/lang/Object;)V
+	public fun drawTextureEffect (Ldev/caulis/render/GpuTexture;IIIIFLjava/lang/String;[F[FF)Z
+	public fun effectProblem (Ljava/lang/String;)Ljava/lang/String;
+	public abstract fun end ()V
+	public abstract fun finish ()V
+	public abstract fun getDescription ()Ljava/lang/String;
+	public abstract fun getDmabufFormats ()Ljava/util/List;
+	public abstract fun getRenderNode ()Ljava/nio/file/Path;
+	public abstract fun importDmabuf (Ldev/caulis/render/Dmabuf;)Ldev/caulis/render/GpuTexture;
+	public abstract fun importDmabufTarget (Ldev/caulis/render/Dmabuf;)Ldev/caulis/render/GpuTarget;
+	public fun setClip (Ldev/caulis/geometry/Rect;)V
+}
+
+public final class dev/caulis/render/Renderer$DefaultImpls {
+	public static synthetic fun begin$default (Ldev/caulis/render/Renderer;Ldev/caulis/render/GpuTarget;FFFLdev/caulis/geometry/Rect;FILjava/lang/Object;)V
+	public static synthetic fun drawBlur$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FIILdev/caulis/render/BlurTone;ILjava/lang/Object;)V
+	public static synthetic fun drawColor$default (Ldev/caulis/render/Renderer;IIIIFFFFILjava/lang/Object;)V
+	public static fun drawRoundedRect (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFF)Z
+	public static synthetic fun drawRoundedRect$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;FILjava/lang/Object;)V
+	public static synthetic fun drawRoundedRect$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFFILjava/lang/Object;)Z
+	public static fun drawShaded (Ldev/caulis/render/Renderer;IIIILjava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;)Z
+	public static synthetic fun drawShaded$default (Ldev/caulis/render/Renderer;IIIILjava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;ILjava/lang/Object;)Z
+	public static fun drawShadow (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Paint;Ldev/caulis/geometry/Rect;FFF)Z
+	public static synthetic fun drawShadow$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Color;Ldev/caulis/geometry/Rect;FILjava/lang/Object;)V
+	public static synthetic fun drawShadow$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Paint;Ldev/caulis/geometry/Rect;FFFILjava/lang/Object;)Z
+	public static synthetic fun drawTexture$default (Ldev/caulis/render/Renderer;Ldev/caulis/render/GpuTexture;IIIIZFLdev/caulis/geometry/Rect;F[FIILjava/lang/Object;)V
+	public static fun drawTextureEffect (Ldev/caulis/render/Renderer;Ldev/caulis/render/GpuTexture;IIIIFLjava/lang/String;[F[FF)Z
+	public static fun effectProblem (Ldev/caulis/render/Renderer;Ljava/lang/String;)Ljava/lang/String;
+	public static fun setClip (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;)V
+}
+
+public final class dev/caulis/render/RendererKt {
+	public static final field MAX_BLUR_PASSES I
+	public static final fun blurReach (II)I
+}
+
+public final class dev/caulis/render/gles/GlesRenderer : dev/caulis/render/Renderer {
+	public static final field Companion Ldev/caulis/render/gles/GlesRenderer$Companion;
+	public fun begin (Ldev/caulis/render/GpuTarget;FFFLdev/caulis/geometry/Rect;F)V
+	public fun close ()V
+	public fun copy (Ldev/caulis/render/GpuTarget;Ldev/caulis/geometry/Rect;Ldev/caulis/render/GpuTarget;)V
+	public fun createBuffer (IIILjava/util/List;Z)Ldev/caulis/render/GpuBuffer;
+	public fun createTarget (II)Ldev/caulis/render/GpuTarget;
+	public fun createTexture (II)Ldev/caulis/render/GpuTexture;
+	public fun drawBlur (Ldev/caulis/geometry/Rect;FIILdev/caulis/render/BlurTone;)V
+	public fun drawColor (IIIIFFFF)V
+	public fun drawRoundedRect (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;F)V
+	public fun drawRoundedRect (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFF)Z
+	public fun drawShaded (IIIILjava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;)Z
+	public fun drawShadow (Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Color;Ldev/caulis/geometry/Rect;F)V
+	public fun drawShadow (Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Paint;Ldev/caulis/geometry/Rect;FFF)Z
+	public fun drawTexture (Ldev/caulis/render/GpuTexture;IIIIZFLdev/caulis/geometry/Rect;F[FI)V
+	public fun drawTextureEffect (Ldev/caulis/render/GpuTexture;IIIIFLjava/lang/String;[F[FF)Z
+	public fun effectProblem (Ljava/lang/String;)Ljava/lang/String;
+	public fun end ()V
+	public fun finish ()V
+	public fun getDescription ()Ljava/lang/String;
+	public fun getDmabufFormats ()Ljava/util/List;
+	public fun getRenderNode ()Ljava/nio/file/Path;
+	public fun importDmabuf (Ldev/caulis/render/Dmabuf;)Ldev/caulis/render/GpuTexture;
+	public fun importDmabufTarget (Ldev/caulis/render/Dmabuf;)Ldev/caulis/render/GpuTarget;
+	public fun setClip (Ldev/caulis/geometry/Rect;)V
+}
+
+public final class dev/caulis/render/gles/GlesRenderer$Companion {
+	public final fun create (Ljava/nio/file/Path;)Ldev/caulis/render/gles/GlesRenderer;
+	public static synthetic fun create$default (Ldev/caulis/render/gles/GlesRenderer$Companion;Ljava/nio/file/Path;ILjava/lang/Object;)Ldev/caulis/render/gles/GlesRenderer;
+	public final fun createOn (Ldev/caulis/ffi/Fd;)Ldev/caulis/render/gles/GlesRenderer;
+	public final fun createOn (Ldev/caulis/ffi/Fd;Z)Ldev/caulis/render/gles/GlesRenderer;
+}
+

@@ -1,5 +1,6 @@
 package dev.caulis.ffi
 
+import dev.caulis.log.InternalCaulisApi
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout.ADDRESS
@@ -11,6 +12,7 @@ import java.lang.foreign.ValueLayout.JAVA_INT
  * window manager's connection). [ended] becomes readable when the program stops; then
  * [reap] gives its exit status (and frees it: no zombie is left).
  */
+@InternalCaulisApi
 class ChildProcess private constructor(val pid: Int, val ended: Fd) : AutoCloseable {
 
     private var status: Int? = null

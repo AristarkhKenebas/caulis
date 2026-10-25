@@ -113,7 +113,7 @@ data class NoticeColors(val background: Color, val text: Color)
  */
 data class NoticeStyle @JvmOverloads constructor(
     val placement: NoticePlacement = NoticePlacement.Banner(),
-    val font: String = "Sans",
+    val font: String = java.awt.Font.SANS_SERIF,
     val fontSize: Int = 13,
     /** Room around the text, between toasts, and their round corners. */
     val padding: Int = 10,

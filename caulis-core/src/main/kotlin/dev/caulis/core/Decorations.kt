@@ -36,7 +36,7 @@ enum class TitleButton { MINIMIZE, MAXIMIZE, CLOSE }
  */
 data class TitleBarStyle @JvmOverloads constructor(
     val height: Int = 30,
-    val font: String = "Sans",
+    val font: String = java.awt.Font.SANS_SERIF,
     val fontSize: Int = 13,
     val bold: Boolean = false,
     /** Title in the middle (true) or next to the side without buttons. */

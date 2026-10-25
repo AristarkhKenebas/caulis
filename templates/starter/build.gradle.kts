@@ -14,17 +14,17 @@ kotlin {
 tasks.withType<JavaCompile>().configureEach { options.release = 26 }
 
 dependencies {
-    implementation("dev.caulis:caulis-wm:0.1.0-SNAPSHOT")
+    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.0-SNAPSHOT")
     // The Bibata cursor (GPL-3.0, unlike Caulis itself). Remove this line for the system's
     // cursor theme, or if your compositor must not contain GPL files.
-    implementation("dev.caulis:caulis-cursor-bibata:0.1.0-SNAPSHOT")
+    implementation("io.github.aristarkhkenebas:caulis-cursor-bibata:0.1.0-SNAPSHOT")
     // Settings in Lua (config.lua) or as a Kotlin script (config.kts) in ~/.config/<name>, for
     // people who use your compositor without building it — add what you want them to have.
     // (caulis-script is big: it contains the Kotlin compiler.)
-    // implementation("dev.caulis:caulis-lua:0.1.0-SNAPSHOT")
-    // implementation("dev.caulis:caulis-script:0.1.0-SNAPSHOT")
+    // implementation("io.github.aristarkhkenebas:caulis-lua:0.1.0-SNAPSHOT")
+    // implementation("io.github.aristarkhkenebas:caulis-script:0.1.0-SNAPSHOT")
     // Screenshots (Print): add it and call screenshots() in your configuration.
-    // implementation("dev.caulis:caulis-screenshot:0.1.0-SNAPSHOT")
+    // implementation("io.github.aristarkhkenebas:caulis-screenshot:0.1.0-SNAPSHOT")
 }
 
 application {
@@ -44,7 +44,7 @@ application {
 // is compiled right inside it, taken on in about a second. Not in what installDist builds.
 val development by configurations.creating
 dependencies {
-    development("dev.caulis:caulis-reload:0.1.0-SNAPSHOT")
+    development("io.github.aristarkhkenebas:caulis-reload:0.1.0-SNAPSHOT")
 }
 tasks.named<JavaExec>("run") {
     classpath += development

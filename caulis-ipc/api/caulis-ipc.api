@@ -1,0 +1,1700 @@
+public final class dev/caulis/ipc/CaulisIpc : java/lang/AutoCloseable {
+	public static final field Companion Ldev/caulis/ipc/CaulisIpc$Companion;
+	public static final field SOCKET_VARIABLE Ljava/lang/String;
+	public final fun checkConfig (Ljava/lang/String;)Ljava/util/List;
+	public fun close ()V
+	public final fun devices ()Ljava/util/List;
+	public final fun eval (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+	public static synthetic fun eval$default (Ldev/caulis/ipc/CaulisIpc;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ljava/lang/String;
+	public final fun hello ()Ldev/caulis/ipc/v1/ServerInfo;
+	public final fun nextEvent ()Ldev/caulis/ipc/v1/Event;
+	public final fun request (Ldev/caulis/ipc/v1/Request$Builder;)Ldev/caulis/ipc/v1/Reply;
+	public final fun run (Ljava/lang/String;J)V
+	public static synthetic fun run$default (Ldev/caulis/ipc/CaulisIpc;Ljava/lang/String;JILjava/lang/Object;)V
+	public final fun state ()Ldev/caulis/ipc/v1/State;
+	public final fun subscribe ([Ldev/caulis/ipc/v1/EventKind;)V
+}
+
+public final class dev/caulis/ipc/CaulisIpc$Companion {
+	public final fun connect (Ljava/nio/file/Path;)Ldev/caulis/ipc/CaulisIpc;
+	public static synthetic fun connect$default (Ldev/caulis/ipc/CaulisIpc$Companion;Ljava/nio/file/Path;ILjava/lang/Object;)Ldev/caulis/ipc/CaulisIpc;
+	public final fun findSocket (Ljava/util/Map;Ljava/lang/String;)Ljava/nio/file/Path;
+	public static synthetic fun findSocket$default (Ldev/caulis/ipc/CaulisIpc$Companion;Ljava/util/Map;Ljava/lang/String;ILjava/lang/Object;)Ljava/nio/file/Path;
+}
+
+public final class dev/caulis/ipc/IpcException : java/lang/Exception {
+	public fun <init> (Ljava/lang/String;)V
+}
+
+public final class dev/caulis/ipc/v1/CaulisIpcProto {
+	public static fun registerAllExtensions (Lcom/google/protobuf/ExtensionRegistryLite;)V
+}
+
+public final class dev/caulis/ipc/v1/CheckConfig : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/CheckConfigOrBuilder {
+	public static final field TEXT_FIELD_NUMBER I
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/CheckConfig;
+	public fun getText ()Ljava/lang/String;
+	public fun getTextBytes ()Lcom/google/protobuf/ByteString;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/CheckConfig$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/CheckConfig;)Ldev/caulis/ipc/v1/CheckConfig$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/CheckConfig;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/CheckConfig;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/CheckConfig;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/CheckConfig;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/CheckConfig;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/CheckConfig;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/CheckConfig;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/CheckConfig;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/CheckConfig;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/CheckConfig;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/CheckConfig;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/CheckConfig;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/CheckConfig$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/CheckConfigOrBuilder {
+	public fun clearText ()Ldev/caulis/ipc/v1/CheckConfig$Builder;
+	public fun getText ()Ljava/lang/String;
+	public fun getTextBytes ()Lcom/google/protobuf/ByteString;
+	public fun setText (Ljava/lang/String;)Ldev/caulis/ipc/v1/CheckConfig$Builder;
+	public fun setTextBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/CheckConfig$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/CheckConfigOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getText ()Ljava/lang/String;
+	public abstract fun getTextBytes ()Lcom/google/protobuf/ByteString;
+}
+
+public final class dev/caulis/ipc/v1/ConfigReloaded : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/ConfigReloadedOrBuilder {
+	public static final field PROBLEMS_FIELD_NUMBER I
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/ConfigReloaded;
+	public fun getProblems (I)Ljava/lang/String;
+	public fun getProblemsBytes (I)Lcom/google/protobuf/ByteString;
+	public fun getProblemsCount ()I
+	public fun getProblemsList ()Ljava/util/List;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/ConfigReloaded$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/ConfigReloaded;)Ldev/caulis/ipc/v1/ConfigReloaded$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/ConfigReloaded;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/ConfigReloaded;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/ConfigReloaded;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/ConfigReloaded;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/ConfigReloaded;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/ConfigReloaded;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/ConfigReloaded;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/ConfigReloaded;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/ConfigReloaded;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/ConfigReloaded;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/ConfigReloaded;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/ConfigReloaded;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/ConfigReloaded$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/ConfigReloadedOrBuilder {
+	public fun addAllProblems (Ljava/lang/Iterable;)Ldev/caulis/ipc/v1/ConfigReloaded$Builder;
+	public fun addProblems (Ljava/lang/String;)Ldev/caulis/ipc/v1/ConfigReloaded$Builder;
+	public fun addProblemsBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/ConfigReloaded$Builder;
+	public fun clearProblems ()Ldev/caulis/ipc/v1/ConfigReloaded$Builder;
+	public fun getProblems (I)Ljava/lang/String;
+	public fun getProblemsBytes (I)Lcom/google/protobuf/ByteString;
+	public fun getProblemsCount ()I
+	public fun getProblemsList ()Ljava/util/List;
+	public fun setProblems (ILjava/lang/String;)Ldev/caulis/ipc/v1/ConfigReloaded$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/ConfigReloadedOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getProblems (I)Ljava/lang/String;
+	public abstract fun getProblemsBytes (I)Lcom/google/protobuf/ByteString;
+	public abstract fun getProblemsCount ()I
+	public abstract fun getProblemsList ()Ljava/util/List;
+}
+
+public final class dev/caulis/ipc/v1/Device : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/DeviceOrBuilder {
+	public static final field KINDS_FIELD_NUMBER I
+	public static final field NAME_FIELD_NUMBER I
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Device;
+	public fun getKinds (I)Ljava/lang/String;
+	public fun getKindsBytes (I)Lcom/google/protobuf/ByteString;
+	public fun getKindsCount ()I
+	public fun getKindsList ()Ljava/util/List;
+	public fun getName ()Ljava/lang/String;
+	public fun getNameBytes ()Lcom/google/protobuf/ByteString;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Device$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Device;)Ldev/caulis/ipc/v1/Device$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Device;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Device;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Device;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Device;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Device;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Device;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Device;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Device;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Device;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Device;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Device;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Device;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Device$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/DeviceOrBuilder {
+	public fun addAllKinds (Ljava/lang/Iterable;)Ldev/caulis/ipc/v1/Device$Builder;
+	public fun addKinds (Ljava/lang/String;)Ldev/caulis/ipc/v1/Device$Builder;
+	public fun addKindsBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Device$Builder;
+	public fun clearKinds ()Ldev/caulis/ipc/v1/Device$Builder;
+	public fun clearName ()Ldev/caulis/ipc/v1/Device$Builder;
+	public fun getKinds (I)Ljava/lang/String;
+	public fun getKindsBytes (I)Lcom/google/protobuf/ByteString;
+	public fun getKindsCount ()I
+	public fun getKindsList ()Ljava/util/List;
+	public fun getName ()Ljava/lang/String;
+	public fun getNameBytes ()Lcom/google/protobuf/ByteString;
+	public fun setKinds (ILjava/lang/String;)Ldev/caulis/ipc/v1/Device$Builder;
+	public fun setName (Ljava/lang/String;)Ldev/caulis/ipc/v1/Device$Builder;
+	public fun setNameBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Device$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/DeviceOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getKinds (I)Ljava/lang/String;
+	public abstract fun getKindsBytes (I)Lcom/google/protobuf/ByteString;
+	public abstract fun getKindsCount ()I
+	public abstract fun getKindsList ()Ljava/util/List;
+	public abstract fun getName ()Ljava/lang/String;
+	public abstract fun getNameBytes ()Lcom/google/protobuf/ByteString;
+}
+
+public final class dev/caulis/ipc/v1/Devices : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/DevicesOrBuilder {
+	public static final field DEVICES_FIELD_NUMBER I
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Devices;
+	public fun getDevices (I)Ldev/caulis/ipc/v1/Device;
+	public fun getDevicesCount ()I
+	public fun getDevicesList ()Ljava/util/List;
+	public fun getDevicesOrBuilder (I)Ldev/caulis/ipc/v1/DeviceOrBuilder;
+	public fun getDevicesOrBuilderList ()Ljava/util/List;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Devices$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Devices;)Ldev/caulis/ipc/v1/Devices$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Devices;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Devices;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Devices;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Devices;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Devices;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Devices;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Devices;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Devices;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Devices;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Devices;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Devices;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Devices;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Devices$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/DevicesOrBuilder {
+	public fun addAllDevices (Ljava/lang/Iterable;)Ldev/caulis/ipc/v1/Devices$Builder;
+	public fun addDevices (ILdev/caulis/ipc/v1/Device$Builder;)Ldev/caulis/ipc/v1/Devices$Builder;
+	public fun addDevices (ILdev/caulis/ipc/v1/Device;)Ldev/caulis/ipc/v1/Devices$Builder;
+	public fun addDevices (Ldev/caulis/ipc/v1/Device$Builder;)Ldev/caulis/ipc/v1/Devices$Builder;
+	public fun addDevices (Ldev/caulis/ipc/v1/Device;)Ldev/caulis/ipc/v1/Devices$Builder;
+	public fun clearDevices ()Ldev/caulis/ipc/v1/Devices$Builder;
+	public fun getDevices (I)Ldev/caulis/ipc/v1/Device;
+	public fun getDevicesCount ()I
+	public fun getDevicesList ()Ljava/util/List;
+	public fun removeDevices (I)Ldev/caulis/ipc/v1/Devices$Builder;
+	public fun setDevices (ILdev/caulis/ipc/v1/Device$Builder;)Ldev/caulis/ipc/v1/Devices$Builder;
+	public fun setDevices (ILdev/caulis/ipc/v1/Device;)Ldev/caulis/ipc/v1/Devices$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/DevicesOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getDevices (I)Ldev/caulis/ipc/v1/Device;
+	public abstract fun getDevicesCount ()I
+	public abstract fun getDevicesList ()Ljava/util/List;
+}
+
+public final class dev/caulis/ipc/v1/Done : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/DoneOrBuilder {
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Done;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Done$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Done;)Ldev/caulis/ipc/v1/Done$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Done;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Done;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Done;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Done;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Done;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Done;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Done;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Done;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Done;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Done;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Done;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Done;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Done$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/DoneOrBuilder {
+}
+
+public abstract interface class dev/caulis/ipc/v1/DoneOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+}
+
+public final class dev/caulis/ipc/v1/Eval : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/EvalOrBuilder {
+	public static final field CODE_FIELD_NUMBER I
+	public static final field LANGUAGE_FIELD_NUMBER I
+	public fun getCode ()Ljava/lang/String;
+	public fun getCodeBytes ()Lcom/google/protobuf/ByteString;
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Eval;
+	public fun getLanguage ()Ljava/lang/String;
+	public fun getLanguageBytes ()Lcom/google/protobuf/ByteString;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Eval$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Eval;)Ldev/caulis/ipc/v1/Eval$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Eval;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Eval;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Eval;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Eval;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Eval;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Eval;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Eval;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Eval;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Eval;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Eval;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Eval;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Eval;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Eval$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/EvalOrBuilder {
+	public fun clearCode ()Ldev/caulis/ipc/v1/Eval$Builder;
+	public fun clearLanguage ()Ldev/caulis/ipc/v1/Eval$Builder;
+	public fun getCode ()Ljava/lang/String;
+	public fun getCodeBytes ()Lcom/google/protobuf/ByteString;
+	public fun getLanguage ()Ljava/lang/String;
+	public fun getLanguageBytes ()Lcom/google/protobuf/ByteString;
+	public fun setCode (Ljava/lang/String;)Ldev/caulis/ipc/v1/Eval$Builder;
+	public fun setCodeBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Eval$Builder;
+	public fun setLanguage (Ljava/lang/String;)Ldev/caulis/ipc/v1/Eval$Builder;
+	public fun setLanguageBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Eval$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/EvalOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getCode ()Ljava/lang/String;
+	public abstract fun getCodeBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getLanguage ()Ljava/lang/String;
+	public abstract fun getLanguageBytes ()Lcom/google/protobuf/ByteString;
+}
+
+public final class dev/caulis/ipc/v1/Event : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/EventOrBuilder {
+	public static final field CONFIG_RELOADED_FIELD_NUMBER I
+	public static final field FOCUS_CHANGED_FIELD_NUMBER I
+	public static final field KEY_MODE_CHANGED_FIELD_NUMBER I
+	public static final field LOCK_CHANGED_FIELD_NUMBER I
+	public static final field MONITORS_CHANGED_FIELD_NUMBER I
+	public static final field NOTICE_FIELD_NUMBER I
+	public static final field WINDOW_CHANGED_FIELD_NUMBER I
+	public static final field WINDOW_CLOSED_FIELD_NUMBER I
+	public static final field WINDOW_OPENED_FIELD_NUMBER I
+	public static final field WORKSPACE_SHOWN_FIELD_NUMBER I
+	public fun getConfigReloaded ()Ldev/caulis/ipc/v1/ConfigReloaded;
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Event;
+	public fun getFocusChanged ()J
+	public fun getKeyModeChanged ()Ljava/lang/String;
+	public fun getKeyModeChangedBytes ()Lcom/google/protobuf/ByteString;
+	public fun getLockChanged ()Z
+	public fun getMonitorsChanged ()Ldev/caulis/ipc/v1/Monitors;
+	public fun getNotice ()Ldev/caulis/ipc/v1/Notice;
+	public fun getWhatCase ()Ldev/caulis/ipc/v1/Event$WhatCase;
+	public fun getWindowChanged ()Ldev/caulis/ipc/v1/Window;
+	public fun getWindowClosed ()J
+	public fun getWindowOpened ()Ldev/caulis/ipc/v1/Window;
+	public fun getWorkspaceShown ()Ldev/caulis/ipc/v1/WorkspaceShown;
+	public fun hasConfigReloaded ()Z
+	public fun hasFocusChanged ()Z
+	public fun hasKeyModeChanged ()Z
+	public fun hasLockChanged ()Z
+	public fun hasMonitorsChanged ()Z
+	public fun hasNotice ()Z
+	public fun hasWindowChanged ()Z
+	public fun hasWindowClosed ()Z
+	public fun hasWindowOpened ()Z
+	public fun hasWorkspaceShown ()Z
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Event$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Event;)Ldev/caulis/ipc/v1/Event$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Event;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Event;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Event;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Event;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Event;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Event;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Event;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Event;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Event;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Event;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Event;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Event;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Event$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/EventOrBuilder {
+	public fun clearConfigReloaded ()Ldev/caulis/ipc/v1/Event$Builder;
+	public fun clearFocusChanged ()Ldev/caulis/ipc/v1/Event$Builder;
+	public fun clearKeyModeChanged ()Ldev/caulis/ipc/v1/Event$Builder;
+	public fun clearLockChanged ()Ldev/caulis/ipc/v1/Event$Builder;
+	public fun clearMonitorsChanged ()Ldev/caulis/ipc/v1/Event$Builder;
+	public fun clearNotice ()Ldev/caulis/ipc/v1/Event$Builder;
+	public fun clearWhat ()Ldev/caulis/ipc/v1/Event$Builder;
+	public fun clearWindowChanged ()Ldev/caulis/ipc/v1/Event$Builder;
+	public fun clearWindowClosed ()Ldev/caulis/ipc/v1/Event$Builder;
+	public fun clearWindowOpened ()Ldev/caulis/ipc/v1/Event$Builder;
+	public fun clearWorkspaceShown ()Ldev/caulis/ipc/v1/Event$Builder;
+	public fun getConfigReloaded ()Ldev/caulis/ipc/v1/ConfigReloaded;
+	public fun getFocusChanged ()J
+	public fun getKeyModeChanged ()Ljava/lang/String;
+	public fun getKeyModeChangedBytes ()Lcom/google/protobuf/ByteString;
+	public fun getLockChanged ()Z
+	public fun getMonitorsChanged ()Ldev/caulis/ipc/v1/Monitors;
+	public fun getNotice ()Ldev/caulis/ipc/v1/Notice;
+	public fun getWhatCase ()Ldev/caulis/ipc/v1/Event$WhatCase;
+	public fun getWindowChanged ()Ldev/caulis/ipc/v1/Window;
+	public fun getWindowClosed ()J
+	public fun getWindowOpened ()Ldev/caulis/ipc/v1/Window;
+	public fun getWorkspaceShown ()Ldev/caulis/ipc/v1/WorkspaceShown;
+	public fun hasConfigReloaded ()Z
+	public fun hasFocusChanged ()Z
+	public fun hasKeyModeChanged ()Z
+	public fun hasLockChanged ()Z
+	public fun hasMonitorsChanged ()Z
+	public fun hasNotice ()Z
+	public fun hasWindowChanged ()Z
+	public fun hasWindowClosed ()Z
+	public fun hasWindowOpened ()Z
+	public fun hasWorkspaceShown ()Z
+	public fun mergeConfigReloaded (Ldev/caulis/ipc/v1/ConfigReloaded;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun mergeMonitorsChanged (Ldev/caulis/ipc/v1/Monitors;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun mergeNotice (Ldev/caulis/ipc/v1/Notice;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun mergeWindowChanged (Ldev/caulis/ipc/v1/Window;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun mergeWindowOpened (Ldev/caulis/ipc/v1/Window;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun mergeWorkspaceShown (Ldev/caulis/ipc/v1/WorkspaceShown;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setConfigReloaded (Ldev/caulis/ipc/v1/ConfigReloaded$Builder;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setConfigReloaded (Ldev/caulis/ipc/v1/ConfigReloaded;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setFocusChanged (J)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setKeyModeChanged (Ljava/lang/String;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setKeyModeChangedBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setLockChanged (Z)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setMonitorsChanged (Ldev/caulis/ipc/v1/Monitors$Builder;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setMonitorsChanged (Ldev/caulis/ipc/v1/Monitors;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setNotice (Ldev/caulis/ipc/v1/Notice$Builder;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setNotice (Ldev/caulis/ipc/v1/Notice;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setWindowChanged (Ldev/caulis/ipc/v1/Window$Builder;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setWindowChanged (Ldev/caulis/ipc/v1/Window;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setWindowClosed (J)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setWindowOpened (Ldev/caulis/ipc/v1/Window$Builder;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setWindowOpened (Ldev/caulis/ipc/v1/Window;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setWorkspaceShown (Ldev/caulis/ipc/v1/WorkspaceShown$Builder;)Ldev/caulis/ipc/v1/Event$Builder;
+	public fun setWorkspaceShown (Ldev/caulis/ipc/v1/WorkspaceShown;)Ldev/caulis/ipc/v1/Event$Builder;
+}
+
+public final class dev/caulis/ipc/v1/Event$WhatCase : java/lang/Enum, com/google/protobuf/AbstractMessageLite$InternalOneOfEnum {
+	public static final field CONFIG_RELOADED Ldev/caulis/ipc/v1/Event$WhatCase;
+	public static final field FOCUS_CHANGED Ldev/caulis/ipc/v1/Event$WhatCase;
+	public static final field KEY_MODE_CHANGED Ldev/caulis/ipc/v1/Event$WhatCase;
+	public static final field LOCK_CHANGED Ldev/caulis/ipc/v1/Event$WhatCase;
+	public static final field MONITORS_CHANGED Ldev/caulis/ipc/v1/Event$WhatCase;
+	public static final field NOTICE Ldev/caulis/ipc/v1/Event$WhatCase;
+	public static final field WHAT_NOT_SET Ldev/caulis/ipc/v1/Event$WhatCase;
+	public static final field WINDOW_CHANGED Ldev/caulis/ipc/v1/Event$WhatCase;
+	public static final field WINDOW_CLOSED Ldev/caulis/ipc/v1/Event$WhatCase;
+	public static final field WINDOW_OPENED Ldev/caulis/ipc/v1/Event$WhatCase;
+	public static final field WORKSPACE_SHOWN Ldev/caulis/ipc/v1/Event$WhatCase;
+	public static fun forNumber (I)Ldev/caulis/ipc/v1/Event$WhatCase;
+	public fun getNumber ()I
+	public static fun valueOf (I)Ldev/caulis/ipc/v1/Event$WhatCase;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/ipc/v1/Event$WhatCase;
+	public static fun values ()[Ldev/caulis/ipc/v1/Event$WhatCase;
+}
+
+public final class dev/caulis/ipc/v1/EventKind : java/lang/Enum, com/google/protobuf/Internal$EnumLite {
+	public static final field EVENT_KIND_CONFIG Ldev/caulis/ipc/v1/EventKind;
+	public static final field EVENT_KIND_CONFIG_VALUE I
+	public static final field EVENT_KIND_FOCUS Ldev/caulis/ipc/v1/EventKind;
+	public static final field EVENT_KIND_FOCUS_VALUE I
+	public static final field EVENT_KIND_KEYS Ldev/caulis/ipc/v1/EventKind;
+	public static final field EVENT_KIND_KEYS_VALUE I
+	public static final field EVENT_KIND_LOCK Ldev/caulis/ipc/v1/EventKind;
+	public static final field EVENT_KIND_LOCK_VALUE I
+	public static final field EVENT_KIND_MONITORS Ldev/caulis/ipc/v1/EventKind;
+	public static final field EVENT_KIND_MONITORS_VALUE I
+	public static final field EVENT_KIND_NOTICES Ldev/caulis/ipc/v1/EventKind;
+	public static final field EVENT_KIND_NOTICES_VALUE I
+	public static final field EVENT_KIND_UNSPECIFIED Ldev/caulis/ipc/v1/EventKind;
+	public static final field EVENT_KIND_UNSPECIFIED_VALUE I
+	public static final field EVENT_KIND_WINDOWS Ldev/caulis/ipc/v1/EventKind;
+	public static final field EVENT_KIND_WINDOWS_VALUE I
+	public static final field EVENT_KIND_WORKSPACES Ldev/caulis/ipc/v1/EventKind;
+	public static final field EVENT_KIND_WORKSPACES_VALUE I
+	public static final field UNRECOGNIZED Ldev/caulis/ipc/v1/EventKind;
+	public static fun forNumber (I)Ldev/caulis/ipc/v1/EventKind;
+	public final fun getNumber ()I
+	public static fun internalGetValueMap ()Lcom/google/protobuf/Internal$EnumLiteMap;
+	public static fun internalGetVerifier ()Lcom/google/protobuf/Internal$EnumVerifier;
+	public static fun valueOf (I)Ldev/caulis/ipc/v1/EventKind;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/ipc/v1/EventKind;
+	public static fun values ()[Ldev/caulis/ipc/v1/EventKind;
+}
+
+public abstract interface class dev/caulis/ipc/v1/EventOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getConfigReloaded ()Ldev/caulis/ipc/v1/ConfigReloaded;
+	public abstract fun getFocusChanged ()J
+	public abstract fun getKeyModeChanged ()Ljava/lang/String;
+	public abstract fun getKeyModeChangedBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getLockChanged ()Z
+	public abstract fun getMonitorsChanged ()Ldev/caulis/ipc/v1/Monitors;
+	public abstract fun getNotice ()Ldev/caulis/ipc/v1/Notice;
+	public abstract fun getWhatCase ()Ldev/caulis/ipc/v1/Event$WhatCase;
+	public abstract fun getWindowChanged ()Ldev/caulis/ipc/v1/Window;
+	public abstract fun getWindowClosed ()J
+	public abstract fun getWindowOpened ()Ldev/caulis/ipc/v1/Window;
+	public abstract fun getWorkspaceShown ()Ldev/caulis/ipc/v1/WorkspaceShown;
+	public abstract fun hasConfigReloaded ()Z
+	public abstract fun hasFocusChanged ()Z
+	public abstract fun hasKeyModeChanged ()Z
+	public abstract fun hasLockChanged ()Z
+	public abstract fun hasMonitorsChanged ()Z
+	public abstract fun hasNotice ()Z
+	public abstract fun hasWindowChanged ()Z
+	public abstract fun hasWindowClosed ()Z
+	public abstract fun hasWindowOpened ()Z
+	public abstract fun hasWorkspaceShown ()Z
+}
+
+public final class dev/caulis/ipc/v1/GetDevices : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/GetDevicesOrBuilder {
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/GetDevices;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/GetDevices$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/GetDevices;)Ldev/caulis/ipc/v1/GetDevices$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/GetDevices;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/GetDevices;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/GetDevices;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/GetDevices;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/GetDevices;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/GetDevices;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/GetDevices;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/GetDevices;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/GetDevices;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/GetDevices;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/GetDevices;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/GetDevices;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/GetDevices$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/GetDevicesOrBuilder {
+}
+
+public abstract interface class dev/caulis/ipc/v1/GetDevicesOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+}
+
+public final class dev/caulis/ipc/v1/GetState : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/GetStateOrBuilder {
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/GetState;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/GetState$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/GetState;)Ldev/caulis/ipc/v1/GetState$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/GetState;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/GetState;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/GetState;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/GetState;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/GetState;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/GetState;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/GetState;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/GetState;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/GetState;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/GetState;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/GetState;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/GetState;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/GetState$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/GetStateOrBuilder {
+}
+
+public abstract interface class dev/caulis/ipc/v1/GetStateOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+}
+
+public final class dev/caulis/ipc/v1/Hello : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/HelloOrBuilder {
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Hello;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Hello$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Hello;)Ldev/caulis/ipc/v1/Hello$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Hello;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Hello;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Hello;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Hello;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Hello;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Hello;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Hello;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Hello;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Hello;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Hello;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Hello;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Hello;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Hello$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/HelloOrBuilder {
+}
+
+public abstract interface class dev/caulis/ipc/v1/HelloOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+}
+
+public final class dev/caulis/ipc/v1/Message : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/MessageOrBuilder {
+	public static final field EVENT_FIELD_NUMBER I
+	public static final field REPLY_FIELD_NUMBER I
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Message;
+	public fun getEvent ()Ldev/caulis/ipc/v1/Event;
+	public fun getReply ()Ldev/caulis/ipc/v1/Reply;
+	public fun getWhatCase ()Ldev/caulis/ipc/v1/Message$WhatCase;
+	public fun hasEvent ()Z
+	public fun hasReply ()Z
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Message$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Message;)Ldev/caulis/ipc/v1/Message$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Message;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Message;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Message;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Message;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Message;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Message;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Message;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Message;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Message;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Message;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Message;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Message;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Message$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/MessageOrBuilder {
+	public fun clearEvent ()Ldev/caulis/ipc/v1/Message$Builder;
+	public fun clearReply ()Ldev/caulis/ipc/v1/Message$Builder;
+	public fun clearWhat ()Ldev/caulis/ipc/v1/Message$Builder;
+	public fun getEvent ()Ldev/caulis/ipc/v1/Event;
+	public fun getReply ()Ldev/caulis/ipc/v1/Reply;
+	public fun getWhatCase ()Ldev/caulis/ipc/v1/Message$WhatCase;
+	public fun hasEvent ()Z
+	public fun hasReply ()Z
+	public fun mergeEvent (Ldev/caulis/ipc/v1/Event;)Ldev/caulis/ipc/v1/Message$Builder;
+	public fun mergeReply (Ldev/caulis/ipc/v1/Reply;)Ldev/caulis/ipc/v1/Message$Builder;
+	public fun setEvent (Ldev/caulis/ipc/v1/Event$Builder;)Ldev/caulis/ipc/v1/Message$Builder;
+	public fun setEvent (Ldev/caulis/ipc/v1/Event;)Ldev/caulis/ipc/v1/Message$Builder;
+	public fun setReply (Ldev/caulis/ipc/v1/Reply$Builder;)Ldev/caulis/ipc/v1/Message$Builder;
+	public fun setReply (Ldev/caulis/ipc/v1/Reply;)Ldev/caulis/ipc/v1/Message$Builder;
+}
+
+public final class dev/caulis/ipc/v1/Message$WhatCase : java/lang/Enum, com/google/protobuf/AbstractMessageLite$InternalOneOfEnum {
+	public static final field EVENT Ldev/caulis/ipc/v1/Message$WhatCase;
+	public static final field REPLY Ldev/caulis/ipc/v1/Message$WhatCase;
+	public static final field WHAT_NOT_SET Ldev/caulis/ipc/v1/Message$WhatCase;
+	public static fun forNumber (I)Ldev/caulis/ipc/v1/Message$WhatCase;
+	public fun getNumber ()I
+	public static fun valueOf (I)Ldev/caulis/ipc/v1/Message$WhatCase;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/ipc/v1/Message$WhatCase;
+	public static fun values ()[Ldev/caulis/ipc/v1/Message$WhatCase;
+}
+
+public abstract interface class dev/caulis/ipc/v1/MessageOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getEvent ()Ldev/caulis/ipc/v1/Event;
+	public abstract fun getReply ()Ldev/caulis/ipc/v1/Reply;
+	public abstract fun getWhatCase ()Ldev/caulis/ipc/v1/Message$WhatCase;
+	public abstract fun hasEvent ()Z
+	public abstract fun hasReply ()Z
+}
+
+public final class dev/caulis/ipc/v1/Monitor : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/MonitorOrBuilder {
+	public static final field AREA_FIELD_NUMBER I
+	public static final field FOCUSED_FIELD_NUMBER I
+	public static final field NAME_FIELD_NUMBER I
+	public static final field PIXEL_HEIGHT_FIELD_NUMBER I
+	public static final field PIXEL_WIDTH_FIELD_NUMBER I
+	public static final field PRIMARY_FIELD_NUMBER I
+	public static final field SCALE_FIELD_NUMBER I
+	public static final field USABLE_AREA_FIELD_NUMBER I
+	public static final field WORKSPACE_FIELD_NUMBER I
+	public fun getArea ()Ldev/caulis/ipc/v1/Rect;
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Monitor;
+	public fun getFocused ()Z
+	public fun getName ()Ljava/lang/String;
+	public fun getNameBytes ()Lcom/google/protobuf/ByteString;
+	public fun getPixelHeight ()I
+	public fun getPixelWidth ()I
+	public fun getPrimary ()Z
+	public fun getScale ()D
+	public fun getUsableArea ()Ldev/caulis/ipc/v1/Rect;
+	public fun getWorkspace ()I
+	public fun hasArea ()Z
+	public fun hasUsableArea ()Z
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Monitor$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Monitor;)Ldev/caulis/ipc/v1/Monitor$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Monitor;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Monitor;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Monitor;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Monitor;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Monitor;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Monitor;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Monitor;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Monitor;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Monitor;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Monitor;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Monitor;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Monitor;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Monitor$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/MonitorOrBuilder {
+	public fun clearArea ()Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun clearFocused ()Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun clearName ()Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun clearPixelHeight ()Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun clearPixelWidth ()Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun clearPrimary ()Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun clearScale ()Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun clearUsableArea ()Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun clearWorkspace ()Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun getArea ()Ldev/caulis/ipc/v1/Rect;
+	public fun getFocused ()Z
+	public fun getName ()Ljava/lang/String;
+	public fun getNameBytes ()Lcom/google/protobuf/ByteString;
+	public fun getPixelHeight ()I
+	public fun getPixelWidth ()I
+	public fun getPrimary ()Z
+	public fun getScale ()D
+	public fun getUsableArea ()Ldev/caulis/ipc/v1/Rect;
+	public fun getWorkspace ()I
+	public fun hasArea ()Z
+	public fun hasUsableArea ()Z
+	public fun mergeArea (Ldev/caulis/ipc/v1/Rect;)Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun mergeUsableArea (Ldev/caulis/ipc/v1/Rect;)Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun setArea (Ldev/caulis/ipc/v1/Rect$Builder;)Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun setArea (Ldev/caulis/ipc/v1/Rect;)Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun setFocused (Z)Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun setName (Ljava/lang/String;)Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun setNameBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun setPixelHeight (I)Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun setPixelWidth (I)Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun setPrimary (Z)Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun setScale (D)Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun setUsableArea (Ldev/caulis/ipc/v1/Rect$Builder;)Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun setUsableArea (Ldev/caulis/ipc/v1/Rect;)Ldev/caulis/ipc/v1/Monitor$Builder;
+	public fun setWorkspace (I)Ldev/caulis/ipc/v1/Monitor$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/MonitorOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getArea ()Ldev/caulis/ipc/v1/Rect;
+	public abstract fun getFocused ()Z
+	public abstract fun getName ()Ljava/lang/String;
+	public abstract fun getNameBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getPixelHeight ()I
+	public abstract fun getPixelWidth ()I
+	public abstract fun getPrimary ()Z
+	public abstract fun getScale ()D
+	public abstract fun getUsableArea ()Ldev/caulis/ipc/v1/Rect;
+	public abstract fun getWorkspace ()I
+	public abstract fun hasArea ()Z
+	public abstract fun hasUsableArea ()Z
+}
+
+public final class dev/caulis/ipc/v1/Monitors : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/MonitorsOrBuilder {
+	public static final field MONITORS_FIELD_NUMBER I
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Monitors;
+	public fun getMonitors (I)Ldev/caulis/ipc/v1/Monitor;
+	public fun getMonitorsCount ()I
+	public fun getMonitorsList ()Ljava/util/List;
+	public fun getMonitorsOrBuilder (I)Ldev/caulis/ipc/v1/MonitorOrBuilder;
+	public fun getMonitorsOrBuilderList ()Ljava/util/List;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Monitors$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Monitors;)Ldev/caulis/ipc/v1/Monitors$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Monitors;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Monitors;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Monitors;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Monitors;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Monitors;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Monitors;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Monitors;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Monitors;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Monitors;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Monitors;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Monitors;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Monitors;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Monitors$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/MonitorsOrBuilder {
+	public fun addAllMonitors (Ljava/lang/Iterable;)Ldev/caulis/ipc/v1/Monitors$Builder;
+	public fun addMonitors (ILdev/caulis/ipc/v1/Monitor$Builder;)Ldev/caulis/ipc/v1/Monitors$Builder;
+	public fun addMonitors (ILdev/caulis/ipc/v1/Monitor;)Ldev/caulis/ipc/v1/Monitors$Builder;
+	public fun addMonitors (Ldev/caulis/ipc/v1/Monitor$Builder;)Ldev/caulis/ipc/v1/Monitors$Builder;
+	public fun addMonitors (Ldev/caulis/ipc/v1/Monitor;)Ldev/caulis/ipc/v1/Monitors$Builder;
+	public fun clearMonitors ()Ldev/caulis/ipc/v1/Monitors$Builder;
+	public fun getMonitors (I)Ldev/caulis/ipc/v1/Monitor;
+	public fun getMonitorsCount ()I
+	public fun getMonitorsList ()Ljava/util/List;
+	public fun removeMonitors (I)Ldev/caulis/ipc/v1/Monitors$Builder;
+	public fun setMonitors (ILdev/caulis/ipc/v1/Monitor$Builder;)Ldev/caulis/ipc/v1/Monitors$Builder;
+	public fun setMonitors (ILdev/caulis/ipc/v1/Monitor;)Ldev/caulis/ipc/v1/Monitors$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/MonitorsOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getMonitors (I)Ldev/caulis/ipc/v1/Monitor;
+	public abstract fun getMonitorsCount ()I
+	public abstract fun getMonitorsList ()Ljava/util/List;
+}
+
+public final class dev/caulis/ipc/v1/Notice : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/NoticeOrBuilder {
+	public static final field LEVEL_FIELD_NUMBER I
+	public static final field TEXT_FIELD_NUMBER I
+	public static final field TITLE_FIELD_NUMBER I
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Notice;
+	public fun getLevel ()Ldev/caulis/ipc/v1/Notice$Level;
+	public fun getLevelValue ()I
+	public fun getText ()Ljava/lang/String;
+	public fun getTextBytes ()Lcom/google/protobuf/ByteString;
+	public fun getTitle ()Ljava/lang/String;
+	public fun getTitleBytes ()Lcom/google/protobuf/ByteString;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Notice$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Notice;)Ldev/caulis/ipc/v1/Notice$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Notice;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Notice;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Notice;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Notice;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Notice;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Notice;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Notice;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Notice;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Notice;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Notice;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Notice;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Notice;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Notice$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/NoticeOrBuilder {
+	public fun clearLevel ()Ldev/caulis/ipc/v1/Notice$Builder;
+	public fun clearText ()Ldev/caulis/ipc/v1/Notice$Builder;
+	public fun clearTitle ()Ldev/caulis/ipc/v1/Notice$Builder;
+	public fun getLevel ()Ldev/caulis/ipc/v1/Notice$Level;
+	public fun getLevelValue ()I
+	public fun getText ()Ljava/lang/String;
+	public fun getTextBytes ()Lcom/google/protobuf/ByteString;
+	public fun getTitle ()Ljava/lang/String;
+	public fun getTitleBytes ()Lcom/google/protobuf/ByteString;
+	public fun setLevel (Ldev/caulis/ipc/v1/Notice$Level;)Ldev/caulis/ipc/v1/Notice$Builder;
+	public fun setLevelValue (I)Ldev/caulis/ipc/v1/Notice$Builder;
+	public fun setText (Ljava/lang/String;)Ldev/caulis/ipc/v1/Notice$Builder;
+	public fun setTextBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Notice$Builder;
+	public fun setTitle (Ljava/lang/String;)Ldev/caulis/ipc/v1/Notice$Builder;
+	public fun setTitleBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Notice$Builder;
+}
+
+public final class dev/caulis/ipc/v1/Notice$Level : java/lang/Enum, com/google/protobuf/Internal$EnumLite {
+	public static final field LEVEL_ERROR Ldev/caulis/ipc/v1/Notice$Level;
+	public static final field LEVEL_ERROR_VALUE I
+	public static final field LEVEL_INFO Ldev/caulis/ipc/v1/Notice$Level;
+	public static final field LEVEL_INFO_VALUE I
+	public static final field LEVEL_UNSPECIFIED Ldev/caulis/ipc/v1/Notice$Level;
+	public static final field LEVEL_UNSPECIFIED_VALUE I
+	public static final field LEVEL_WARNING Ldev/caulis/ipc/v1/Notice$Level;
+	public static final field LEVEL_WARNING_VALUE I
+	public static final field UNRECOGNIZED Ldev/caulis/ipc/v1/Notice$Level;
+	public static fun forNumber (I)Ldev/caulis/ipc/v1/Notice$Level;
+	public final fun getNumber ()I
+	public static fun internalGetValueMap ()Lcom/google/protobuf/Internal$EnumLiteMap;
+	public static fun internalGetVerifier ()Lcom/google/protobuf/Internal$EnumVerifier;
+	public static fun valueOf (I)Ldev/caulis/ipc/v1/Notice$Level;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/ipc/v1/Notice$Level;
+	public static fun values ()[Ldev/caulis/ipc/v1/Notice$Level;
+}
+
+public abstract interface class dev/caulis/ipc/v1/NoticeOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getLevel ()Ldev/caulis/ipc/v1/Notice$Level;
+	public abstract fun getLevelValue ()I
+	public abstract fun getText ()Ljava/lang/String;
+	public abstract fun getTextBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getTitle ()Ljava/lang/String;
+	public abstract fun getTitleBytes ()Lcom/google/protobuf/ByteString;
+}
+
+public final class dev/caulis/ipc/v1/Problems : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/ProblemsOrBuilder {
+	public static final field PROBLEMS_FIELD_NUMBER I
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Problems;
+	public fun getProblems (I)Ljava/lang/String;
+	public fun getProblemsBytes (I)Lcom/google/protobuf/ByteString;
+	public fun getProblemsCount ()I
+	public fun getProblemsList ()Ljava/util/List;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Problems$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Problems;)Ldev/caulis/ipc/v1/Problems$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Problems;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Problems;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Problems;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Problems;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Problems;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Problems;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Problems;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Problems;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Problems;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Problems;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Problems;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Problems;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Problems$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/ProblemsOrBuilder {
+	public fun addAllProblems (Ljava/lang/Iterable;)Ldev/caulis/ipc/v1/Problems$Builder;
+	public fun addProblems (Ljava/lang/String;)Ldev/caulis/ipc/v1/Problems$Builder;
+	public fun addProblemsBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Problems$Builder;
+	public fun clearProblems ()Ldev/caulis/ipc/v1/Problems$Builder;
+	public fun getProblems (I)Ljava/lang/String;
+	public fun getProblemsBytes (I)Lcom/google/protobuf/ByteString;
+	public fun getProblemsCount ()I
+	public fun getProblemsList ()Ljava/util/List;
+	public fun setProblems (ILjava/lang/String;)Ldev/caulis/ipc/v1/Problems$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/ProblemsOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getProblems (I)Ljava/lang/String;
+	public abstract fun getProblemsBytes (I)Lcom/google/protobuf/ByteString;
+	public abstract fun getProblemsCount ()I
+	public abstract fun getProblemsList ()Ljava/util/List;
+}
+
+public final class dev/caulis/ipc/v1/Rect : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/RectOrBuilder {
+	public static final field HEIGHT_FIELD_NUMBER I
+	public static final field WIDTH_FIELD_NUMBER I
+	public static final field X_FIELD_NUMBER I
+	public static final field Y_FIELD_NUMBER I
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Rect;
+	public fun getHeight ()I
+	public fun getWidth ()I
+	public fun getX ()I
+	public fun getY ()I
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Rect$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Rect;)Ldev/caulis/ipc/v1/Rect$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Rect;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Rect;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Rect;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Rect;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Rect;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Rect;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Rect;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Rect;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Rect;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Rect;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Rect;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Rect;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Rect$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/RectOrBuilder {
+	public fun clearHeight ()Ldev/caulis/ipc/v1/Rect$Builder;
+	public fun clearWidth ()Ldev/caulis/ipc/v1/Rect$Builder;
+	public fun clearX ()Ldev/caulis/ipc/v1/Rect$Builder;
+	public fun clearY ()Ldev/caulis/ipc/v1/Rect$Builder;
+	public fun getHeight ()I
+	public fun getWidth ()I
+	public fun getX ()I
+	public fun getY ()I
+	public fun setHeight (I)Ldev/caulis/ipc/v1/Rect$Builder;
+	public fun setWidth (I)Ldev/caulis/ipc/v1/Rect$Builder;
+	public fun setX (I)Ldev/caulis/ipc/v1/Rect$Builder;
+	public fun setY (I)Ldev/caulis/ipc/v1/Rect$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/RectOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getHeight ()I
+	public abstract fun getWidth ()I
+	public abstract fun getX ()I
+	public abstract fun getY ()I
+}
+
+public final class dev/caulis/ipc/v1/Reply : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/ReplyOrBuilder {
+	public static final field DEVICES_FIELD_NUMBER I
+	public static final field DONE_FIELD_NUMBER I
+	public static final field ERROR_FIELD_NUMBER I
+	public static final field HELLO_FIELD_NUMBER I
+	public static final field ID_FIELD_NUMBER I
+	public static final field OUTPUT_FIELD_NUMBER I
+	public static final field PROBLEMS_FIELD_NUMBER I
+	public static final field STATE_FIELD_NUMBER I
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Reply;
+	public fun getDevices ()Ldev/caulis/ipc/v1/Devices;
+	public fun getDone ()Ldev/caulis/ipc/v1/Done;
+	public fun getError ()Ljava/lang/String;
+	public fun getErrorBytes ()Lcom/google/protobuf/ByteString;
+	public fun getHello ()Ldev/caulis/ipc/v1/ServerInfo;
+	public fun getId ()I
+	public fun getOutput ()Ljava/lang/String;
+	public fun getOutputBytes ()Lcom/google/protobuf/ByteString;
+	public fun getProblems ()Ldev/caulis/ipc/v1/Problems;
+	public fun getState ()Ldev/caulis/ipc/v1/State;
+	public fun getWhatCase ()Ldev/caulis/ipc/v1/Reply$WhatCase;
+	public fun hasDevices ()Z
+	public fun hasDone ()Z
+	public fun hasError ()Z
+	public fun hasHello ()Z
+	public fun hasOutput ()Z
+	public fun hasProblems ()Z
+	public fun hasState ()Z
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Reply$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Reply;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Reply;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Reply;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Reply;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Reply;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Reply;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Reply;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Reply;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Reply;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Reply;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Reply;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Reply;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Reply;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Reply$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/ReplyOrBuilder {
+	public fun clearDevices ()Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun clearDone ()Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun clearError ()Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun clearHello ()Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun clearId ()Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun clearOutput ()Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun clearProblems ()Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun clearState ()Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun clearWhat ()Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun getDevices ()Ldev/caulis/ipc/v1/Devices;
+	public fun getDone ()Ldev/caulis/ipc/v1/Done;
+	public fun getError ()Ljava/lang/String;
+	public fun getErrorBytes ()Lcom/google/protobuf/ByteString;
+	public fun getHello ()Ldev/caulis/ipc/v1/ServerInfo;
+	public fun getId ()I
+	public fun getOutput ()Ljava/lang/String;
+	public fun getOutputBytes ()Lcom/google/protobuf/ByteString;
+	public fun getProblems ()Ldev/caulis/ipc/v1/Problems;
+	public fun getState ()Ldev/caulis/ipc/v1/State;
+	public fun getWhatCase ()Ldev/caulis/ipc/v1/Reply$WhatCase;
+	public fun hasDevices ()Z
+	public fun hasDone ()Z
+	public fun hasError ()Z
+	public fun hasHello ()Z
+	public fun hasOutput ()Z
+	public fun hasProblems ()Z
+	public fun hasState ()Z
+	public fun mergeDevices (Ldev/caulis/ipc/v1/Devices;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun mergeDone (Ldev/caulis/ipc/v1/Done;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun mergeHello (Ldev/caulis/ipc/v1/ServerInfo;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun mergeProblems (Ldev/caulis/ipc/v1/Problems;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun mergeState (Ldev/caulis/ipc/v1/State;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setDevices (Ldev/caulis/ipc/v1/Devices$Builder;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setDevices (Ldev/caulis/ipc/v1/Devices;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setDone (Ldev/caulis/ipc/v1/Done$Builder;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setDone (Ldev/caulis/ipc/v1/Done;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setError (Ljava/lang/String;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setErrorBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setHello (Ldev/caulis/ipc/v1/ServerInfo$Builder;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setHello (Ldev/caulis/ipc/v1/ServerInfo;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setId (I)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setOutput (Ljava/lang/String;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setOutputBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setProblems (Ldev/caulis/ipc/v1/Problems$Builder;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setProblems (Ldev/caulis/ipc/v1/Problems;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setState (Ldev/caulis/ipc/v1/State$Builder;)Ldev/caulis/ipc/v1/Reply$Builder;
+	public fun setState (Ldev/caulis/ipc/v1/State;)Ldev/caulis/ipc/v1/Reply$Builder;
+}
+
+public final class dev/caulis/ipc/v1/Reply$WhatCase : java/lang/Enum, com/google/protobuf/AbstractMessageLite$InternalOneOfEnum {
+	public static final field DEVICES Ldev/caulis/ipc/v1/Reply$WhatCase;
+	public static final field DONE Ldev/caulis/ipc/v1/Reply$WhatCase;
+	public static final field ERROR Ldev/caulis/ipc/v1/Reply$WhatCase;
+	public static final field HELLO Ldev/caulis/ipc/v1/Reply$WhatCase;
+	public static final field OUTPUT Ldev/caulis/ipc/v1/Reply$WhatCase;
+	public static final field PROBLEMS Ldev/caulis/ipc/v1/Reply$WhatCase;
+	public static final field STATE Ldev/caulis/ipc/v1/Reply$WhatCase;
+	public static final field WHAT_NOT_SET Ldev/caulis/ipc/v1/Reply$WhatCase;
+	public static fun forNumber (I)Ldev/caulis/ipc/v1/Reply$WhatCase;
+	public fun getNumber ()I
+	public static fun valueOf (I)Ldev/caulis/ipc/v1/Reply$WhatCase;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/ipc/v1/Reply$WhatCase;
+	public static fun values ()[Ldev/caulis/ipc/v1/Reply$WhatCase;
+}
+
+public abstract interface class dev/caulis/ipc/v1/ReplyOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getDevices ()Ldev/caulis/ipc/v1/Devices;
+	public abstract fun getDone ()Ldev/caulis/ipc/v1/Done;
+	public abstract fun getError ()Ljava/lang/String;
+	public abstract fun getErrorBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getHello ()Ldev/caulis/ipc/v1/ServerInfo;
+	public abstract fun getId ()I
+	public abstract fun getOutput ()Ljava/lang/String;
+	public abstract fun getOutputBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getProblems ()Ldev/caulis/ipc/v1/Problems;
+	public abstract fun getState ()Ldev/caulis/ipc/v1/State;
+	public abstract fun getWhatCase ()Ldev/caulis/ipc/v1/Reply$WhatCase;
+	public abstract fun hasDevices ()Z
+	public abstract fun hasDone ()Z
+	public abstract fun hasError ()Z
+	public abstract fun hasHello ()Z
+	public abstract fun hasOutput ()Z
+	public abstract fun hasProblems ()Z
+	public abstract fun hasState ()Z
+}
+
+public final class dev/caulis/ipc/v1/Request : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/RequestOrBuilder {
+	public static final field CHECK_CONFIG_FIELD_NUMBER I
+	public static final field EVAL_FIELD_NUMBER I
+	public static final field GET_DEVICES_FIELD_NUMBER I
+	public static final field GET_STATE_FIELD_NUMBER I
+	public static final field HELLO_FIELD_NUMBER I
+	public static final field ID_FIELD_NUMBER I
+	public static final field RUN_FIELD_NUMBER I
+	public static final field SUBSCRIBE_FIELD_NUMBER I
+	public fun getCheckConfig ()Ldev/caulis/ipc/v1/CheckConfig;
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Request;
+	public fun getEval ()Ldev/caulis/ipc/v1/Eval;
+	public fun getGetDevices ()Ldev/caulis/ipc/v1/GetDevices;
+	public fun getGetState ()Ldev/caulis/ipc/v1/GetState;
+	public fun getHello ()Ldev/caulis/ipc/v1/Hello;
+	public fun getId ()I
+	public fun getRun ()Ldev/caulis/ipc/v1/Run;
+	public fun getSubscribe ()Ldev/caulis/ipc/v1/Subscribe;
+	public fun getWhatCase ()Ldev/caulis/ipc/v1/Request$WhatCase;
+	public fun hasCheckConfig ()Z
+	public fun hasEval ()Z
+	public fun hasGetDevices ()Z
+	public fun hasGetState ()Z
+	public fun hasHello ()Z
+	public fun hasRun ()Z
+	public fun hasSubscribe ()Z
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Request$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Request;)Ldev/caulis/ipc/v1/Request$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Request;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Request;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Request;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Request;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Request;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Request;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Request;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Request;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Request;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Request;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Request;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Request;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Request$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/RequestOrBuilder {
+	public fun clearCheckConfig ()Ldev/caulis/ipc/v1/Request$Builder;
+	public fun clearEval ()Ldev/caulis/ipc/v1/Request$Builder;
+	public fun clearGetDevices ()Ldev/caulis/ipc/v1/Request$Builder;
+	public fun clearGetState ()Ldev/caulis/ipc/v1/Request$Builder;
+	public fun clearHello ()Ldev/caulis/ipc/v1/Request$Builder;
+	public fun clearId ()Ldev/caulis/ipc/v1/Request$Builder;
+	public fun clearRun ()Ldev/caulis/ipc/v1/Request$Builder;
+	public fun clearSubscribe ()Ldev/caulis/ipc/v1/Request$Builder;
+	public fun clearWhat ()Ldev/caulis/ipc/v1/Request$Builder;
+	public fun getCheckConfig ()Ldev/caulis/ipc/v1/CheckConfig;
+	public fun getEval ()Ldev/caulis/ipc/v1/Eval;
+	public fun getGetDevices ()Ldev/caulis/ipc/v1/GetDevices;
+	public fun getGetState ()Ldev/caulis/ipc/v1/GetState;
+	public fun getHello ()Ldev/caulis/ipc/v1/Hello;
+	public fun getId ()I
+	public fun getRun ()Ldev/caulis/ipc/v1/Run;
+	public fun getSubscribe ()Ldev/caulis/ipc/v1/Subscribe;
+	public fun getWhatCase ()Ldev/caulis/ipc/v1/Request$WhatCase;
+	public fun hasCheckConfig ()Z
+	public fun hasEval ()Z
+	public fun hasGetDevices ()Z
+	public fun hasGetState ()Z
+	public fun hasHello ()Z
+	public fun hasRun ()Z
+	public fun hasSubscribe ()Z
+	public fun mergeCheckConfig (Ldev/caulis/ipc/v1/CheckConfig;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun mergeEval (Ldev/caulis/ipc/v1/Eval;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun mergeGetDevices (Ldev/caulis/ipc/v1/GetDevices;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun mergeGetState (Ldev/caulis/ipc/v1/GetState;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun mergeHello (Ldev/caulis/ipc/v1/Hello;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun mergeRun (Ldev/caulis/ipc/v1/Run;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun mergeSubscribe (Ldev/caulis/ipc/v1/Subscribe;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setCheckConfig (Ldev/caulis/ipc/v1/CheckConfig$Builder;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setCheckConfig (Ldev/caulis/ipc/v1/CheckConfig;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setEval (Ldev/caulis/ipc/v1/Eval$Builder;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setEval (Ldev/caulis/ipc/v1/Eval;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setGetDevices (Ldev/caulis/ipc/v1/GetDevices$Builder;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setGetDevices (Ldev/caulis/ipc/v1/GetDevices;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setGetState (Ldev/caulis/ipc/v1/GetState$Builder;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setGetState (Ldev/caulis/ipc/v1/GetState;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setHello (Ldev/caulis/ipc/v1/Hello$Builder;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setHello (Ldev/caulis/ipc/v1/Hello;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setId (I)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setRun (Ldev/caulis/ipc/v1/Run$Builder;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setRun (Ldev/caulis/ipc/v1/Run;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setSubscribe (Ldev/caulis/ipc/v1/Subscribe$Builder;)Ldev/caulis/ipc/v1/Request$Builder;
+	public fun setSubscribe (Ldev/caulis/ipc/v1/Subscribe;)Ldev/caulis/ipc/v1/Request$Builder;
+}
+
+public final class dev/caulis/ipc/v1/Request$WhatCase : java/lang/Enum, com/google/protobuf/AbstractMessageLite$InternalOneOfEnum {
+	public static final field CHECK_CONFIG Ldev/caulis/ipc/v1/Request$WhatCase;
+	public static final field EVAL Ldev/caulis/ipc/v1/Request$WhatCase;
+	public static final field GET_DEVICES Ldev/caulis/ipc/v1/Request$WhatCase;
+	public static final field GET_STATE Ldev/caulis/ipc/v1/Request$WhatCase;
+	public static final field HELLO Ldev/caulis/ipc/v1/Request$WhatCase;
+	public static final field RUN Ldev/caulis/ipc/v1/Request$WhatCase;
+	public static final field SUBSCRIBE Ldev/caulis/ipc/v1/Request$WhatCase;
+	public static final field WHAT_NOT_SET Ldev/caulis/ipc/v1/Request$WhatCase;
+	public static fun forNumber (I)Ldev/caulis/ipc/v1/Request$WhatCase;
+	public fun getNumber ()I
+	public static fun valueOf (I)Ldev/caulis/ipc/v1/Request$WhatCase;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/ipc/v1/Request$WhatCase;
+	public static fun values ()[Ldev/caulis/ipc/v1/Request$WhatCase;
+}
+
+public abstract interface class dev/caulis/ipc/v1/RequestOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getCheckConfig ()Ldev/caulis/ipc/v1/CheckConfig;
+	public abstract fun getEval ()Ldev/caulis/ipc/v1/Eval;
+	public abstract fun getGetDevices ()Ldev/caulis/ipc/v1/GetDevices;
+	public abstract fun getGetState ()Ldev/caulis/ipc/v1/GetState;
+	public abstract fun getHello ()Ldev/caulis/ipc/v1/Hello;
+	public abstract fun getId ()I
+	public abstract fun getRun ()Ldev/caulis/ipc/v1/Run;
+	public abstract fun getSubscribe ()Ldev/caulis/ipc/v1/Subscribe;
+	public abstract fun getWhatCase ()Ldev/caulis/ipc/v1/Request$WhatCase;
+	public abstract fun hasCheckConfig ()Z
+	public abstract fun hasEval ()Z
+	public abstract fun hasGetDevices ()Z
+	public abstract fun hasGetState ()Z
+	public abstract fun hasHello ()Z
+	public abstract fun hasRun ()Z
+	public abstract fun hasSubscribe ()Z
+}
+
+public final class dev/caulis/ipc/v1/Run : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/RunOrBuilder {
+	public static final field ACTION_FIELD_NUMBER I
+	public static final field WINDOW_FIELD_NUMBER I
+	public fun getAction ()Ljava/lang/String;
+	public fun getActionBytes ()Lcom/google/protobuf/ByteString;
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Run;
+	public fun getWindow ()J
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Run$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Run;)Ldev/caulis/ipc/v1/Run$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Run;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Run;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Run;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Run;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Run;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Run;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Run;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Run;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Run;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Run;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Run;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Run;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Run$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/RunOrBuilder {
+	public fun clearAction ()Ldev/caulis/ipc/v1/Run$Builder;
+	public fun clearWindow ()Ldev/caulis/ipc/v1/Run$Builder;
+	public fun getAction ()Ljava/lang/String;
+	public fun getActionBytes ()Lcom/google/protobuf/ByteString;
+	public fun getWindow ()J
+	public fun setAction (Ljava/lang/String;)Ldev/caulis/ipc/v1/Run$Builder;
+	public fun setActionBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Run$Builder;
+	public fun setWindow (J)Ldev/caulis/ipc/v1/Run$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/RunOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getAction ()Ljava/lang/String;
+	public abstract fun getActionBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getWindow ()J
+}
+
+public final class dev/caulis/ipc/v1/ServerInfo : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/ServerInfoOrBuilder {
+	public static final field CAULIS_VERSION_FIELD_NUMBER I
+	public static final field NAME_FIELD_NUMBER I
+	public static final field PROTOCOL_FIELD_NUMBER I
+	public static final field WAYLAND_DISPLAY_FIELD_NUMBER I
+	public static final field X11_DISPLAY_FIELD_NUMBER I
+	public fun getCaulisVersion ()Ljava/lang/String;
+	public fun getCaulisVersionBytes ()Lcom/google/protobuf/ByteString;
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/ServerInfo;
+	public fun getName ()Ljava/lang/String;
+	public fun getNameBytes ()Lcom/google/protobuf/ByteString;
+	public fun getProtocol ()I
+	public fun getWaylandDisplay ()Ljava/lang/String;
+	public fun getWaylandDisplayBytes ()Lcom/google/protobuf/ByteString;
+	public fun getX11Display ()Ljava/lang/String;
+	public fun getX11DisplayBytes ()Lcom/google/protobuf/ByteString;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/ServerInfo;)Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/ServerInfo;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/ServerInfo;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/ServerInfo;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/ServerInfo;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/ServerInfo;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/ServerInfo;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/ServerInfo;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/ServerInfo;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/ServerInfo;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/ServerInfo;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/ServerInfo;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/ServerInfo;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/ServerInfo$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/ServerInfoOrBuilder {
+	public fun clearCaulisVersion ()Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public fun clearName ()Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public fun clearProtocol ()Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public fun clearWaylandDisplay ()Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public fun clearX11Display ()Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public fun getCaulisVersion ()Ljava/lang/String;
+	public fun getCaulisVersionBytes ()Lcom/google/protobuf/ByteString;
+	public fun getName ()Ljava/lang/String;
+	public fun getNameBytes ()Lcom/google/protobuf/ByteString;
+	public fun getProtocol ()I
+	public fun getWaylandDisplay ()Ljava/lang/String;
+	public fun getWaylandDisplayBytes ()Lcom/google/protobuf/ByteString;
+	public fun getX11Display ()Ljava/lang/String;
+	public fun getX11DisplayBytes ()Lcom/google/protobuf/ByteString;
+	public fun setCaulisVersion (Ljava/lang/String;)Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public fun setCaulisVersionBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public fun setName (Ljava/lang/String;)Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public fun setNameBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public fun setProtocol (I)Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public fun setWaylandDisplay (Ljava/lang/String;)Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public fun setWaylandDisplayBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public fun setX11Display (Ljava/lang/String;)Ldev/caulis/ipc/v1/ServerInfo$Builder;
+	public fun setX11DisplayBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/ServerInfo$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/ServerInfoOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getCaulisVersion ()Ljava/lang/String;
+	public abstract fun getCaulisVersionBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getName ()Ljava/lang/String;
+	public abstract fun getNameBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getProtocol ()I
+	public abstract fun getWaylandDisplay ()Ljava/lang/String;
+	public abstract fun getWaylandDisplayBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getX11Display ()Ljava/lang/String;
+	public abstract fun getX11DisplayBytes ()Lcom/google/protobuf/ByteString;
+}
+
+public final class dev/caulis/ipc/v1/State : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/StateOrBuilder {
+	public static final field FOCUSED_MONITOR_FIELD_NUMBER I
+	public static final field FOCUSED_WINDOW_FIELD_NUMBER I
+	public static final field KEY_MODE_FIELD_NUMBER I
+	public static final field LOCKED_FIELD_NUMBER I
+	public static final field MONITORS_FIELD_NUMBER I
+	public static final field PRIMARY_MONITOR_FIELD_NUMBER I
+	public static final field SCALE_FIELD_NUMBER I
+	public static final field WINDOWS_FIELD_NUMBER I
+	public static final field WORKSPACES_FIELD_NUMBER I
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/State;
+	public fun getFocusedMonitor ()Ljava/lang/String;
+	public fun getFocusedMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public fun getFocusedWindow ()J
+	public fun getKeyMode ()Ljava/lang/String;
+	public fun getKeyModeBytes ()Lcom/google/protobuf/ByteString;
+	public fun getLocked ()Z
+	public fun getMonitors (I)Ldev/caulis/ipc/v1/Monitor;
+	public fun getMonitorsCount ()I
+	public fun getMonitorsList ()Ljava/util/List;
+	public fun getMonitorsOrBuilder (I)Ldev/caulis/ipc/v1/MonitorOrBuilder;
+	public fun getMonitorsOrBuilderList ()Ljava/util/List;
+	public fun getPrimaryMonitor ()Ljava/lang/String;
+	public fun getPrimaryMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public fun getScale ()D
+	public fun getWindows (I)Ldev/caulis/ipc/v1/Window;
+	public fun getWindowsCount ()I
+	public fun getWindowsList ()Ljava/util/List;
+	public fun getWindowsOrBuilder (I)Ldev/caulis/ipc/v1/WindowOrBuilder;
+	public fun getWindowsOrBuilderList ()Ljava/util/List;
+	public fun getWorkspaces (I)Ldev/caulis/ipc/v1/Workspace;
+	public fun getWorkspacesCount ()I
+	public fun getWorkspacesList ()Ljava/util/List;
+	public fun getWorkspacesOrBuilder (I)Ldev/caulis/ipc/v1/WorkspaceOrBuilder;
+	public fun getWorkspacesOrBuilderList ()Ljava/util/List;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/State$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/State;)Ldev/caulis/ipc/v1/State$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/State;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/State;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/State;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/State;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/State;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/State;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/State;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/State;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/State;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/State;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/State;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/State;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/State$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/StateOrBuilder {
+	public fun addAllMonitors (Ljava/lang/Iterable;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun addAllWindows (Ljava/lang/Iterable;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun addAllWorkspaces (Ljava/lang/Iterable;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun addMonitors (ILdev/caulis/ipc/v1/Monitor$Builder;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun addMonitors (ILdev/caulis/ipc/v1/Monitor;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun addMonitors (Ldev/caulis/ipc/v1/Monitor$Builder;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun addMonitors (Ldev/caulis/ipc/v1/Monitor;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun addWindows (ILdev/caulis/ipc/v1/Window$Builder;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun addWindows (ILdev/caulis/ipc/v1/Window;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun addWindows (Ldev/caulis/ipc/v1/Window$Builder;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun addWindows (Ldev/caulis/ipc/v1/Window;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun addWorkspaces (ILdev/caulis/ipc/v1/Workspace$Builder;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun addWorkspaces (ILdev/caulis/ipc/v1/Workspace;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun addWorkspaces (Ldev/caulis/ipc/v1/Workspace$Builder;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun addWorkspaces (Ldev/caulis/ipc/v1/Workspace;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun clearFocusedMonitor ()Ldev/caulis/ipc/v1/State$Builder;
+	public fun clearFocusedWindow ()Ldev/caulis/ipc/v1/State$Builder;
+	public fun clearKeyMode ()Ldev/caulis/ipc/v1/State$Builder;
+	public fun clearLocked ()Ldev/caulis/ipc/v1/State$Builder;
+	public fun clearMonitors ()Ldev/caulis/ipc/v1/State$Builder;
+	public fun clearPrimaryMonitor ()Ldev/caulis/ipc/v1/State$Builder;
+	public fun clearScale ()Ldev/caulis/ipc/v1/State$Builder;
+	public fun clearWindows ()Ldev/caulis/ipc/v1/State$Builder;
+	public fun clearWorkspaces ()Ldev/caulis/ipc/v1/State$Builder;
+	public fun getFocusedMonitor ()Ljava/lang/String;
+	public fun getFocusedMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public fun getFocusedWindow ()J
+	public fun getKeyMode ()Ljava/lang/String;
+	public fun getKeyModeBytes ()Lcom/google/protobuf/ByteString;
+	public fun getLocked ()Z
+	public fun getMonitors (I)Ldev/caulis/ipc/v1/Monitor;
+	public fun getMonitorsCount ()I
+	public fun getMonitorsList ()Ljava/util/List;
+	public fun getPrimaryMonitor ()Ljava/lang/String;
+	public fun getPrimaryMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public fun getScale ()D
+	public fun getWindows (I)Ldev/caulis/ipc/v1/Window;
+	public fun getWindowsCount ()I
+	public fun getWindowsList ()Ljava/util/List;
+	public fun getWorkspaces (I)Ldev/caulis/ipc/v1/Workspace;
+	public fun getWorkspacesCount ()I
+	public fun getWorkspacesList ()Ljava/util/List;
+	public fun removeMonitors (I)Ldev/caulis/ipc/v1/State$Builder;
+	public fun removeWindows (I)Ldev/caulis/ipc/v1/State$Builder;
+	public fun removeWorkspaces (I)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setFocusedMonitor (Ljava/lang/String;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setFocusedMonitorBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setFocusedWindow (J)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setKeyMode (Ljava/lang/String;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setKeyModeBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setLocked (Z)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setMonitors (ILdev/caulis/ipc/v1/Monitor$Builder;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setMonitors (ILdev/caulis/ipc/v1/Monitor;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setPrimaryMonitor (Ljava/lang/String;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setPrimaryMonitorBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setScale (D)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setWindows (ILdev/caulis/ipc/v1/Window$Builder;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setWindows (ILdev/caulis/ipc/v1/Window;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setWorkspaces (ILdev/caulis/ipc/v1/Workspace$Builder;)Ldev/caulis/ipc/v1/State$Builder;
+	public fun setWorkspaces (ILdev/caulis/ipc/v1/Workspace;)Ldev/caulis/ipc/v1/State$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/StateOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getFocusedMonitor ()Ljava/lang/String;
+	public abstract fun getFocusedMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getFocusedWindow ()J
+	public abstract fun getKeyMode ()Ljava/lang/String;
+	public abstract fun getKeyModeBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getLocked ()Z
+	public abstract fun getMonitors (I)Ldev/caulis/ipc/v1/Monitor;
+	public abstract fun getMonitorsCount ()I
+	public abstract fun getMonitorsList ()Ljava/util/List;
+	public abstract fun getPrimaryMonitor ()Ljava/lang/String;
+	public abstract fun getPrimaryMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getScale ()D
+	public abstract fun getWindows (I)Ldev/caulis/ipc/v1/Window;
+	public abstract fun getWindowsCount ()I
+	public abstract fun getWindowsList ()Ljava/util/List;
+	public abstract fun getWorkspaces (I)Ldev/caulis/ipc/v1/Workspace;
+	public abstract fun getWorkspacesCount ()I
+	public abstract fun getWorkspacesList ()Ljava/util/List;
+}
+
+public final class dev/caulis/ipc/v1/Subscribe : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/SubscribeOrBuilder {
+	public static final field KINDS_FIELD_NUMBER I
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Subscribe;
+	public fun getKinds (I)Ldev/caulis/ipc/v1/EventKind;
+	public fun getKindsCount ()I
+	public fun getKindsList ()Ljava/util/List;
+	public fun getKindsValue (I)I
+	public fun getKindsValueList ()Ljava/util/List;
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Subscribe$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Subscribe;)Ldev/caulis/ipc/v1/Subscribe$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Subscribe;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Subscribe;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Subscribe;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Subscribe;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Subscribe;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Subscribe;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Subscribe;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Subscribe;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Subscribe;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Subscribe;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Subscribe;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Subscribe;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Subscribe$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/SubscribeOrBuilder {
+	public fun addAllKinds (Ljava/lang/Iterable;)Ldev/caulis/ipc/v1/Subscribe$Builder;
+	public fun addAllKindsValue (Ljava/lang/Iterable;)Ldev/caulis/ipc/v1/Subscribe$Builder;
+	public fun addKinds (Ldev/caulis/ipc/v1/EventKind;)Ldev/caulis/ipc/v1/Subscribe$Builder;
+	public fun addKindsValue (I)Ldev/caulis/ipc/v1/Subscribe$Builder;
+	public fun clearKinds ()Ldev/caulis/ipc/v1/Subscribe$Builder;
+	public fun getKinds (I)Ldev/caulis/ipc/v1/EventKind;
+	public fun getKindsCount ()I
+	public fun getKindsList ()Ljava/util/List;
+	public fun getKindsValue (I)I
+	public fun getKindsValueList ()Ljava/util/List;
+	public fun setKinds (ILdev/caulis/ipc/v1/EventKind;)Ldev/caulis/ipc/v1/Subscribe$Builder;
+	public fun setKindsValue (II)Ldev/caulis/ipc/v1/Subscribe$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/SubscribeOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getKinds (I)Ldev/caulis/ipc/v1/EventKind;
+	public abstract fun getKindsCount ()I
+	public abstract fun getKindsList ()Ljava/util/List;
+	public abstract fun getKindsValue (I)I
+	public abstract fun getKindsValueList ()Ljava/util/List;
+}
+
+public final class dev/caulis/ipc/v1/Window : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/WindowOrBuilder {
+	public static final field APP_ID_FIELD_NUMBER I
+	public static final field FLOATING_FIELD_NUMBER I
+	public static final field FOCUSED_FIELD_NUMBER I
+	public static final field FULLSCREEN_FIELD_NUMBER I
+	public static final field ID_FIELD_NUMBER I
+	public static final field MAXIMIZED_FIELD_NUMBER I
+	public static final field MINIMIZED_FIELD_NUMBER I
+	public static final field MONITOR_FIELD_NUMBER I
+	public static final field PID_FIELD_NUMBER I
+	public static final field RECT_FIELD_NUMBER I
+	public static final field TITLE_FIELD_NUMBER I
+	public static final field URGENT_FIELD_NUMBER I
+	public static final field WORKSPACE_FIELD_NUMBER I
+	public static final field X11_FIELD_NUMBER I
+	public fun getAppId ()Ljava/lang/String;
+	public fun getAppIdBytes ()Lcom/google/protobuf/ByteString;
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Window;
+	public fun getFloating ()Z
+	public fun getFocused ()Z
+	public fun getFullscreen ()Z
+	public fun getId ()J
+	public fun getMaximized ()Z
+	public fun getMinimized ()Z
+	public fun getMonitor ()Ljava/lang/String;
+	public fun getMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public fun getPid ()I
+	public fun getRect ()Ldev/caulis/ipc/v1/Rect;
+	public fun getTitle ()Ljava/lang/String;
+	public fun getTitleBytes ()Lcom/google/protobuf/ByteString;
+	public fun getUrgent ()Z
+	public fun getWorkspace ()I
+	public fun getX11 ()Z
+	public fun hasRect ()Z
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Window$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Window;)Ldev/caulis/ipc/v1/Window$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Window;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Window;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Window;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Window;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Window;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Window;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Window;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Window;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Window;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Window;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Window;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Window;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Window$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/WindowOrBuilder {
+	public fun clearAppId ()Ldev/caulis/ipc/v1/Window$Builder;
+	public fun clearFloating ()Ldev/caulis/ipc/v1/Window$Builder;
+	public fun clearFocused ()Ldev/caulis/ipc/v1/Window$Builder;
+	public fun clearFullscreen ()Ldev/caulis/ipc/v1/Window$Builder;
+	public fun clearId ()Ldev/caulis/ipc/v1/Window$Builder;
+	public fun clearMaximized ()Ldev/caulis/ipc/v1/Window$Builder;
+	public fun clearMinimized ()Ldev/caulis/ipc/v1/Window$Builder;
+	public fun clearMonitor ()Ldev/caulis/ipc/v1/Window$Builder;
+	public fun clearPid ()Ldev/caulis/ipc/v1/Window$Builder;
+	public fun clearRect ()Ldev/caulis/ipc/v1/Window$Builder;
+	public fun clearTitle ()Ldev/caulis/ipc/v1/Window$Builder;
+	public fun clearUrgent ()Ldev/caulis/ipc/v1/Window$Builder;
+	public fun clearWorkspace ()Ldev/caulis/ipc/v1/Window$Builder;
+	public fun clearX11 ()Ldev/caulis/ipc/v1/Window$Builder;
+	public fun getAppId ()Ljava/lang/String;
+	public fun getAppIdBytes ()Lcom/google/protobuf/ByteString;
+	public fun getFloating ()Z
+	public fun getFocused ()Z
+	public fun getFullscreen ()Z
+	public fun getId ()J
+	public fun getMaximized ()Z
+	public fun getMinimized ()Z
+	public fun getMonitor ()Ljava/lang/String;
+	public fun getMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public fun getPid ()I
+	public fun getRect ()Ldev/caulis/ipc/v1/Rect;
+	public fun getTitle ()Ljava/lang/String;
+	public fun getTitleBytes ()Lcom/google/protobuf/ByteString;
+	public fun getUrgent ()Z
+	public fun getWorkspace ()I
+	public fun getX11 ()Z
+	public fun hasRect ()Z
+	public fun mergeRect (Ldev/caulis/ipc/v1/Rect;)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setAppId (Ljava/lang/String;)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setAppIdBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setFloating (Z)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setFocused (Z)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setFullscreen (Z)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setId (J)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setMaximized (Z)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setMinimized (Z)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setMonitor (Ljava/lang/String;)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setMonitorBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setPid (I)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setRect (Ldev/caulis/ipc/v1/Rect$Builder;)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setRect (Ldev/caulis/ipc/v1/Rect;)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setTitle (Ljava/lang/String;)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setTitleBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setUrgent (Z)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setWorkspace (I)Ldev/caulis/ipc/v1/Window$Builder;
+	public fun setX11 (Z)Ldev/caulis/ipc/v1/Window$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/WindowOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getAppId ()Ljava/lang/String;
+	public abstract fun getAppIdBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getFloating ()Z
+	public abstract fun getFocused ()Z
+	public abstract fun getFullscreen ()Z
+	public abstract fun getId ()J
+	public abstract fun getMaximized ()Z
+	public abstract fun getMinimized ()Z
+	public abstract fun getMonitor ()Ljava/lang/String;
+	public abstract fun getMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getPid ()I
+	public abstract fun getRect ()Ldev/caulis/ipc/v1/Rect;
+	public abstract fun getTitle ()Ljava/lang/String;
+	public abstract fun getTitleBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getUrgent ()Z
+	public abstract fun getWorkspace ()I
+	public abstract fun getX11 ()Z
+	public abstract fun hasRect ()Z
+}
+
+public final class dev/caulis/ipc/v1/Workspace : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/WorkspaceOrBuilder {
+	public static final field ACTIVE_FIELD_NUMBER I
+	public static final field LAYOUT_FIELD_NUMBER I
+	public static final field MONITOR_FIELD_NUMBER I
+	public static final field NAME_FIELD_NUMBER I
+	public static final field NUMBER_FIELD_NUMBER I
+	public static final field WINDOWS_FIELD_NUMBER I
+	public fun getActive ()Z
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/Workspace;
+	public fun getLayout ()Ljava/lang/String;
+	public fun getLayoutBytes ()Lcom/google/protobuf/ByteString;
+	public fun getMonitor ()Ljava/lang/String;
+	public fun getMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public fun getName ()Ljava/lang/String;
+	public fun getNameBytes ()Lcom/google/protobuf/ByteString;
+	public fun getNumber ()I
+	public fun getWindows ()I
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/Workspace$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/Workspace;)Ldev/caulis/ipc/v1/Workspace$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Workspace;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Workspace;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Workspace;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Workspace;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/Workspace;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Workspace;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/Workspace;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Workspace;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/Workspace;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Workspace;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/Workspace;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/Workspace;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/Workspace$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/WorkspaceOrBuilder {
+	public fun clearActive ()Ldev/caulis/ipc/v1/Workspace$Builder;
+	public fun clearLayout ()Ldev/caulis/ipc/v1/Workspace$Builder;
+	public fun clearMonitor ()Ldev/caulis/ipc/v1/Workspace$Builder;
+	public fun clearName ()Ldev/caulis/ipc/v1/Workspace$Builder;
+	public fun clearNumber ()Ldev/caulis/ipc/v1/Workspace$Builder;
+	public fun clearWindows ()Ldev/caulis/ipc/v1/Workspace$Builder;
+	public fun getActive ()Z
+	public fun getLayout ()Ljava/lang/String;
+	public fun getLayoutBytes ()Lcom/google/protobuf/ByteString;
+	public fun getMonitor ()Ljava/lang/String;
+	public fun getMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public fun getName ()Ljava/lang/String;
+	public fun getNameBytes ()Lcom/google/protobuf/ByteString;
+	public fun getNumber ()I
+	public fun getWindows ()I
+	public fun setActive (Z)Ldev/caulis/ipc/v1/Workspace$Builder;
+	public fun setLayout (Ljava/lang/String;)Ldev/caulis/ipc/v1/Workspace$Builder;
+	public fun setLayoutBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Workspace$Builder;
+	public fun setMonitor (Ljava/lang/String;)Ldev/caulis/ipc/v1/Workspace$Builder;
+	public fun setMonitorBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Workspace$Builder;
+	public fun setName (Ljava/lang/String;)Ldev/caulis/ipc/v1/Workspace$Builder;
+	public fun setNameBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/Workspace$Builder;
+	public fun setNumber (I)Ldev/caulis/ipc/v1/Workspace$Builder;
+	public fun setWindows (I)Ldev/caulis/ipc/v1/Workspace$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/WorkspaceOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getActive ()Z
+	public abstract fun getLayout ()Ljava/lang/String;
+	public abstract fun getLayoutBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getMonitor ()Ljava/lang/String;
+	public abstract fun getMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getName ()Ljava/lang/String;
+	public abstract fun getNameBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getNumber ()I
+	public abstract fun getWindows ()I
+}
+
+public final class dev/caulis/ipc/v1/WorkspaceShown : com/google/protobuf/GeneratedMessageLite, dev/caulis/ipc/v1/WorkspaceShownOrBuilder {
+	public static final field MONITOR_FIELD_NUMBER I
+	public static final field NUMBER_FIELD_NUMBER I
+	public static fun getDefaultInstance ()Ldev/caulis/ipc/v1/WorkspaceShown;
+	public fun getMonitor ()Ljava/lang/String;
+	public fun getMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public fun getNumber ()I
+	public static fun newBuilder ()Ldev/caulis/ipc/v1/WorkspaceShown$Builder;
+	public static fun newBuilder (Ldev/caulis/ipc/v1/WorkspaceShown;)Ldev/caulis/ipc/v1/WorkspaceShown$Builder;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/WorkspaceShown;
+	public static fun parseDelimitedFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/WorkspaceShown;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/WorkspaceShown;
+	public static fun parseFrom (Lcom/google/protobuf/ByteString;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/WorkspaceShown;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;)Ldev/caulis/ipc/v1/WorkspaceShown;
+	public static fun parseFrom (Lcom/google/protobuf/CodedInputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/WorkspaceShown;
+	public static fun parseFrom (Ljava/io/InputStream;)Ldev/caulis/ipc/v1/WorkspaceShown;
+	public static fun parseFrom (Ljava/io/InputStream;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/WorkspaceShown;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;)Ldev/caulis/ipc/v1/WorkspaceShown;
+	public static fun parseFrom (Ljava/nio/ByteBuffer;Lcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/WorkspaceShown;
+	public static fun parseFrom ([B)Ldev/caulis/ipc/v1/WorkspaceShown;
+	public static fun parseFrom ([BLcom/google/protobuf/ExtensionRegistryLite;)Ldev/caulis/ipc/v1/WorkspaceShown;
+	public static fun parser ()Lcom/google/protobuf/Parser;
+}
+
+public final class dev/caulis/ipc/v1/WorkspaceShown$Builder : com/google/protobuf/GeneratedMessageLite$Builder, dev/caulis/ipc/v1/WorkspaceShownOrBuilder {
+	public fun clearMonitor ()Ldev/caulis/ipc/v1/WorkspaceShown$Builder;
+	public fun clearNumber ()Ldev/caulis/ipc/v1/WorkspaceShown$Builder;
+	public fun getMonitor ()Ljava/lang/String;
+	public fun getMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public fun getNumber ()I
+	public fun setMonitor (Ljava/lang/String;)Ldev/caulis/ipc/v1/WorkspaceShown$Builder;
+	public fun setMonitorBytes (Lcom/google/protobuf/ByteString;)Ldev/caulis/ipc/v1/WorkspaceShown$Builder;
+	public fun setNumber (I)Ldev/caulis/ipc/v1/WorkspaceShown$Builder;
+}
+
+public abstract interface class dev/caulis/ipc/v1/WorkspaceShownOrBuilder : com/google/protobuf/MessageLiteOrBuilder {
+	public abstract fun getMonitor ()Ljava/lang/String;
+	public abstract fun getMonitorBytes ()Lcom/google/protobuf/ByteString;
+	public abstract fun getNumber ()I
+}
+

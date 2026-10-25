@@ -1,8 +1,10 @@
 package dev.caulis.ffi
 
+import dev.caulis.log.InternalCaulisApi
 import dev.caulis.ffi.c.libc.LibC
 
 /** errno values Caulis reacts to. */
+@InternalCaulisApi
 object Errno {
     val EAGAIN: Int = LibC.EAGAIN()
     val EINTR: Int = LibC.EINTR()

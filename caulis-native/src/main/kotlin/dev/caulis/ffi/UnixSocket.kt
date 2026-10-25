@@ -1,5 +1,6 @@
 package dev.caulis.ffi
 
+import dev.caulis.log.InternalCaulisApi
 import dev.caulis.ffi.c.libc.LibC
 import dev.caulis.ffi.c.libc.cmsghdr
 import dev.caulis.ffi.c.libc.iovec
@@ -20,6 +21,7 @@ import java.nio.file.Path
  * that. All calls are non-blocking: they return -1 when they would have to wait; use
  * [Epoll] to learn when to try again.
  */
+@InternalCaulisApi
 class UnixSocket private constructor(val fd: Fd) : AutoCloseable {
 
     // Reusable memory for the message headers, so sending and receiving create no garbage.
@@ -173,6 +175,7 @@ class UnixSocket private constructor(val fd: Fd) : AutoCloseable {
  * A socket at a filesystem path that programs can connect to (the Wayland display socket).
  * Closing it removes the path again.
  */
+@InternalCaulisApi
 class UnixListener private constructor(val fd: Fd, val path: Path) : AutoCloseable {
 
     /** Takes one waiting connection, or returns null if nobody is waiting. */

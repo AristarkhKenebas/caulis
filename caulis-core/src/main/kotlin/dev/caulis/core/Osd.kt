@@ -77,7 +77,7 @@ internal class Osd(private val renderer: Renderer) {
             g.color = java.awt.Color(30, 32, 38, 235)
             g.fill(RoundRectangle2D.Double(0.0, 0.0, w.toDouble(), h.toDouble(), 28 * scale, 28 * scale))
             g.color = java.awt.Color(236, 238, 242)
-            g.font = Font("Sans", Font.BOLD, 1).deriveFont((15 * scale).toFloat())
+            g.font = Font(Font.SANS_SERIF, Font.BOLD, 1).deriveFont((15 * scale).toFloat())
             val metrics = g.fontMetrics
             val title = look.title
             g.drawString(title, ((w - metrics.stringWidth(title)) / 2).toFloat(), (22 * scale + metrics.ascent / 2.0).toFloat())
@@ -92,7 +92,7 @@ internal class Osd(private val renderer: Renderer) {
                 g.fill(RoundRectangle2D.Double(barX, barY, barW * level.coerceIn(0.0, 1.0), barH, barH, barH))
                 g.stroke = BasicStroke(1f)
             }
-            g.font = Font("Sans", Font.PLAIN, 1).deriveFont((14 * scale).toFloat())
+            g.font = Font(Font.SANS_SERIF, Font.PLAIN, 1).deriveFont((14 * scale).toFloat())
             for ((i, choice) in look.choices.withIndex()) {
                 val top = (44 + i * ROW) * scale
                 if (i == look.chosen) {

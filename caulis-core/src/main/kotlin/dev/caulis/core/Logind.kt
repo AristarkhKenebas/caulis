@@ -1,5 +1,6 @@
 package dev.caulis.core
 
+import dev.caulis.log.InternalCaulisApi
 import dev.caulis.core.dbus.DBusConnection
 import dev.caulis.core.dbus.ObjectPath
 import dev.caulis.event.EventLoop
@@ -17,6 +18,7 @@ import dev.caulis.log.Logger
  *
  * Without logind (no system bus), nothing happens and nothing fails.
  */
+@InternalCaulisApi
 class Logind private constructor(private val bus: DBusConnection, private val loop: EventLoop) : AutoCloseable {
 
     private val log = Logger("session")

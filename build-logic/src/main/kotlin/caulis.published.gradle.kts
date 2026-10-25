@@ -1,4 +1,4 @@
-// A module that goes to Maven Central (dev.caulis:<module>): everything from caulis.library,
+// A module that goes to Maven Central (io.github.aristarkhkenebas:<module>): everything from caulis.library,
 // plus its sources, its documentation, a POM that says what it is and under which license,
 // and a signature. Examples and tools are not published (they use caulis.library alone).
 //
@@ -98,5 +98,21 @@ tasks.withType<PublishToMavenRepository>().configureEach {
     val missing = listOf("caulis.website", "caulis.scm", "caulis.developer.id", "caulis.developer.name").filter { !setting(it).isPresent }
     doFirst {
         check(missing.isEmpty()) { "Set ${missing.joinToString()} in gradle.properties (they go into every POM)" }
+    }
+}
+
+// The public API of each module is written down (api/<module>.api, kept in the repository):
+// `./gradlew checkKotlinAbi` (part of `check`) fails when it changes unnoticed, and
+// `./gradlew updateKotlinAbi` writes it anew after a change that is meant.
+@OptIn(org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class)
+kotlin {
+    abiValidation {
+        filters {
+            exclude {
+                // Generated bindings of C libraries, and what is marked internal: not the API.
+                byNames.add("dev.caulis.ffi.c.**")
+                annotatedWith.add("dev.caulis.log.InternalCaulisApi")
+            }
+        }
     }
 }

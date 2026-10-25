@@ -107,7 +107,7 @@ internal class Toolbar(private val renderer: Renderer) : AutoCloseable {
                 g.color = if (look.hovered == button) Color(88, 156, 255) else Color(61, 139, 253)
                 g.fill(RoundRectangle2D.Double(x + 4, 14.0, w - 8, height - 28.0, 12.0, 12.0))
                 g.color = Color.WHITE
-                g.font = Font("Sans", Font.BOLD, 13)
+                g.font = Font(Font.SANS_SERIF, Font.BOLD, 13)
                 centred(g, "Capture", x + w / 2, height / 2.0 + 5)
                 continue
             }
@@ -118,7 +118,7 @@ internal class Toolbar(private val renderer: Renderer) : AutoCloseable {
             g.color = Color(240, 242, 246)
             g.stroke = BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
             icon(g, button, x + w / 2, if (button == Button.CLOSE) height / 2.0 else 25.0, look)
-            g.font = Font("Sans", Font.PLAIN, 11)
+            g.font = Font(Font.SANS_SERIF, Font.PLAIN, 11)
             g.color = Color(220, 224, 230)
             val label = when (button) {
                 Button.REGION -> "Area"
@@ -209,7 +209,7 @@ internal class Label(private val renderer: Renderer) : AutoCloseable {
             g.color = Color(28, 30, 36, 220)
             g.fill(RoundRectangle2D.Double(0.0, 0.0, width.toDouble(), height.toDouble(), 12.0, 12.0))
             g.color = Color(240, 242, 246)
-            g.font = Font("Sans", Font.PLAIN, 12)
+            g.font = Font(Font.SANS_SERIF, Font.PLAIN, 12)
             g.drawString(text, ((width - g.fontMetrics.stringWidth(text)) / 2.0).toFloat(), 16.5f)
         } finally {
             g.dispose()

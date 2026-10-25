@@ -1,5 +1,6 @@
 package dev.caulis.wm.config
 
+import dev.caulis.log.InternalCaulisApi
 import dev.caulis.core.Animations
 import dev.caulis.core.Background
 import dev.caulis.core.Blur
@@ -43,6 +44,7 @@ import dev.caulis.wm.Caulis
 import dev.caulis.wm.Keys
 
 /** The layouts a configuration file can name. */
+@InternalCaulisApi
 object Layouts {
     val names = listOf(
         "floating", "dwindle", "spiral", "grid", "columns", "rows", "monocle", "master-stack", "centered-master",
@@ -50,6 +52,7 @@ object Layouts {
     )
 
     /** What else a layout may be told (each takes what fits it). */
+    @InternalCaulisApi
     data class Options(
         val masters: Int = 1,
         val newWindow: NewWindow = NewWindow.STACK_END,
@@ -88,6 +91,7 @@ object Layouts {
  * one description: read from JSON, checked, applied to a [Caulis], and turned into the Nix
  * module's typed options and a JSON Schema for editors.
  */
+@InternalCaulisApi
 object Settings {
 
     private val configLog = dev.caulis.log.Logger("config")
@@ -552,6 +556,7 @@ object Settings {
      * What a file added to the lists of a [Caulis] (rules, keys, programs to start), so that a
      * new version replaces them instead of adding to them.
      */
+    @InternalCaulisApi
     class Added(val rules: List<dev.caulis.wm.WindowRule>, val bindings: List<Caulis.Binding>, val startup: List<Caulis.() -> Unit>)
 
     /** Applies [values] (read by [root]) to [caulis]; what it adds to lists comes back. */
@@ -992,6 +997,7 @@ object Settings {
 }
 
 /** A key's action as text (see [Actions]), checked when read. */
+@InternalCaulisApi
 object ActionType : SettingType() {
     override val words get() = "an action (\"close\", \"exec firefox\", \"workspace 3\", ...)"
 
@@ -1024,8 +1030,10 @@ object ActionType : SettingType() {
  * `{ "action": "exec wpctl ...", "repeat": true, "locked": true, "description": "louder" }`.
  * The combination (the name it is given under) is checked too.
  */
+@InternalCaulisApi
 object BindType : SettingType() {
     /** What a key does, and how it behaves. */
+    @InternalCaulisApi
     class Bound(val action: Caulis.() -> Unit, val options: dev.caulis.wm.BindOptions)
 
     private val details = SectionType(
@@ -1079,6 +1087,7 @@ object BindType : SettingType() {
 }
 
 /** A key combination ("Super+Shift+Q"), or only modifiers ("Super+Shift") for a group of keys. */
+@InternalCaulisApi
 class CombinationType(private val modifiersOnly: Boolean) : SettingType() {
     override val words get() = if (modifiersOnly) "modifiers (\"Super\", \"Super+Shift\")" else "a key combination (\"Super+Q\")"
 

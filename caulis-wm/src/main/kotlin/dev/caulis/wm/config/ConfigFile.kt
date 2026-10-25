@@ -1,5 +1,6 @@
 package dev.caulis.wm.config
 
+import dev.caulis.log.InternalCaulisApi
 import dev.caulis.log.Logger
 import dev.caulis.wm.Caulis
 import java.nio.file.Files
@@ -11,11 +12,13 @@ import java.nio.file.Path
  * code says. Each setting stands on its own: a mistake in one is reported (with its line)
  * and the others still apply.
  */
+@InternalCaulisApi
 object ConfigFile {
 
     private val log = Logger("config")
 
     /** What reading a file found: the settings to apply, and what is wrong. */
+    @InternalCaulisApi
     class Read(val values: Map<String, Any?>, val problems: List<String>)
 
     /** Reads and checks [text] (nothing is applied). */
@@ -67,7 +70,7 @@ object ConfigFile {
     }
 
     /** The files of other languages a compositor may read, and the module that reads each. */
-    val languageFiles = linkedMapOf("config.lua" to "dev.caulis:caulis-lua", "config.kts" to "dev.caulis:caulis-script")
+    val languageFiles = linkedMapOf("config.lua" to "io.github.aristarkhkenebas:caulis-lua", "config.kts" to "io.github.aristarkhkenebas:caulis-script")
 
     /** The languages this program has (their modules are on the class path). */
     val languages: List<ConfigLanguage> by lazy {
@@ -128,6 +131,7 @@ object ConfigFile {
  * (caulis-lua), Kotlin script (caulis-script). Found through java.util.ServiceLoader: a module
  * on the class path that has one is used for its [fileName].
  */
+@InternalCaulisApi
 interface ConfigLanguage {
 
     /** The file it reads in the compositor's folder: "config.lua". */

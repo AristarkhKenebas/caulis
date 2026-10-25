@@ -1,0 +1,25 @@
+public final class dev/caulis/geometry/Rect {
+	public fun <init> (IIII)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun contains (Ldev/caulis/geometry/Rect;)Z
+	public final fun copy (IIII)Ldev/caulis/geometry/Rect;
+	public static synthetic fun copy$default (Ldev/caulis/geometry/Rect;IIIIILjava/lang/Object;)Ldev/caulis/geometry/Rect;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBottom ()I
+	public final fun getHeight ()I
+	public final fun getRight ()I
+	public final fun getWidth ()I
+	public final fun getX ()I
+	public final fun getY ()I
+	public fun hashCode ()I
+	public final fun intersect (Ldev/caulis/geometry/Rect;)Ldev/caulis/geometry/Rect;
+	public final fun isEmpty ()Z
+	public final fun minus (Ldev/caulis/geometry/Rect;)Ljava/util/List;
+	public fun toString ()Ljava/lang/String;
+	public final fun translate (II)Ldev/caulis/geometry/Rect;
+	public final fun union (Ldev/caulis/geometry/Rect;)Ldev/caulis/geometry/Rect;
+}
+

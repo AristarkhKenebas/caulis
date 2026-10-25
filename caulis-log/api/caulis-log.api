@@ -1,0 +1,58 @@
+public abstract interface annotation class dev/caulis/log/InternalCaulisApi : java/lang/annotation/Annotation {
+}
+
+public final class dev/caulis/log/Log {
+	public static final field AREAS Ljava/util/Map;
+	public static final field EVENTS I
+	public static final field EVERYTHING I
+	public static final field INSTANCE Ldev/caulis/log/Log;
+	public static final field PROBLEMS I
+	public static final field QUIET I
+	public static final fun clearLevel (Ljava/lang/String;)V
+	public static final fun configure (Ljava/lang/String;)V
+	public static final fun getFile ()Ljava/nio/file/Path;
+	public static final fun getLevel ()I
+	public static final fun getListener ()Lkotlin/jvm/functions/Function1;
+	public static final fun getToConsole ()Z
+	public static final fun levelOf (Ljava/lang/String;)I
+	public static final fun recent ()Ljava/util/List;
+	public static final fun setFile (Ljava/nio/file/Path;)V
+	public static final fun setLevel (I)V
+	public static final fun setLevel (Ljava/lang/String;I)V
+	public static final fun setListener (Lkotlin/jvm/functions/Function1;)V
+	public static final fun setToConsole (Z)V
+	public static final fun watch (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public static final fun write (Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)V
+}
+
+public final class dev/caulis/log/Log$Entry {
+	public fun <init> (Ljava/lang/String;ILjava/lang/String;Ljava/lang/Throwable;Ljava/lang/String;)V
+	public final fun getArea ()Ljava/lang/String;
+	public final fun getCause ()Ljava/lang/Throwable;
+	public final fun getLevel ()I
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun isError ()Z
+	public final fun isWarning ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/log/Logger {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun error (Ljava/lang/String;)V
+	public final fun error (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public static synthetic fun error$default (Ldev/caulis/log/Logger;Ljava/lang/String;Ljava/lang/Throwable;ILjava/lang/Object;)V
+	public final fun fatal (Ljava/lang/String;)V
+	public final fun fatal (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public static synthetic fun fatal$default (Ldev/caulis/log/Logger;Ljava/lang/String;Ljava/lang/Throwable;ILjava/lang/Object;)V
+	public final fun getArea ()Ljava/lang/String;
+	public final fun getLevel ()I
+	public final fun getTracing ()Z
+	public final fun info (Ljava/lang/String;)V
+	public final fun info (Lkotlin/jvm/functions/Function0;)V
+	public final fun trace (Ljava/lang/String;)V
+	public final fun trace (Lkotlin/jvm/functions/Function0;)V
+	public final fun warn (Ljava/lang/String;)V
+	public final fun warn (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public static synthetic fun warn$default (Ldev/caulis/log/Logger;Ljava/lang/String;Ljava/lang/Throwable;ILjava/lang/Object;)V
+}
+

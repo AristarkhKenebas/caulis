@@ -1,0 +1,7 @@
+public final class dev/caulis/lua/LuaConfig : dev/caulis/wm/config/ConfigLanguage {
+	public fun <init> ()V
+	public fun apply (Ldev/caulis/wm/Caulis;Ljava/nio/file/Path;)Ljava/util/List;
+	public fun getFileName ()Ljava/lang/String;
+	public fun stubs ()Ljava/lang/String;
+}
+

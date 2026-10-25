@@ -1,5 +1,6 @@
 package dev.caulis.ffi
 
+import dev.caulis.log.InternalCaulisApi
 import dev.caulis.ffi.c.libc.LibC
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
@@ -18,6 +19,7 @@ import java.nio.file.StandardOpenOption
  * the JVM, which turns that fault into an exception: [read] and [write] convert it to
  * [SharedMemoryException], so only the misbehaving program is affected.
  */
+@InternalCaulisApi
 class SharedMemory private constructor(
     /** The descriptor to send to other processes. Owned by this object. */
     val fd: Fd,
@@ -135,4 +137,5 @@ class SharedMemory private constructor(
 }
 
 /** Shared memory could not be used safely; the process that sent it should be disconnected. */
+@InternalCaulisApi
 class SharedMemoryException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
