@@ -26,6 +26,8 @@ data class WindowPlacement @JvmOverloads constructor(
     val goToWorkspace: Boolean = false,
     /** False: it opens without taking the keyboard from the window that has it. */
     val focus: Boolean = true,
+    /** True: pinned — it floats on whichever workspace its monitor shows (see [Desktop.setPinned]). */
+    val pinned: Boolean? = null,
 ) {
     /** This placement with [other]'s settings on top (where [other] says something). */
     fun and(other: WindowPlacement) = WindowPlacement(
@@ -41,6 +43,7 @@ data class WindowPlacement @JvmOverloads constructor(
         fullscreen = other.fullscreen ?: fullscreen,
         goToWorkspace = other.goToWorkspace || goToWorkspace,
         focus = other.focus && focus,
+        pinned = other.pinned ?: pinned,
     )
 
     companion object {

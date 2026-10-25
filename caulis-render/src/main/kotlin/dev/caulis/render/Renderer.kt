@@ -146,9 +146,10 @@ interface Renderer : AutoCloseable {
      * Blurs what was drawn so far under [area] (frosted glass behind a see-through window),
      * its corners rounded by [cornerRadius]. [size] is how strong the blur is, [passes] how
      * smooth (each pass doubles the reach). It reads pixels up to [blurReach] beyond [area],
-     * so those must have been drawn in this frame too.
+     * so those must have been drawn in this frame too. [tone] colours the glass (grain,
+     * contrast, brightness, vibrancy).
      */
-    fun drawBlur(area: Rect, cornerRadius: Float, size: Int, passes: Int)
+    fun drawBlur(area: Rect, cornerRadius: Float, size: Int, passes: Int, tone: BlurTone = BlurTone.NONE)
 
     /**
      * Ends the frame: hands the drawing to the GPU. Whoever reads a [GpuBuffer] afterwards
@@ -212,4 +213,31 @@ interface GpuBuffer : GpuTarget {
 
     /** New descriptors for this buffer, e.g. to send to another compositor. Caller closes them. */
     fun export(): Dmabuf
+}
+
+/**
+ * How blurred glass is toned ([Renderer.drawBlur]): [noise] adds grain (0 to 1; a little,
+ * like 0.01, hides banding), [contrast] and [brightness] scale (1: as it is), [vibrancy]
+ * makes colours stronger (0: as they are; 0.2 is lively).
+ */
+data class BlurTone @JvmOverloads constructor(
+    val noise: Float = 0f,
+    val contrast: Float = 1f,
+    val brightness: Float = 1f,
+    val vibrancy: Float = 0f,
+) {
+    init {
+        require(noise in 0f..1f) { "noise is 0 to 1, not $noise" }
+        require(contrast in 0f..2f) { "contrast is 0 to 2, not $contrast" }
+        require(brightness in 0f..2f) { "brightness is 0 to 2, not $brightness" }
+        require(vibrancy in 0f..1f) { "vibrancy is 0 to 1, not $vibrancy" }
+    }
+
+    companion object {
+        /** The glass as the blur leaves it. */
+        @JvmField val NONE = BlurTone()
+
+        /** Hyprland's usual look: a little grain, softer contrast, a bit darker, livelier colours. */
+        @JvmField val HYPRLAND = BlurTone(noise = 0.0117f, contrast = 0.8916f, brightness = 0.8172f, vibrancy = 0.1696f)
+    }
 }

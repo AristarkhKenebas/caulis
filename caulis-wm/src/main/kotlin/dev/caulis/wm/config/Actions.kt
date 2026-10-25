@@ -15,9 +15,9 @@ import dev.caulis.wm.Caulis
  * exec firefox --private-window          (a program; the rest of the line is its command)
  * workspace 3 · move-to-workspace 3
  * focus left|right · move left|right|up|down · resize ... · preselect ...
- * maximize · fullscreen · minimize · float
+ * maximize · fullscreen · minimize · float · pin · tag +video
  * rotate · balance · column-width · split-beside · split-below
- * layout dwindle · scale 1.5 · notify Hello
+ * layout dwindle · layout-message ratio +0.05 · scale 1.5 · notify Hello
  * ```
  */
 object Actions {
@@ -44,12 +44,15 @@ object Actions {
         Triple("fullscreen", "", "fullscreens the focused window, or back"),
         Triple("minimize", "", "minimizes the focused window"),
         Triple("float", "", "takes the focused window out of the layout, or back"),
+        Triple("pin", "[on|off|toggle]", "pins the focused window: it floats on every workspace (toggles without an argument)"),
+        Triple("tag", "+name|-name|name", "gives the focused window a tag (+), takes it away (-), or toggles it, for rules with hasTag"),
         Triple("rotate", "", "rotates the split (trees)"),
         Triple("balance", "", "evens out the sizes"),
         Triple("column-width", "", "the next column width (scrolling columns)"),
         Triple("split-beside", "", "the next window beside the focused one (manual tiling)"),
         Triple("split-below", "", "the next window below the focused one (manual tiling)"),
         Triple("layout", "name", "switches the layout"),
+        Triple("layout-message", "text", "tells the layout something (\"ratio +0.05\", \"masters +1\", \"toggle-split\", \"width 0.5\", ...)"),
         Triple("scale", "number", "sets the scale"),
         Triple("notify", "text", "shows a notice"),
         Triple("focus-urgent", "", "focuses the window that wants attention"),
@@ -147,12 +150,24 @@ object Actions {
             "fullscreen" -> window { desktop.setFullscreen(it, !it.fullscreen) }
             "minimize" -> window { desktop.minimize(it) }
             "float" -> window { desktop.setFloating(it, !desktop.isFloating(it)) }
+            "pin" -> {
+                val change: (Boolean) -> Boolean = if (argument.isEmpty()) ({ !it }) else onOffToggle()
+                window { desktop.setPinned(it, change(desktop.isPinned(it))) }
+            }
+            "tag" -> {
+                val word = needs("a tag")
+                val tag = word.removePrefix("+").removePrefix("-")
+                if (tag.isEmpty() || tag.any { it.isWhitespace() }) throw IllegalArgumentException("\"$word\" is not a tag (one word, with + or - before it to give or take it)")
+                val on = when (word.first()) { '+' -> true; '-' -> false; else -> null }
+                window { w -> running?.tag(w, tag, on) }
+            }
             "rotate" -> focused { desktop.tilingCommand(TilingCommand.Rotate) }
             "balance" -> focused { desktop.tilingCommand(TilingCommand.Balance) }
             "column-width" -> focused { desktop.tilingCommand(TilingCommand.CycleWidth) }
             "split-beside" -> focused { desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = true)) }
             "split-below" -> focused { desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = false)) }
             "layout" -> Layouts.byName(needs("a layout name")).let { make -> { _ -> layout = make() } }
+            "layout-message" -> dev.caulis.tiling.TilingCommand.Message.of(needs("a message")).let { message -> focused { desktop.tilingCommand(message) } }
             "scale" -> (needs("a number").toDoubleOrNull()?.takeIf { it in 0.5..4.0 } ?: throw IllegalArgumentException("\"$argument\" is not a scale (0.5 to 4)"))
                 .let { s -> { _ -> scale = s } }
             "notify" -> needs("a text").let { message -> { _ -> notify(message, NoticeLevel.INFO) } }

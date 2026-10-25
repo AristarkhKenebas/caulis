@@ -64,6 +64,43 @@
         "side": {
           "enum": ["left", "right", "top", "bottom"],
           "description": "the main window's side (master-stack)"
+        },
+        "masters": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "description": "how many masters (master-stack)"
+        },
+        "newWindow": {
+          "enum": ["stack-end", "stack-top", "master"],
+          "description": "where a new window goes (master-stack)"
+        },
+        "splitRatio": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 0.9,
+          "description": "the old window's share when a new one splits it (tree)"
+        },
+        "columnWidths": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 1
+          },
+          "minItems": 1,
+          "maxItems": 10,
+          "description": "the widths column-width goes through (scrolling-columns)"
+        },
+        "newColumnWidth": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 1,
+          "description": "a new column's width (scrolling-columns)"
+        },
+        "centerFocused": {
+          "type": "boolean",
+          "description": "the focused column always in the middle (scrolling-columns)"
         }
       },
       "description": "how windows are arranged"
@@ -175,6 +212,43 @@
                   "side": {
                     "enum": ["left", "right", "top", "bottom"],
                     "description": "the main window's side (master-stack)"
+                  },
+                  "masters": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "description": "how many masters (master-stack)"
+                  },
+                  "newWindow": {
+                    "enum": ["stack-end", "stack-top", "master"],
+                    "description": "where a new window goes (master-stack)"
+                  },
+                  "splitRatio": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 0.9,
+                    "description": "the old window's share when a new one splits it (tree)"
+                  },
+                  "columnWidths": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 1
+                    },
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "description": "the widths column-width goes through (scrolling-columns)"
+                  },
+                  "newColumnWidth": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 1,
+                    "description": "a new column's width (scrolling-columns)"
+                  },
+                  "centerFocused": {
+                    "type": "boolean",
+                    "description": "the focused column always in the middle (scrolling-columns)"
                   }
                 },
                 "description": "its own layout"
@@ -1125,6 +1199,210 @@
             "minLength": 1,
             "description": "windows of this program (as ps shows it)"
           },
+          "initialAppId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "windows whose app id was this when they opened"
+          },
+          "initialTitle": {
+            "type": "string",
+            "minLength": 1,
+            "description": "windows whose title contained this when they opened"
+          },
+          "hasTag": {
+            "type": "string",
+            "minLength": 1,
+            "description": "windows with this tag (from an earlier rule's tags, or the action tag)"
+          },
+          "isFloating": {
+            "type": "boolean",
+            "description": "while it floats (true) or is tiled (false)"
+          },
+          "isFullscreen": {
+            "type": "boolean",
+            "description": "while it is fullscreen (or not)"
+          },
+          "isMaximized": {
+            "type": "boolean",
+            "description": "while it is maximized (or not)"
+          },
+          "isFocused": {
+            "type": "boolean",
+            "description": "while it has the keyboard (or not)"
+          },
+          "isPinned": {
+            "type": "boolean",
+            "description": "while it is pinned (or not)"
+          },
+          "isXwayland": {
+            "type": "boolean",
+            "description": "X11 programs (true) or Wayland ones (false)"
+          },
+          "onWorkspace": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99,
+            "description": "while it is on this workspace"
+          },
+          "unless": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "appId": {
+                "type": "string",
+                "minLength": 1,
+                "description": "windows with this app id (case does not matter)"
+              },
+              "appIdPattern": {
+                "type": "string",
+                "minLength": 1,
+                "description": "windows whose app id fits this"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "description": "windows whose title contains this"
+              },
+              "titlePattern": {
+                "type": "string",
+                "minLength": 1,
+                "description": "windows whose title fits this"
+              },
+              "program": {
+                "type": "string",
+                "minLength": 1,
+                "description": "windows of this program (as ps shows it)"
+              },
+              "initialAppId": {
+                "type": "string",
+                "minLength": 1,
+                "description": "windows whose app id was this when they opened"
+              },
+              "initialTitle": {
+                "type": "string",
+                "minLength": 1,
+                "description": "windows whose title contained this when they opened"
+              },
+              "hasTag": {
+                "type": "string",
+                "minLength": 1,
+                "description": "windows with this tag (from an earlier rule's tags, or the action tag)"
+              },
+              "isFloating": {
+                "type": "boolean",
+                "description": "while it floats (true) or is tiled (false)"
+              },
+              "isFullscreen": {
+                "type": "boolean",
+                "description": "while it is fullscreen (or not)"
+              },
+              "isMaximized": {
+                "type": "boolean",
+                "description": "while it is maximized (or not)"
+              },
+              "isFocused": {
+                "type": "boolean",
+                "description": "while it has the keyboard (or not)"
+              },
+              "isPinned": {
+                "type": "boolean",
+                "description": "while it is pinned (or not)"
+              },
+              "isXwayland": {
+                "type": "boolean",
+                "description": "X11 programs (true) or Wayland ones (false)"
+              },
+              "onWorkspace": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 99,
+                "description": "while it is on this workspace"
+              }
+            },
+            "description": "windows that do NOT fit this"
+          },
+          "anyOf": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "appId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "windows with this app id (case does not matter)"
+                },
+                "appIdPattern": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "windows whose app id fits this"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "windows whose title contains this"
+                },
+                "titlePattern": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "windows whose title fits this"
+                },
+                "program": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "windows of this program (as ps shows it)"
+                },
+                "initialAppId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "windows whose app id was this when they opened"
+                },
+                "initialTitle": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "windows whose title contained this when they opened"
+                },
+                "hasTag": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "windows with this tag (from an earlier rule's tags, or the action tag)"
+                },
+                "isFloating": {
+                  "type": "boolean",
+                  "description": "while it floats (true) or is tiled (false)"
+                },
+                "isFullscreen": {
+                  "type": "boolean",
+                  "description": "while it is fullscreen (or not)"
+                },
+                "isMaximized": {
+                  "type": "boolean",
+                  "description": "while it is maximized (or not)"
+                },
+                "isFocused": {
+                  "type": "boolean",
+                  "description": "while it has the keyboard (or not)"
+                },
+                "isPinned": {
+                  "type": "boolean",
+                  "description": "while it is pinned (or not)"
+                },
+                "isXwayland": {
+                  "type": "boolean",
+                  "description": "X11 programs (true) or Wayland ones (false)"
+                },
+                "onWorkspace": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 99,
+                  "description": "while it is on this workspace"
+                }
+              }
+            },
+            "minItems": 1,
+            "maxItems": 1000,
+            "description": "windows that fit at least one of these"
+          },
           "workspace": {
             "type": "integer",
             "minimum": 1,
@@ -1211,12 +1489,209 @@
               }
             ],
             "description": "room around it: one number, or [top, right, bottom, left]"
+          },
+          "pinned": {
+            "type": "boolean",
+            "description": "opens pinned: floating, on every workspace of its monitor"
+          },
+          "inactiveOpacity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "how solid it is while another window has the keyboard"
+          },
+          "cornerRadius": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200,
+            "description": "how round its corners are, in pixels"
+          },
+          "border": {
+            "type": "boolean",
+            "description": "false: no border; true: the usual one"
+          },
+          "borderWidth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "description": "its border's width in pixels"
+          },
+          "borderColor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            ],
+            "description": "its border's colour, or [with the keyboard, without]"
+          },
+          "shadow": {
+            "type": "boolean",
+            "description": "false: no shadow; true: the usual one"
+          },
+          "blur": {
+            "type": "boolean",
+            "description": "false: nothing blurred behind it; true: frosted glass"
+          },
+          "dimInactive": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "how much darker it is without the keyboard (0: never)"
+          },
+          "minSize": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "[width, height] it is at least while floating"
+          },
+          "maxSize": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "[width, height] it is at most while floating"
+          },
+          "keepAwake": {
+            "type": "boolean",
+            "description": "the screen stays on while it is shown"
+          },
+          "animated": {
+            "type": "boolean",
+            "description": "false: no animations when it opens, closes or moves"
+          },
+          "hiddenFromCapture": {
+            "type": "boolean",
+            "description": "screenshots and screen sharing show a black box in its place"
+          },
+          "takesFocus": {
+            "type": "boolean",
+            "description": "false: it never gets the keyboard"
+          },
+          "ignore": {
+            "type": "array",
+            "items": {
+              "enum": ["fullscreen", "maximize", "minimize", "activate"]
+            },
+            "minItems": 0,
+            "maxItems": 1000,
+            "description": "what its program asks that is not done"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 0,
+            "maxItems": 1000,
+            "description": "tags it has while it fits (for later rules with hasTag)"
           }
         }
       },
       "minItems": 0,
       "maxItems": 1000,
       "description": "rules for some windows"
+    },
+    "panelRules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "minLength": 1,
+            "description": "panels that call themselves this (waybar, fuzzel, ...)"
+          },
+          "namespacePattern": {
+            "type": "string",
+            "minLength": 1,
+            "description": "panels whose name fits this"
+          },
+          "layer": {
+            "enum": ["background", "bottom", "top", "overlay"],
+            "description": "panels on this layer"
+          },
+          "blur": {
+            "type": "boolean",
+            "description": "frosted glass behind it"
+          },
+          "cornerRadius": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200,
+            "description": "how round its corners are"
+          },
+          "shadow": {
+            "type": "boolean",
+            "description": "a shadow under it"
+          },
+          "opacity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "how solid it is"
+          },
+          "dimAround": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "everything behind it this much darker"
+          },
+          "hiddenFromCapture": {
+            "type": "boolean",
+            "description": "screenshots and screen sharing show a black box in its place"
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 1000,
+      "description": "rules for some panels (bars, launchers, notifications)"
+    },
+    "screenShader": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preset": {
+          "enum": ["grayscale", "invert"],
+          "description": "a ready one"
+        },
+        "warm": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "a night light: this much less blue"
+        },
+        "file": {
+          "type": "string",
+          "minLength": 1,
+          "description": "your own: vec4 effect(vec4 color, vec2 at) (read again when saved)"
+        },
+        "moving": {
+          "type": "boolean",
+          "description": "drawn every frame (it uses time)"
+        }
+      },
+      "description": "a shader the whole screen goes through last"
     },
     "effects": {
       "type": "object",
@@ -1592,11 +2067,45 @@
                   "minimum": 1,
                   "maximum": 6,
                   "description": "how smooth"
+                },
+                "tone": {
+                  "enum": ["none", "hyprland"],
+                  "description": "start from no toning, or Hyprland's"
+                },
+                "noise": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "grain (a little hides banding)"
+                },
+                "contrast": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2,
+                  "description": "1: as it is"
+                },
+                "brightness": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2,
+                  "description": "1: as it is"
+                },
+                "vibrancy": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "stronger colours (0: as they are)"
                 }
               }
             }
           ],
           "description": "blur behind see-through windows"
+        },
+        "dimInactive": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "how much darker windows without the focus are (0: not at all)"
         },
         "opacity": {
           "type": "number",
@@ -1630,32 +2139,229 @@
           "description": "how long animations take (0: none at all)"
         },
         "windowOpen": {
-          "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"],
+          "anyOf": [
+            {
+              "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "style": {
+                  "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"],
+                  "description": "how it looks"
+                },
+                "millis": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 5000,
+                  "description": "how long it takes (else animations.millis, or its spring's own time)"
+                },
+                "curve": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "how it moves"
+                }
+              }
+            }
+          ],
           "description": "a window appearing"
         },
         "windowClose": {
-          "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"],
+          "anyOf": [
+            {
+              "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "style": {
+                  "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"],
+                  "description": "how it looks"
+                },
+                "millis": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 5000,
+                  "description": "how long it takes (else animations.millis, or its spring's own time)"
+                },
+                "curve": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "how it moves"
+                }
+              }
+            }
+          ],
           "description": "a window going away"
         },
         "minimize": {
-          "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"],
+          "anyOf": [
+            {
+              "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "style": {
+                  "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"],
+                  "description": "how it looks"
+                },
+                "millis": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 5000,
+                  "description": "how long it takes (else animations.millis, or its spring's own time)"
+                },
+                "curve": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "how it moves"
+                }
+              }
+            }
+          ],
           "description": "a window going into the dock"
         },
         "restore": {
-          "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"],
+          "anyOf": [
+            {
+              "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "style": {
+                  "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"],
+                  "description": "how it looks"
+                },
+                "millis": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 5000,
+                  "description": "how long it takes (else animations.millis, or its spring's own time)"
+                },
+                "curve": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "how it moves"
+                }
+              }
+            }
+          ],
           "description": "a window coming back out of the dock"
         },
         "windowMove": {
-          "enum": ["move", "none"],
+          "anyOf": [
+            {
+              "enum": ["move", "none"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "style": {
+                  "enum": ["move", "none"],
+                  "description": "how it looks"
+                },
+                "millis": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 5000,
+                  "description": "how long it takes (else animations.millis, or its spring's own time)"
+                },
+                "curve": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "how it moves"
+                }
+              }
+            }
+          ],
           "description": "windows gliding to new places"
         },
         "workspaceSwitch": {
-          "enum": ["slide", "slide-vertical", "fade", "none"],
+          "anyOf": [
+            {
+              "enum": ["slide", "slide-vertical", "fade", "none"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "style": {
+                  "enum": ["slide", "slide-vertical", "fade", "none"],
+                  "description": "how it looks"
+                },
+                "millis": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 5000,
+                  "description": "how long it takes (else animations.millis, or its spring's own time)"
+                },
+                "curve": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "how it moves"
+                }
+              }
+            }
+          ],
           "description": "another workspace shown"
         },
         "curve": {
-          "enum": ["ease-out", "ease-in-out", "linear", "overshoot"],
+          "type": "string",
+          "minLength": 1,
           "description": "how animations move"
+        },
+        "curves": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "bezier": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": -2,
+                  "maximum": 3
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "[x1, y1, x2, y2] as Hyprland's bezier (CSS cubic-bezier)"
+              },
+              "spring": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "stiffness": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 5000,
+                    "description": "how strongly it pulls"
+                  },
+                  "damping": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 500,
+                    "description": "how much it is held back (less: it bounces)"
+                  },
+                  "mass": {
+                    "type": "number",
+                    "minimum": 0.01,
+                    "maximum": 100,
+                    "description": "how heavy"
+                  }
+                },
+                "description": "a spring: an animation takes as long as it needs to rest"
+              }
+            }
+          },
+          "description": "your own curves by name, for curve fields"
         },
         "overviewMillis": {
           "type": "integer",

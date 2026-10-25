@@ -34,16 +34,24 @@ import java.nio.file.Path
  * caulis.on("window-opened", function(w)
  *   if w.appId == "firefox" then caulis.run("move-to-workspace 2", w.id) end
  * end)
+ * local clock = caulis.every(1000, function() ... end)  -- every second; clock.cancel() stops it
+ * local key = caulis.bind("Super+G", "exec gimp")      -- key.setEnabled(false), key.unbind()
+ * caulis.layout("halves", function(windows, area, focused)
+ *   -- one rectangle per window: { x =, y =, width =, height = }
+ * end)
  * ```
  *
  * A mistake is reported with its line and the rest still applies. Lua code that runs too
- * long (a loop that never ends) is stopped, so the desktop never freezes.
+ * long (a loop that never ends) is stopped, so the desktop never freezes. Code typed at
+ * `--repl` (or sent with `--lua`) runs in this same state, with its variables.
  */
 class LuaConfig : ConfigLanguage {
 
     override val fileName = "config.lua"
 
     override fun apply(caulis: Caulis, file: Path): List<String> = Script(caulis, file).load()
+
+    override fun stubs(): String = LuaStubs.text()
 
     // One run of config.lua: its Lua state, and what it reports.
     private class Script(val caulis: Caulis, val file: Path) {
@@ -84,7 +92,37 @@ class LuaConfig : ConfigLanguage {
             } finally {
                 deadline = Long.MAX_VALUE
             }
+            caulis.evaluator("lua", ::eval)
             return problems
+        }
+
+        // Code typed at --repl: run in this state; what it returns, as text.
+        fun eval(code: String): Result<String> {
+            deadline = System.nanoTime() + CALL_LIMIT
+            return try {
+                val results = globals.load(code, "=repl").invoke()
+                Result.success((1..results.narg()).joinToString("\t") { show(results.arg(it)) })
+            } catch (e: LuaError) {
+                Result.failure(IllegalArgumentException(message(e)))
+            } finally {
+                deadline = Long.MAX_VALUE
+            }
+        }
+
+        // A value as Lua's prompt would show it (tables one level deep).
+        fun show(value: LuaValue, depth: Int = 0): String = when {
+            value.isstring() && !value.isnumber() -> if (depth == 0) value.tojstring() else "\"${value.tojstring()}\""
+            value.istable() && depth < 2 -> {
+                val table = value.checktable()
+                val keys = table.keys()
+                val length = table.length()
+                if (length > 0 && keys.size == length) {
+                    (1..length).joinToString(", ", "{ ", " }") { show(table.get(it), depth + 1) }
+                } else {
+                    keys.sortedBy { it.tojstring() }.joinToString(", ", "{ ", " }") { "${it.tojstring()} = ${show(table.get(it), depth + 1)}" }.let { if (keys.isEmpty()) "{}" else it }
+                }
+            }
+            else -> value.tojstring()
         }
 
         // --- the caulis table --------------------------------------------------------------------
@@ -106,6 +144,16 @@ class LuaConfig : ConfigLanguage {
                 settings(wrapped, "rule")
                 LuaValue.NONE
             }
+            // A handle: functions for what was just made (to stop or change it later).
+            fun handle(vararg functions: Pair<String, (Varargs) -> Unit>): LuaTable = LuaTable().also { table ->
+                for ((name, body) in functions) table.set(name, object : VarArgFunction() {
+                    override fun invoke(args: Varargs): Varargs {
+                        body(args)
+                        return LuaValue.NONE
+                    }
+                })
+            }
+            fun closing(what: AutoCloseable) = handle("remove" to { _ -> what.close() }, "cancel" to { _ -> what.close() })
             function("bind") { args ->
                 val combination = args.checkjstring(1)
                 val action = args.arg(2)
@@ -135,12 +183,18 @@ class LuaConfig : ConfigLanguage {
                     dev.caulis.wm.BindOptions()
                 }
                 val mode = if (more.istable()) more.get("mode").optjstring(null) else null
-                try {
-                    if (mode != null) caulis.mode(mode) { bind(combination, options, run) } else caulis.bind(combination, options, run)
+                val binding = try {
+                    if (mode != null) {
+                        var made: Caulis.Binding? = null
+                        caulis.mode(mode) { made = bind(combination, options, run) }
+                        made!!
+                    } else {
+                        caulis.bind(combination, options, run)
+                    }
                 } catch (e: IllegalArgumentException) {
                     throw LuaError(e.message ?: "not a key combination")
                 }
-                LuaValue.NONE
+                handle("unbind" to { _ -> binding.unbind() }, "setEnabled" to { a -> binding.enabled = a.arg1().toboolean() })
             }
             function("mode") { args ->
                 running("mode") { enterMode(args.optjstring(1, null)?.takeIf { it != "reset" }) }
@@ -149,18 +203,25 @@ class LuaConfig : ConfigLanguage {
             function("on") { args ->
                 val event = args.checkjstring(1)
                 val fn = args.checkfunction(2)
-                when (event) {
-                    "start" -> caulis.onStart { call("on start", fn) }
+                val listening: AutoCloseable = when (event) {
+                    "start" -> {
+                        caulis.onStart { call("on start", fn) }
+                        AutoCloseable {}
+                    }
                     "reload" -> caulis.onReload { call("on reload", fn) }
+                    "unload" -> caulis.onUnload { call("on unload", fn) }
                     "window-opened" -> caulis.onWindowOpened { w -> call("on window-opened", fn, window(w)) }
                     "window-closed" -> caulis.onWindowClosed { w -> call("on window-closed", fn, window(w)) }
+                    "window-changed" -> caulis.onWindowChanged { w -> call("on window-changed", fn, window(w)) }
                     "focus-changed" -> caulis.onFocusChanged { w -> call("on focus-changed", fn, w?.let(::window) ?: LuaValue.NIL) }
                     "workspace-changed" -> caulis.onWorkspaceChanged { n -> call("on workspace-changed", fn, LuaValue.valueOf(n)) }
+                    "monitor-added" -> caulis.onMonitorAdded { name -> call("on monitor-added", fn, LuaValue.valueOf(name)) }
+                    "monitor-removed" -> caulis.onMonitorRemoved { name -> call("on monitor-removed", fn, LuaValue.valueOf(name)) }
                     "lid" -> caulis.onLid { closed -> call("on lid", fn, LuaValue.valueOf(closed)) }
                     "notice" -> caulis.onNotice { n: Notice -> call("on notice", fn, LuaValue.valueOf(n.text), LuaValue.valueOf(n.level.name.lowercase())) }
                     else -> throw LuaError("there is no event \"$event\" (there are: ${EVENTS.joinToString()})")
                 }
-                LuaValue.NONE
+                closing(listening)
             }
             function("run") { args ->
                 val action = args.checkjstring(1)
@@ -175,10 +236,27 @@ class LuaConfig : ConfigLanguage {
                 LuaValue.NONE
             }
             function("state") { running("state") { state() } }
+            function("windows") { running("windows") { list(desktop.allWindows.filter { it.mapped }.map(::window)) } }
+            function("window") { args -> running("window") { windowWithId(args.checklong(1))?.let(::window) ?: LuaValue.NIL } }
+            function("focusedWindow") { running("focusedWindow") { desktop.focusedWindow?.let(::window) ?: LuaValue.NIL } }
+            function("monitors") { running("monitors") { state().get("monitors") } }
+            function("workspace") { running("workspace") { LuaValue.valueOf(desktop.activeWorkspace.number) } }
             function("after") { args ->
                 val millis = args.checklong(1)
                 val fn = args.checkfunction(2)
-                running("after") { after(millis) { call("a timer", fn) } }
+                closing(running("after") { after(millis) { call("a timer", fn) } })
+            }
+            function("every") { args ->
+                val millis = args.checklong(1)
+                val fn = args.checkfunction(2)
+                if (millis < 10) throw LuaError("every: at least 10 milliseconds apart, not $millis")
+                closing(running("every") { every(millis) { call("a repeating timer", fn) } })
+            }
+            function("layout") { args ->
+                val layoutName = args.checkjstring(1)
+                val fn = args.checkfunction(2)
+                val layout = LuaLayout(layoutName, fn)
+                caulis.layout = layout
                 LuaValue.NONE
             }
             function("notify") { args ->
@@ -302,6 +380,57 @@ class LuaConfig : ConfigLanguage {
             }
         }
 
+        fun list(items: List<LuaValue>): LuaTable = LuaTable().also { t -> items.forEachIndexed { i, v -> t.set(i + 1, v) } }
+
+        // A layout whose arrangement Lua says: fn(windows, area, focused) returns a rectangle
+        // per window. A mistake (or a missing rectangle) puts the windows side by side instead.
+        inner class LuaLayout(override val name: String, private val fn: LuaValue) : dev.caulis.tiling.Layout {
+            private val fallback = dev.caulis.tiling.Columns()
+            private var said: String? = null
+
+            override fun arrange(windows: List<dev.caulis.tiling.LayoutWindow>, area: dev.caulis.geometry.Rect, focused: Int): List<dev.caulis.geometry.Rect> {
+                if (windows.isEmpty()) return emptyList()
+                val list = list(windows.map { w ->
+                    LuaTable().apply {
+                        set("appId", w.appId)
+                        set("title", w.title)
+                        (w as? Window)?.let { real -> caulis.runningOrNull()?.let { set("id", LuaValue.valueOf(it.idOf(real).toDouble())) } }
+                    }
+                })
+                val box = LuaTable().apply {
+                    set("x", area.x)
+                    set("y", area.y)
+                    set("width", area.width)
+                    set("height", area.height)
+                }
+                deadline = System.nanoTime() + CALL_LIMIT
+                val problem = try {
+                    val result = fn.call(list, box, LuaValue.valueOf(focused + 1))
+                    if (!result.istable()) "it returned ${result.typename()}, not a table of rectangles" else {
+                        val rects = (1..windows.size).map { i ->
+                            val r = result.get(i)
+                            if (!r.istable()) return@map null
+                            dev.caulis.geometry.Rect(r.get("x").toint(), r.get("y").toint(), r.get("width").toint().coerceAtLeast(1), r.get("height").toint().coerceAtLeast(1))
+                        }
+                        if (rects.all { it != null }) {
+                            said = null
+                            return rects.map { it!! }
+                        }
+                        "it gave ${rects.count { it != null }} rectangles for ${windows.size} windows"
+                    }
+                } catch (e: LuaError) {
+                    message(e)
+                } finally {
+                    deadline = Long.MAX_VALUE
+                }
+                if (problem != said) {
+                    said = problem
+                    log.warn("The layout \"$name\": $problem (the windows are side by side meanwhile)")
+                }
+                return fallback.arrange(windows, area, focused)
+            }
+        }
+
         fun state(): LuaTable {
             val d = caulis.desktop
             val windows = LuaTable()
@@ -334,7 +463,10 @@ class LuaConfig : ConfigLanguage {
     }
 
     private companion object {
-        val EVENTS = listOf("start", "reload", "window-opened", "window-closed", "focus-changed", "workspace-changed", "notice", "lid")
+        val EVENTS = listOf(
+            "start", "reload", "unload", "window-opened", "window-closed", "window-changed", "focus-changed",
+            "workspace-changed", "monitor-added", "monitor-removed", "notice", "lid",
+        )
 
         // How long Lua code may run: the whole file, and one key, event or timer.
         const val LOAD_LIMIT = 5_000_000_000L

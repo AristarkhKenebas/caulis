@@ -54,7 +54,7 @@ class Activation(display: Display, private val seat: Seat, private val desktop: 
 
                 override fun activate(resource: XdgActivationV1, token: String, surface: WlSurface) {
                     val window = surface.dataAs<Surface>()?.let(::surfaceOf)?.roleObject as? Window ?: return
-                    if (useToken(token) && focusOnActivate) {
+                    if (useToken(token) && focusOnActivate && WindowRequest.ACTIVATE !in desktop.behaviorOf(window).ignored) {
                         log.info { "$window is brought forward (activated)" }
                         desktop.focus(window)
                     } else if (window !== desktop.focusedWindow) {

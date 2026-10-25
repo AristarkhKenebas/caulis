@@ -37,7 +37,13 @@ class Desktop(
         // A shader file was saved: draw with its new code (only a weak link: tests make many desktops).
         val me = java.lang.ref.WeakReference(this)
         WatchedText.anyChange += {
-            me.get()?.let { desktop -> desktop.compositor.display.loop.post { desktop.version++; desktop.onChange() } }
+            me.get()?.let { desktop ->
+                desktop.compositor.display.loop.post {
+                    if (desktop.screenShader != null) desktop.views.forEach { it.damageEverything() } // (its file, perhaps)
+                    desktop.version++
+                    desktop.onChange()
+                }
+            }
         }
         // A window's last look, taken while its picture is still there (it may be going away).
         compositor.pictureGoing = { surface ->
@@ -445,6 +451,9 @@ class Desktop(
         windowListChanged()
     }
 
+    /** Something your rules depend on changed (a window's tags): looks and effects are asked again. */
+    fun requestRedraw() = changed()
+
     override fun windowInfoChanged(window: Window) {
         windowsLog.trace { "Now called $window" }
         windowListChanged()
@@ -510,10 +519,39 @@ class Desktop(
         return view.takeRepaint(1, view.monitor.area)
     }
 
-    // Everything on screen, with or without our cursor.
+    // Everything on screen, with or without our cursor; windows hidden from capture are
+    // black boxes (their popups too).
     private fun captureItems(cursor: Boolean): List<DrawItem> {
         val all = items()
-        return if (cursor) all else all.subList(0, itemsCursorStart.coerceAtMost(all.size))
+        val shown = if (cursor) all else all.subList(0, itemsCursorStart.coerceAtMost(all.size))
+        if (allWindows.none { behaviorOf(it).hiddenFromCapture } && layerSurfaces.none { layerBehaviorOf(it).hiddenFromCapture }) return shown
+        return shown.map { item ->
+            val owner = (item as? DrawItem.Picture)?.surface?.let(::ownerOf)
+            val hidden = when (owner) {
+                is Window -> behaviorOf(owner).hiddenFromCapture
+                is LayerSurface -> layerBehaviorOf(owner).hiddenFromCapture
+                else -> false
+            }
+            if (item is DrawItem.Picture && hidden) {
+                DrawItem.Color(EffectKey("hidden from capture", item.surface), item.rect, 0f, 0f, 0f, item.covers).also { it.only = item.only }
+            } else {
+                item
+            }
+        }
+    }
+
+    // The window or panel [surface] belongs to (it, a part of it, or one of its menus), if any.
+    private fun ownerOf(surface: Surface): Any? {
+        var current = surface
+        repeat(16) {
+            while (true) current = current.subsurface?.parent ?: break
+            when (val role = current.roleObject) {
+                is Window, is LayerSurface -> return role
+                is Popup -> current = role.parent?.surface ?: role.layerParent?.surface ?: return null
+                else -> return null
+            }
+        }
+        return null
     }
 
     /**
@@ -1025,6 +1063,13 @@ class Desktop(
             val direction = if (workspace.number >= previous.number) 1 else -1
             slides[on] = Slide(previous, workspace, direction, System.nanoTime())
         }
+        // Pinned windows go along (they float, keeping their place on the monitor).
+        for (window in previous.windows.filter { it in pinned }) {
+            previous.remove(window)
+            previous.model.forget(window)
+            workspace.add(window)
+            workspace.floating += window
+        }
         on.workspace = workspace
         moveWorkspace(workspace, on)
         workspace.lastMonitorName = on.name
@@ -1535,7 +1580,10 @@ class Desktop(
         val focused = focusedWindow?.takeIf { it.tiled }
         val done = activeWorkspace.model.command(command, focused)
         layoutLog.trace { "Tiling command $command for $focused: ${if (done) "done" else "not possible here"}" }
-        if (!done) return false
+        // (Asked even when nothing moved: "focus the master" changes no place.)
+        val wanted = activeWorkspace.model.takeFocus() as? Window
+        if (wanted != null && wanted in activeWorkspace.windows) focus(wanted)
+        if (!done) return wanted != null
         arrange(activeWorkspace)
         changed()
         return true
@@ -2111,8 +2159,36 @@ class Desktop(
             changed()
         }
 
+    /**
+     * A shader the whole screen goes through last (grayscale, a night light, a CRT look), or
+     * null. Backends draw it with their [Rotator]; while it is on, nothing is shown directly.
+     */
+    var screenShader: ScreenShader? = null
+        set(value) {
+            if (field === value) return
+            field = value
+            renderLog.info { "Screen shader: ${value ?: "none"}" }
+            views.forEach { it.damageEverything() } // (nothing on the desktop changed, yet all of it looks different)
+            changed()
+        }
+
+    /** How each panel behaves beyond its looks ([LayerBehavior]: dimming what is behind, hidden from capture). */
+    var layerBehaviorFor: (LayerSurface) -> LayerBehavior = { LayerBehavior.USUAL }
+        set(value) {
+            field = value
+            changed()
+        }
+
+    private fun layerBehaviorOf(layer: LayerSurface): LayerBehavior = try {
+        layerBehaviorFor(layer)
+    } catch (e: Exception) {
+        log.error("Your panel rule failed for ${layer.namespace} (ignored): $e", e)
+        LayerBehavior.USUAL
+    }
+
     // How one window or panel is drawn: its picture clipped and faded, effects below it.
-    private class Look(val clip: Rect?, val radius: Float, val alpha: Float) {
+    // [dim]: how much darker it is drawn (a window without the focus, see Effects.dimInactive).
+    private class Look(val clip: Rect?, val radius: Float, val alpha: Float, val dim: Float = 0f) {
         companion object {
             val PLAIN = Look(null, 0f, 1f)
         }
@@ -2158,7 +2234,7 @@ class Desktop(
         fx.blur?.let { blur ->
             // Only worth it where one can see through the window.
             val seeThrough = alpha < 1f || surface.opaqueRects().none { it.contains(local) }
-            if (seeThrough) all += DrawItem.Blur(EffectKey("blur", owner), rect, radius, (blur.size * scale).roundToInt().coerceAtLeast(1), blur.passes)
+            if (seeThrough) all += DrawItem.Blur(EffectKey("blur", owner), rect, radius, (blur.size * scale).roundToInt().coerceAtLeast(1), blur.passes, blur.tone)
         }
         fx.border?.let { border ->
             val width = (border.width * scale).roundToInt().coerceAtLeast(1)
@@ -2170,7 +2246,9 @@ class Desktop(
             if (e != null) all += DrawItem.Border(EffectKey("border before", owner), outer, round, width + 1f, paintOf(!focused), 1f, paintTime(paintOf(!focused)))
             all += DrawItem.Border(EffectKey("border", owner), outer, round, width + 1f, paintOf(focused), e ?: 1f, paintTime(paintOf(focused)))
         }
-        return Look(if (radius > 0f) rect else null, radius, alpha)
+        fun dimOf(focus: Boolean) = if (focus) 0f else fx.dimInactive
+        val dim = if (e != null) dimOf(!focused) + (dimOf(focused) - dimOf(!focused)) * e else dimOf(focused)
+        return Look(if (radius > 0f) rect else null, radius, alpha, dim)
     }
 
     // --- smooth movement -------------------------------------------------------------------
@@ -2192,8 +2270,8 @@ class Desktop(
         }
 
     // How long an animation takes and along which curve (its own, or the usual).
-    private fun millisOf(animation: WindowAnimation) = if (animationMillis == 0L) 0L else animation.millis ?: animationMillis
-    private fun millisOf(animation: WorkspaceAnimation) = if (animationMillis == 0L) 0L else animation.millis ?: animationMillis
+    private fun millisOf(animation: WindowAnimation) = if (animationMillis == 0L) 0L else animation.millis ?: curveOf(animation).naturalMillis ?: animationMillis
+    private fun millisOf(animation: WorkspaceAnimation) = if (animationMillis == 0L) 0L else animation.millis ?: curveOf(animation).naturalMillis ?: animationMillis
     private fun curveOf(animation: WindowAnimation) = animation.curve ?: animations.curve
     private fun curveOf(animation: WorkspaceAnimation) = animation.curve ?: animations.curve
 
@@ -2261,6 +2339,7 @@ class Desktop(
     private fun flightOf(window: Window, kind: FlightKind, animation: WindowAnimation, to: Rect? = null, workspace: Workspace? = workspaceOf(window)): Flight? {
         val millis = millisOf(animation)
         if (millis <= 0 || locked || inOverview || workspace == null || monitorList.none { it.workspace === workspace } || scratchpadOf(window) != null) return null
+        if (!behaviorOf(window).animated) return null
         val (target, texture, box) = pictureOf(window) ?: return null
         return Flight(target, texture, box, to ?: box, System.nanoTime(), workspace, animation, millis, curveOf(animation), kind, window)
     }
@@ -2383,7 +2462,7 @@ class Desktop(
         val shown = shownRects[window]
         window.x = x
         window.y = y
-        if (animationMillis > 0 && shown != null && (window in activeWorkspace.windows || scratchpadOf(window) != null)) {
+        if (animationMillis > 0 && shown != null && (window in activeWorkspace.windows || scratchpadOf(window) != null) && behaviorOf(window).animated) {
             glides[window] = Glide(shown, System.nanoTime())
         }
     }
@@ -2435,6 +2514,7 @@ class Desktop(
             workspace.floating += window
             untile(window)
         } else {
+            pinned -= window // (tiled: in one workspace's layout)
             floatingRects[window] = currentRect(window)
             workspace.floating -= window
         }
@@ -2450,6 +2530,42 @@ class Desktop(
      * Null: as usual. (caulis-wm's `rule { }` sets this.)
      */
     var placementFor: (Window) -> WindowPlacement? = { null }
+
+    /**
+     * How each window behaves beyond its place and looks ([WindowBehavior]: size limits,
+     * animations, keeping the screen on, hidden from screen sharing, the keyboard, requests
+     * not done). Asked whenever it matters, so it may follow the window's title.
+     * (caulis-wm's `rule { }` sets this.)
+     */
+    var behaviorFor: (Window) -> WindowBehavior = { WindowBehavior.USUAL }
+
+    /** What [behaviorFor] says of [window] now (as usual if it fails). */
+    fun behaviorOf(window: Window): WindowBehavior = try {
+        behaviorFor(window)
+    } catch (e: Exception) {
+        log.error("Your window behaviour rule failed for $window (ignored): $e", e)
+        WindowBehavior.USUAL
+    }
+
+    // --- pinned windows: floating, on whichever workspace their monitor shows --------------------
+
+    private val pinned = HashSet<Window>()
+
+    /** True if [window] is pinned: it floats and stays on screen when its monitor shows another workspace. */
+    fun isPinned(window: Window): Boolean = window in pinned
+
+    /** Pins [window] (it floats, and goes along to every workspace its monitor shows) or lets it go. */
+    fun setPinned(window: Window, on: Boolean) {
+        if (on == isPinned(window) || (on && workspaceOf(window) == null)) return
+        layoutLog.info { "$window: ${if (on) "pinned (on every workspace)" else "no longer pinned"}" }
+        if (on) {
+            if (window.tiled) setFloating(window, true)
+            pinned += window
+        } else {
+            pinned -= window
+        }
+        changed()
+    }
 
     // What placementFor said, from a window's first configure until it appears.
     private val placements = HashMap<Window, WindowPlacement>()
@@ -2501,7 +2617,9 @@ class Desktop(
         placement.floating?.let { setFloating(window, it) }
         if (placement.width != null || placement.height != null || placement.x != null || placement.y != null || placement.center) {
             val visible = window.visibleRect
-            val place = floatingPlace(window, placement, monitorOf(window), visible.width, visible.height)
+            val place = floatingPlace(window, placement, monitorOf(window), visible.width, visible.height).let { place ->
+                behaviorOf(window).limit(place.width, place.height).let { (w, h) -> Rect(place.x, place.y, w, h) }
+            }
             floatingRects[window] = place
             if (!window.tiled && !window.maximized && !window.fullscreen) {
                 moveSmoothly(window, place.x, place.y)
@@ -2510,6 +2628,7 @@ class Desktop(
         }
         placement.maximized?.let { setMaximized(window, it) }
         placement.fullscreen?.let { setFullscreen(window, it) }
+        placement.pinned?.let { setPinned(window, it) }
         if (placement.goToWorkspace) focus(window)
         changed()
     }
@@ -2531,7 +2650,7 @@ class Desktop(
         val monitor = workspace.monitor ?: focusedMonitor
         if (window.maximized && !window.fullscreen) return withoutTitle(window, monitor.usableArea).let { it.width to it.height }
         if (window.fullscreen) return monitor.area.let { it.width to it.height }
-        if (placement.floating ?: floatRule(window)) return (placement.width ?: 0) to (placement.height ?: 0)
+        if (placement.floating ?: (placement.pinned == true || floatRule(window))) return (placement.width ?: 0) to (placement.height ?: 0)
         val target = arrange(workspace, extra = window)[window] ?: return 0 to 0
         window.tiled = true
         return target.width to target.height
@@ -2556,7 +2675,7 @@ class Desktop(
             else floatingPlace(window, placement, monitor, visibleRect.width, visibleRect.height)
         floatingRects[window] = floatingPlace
         workspace.add(window)
-        val floats = placement.floating ?: floatRule(window)
+        val floats = placement.floating ?: (placement.pinned == true || floatRule(window))
         if (floats || workspace.layout === Floating) {
             if (floats) workspace.floating += window
             window.tiled = false
@@ -2569,12 +2688,22 @@ class Desktop(
             window.x = if (window.fullscreen) monitor.area.x else monitor.usableArea.x
             window.y = if (window.fullscreen) monitor.area.y else monitor.usableArea.y + titleHeight(window)
         }
+        // Floating: within the size limits of its rules (it draws itself anew in that size).
+        val behavior = behaviorOf(window)
+        if (!window.tiled && !window.maximized && !window.fullscreen) {
+            val (w, h) = behavior.limit(visibleRect.width, visibleRect.height)
+            if (w != visibleRect.width || h != visibleRect.height) {
+                floatingRects[window] = Rect(window.x, window.y, w, h)
+                window.configure(w, h)
+            }
+        }
+        if (placement.pinned == true && !window.tiled) pinned += window
         // Its own tile was decided before the first frame: it appears there right away.
         val targets = arrange(workspace)
         targets[window]?.let { window.x = it.x; window.y = it.y }
         // The keyboard: if it is on screen (or should be shown) and may take it.
         val shown = monitorList.any { it.workspace === workspace }
-        if ((shown || placement.goToWorkspace) && millisOf(animations.windowOpen) > 0 && !locked) {
+        if ((shown || placement.goToWorkspace) && millisOf(animations.windowOpen) > 0 && !locked && behavior.animated) {
             appearing[window] = System.nanoTime()
         }
         if (placement.goToWorkspace || (shown && placement.focus)) focus(window) else changed()
@@ -2586,6 +2715,7 @@ class Desktop(
         windowsLog.info { "Closed $window" }
         placements -= window
         appearing -= window
+        pinned -= window
         // Its last look goes away smoothly (taken just before its picture went, or now).
         stopFlights(window)
         appearingPictures.remove(window)?.close()
@@ -2658,17 +2788,25 @@ class Desktop(
     /** The window that has the keyboard, if any. */
     val focusedWindow: Window? get() = padFocus?.takeIf { it.activated } ?: windows.lastOrNull()?.takeIf { it.activated }
 
+    // A request its rules say is not done: the program only hears how its window is.
+    private fun refuses(window: Window, request: WindowRequest): Boolean {
+        if (request !in behaviorOf(window).ignored) return false
+        windowsLog.info { "$window asked for ${request.name.lowercase()}: not done (its rules say so)" }
+        return true
+    }
+
     override fun maximizeRequested(window: Window, maximized: Boolean) {
         // A scratchpad window already has its place; it only gets an answer.
-        if (scratchpadOf(window) != null) window.configure() else setMaximized(window, maximized)
+        if (scratchpadOf(window) != null || refuses(window, WindowRequest.MAXIMIZE)) window.configure() else setMaximized(window, maximized)
     }
 
     override fun fullscreenRequested(window: Window, fullscreen: Boolean) {
-        if (scratchpadOf(window) != null) window.configure() else setFullscreen(window, fullscreen)
+        if (scratchpadOf(window) != null || refuses(window, WindowRequest.FULLSCREEN)) window.configure() else setFullscreen(window, fullscreen)
     }
 
     // Minimizing a scratchpad window hides its scratchpad.
     override fun minimizeRequested(window: Window) {
+        if (refuses(window, WindowRequest.MINIMIZE)) return
         val pad = scratchpadOf(window)
         if (pad != null) hideScratchpad(pad) else minimize(window)
     }
@@ -2891,6 +3029,7 @@ class Desktop(
                 if (edges and XdgToplevel.ResizeEdge.BOTTOM != 0) newHeight += dy
                 newWidth = limit(newWidth, window.minWidth, window.maxWidth)
                 newHeight = limit(newHeight, window.minHeight, window.maxHeight)
+                behaviorOf(window).limit(newWidth, newHeight).let { (w, h) -> newWidth = w; newHeight = h }
                 if (newWidth != current.lastWidth || newHeight != current.lastHeight) {
                     current.lastWidth = newWidth
                     current.lastHeight = newHeight
@@ -2986,6 +3125,12 @@ class Desktop(
     val urgentWindows: List<Window> get() = allWindows.filter { it.urgent }
 
     fun focus(window: Window?) {
+        // One that never takes the keyboard: the top one of its workspace that does, instead.
+        if (window != null && !behaviorOf(window).takesFocus) {
+            val instead = workspaceOf(window)?.windows?.lastOrNull { it !== window && behaviorOf(it).takesFocus }
+            if (instead === window || (instead == null && focusedWindow != null && workspaceOf(focusedWindow!!) === workspaceOf(window))) return
+            return focus(instead)
+        }
         if (window != null && window.urgent) setUrgent(window, false)
         val pad = window?.let(::scratchpadOf)
         // Everything else loses the "active" look.
@@ -3459,7 +3604,10 @@ class Desktop(
             onChange()
         }
         placeHardwareCursor(view)
-        val draw = force || needsRedraw(view)
+        // A moving screen shader: every frame anew (and the next one asked for).
+        val shaderMoves = screenShader?.moving == true
+        if (shaderMoves) onChange()
+        val draw = force || needsRedraw(view) || shaderMoves
         val direct = if (draw && !force && presentDirect != null) directCandidate(view) else null
         if (direct != null && presentDirect!!(direct)) {
             // Nothing drawn: the program's own picture is on screen.
@@ -3625,9 +3773,10 @@ class Desktop(
                     paintWorks(item.paint, drawn)
                     if (!drawn) renderer.drawRoundedRect(r, item.radius * s, item.paint.firstColor().let { it.copy(alpha = it.alpha * item.alpha) }, item.width * s)
                 }
-                is DrawItem.Blur -> renderer.drawBlur(r, item.radius * s, Math.round(item.size * s).coerceAtLeast(1), item.passes)
+                is DrawItem.Blur -> renderer.drawBlur(r, item.radius * s, Math.round(item.size * s).coerceAtLeast(1), item.passes, item.tone)
                 is DrawItem.Image -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, opaque = false, alpha = item.alpha, clip = item.clip?.let(p), cornerRadius = item.radius * s)
                 is DrawItem.Custom -> item.paint(r)
+                is DrawItem.Tint -> renderer.drawRoundedRect(r, item.radius * s, dev.caulis.render.Color(item.red, item.green, item.blue, item.alpha))
                 is DrawItem.Effect -> {
                     val code = item.shader.code
                     val drawn = renderer.drawTextureEffect(item.texture, r.x, r.y, r.width, r.height, item.alpha, code, item.from, item.to, item.progress)
@@ -3668,6 +3817,7 @@ class Desktop(
      * screen. Such a picture can go to the display as it is.
      */
     private fun directCandidate(view: DesktopView): DmabufBuffer? {
+        if (screenShader != null) return null // (every frame goes through it)
         val monitor = view.monitor
         // (A cursor on the cursor plane is no reason to draw: it is shown over the program's picture.)
         val all = itemsFor(view).filter { it.rect.intersect(monitor.area) != null }
@@ -3892,6 +4042,9 @@ class Desktop(
             if (!layerSurface.mapped || layerSurface.current.layer != layer) continue
             val surface = layerSurface.surface
             val rect = Rect(layerSurface.x, layerSurface.y, surface.width, surface.height)
+            // Everything behind it darker (a launcher in front of the desktop).
+            val dim = layerBehaviorOf(layerSurface).dimAround
+            if (dim > 0f) all += DrawItem.Tint(EffectKey("dim around", layerSurface), monitorOf(layerSurface).area, 0f, 0f, 0f, 0f, dim)
             val look = addEffects(all, layerSurface, surface, Rect(0, 0, surface.width, surface.height), rect, 1.0, layerEffects(layerSurface), focused = true)
             addTree(all, surface, layerSurface.x, layerSurface.y, look = look)
         }
@@ -3959,6 +4112,7 @@ class Desktop(
         val look = addEffects(all, window, window.surface, visibleRect, frame, minOf(scaleX, scaleY), fx, focused = window === focusedWindow)
         if (bar != null) all += DrawItem.Image(EffectKey("title", window), titleTexture(window, bar), bar, look.clip, look.radius, alpha = alpha)
         addTree(all, window.surface, rect.x - (visibleRect.x * scaleX).roundToInt(), rect.y - (visibleRect.y * scaleY).roundToInt(), scaleX, scaleY, look)
+        if (look.dim > 0f) all += DrawItem.Tint(EffectKey("dim", window), frame, look.radius, 0f, 0f, 0f, look.dim * alpha)
     }
 
     private fun addTree(

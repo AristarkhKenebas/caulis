@@ -2,6 +2,7 @@ package dev.caulis.render.gles
 
 import dev.caulis.ffi.c.gles.Gles
 import dev.caulis.geometry.Rect
+import dev.caulis.render.BlurTone
 import dev.caulis.render.MAX_BLUR_PASSES
 import dev.caulis.render.blurReach
 
@@ -22,7 +23,7 @@ internal class GlesBlur(private val draw: (program: Program, rect: Rect, targetW
      * Blurs what [target] shows around [area] and draws the result over [area] in it,
      * clipped to [area] with rounded corners. Leaves [target] bound, without scissor.
      */
-    fun blur(target: GlesFramebuffer, area: Rect, cornerRadius: Float, size: Int, passes: Int) {
+    fun blur(target: GlesFramebuffer, area: Rect, cornerRadius: Float, size: Int, passes: Int, tone: BlurTone = BlurTone.NONE) {
         val count = passes.coerceIn(1, MAX_BLUR_PASSES)
         val reach = blurReach(size, count)
         val bounds = Rect(0, 0, target.width, target.height)
@@ -75,6 +76,7 @@ internal class GlesBlur(private val draw: (program: Program, rect: Rect, targetW
         Gles.glUniform1i(up.uniform("clipped"), 1)
         Gles.glUniform4f(up.uniform("clip"), area.x.toFloat(), area.y.toFloat(), area.width.toFloat(), area.height.toFloat())
         Gles.glUniform1f(up.uniform("radius"), cornerRadius)
+        Gles.glUniform4f(up.uniform("tone"), tone.noise, tone.contrast, tone.brightness, tone.vibrancy)
         draw(up, area, target.width, target.height)
     }
 

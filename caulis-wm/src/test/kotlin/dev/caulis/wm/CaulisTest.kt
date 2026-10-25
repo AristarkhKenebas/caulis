@@ -139,7 +139,12 @@ class CaulisTest {
     internal fun <T> Caulis.onLoop(action: (Running) -> T): T {
         val result = CompletableFuture<T>()
         val running = checkNotNull(running)
-        running.loop.post { result.complete(action(running)) }
-        return result.get(5, TimeUnit.SECONDS)
+        // (A failed check inside is the test's failure, with its message.)
+        running.loop.post { runCatching { action(running) }.fold(result::complete, result::completeExceptionally) }
+        return try {
+            result.get(5, TimeUnit.SECONDS)
+        } catch (e: java.util.concurrent.ExecutionException) {
+            throw e.cause ?: e
+        }
     }
 }

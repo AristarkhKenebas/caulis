@@ -19,21 +19,10 @@ enum class Side { LEFT, RIGHT, TOP, BOTTOM }
 
 /**
  * One big window (the oldest, the "master") and the others stacked beside it — like the
- * master layouts of Hyprland and dwm. [ratio] is the master's share of the space.
+ * master layouts of Hyprland and dwm. [ratio] is the master's share of the space; see
+ * [MasterLayout] for more masters, where new windows go, and the messages it understands.
  */
-fun MasterStack(gaps: Gaps = Gaps(), ratio: Double = 0.55, side: Side = Side.LEFT): Layout {
-    val master = (ratio * 100).roundToInt().coerceIn(5, 95)
-    val stack = 100 - master
-    val name = if (side == Side.LEFT) "Master" else "Master (${side.name.lowercase()})"
-    return tiling(name, gaps) {
-        when (side) {
-            Side.LEFT -> row { window(master); column(stack) { rest() } }
-            Side.RIGHT -> row { column(stack) { rest() }; window(master) }
-            Side.TOP -> column { window(master); row(stack) { rest() } }
-            Side.BOTTOM -> column { row(stack) { rest() }; window(master) }
-        }
-    }
-}
+fun MasterStack(gaps: Gaps = Gaps(), ratio: Double = 0.55, side: Side = Side.LEFT): Layout = MasterLayout(gaps, ratio, side)
 
 /**
  * The master in the middle, the other windows in columns left and right of it (like

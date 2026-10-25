@@ -77,6 +77,13 @@ class CaulisIpc private constructor(private val channel: SocketChannel) : AutoCl
     fun devices(): List<dev.caulis.ipc.v1.Device> =
         request(Request.newBuilder().setGetDevices(dev.caulis.ipc.v1.GetDevices.getDefaultInstance())).orFail().devices.devicesList
 
+    /**
+     * Runs [code] in the configuration's [language] ("lua": in config.lua's own state) and
+     * returns what it returned, as text. Throws [IpcException] with the mistake.
+     */
+    fun eval(code: String, language: String = "lua"): String =
+        request(Request.newBuilder().setEval(dev.caulis.ipc.v1.Eval.newBuilder().setLanguage(language).setCode(code))).orFail().output
+
     /** Events of these [kinds] from now on (none: all); read them with [nextEvent]. */
     fun subscribe(vararg kinds: EventKind) {
         request(Request.newBuilder().setSubscribe(dev.caulis.ipc.v1.Subscribe.newBuilder().addAllKinds(kinds.toList()))).orFail()

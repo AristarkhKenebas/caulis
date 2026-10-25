@@ -61,6 +61,15 @@ class EffectsRenderTest {
         assertEquals(BLUE, pixel(54, 32), "outside the area nothing changes")
     }
 
+    @Test
+    fun `the blurred glass is toned`() = draw({ renderer, _ ->
+        renderer.drawColor(0, 0, 64, 64, 1f, 0f, 0f)
+        renderer.drawBlur(Rect(16, 16, 32, 32), 0f, size = 3, passes = 2, tone = BlurTone(brightness = 0.5f))
+    }) {
+        assertTrue(red(pixel(32, 32)) in 120..135, "half as bright: ${hex(pixel(32, 32))}")
+        assertEquals(RED, pixel(8, 8), "outside the area nothing changes")
+    }
+
     private lateinit var frame: MemorySegment
 
     private fun pixel(x: Int, y: Int) = frame.get(JAVA_INT, (y * SIZE.toLong() + x) * 4)

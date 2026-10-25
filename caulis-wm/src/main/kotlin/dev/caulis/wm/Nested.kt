@@ -69,7 +69,9 @@ private fun connect(window: NestedWindow, monitor: Monitor, view: DesktopView, r
     // Each refresh of the outer session: draw what changed (if anything), then tell programs
     // their last frame is on screen.
     val frameStats = if (config.stats) FrameStats(monitor.name).also(stats::add) else null
-    val present = running.timed(frameStats, window::present)
+    // (Through the screen shader, when there is one.)
+    val rotator = dev.caulis.core.Rotator(running.renderer, desktop)
+    val present = running.timed(frameStats) { draw -> window.present(rotator.wrap(dev.caulis.core.Transform.NORMAL, draw)) }
     window.onFrame = { desktop.refresh(view, present) }
     window.onPresented = { nanos ->
         frameStats?.presented(nanos, refreshNanos = 0)

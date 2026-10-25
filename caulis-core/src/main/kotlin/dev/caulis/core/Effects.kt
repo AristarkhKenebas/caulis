@@ -49,11 +49,14 @@ data class Effects @JvmOverloads constructor(
     val inactiveShadow: Shadow? = null,
     /** How long border and shadow take to change when the focus moves (milliseconds; 0: at once). */
     val focusChangeMillis: Long = 150,
+    /** How much darker windows without the focus are (0: not at all, 1: black). */
+    val dimInactive: Float = 0f,
 ) {
     init {
         require(cornerRadius >= 0) { "cornerRadius must not be negative" }
         require(opacity in 0f..1f && inactiveOpacity in 0f..1f) { "opacity must be between 0 and 1" }
         require(focusChangeMillis in 0..5000) { "focusChangeMillis is 0 to 5000" }
+        require(dimInactive in 0f..1f) { "dimInactive is 0 to 1, not $dimInactive" }
     }
 
     // For Java, where named arguments do not exist: Effects.NONE.withCorners(10).withShadow(new Shadow()).
@@ -62,6 +65,7 @@ data class Effects @JvmOverloads constructor(
     fun withShadow(shadow: Shadow?) = copy(shadow = shadow)
     fun withBlur(blur: Blur?) = copy(blur = blur)
     fun withOpacity(focused: Float, others: Float) = copy(opacity = focused, inactiveOpacity = others)
+    fun withDimInactive(amount: Float) = copy(dimInactive = amount)
 
     companion object {
         /** No effects at all: windows look exactly as the programs drew them. */
@@ -123,6 +127,8 @@ data class Shadow @JvmOverloads constructor(
 data class Blur @JvmOverloads constructor(
     val size: Int = 4,
     val passes: Int = 2,
+    /** How the glass is toned: grain, contrast, brightness, vibrancy (BlurTone.HYPRLAND looks like Hyprland's). */
+    val tone: dev.caulis.render.BlurTone = dev.caulis.render.BlurTone.NONE,
 ) {
     init {
         require(size > 0) { "blur size must be at least 1" }

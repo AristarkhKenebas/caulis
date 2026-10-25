@@ -155,6 +155,7 @@ internal sealed class DrawItem {
         is Effect -> Effect(key, texture, rect, this.alpha * alpha, shader, from, to, progress, fallback)
         is Shadow -> copy(alpha = this.alpha * alpha)
         is Border -> copy(alpha = this.alpha * alpha)
+        is Tint -> copy(alpha = this.alpha * alpha)
         is Blur, is Custom -> this
     }.also { it.only = only }
 
@@ -246,6 +247,17 @@ internal sealed class DrawItem {
         }
     }
 
+    /** [rect] darkened (or tinted) by a colour [alpha] strong, its corners rounded by [radius]. */
+    data class Tint(
+        override val key: Any,
+        override val rect: Rect,
+        val radius: Float,
+        val red: Float,
+        val green: Float,
+        val blue: Float,
+        val alpha: Float,
+    ) : DrawItem()
+
     /** Blurs what is below [rect]; reads pixels up to [reach] around it. */
     data class Blur(
         override val key: Any,
@@ -253,6 +265,7 @@ internal sealed class DrawItem {
         val radius: Float,
         val size: Int,
         val passes: Int,
+        val tone: dev.caulis.render.BlurTone = dev.caulis.render.BlurTone.NONE,
     ) : DrawItem() {
         val reach: Int get() = dev.caulis.render.blurReach(size, passes)
     }

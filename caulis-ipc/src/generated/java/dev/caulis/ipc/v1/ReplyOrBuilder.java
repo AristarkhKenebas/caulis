@@ -104,5 +104,34 @@ public interface ReplyOrBuilder extends
    */
   dev.caulis.ipc.v1.Devices getDevices();
 
+  /**
+   * <pre>
+   * What an Eval returned, as text.
+   * </pre>
+   *
+   * <code>string output = 8;</code>
+   * @return Whether the output field is set.
+   */
+  boolean hasOutput();
+  /**
+   * <pre>
+   * What an Eval returned, as text.
+   * </pre>
+   *
+   * <code>string output = 8;</code>
+   * @return The output.
+   */
+  java.lang.String getOutput();
+  /**
+   * <pre>
+   * What an Eval returned, as text.
+   * </pre>
+   *
+   * <code>string output = 8;</code>
+   * @return The bytes for output.
+   */
+  com.google.protobuf.ByteString
+      getOutputBytes();
+
   public dev.caulis.ipc.v1.Reply.WhatCase getWhatCase();
 }

@@ -130,6 +130,8 @@ class Idle(display: Display, private val loop: EventLoop, private val desktop: D
         if (inhibitedByUser) return true
         val shown = desktop.monitors.flatMap { it.workspace.windows }.toSet()
         if (inhibitors.values.any { surface -> isShown(surface, shown) }) return true
+        // Windows whose rules keep the screen on (videos without idle-inhibit of their own).
+        if (shown.any { it.mapped && !desktop.isMinimized(it) && desktop.behaviorOf(it).keepsAwake }) return true
         return fullscreenInhibits && shown.any { it.fullscreen && it.mapped }
     }
 

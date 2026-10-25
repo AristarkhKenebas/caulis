@@ -22,6 +22,9 @@ import java.nio.file.Path
  * my-compositor --devices                        keyboards, mice, touchpads (names for device settings)
  * my-compositor --events [kind ...]              what changes, a line each (kinds: windows,
  *                                                focus, workspaces, monitors, notices, config, lock, keys)
+ * my-compositor --lua <code>                     runs Lua in config.lua's own state, prints what it returns
+ * my-compositor --repl                           the same, a line at a time (Ctrl+D ends it)
+ * my-compositor --print-lua-stubs                LuaLS annotations of the caulis table (for your editor)
  * ```
  */
 object CommandLine {
@@ -57,7 +60,13 @@ object CommandLine {
                 println(nixOptions())
                 0
             }
-            "--do", "--state", "--events", "--devices" -> talk(caulis, arguments)
+            "--print-lua-stubs" -> {
+                val stubs = ConfigFile.languages.firstNotNullOfOrNull { it.stubs() }
+                    ?: return usage("Lua is not part of this compositor (it needs caulis-lua)")
+                println(stubs)
+                0
+            }
+            "--do", "--state", "--events", "--devices", "--lua", "--repl" -> talk(caulis, arguments)
             else -> null
         }
     }
@@ -82,6 +91,31 @@ object CommandLine {
                         ipc.run(action, window)
                     }
                     "--state" -> println(Json.write(IpcJson.state(ipc.state())))
+                    "--lua" -> {
+                        val code = arguments.drop(1).joinToString(" ")
+                        if (code.isBlank()) return usage("--lua needs code, e.g. --lua 'return #caulis.windows()'")
+                        println(ipc.eval(code))
+                    }
+                    "--repl" -> {
+                        println("Lua in ${caulis.configName}'s config.lua (its variables are here). Ctrl+D ends.")
+                        while (true) {
+                            print("> ")
+                            System.out.flush()
+                            val line = readlnOrNull() ?: break
+                            if (line.isBlank()) continue
+                            try {
+                                // A bare expression shows its value, as Lua's own prompt does.
+                                val output = try {
+                                    ipc.eval("return $line")
+                                } catch (e: IpcException) {
+                                    ipc.eval(line)
+                                }
+                                if (output.isNotEmpty()) println(output)
+                            } catch (e: IpcException) {
+                                println(e.message)
+                            }
+                        }
+                    }
                     "--devices" -> {
                         val devices = ipc.devices()
                         if (devices.isEmpty()) println("No devices of its own (in a window, the outer session has them).")

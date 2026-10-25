@@ -18,14 +18,23 @@ enum class Insertion {
  * Windows in a tree of splits: every new window splits the focused one in two (like
  * bspwm; for i3-style tiling see [ManualTiling]). The tree is remembered, so you can
  * preselect where the next window goes, swap windows, move the split lines, rotate and
- * balance.
+ * balance. A new split gives the new window 1 - [splitRatio] of the space.
+ *
+ * Messages ([TilingCommand.Message]), as Hyprland's dwindle has them: `toggle-split` (the
+ * focused window's split turns: side by side ↔ on top of each other), `swap-split` (its two
+ * sides change places), `ratio 0.6` / `ratio +0.05` (its split line).
  */
-class BinaryTree(
+class BinaryTree @JvmOverloads constructor(
     private val gaps: Gaps = Gaps(),
     private val insertion: Insertion = Insertion.LONGEST_SIDE,
     name: String = "Tree",
+    private val splitRatio: Double = 0.5,
 ) : RememberingLayout(name) {
-    override fun createModel(): TilingModel = TreeModel(gaps, insertion)
+    init {
+        require(splitRatio in 0.1..0.9) { "a split ratio is 0.1 to 0.9, not $splitRatio" }
+    }
+
+    override fun createModel(): TilingModel = TreeModel(gaps, insertion, splitRatio)
 }
 
 /**
@@ -197,7 +206,7 @@ private class ContainerModel(private val gaps: Gaps) : TilingModel {
 /** bspwm's spiral, remembered: windows keep their places when others open or close. */
 fun BspSpiral(gaps: Gaps = Gaps()): Layout = BinaryTree(gaps, Insertion.SPIRAL, "Tree (spiral)")
 
-private class TreeModel(private val gaps: Gaps, private val insertion: Insertion) : TilingModel {
+private class TreeModel(private val gaps: Gaps, private val insertion: Insertion, private val splitRatio: Double = 0.5) : TilingModel {
 
     private sealed class Node {
         var parent: Fork? = null
@@ -279,7 +288,7 @@ private class TreeModel(private val gaps: Gaps, private val insertion: Insertion
             else -> depth(target).let { d -> (d % 2 == 0) to (d % 4 >= 2) } // spiral
         }
         val parent = target.parent
-        val split = if (newFirst) Fork(sideBySide, 0.5, leaf, target) else Fork(sideBySide, 0.5, target, leaf)
+        val split = if (newFirst) Fork(sideBySide, 1 - splitRatio, leaf, target) else Fork(sideBySide, splitRatio, target, leaf)
         replace(parent, target, split)
     }
 
@@ -344,6 +353,25 @@ private class TreeModel(private val gaps: Gaps, private val insertion: Insertion
             TilingCommand.Balance -> {
                 splits().forEach { it.ratio = 0.5 }
                 true
+            }
+            is TilingCommand.Message -> {
+                val split = leaf?.parent ?: return false
+                when (command.name) {
+                    "toggle-split" -> true.also { split.sideBySide = !split.sideBySide }
+                    "swap-split" -> true.also {
+                        val first = split.first
+                        split.first = split.second
+                        split.second = first
+                        split.ratio = 1 - split.ratio
+                    }
+                    "ratio" -> {
+                        // The focused window's own share when it is the first side, else the other's.
+                        val now = if (split.first === leaf) split.ratio else 1 - split.ratio
+                        val wanted = command.number(now).coerceIn(0.05, 0.95)
+                        true.also { split.ratio = if (split.first === leaf) wanted else 1 - wanted }
+                    }
+                    else -> false
+                }
             }
             else -> false
         }

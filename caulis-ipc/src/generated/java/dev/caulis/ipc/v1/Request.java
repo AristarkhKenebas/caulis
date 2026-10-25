@@ -26,6 +26,7 @@ public  final class Request extends
     SUBSCRIBE(5),
     CHECK_CONFIG(6),
     GET_DEVICES(7),
+    EVAL(8),
     WHAT_NOT_SET(0);
     private final int value;
     private WhatCase(int value) {
@@ -47,6 +48,7 @@ public  final class Request extends
         case 5: return SUBSCRIBE;
         case 6: return CHECK_CONFIG;
         case 7: return GET_DEVICES;
+        case 8: return EVAL;
         case 0: return WHAT_NOT_SET;
         default: return null;
       }
@@ -401,6 +403,56 @@ public  final class Request extends
    */
   private void clearGetDevices() {
     if (whatCase_ == 7) {
+      whatCase_ = 0;
+      what_ = null;
+    }
+  }
+
+  public static final int EVAL_FIELD_NUMBER = 8;
+  /**
+   * <code>.caulis.ipc.v1.Eval eval = 8;</code>
+   */
+  @java.lang.Override
+  public boolean hasEval() {
+    return whatCase_ == 8;
+  }
+  /**
+   * <code>.caulis.ipc.v1.Eval eval = 8;</code>
+   */
+  @java.lang.Override
+  public dev.caulis.ipc.v1.Eval getEval() {
+    if (whatCase_ == 8) {
+       return (dev.caulis.ipc.v1.Eval) what_;
+    }
+    return dev.caulis.ipc.v1.Eval.getDefaultInstance();
+  }
+  /**
+   * <code>.caulis.ipc.v1.Eval eval = 8;</code>
+   */
+  private void setEval(dev.caulis.ipc.v1.Eval value) {
+    java.util.Objects.requireNonNull(value);
+    what_ = value;
+    whatCase_ = 8;
+  }
+  /**
+   * <code>.caulis.ipc.v1.Eval eval = 8;</code>
+   */
+  private void mergeEval(dev.caulis.ipc.v1.Eval value) {
+    java.util.Objects.requireNonNull(value);
+    if (whatCase_ == 8 &&
+        what_ != dev.caulis.ipc.v1.Eval.getDefaultInstance()) {
+      what_ = dev.caulis.ipc.v1.Eval.newBuilder((dev.caulis.ipc.v1.Eval) what_)
+          .mergeFrom(value).buildPartial();
+    } else {
+      what_ = value;
+    }
+    whatCase_ = 8;
+  }
+  /**
+   * <code>.caulis.ipc.v1.Eval eval = 8;</code>
+   */
+  private void clearEval() {
+    if (whatCase_ == 8) {
       whatCase_ = 0;
       what_ = null;
     }
@@ -843,6 +895,54 @@ public  final class Request extends
       return this;
     }
 
+    /**
+     * <code>.caulis.ipc.v1.Eval eval = 8;</code>
+     */
+    @java.lang.Override
+    public boolean hasEval() {
+      return instance.hasEval();
+    }
+    /**
+     * <code>.caulis.ipc.v1.Eval eval = 8;</code>
+     */
+    @java.lang.Override
+    public dev.caulis.ipc.v1.Eval getEval() {
+      return instance.getEval();
+    }
+    /**
+     * <code>.caulis.ipc.v1.Eval eval = 8;</code>
+     */
+    public Builder setEval(dev.caulis.ipc.v1.Eval value) {
+      copyOnWrite();
+      instance.setEval(value);
+      return this;
+    }
+    /**
+     * <code>.caulis.ipc.v1.Eval eval = 8;</code>
+     */
+    public Builder setEval(
+        dev.caulis.ipc.v1.Eval.Builder builderForValue) {
+      copyOnWrite();
+      instance.setEval(builderForValue.build());
+      return this;
+    }
+    /**
+     * <code>.caulis.ipc.v1.Eval eval = 8;</code>
+     */
+    public Builder mergeEval(dev.caulis.ipc.v1.Eval value) {
+      copyOnWrite();
+      instance.mergeEval(value);
+      return this;
+    }
+    /**
+     * <code>.caulis.ipc.v1.Eval eval = 8;</code>
+     */
+    public Builder clearEval() {
+      copyOnWrite();
+      instance.clearEval();
+      return this;
+    }
+
     // @@protoc_insertion_point(builder_scope:caulis.ipc.v1.Request)
   }
   @java.lang.Override
@@ -868,10 +968,11 @@ public  final class Request extends
             dev.caulis.ipc.v1.Subscribe.class,
             dev.caulis.ipc.v1.CheckConfig.class,
             dev.caulis.ipc.v1.GetDevices.class,
+            dev.caulis.ipc.v1.Eval.class,
           };
           java.lang.String info =
-              "\u0000\u0007\u0001\u0000\u0001\u0007\u0007\u0000\u0000\u0000\u0001\u000b\u0002<\u0000" +
-              "\u0003<\u0000\u0004<\u0000\u0005<\u0000\u0006<\u0000\u0007<\u0000";
+              "\u0000\b\u0001\u0000\u0001\b\b\u0000\u0000\u0000\u0001\u000b\u0002<\u0000\u0003<" +
+              "\u0000\u0004<\u0000\u0005<\u0000\u0006<\u0000\u0007<\u0000\b<\u0000";
           return newMessageInfo(DEFAULT_INSTANCE, info, objects);
       }
       case GET_DEFAULT_INSTANCE: {

@@ -52,6 +52,20 @@ class LuaConfigTest {
     }
 
     @Test
+    fun `rules that ask a window's state, with tags and unless`() {
+        val (caulis, problems) = apply(
+            """
+            caulis.rule { anyOf = { { appId = "mpv" }, { appId = "vlc" } }, tags = { "video" }, keepAwake = true }
+            caulis.rule { hasTag = "video", unless = { isXwayland = true }, cornerRadius = 0, ignore = { "maximize" } }
+            caulis.rule { isFloating = true, shadow = true, minSize = { 300, 200 }, pinned = false }
+            caulis.bind("Super+P", "pin")
+            caulis.bind("Super+T", "tag +starred")
+            """,
+        )
+        assertEquals(emptyList(), problems)
+    }
+
+    @Test
     fun `mistakes say their line, the rest still applies`() {
         val (caulis, problems) = apply(
             """

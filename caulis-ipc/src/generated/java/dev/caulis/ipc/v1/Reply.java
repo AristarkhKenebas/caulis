@@ -26,6 +26,7 @@ public  final class Reply extends
     STATE(5),
     PROBLEMS(6),
     DEVICES(7),
+    OUTPUT(8),
     WHAT_NOT_SET(0);
     private final int value;
     private WhatCase(int value) {
@@ -47,6 +48,7 @@ public  final class Reply extends
         case 5: return STATE;
         case 6: return PROBLEMS;
         case 7: return DEVICES;
+        case 8: return OUTPUT;
         case 0: return WHAT_NOT_SET;
         default: return null;
       }
@@ -442,6 +444,94 @@ public  final class Reply extends
       whatCase_ = 0;
       what_ = null;
     }
+  }
+
+  public static final int OUTPUT_FIELD_NUMBER = 8;
+  /**
+   * <pre>
+   * What an Eval returned, as text.
+   * </pre>
+   *
+   * <code>string output = 8;</code>
+   * @return Whether the output field is set.
+   */
+  @java.lang.Override
+  public boolean hasOutput() {
+    return whatCase_ == 8;
+  }
+  /**
+   * <pre>
+   * What an Eval returned, as text.
+   * </pre>
+   *
+   * <code>string output = 8;</code>
+   * @return The output.
+   */
+  @java.lang.Override
+  public java.lang.String getOutput() {
+    java.lang.String ref = "";
+    if (whatCase_ == 8) {
+      ref = (java.lang.String) what_;
+    }
+    return ref;
+  }
+  /**
+   * <pre>
+   * What an Eval returned, as text.
+   * </pre>
+   *
+   * <code>string output = 8;</code>
+   * @return The bytes for output.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getOutputBytes() {
+    java.lang.String ref = "";
+    if (whatCase_ == 8) {
+      ref = (java.lang.String) what_;
+    }
+    return com.google.protobuf.ByteString.copyFromUtf8(ref);
+  }
+  /**
+   * <pre>
+   * What an Eval returned, as text.
+   * </pre>
+   *
+   * <code>string output = 8;</code>
+   * @param value The output to set.
+   */
+  private void setOutput(
+      java.lang.String value) {
+    java.util.Objects.requireNonNull(value);
+    whatCase_ = 8;
+    what_ = value;
+  }
+  /**
+   * <pre>
+   * What an Eval returned, as text.
+   * </pre>
+   *
+   * <code>string output = 8;</code>
+   */
+  private void clearOutput() {
+    if (whatCase_ == 8) {
+      whatCase_ = 0;
+      what_ = null;
+    }
+  }
+  /**
+   * <pre>
+   * What an Eval returned, as text.
+   * </pre>
+   *
+   * <code>string output = 8;</code>
+   * @param value The bytes for output to set.
+   */
+  private void setOutputBytes(
+      com.google.protobuf.ByteString value) {
+    checkByteStringIsUtf8(value);
+    what_ = value.toStringUtf8();
+    whatCase_ = 8;
   }
 
   public static dev.caulis.ipc.v1.Reply parseFrom(
@@ -914,6 +1004,87 @@ public  final class Reply extends
       return this;
     }
 
+    /**
+     * <pre>
+     * What an Eval returned, as text.
+     * </pre>
+     *
+     * <code>string output = 8;</code>
+     * @return Whether the output field is set.
+     */
+    @java.lang.Override
+    public boolean hasOutput() {
+      return instance.hasOutput();
+    }
+    /**
+     * <pre>
+     * What an Eval returned, as text.
+     * </pre>
+     *
+     * <code>string output = 8;</code>
+     * @return The output.
+     */
+    @java.lang.Override
+    public java.lang.String getOutput() {
+      return instance.getOutput();
+    }
+    /**
+     * <pre>
+     * What an Eval returned, as text.
+     * </pre>
+     *
+     * <code>string output = 8;</code>
+     * @return The bytes for output.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getOutputBytes() {
+      return instance.getOutputBytes();
+    }
+    /**
+     * <pre>
+     * What an Eval returned, as text.
+     * </pre>
+     *
+     * <code>string output = 8;</code>
+     * @param value The output to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOutput(
+        java.lang.String value) {
+      copyOnWrite();
+      instance.setOutput(value);
+      return this;
+    }
+    /**
+     * <pre>
+     * What an Eval returned, as text.
+     * </pre>
+     *
+     * <code>string output = 8;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOutput() {
+      copyOnWrite();
+      instance.clearOutput();
+      return this;
+    }
+    /**
+     * <pre>
+     * What an Eval returned, as text.
+     * </pre>
+     *
+     * <code>string output = 8;</code>
+     * @param value The bytes for output to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOutputBytes(
+        com.google.protobuf.ByteString value) {
+      copyOnWrite();
+      instance.setOutputBytes(value);
+      return this;
+    }
+
     // @@protoc_insertion_point(builder_scope:caulis.ipc.v1.Reply)
   }
   @java.lang.Override
@@ -940,8 +1111,8 @@ public  final class Reply extends
             dev.caulis.ipc.v1.Devices.class,
           };
           java.lang.String info =
-              "\u0000\u0007\u0001\u0000\u0001\u0007\u0007\u0000\u0000\u0000\u0001\u000b\u0002<\u0000" +
-              "\u0003\u023b\u0000\u0004<\u0000\u0005<\u0000\u0006<\u0000\u0007<\u0000";
+              "\u0000\b\u0001\u0000\u0001\b\b\u0000\u0000\u0000\u0001\u000b\u0002<\u0000\u0003\u023b" +
+              "\u0000\u0004<\u0000\u0005<\u0000\u0006<\u0000\u0007<\u0000\b\u023b\u0000";
           return newMessageInfo(DEFAULT_INSTANCE, info, objects);
       }
       case GET_DEFAULT_INSTANCE: {

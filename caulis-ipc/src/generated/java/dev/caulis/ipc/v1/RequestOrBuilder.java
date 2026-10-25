@@ -86,5 +86,16 @@ public interface RequestOrBuilder extends
    */
   dev.caulis.ipc.v1.GetDevices getGetDevices();
 
+  /**
+   * <code>.caulis.ipc.v1.Eval eval = 8;</code>
+   * @return Whether the eval field is set.
+   */
+  boolean hasEval();
+  /**
+   * <code>.caulis.ipc.v1.Eval eval = 8;</code>
+   * @return The eval.
+   */
+  dev.caulis.ipc.v1.Eval getEval();
+
   public dev.caulis.ipc.v1.Request.WhatCase getWhatCase();
 }

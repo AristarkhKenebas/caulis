@@ -30,7 +30,9 @@ import dev.caulis.tiling.Grid
 import dev.caulis.tiling.Insertion
 import dev.caulis.tiling.Layout
 import dev.caulis.tiling.ManualTiling
+import dev.caulis.tiling.MasterLayout
 import dev.caulis.tiling.MasterStack
+import dev.caulis.tiling.NewWindow
 import dev.caulis.tiling.MasterStrips
 import dev.caulis.tiling.Monocle
 import dev.caulis.tiling.Rows
@@ -47,8 +49,18 @@ object Layouts {
         "master-strips", "tree", "tree-spiral", "manual", "scrolling-columns", "canvas",
     )
 
+    /** What else a layout may be told (each takes what fits it). */
+    data class Options(
+        val masters: Int = 1,
+        val newWindow: NewWindow = NewWindow.STACK_END,
+        val splitRatio: Double = 0.5,
+        val columnWidths: List<Double> = listOf(1.0 / 3, 0.5, 2.0 / 3, 1.0),
+        val newColumnWidth: Double = 0.5,
+        val centerFocused: Boolean = false,
+    )
+
     /** The layout called [name], with [gaps] and the other settings that fit it. */
-    fun byName(name: String, gaps: Gaps = Gaps(), ratio: Double? = null, side: Side = Side.LEFT): () -> Layout {
+    fun byName(name: String, gaps: Gaps = Gaps(), ratio: Double? = null, side: Side = Side.LEFT, options: Options = Options()): () -> Layout {
         val key = name.lowercase().replace('_', '-').replace(' ', '-')
         return when (key) {
             "floating" -> ({ Floating })
@@ -58,13 +70,13 @@ object Layouts {
             "columns" -> ({ Columns(gaps) })
             "rows" -> ({ Rows(gaps) })
             "monocle" -> ({ Monocle(gaps) })
-            "master-stack" -> ({ MasterStack(gaps, ratio ?: 0.55, side) })
+            "master-stack" -> ({ MasterLayout(gaps, ratio ?: 0.55, side, options.masters, options.newWindow) })
             "centered-master" -> ({ CenteredMaster(gaps, ratio ?: 0.5) })
             "master-strips" -> ({ MasterStrips(gaps, ratio ?: 0.6) })
-            "tree" -> ({ BinaryTree(gaps) })
-            "tree-spiral" -> ({ BinaryTree(gaps, Insertion.SPIRAL, "Tree (spiral)") })
+            "tree" -> ({ BinaryTree(gaps, splitRatio = options.splitRatio) })
+            "tree-spiral" -> ({ BinaryTree(gaps, Insertion.SPIRAL, "Tree (spiral)", options.splitRatio) })
             "manual" -> ({ ManualTiling(gaps) })
-            "scrolling-columns" -> ({ ScrollingColumns(gaps) })
+            "scrolling-columns" -> ({ ScrollingColumns(gaps, options.columnWidths, options.newColumnWidth, options.centerFocused) })
             "canvas" -> ({ Canvas(gaps) })
             else -> throw IllegalArgumentException("\"$name\" is not a layout (there are: ${names.joinToString()})")
         }
@@ -77,6 +89,8 @@ object Layouts {
  * module's typed options and a JSON Schema for editors.
  */
 object Settings {
+
+    private val configLog = dev.caulis.log.Logger("config")
 
     // --- the pieces ---------------------------------------------------------------------------
 
@@ -142,19 +156,95 @@ object Settings {
         "device settings",
     )
 
-    private val windowAnimation = ChoiceType(listOf("pop", "fade", "scale", "slide-up", "genie", "fly", "none"))
+    private val windowStyle = ChoiceType(listOf("pop", "fade", "scale", "slide-up", "genie", "fly", "none"))
+
+    // A curve: a ready one, or one of "curves" by its name.
+    private val curveName = TextType("a curve (ease-out, ease-in-out, linear, overshoot, or one of curves)")
+
+    // An animation: its style alone, or { style, millis, curve }.
+    private fun animationType(styles: ChoiceType) = EitherType(
+        styles,
+        SectionType(
+            listOf(
+                Field("style", styles, "how it looks"),
+                Field("millis", IntegerType(0, 5000), "how long it takes (else animations.millis, or its spring's own time)"),
+                Field("curve", curveName, "how it moves"),
+            ),
+            "an animation",
+        ),
+    )
+
+    private val windowAnimation = animationType(windowStyle)
+
+    private val curve = SectionType(
+        listOf(
+            Field("bezier", ListType(DecimalType(-2.0, 3.0), 4, 4), "[x1, y1, x2, y2] as Hyprland's bezier (CSS cubic-bezier)"),
+            Field("spring", SectionType(listOf(
+                Field("stiffness", DecimalType(1.0, 5000.0), "how strongly it pulls"),
+                Field("damping", DecimalType(0.1, 500.0), "how much it is held back (less: it bounces)"),
+                Field("mass", DecimalType(0.01, 100.0), "how heavy"),
+            ), "a spring"), "a spring: an animation takes as long as it needs to rest"),
+        ),
+        "a curve",
+    )
 
     private val keys = Keys().let { usual ->
         SectionType(usual.all().keys.map { name -> Field(name, OffOrType(CombinationType(usual.isGroup(name))), "the $name key (false: off)") }, "keys")
     }
 
-    private val rule = SectionType(
+    // Which windows a rule is for (also inside "not" and "anyOf").
+    private val matchFields = listOf(
+        Field("appId", TextType("an app id"), "windows with this app id (case does not matter)"),
+        Field("appIdPattern", TextType("a regular expression"), "windows whose app id fits this"),
+        Field("title", TextType(), "windows whose title contains this"),
+        Field("titlePattern", TextType("a regular expression"), "windows whose title fits this"),
+        Field("program", TextType("a program name"), "windows of this program (as ps shows it)"),
+        Field("initialAppId", TextType("an app id"), "windows whose app id was this when they opened"),
+        Field("initialTitle", TextType(), "windows whose title contained this when they opened"),
+        Field("hasTag", TextType("a tag"), "windows with this tag (from an earlier rule's tags, or the action tag)"),
+        Field("isFloating", FlagType, "while it floats (true) or is tiled (false)"),
+        Field("isFullscreen", FlagType, "while it is fullscreen (or not)"),
+        Field("isMaximized", FlagType, "while it is maximized (or not)"),
+        Field("isFocused", FlagType, "while it has the keyboard (or not)"),
+        Field("isPinned", FlagType, "while it is pinned (or not)"),
+        Field("isXwayland", FlagType, "X11 programs (true) or Wayland ones (false)"),
+        Field("onWorkspace", IntegerType(1, 99), "while it is on this workspace"),
+    )
+
+    private val match = SectionType(matchFields, "which windows")
+
+    private val blurSection = SectionType(
         listOf(
-            Field("appId", TextType("an app id"), "windows with this app id (case does not matter)"),
-            Field("appIdPattern", TextType("a regular expression"), "windows whose app id fits this"),
-            Field("title", TextType(), "windows whose title contains this"),
-            Field("titlePattern", TextType("a regular expression"), "windows whose title fits this"),
-            Field("program", TextType("a program name"), "windows of this program (as ps shows it)"),
+            Field("size", IntegerType(1, 64), "how strong"),
+            Field("passes", IntegerType(1, 6), "how smooth"),
+            Field("tone", ChoiceType(listOf("none", "hyprland")), "start from no toning, or Hyprland's"),
+            Field("noise", DecimalType(0.0, 1.0), "grain (a little hides banding)"),
+            Field("contrast", DecimalType(0.0, 2.0), "1: as it is"),
+            Field("brightness", DecimalType(0.0, 2.0), "1: as it is"),
+            Field("vibrancy", DecimalType(0.0, 1.0), "stronger colours (0: as they are)"),
+        ),
+        "blur",
+    )
+
+    private val panelRule = SectionType(
+        listOf(
+            Field("namespace", TextType("a panel's name"), "panels that call themselves this (waybar, fuzzel, ...)"),
+            Field("namespacePattern", TextType("a regular expression"), "panels whose name fits this"),
+            Field("layer", ChoiceType(listOf("background", "bottom", "top", "overlay")), "panels on this layer"),
+            Field("blur", FlagType, "frosted glass behind it"),
+            Field("cornerRadius", IntegerType(0, 200), "how round its corners are"),
+            Field("shadow", FlagType, "a shadow under it"),
+            Field("opacity", DecimalType(0.0, 1.0), "how solid it is"),
+            Field("dimAround", DecimalType(0.0, 1.0), "everything behind it this much darker"),
+            Field("hiddenFromCapture", FlagType, "screenshots and screen sharing show a black box in its place"),
+        ),
+        "a panel rule",
+    )
+
+    private val rule = SectionType(
+        matchFields + listOf(
+            Field("unless", match, "windows that do NOT fit this"),
+            Field("anyOf", ListType(match, 1), "windows that fit at least one of these"),
             Field("workspace", IntegerType(1, 99), "the workspace it opens on"),
             Field("monitor", TextType("a connector"), "the monitor it opens on"),
             Field("goToWorkspace", FlagType, "show its workspace when it opens"),
@@ -168,6 +258,23 @@ object Settings {
             Field("titleBars", ChoiceType(listOf("program", "compositor", "none")), "who draws its title bar"),
             Field("opacity", DecimalType(0.0, 1.0), "how solid it is"),
             Field("margin", EitherType(IntegerType(-500, 500), ListType(IntegerType(-500, 500), 4, 4)), "room around it: one number, or [top, right, bottom, left]"),
+            Field("pinned", FlagType, "opens pinned: floating, on every workspace of its monitor"),
+            Field("inactiveOpacity", DecimalType(0.0, 1.0), "how solid it is while another window has the keyboard"),
+            Field("cornerRadius", IntegerType(0, 200), "how round its corners are, in pixels"),
+            Field("border", FlagType, "false: no border; true: the usual one"),
+            Field("borderWidth", IntegerType(1, 50), "its border's width in pixels"),
+            Field("borderColor", EitherType(ColorType, ListType(ColorType, 2, 2)), "its border's colour, or [with the keyboard, without]"),
+            Field("shadow", FlagType, "false: no shadow; true: the usual one"),
+            Field("blur", FlagType, "false: nothing blurred behind it; true: frosted glass"),
+            Field("dimInactive", DecimalType(0.0, 1.0), "how much darker it is without the keyboard (0: never)"),
+            Field("minSize", ListType(IntegerType(1, 10_000), 2, 2), "[width, height] it is at least while floating"),
+            Field("maxSize", ListType(IntegerType(1, 10_000), 2, 2), "[width, height] it is at most while floating"),
+            Field("keepAwake", FlagType, "the screen stays on while it is shown"),
+            Field("animated", FlagType, "false: no animations when it opens, closes or moves"),
+            Field("hiddenFromCapture", FlagType, "screenshots and screen sharing show a black box in its place"),
+            Field("takesFocus", FlagType, "false: it never gets the keyboard"),
+            Field("ignore", ListType(ChoiceType(listOf("fullscreen", "maximize", "minimize", "activate"))), "what its program asks that is not done"),
+            Field("tags", ListType(TextType("a tag")), "tags it has while it fits (for later rules with hasTag)"),
         ),
         "a window rule",
     )
@@ -178,6 +285,12 @@ object Settings {
             Field("gaps", gaps, "space around and between windows"),
             Field("ratio", DecimalType(0.1, 0.9), "the main window's share (master layouts)"),
             Field("side", ChoiceType(listOf("left", "right", "top", "bottom")), "the main window's side (master-stack)"),
+            Field("masters", IntegerType(1, 20), "how many masters (master-stack)"),
+            Field("newWindow", ChoiceType(listOf("stack-end", "stack-top", "master")), "where a new window goes (master-stack)"),
+            Field("splitRatio", DecimalType(0.1, 0.9), "the old window's share when a new one splits it (tree)"),
+            Field("columnWidths", ListType(DecimalType(0.1, 1.0), 1, 10), "the widths column-width goes through (scrolling-columns)"),
+            Field("newColumnWidth", DecimalType(0.1, 1.0), "a new column's width (scrolling-columns)"),
+            Field("centerFocused", FlagType, "the focused column always in the middle (scrolling-columns)"),
         ),
         "the layout",
     )
@@ -289,6 +402,20 @@ object Settings {
             Field("bind", MapType(BindType, "key combination"), "your own keys: combination → action (\"exec firefox\", \"workspace 3\", ...) or { action, repeat, release, locked, description }"),
             Field("modes", MapType(MapType(BindType, "key combination"), "mode"), "key modes (\"resize\"): their own keys, on with the action \"mode resize\", off with \"mode reset\""),
             Field("rules", ListType(rule), "rules for some windows"),
+            Field("panelRules", ListType(panelRule), "rules for some panels (bars, launchers, notifications)"),
+            Field(
+                "screenShader",
+                SectionType(
+                    listOf(
+                        Field("preset", ChoiceType(listOf("grayscale", "invert")), "a ready one"),
+                        Field("warm", DecimalType(0.0, 1.0), "a night light: this much less blue"),
+                        Field("file", FileType("a GLSL file"), "your own: vec4 effect(vec4 color, vec2 at) (read again when saved)"),
+                        Field("moving", FlagType, "drawn every frame (it uses time)"),
+                    ),
+                    "the screen shader",
+                ),
+                "a shader the whole screen goes through last",
+            ),
             Field(
                 "effects",
                 SectionType(
@@ -298,7 +425,8 @@ object Settings {
                         Field("border", OffOrType(SectionType(listOf(Field("width", IntegerType(1, 50), "its width"), Field("focused", paint, "with the focus"), Field("unfocused", paint, "without")), "a border")), "a frame around windows"),
                         Field("shadow", OffOrType(shadow), "the shadow (of the focused window)"),
                         Field("inactiveShadow", OffOrType(shadow), "the shadow of windows without the focus"),
-                        Field("blur", OffOrType(SectionType(listOf(Field("size", IntegerType(1, 64), "how strong"), Field("passes", IntegerType(1, 6), "how smooth")), "blur")), "blur behind see-through windows"),
+                        Field("blur", OffOrType(blurSection), "blur behind see-through windows"),
+                        Field("dimInactive", DecimalType(0.0, 1.0), "how much darker windows without the focus are (0: not at all)"),
                         Field("opacity", DecimalType(0.0, 1.0), "how solid the focused window is"),
                         Field("inactiveOpacity", DecimalType(0.0, 1.0), "how solid the others are"),
                         Field("focusChangeMillis", IntegerType(0, 5000), "how long border and shadow change when the focus moves"),
@@ -316,9 +444,10 @@ object Settings {
                         Field("windowClose", windowAnimation, "a window going away"),
                         Field("minimize", windowAnimation, "a window going into the dock"),
                         Field("restore", windowAnimation, "a window coming back out of the dock"),
-                        Field("windowMove", ChoiceType(listOf("move", "none")), "windows gliding to new places"),
-                        Field("workspaceSwitch", ChoiceType(listOf("slide", "slide-vertical", "fade", "none")), "another workspace shown"),
-                        Field("curve", ChoiceType(listOf("ease-out", "ease-in-out", "linear", "overshoot")), "how animations move"),
+                        Field("windowMove", animationType(ChoiceType(listOf("move", "none"))), "windows gliding to new places"),
+                        Field("workspaceSwitch", animationType(ChoiceType(listOf("slide", "slide-vertical", "fade", "none"))), "another workspace shown"),
+                        Field("curve", curveName, "how animations move"),
+                        Field("curves", MapType(curve, "curve name"), "your own curves by name, for curve fields"),
                         Field("overviewMillis", IntegerType(0, 5000), "the overview zooming"),
                         Field("scaleChangeMillis", IntegerType(0, 5000), "the picture melting when the scale changes"),
                     ),
@@ -482,30 +611,74 @@ object Settings {
             caulis.onLid { closed -> (if (closed) close else open)?.invoke(this) }
         }
         (values["rules"] as List<Map<String, Any?>>?)?.forEach { r -> rules += rule(caulis, r) }
+        (values["panelRules"] as List<Map<String, Any?>>?)?.forEach { r ->
+            caulis.panelRule {
+                (r["namespace"] as String?)?.let { namespace(it) }
+                (r["namespacePattern"] as String?)?.let { namespace(Regex(it)) }
+                (r["layer"] as String?)?.let { layer(dev.caulis.core.LayerShell.Layer.valueOf(it.uppercase())) }
+                (r["blur"] as Boolean?)?.let { blur = it }
+                (r["cornerRadius"] as Int?)?.let { cornerRadius = it }
+                (r["shadow"] as Boolean?)?.let { shadow = it }
+                (r["opacity"] as Double?)?.let { opacity = it.toFloat() }
+                (r["dimAround"] as Double?)?.let { dimAround = it.toFloat() }
+                (r["hiddenFromCapture"] as Boolean?)?.let { hiddenFromCapture = it }
+            }
+        }
+        section("screenShader")?.let { sh ->
+            val moving = sh["moving"] as Boolean? ?: false
+            caulis.screenShader = when {
+                sh["file"] != null -> dev.caulis.core.ScreenShader.file(caulis.file(sh["file"] as String), moving)
+                sh["warm"] != null -> dev.caulis.core.ScreenShader.warm((sh["warm"] as Double).toFloat())
+                sh["preset"] == "grayscale" -> dev.caulis.core.ScreenShader.GRAYSCALE
+                sh["preset"] == "invert" -> dev.caulis.core.ScreenShader.INVERT
+                else -> null
+            }
+        }
         section("effects")?.let { caulis.effects = effects(caulis, it) }
         section("animations")?.let { a ->
             (a["millis"] as Int?)?.let { caulis.animationMillis = it.toLong() }
             val base = caulis.animations
-            caulis.animations = base.copy(
-                windowOpen = (a["windowOpen"] as String?)?.let(::windowAnimation) ?: base.windowOpen,
-                windowClose = (a["windowClose"] as String?)?.let(::windowAnimation) ?: base.windowClose,
-                minimize = (a["minimize"] as String?)?.let(::windowAnimation) ?: base.minimize,
-                restore = (a["restore"] as String?)?.let(::windowAnimation) ?: base.restore,
-                windowMove = (a["windowMove"] as String?)?.let { if (it == "none") WindowAnimation.NONE else WindowAnimation.move() } ?: base.windowMove,
-                workspaceSwitch = when (a["workspaceSwitch"] as String?) {
+            // Curves by name: the ready ones and yours.
+            val curves = HashMap<String, Curve>(mapOf("ease-out" to Curve.EASE_OUT, "ease-in-out" to Curve.EASE_IN_OUT, "linear" to Curve.LINEAR, "overshoot" to Curve.OVERSHOOT))
+            (a["curves"] as Map<String, Map<String, Any?>>?)?.forEach { (name, c) ->
+                val bezier = c["bezier"] as List<Double>?
+                val spring = c["spring"] as Map<String, Any?>?
+                curves[name] = when {
+                    bezier != null -> Curve.bezier(bezier[0], bezier[1], bezier[2], bezier[3])
+                    spring != null -> Curve.spring(spring["stiffness"] as Double? ?: 200.0, spring["damping"] as Double? ?: 20.0, spring["mass"] as Double? ?: 1.0)
+                    else -> return@forEach
+                }
+            }
+            fun curveNamed(name: String?): Curve? = name?.let { curves[it] ?: null.also { configLog.warn("animations: there is no curve \"$name\" (there are: ${curves.keys.sorted().joinToString()})") } }
+            // An animation: its style alone, or { style, millis, curve }.
+            fun <T> animation(value: Any?, style: (String) -> T, lasting: T.(Long) -> T, curved: T.(Curve) -> T): T? = when (value) {
+                is String -> style(value)
+                is Map<*, *> -> {
+                    var made = style(value["style"] as String? ?: "default")
+                    (value["millis"] as Int?)?.let { made = made.lasting(it.toLong()) }
+                    curveNamed(value["curve"] as String?)?.let { made = made.curved(it) }
+                    made
+                }
+                else -> null
+            }
+            fun window(value: Any?, usual: WindowAnimation) = animation(value, { if (it == "default") usual else windowAnimation(it) }, WindowAnimation::lasting, WindowAnimation::curved) ?: usual
+            fun workspace(value: Any?, usual: WorkspaceAnimation) = animation(value, {
+                when (it) {
                     "slide" -> WorkspaceAnimation.SLIDE
                     "slide-vertical" -> WorkspaceAnimation.SLIDE_VERTICAL
                     "fade" -> WorkspaceAnimation.FADE
                     "none" -> WorkspaceAnimation.NONE
-                    else -> base.workspaceSwitch
-                },
-                curve = when (a["curve"] as String?) {
-                    "ease-out" -> Curve.EASE_OUT
-                    "ease-in-out" -> Curve.EASE_IN_OUT
-                    "linear" -> Curve.LINEAR
-                    "overshoot" -> Curve.OVERSHOOT
-                    else -> base.curve
-                },
+                    else -> usual
+                }
+            }, WorkspaceAnimation::lasting, WorkspaceAnimation::curved) ?: usual
+            caulis.animations = base.copy(
+                windowOpen = window(a["windowOpen"], base.windowOpen),
+                windowClose = window(a["windowClose"], base.windowClose),
+                minimize = window(a["minimize"], base.minimize),
+                restore = window(a["restore"], base.restore),
+                windowMove = animation(a["windowMove"], { if (it == "none") WindowAnimation.NONE else if (it == "default") base.windowMove else WindowAnimation.move() }, WindowAnimation::lasting, WindowAnimation::curved) ?: base.windowMove,
+                workspaceSwitch = workspace(a["workspaceSwitch"], base.workspaceSwitch),
+                curve = curveNamed(a["curve"] as String?) ?: base.curve,
                 overviewMillis = (a["overviewMillis"] as Int?)?.toLong() ?: base.overviewMillis,
                 scaleChangeMillis = (a["scaleChangeMillis"] as Int?)?.toLong() ?: base.scaleChangeMillis,
             )
@@ -565,7 +738,16 @@ object Settings {
             bottom = g?.get("bottom") as Int? ?: outer, left = g?.get("left") as Int? ?: outer,
         )
         val side = (l["side"] as String?)?.let { Side.valueOf(it.uppercase()) } ?: Side.LEFT
-        return Layouts.byName(l["name"] as String? ?: "dwindle", gaps, l["ratio"] as Double?, side)()
+        val usual = Layouts.Options()
+        val options = Layouts.Options(
+            masters = l["masters"] as Int? ?: usual.masters,
+            newWindow = (l["newWindow"] as String?)?.let { NewWindow.valueOf(it.uppercase().replace('-', '_')) } ?: usual.newWindow,
+            splitRatio = l["splitRatio"] as Double? ?: usual.splitRatio,
+            columnWidths = l["columnWidths"] as List<Double>? ?: usual.columnWidths,
+            newColumnWidth = l["newColumnWidth"] as Double? ?: usual.newColumnWidth,
+            centerFocused = l["centerFocused"] as Boolean? ?: usual.centerFocused,
+        )
+        return Layouts.byName(l["name"] as String? ?: "dwindle", gaps, l["ratio"] as Double?, side, options)()
     }
 
     private fun windowAnimation(name: String): WindowAnimation = when (name) {
@@ -578,14 +760,31 @@ object Settings {
         else -> WindowAnimation.NONE
     }
 
+    // Which windows: the fields of [matchFields].
+    private fun dev.caulis.wm.WindowRule.match(r: Map<String, Any?>) {
+        (r["appId"] as String?)?.let { appId(it) }
+        (r["appIdPattern"] as String?)?.let { appId(Regex(it)) }
+        (r["title"] as String?)?.let { title(it) }
+        (r["titlePattern"] as String?)?.let { title(Regex(it)) }
+        (r["program"] as String?)?.let { program(it) }
+        (r["initialAppId"] as String?)?.let { initialAppId(it) }
+        (r["initialTitle"] as String?)?.let { initialTitle(it) }
+        (r["hasTag"] as String?)?.let { hasTag(it) }
+        (r["isFloating"] as Boolean?)?.let { isFloating(it) }
+        (r["isFullscreen"] as Boolean?)?.let { isFullscreen(it) }
+        (r["isMaximized"] as Boolean?)?.let { isMaximized(it) }
+        (r["isFocused"] as Boolean?)?.let { isFocused(it) }
+        (r["isPinned"] as Boolean?)?.let { isPinned(it) }
+        (r["isXwayland"] as Boolean?)?.let { isXwayland(it) }
+        (r["onWorkspace"] as Int?)?.let { onWorkspace(it) }
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun rule(caulis: Caulis, r: Map<String, Any?>): dev.caulis.wm.WindowRule {
         caulis.rule {
-            (r["appId"] as String?)?.let { appId(it) }
-            (r["appIdPattern"] as String?)?.let { appId(Regex(it)) }
-            (r["title"] as String?)?.let { title(it) }
-            (r["titlePattern"] as String?)?.let { title(Regex(it)) }
-            (r["program"] as String?)?.let { program(it) }
+            match(r)
+            (r["unless"] as Map<String, Any?>?)?.let { inside -> unless { match(inside) } }
+            (r["anyOf"] as List<Map<String, Any?>>?)?.let { all -> anyOf { all.forEach { inside -> allOf { match(inside) } } } }
             (r["workspace"] as Int?)?.let { workspace = it }
             (r["monitor"] as String?)?.let { monitor = it }
             (r["goToWorkspace"] as Boolean?)?.let { goToWorkspace = it }
@@ -602,6 +801,26 @@ object Settings {
                 is Int -> margin(m)
                 is List<*> -> (m as List<Int>).let { margin(it[0], it[1], it[2], it[3]) }
             }
+            (r["pinned"] as Boolean?)?.let { pinned = it }
+            (r["inactiveOpacity"] as Double?)?.let { inactiveOpacity = it.toFloat() }
+            (r["cornerRadius"] as Int?)?.let { cornerRadius = it }
+            (r["border"] as Boolean?)?.let { border = it }
+            (r["borderWidth"] as Int?)?.let { borderWidth = it }
+            when (val c = r["borderColor"]) {
+                is Color -> borderColor(c)
+                is List<*> -> borderColor(c[0] as Color, c[1] as Color)
+            }
+            (r["shadow"] as Boolean?)?.let { shadow = it }
+            (r["blur"] as Boolean?)?.let { blur = it }
+            (r["dimInactive"] as Double?)?.let { dimInactive = it.toFloat() }
+            (r["minSize"] as List<Int>?)?.let { minSize(it[0], it[1]) }
+            (r["maxSize"] as List<Int>?)?.let { maxSize(it[0], it[1]) }
+            (r["keepAwake"] as Boolean?)?.let { keepAwake = it }
+            (r["animated"] as Boolean?)?.let { animated = it }
+            (r["hiddenFromCapture"] as Boolean?)?.let { hiddenFromCapture = it }
+            (r["takesFocus"] as Boolean?)?.let { takesFocus = it }
+            (r["ignore"] as List<String>?)?.let { list -> ignore(*list.map { dev.caulis.core.WindowRequest.valueOf(it.uppercase()) }.toTypedArray()) }
+            (r["tags"] as List<String>?)?.let { tags(*it.toTypedArray()) }
         }
         return caulis.rules.last()
     }
@@ -645,8 +864,18 @@ object Settings {
         if ("inactiveShadow" in e) fx = fx.copy(inactiveShadow = shadowOf(e["inactiveShadow"], fx.inactiveShadow) ?: Shadow.NONE)
         when (val b = e["blur"]) {
             OffOrType.Off -> fx = fx.copy(blur = null)
-            is Map<*, *> -> fx = fx.copy(blur = Blur(b["size"] as Int? ?: 4, b["passes"] as Int? ?: 2))
+            is Map<*, *> -> {
+                val base = if (b["tone"] == "hyprland") dev.caulis.render.BlurTone.HYPRLAND else dev.caulis.render.BlurTone.NONE
+                val tone = dev.caulis.render.BlurTone(
+                    noise = (b["noise"] as Double?)?.toFloat() ?: base.noise,
+                    contrast = (b["contrast"] as Double?)?.toFloat() ?: base.contrast,
+                    brightness = (b["brightness"] as Double?)?.toFloat() ?: base.brightness,
+                    vibrancy = (b["vibrancy"] as Double?)?.toFloat() ?: base.vibrancy,
+                )
+                fx = fx.copy(blur = Blur(b["size"] as Int? ?: 4, b["passes"] as Int? ?: 2, tone))
+            }
         }
+        (e["dimInactive"] as Double?)?.let { fx = fx.copy(dimInactive = it.toFloat()) }
         (e["opacity"] as Double?)?.let { fx = fx.copy(opacity = it.toFloat(), inactiveOpacity = (e["inactiveOpacity"] as Double?)?.toFloat() ?: it.toFloat()) }
         (e["inactiveOpacity"] as Double?)?.let { fx = fx.copy(inactiveOpacity = it.toFloat()) }
         (e["focusChangeMillis"] as Int?)?.let { fx = fx.copy(focusChangeMillis = it.toLong()) }

@@ -82,6 +82,21 @@ class ScreenTestServer(
         }
     }
 
+    /**
+     * The picture screenshots and screen sharing get of a monitor ([Desktop.capture]), row
+     * by row from the top, each 0xAARRGGBB.
+     */
+    fun capture(monitor: Int = 0): IntArray = onServer { desktop ->
+        renderer.createTarget(WIDTH, HEIGHT).use { target ->
+            desktop.capture(target, cursor = false, desktop.monitors[monitor])
+            java.lang.foreign.Arena.ofConfined().use { arena ->
+                val pixels = arena.allocate(WIDTH.toLong() * HEIGHT * 4)
+                target.readPixels(pixels, WIDTH * 4)
+                pixels.toArray(java.lang.foreign.ValueLayout.JAVA_INT)
+            }
+        }
+    }
+
     /** Frames drawn so far (written on the server thread). */
     @Volatile
     var framesDrawn = 0
@@ -140,10 +155,11 @@ class ScreenTestServer(
     private fun runScreen(loop: EventLoop, renderer: GlesRenderer, desktop: Desktop, monitor: Monitor) {
         val target = renderer.createTarget(WIDTH, HEIGHT)
         val view = desktop.createView(monitor)
+        val rotator = Rotator(renderer, desktop) // (the screen shader, if a test sets one)
         var sequence = 0L
         fun tick() {
             // A pretend display that can show programs' buffers directly.
-            val drew = desktop.refresh(view, { draw -> draw(target, 1) }, presentDirect = { _ ->
+            val drew = desktop.refresh(view, { draw -> rotator.wrap(Transform.NORMAL, draw)(target, 1) }, presentDirect = { _ ->
                 framesShownDirectly++
                 true
             })

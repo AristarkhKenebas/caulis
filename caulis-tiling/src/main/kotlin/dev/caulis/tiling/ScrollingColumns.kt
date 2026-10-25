@@ -10,17 +10,25 @@ import dev.caulis.geometry.Rect
  * the focused column.
  *
  * [widths] are the column widths [TilingCommand.CycleWidth] goes through, as shares of the
- * screen; new columns get [newWidth].
+ * screen; new columns get [newWidth]. [centerFocused]: the focused column is always in the
+ * middle (else the view moves only as far as needed).
+ *
+ * Messages ([TilingCommand.Message]): `width 0.5` / `width +0.1` (the focused column's
+ * width), `center` (the focused column to the middle, once).
  */
-class ScrollingColumns(
+class ScrollingColumns @JvmOverloads constructor(
     private val gaps: Gaps = Gaps(),
     private val widths: List<Double> = listOf(1.0 / 3, 0.5, 2.0 / 3, 1.0),
     private val newWidth: Double = 0.5,
+    private val centerFocused: Boolean = false,
 ) : RememberingLayout("Columns (scrolling)") {
-    override fun createModel(): TilingModel = ColumnsModel(gaps, widths, newWidth)
+    override fun createModel(): TilingModel = ColumnsModel(gaps, widths, newWidth, centerFocused)
 }
 
-private class ColumnsModel(private val gaps: Gaps, private val widths: List<Double>, private val newWidth: Double) : TilingModel {
+private class ColumnsModel(private val gaps: Gaps, private val widths: List<Double>, private val newWidth: Double, private val centerFocused: Boolean = false) : TilingModel {
+
+    // The focused column goes to the middle at the next arrangement (once, or always with centerFocused).
+    private var centerOnce = false
 
     private class Column(var width: Double) {
         val windows = ArrayList<LayoutWindow>()
@@ -60,6 +68,10 @@ private class ColumnsModel(private val gaps: Gaps, private val widths: List<Doub
             val i = columns.indexOf(column)
             val left = starts[i]
             val right = left + pixelWidths[i]
+            if (centerFocused || centerOnce) {
+                scroll = left + pixelWidths[i] / 2 - inner.width / 2
+                centerOnce = false
+            }
             if (left < scroll) scroll = left
             if (right > scroll + inner.width) scroll = right - inner.width
         }
@@ -123,6 +135,14 @@ private class ColumnsModel(private val gaps: Gaps, private val widths: List<Doub
                 if (!command.direction.horizontal) return false
                 column.width = (column.width + command.amount).coerceIn(0.1, 1.0)
                 true
+            }
+            is TilingCommand.Message -> when (command.name) {
+                "width" -> true.also { column.width = command.number(column.width).coerceIn(0.1, 1.0) }
+                "center" -> true.also {
+                    centerOnce = true
+                    follow = true
+                }
+                else -> false
             }
             else -> false
         }

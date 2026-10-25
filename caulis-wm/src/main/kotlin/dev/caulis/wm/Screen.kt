@@ -55,7 +55,7 @@ internal fun runOnScreen(config: Caulis) {
                     shown[monitor] = Shown(output, place, view)
                     val stats = if (config.stats) FrameStats(monitor.name) else null
                     // A turned monitor gets its picture turned on the way (a program's buffer turned the same way is shown directly).
-                    val rotator = dev.caulis.core.Rotator(backend.renderer)
+                    val rotator = dev.caulis.core.Rotator(backend.renderer, desktop)
                     val present = running.timed(stats) { draw -> monitor.present(rotator.wrap(place.transform, draw)) }
                     val presentDirect: ((dev.caulis.core.DmabufBuffer) -> Boolean)? =
                         if (config.directScanout) monitor::presentDirect else null

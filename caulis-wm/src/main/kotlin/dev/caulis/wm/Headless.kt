@@ -36,7 +36,7 @@ internal fun runHeadless(config: Caulis) {
                     val monitor = running.addMonitor(name, output, width, height)
                     val view = desktop.createView(monitor)
                     var target = renderer.createTarget(width, height)
-                    val rotator = dev.caulis.core.Rotator(renderer)
+                    val rotator = dev.caulis.core.Rotator(renderer, desktop)
                     var sequence = 0L
                     var waiting = false
                     var mode = dev.caulis.core.MonitorMode(width, height, (hz * 1000).toInt(), preferred = true)

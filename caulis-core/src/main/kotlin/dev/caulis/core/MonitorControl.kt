@@ -59,21 +59,27 @@ interface MonitorControl {
 }
 
 /**
- * Draws a monitor's picture turned ([Transform]): the desktop draws into a picture of the
- * monitor's own size (width and height traded when sideways), which is then copied turned
- * onto the screen's buffer.
+ * Draws a monitor's picture turned ([Transform]) and through the desktop's [ScreenShader]:
+ * the desktop draws into a picture of the monitor's own size (width and height traded when
+ * sideways), which is then copied turned (and shaded) onto the screen's buffer.
  */
-class Rotator(private val renderer: Renderer) : AutoCloseable {
+class Rotator @JvmOverloads constructor(private val renderer: Renderer, private val desktop: Desktop? = null) : AutoCloseable {
 
+    private val log = dev.caulis.log.Logger("render")
     private var picture: GpuTarget? = null
     private var drawnBefore = false
+    private val start = System.nanoTime()
+
+    // The screen shader's code that did not compile last (said once).
+    private var brokenCode: String? = null
 
     /**
      * [draw] as the backend gets it, for a screen buffer turned by [transform]: what to call
-     * instead (the same, when not turned).
+     * instead (the same, when not turned and without a screen shader).
      */
     fun wrap(transform: Transform, draw: (GpuTarget, Int) -> Unit): (GpuTarget, Int) -> Unit {
-        if (transform == Transform.NORMAL) {
+        val shader = desktop?.screenShader
+        if (transform == Transform.NORMAL && shader == null) {
             drawnBefore = false
             return draw
         }
@@ -91,7 +97,20 @@ class Rotator(private val renderer: Renderer) : AutoCloseable {
             val texture = current.texture
             renderer.begin(screen, 0f, 0f, 0f)
             if (texture != null) {
-                renderer.drawShaded(0, 0, screen.width, screen.height, SHADER, emptyMap(), mapOf("turn" to transform.degrees / 90, "flip" to if (transform.flipped) 1 else 0), texture)
+                val ints = mapOf("turn" to transform.degrees / 90, "flip" to if (transform.flipped) 1 else 0)
+                val floats = mapOf(
+                    "time" to floatArrayOf(((System.nanoTime() - start) / 1e9).toFloat()),
+                    "size" to floatArrayOf(screen.width.toFloat(), screen.height.toFloat()),
+                )
+                val code = shader?.code
+                val shaded = code != null && code != brokenCode &&
+                    renderer.drawShaded(0, 0, screen.width, screen.height, ScreenShader.source(code), floats, ints, texture)
+                if (code != null && !shaded && code != brokenCode) {
+                    brokenCode = code
+                    val why = shader.fileProblem ?: renderer.effectProblem(ScreenShader.source(code)) ?: "it does not compile"
+                    log.warn("The screen shader $shader is not used: $why")
+                }
+                if (!shaded) renderer.drawShaded(0, 0, screen.width, screen.height, ScreenShader.source(null), floats, ints, texture)
             }
             renderer.end()
         }
@@ -100,25 +119,5 @@ class Rotator(private val renderer: Renderer) : AutoCloseable {
     override fun close() {
         picture?.close()
         picture = null
-    }
-
-    private companion object {
-        // For each pixel of the screen, the pixel of the picture that goes there.
-        const val SHADER = """#version 300 es
-            precision highp float;
-            in vec2 uv;
-            uniform sampler2D picture;
-            uniform int turn;
-            uniform int flip;
-            out vec4 color;
-            void main() {
-                vec2 p = uv;
-                // Turned clockwise: undo the turn to find where in the picture this is.
-                if (turn == 1) p = vec2(p.y, 1.0 - p.x);
-                else if (turn == 2) p = vec2(1.0 - p.x, 1.0 - p.y);
-                else if (turn == 3) p = vec2(1.0 - p.y, p.x);
-                if (flip == 1) p.x = 1.0 - p.x;
-                color = vec4(texture(picture, p).rgb, 1.0);
-            }"""
     }
 }

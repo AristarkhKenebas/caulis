@@ -275,9 +275,7 @@ class Caulis {
 
     /** Runs [action] for every notice (e.g. to send it to your panel when [noticeStyle] is Hidden). */
     @JvmSynthetic
-    fun onNotice(action: Caulis.(Notice) -> Unit) {
-        noticeListeners += action
-    }
+    fun onNotice(action: Caulis.(Notice) -> Unit): AutoCloseable = listen(noticeListeners, action)
 
     /**
      * Shows [text] on screen as a notice of the compositor (see [noticeStyle]), e.g.
@@ -610,13 +608,33 @@ class Caulis {
     var socketDirectory: java.nio.file.Path? = null
 
     /** One of your keys: its combination, how it behaves, the key mode it belongs to (null: the usual keys). */
-    class Binding internal constructor(val combination: String, val options: BindOptions, val mode: String?, val action: Caulis.() -> Unit)
+    class Binding internal constructor(val combination: String, val options: BindOptions, val mode: String?, val action: Caulis.() -> Unit) {
+        // The configuration it belongs to (none once it is taken away).
+        internal var owner: Caulis? = null
+
+        /** False: its keys do nothing of yours (they go to programs) until it is true again. */
+        var enabled = true
+            set(value) {
+                if (field == value) return
+                field = value
+                owner?.running?.rebindKeys()
+            }
+
+        /** Takes it away for good. */
+        fun unbind() {
+            val from = owner ?: return
+            owner = null
+            from.bindings -= this
+            from.running?.rebindKeys()
+        }
+    }
 
     internal val bindings = ArrayList<Binding>()
     internal val startActions = ArrayList<Caulis.() -> Unit>()
     internal val floatRules = ArrayList<(Window) -> Boolean>()
     internal val effectRules = ArrayList<(Window, Effects) -> Effects>()
     internal val panelEffectRules = ArrayList<(LayerSurface) -> Effects?>()
+    internal val panelRules = ArrayList<PanelRule>()
     internal val scratchpads = ArrayList<ScratchpadSetup>()
     internal val swipes = ArrayList<Triple<Int, Direction, Caulis.() -> Unit>>()
 
@@ -644,6 +662,20 @@ class Caulis {
     internal val windowClosed = ArrayList<Caulis.(Window) -> Unit>()
     internal val focusChanged = ArrayList<Caulis.(Window?) -> Unit>()
     internal val workspaceChanged = ArrayList<Caulis.(Int) -> Unit>()
+    internal val windowChanged = ArrayList<Caulis.(Window) -> Unit>()
+    internal val monitorAdded = ArrayList<Caulis.(String) -> Unit>()
+    internal val monitorRemoved = ArrayList<Caulis.(String) -> Unit>()
+    internal val unloadActions = ArrayList<Caulis.() -> Unit>()
+
+    // Adds [action] to [list] (while running, it listens at once); close the result to take it away.
+    private fun <T> listen(list: MutableList<T>, action: T): AutoCloseable {
+        list += action
+        running?.rewireEvents()
+        return AutoCloseable {
+            list -= action
+            running?.rewireEvents()
+        }
+    }
 
     /**
      * Runs [action] when the key [combination] is pressed, written however you like:
@@ -665,9 +697,17 @@ class Caulis {
      * ```
      */
     @JvmSynthetic
-    fun bind(combination: String, options: BindOptions, action: Caulis.() -> Unit) {
+    fun bind(combination: String, options: BindOptions, action: Caulis.() -> Unit): Binding {
         KeyBindings.parseAllowingTap(combination) // a wrong name is reported here, not at the start
-        bindings += Binding(combination, options, null, action)
+        return addBinding(Binding(combination, options, null, action))
+    }
+
+    // Adds [binding] (while running, its keys work at once).
+    internal fun addBinding(binding: Binding): Binding {
+        binding.owner = this
+        bindings += binding
+        running?.rebindKeys()
+        return binding
     }
 
     /**
@@ -694,9 +734,9 @@ class Caulis {
         fun bind(vararg combination: String, action: Caulis.() -> Unit) = bind(combination.joinToString("+"), BindOptions(), action)
 
         @JvmSynthetic
-        fun bind(combination: String, options: BindOptions, action: Caulis.() -> Unit) {
+        fun bind(combination: String, options: BindOptions, action: Caulis.() -> Unit): Binding {
             KeyBindings.parseAllowingTap(combination)
-            bindings += Binding(combination, options, name, action)
+            return addBinding(Binding(combination, options, name, action))
         }
     }
 
@@ -764,17 +804,13 @@ class Caulis {
     internal val lidActions = ArrayList<Caulis.(Boolean) -> Unit>()
 
     /** Runs [action] when the laptop's lid closes (true) or opens (false); on the screen only. */
-    fun onLid(action: Caulis.(closed: Boolean) -> Unit) {
-        lidActions += action
-    }
+    fun onLid(action: Caulis.(closed: Boolean) -> Unit): AutoCloseable = listen(lidActions, action)
 
     internal val reloadActions = ArrayList<Caulis.() -> Unit>()
 
     /** Runs [action] after the configuration was reloaded (see [hotReload]); [onStart] runs only once. */
     @JvmSynthetic
-    fun onReload(action: Caulis.() -> Unit) {
-        reloadActions += action
-    }
+    fun onReload(action: Caulis.() -> Unit): AutoCloseable = listen(reloadActions, action)
 
     /** Runs [action] once everything is ready (e.g. to start a panel or wallpaper program). */
     @JvmSynthetic
@@ -799,6 +835,25 @@ class Caulis {
     fun rule(configure: WindowRule.() -> Unit) {
         rules += WindowRule().apply(configure)
     }
+
+    /**
+     * A rule for some panels (bars, launchers, notifications), see [PanelRule]:
+     * `panelRule { namespace("fuzzel"); dimAround = 0.4f; blur = true }`.
+     */
+    @JvmSynthetic
+    fun panelRule(configure: PanelRule.() -> Unit) {
+        panelRules += PanelRule().apply(configure)
+    }
+
+    /**
+     * A shader the whole screen goes through last ([ScreenShader]): `ScreenShader.GRAYSCALE`,
+     * `ScreenShader.warm(0.4f)`, your own code or file. Null: none. Can be changed while running.
+     */
+    var screenShader: dev.caulis.core.ScreenShader? = null
+        set(value) {
+            field = value
+            running?.let { it.desktop.screenShader = value }
+        }
 
     /**
      * Windows for which [rule] is true float above the tiled ones instead of joining the
@@ -873,26 +928,47 @@ class Caulis {
 
     /** Runs [action] when a window appears, e.g. to move it to a workspace. */
     @JvmSynthetic
-    fun onWindowOpened(action: Caulis.(Window) -> Unit) {
-        windowOpened += action
-    }
+    fun onWindowOpened(action: Caulis.(Window) -> Unit): AutoCloseable = listen(windowOpened, action)
 
     /** Runs [action] when a window goes away. */
     @JvmSynthetic
-    fun onWindowClosed(action: Caulis.(Window) -> Unit) {
-        windowClosed += action
-    }
+    fun onWindowClosed(action: Caulis.(Window) -> Unit): AutoCloseable = listen(windowClosed, action)
+
+    /** Runs [action] when a window's title or app id changed. */
+    @JvmSynthetic
+    fun onWindowChanged(action: Caulis.(Window) -> Unit): AutoCloseable = listen(windowChanged, action)
 
     /** Runs [action] when another window gets the keyboard (null = none). */
     @JvmSynthetic
-    fun onFocusChanged(action: Caulis.(Window?) -> Unit) {
-        focusChanged += action
-    }
+    fun onFocusChanged(action: Caulis.(Window?) -> Unit): AutoCloseable = listen(focusChanged, action)
 
     /** Runs [action] with the number of the workspace that is now shown. */
     @JvmSynthetic
-    fun onWorkspaceChanged(action: Caulis.(Int) -> Unit) {
-        workspaceChanged += action
+    fun onWorkspaceChanged(action: Caulis.(Int) -> Unit): AutoCloseable = listen(workspaceChanged, action)
+
+    /** Runs [action] with a monitor's connector ("DP-2") when it is plugged in (or switched on). */
+    @JvmSynthetic
+    fun onMonitorAdded(action: Caulis.(String) -> Unit): AutoCloseable = listen(monitorAdded, action)
+
+    /** Runs [action] with a monitor's connector when it is unplugged (or switched off). */
+    @JvmSynthetic
+    fun onMonitorRemoved(action: Caulis.(String) -> Unit): AutoCloseable = listen(monitorRemoved, action)
+
+    /**
+     * Runs [action] just before this configuration is replaced by a reloaded one — to stop
+     * what it started (its timers end by themselves).
+     */
+    @JvmSynthetic
+    fun onUnload(action: Caulis.() -> Unit): AutoCloseable = listen(unloadActions, action)
+
+    internal val evaluators = HashMap<String, (String) -> Result<String>>()
+
+    /**
+     * For a configuration language (caulis-lua): code typed at `--repl` or sent with `--lua`
+     * runs in it — [evaluate] returns what the code returned as text, or the mistake.
+     */
+    fun evaluator(language: String, evaluate: (String) -> Result<String>) {
+        evaluators[language] = evaluate
     }
 
     // --- the same for Java (each returns this, so calls can be chained) -----------------
@@ -932,6 +1008,7 @@ class Caulis {
     fun bind(combination: List<String>, action: Consumer<Caulis>): Caulis = apply { bind(*combination.toTypedArray()) { action.accept(this) } }
     fun onStart(action: Consumer<Caulis>): Caulis = apply { onStart { action.accept(this) } }
     fun rule(configure: Consumer<WindowRule>): Caulis = apply { rule { configure.accept(this) } }
+    fun panelRule(configure: Consumer<PanelRule>): Caulis = apply { panelRule { configure.accept(this) } }
     fun floatWhen(rule: java.util.function.Predicate<Window>): Caulis = apply { floatWhen { rule.test(it) } }
     fun effects(effects: Effects): Caulis = apply { this.effects = effects }
     fun effectsFor(rule: java.util.function.BiFunction<Window, Effects, Effects>): Caulis = apply { effectsFor { window, fx -> rule.apply(window, fx) } }
@@ -956,8 +1033,9 @@ class Caulis {
 
     // The lists a configuration file can add to.
     internal fun addableLists(): List<MutableList<*>> = listOf(
-        titleBarRules, noticeListeners, bindings, startActions, floatRules, effectRules, panelEffectRules,
+        titleBarRules, noticeListeners, bindings, startActions, floatRules, effectRules, panelEffectRules, panelRules,
         scratchpads, swipes, windowOpened, windowClosed, focusChanged, workspaceChanged, reloadActions, rules,
+        windowChanged, monitorAdded, monitorRemoved, unloadActions,
         workspaceRules, lidActions, idleWatches,
     )
 
@@ -1005,6 +1083,30 @@ class Caulis {
         return AutoCloseable {
             timer.cancel()
             timers -= timer
+        }
+    }
+
+    /**
+     * Runs [action] every [millis] from now on, on the compositor's thread, until the result is
+     * closed (or the configuration is reloaded). Only while running.
+     */
+    fun every(millis: Long, action: Caulis.() -> Unit): AutoCloseable {
+        require(millis >= 10) { "every: at least 10 milliseconds apart, not $millis" }
+        val r = checkNotNull(running) { "Caulis is not running yet" }
+        var stopped = false
+        var timer: dev.caulis.event.EventLoop.Timer? = null
+        fun next() {
+            timer = r.loop.after(millis) {
+                timers -= timer!!
+                if (stopped) return@after
+                r.safely("a repeating timer") { action(this) }
+                if (!stopped) next()
+            }.also { timers += it }
+        }
+        next()
+        return AutoCloseable {
+            stopped = true
+            timer?.let { it.cancel(); timers -= it }
         }
     }
 

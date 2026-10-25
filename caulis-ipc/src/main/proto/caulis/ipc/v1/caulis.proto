@@ -41,7 +41,16 @@ message Request {
     Subscribe subscribe = 5;
     CheckConfig check_config = 6;
     GetDevices get_devices = 7;
+    Eval eval = 8;
   }
+}
+
+// Runs code in the configuration's language (config.lua: language "lua"), in the same state
+// as the configuration itself — its variables and functions are there. Reply: output (what
+// the code returned, as text), or error (a mistake in it, or no such configuration).
+message Eval {
+  string language = 1;
+  string code = 2;
 }
 
 // Who is there. Reply: hello.
@@ -96,6 +105,8 @@ message Reply {
     State state = 5;
     Problems problems = 6;
     Devices devices = 7;
+    // What an Eval returned, as text.
+    string output = 8;
   }
 }
 

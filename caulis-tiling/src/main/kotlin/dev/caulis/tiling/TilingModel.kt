@@ -26,6 +26,9 @@ interface TilingModel {
      * place for it — e.g. a canvas keeps its cells, so it comes back exactly where it was.
      */
     fun forget(window: LayoutWindow) {}
+
+    /** After a [command]: the window it wants to have the focus now (once), or null. */
+    fun takeFocus(): LayoutWindow? = null
 }
 
 /** A direction on screen. */
@@ -70,6 +73,28 @@ sealed interface TilingCommand {
      * layout rounds it to what fits (whole cells on a canvas). Canvas, columns.
      */
     data class PanBy(val dx: Int, val dy: Int) : TilingCommand
+
+    /**
+     * A message in words for the layout (Hyprland's layoutmsg): its [name] and the rest of the
+     * text ([argument]), e.g. `ratio +0.05` or `side right`. Each layout says which it knows;
+     * a wrong argument throws IllegalArgumentException with a plain message.
+     */
+    data class Message(val name: String, val argument: String = "") : TilingCommand {
+        /**
+         * [argument] as a number: `0.6` as it is, `+0.05` and `-0.05` added to [now].
+         */
+        fun number(now: Double): Double {
+            val text = argument.trim()
+            val value = text.toDoubleOrNull() ?: throw IllegalArgumentException("\"$name\" needs a number (0.6, +0.05 or -0.05), not \"$text\"")
+            return if (text.startsWith("+") || text.startsWith("-")) now + value else value
+        }
+
+        companion object {
+            /** From text: `ratio +0.05` → name "ratio", argument "+0.05". */
+            @JvmStatic
+            fun of(text: String): Message = text.trim().let { Message(it.substringBefore(' ').lowercase(), it.substringAfter(' ', "").trim()) }
+        }
+    }
 }
 
 /** A plain [Layout] needs no memory: the model just asks it every time. */

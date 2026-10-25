@@ -26,9 +26,11 @@ tasks.register<Exec>("generateProto") {
     val protos = protoDir.asFileTree.matching { include("**/*.proto") }
     inputs.files(protos)
     outputs.dir(generatedDir)
+    // (A plain File: the configuration cache keeps no script objects.)
+    val output = generatedDir.asFile
     doFirst {
-        generatedDir.asFile.deleteRecursively()
-        generatedDir.asFile.mkdirs()
+        output.deleteRecursively()
+        output.mkdirs()
     }
     commandLine(listOf("protoc", "--proto_path=${protoDir.asFile}", "--java_out=lite:${generatedDir.asFile}") + protos.files.map { it.path })
 }

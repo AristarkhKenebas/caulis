@@ -206,6 +206,16 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
                     ),
                 )
                 Request.WhatCase.CHECK_CONFIG -> reply.setProblems(Problems.newBuilder().addAllProblems(ConfigFile.read(request.checkConfig.text).problems))
+                Request.WhatCase.EVAL -> {
+                    val language = request.eval.language.ifBlank { "lua" }
+                    val evaluate = running.config.evaluators[language]
+                    if (evaluate == null) {
+                        reply.setError("no ${language.uppercase()} configuration is loaded (config.$language)")
+                    } else {
+                        log.info { "Code typed in ($language): ${request.eval.code.take(200)}" }
+                        evaluate(request.eval.code).fold({ reply.setOutput(it) }, { reply.setError(it.message ?: "$it") })
+                    }
+                }
                 else -> reply.setError("an empty request (or one of a newer protocol)")
             }
         } catch (e: Exception) {

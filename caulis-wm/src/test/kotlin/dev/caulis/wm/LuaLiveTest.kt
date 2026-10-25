@@ -55,7 +55,111 @@ class LuaLiveTest {
         }
     }
 
+    @Test
+    fun `handles, repeating timers, queries, a Lua layout, and the REPL over IPC`() = with(harness) {
+        val folder = Files.createTempDirectory("caulis-lua")
+        Files.writeString(
+            folder.resolve("config.lua"),
+            """
+            ticks = 0
+            opened = {}
+            key = caulis.bind("Super+B", function() caulis.run("workspace 3") end)
+            listener = caulis.on("window-opened", function(w) table.insert(opened, w.appId) end)
+            caulis.on("start", function()
+              clock = caulis.every(20, function()
+                ticks = ticks + 1
+                if ticks == 3 then clock.cancel() end
+              end)
+            end)
+            caulis.layout("halves", function(windows, area, focused)
+              local out = {}
+              for i = 1, #windows do
+                out[i] = { x = area.x + (i - 1) * 100, y = area.y, width = 100, height = 100 }
+              end
+              return out
+            end)
+            """.trimIndent(),
+        )
+        try {
+            withCaulis({
+                useConfigFile = true
+                configDir = folder
+                configName = "luatest"
+            }) { caulis, client ->
+                val socket = caulis.socketDirectory!!.resolve("luatest-${caulis.onLoop { it.socket }}.sock")
+                dev.caulis.ipc.CaulisIpc.connect(socket).use { ipc ->
+                    client.waitFor { ipc.eval("return ticks") == "3" }
+                    Thread.sleep(150)
+                    assertEquals("3", ipc.eval("return ticks"), "the timer stopped itself")
+
+                    client.window { it.setAppId("first") }.draw()
+                    client.window { it.setAppId("second") }.draw()
+                    client.waitFor { caulis.onLoop { r -> r.desktop.windows.size } == 2 }
+                    assertEquals("first\tsecond", ipc.eval("return opened[1], opened[2]"))
+                    assertEquals("2", ipc.eval("return #caulis.windows()"))
+                    assertEquals("second", ipc.eval("return caulis.focusedWindow().appId"))
+                    caulis.onLoop { r ->
+                        assertEquals("halves", r.desktop.activeWorkspace.layout.name)
+                        val xs = r.desktop.windows.map { r.desktop.screenRect(it)!!.x }.sorted()
+                        kotlin.test.assertTrue(xs[1] - xs[0] in 98..102, "side by side, 100 apart, as Lua said (borders aside): $xs")
+                    }
+
+                    // A listener taken away hears nothing more.
+                    ipc.eval("listener.remove()")
+                    client.window { it.setAppId("third") }.draw()
+                    client.waitFor { caulis.onLoop { r -> r.desktop.windows.size } == 3 }
+                    assertEquals("2", ipc.eval("return #opened"))
+
+                    // A key switched off goes to programs; on again, it works.
+                    ipc.eval("key.setEnabled(false)")
+                    press(caulis)
+                    assertEquals(1, caulis.onLoop { r -> r.desktop.activeWorkspace.number })
+                    ipc.eval("key.setEnabled(true)")
+                    press(caulis)
+                    client.waitFor { caulis.onLoop { r -> r.desktop.activeWorkspace.number } == 3 }
+
+                    // A mistake typed in is answered, not fatal.
+                    val mistake = kotlin.runCatching { ipc.eval("nil + 1") }.exceptionOrNull()
+                    kotlin.test.assertTrue(mistake is dev.caulis.ipc.IpcException && "repl" in mistake.message.orEmpty(), "$mistake")
+                    assertEquals("{ a = 1, b = \"x\" }", ipc.eval("return { a = 1, b = 'x' }"))
+                }
+            }
+        } finally {
+            folder.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `a configuration without a single key still has a way out`() = with(harness) {
+        val lines = java.util.concurrent.CopyOnWriteArrayList<String>()
+        dev.caulis.log.Log.listener = { lines += it }
+        try {
+            withCaulis({
+                keys { all().keys.forEach { name -> set(name, null) } }
+            }) { caulis, client ->
+                client.waitFor { lines.any { "no keys at all" in it } }
+                caulis.onLoop { r ->
+                    r.keys.key(KEY_SUPER, true)
+                    r.keys.key(KEY_SHIFT, true)
+                    kotlin.test.assertTrue(r.keys.has(KEY_ESC), "Super+Shift+Escape quits")
+                    r.keys.releaseAll()
+                }
+            }
+        } finally {
+            dev.caulis.log.Log.listener = null
+        }
+    }
+
+    private fun CaulisTest.press(caulis: Caulis) = caulis.onLoop { r ->
+        r.key(0, KEY_SUPER, true)
+        r.key(0, KEY_B, true)
+        r.key(0, KEY_B, false)
+        r.key(0, KEY_SUPER, false)
+    }
+
     private companion object {
+        const val KEY_SHIFT = 42
+        const val KEY_ESC = 1
         const val KEY_SUPER = 125
         const val KEY_B = 48
     }

@@ -139,4 +139,7 @@ interface ConfigLanguage {
      * ("config.lua:12: ..."); what is right still applies.
      */
     fun apply(caulis: Caulis, file: Path): List<String>
+
+    /** Annotations of its API for editors (LuaLS for Lua), or null. */
+    fun stubs(): String? = null
 }

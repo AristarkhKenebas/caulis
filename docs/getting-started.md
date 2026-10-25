@@ -291,6 +291,26 @@ rule { appId("mpv"); margin(-8) }                        // a video up to the ed
 rule { appId("spotify"); margin(top = 20, right = 0, bottom = 0, left = 0) }
 ```
 
+Some layouts take more settings, and messages while running (as Hyprland's `layoutmsg`) —
+the action `layout-message …`, on a key or from `caulisctl`:
+
+```kotlin
+layout = MasterLayout(ratio = 0.6, side = Side.LEFT, masters = 1, newWindow = NewWindow.STACK_TOP)
+layout = BinaryTree(splitRatio = 0.6)                                // the old window keeps 60 %
+layout = ScrollingColumns(newWidth = 0.5, centerFocused = true)     // the focused column in the middle
+bind("Super+Equal") { run("layout-message ratio +0.05") }
+bind("Super+Return") { run("layout-message swap-with-master") }
+```
+
+| Layout | Messages |
+| --- | --- |
+| `MasterLayout` (also `MasterStack`) | `ratio 0.6` / `+0.05` / `-0.05`, `side left\|right\|top\|bottom`, `masters +1` / `-1` / `2`, `swap-with-master`, `focus-master`, `cycle next\|prev` |
+| `BinaryTree` | `toggle-split`, `swap-split`, `ratio 0.6` / `+0.05` |
+| `ScrollingColumns` | `width 0.5` / `+0.1`, `center` |
+
+In config.json the same are fields of `layout`: `"masters"`, `"newWindow"` (`stack-end`,
+`stack-top`, `master`), `"splitRatio"`, `"columnWidths"`, `"newColumnWidth"`, `"centerFocused"`.
+
 ## 6. Rules and events
 
 Rules say where windows open and how they look — one `rule { }` per kind of window:
@@ -315,6 +335,44 @@ Where and how a window starts is decided before its first frame, so it never fla
 somewhere else. Some programs set their title only after opening (Spotify, browsers): such
 a window gets the rule when it starts to fit, once — move it elsewhere afterwards and it
 stays. The app id of a program: open it and look in the log (*Opened …*), or press Super+F12.
+
+### Rules that follow the window
+
+A rule can also ask how a window is *now* — and what it says holds while that is so:
+
+```kotlin
+rule { isFloating(); cornerRadius = 14; shadow = true }              // floating windows look different
+rule { isFocused(false); opacity = 0.9f }                            // the others a little see-through
+rule { appId("mpv"); keepAwake = true; ignore(WindowRequest.MAXIMIZE) } // the screen stays on
+rule { title("Picture-in-Picture"); pinned = true; takesFocus = false; size(480, 270) }
+rule { appId("org.keepassxc.KeePassXC"); hiddenFromCapture = true }  // black in screen sharing
+rule { appId("gimp"); minSize(400, 300); maxSize(1600, 1200) }       // while floating
+```
+
+Asking: `isFloating()`, `isFullscreen()`, `isMaximized()`, `isFocused()`, `isPinned()`,
+`isXwayland()` (X11 programs; each takes `false` for the opposite), `onWorkspace(3)`,
+`initialAppId("…")` and `initialTitle("…")` (as the window was when it opened), `hasTag("…")`;
+`unless { … }` for windows that do *not* fit what is inside, `anyOf { … }` for windows that fit
+one of the conditions inside (`allOf { … }` groups several into one of them).
+
+Looks: `cornerRadius`, `border = false` (or `borderWidth`, `borderColor(focused, unfocused)`),
+`shadow`, `blur` (true or false), `opacity`, `inactiveOpacity`. Behaviour: `minSize(w, h)` and
+`maxSize(w, h)` (floating), `keepAwake`, `animated = false`, `hiddenFromCapture`,
+`takesFocus = false`, `ignore(WindowRequest.FULLSCREEN, MAXIMIZE, MINIMIZE, ACTIVATE)` (what the
+program asks is not done), `pinned = true` (it floats on every workspace its monitor shows).
+
+Tags group windows for other rules — given by a rule while the window fits it, or by hand
+with the actions `tag +video`, `tag -video` and `tag video` (on and off):
+
+```kotlin
+rule { anyOf { appId("mpv"); appId("vlc"); title("YouTube") }; tags("video") }
+rule { hasTag("video"); keepAwake = true; animated = false; border = false }
+bind("Super+P") { run("pin") }                                      // pin the focused window, or let it go
+```
+
+In config.json and Lua the same words are fields: `{ "isFloating": true, "cornerRadius": 14 }`,
+`{ "unless": { "isXwayland": true }, "tags": ["wayland"] }`, `"ignore": ["maximize"]`,
+`"minSize": [400, 300]`.
 
 Events, for everything rules do not cover:
 
@@ -517,11 +575,35 @@ A shadow's `spread` makes it bigger than the window (a glow around all sides whe
 offsets are 0). Moving paints are drawn every frame while seen, but only the thin frame
 around the window is redrawn — a few percent of one core.
 
+Windows without the focus can be darker — `dimInactive = 0.3f` in `Effects` (a rule's
+`dimInactive = 0f` keeps a video bright). Blurred glass can be toned as in Hyprland:
+`Blur(size = 6, passes = 3, tone = BlurTone.HYPRLAND)`, or your own
+`BlurTone(noise = 0.01f, contrast = 0.9f, brightness = 0.8f, vibrancy = 0.2f)`.
+
 Panels get no effects unless you ask, by the name they give themselves:
 
 ```kotlin
-panelEffects { if (it.namespace == "waybar") Effects(blur = Blur()) else null }
+panelRule { namespace("waybar"); blur = true }
+panelRule { namespace("fuzzel"); dimAround = 0.4f; cornerRadius = 12 }  // the desktop darker behind the launcher
+panelRule { namespace("notifications"); hiddenFromCapture = true }    // not in screen sharing
 ```
+
+`namespace(Regex(…))`, `layer(LayerShell.Layer.OVERLAY)` and `where { … }` choose panels too;
+`blur`, `cornerRadius`, `shadow`, `opacity`, `effects { … }`, `dimAround` and
+`hiddenFromCapture` say what happens (`panelEffects { … }` still works).
+
+The whole screen can go through one more shader at the end — shades of grey, a night light,
+your own CRT look:
+
+```kotlin
+screenShader = ScreenShader.GRAYSCALE
+screenShader = ScreenShader.warm(0.4f)                                   // less blue light
+screenShader = ScreenShader.file(file("crt.glsl"), moving = true)        // vec4 effect(vec4 color, vec2 at)
+```
+
+Your code gets each pixel's `color` at `at` (0..1 from the top left) and returns what is
+shown; `screenAt(at)` reads the screen elsewhere, `time` and `size` are there. A file is read
+again when you save it; a mistake is written to the log and the screen stays as it is.
 
 Fullscreen windows never get effects. The names come from `dev.caulis.core` (`Effects`,
 `Border`, `Shadow`, `Blur`) and `dev.caulis.render.Color`; IntelliJ adds the imports when you
@@ -553,7 +635,21 @@ animationMillis = 220   // how long, unless an animation says otherwise (0 = not
 
 Building blocks go together with `+` (`fade() + scale(0.5)`), and each can have its own
 time and curve: `pop().lasting(400).curved(Curve.EASE_IN_OUT)`. Curves: `EASE_OUT` (the
-default), `EASE_IN_OUT`, `LINEAR`, `OVERSHOOT`, or your own: `Curve { t -> t * t }`.
+default), `EASE_IN_OUT`, `LINEAR`, `OVERSHOOT`, a Bézier curve with the numbers Hyprland
+and CSS use — `Curve.bezier(0.05, 0.9, 0.1, 1.05)` — a spring, or your own: `Curve { t -> t * t }`.
+A spring (`Curve.spring(stiffness = 300.0, damping = 14.0)`; less damping bounces more)
+takes as long as it needs to come to rest, unless the animation says `lasting(…)`.
+
+In config.json and Lua, curves have names and every animation can have its own:
+
+```jsonc
+"animations": {
+  "curves": { "snappy": { "bezier": [0.05, 0.9, 0.1, 1.05] }, "bouncy": { "spring": { "stiffness": 300, "damping": 14 } } },
+  "curve": "snappy",
+  "windowOpen": { "style": "pop", "curve": "bouncy" },
+  "workspaceSwitch": { "style": "slide", "millis": 300 }
+}
+```
 
 Your own animation is one function: it gets where the window is going and how far along it
 is (0 to 1), and says where to draw it and how strongly:
@@ -1147,7 +1243,8 @@ end)
 -- Rules, as in config.json.
 caulis.rule { appId = "pavucontrol", floating = true, center = true }
 
--- Events: start, reload, window-opened, window-closed, focus-changed, workspace-changed, notice.
+-- Events: start, reload, unload, window-opened, window-closed, window-changed, focus-changed,
+-- workspace-changed, monitor-added, monitor-removed, notice, lid.
 caulis.on("window-opened", function(w)
   if w.appId == "music" then caulis.run("move-to-workspace 9", w.id) end
 end)
@@ -1162,11 +1259,13 @@ end)
 |---|---|
 | `settings { ... }` | settings, as config.json |
 | `rule { ... }` | a window rule, as in config.json's `rules` |
-| `bind(keys, action)` | `action`: text (`"workspace 2"`) or a function |
-| `on(event, fn)` | `fn(window)` for window events (`nil` when no window has the focus), `fn(number)` for workspace-changed, `fn(text, level)` for notice |
+| `bind(keys, action [, options])` | `action`: text (`"workspace 2"`) or a function; returns a key with `unbind()` and `setEnabled(on)` |
+| `on(event, fn)` | `fn(window)` for window events (`nil` when no window has the focus), `fn(number)` for workspace-changed, `fn(name)` for monitors, `fn(text, level)` for notice; returns a handle with `remove()` |
 | `run(action [, id])` | runs an action, on the window with that id (else the focused one) |
 | `state()` | `{ windows = {...}, monitors = {...}, focused = id, workspace = n, locked = bool }` |
-| `after(ms, fn)` | runs `fn` once, later |
+| `windows()` · `window(id)` · `focusedWindow()` · `monitors()` · `workspace()` | the same, one part at a time |
+| `after(ms, fn)` · `every(ms, fn)` | runs `fn` once later, or again and again; returns a handle with `cancel()` (a reload ends them all) |
+| `layout(name, fn)` | a layout of your own: `fn(windows, area, focused)` returns a rectangle `{ x, y, width, height }` per window |
 | `notify(text [, level])` · `log(text)` · `file(name)` | a notice, a line in the log, a path in the folder |
 
 A window is a table: `id`, `appId`, `title`, `pid`, `workspace`, `monitor`, `focused`,
@@ -1177,7 +1276,24 @@ Mistakes are reported with their line, and the rest still applies:
 function (a key, an event) shows a notice when it happens; the desktop goes on. Code that runs
 too long — a loop that never ends — is stopped (half a second for a key or an event). Saving
 the file takes it on at once; `my-compositor --check-config config.lua` checks it without
-starting.
+starting. `unload` comes just before a saved file replaces the running one, to stop what the
+old one started.
+
+Try things out on the running desktop, in the same Lua state as your config.lua (its
+variables are there):
+
+```
+my-compositor --repl                         # a prompt: caulis.focusedWindow().title
+my-compositor --lua 'return #caulis.windows()'
+```
+
+Your editor can know the whole `caulis` table — every setting with its values, every
+function: `my-compositor --print-lua-stubs > caulis.lua` (or `docs/lua/caulis.lua` of Caulis)
+in a folder the Lua language server reads (`"workspace.library"` in `.luarc.json`).
+
+If a configuration ends up with no keys at all — every usual key off, none of its own —
+`Super+Shift+Escape` still quits and `Super+Return` opens a terminal, so a mistake never locks
+you in.
 
 ## 27. Kotlin without a project: config.kts
 
@@ -1322,7 +1438,8 @@ monitor("DP-2") { transform = Transform.ROTATE_90 }   // a screen standing on it
 ```
 
 Actions for keys and scripts: `dpms off` / `dpms on` / `dpms toggle` (all screens, or one:
-`dpms off HDMI-A-1`), `keep-awake on|off|toggle` (no idle timers while on), `focus-urgent`.
+`dpms off HDMI-A-1`), `keep-awake on|off|toggle` (no idle timers while on), `focus-urgent`,
+`pin` (and `pin on|off`), `tag +name|-name|name`.
 Windows that want attention are `urgent` on the IPC socket (bars show them). In config.json:
 
 ```json

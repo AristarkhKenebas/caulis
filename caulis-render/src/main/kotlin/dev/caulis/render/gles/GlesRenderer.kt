@@ -4,6 +4,7 @@ import dev.caulis.ffi.Fd
 import dev.caulis.ffi.c.gles.Gles
 import dev.caulis.geometry.Rect
 import dev.caulis.render.Dmabuf
+import dev.caulis.render.BlurTone
 import dev.caulis.render.Color
 import dev.caulis.render.DmabufFormat
 import dev.caulis.render.GpuBuffer
@@ -327,10 +328,10 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         return true
     }
 
-    override fun drawBlur(area: Rect, cornerRadius: Float, size: Int, passes: Int) {
+    override fun drawBlur(area: Rect, cornerRadius: Float, size: Int, passes: Int, tone: BlurTone) {
         val target = target ?: return
         if (area.isEmpty || size <= 0) return
-        blur.blur(target, area, radiusFor(area, cornerRadius), size, passes)
+        blur.blur(target, area, radiusFor(area, cornerRadius), size, passes, tone)
         bindTarget(target, clip)
     }
 

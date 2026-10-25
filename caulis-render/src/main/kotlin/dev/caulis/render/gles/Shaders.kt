@@ -214,9 +214,11 @@ internal object Shaders {
         uniform bool clipped;
         uniform vec4 clip;
         uniform float radius;
+        uniform vec4 tone; // noise, contrast, brightness, vibrancy (only with clipped: the last pass)
         out vec4 color;
         $SAMPLE
         $BOX
+        float grain(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
         void main() {
             vec2 o = halfpixel * offset;
             vec4 sum = at(uv + vec2(-o.x * 2.0, 0.0));
@@ -228,6 +230,14 @@ internal object Shaders {
             sum += at(uv + vec2(0.0, -o.y * 2.0));
             sum += at(uv + vec2(-o.x, -o.y)) * 2.0;
             color = sum / 12.0;
-            if (clipped) color *= inside(clip, radius);
+            if (clipped) {
+                vec3 c = color.a > 0.0 ? color.rgb / color.a : color.rgb;
+                float grey = dot(c, vec3(0.2126, 0.7152, 0.0722));
+                c = mix(vec3(grey), c, 1.0 + tone.w);
+                c = (c - 0.5) * tone.y + 0.5;
+                c *= tone.z;
+                c += (grain(gl_FragCoord.xy) - 0.5) * tone.x;
+                color = vec4(clamp(c, 0.0, 1.0) * color.a, color.a) * inside(clip, radius);
+            }
         }"""
 }

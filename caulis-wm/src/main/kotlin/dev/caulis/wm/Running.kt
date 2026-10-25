@@ -181,7 +181,44 @@ internal class Running(
 
     private val rulesLog = Logger("windows")
 
-    private fun fits(rule: WindowRule, window: dev.caulis.core.Window): Boolean = safely("$rule", false) { rule.fits(window) }
+    private fun fits(rule: WindowRule, window: dev.caulis.core.Window): Boolean = safely("$rule", false) { rule.fits(window, factsOf(window)) }
+
+    // Tags given by hand (the action `tag`), and each window's app id and title when it opened.
+    private val manualTags = java.util.WeakHashMap<dev.caulis.core.Window, MutableSet<String>>()
+    private val initials = java.util.WeakHashMap<dev.caulis.core.Window, Pair<String, String>>()
+
+    // What rules may ask about [window]: its tags are those given by hand, then those of each
+    // rule in turn that fits it (a rule sees the tags of the ones before).
+    private fun factsOf(window: dev.caulis.core.Window): WindowRule.Facts {
+        val (appId, title) = initials.getOrPut(window) { window.appId to window.title }
+        val tags = LinkedHashSet(manualTags[window].orEmpty())
+        for (rule in config.rules) {
+            if (rule.tags.isEmpty() || rule.tags.all { it in tags }) continue
+            if (safely("$rule", false) { rule.fits(window, WindowRule.Facts(desktop, tags, appId, title)) }) tags += rule.tags
+        }
+        return WindowRule.Facts(desktop, tags, appId, title)
+    }
+
+    /** [window]'s tags now: given by hand and by the rules that fit it. */
+    fun tagsOf(window: dev.caulis.core.Window): Set<String> = factsOf(window).tags
+
+    /** Gives [window] the tag [name] (true), takes it away (false), or toggles it (null). */
+    fun tag(window: dev.caulis.core.Window, name: String, on: Boolean? = null) {
+        val own = manualTags.getOrPut(window) { LinkedHashSet() }
+        val give = on ?: (name !in own)
+        if (give) own += name else own -= name
+        rulesLog.info { "$window: tag $name ${if (give) "given" else "taken away"}" }
+        rulesChanged(window)
+    }
+
+    // A window's tags or state changed: its rules' margins and title bar may be others now.
+    private fun rulesChanged(window: dev.caulis.core.Window) {
+        val margins = marginsOf(window)
+        if (shownMargins.put(window, margins) != margins) desktop.marginsChanged(window)
+        val bars = titleBarsOf(window)
+        if (shownTitleBars.put(window, bars) != bars) desktop.titleBarsChanged()
+        desktop.requestRedraw()
+    }
 
     // Who draws a window's title bar: the last rule that fits and says, then titleBarsFor.
     private fun titleBarsOf(window: dev.caulis.core.Window): dev.caulis.core.TitleBars? =
@@ -272,7 +309,7 @@ internal class Running(
         val defaultRule = desktop.floatRule
         desktop.windowEffects = { window ->
             val fx = config.effectRules.fold(desktop.effects) { fx, rule -> safely("effectsFor", fx) { rule(window, fx) } }
-            config.rules.fold(fx) { now, rule -> if (fits(rule, window)) safely("$rule effects", now) { rule.effectsOf(now) } else now }
+            config.rules.fold(fx) { now, rule -> if (rule.hasLooks && fits(rule, window)) safely("$rule effects", now) { rule.effectsOf(now) } else now }
         }
         // Window rules: where windows open (decided before their first frame), and once more
         // for a window that fits a rule only after it changed its title or app id.
@@ -289,12 +326,11 @@ internal class Running(
                 rulesLog.info { "$window fits $rule now" }
                 safely("$rule") { desktop.applyPlacement(window, rule.placement()) }
             }
-            // Its margins too.
-            val margins = marginsOf(window)
-            if (shownMargins.put(window, margins) != margins) desktop.marginsChanged(window)
-            // Its title bar may follow a rule that fits it now (or no longer).
-            val bars = titleBarsOf(window)
-            if (shownTitleBars.put(window, bars) != bars) desktop.titleBarsChanged()
+            // Its margins and title bar too (a rule may fit it now, or no longer).
+            rulesChanged(window)
+        }
+        desktop.behaviorFor = { window ->
+            config.rules.fold(dev.caulis.core.WindowBehavior.USUAL) { now, rule -> if (rule.hasBehavior && fits(rule, window)) rule.behaviorOf(now) else now }
         }
         desktop.onWindowOpened { window ->
             shownTitleBars[window] = titleBarsOf(window)
@@ -302,7 +338,11 @@ internal class Running(
         }
         desktop.marginsFor = { window -> marginsOf(window) }
         desktop.layerEffects = { layer ->
-            config.panelEffectRules.firstNotNullOfOrNull { rule -> safely("panelEffects", null) { rule(layer) } } ?: Effects.NONE
+            val fx = config.panelEffectRules.firstNotNullOfOrNull { rule -> safely("panelEffects", null) { rule(layer) } } ?: Effects.NONE
+            config.panelRules.fold(fx) { now, rule -> if (safely("$rule", false) { rule.fits(layer) }) safely("$rule effects", now) { rule.effectsOf(now) } else now }
+        }
+        desktop.layerBehaviorFor = { layer ->
+            config.panelRules.fold(dev.caulis.core.LayerBehavior.USUAL) { now, rule -> if (safely("$rule", false) { rule.fits(layer) }) rule.behaviorOf(now) else now }
         }
         desktop.floatRule = { window -> defaultRule(window) || config.floatRules.any { rule -> safely("floatWhen", false) { rule(window) } } }
         desktop.onWindowOpened { window -> launcher.windowOpened(window.pid) }
@@ -319,6 +359,7 @@ internal class Running(
     private fun applyConfig() {
         val config = config
         desktop.effects = config.effects
+        desktop.screenShader = config.screenShader
         desktop.titleBars = config.titleBars
         desktop.titleBarStyle = config.titleBarStyle
         desktop.titleBarsFor = if (config.titleBarRules.isEmpty() && config.rules.none { it.titleBars != null }) null else ::titleBarsOf
@@ -348,10 +389,6 @@ internal class Running(
         desktop.workspaceRules = config.workspaceRules
         desktop.primaryMonitorName = config.primaryMonitor
 
-        keys.clear()
-        lockedKeys.clear()
-        inhibitedKeys.clear()
-        bindKeys()
         for (pad in config.scratchpads) {
             // A scratchpad asks the configuration of the moment which windows are its own.
             if (desktop.scratchpad(pad.name) == null) {
@@ -360,17 +397,36 @@ internal class Running(
                     safely("scratchpad ${pad.name}", false) { now.match(window) }
                 }
             }
-            pad.key?.let { key -> keys.bind(key) { toggleScratchpad(pad.name) } }
         }
+        rebindKeys()
 
+        rewireEvents()
+
+    }
+
+    /** Hands the configuration's event listeners to the desktop anew (after a reload, or one added or taken away). */
+    fun rewireEvents() {
         configListeners.forEach(AutoCloseable::close)
         configListeners.clear()
+        val config = config
         config.noticeListeners.forEach { action -> configListeners += desktop.onNotice { notice -> safely("onNotice") { action(config, notice) } } }
         config.windowOpened.forEach { action -> configListeners += desktop.onWindowOpened { window -> action(config, window) } }
         config.windowClosed.forEach { action -> configListeners += desktop.onWindowClosed { window -> action(config, window) } }
+        config.windowChanged.forEach { action -> configListeners += desktop.onWindowInfoChanged { window -> safely("onWindowChanged") { action(config, window) } } }
         config.focusChanged.forEach { action -> configListeners += desktop.onFocusChanged { window -> action(config, window) } }
         config.workspaceChanged.forEach { action -> configListeners += desktop.onWorkspaceChanged { workspace -> action(config, workspace.number) } }
+    }
 
+    /**
+     * Binds every key anew: the usual ones, yours (those switched on), scratchpads', quitting
+     * and consoles — at the start, after a reload, and when one of yours is switched on or off.
+     */
+    fun rebindKeys() {
+        keys.clear()
+        lockedKeys.clear()
+        inhibitedKeys.clear()
+        bindKeys()
+        for (pad in config.scratchpads) pad.key?.let { key -> keys.bind(key) { toggleScratchpad(pad.name) } }
         // Quitting and text consoles also work while the screen is locked (when they are on).
         val usual = config.keys
         for (bindings in listOf(keys, lockedKeys, inhibitedKeys)) {
@@ -380,6 +436,13 @@ internal class Running(
         usual.restoreShortcuts?.let { inhibitedKeys.bind(it) { shortcutsInhibit.restore() } }
         if (usual.quit == null && (usual.consoles == null || switchConsole == null)) {
             log.warn("No key quits and none switches to a text console (keys.quit and keys.consoles are off): if a program takes the whole screen, only another computer (ssh) or the power button gets you out")
+        }
+        // Not one key of ours at all (every usual key off, none of your own): a way out and a
+        // terminal anyway, so a broken configuration never locks you in.
+        if (usual.bindings(config.workspaceCount).isEmpty() && config.bindings.none { it.enabled } && config.scratchpads.none { it.key != null }) {
+            keys.bind(EMERGENCY_QUIT) { quit() }
+            keys.bind(EMERGENCY_TERMINAL) { safely("the emergency terminal") { config.openTerminal() } }
+            log.warn("Your configuration has no keys at all: $EMERGENCY_QUIT quits and $EMERGENCY_TERMINAL opens a terminal until it has some")
         }
     }
 
@@ -397,6 +460,7 @@ internal class Running(
         }
         modeKeys.clear()
         for (binding in config.bindings) {
+            if (!binding.enabled) continue
             val combination = binding.combination
             val run = { safely(combination) { binding.action(config) } }
             val mode = binding.mode
@@ -500,7 +564,8 @@ internal class Running(
         }
         // (The same configuration when config.json was applied onto it: nothing to compare.)
         val same = before === next
-        // Timers of the configuration that goes: they belong to its code.
+        // The configuration that goes hears it first (to stop what it started), then its timers end.
+        if (!same) before.unloadActions.forEach { action -> safely("onUnload") { action(before) } }
         if (!same) {
             before.timers.forEach { it.cancel() }
             before.timers.clear()
@@ -553,6 +618,7 @@ internal class Running(
         val y = settings?.y
         val monitor = desktop.addMonitor(name, output, pixelWidth, pixelHeight, settings?.scale ?: config.scale, x, y)
         settings?.transform?.let { desktop.setTransform(monitor, it) }
+        config.monitorAdded.forEach { action -> safely("onMonitorAdded") { action(config, name) } }
         xwayland?.rescaled() // the largest scale may be another now
         ipc?.changed() // subscribers hear of the monitors
         outputManagement.changed()
@@ -562,6 +628,7 @@ internal class Running(
     /** A monitor went away (the backend's). */
     fun removeMonitor(monitor: Monitor) {
         desktop.removeMonitor(monitor)
+        config.monitorRemoved.forEach { action -> safely("onMonitorRemoved") { action(config, monitor.name) } }
         xwayland?.rescaled()
         ipc?.changed()
         outputManagement.changed()
@@ -889,6 +956,10 @@ internal class Running(
         const val STARTING_NANOS = 5_000_000_000L
         const val BTN_LEFT = 0x110
         const val BTN_RIGHT = 0x111
+
+        // Keys that always exist when a configuration has none at all.
+        const val EMERGENCY_QUIT = "Super+Shift+Escape"
+        const val EMERGENCY_TERMINAL = "Super+Return"
     }
 }
 
