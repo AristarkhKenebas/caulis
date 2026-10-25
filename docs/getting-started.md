@@ -240,8 +240,8 @@ You can change it while running, e.g. on a key:
 bind("Super+T") { layout = if (layout === Floating) Dwindle() else Floating }
 ```
 
-Windows glide to their new places instead of jumping (`animationMillis` on the desktop sets
-how long; 0 turns it off).
+Windows glide to their new places instead of jumping (`animationMillis` sets how long; 0
+turns it off; see *Animations* for more).
 
 ## 6. Rules and events
 
@@ -332,7 +332,52 @@ A bar that reserves space (as Waybar does) keeps it free: tiled and maximized wi
 next to it, never under it. `desktop.usableArea` is what is left for windows. A launcher gets
 the keyboard while it is open; fullscreen windows cover bars, but not notifications.
 
-## 9. Round corners, borders, shadows, blur
+## 9. The background
+
+What shows behind everything is yours to choose — still or moving:
+
+```kotlin
+background = Background.color(Color.hex("#1e1e2e"))
+background = Background.gradient(Color.hex("#1e3c72"), Color.hex("#2a5298"), degrees = 90.0)
+background = Background.image(Path.of("/usr/share/backgrounds/forest.jpg"))          // fills the monitor
+background = Background.image(Path.of("logo.png"), Background.Fit.CENTER, behind = Color.hex("#000000"))
+background = Background.shader(WallpaperShader.AURORA)                               // slowly moving colours
+background = Background.painted { g, look -> g.color = java.awt.Color.ORANGE; g.fillOval(0, 0, look.width, look.height) }
+```
+
+Pictures: PNG, JPEG, BMP, GIF; `Fit.FILL` (cut to fill, the default), `FIT`, `STRETCH`,
+`CENTER`, `TILE`. They are read in the background, so starting is not slowed down.
+
+A different one per monitor and workspace — it melts into the next when you switch:
+
+```kotlin
+backgroundFor { monitor, workspace -> Background.image(Path.of("/home/me/walls/$workspace.jpg")) }
+backgroundChangeMillis = 400
+```
+
+Your own moving wallpaper is a shader: GLSL with one function that gets a point of the
+monitor (0 to 1 from the top left) and returns its colour. `time` (seconds), `size`
+(pixels), `pointer` (where the pointer is, 0 to 1, or -1 on another monitor) and `workspace`
+are there to use, and `image(uv)` reads a picture if you give one:
+
+```kotlin
+background = Background.shader(WallpaperShader("""
+    vec4 wallpaper(vec2 at) {
+        float glow = 0.15 / (distance(at, pointer) + 0.15);              // light follows the pointer
+        float wave = 0.5 + 0.5 * sin(at.x * 8.0 + time);
+        return vec4(0.05 + 0.2 * glow, 0.1 + 0.1 * wave, 0.25 + 0.3 * glow, 1.0);
+    }
+""", framesPerSecond = 30))
+```
+
+A shader that uses `time` or `pointer` is drawn `framesPerSecond` times a second, only
+while it can be seen (about 6% of one core at 30 per second, nested); one that does not
+compile is said once in the log and the usual background shows.
+
+A wallpaper program — swaybg, hyprpaper, swww, mpvpaper, waypaper's backends, anything on
+the background layer — simply draws on top: it wins, and a moving shader below it rests.
+
+## 10. Round corners, borders, shadows, blur
 
 Off by default; the template switches on a common look:
 
@@ -370,7 +415,70 @@ Fullscreen windows never get effects. The names come from `dev.caulis.core` (`Ef
 `Border`, `Shadow`, `Blur`) and `dev.caulis.render.Color`; IntelliJ adds the imports when you
 press Alt+Enter on a red name.
 
-## 10. Title bars
+## 11. Animations
+
+Windows fade in growing a little, go away shrinking, glide to new places, flow into the
+dock like a genie when minimized, and workspaces slide side by side. Each of these is one
+setting of `animations`, made of building blocks:
+
+```kotlin
+animations = Animations(
+    windowOpen = WindowAnimation.fade() + WindowAnimation.slide(dy = 80),   // fades in rising
+    windowClose = WindowAnimation.fade(),
+    minimize = WindowAnimation.pop(),                                      // no genie
+    workspaceSwitch = WorkspaceAnimation.SLIDE_VERTICAL.lasting(300),
+    curve = Curve.OVERSHOOT,                                               // a little past, and back
+)
+animationMillis = 220   // how long, unless an animation says otherwise (0 = nothing moves)
+```
+
+| Setting | When | Ready ones |
+| --- | --- | --- |
+| `windowOpen` / `windowClose` | a window appears / goes away | `fade()`, `scale(0.9)`, `slide(dx, dy)`, `pop()` (= fade + scale) |
+| `windowMove` | a window glides to a new place or size | `move()` |
+| `minimize` / `restore` | into the dock icon / back | `genie()`, `flyTo()`, `pop()` |
+| `workspaceSwitch` | another workspace | `SLIDE`, `SLIDE_VERTICAL`, `FADE`, `NONE` |
+
+Building blocks go together with `+` (`fade() + scale(0.5)`), and each can have its own
+time and curve: `pop().lasting(400).curved(Curve.EASE_IN_OUT)`. Curves: `EASE_OUT` (the
+default), `EASE_IN_OUT`, `LINEAR`, `OVERSHOOT`, or your own: `Curve { t -> t * t }`.
+
+Your own animation is one function: it gets where the window is going and how far along it
+is (0 to 1), and says where to draw it and how strongly:
+
+```kotlin
+val spin = WindowAnimation { m ->
+    // m.from, m.to: start and end; m.progress: 0 → 1; m.window: the window
+    WindowFrame(WindowAnimation.scaled(m.to, m.progress), alpha = m.progress.toFloat())
+}
+animations = Animations(windowOpen = spin.lasting(250))
+```
+
+For effects beyond moving and fading — bending, colouring, dissolving — give a shader:
+GLSL with one function that gets a point of the drawn rectangle (0 to 1) and returns its
+colour. `window(uv)` reads the window's picture; `progress`, `from` and `to` (the picture's
+start and end within the rectangle, as x, y, width, height) and `size` (pixels) are there:
+
+```kotlin
+val dissolve = WindowShader("""
+    float noise(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    vec4 effect(vec2 at) {
+        return noise(floor(at * size / 4.0)) < progress ? window(at) : vec4(0.0);
+    }
+""")
+animations = Animations(windowOpen = WindowAnimation { m -> WindowFrame(m.to, shader = dissolve, progress = m.progress) })
+```
+
+The genie itself is such a shader (`WindowShader.GENIE`) — read it as an example. A shader
+that does not compile is reported once in the log, and the window is drawn without it.
+
+More to tune, each one line: `overviewFill = 0.9` (how much of the monitor the overview's
+windows take), `resizeBorder = 6` (the edge to grab floating windows by), `doubleClickMillis
+= 400` (a double click on a title bar maximizes), `swipeDistance = 80.0` (how far fingers
+move for a swipe), `lockColor` (behind the screen locker), `Animations(scaleChangeMillis =
+250)` (the picture melting when the scale changes), `NoticeStyle(fadeMillis = 180)`.
+
+## 12. Title bars
 
 Who draws them — the programs (the default), the compositor, or nobody:
 
@@ -406,7 +514,7 @@ Spotify, mpv, foot, Alacritty, GTK 3 apps do); the compositor draws one only whe
 agreed, so there are never two. GTK 4 / libadwaita apps keep theirs — it is part of their
 window. Fullscreen windows never have a title bar.
 
-## 11. Bigger or smaller: the scale
+## 13. Bigger or smaller: the scale
 
 ```kotlin
 scale = 1.25 // or 1.5, 2.0 ... — fractions are fine
@@ -420,7 +528,7 @@ resolution. The scale can be changed while running: the old picture melts into t
 one in a quarter of a second while programs draw themselves anew — nothing jumps, and no
 program is restarted or loses anything.
 
-## 12. Several monitors
+## 14. Several monitors
 
 Plug them in: each monitor shows a workspace of its own, the pointer and windows move
 across, panels belong to the monitor they ask for, and each monitor can have its own
@@ -449,7 +557,7 @@ nestedMonitors = 2
 monitor("NESTED-2") { scale = 1.0 }
 ```
 
-## 13. Notices
+## 15. Notices
 
 When something in your configuration is wrong — a key used twice, a rule that throws, a
 terminal that is not installed — the compositor says so on screen: a yellow strip at the
@@ -484,7 +592,7 @@ Your code can show its own: `notify("Recording started")`,
 `noticesFromLog = { (it.area == "config" && it.isWarning) || it.isError }` (the default),
 `{ false }` for none.
 
-## 14. X11 programs
+## 16. X11 programs
 
 Older programs that only speak X11 (xterm, many games and Java programs, some Electron
 apps) run as they are: `DISPLAY` is set for everything the compositor starts, and Xwayland
@@ -546,7 +654,7 @@ Don't want X11 at all:
 xwayland = false
 ```
 
-## 15. The cursor
+## 17. The cursor
 
 The template comes with the Bibata cursor. Choose another theme and size:
 
@@ -566,7 +674,7 @@ Programs show the same cursor: modern ones ask the compositor for it by name, ol
 are told the theme and size. If the theme you name is not installed, the log says so and
 lists the ones that are.
 
-## 16. Locking the screen
+## 18. Locking the screen
 
 Super+L starts the screen locker — `swaylock` unless you choose another:
 
@@ -582,7 +690,7 @@ socket name the compositor printed when it started — then come back (Ctrl+Alt+
 whichever console the session is on). Ctrl+Alt+Backspace still quits the compositor, as
 always.
 
-## 17. Screenshots and screen sharing
+## 19. Screenshots and screen sharing
 
 Programs made for wlroots-style compositors work as they are:
 
@@ -623,7 +731,7 @@ windows can be shared too; a shared window keeps drawing at full speed even whil
 hidden or on another workspace. While the screen is locked, pictures show the lock and no
 window is given out.
 
-## 18. Touchpad gestures
+## 20. Touchpad gestures
 
 | Gesture | What it does |
 | --- | --- |
@@ -641,7 +749,7 @@ workspaceSwipeFingers = 4     // 0 = off
 swipe(fingers = 3, Direction.UP) { desktop.toggleOverview() }
 ```
 
-## 19. On the real screen
+## 21. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 
@@ -659,7 +767,7 @@ exitAfterSeconds = 60
 Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles (unless you changed
 `keys.quit` and `keys.consoles`).
 
-## 20. Your own layout
+## 22. Your own layout
 
 Describe it with building blocks — no arithmetic:
 

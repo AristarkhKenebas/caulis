@@ -115,6 +115,8 @@ data class NoticeStyle @JvmOverloads constructor(
     val errorSeconds: Double = 0.0,
     /** At most this many at once (the newest); the rest come when those go. */
     val maxShown: Int = 4,
+    /** How long a notice takes to appear and to go (milliseconds). */
+    val fadeMillis: Long = 180,
     /** On every monitor, or only on the one that had the focus when it came. */
     val everyMonitor: Boolean = false,
     /** Draws a notice; replace it to draw them entirely your own way. */
@@ -125,6 +127,7 @@ data class NoticeStyle @JvmOverloads constructor(
         require(padding in 0..100 && gap in 0..100 && radius in 0..100) { "padding, gap and radius must be 0 to 100" }
         require(infoSeconds >= 0 && warningSeconds >= 0 && errorSeconds >= 0) { "seconds must not be negative" }
         require(maxShown in 1..20) { "maxShown must be 1 to 20" }
+        require(fadeMillis in 0..5000) { "fadeMillis must be 0 to 5000" }
     }
 
     fun colorsOf(level: NoticeLevel): NoticeColors = when (level) {
@@ -273,6 +276,8 @@ internal class NoticeBoard(
 
     private var hovered: Notice? = null
 
+    private val fadeNanos: Long get() = (style.fadeMillis * 1_000_000).coerceAtLeast(1)
+
     /** True while the pointer is on a notice. */
     val hovering: Boolean get() = hovered != null
 
@@ -345,9 +350,9 @@ internal class NoticeBoard(
         val now = System.nanoTime()
         for (notice in all.toList()) {
             val leaving = notice.leavingSince
-            if (leaving != null && now - leaving >= FADE_NANOS) remove(notice)
+            if (leaving != null && now - leaving >= fadeNanos) remove(notice)
         }
-        val moving = all.any { now - it.shownSince < FADE_NANOS || it.leavingSince != null }
+        val moving = all.any { now - it.shownSince < fadeNanos || it.leavingSince != null }
         if (wasMoving && !moving) changed() // the last frame: fully there (or gone)
         wasMoving = moving
         return moving
@@ -397,8 +402,8 @@ internal class NoticeBoard(
         places[monitor.name] = placed
         val now = System.nanoTime()
         return placed.map { (notice, rect) ->
-            val appearing = ((now - notice.shownSince).toDouble() / FADE_NANOS).coerceIn(0.0, 1.0)
-            val leaving = notice.leavingSince?.let { 1 - ((now - it).toDouble() / FADE_NANOS).coerceIn(0.0, 1.0) } ?: 1.0
+            val appearing = ((now - notice.shownSince).toDouble() / fadeNanos).coerceIn(0.0, 1.0)
+            val leaving = notice.leavingSince?.let { 1 - ((now - it).toDouble() / fadeNanos).coerceIn(0.0, 1.0) } ?: 1.0
             val alpha = minOf(appearing, leaving).let { t -> t * t * (3 - 2 * t) }.toFloat()
             DrawItem.Image(NoticeKey(notice, monitor.name), texture(notice, monitor, rect), rect, alpha = alpha)
         }
@@ -495,7 +500,6 @@ internal class NoticeBoard(
     private data class NoticeKey(val notice: Notice, val monitor: String)
 
     private companion object {
-        const val FADE_NANOS = 180_000_000L
         const val MAX_KEPT = 50
     }
 }

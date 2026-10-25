@@ -97,6 +97,12 @@ class Compositor(val display: Display, private val renderer: Renderer?) {
      */
     var defaultOutputs: () -> List<Output> = { Output.of(display) }
 
+    /**
+     * Called just before a surface's picture goes (a commit without a buffer), while it can
+     * still be drawn: the window manager keeps a last look for an animation.
+     */
+    var pictureGoing: (Surface) -> Unit = {}
+
     /** The whole-number scale for programs without fractional scaling (wl_output, wl_surface). */
     val integerScale: Int get() = Math.ceil(outputScale - 1e-9).toInt().coerceAtLeast(1)
 
@@ -501,6 +507,7 @@ class Surface internal constructor(val resource: WlSurface, private val composit
 
     /** Makes [state] current. Also applies cached state of synchronized subsurfaces. */
     internal fun apply(state: SurfaceState) {
+        if (state.newBuffer && state.buffer == null && texture != null) compositor.pictureGoing(this)
         val oldWidth = width
         val oldHeight = height
         current.takeFrom(state)

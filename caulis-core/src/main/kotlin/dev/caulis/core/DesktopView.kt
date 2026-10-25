@@ -99,6 +99,20 @@ internal sealed class DrawItem {
     /** Parts that hide whatever is below them (desktop coordinates). */
     open val covers: List<Rect> get() = emptyList()
 
+    /** Drawn on this monitor only (a workspace sliding there would show on its neighbour too), or null. */
+    var only: Monitor? = null
+
+    /** The same, [alpha] as strong (a workspace fading out); its monitor stays. */
+    fun fadedBy(alpha: Float): DrawItem = when (this) {
+        is Picture -> Picture(surface, texture, rect, opaque, emptyList(), this.alpha * alpha, clip, radius, source)
+        is Color -> Color(key, rect, red, green, blue, emptyList(), this.alpha * alpha)
+        is Image -> Image(key, texture, rect, clip, radius, this.alpha * alpha)
+        is Effect -> Effect(key, texture, rect, this.alpha * alpha, shader, from, to, progress, fallback)
+        is Shadow -> copy(color = color.copy(alpha = color.alpha * alpha))
+        is Border -> copy(color = color.copy(alpha = color.alpha * alpha))
+        is Blur, is Custom -> this
+    }.also { it.only = only }
+
     class Picture(
         val surface: Surface,
         val texture: GpuTexture,
@@ -130,6 +144,21 @@ internal sealed class DrawItem {
         override val key: Any, val texture: GpuTexture, override val rect: Rect, val clip: Rect? = null, val radius: Float = 0f,
         val alpha: Float = 1f,
     ) : DrawItem()
+
+    /**
+     * A picture drawn through a shader (an animation such as the genie): [from] and [to] are
+     * parts of [rect] (0..1); [fallback] is where it goes plainly if the shader does not work.
+     */
+    class Effect(
+        override val key: Any, val texture: GpuTexture, override val rect: Rect, val alpha: Float,
+        val shader: WindowShader, val from: FloatArray, val to: FloatArray, val progress: Float, val fallback: Rect,
+    ) : DrawItem()
+
+    /**
+     * Something that draws itself ([paint] gets its place in the target's pixels): the
+     * desktop's background. It looks different when [look] (what it shows) does.
+     */
+    class Custom(override val key: Any, override val rect: Rect, val look: Any, val paint: (Rect) -> Unit) : DrawItem()
 
     /** A window's shadow (cast by [box], blurred over [softness]; [rect] is all it touches). */
     data class Shadow(
@@ -171,6 +200,8 @@ internal sealed class DrawItem {
     fun differsFrom(other: DrawItem): Boolean = when {
         rect != other.rect -> true
         this is Image && other is Image -> texture !== other.texture || alpha != other.alpha
+        this is Custom && other is Custom -> look != other.look
+        this is Effect && other is Effect -> texture !== other.texture || alpha != other.alpha || progress != other.progress || shader != other.shader
         this is Picture && other is Picture -> opaque != other.opaque || alpha != other.alpha || clip != other.clip || radius != other.radius ||
             !java.util.Arrays.equals(source, other.source)
         this is Color && other is Color -> red != other.red || green != other.green || blue != other.blue || alpha != other.alpha
@@ -196,7 +227,7 @@ internal fun cullHidden(items: List<DrawItem>, bounds: Rect): List<DrawItem> {
         val onScreen = item.rect.intersect(bounds) ?: continue
         if (covers.any { it.contains(onScreen) }) continue
         kept += item
-        covers += item.covers
+        if (item.only == null) covers += item.covers // (a sliding workspace hides nothing on the monitor beside)
     }
     kept.reverse()
     return kept

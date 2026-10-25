@@ -75,6 +75,32 @@ interface Renderer : AutoCloseable {
         source: FloatArray? = null,
     )
 
+    /**
+     * Draws [texture] into the rectangle through [effect]: GLSL (OpenGL ES 3) code with a
+     * function `vec4 effect(vec2 at)` — [at] is 0..1 in the rectangle, `window(uv)` reads
+     * the texture (see-through outside 0..1), `progress`, `from` and `to` (x, y, width,
+     * height in the rectangle's 0..1) and `size` (pixels) are there to use. Returns false
+     * (drawing nothing) if the code does not compile; [effectProblem] then says why.
+     */
+    fun drawTextureEffect(
+        texture: GpuTexture, x: Int, y: Int, width: Int, height: Int, alpha: Float,
+        effect: String, from: FloatArray, to: FloatArray, progress: Float,
+    ): Boolean = false
+
+    /** Why [effect] does not compile, or null if it does (or was not tried yet). */
+    fun effectProblem(effect: String): String? = "this renderer draws no shaders"
+
+    /**
+     * Fills the rectangle with a whole fragment shader of your own ([fragment]: GLSL ES 3
+     * with `in vec2 uv`, 0..1 from the top left, and its own `out vec4`). [floats] are set by
+     * name (1, 2 or 4 numbers each: float, vec2, vec4), [ints] too; [texture] is `sampler2D picture` if given.
+     * Returns false (drawing nothing) if it does not compile; [effectProblem] says why.
+     */
+    fun drawShaded(
+        x: Int, y: Int, width: Int, height: Int, fragment: String,
+        floats: Map<String, FloatArray>, ints: Map<String, Int> = emptyMap(), texture: GpuTexture? = null,
+    ): Boolean = false
+
     /** Fills the rectangle with a colour. */
     fun drawColor(x: Int, y: Int, width: Int, height: Int, red: Float, green: Float, blue: Float, alpha: Float = 1f)
 
@@ -137,6 +163,12 @@ interface GpuTarget : AutoCloseable {
 
     /** Copies the part [region] of the picture (rows of [stride] bytes, top row first). */
     fun readPixels(destination: MemorySegment, stride: Int, region: Rect)
+
+    /**
+     * The picture drawn into this target, to draw elsewhere (e.g. a window's last look while
+     * it goes away), or null if this kind of target cannot be. It belongs to the target.
+     */
+    val texture: GpuTexture? get() = null
 }
 
 /**

@@ -57,7 +57,7 @@ internal abstract class GlesFramebuffer(final override val width: Int, final ove
 /** A target in GPU memory only Caulis uses (e.g. for screenshots or tests). */
 internal class GlesTarget(width: Int, height: Int) : GlesFramebuffer(width, height) {
 
-    val texture = GlesTexture(width, height)
+    override val texture = GlesTexture(width, height)
 
     init {
         attach(texture.id)
@@ -70,10 +70,10 @@ internal class GlesTarget(width: Int, height: Int) : GlesFramebuffer(width, heig
 }
 
 /** A client's GPU buffer drawn into directly (a screen recorder's buffer). */
-internal class GlesImportedTarget(width: Int, height: Int, private val texture: ImageTexture) : GlesFramebuffer(width, height) {
+internal class GlesImportedTarget(width: Int, height: Int, private val image: ImageTexture) : GlesFramebuffer(width, height) {
     init {
         try {
-            attach(texture.id)
+            attach(image.id)
         } catch (e: IllegalStateException) {
             super.close() // the framebuffer, which cannot be used
             throw e
@@ -82,6 +82,6 @@ internal class GlesImportedTarget(width: Int, height: Int, private val texture: 
 
     override fun close() {
         super.close()
-        texture.close()
+        image.close()
     }
 }

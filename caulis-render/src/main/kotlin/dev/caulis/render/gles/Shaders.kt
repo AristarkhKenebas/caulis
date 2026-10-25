@@ -47,6 +47,24 @@ internal object Shaders {
             if (clipped) color *= inside(clip, radius);
         }"""
 
+    // A user's effect (see Renderer.drawTextureEffect) around their `effect` function.
+    fun effect(code: String) = """#version 300 es
+        precision highp float;
+        in vec2 uv;
+        uniform sampler2D image;
+        uniform float alpha;
+        uniform float progress;
+        uniform vec4 from;
+        uniform vec4 to;
+        uniform vec2 size;
+        out vec4 caulisColor;
+        vec4 window(vec2 p) {
+            if (p.x < 0.0 || p.y < 0.0 || p.x > 1.0 || p.y > 1.0) return vec4(0.0);
+            return texture(image, p);
+        }
+        """ + code + """
+        void main() { caulisColor = effect(uv) * alpha; }"""
+
     const val COLOR = """#version 300 es
         precision mediump float;
         uniform vec4 color;

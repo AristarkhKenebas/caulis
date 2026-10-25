@@ -154,6 +154,77 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
     }
 
+    // Users' effects, compiled once each (null: did not compile, see effectProblems).
+    private val effects = HashMap<String, Program?>()
+    private val effectProblems = HashMap<String, String>()
+
+    override fun drawTextureEffect(
+        texture: GpuTexture, x: Int, y: Int, width: Int, height: Int, alpha: Float,
+        effect: String, from: FloatArray, to: FloatArray, progress: Float,
+    ): Boolean {
+        texture as GlTexture
+        val program = effects.getOrPut(effect) {
+            try {
+                Program(Shaders.VERTEX, Shaders.effect(effect))
+            } catch (e: IllegalStateException) {
+                effectProblems[effect] = e.message ?: "$e"
+                null
+            }
+        } ?: return false
+        program.use()
+        setRect(program, x, y, width, height)
+        Gles.glUniform4f(program.uniform("source"), 0f, 0f, 1f, 1f)
+        Gles.glActiveTexture(Gles.GL_TEXTURE0())
+        Gles.glBindTexture(Gles.GL_TEXTURE_2D(), texture.id)
+        Gles.glUniform1i(program.uniform("image"), 0)
+        Gles.glUniform1f(program.uniform("alpha"), alpha)
+        Gles.glUniform1f(program.uniform("progress"), progress)
+        Gles.glUniform4f(program.uniform("from"), from[0], from[1], from[2], from[3])
+        Gles.glUniform4f(program.uniform("to"), to[0], to[1], to[2], to[3])
+        Gles.glUniform2f(program.uniform("size"), width.toFloat(), height.toFloat())
+        Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
+        return true
+    }
+
+    override fun effectProblem(effect: String): String? = effectProblems[effect]
+
+    // Whole fragment shaders of users (backgrounds), compiled once each.
+    private val shaded = HashMap<String, Program?>()
+
+    override fun drawShaded(
+        x: Int, y: Int, width: Int, height: Int, fragment: String,
+        floats: Map<String, FloatArray>, ints: Map<String, Int>, texture: GpuTexture?,
+    ): Boolean {
+        val program = shaded.getOrPut(fragment) {
+            try {
+                Program(Shaders.VERTEX, fragment)
+            } catch (e: IllegalStateException) {
+                effectProblems[fragment] = e.message ?: "$e"
+                null
+            }
+        } ?: return false
+        program.use()
+        setRect(program, x, y, width, height)
+        Gles.glUniform4f(program.uniform("source"), 0f, 0f, 1f, 1f)
+        if (texture != null) {
+            texture as GlTexture
+            Gles.glActiveTexture(Gles.GL_TEXTURE0())
+            Gles.glBindTexture(Gles.GL_TEXTURE_2D(), texture.id)
+            Gles.glUniform1i(program.uniform("picture"), 0)
+        }
+        for ((name, value) in floats) {
+            val at = program.uniform(name)
+            when (value.size) {
+                1 -> Gles.glUniform1f(at, value[0])
+                2 -> Gles.glUniform2f(at, value[0], value[1])
+                4 -> Gles.glUniform4f(at, value[0], value[1], value[2], value[3])
+            }
+        }
+        for ((name, value) in ints) Gles.glUniform1i(program.uniform(name), value)
+        Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
+        return true
+    }
+
     override fun drawColor(x: Int, y: Int, width: Int, height: Int, red: Float, green: Float, blue: Float, alpha: Float) {
         solid.use()
         setRect(solid, x, y, width, height)
@@ -217,6 +288,8 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
     private fun radiusFor(box: Rect, radius: Float) = radius.coerceIn(0f, minOf(box.width, box.height) / 2f)
 
     override fun close() {
+        effects.values.forEach { it?.close() }
+        shaded.values.forEach { it?.close() }
         textured.close()
         solid.close()
         rounded.close()

@@ -203,6 +203,11 @@ internal class Running(
         applyConfig()
     }
 
+    /** Hands the background rule over again (it was changed while running). */
+    fun applyLooks() {
+        desktop.backgroundFor = config.backgroundFor?.let { rule -> { monitor, workspace -> safely("backgroundFor", null) { rule(monitor.name, workspace) } } }
+    }
+
     // What of the configuration is handed over to the desktop, keys and events — at the
     // start and again after each reload.
     private fun applyConfig() {
@@ -213,6 +218,14 @@ internal class Running(
         desktop.titleBarsFor = if (config.titleBarRules.isEmpty() && config.rules.none { it.titleBars != null }) null else ::titleBarsOf
         desktop.noticeStyle = config.noticeStyle
         desktop.animationMillis = config.animationMillis
+        desktop.animations = config.animations
+        desktop.background = config.background
+        applyLooks()
+        desktop.backgroundChangeMillis = config.backgroundChangeMillis
+        desktop.overviewFill = config.overviewFill
+        desktop.resizeBorder = config.resizeBorder
+        desktop.doubleClickMillis = config.doubleClickMillis
+        desktop.lockColor = config.lockColor
 
         keys.clear()
         lockedKeys.clear()
@@ -519,7 +532,7 @@ internal class Running(
     private fun swipeDirection(): Direction? {
         val horizontal = Math.abs(swipeX) >= Math.abs(swipeY)
         val distance = if (horizontal) Math.abs(swipeX) else Math.abs(swipeY)
-        if (distance < SWIPE_MIN_PIXELS) return null
+        if (distance < config.swipeDistance) return null
         return when {
             horizontal && swipeX < 0 -> Direction.LEFT
             horizontal -> Direction.RIGHT
@@ -564,8 +577,6 @@ internal class Running(
     }
 
     private companion object {
-        /** How far the fingers must move for a swipe to count. */
-        const val SWIPE_MIN_PIXELS = 80.0
 
         /** How long a scratchpad's program may take to show a window before a key press starts it again. */
         const val STARTING_NANOS = 5_000_000_000L

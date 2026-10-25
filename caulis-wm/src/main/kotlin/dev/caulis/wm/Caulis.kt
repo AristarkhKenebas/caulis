@@ -1,5 +1,7 @@
 package dev.caulis.wm
 
+import dev.caulis.core.Animations
+import dev.caulis.core.Background
 import dev.caulis.core.Desktop
 import dev.caulis.core.Effects
 import dev.caulis.core.LayerSurface
@@ -77,6 +79,101 @@ class Caulis {
             require(value >= 0) { "animationMillis must not be negative" }
             field = value
             running?.desktop?.animationMillis = value
+        }
+
+    /**
+     * Which animations, each changeable on its own — windows appearing, going away, moving,
+     * minimizing into the dock and coming back, workspaces changing, the overview:
+     *
+     * ```
+     * animations = Animations(minimize = WindowAnimation.pop())                 // no genie
+     * animations = Animations(windowOpen = WindowAnimation.fade() + WindowAnimation.slide(dy = 80))
+     * animations = Animations(workspaceSwitch = WorkspaceAnimation.FADE.lasting(300), curve = Curve.OVERSHOOT)
+     * animations = Animations(windowOpen = WindowAnimation { m -> WindowFrame(m.to, alpha = m.progress.toFloat()) })
+     * ```
+     *
+     * Own shaders too: [WindowShader]. See [Animations] and the guide.
+     */
+    var animations: Animations = Animations()
+        set(value) {
+            field = value
+            running?.desktop?.animations = value
+        }
+
+    /**
+     * What the desktop shows behind everything — a colour, a gradient, a picture, your own
+     * drawing, or a shader, still or moving (see [Background], [WallpaperShader]):
+     *
+     * ```
+     * background = Background.image(Path.of("/usr/share/backgrounds/forest.jpg"))
+     * background = Background.gradient(Color.hex("#1e3c72"), Color.hex("#2a5298"))
+     * background = Background.shader(WallpaperShader.AURORA)
+     * ```
+     *
+     * A wallpaper program (swaybg, hyprpaper, swww, ...) draws on top of it and wins.
+     */
+    var background: Background = Background.USUAL
+        set(value) {
+            field = value
+            running?.desktop?.background = value
+        }
+
+    internal var backgroundFor: ((String, Int) -> Background?)? = null
+
+    /**
+     * A background per monitor (its connector name) and workspace (its number); null: [background].
+     * `backgroundFor { _, workspace -> Background.image(Path.of("/home/me/walls/$workspace.jpg")) }`
+     */
+    @JvmSynthetic
+    fun backgroundFor(rule: (monitor: String, workspace: Int) -> Background?) {
+        backgroundFor = rule
+        running?.applyLooks()
+    }
+
+    /** How long one background melts into the next (milliseconds). */
+    var backgroundChangeMillis = 400L
+        set(value) {
+            require(value in 0..10_000) { "backgroundChangeMillis is 0 to 10000" }
+            field = value
+            running?.desktop?.backgroundChangeMillis = value
+        }
+
+    /** How much of the monitor the overview's windows take (0.3 to 1). */
+    var overviewFill = 0.9
+        set(value) {
+            require(value in 0.3..1.0) { "overviewFill is 0.3 to 1" }
+            field = value
+            running?.desktop?.overviewFill = value
+        }
+
+    /** The edge around floating windows with the compositor's title bar to grab for resizing (units). */
+    var resizeBorder = 6
+        set(value) {
+            require(value in 0..50) { "resizeBorder is 0 to 50" }
+            field = value
+            running?.desktop?.resizeBorder = value
+        }
+
+    /** Two clicks on a title bar within this many milliseconds maximize the window. */
+    var doubleClickMillis = 400L
+        set(value) {
+            require(value in 50..2000) { "doubleClickMillis is 50 to 2000" }
+            field = value
+            running?.desktop?.doubleClickMillis = value
+        }
+
+    /** How far (in touchpad pixels) fingers must move for a swipe to count. */
+    var swipeDistance = 80.0
+        set(value) {
+            require(value in 10.0..1000.0) { "swipeDistance is 10 to 1000" }
+            field = value
+        }
+
+    /** The colour behind the screen locker (what shows until it has drawn). */
+    var lockColor: dev.caulis.render.Color = dev.caulis.render.Color(0f, 0f, 0f)
+        set(value) {
+            field = value
+            running?.desktop?.lockColor = value
         }
 
     /**
@@ -572,6 +669,9 @@ class Caulis {
     fun sharpJavaScaling(on: Boolean): Caulis = apply { sharpJavaScaling = on }
     fun titleBars(titleBars: TitleBars): Caulis = apply { this.titleBars = titleBars }
     fun noticeStyle(style: NoticeStyle): Caulis = apply { noticeStyle = style }
+    fun animations(animations: Animations): Caulis = apply { this.animations = animations }
+    fun background(background: Background): Caulis = apply { this.background = background }
+    fun backgroundFor(rule: java.util.function.BiFunction<String, Int, Background?>): Caulis = apply { backgroundFor { monitor, workspace -> rule.apply(monitor, workspace) } }
     fun noticesFromLog(rule: java.util.function.Predicate<Log.Entry>): Caulis = apply { noticesFromLog = { rule.test(it) } }
     fun onNotice(action: java.util.function.BiConsumer<Caulis, Notice>): Caulis = apply { onNotice { action.accept(this, it) } }
     fun titleBarsFor(rule: java.util.function.Function<Window, TitleBars?>): Caulis = apply { titleBarsFor { rule.apply(it) } }

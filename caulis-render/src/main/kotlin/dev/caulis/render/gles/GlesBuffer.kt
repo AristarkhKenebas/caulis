@@ -24,17 +24,17 @@ internal class GlesBuffer private constructor(
     override val modifier: Long = Gbm.gbm_bo_get_modifier(bo)
     override val planeCount: Int = Gbm.gbm_bo_get_plane_count(bo)
 
-    private val texture: ImageTexture
+    private val image: ImageTexture
 
     init {
         val exported = export()
         try {
             val image = images.createImage(exported) ?: error("the GPU cannot draw into its own buffer")
-            texture = images.texture(image, width, height)
+            this.image = images.texture(image, width, height)
         } finally {
             exported.close() // the EGL image keeps its own reference to the memory
         }
-        attach(texture.id)
+        attach(this.image.id)
     }
 
     override fun handle(plane: Int): Int = Arena.ofConfined().use { arena ->
@@ -56,7 +56,7 @@ internal class GlesBuffer private constructor(
 
     override fun close() {
         super.close()
-        texture.close()
+        this.image.close()
         Gbm.gbm_bo_destroy(bo)
     }
 

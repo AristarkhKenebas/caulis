@@ -100,6 +100,9 @@ class ScreenTestServer(
                                 Presentation(display)
                                 LinuxDmabuf(display, renderer)
                                 desktop = Desktop(renderer, seat, compositor, WIDTH, HEIGHT)
+                                // Windows are there at once, so pictures of the screen show them right
+                                // away (tests of these animations turn them on).
+                                desktop.animations = Animations(windowOpen = WindowAnimation.NONE, windowClose = WindowAnimation.NONE)
                                 XdgShell(display).listener = desktop
                                 LayerShell(display).listener = desktop
                                 SessionLockManager(display).listener = desktop

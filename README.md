@@ -41,7 +41,9 @@ val Mine = tiling("Mine") {
 }
 ```
 
-Change layouts while running: windows glide to their new places. Rules say where windows
+Change layouts while running: windows glide to their new places. Every animation — windows
+appearing, going away, minimizing into the dock with a genie, workspaces sliding — is a
+setting made of building blocks (`fade() + scale(0.9)`), or your own function or shader. Rules say where windows
 open and how they look: `rule { appId("firefox"); workspace = 2 }`,
 `rule { appId("pavucontrol"); floating = true; size(700, 500); center() }`. Every usual key has a name
 and can be changed or turned off (`keys { close = "Super+Shift+Q"; quit = null }`).
@@ -50,7 +52,9 @@ Several monitors work, each with its own workspace (or one workspace over all), 
 scale. Mistakes in the configuration are shown on screen — as a strip at the top, cards in
 a corner, or however you draw them.
 
-Round corners, borders, shadows and blur behind see-through windows are one line:
+The background is a colour, a gradient, a picture, your own drawing or a moving shader —
+per monitor and workspace if you like; wallpaper programs (swaybg, hyprpaper, ...) work as
+well and draw on top. Round corners, borders, shadows and blur behind see-through windows are one line:
 `effects = Effects.MODERN.copy(blur = Blur())`. Caulis comes with sharp cursors of its own;
 any installed cursor theme works too.
 
