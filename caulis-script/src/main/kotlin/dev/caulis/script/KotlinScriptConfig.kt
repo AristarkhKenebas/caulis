@@ -44,7 +44,7 @@ abstract class CaulisConfigScript
 /** How config.kts is compiled: inside `caulis { }`, with Caulis's packages imported. */
 object CaulisConfigScriptCompilation : ScriptCompilationConfiguration({
     implicitReceivers(Caulis::class)
-    defaultImports("dev.caulis.wm.*", "dev.caulis.core.*", "dev.caulis.tiling.*", "dev.caulis.render.*")
+    defaultImports("dev.caulis.wm.*", "dev.caulis.core.*", "dev.caulis.core.input.*", "dev.caulis.tiling.*", "dev.caulis.render.*")
     jvm {
         // Everything the compositor has: Caulis, and whatever else it was built with.
         dependenciesFromCurrentContext(wholeClasspath = true)

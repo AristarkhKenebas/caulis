@@ -93,5 +93,16 @@ public interface ReplyOrBuilder extends
    */
   dev.caulis.ipc.v1.Problems getProblems();
 
+  /**
+   * <code>.caulis.ipc.v1.Devices devices = 7;</code>
+   * @return Whether the devices field is set.
+   */
+  boolean hasDevices();
+  /**
+   * <code>.caulis.ipc.v1.Devices devices = 7;</code>
+   * @return The devices.
+   */
+  dev.caulis.ipc.v1.Devices getDevices();
+
   public dev.caulis.ipc.v1.Reply.WhatCase getWhatCase();
 }

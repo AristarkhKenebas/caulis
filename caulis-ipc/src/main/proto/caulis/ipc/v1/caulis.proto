@@ -40,6 +40,7 @@ message Request {
     GetState get_state = 4;
     Subscribe subscribe = 5;
     CheckConfig check_config = 6;
+    GetDevices get_devices = 7;
   }
 }
 
@@ -64,6 +65,10 @@ message GetState {}
 message Subscribe {
   repeated EventKind kinds = 1;
 }
+
+// The input devices: keyboards, mice, touchpads, ... (their names are what device settings
+// match). Reply: devices (empty when the compositor runs in a window: the outer session has them).
+message GetDevices {}
 
 // Checks the text of a config.json without applying it. Reply: problems (empty: all is well).
 message CheckConfig {
@@ -90,7 +95,18 @@ message Reply {
     ServerInfo hello = 4;
     State state = 5;
     Problems problems = 6;
+    Devices devices = 7;
   }
+}
+
+message Devices {
+  repeated Device devices = 1;
+}
+
+message Device {
+  string name = 1;
+  // What it is: "keyboard", "pointer", "touchpad", "touchscreen", "tablet", "switch".
+  repeated string kinds = 2;
 }
 
 message Done {}
@@ -130,6 +146,8 @@ message State {
   bool locked = 7;
   // The connector of the primary monitor.
   string primary_monitor = 8;
+  // The key mode that is on ("resize"); empty: the usual keys.
+  string key_mode = 9;
 }
 
 message Window {
@@ -211,6 +229,8 @@ enum EventKind {
   EVENT_KIND_CONFIG = 6;
   // lock_changed
   EVENT_KIND_LOCK = 7;
+  // key_mode_changed
+  EVENT_KIND_KEYS = 8;
 }
 
 message Event {
@@ -230,6 +250,8 @@ message Event {
     ConfigReloaded config_reloaded = 8;
     // True: the screen got locked; false: unlocked.
     bool lock_changed = 9;
+    // Another key mode is on ("resize"); empty: the usual keys again.
+    string key_mode_changed = 10;
   }
 }
 

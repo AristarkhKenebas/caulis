@@ -52,6 +52,7 @@ object Actions {
         Triple("layout", "name", "switches the layout"),
         Triple("scale", "number", "sets the scale"),
         Triple("notify", "text", "shows a notice"),
+        Triple("mode", "name|reset", "turns a key mode on (\"mode resize\"), or back to the usual keys"),
     )
 
     /**
@@ -146,6 +147,7 @@ object Actions {
             "scale" -> (needs("a number").toDoubleOrNull()?.takeIf { it in 0.5..4.0 } ?: throw IllegalArgumentException("\"$argument\" is not a scale (0.5 to 4)"))
                 .let { s -> { _ -> scale = s } }
             "notify" -> needs("a text").let { message -> { _ -> notify(message, NoticeLevel.INFO) } }
+            "mode" -> needs("a mode name, or reset").let { mode -> { _ -> enterMode(mode.takeIf { it != "reset" && it != "default" }) } }
             else -> {
                 val near = all.map { it.first }.minByOrNull { distance(it, name) }?.takeIf { distance(it, name) <= 2 }
                 throw IllegalArgumentException("\"$name\" is not an action" + (near?.let { " (did you mean \"$it\"?)" } ?: ""))

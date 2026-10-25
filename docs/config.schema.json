@@ -247,13 +247,294 @@
           "minLength": 1,
           "description": "as for setxkbmap: \"us,ru\""
         },
+        "variants": {
+          "type": "string",
+          "minLength": 1,
+          "description": "one per layout: \",phonetic\""
+        },
         "options": {
           "type": "string",
           "minLength": 1,
           "description": "e.g. \"grp:alt_shift_toggle\""
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "description": "e.g. \"pc105\""
+        },
+        "repeatRate": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "held keys repeat this many times a second (0: never)"
+        },
+        "repeatDelay": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 2000,
+          "description": "milliseconds before a held key repeats"
         }
       },
-      "description": "keyboard layouts"
+      "description": "keyboard layouts and key repeat"
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "focusFollowsMouse": {
+          "type": "boolean",
+          "description": "the window under the pointer gets the keyboard"
+        },
+        "pointers": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "false: not used at all"
+            },
+            "offWithMouse": {
+              "type": "boolean",
+              "description": "touchpads: off while a mouse is plugged in"
+            },
+            "speed": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1,
+              "description": "pointer speed, -1 to 1 (0: the device's normal)"
+            },
+            "accelProfile": {
+              "enum": ["flat", "adaptive"],
+              "description": "flat: as fast as the hand; adaptive: faster when moved fast"
+            },
+            "naturalScroll": {
+              "type": "boolean",
+              "description": "content follows the fingers"
+            },
+            "scrollFactor": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 10,
+              "description": "scrolling goes this many times as far"
+            },
+            "scrollMethod": {
+              "enum": ["none", "two-finger", "edge", "button"],
+              "description": "how it scrolls"
+            },
+            "scrollButton": {
+              "type": "string",
+              "minLength": 1,
+              "description": "with scrollMethod button: the button (\"MouseMiddle\")"
+            },
+            "leftHanded": {
+              "type": "boolean",
+              "description": "buttons swapped"
+            },
+            "middleEmulation": {
+              "type": "boolean",
+              "description": "left and right together are a middle click"
+            },
+            "tap": {
+              "type": "boolean",
+              "description": "touchpads: a tap is a click"
+            },
+            "tapButtons": {
+              "enum": ["left-right-middle", "left-middle-right"],
+              "description": "touchpads: what two and three fingers tap"
+            },
+            "tapDrag": {
+              "type": "boolean",
+              "description": "touchpads: tap, touch again and move to drag"
+            },
+            "dragLock": {
+              "type": "boolean",
+              "description": "touchpads: a drag goes on when the finger lifts for a moment"
+            },
+            "disableWhileTyping": {
+              "type": "boolean",
+              "description": "touchpads: off while typing"
+            },
+            "clickMethod": {
+              "enum": ["areas", "fingers"],
+              "description": "touchpads: a click by the area pressed or by the number of fingers"
+            }
+          },
+          "description": "every mouse, trackball and touchpad"
+        },
+        "touchpads": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "false: not used at all"
+            },
+            "offWithMouse": {
+              "type": "boolean",
+              "description": "touchpads: off while a mouse is plugged in"
+            },
+            "speed": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1,
+              "description": "pointer speed, -1 to 1 (0: the device's normal)"
+            },
+            "accelProfile": {
+              "enum": ["flat", "adaptive"],
+              "description": "flat: as fast as the hand; adaptive: faster when moved fast"
+            },
+            "naturalScroll": {
+              "type": "boolean",
+              "description": "content follows the fingers"
+            },
+            "scrollFactor": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 10,
+              "description": "scrolling goes this many times as far"
+            },
+            "scrollMethod": {
+              "enum": ["none", "two-finger", "edge", "button"],
+              "description": "how it scrolls"
+            },
+            "scrollButton": {
+              "type": "string",
+              "minLength": 1,
+              "description": "with scrollMethod button: the button (\"MouseMiddle\")"
+            },
+            "leftHanded": {
+              "type": "boolean",
+              "description": "buttons swapped"
+            },
+            "middleEmulation": {
+              "type": "boolean",
+              "description": "left and right together are a middle click"
+            },
+            "tap": {
+              "type": "boolean",
+              "description": "touchpads: a tap is a click"
+            },
+            "tapButtons": {
+              "enum": ["left-right-middle", "left-middle-right"],
+              "description": "touchpads: what two and three fingers tap"
+            },
+            "tapDrag": {
+              "type": "boolean",
+              "description": "touchpads: tap, touch again and move to drag"
+            },
+            "dragLock": {
+              "type": "boolean",
+              "description": "touchpads: a drag goes on when the finger lifts for a moment"
+            },
+            "disableWhileTyping": {
+              "type": "boolean",
+              "description": "touchpads: off while typing"
+            },
+            "clickMethod": {
+              "enum": ["areas", "fingers"],
+              "description": "touchpads: a click by the area pressed or by the number of fingers"
+            }
+          },
+          "description": "touchpads (on top of pointers)"
+        },
+        "devices": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "false: not used at all"
+              },
+              "offWithMouse": {
+                "type": "boolean",
+                "description": "touchpads: off while a mouse is plugged in"
+              },
+              "speed": {
+                "type": "number",
+                "minimum": -1,
+                "maximum": 1,
+                "description": "pointer speed, -1 to 1 (0: the device's normal)"
+              },
+              "accelProfile": {
+                "enum": ["flat", "adaptive"],
+                "description": "flat: as fast as the hand; adaptive: faster when moved fast"
+              },
+              "naturalScroll": {
+                "type": "boolean",
+                "description": "content follows the fingers"
+              },
+              "scrollFactor": {
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 10,
+                "description": "scrolling goes this many times as far"
+              },
+              "scrollMethod": {
+                "enum": ["none", "two-finger", "edge", "button"],
+                "description": "how it scrolls"
+              },
+              "scrollButton": {
+                "type": "string",
+                "minLength": 1,
+                "description": "with scrollMethod button: the button (\"MouseMiddle\")"
+              },
+              "leftHanded": {
+                "type": "boolean",
+                "description": "buttons swapped"
+              },
+              "middleEmulation": {
+                "type": "boolean",
+                "description": "left and right together are a middle click"
+              },
+              "tap": {
+                "type": "boolean",
+                "description": "touchpads: a tap is a click"
+              },
+              "tapButtons": {
+                "enum": ["left-right-middle", "left-middle-right"],
+                "description": "touchpads: what two and three fingers tap"
+              },
+              "tapDrag": {
+                "type": "boolean",
+                "description": "touchpads: tap, touch again and move to drag"
+              },
+              "dragLock": {
+                "type": "boolean",
+                "description": "touchpads: a drag goes on when the finger lifts for a moment"
+              },
+              "disableWhileTyping": {
+                "type": "boolean",
+                "description": "touchpads: off while typing"
+              },
+              "clickMethod": {
+                "enum": ["areas", "fingers"],
+                "description": "touchpads: a click by the area pressed or by the number of fingers"
+              }
+            }
+          },
+          "description": "single devices by name (--devices lists them; * matches anything)"
+        }
+      },
+      "description": "mice, touchpads, focus"
+    },
+    "lid": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "close": {
+          "type": "string",
+          "minLength": 1,
+          "description": "when the laptop's lid closes"
+        },
+        "open": {
+          "type": "string",
+          "minLength": 1,
+          "description": "when it opens"
+        }
+      },
+      "description": "the laptop's lid"
     },
     "cursor": {
       "type": "object",
@@ -687,10 +968,85 @@
     "bind": {
       "type": "object",
       "additionalProperties": {
-        "type": "string",
-        "minLength": 1
+        "anyOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "type": "string",
+                "minLength": 1,
+                "description": "what it does (\"exec firefox\", \"workspace 3\", ...)"
+              },
+              "repeat": {
+                "type": "boolean",
+                "description": "repeats while held"
+              },
+              "release": {
+                "type": "boolean",
+                "description": "runs when the key is let go"
+              },
+              "locked": {
+                "type": "boolean",
+                "description": "works on a locked screen too"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "description": "what it does, in words"
+              }
+            }
+          }
+        ]
       },
-      "description": "your own keys: combination → action (\"exec firefox\", \"workspace 3\", ...)"
+      "description": "your own keys: combination → action (\"exec firefox\", \"workspace 3\", ...) or { action, repeat, release, locked, description }"
+    },
+    "modes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "what it does (\"exec firefox\", \"workspace 3\", ...)"
+                },
+                "repeat": {
+                  "type": "boolean",
+                  "description": "repeats while held"
+                },
+                "release": {
+                  "type": "boolean",
+                  "description": "runs when the key is let go"
+                },
+                "locked": {
+                  "type": "boolean",
+                  "description": "works on a locked screen too"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "what it does, in words"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "description": "key modes (\"resize\"): their own keys, on with the action \"mode resize\", off with \"mode reset\""
     },
     "rules": {
       "type": "array",

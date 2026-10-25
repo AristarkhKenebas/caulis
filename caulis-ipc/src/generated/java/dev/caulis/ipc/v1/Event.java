@@ -29,6 +29,7 @@ public  final class Event extends
     NOTICE(7),
     CONFIG_RELOADED(8),
     LOCK_CHANGED(9),
+    KEY_MODE_CHANGED(10),
     WHAT_NOT_SET(0);
     private final int value;
     private WhatCase(int value) {
@@ -53,6 +54,7 @@ public  final class Event extends
         case 7: return NOTICE;
         case 8: return CONFIG_RELOADED;
         case 9: return LOCK_CHANGED;
+        case 10: return KEY_MODE_CHANGED;
         case 0: return WHAT_NOT_SET;
         default: return null;
       }
@@ -579,6 +581,94 @@ public  final class Event extends
       whatCase_ = 0;
       what_ = null;
     }
+  }
+
+  public static final int KEY_MODE_CHANGED_FIELD_NUMBER = 10;
+  /**
+   * <pre>
+   * Another key mode is on ("resize"); empty: the usual keys again.
+   * </pre>
+   *
+   * <code>string key_mode_changed = 10;</code>
+   * @return Whether the keyModeChanged field is set.
+   */
+  @java.lang.Override
+  public boolean hasKeyModeChanged() {
+    return whatCase_ == 10;
+  }
+  /**
+   * <pre>
+   * Another key mode is on ("resize"); empty: the usual keys again.
+   * </pre>
+   *
+   * <code>string key_mode_changed = 10;</code>
+   * @return The keyModeChanged.
+   */
+  @java.lang.Override
+  public java.lang.String getKeyModeChanged() {
+    java.lang.String ref = "";
+    if (whatCase_ == 10) {
+      ref = (java.lang.String) what_;
+    }
+    return ref;
+  }
+  /**
+   * <pre>
+   * Another key mode is on ("resize"); empty: the usual keys again.
+   * </pre>
+   *
+   * <code>string key_mode_changed = 10;</code>
+   * @return The bytes for keyModeChanged.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getKeyModeChangedBytes() {
+    java.lang.String ref = "";
+    if (whatCase_ == 10) {
+      ref = (java.lang.String) what_;
+    }
+    return com.google.protobuf.ByteString.copyFromUtf8(ref);
+  }
+  /**
+   * <pre>
+   * Another key mode is on ("resize"); empty: the usual keys again.
+   * </pre>
+   *
+   * <code>string key_mode_changed = 10;</code>
+   * @param value The keyModeChanged to set.
+   */
+  private void setKeyModeChanged(
+      java.lang.String value) {
+    java.util.Objects.requireNonNull(value);
+    whatCase_ = 10;
+    what_ = value;
+  }
+  /**
+   * <pre>
+   * Another key mode is on ("resize"); empty: the usual keys again.
+   * </pre>
+   *
+   * <code>string key_mode_changed = 10;</code>
+   */
+  private void clearKeyModeChanged() {
+    if (whatCase_ == 10) {
+      whatCase_ = 0;
+      what_ = null;
+    }
+  }
+  /**
+   * <pre>
+   * Another key mode is on ("resize"); empty: the usual keys again.
+   * </pre>
+   *
+   * <code>string key_mode_changed = 10;</code>
+   * @param value The bytes for keyModeChanged to set.
+   */
+  private void setKeyModeChangedBytes(
+      com.google.protobuf.ByteString value) {
+    checkByteStringIsUtf8(value);
+    what_ = value.toStringUtf8();
+    whatCase_ = 10;
   }
 
   public static dev.caulis.ipc.v1.Event parseFrom(
@@ -1188,6 +1278,87 @@ public  final class Event extends
       return this;
     }
 
+    /**
+     * <pre>
+     * Another key mode is on ("resize"); empty: the usual keys again.
+     * </pre>
+     *
+     * <code>string key_mode_changed = 10;</code>
+     * @return Whether the keyModeChanged field is set.
+     */
+    @java.lang.Override
+    public boolean hasKeyModeChanged() {
+      return instance.hasKeyModeChanged();
+    }
+    /**
+     * <pre>
+     * Another key mode is on ("resize"); empty: the usual keys again.
+     * </pre>
+     *
+     * <code>string key_mode_changed = 10;</code>
+     * @return The keyModeChanged.
+     */
+    @java.lang.Override
+    public java.lang.String getKeyModeChanged() {
+      return instance.getKeyModeChanged();
+    }
+    /**
+     * <pre>
+     * Another key mode is on ("resize"); empty: the usual keys again.
+     * </pre>
+     *
+     * <code>string key_mode_changed = 10;</code>
+     * @return The bytes for keyModeChanged.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getKeyModeChangedBytes() {
+      return instance.getKeyModeChangedBytes();
+    }
+    /**
+     * <pre>
+     * Another key mode is on ("resize"); empty: the usual keys again.
+     * </pre>
+     *
+     * <code>string key_mode_changed = 10;</code>
+     * @param value The keyModeChanged to set.
+     * @return This builder for chaining.
+     */
+    public Builder setKeyModeChanged(
+        java.lang.String value) {
+      copyOnWrite();
+      instance.setKeyModeChanged(value);
+      return this;
+    }
+    /**
+     * <pre>
+     * Another key mode is on ("resize"); empty: the usual keys again.
+     * </pre>
+     *
+     * <code>string key_mode_changed = 10;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearKeyModeChanged() {
+      copyOnWrite();
+      instance.clearKeyModeChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Another key mode is on ("resize"); empty: the usual keys again.
+     * </pre>
+     *
+     * <code>string key_mode_changed = 10;</code>
+     * @param value The bytes for keyModeChanged to set.
+     * @return This builder for chaining.
+     */
+    public Builder setKeyModeChangedBytes(
+        com.google.protobuf.ByteString value) {
+      copyOnWrite();
+      instance.setKeyModeChangedBytes(value);
+      return this;
+    }
+
     // @@protoc_insertion_point(builder_scope:caulis.ipc.v1.Event)
   }
   @java.lang.Override
@@ -1214,8 +1385,9 @@ public  final class Event extends
             dev.caulis.ipc.v1.ConfigReloaded.class,
           };
           java.lang.String info =
-              "\u0000\t\u0001\u0000\u0001\t\t\u0000\u0000\u0000\u0001<\u0000\u00026\u0000\u0003" +
-              "<\u0000\u00046\u0000\u0005<\u0000\u0006<\u0000\u0007<\u0000\b<\u0000\t:\u0000";
+              "\u0000\n\u0001\u0000\u0001\n\n\u0000\u0000\u0000\u0001<\u0000\u00026\u0000\u0003" +
+              "<\u0000\u00046\u0000\u0005<\u0000\u0006<\u0000\u0007<\u0000\b<\u0000\t:\u0000\n\u023b" +
+              "\u0000";
           return newMessageInfo(DEFAULT_INSTANCE, info, objects);
       }
       case GET_DEFAULT_INSTANCE: {

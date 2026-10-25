@@ -116,4 +116,12 @@ class LuaConfigTest {
         assertTrue("caulis.settings" in example)
         assertEquals(emptyList(), apply(example).second)
     }
+
+    @Test
+    fun `the input guide's Lua is right`() {
+        val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter("## 28.").substringBefore("\n## ")
+        val example = section.substringAfter("```lua\n").substringBefore("```")
+        assertTrue("mode = \"resize\"" in example)
+        assertEquals(emptyList(), apply(example).second)
+    }
 }

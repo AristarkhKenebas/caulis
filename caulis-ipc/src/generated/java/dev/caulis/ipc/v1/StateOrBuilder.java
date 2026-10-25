@@ -145,4 +145,24 @@ public interface StateOrBuilder extends
    */
   com.google.protobuf.ByteString
       getPrimaryMonitorBytes();
+
+  /**
+   * <pre>
+   * The key mode that is on ("resize"); empty: the usual keys.
+   * </pre>
+   *
+   * <code>string key_mode = 9;</code>
+   * @return The keyMode.
+   */
+  java.lang.String getKeyMode();
+  /**
+   * <pre>
+   * The key mode that is on ("resize"); empty: the usual keys.
+   * </pre>
+   *
+   * <code>string key_mode = 9;</code>
+   * @return The bytes for keyMode.
+   */
+  com.google.protobuf.ByteString
+      getKeyModeBytes();
 }

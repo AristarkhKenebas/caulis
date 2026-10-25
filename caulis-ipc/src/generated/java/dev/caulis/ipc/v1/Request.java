@@ -25,6 +25,7 @@ public  final class Request extends
     GET_STATE(4),
     SUBSCRIBE(5),
     CHECK_CONFIG(6),
+    GET_DEVICES(7),
     WHAT_NOT_SET(0);
     private final int value;
     private WhatCase(int value) {
@@ -45,6 +46,7 @@ public  final class Request extends
         case 4: return GET_STATE;
         case 5: return SUBSCRIBE;
         case 6: return CHECK_CONFIG;
+        case 7: return GET_DEVICES;
         case 0: return WHAT_NOT_SET;
         default: return null;
       }
@@ -349,6 +351,56 @@ public  final class Request extends
    */
   private void clearCheckConfig() {
     if (whatCase_ == 6) {
+      whatCase_ = 0;
+      what_ = null;
+    }
+  }
+
+  public static final int GET_DEVICES_FIELD_NUMBER = 7;
+  /**
+   * <code>.caulis.ipc.v1.GetDevices get_devices = 7;</code>
+   */
+  @java.lang.Override
+  public boolean hasGetDevices() {
+    return whatCase_ == 7;
+  }
+  /**
+   * <code>.caulis.ipc.v1.GetDevices get_devices = 7;</code>
+   */
+  @java.lang.Override
+  public dev.caulis.ipc.v1.GetDevices getGetDevices() {
+    if (whatCase_ == 7) {
+       return (dev.caulis.ipc.v1.GetDevices) what_;
+    }
+    return dev.caulis.ipc.v1.GetDevices.getDefaultInstance();
+  }
+  /**
+   * <code>.caulis.ipc.v1.GetDevices get_devices = 7;</code>
+   */
+  private void setGetDevices(dev.caulis.ipc.v1.GetDevices value) {
+    java.util.Objects.requireNonNull(value);
+    what_ = value;
+    whatCase_ = 7;
+  }
+  /**
+   * <code>.caulis.ipc.v1.GetDevices get_devices = 7;</code>
+   */
+  private void mergeGetDevices(dev.caulis.ipc.v1.GetDevices value) {
+    java.util.Objects.requireNonNull(value);
+    if (whatCase_ == 7 &&
+        what_ != dev.caulis.ipc.v1.GetDevices.getDefaultInstance()) {
+      what_ = dev.caulis.ipc.v1.GetDevices.newBuilder((dev.caulis.ipc.v1.GetDevices) what_)
+          .mergeFrom(value).buildPartial();
+    } else {
+      what_ = value;
+    }
+    whatCase_ = 7;
+  }
+  /**
+   * <code>.caulis.ipc.v1.GetDevices get_devices = 7;</code>
+   */
+  private void clearGetDevices() {
+    if (whatCase_ == 7) {
       whatCase_ = 0;
       what_ = null;
     }
@@ -743,6 +795,54 @@ public  final class Request extends
       return this;
     }
 
+    /**
+     * <code>.caulis.ipc.v1.GetDevices get_devices = 7;</code>
+     */
+    @java.lang.Override
+    public boolean hasGetDevices() {
+      return instance.hasGetDevices();
+    }
+    /**
+     * <code>.caulis.ipc.v1.GetDevices get_devices = 7;</code>
+     */
+    @java.lang.Override
+    public dev.caulis.ipc.v1.GetDevices getGetDevices() {
+      return instance.getGetDevices();
+    }
+    /**
+     * <code>.caulis.ipc.v1.GetDevices get_devices = 7;</code>
+     */
+    public Builder setGetDevices(dev.caulis.ipc.v1.GetDevices value) {
+      copyOnWrite();
+      instance.setGetDevices(value);
+      return this;
+    }
+    /**
+     * <code>.caulis.ipc.v1.GetDevices get_devices = 7;</code>
+     */
+    public Builder setGetDevices(
+        dev.caulis.ipc.v1.GetDevices.Builder builderForValue) {
+      copyOnWrite();
+      instance.setGetDevices(builderForValue.build());
+      return this;
+    }
+    /**
+     * <code>.caulis.ipc.v1.GetDevices get_devices = 7;</code>
+     */
+    public Builder mergeGetDevices(dev.caulis.ipc.v1.GetDevices value) {
+      copyOnWrite();
+      instance.mergeGetDevices(value);
+      return this;
+    }
+    /**
+     * <code>.caulis.ipc.v1.GetDevices get_devices = 7;</code>
+     */
+    public Builder clearGetDevices() {
+      copyOnWrite();
+      instance.clearGetDevices();
+      return this;
+    }
+
     // @@protoc_insertion_point(builder_scope:caulis.ipc.v1.Request)
   }
   @java.lang.Override
@@ -767,10 +867,11 @@ public  final class Request extends
             dev.caulis.ipc.v1.GetState.class,
             dev.caulis.ipc.v1.Subscribe.class,
             dev.caulis.ipc.v1.CheckConfig.class,
+            dev.caulis.ipc.v1.GetDevices.class,
           };
           java.lang.String info =
-              "\u0000\u0006\u0001\u0000\u0001\u0006\u0006\u0000\u0000\u0000\u0001\u000b\u0002<\u0000" +
-              "\u0003<\u0000\u0004<\u0000\u0005<\u0000\u0006<\u0000";
+              "\u0000\u0007\u0001\u0000\u0001\u0007\u0007\u0000\u0000\u0000\u0001\u000b\u0002<\u0000" +
+              "\u0003<\u0000\u0004<\u0000\u0005<\u0000\u0006<\u0000\u0007<\u0000";
           return newMessageInfo(DEFAULT_INSTANCE, info, objects);
       }
       case GET_DEFAULT_INSTANCE: {

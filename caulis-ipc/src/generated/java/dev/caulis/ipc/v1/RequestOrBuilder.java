@@ -75,5 +75,16 @@ public interface RequestOrBuilder extends
    */
   dev.caulis.ipc.v1.CheckConfig getCheckConfig();
 
+  /**
+   * <code>.caulis.ipc.v1.GetDevices get_devices = 7;</code>
+   * @return Whether the getDevices field is set.
+   */
+  boolean hasGetDevices();
+  /**
+   * <code>.caulis.ipc.v1.GetDevices get_devices = 7;</code>
+   * @return The getDevices.
+   */
+  dev.caulis.ipc.v1.GetDevices getGetDevices();
+
   public dev.caulis.ipc.v1.Request.WhatCase getWhatCase();
 }

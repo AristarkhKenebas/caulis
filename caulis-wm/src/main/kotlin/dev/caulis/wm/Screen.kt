@@ -79,7 +79,8 @@ internal fun runOnScreen(config: Caulis) {
                     desktop.pointerMoved(time, area.x + x * area.width, area.y + y * area.height)
                 }
                 input.onPointerButton = running::pointerButton
-                input.onPointerAxis = desktop::pointerAxis
+                input.onPointerAxis = running::pointerAxis
+                running.inputDevices = input
                 input.onGesture = running::gesture
 
                 backend.start()

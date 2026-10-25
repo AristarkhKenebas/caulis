@@ -84,7 +84,7 @@ internal class Running(
     private val configNotices = ArrayList<dev.caulis.core.Notice>()
 
     val display = Display(loop)
-    private val keymap = Keymap.fromNames(layouts = config.keyboardLayouts, options = config.keyboardOptions)
+    private val keymap = Keymap.fromNames(layouts = config.keyboardLayouts, variants = config.keyboardVariants, options = config.keyboardOptions, model = config.keyboardModel)
     val seat = Seat(display, keymap)
     private val compositor = Compositor(display, renderer)
     val desktop = Desktop(renderer, seat, compositor, width, height)
@@ -103,6 +103,26 @@ internal class Running(
 
     // The keys that still work while a window keeps the others (a nested compositor, a VM).
     private val inhibitedKeys = KeyBindings()
+
+    // The keys of each key mode (submap), and the mode that is on.
+    private val modeKeys = HashMap<String, KeyBindings>()
+
+    /** The key mode that is on (null: the usual keys). */
+    var keyMode: String? = null
+        private set
+
+    /** Keyboards, mice and touchpads (on the screen only; nested, the outer session has them). */
+    var inputDevices: dev.caulis.core.libinput.InputDevices? = null
+        set(value) {
+            field = value
+            value?.settings = config.input
+            value?.onSwitch = { switch, on ->
+                if (switch == dev.caulis.core.libinput.Switch.LID) {
+                    log.info { "The lid is ${if (on) "closed" else "open"}" }
+                    for (action in config.lidActions) safely("onLid") { action(config, on) }
+                }
+            }
+        }
 
     // keyboard-shortcuts-inhibit (set in init).
     private lateinit var shortcutsInhibit: dev.caulis.core.input.ShortcutsInhibit
@@ -267,6 +287,10 @@ internal class Running(
         desktop.resizeBorder = config.resizeBorder
         desktop.doubleClickMillis = config.doubleClickMillis
         desktop.lockColor = config.lockColor
+        desktop.focusFollowsMouse = config.focusFollowsMouse
+        seat.repeatRate = config.repeatRate
+        seat.repeatDelay = config.repeatDelay
+        inputDevices?.settings = config.input
         desktop.workspaceCount = config.workspaceCount
         desktop.workspaceRules = config.workspaceRules
         desktop.primaryMonitorName = config.primaryMonitor
@@ -318,9 +342,34 @@ internal class Running(
             }
             keys.bind(combination) { safely(combination) { action(config) } }
         }
-        for ((combination, action) in config.bindings) {
-            taken[KeyBindings.parse(combination)]?.let { name -> log.info { "bind(\"$combination\") replaces keys.$name" } }
-            keys.bind(combination) { safely(combination) { action(config) } }
+        modeKeys.clear()
+        for (binding in config.bindings) {
+            val combination = binding.combination
+            val run = { safely(combination) { binding.action(config) } }
+            val mode = binding.mode
+            if (mode != null) {
+                modeKeys.getOrPut(mode) { KeyBindings() }.bind(combination, binding.options, run)
+                continue
+            }
+            KeyBindings.parseAllowingTap(combination).takeIf { it.second != null }?.let { parsed ->
+                taken[parsed.first to parsed.second!!]?.let { name -> log.info { "bind(\"$combination\") replaces keys.$name" } }
+            }
+            keys.bind(combination, binding.options, run)
+            if (binding.options.whileLocked) lockedKeys.bind(combination, binding.options, run)
+        }
+        // Quitting and consoles in every key mode too.
+        val always = config.keys
+        for (bindings in modeKeys.values) {
+            always.quit?.let { bindings.bind(it) { quit() } }
+            if (switchConsole != null) always.consoles?.let { modifiers -> for (n in 1..12) bindings.bind("$modifiers+F$n") { switchConsole.invoke(n) } }
+        }
+        // A mode that is gone after a reload is left.
+        if (keyMode != null && keyMode !in modeKeys) enterMode(null)
+        // Combinations that repeat use the loop and the key repeat of the moment.
+        for (bindings in allKeys()) {
+            bindings.schedule = { millis, task -> loop.after(millis) { task() }.let { timer -> AutoCloseable { timer.cancel() } } }
+            bindings.repeatDelay = config.repeatDelay
+            bindings.repeatRate = config.repeatRate
         }
     }
 
@@ -517,15 +566,58 @@ internal class Running(
 
     /** A key from the keyboard: the compositor's combination, or passed to the focused program. */
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
-        val active = when {
-            desktop.locked -> lockedKeys
-            // A window keeps the keys (a nested compositor): only quit, consoles and restoreShortcuts are ours.
-            shortcutsInhibit.active -> inhibitedKeys
-            else -> keys
-        }
+        val active = activeKeys()
         // A key pressed before locking may be released after it (Super+L): all must see the release.
-        if (!pressed) for (other in listOf(keys, lockedKeys, inhibitedKeys)) if (other !== active) other.key(evdevCode, false)
+        if (!pressed) for (other in allKeys()) if (other !== active) other.key(evdevCode, false)
         if (!active.key(evdevCode, pressed)) desktop.key(timeMillis, evdevCode, pressed)
+    }
+
+    // The keys that are the compositor's now.
+    private fun activeKeys(): KeyBindings = when {
+        desktop.locked -> lockedKeys
+        // A window keeps the keys (a nested compositor): only quit, consoles and restoreShortcuts are ours.
+        shortcutsInhibit.active -> inhibitedKeys
+        else -> keyMode?.let(modeKeys::get) ?: keys
+    }
+
+    private fun allKeys(): List<KeyBindings> = listOf(keys, lockedKeys, inhibitedKeys) + modeKeys.values
+
+    /** Forgets every key held (the keyboard went to another session or terminal). */
+    fun releaseKeys() {
+        for (bindings in allKeys()) bindings.releaseAll()
+    }
+
+    /** Turns the key mode [name] on; null: the usual keys again. */
+    fun enterMode(name: String?) {
+        val wanted = name?.takeIf { it != "reset" && it != "default" }
+        require(wanted == null || wanted in modeKeys) { "there is no key mode \"$name\" (there are: ${modeKeys.keys.joinToString().ifEmpty { "none" }})" }
+        if (wanted == keyMode) return
+        keyMode = wanted
+        log.info { if (wanted == null) "The usual keys again" else "Key mode \"$wanted\"" }
+        ipc?.keyModeChanged(wanted)
+    }
+
+    // The wheel's steps, for combinations with it (hi-res wheels send parts of a step).
+    private var wheelSteps = doubleArrayOf(0.0, 0.0)
+
+    /** The mouse wheel or a touchpad scrolled: a combination with the wheel, or the program under the pointer. */
+    fun pointerAxis(timeMillis: Int, vertical: Boolean, value: Double, value120: Int) {
+        val active = activeKeys()
+        if (value120 != 0 && !desktop.locked) {
+            val (back, forth) = if (vertical) KeyBindings.WHEEL_UP to KeyBindings.WHEEL_DOWN else KeyBindings.WHEEL_LEFT to KeyBindings.WHEEL_RIGHT
+            val code = if (value120 < 0) back else forth
+            if (active.has(code)) {
+                val axis = if (vertical) 0 else 1
+                wheelSteps[axis] += value120 / 120.0
+                while (Math.abs(wheelSteps[axis]) >= 1.0) {
+                    active.wheel(code)
+                    wheelSteps[axis] -= Math.signum(wheelSteps[axis])
+                }
+                return
+            }
+        }
+        active.interrupted()
+        desktop.pointerAxis(timeMillis, vertical, value, value120)
     }
 
     /**
@@ -533,6 +625,10 @@ internal class Running(
      * (from the nearest corner). Everything else goes to the program under the pointer.
      */
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean) {
+        // A combination with a mouse button ("Super+MouseSide", "MouseBack").
+        val active = activeKeys()
+        if (!pressed) for (other in allKeys()) if (other !== active) other.key(button, false)
+        if (active.key(button, pressed)) return
         if (pressed && !desktop.locked && dragging() && (button == BTN_LEFT || button == BTN_RIGHT)) {
             val window = desktop.windowAt(desktop.pointerX, desktop.pointerY)
             if (window != null) {

@@ -71,6 +71,14 @@ public enum EventKind
    * <code>EVENT_KIND_LOCK = 7;</code>
    */
   EVENT_KIND_LOCK(7),
+  /**
+   * <pre>
+   * key_mode_changed
+   * </pre>
+   *
+   * <code>EVENT_KIND_KEYS = 8;</code>
+   */
+  EVENT_KIND_KEYS(8),
   UNRECOGNIZED(-1),
   ;
 
@@ -134,6 +142,14 @@ public enum EventKind
    * <code>EVENT_KIND_LOCK = 7;</code>
    */
   public static final int EVENT_KIND_LOCK_VALUE = 7;
+  /**
+   * <pre>
+   * key_mode_changed
+   * </pre>
+   *
+   * <code>EVENT_KIND_KEYS = 8;</code>
+   */
+  public static final int EVENT_KIND_KEYS_VALUE = 8;
 
 
   @java.lang.Override
@@ -164,6 +180,7 @@ public enum EventKind
       case 5: return EVENT_KIND_NOTICES;
       case 6: return EVENT_KIND_CONFIG;
       case 7: return EVENT_KIND_LOCK;
+      case 8: return EVENT_KIND_KEYS;
       default: return null;
     }
   }

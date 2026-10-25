@@ -198,6 +198,13 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
                     connection.kinds = request.subscribe.kindsList.filter { it != EventKind.EVENT_KIND_UNSPECIFIED && it != EventKind.UNRECOGNIZED }.toSet()
                     reply.setDone(Done.getDefaultInstance())
                 }
+                Request.WhatCase.GET_DEVICES -> reply.setDevices(
+                    dev.caulis.ipc.v1.Devices.newBuilder().addAllDevices(
+                        running.inputDevices?.list.orEmpty().map { d ->
+                            dev.caulis.ipc.v1.Device.newBuilder().setName(d.name).addAllKinds(d.kinds.map { it.name.lowercase() }).build()
+                        },
+                    ),
+                )
                 Request.WhatCase.CHECK_CONFIG -> reply.setProblems(Problems.newBuilder().addAllProblems(ConfigFile.read(request.checkConfig.text).problems))
                 else -> reply.setError("an empty request (or one of a newer protocol)")
             }
@@ -341,6 +348,7 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
         .setScale(desktop.scale)
         .setLocked(desktop.locked)
         .setPrimaryMonitor(desktop.primaryMonitor.name)
+        .setKeyMode(running.keyMode.orEmpty())
         .build()
 
     // --- what changes ----------------------------------------------------------------------------
@@ -402,6 +410,9 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
         if (desktop.locked != shownLocked) send(EventKind.EVENT_KIND_LOCK) { setLockChanged(desktop.locked) }
         shownLocked = desktop.locked
     }
+
+    /** Another key mode is on (null: the usual keys). */
+    fun keyModeChanged(mode: String?) = send(EventKind.EVENT_KIND_KEYS) { setKeyModeChanged(mode.orEmpty()) }
 
     /** The configuration was loaded again, with these [problems]. */
     fun configReloaded(problems: List<String>) {

@@ -56,11 +56,11 @@ private fun connect(window: NestedWindow, monitor: Monitor, view: DesktopView, r
     // monitor's, so they are desktop units from its corner.
     window.onPointerMotion = { time, x, y -> desktop.pointerMoved(time, monitor.area.x + x / monitor.scale, monitor.area.y + y / monitor.scale) }
     window.onPointerButton = running::pointerButton
-    window.onPointerAxis = desktop::pointerAxis
+    window.onPointerAxis = running::pointerAxis
     window.onGesture = running::gesture
     window.onKey = running::key
     window.onKeyboardLeave = {
-        running.keys.releaseAll()
+        running.releaseKeys()
         running.seat.releaseAllKeys(now())
     }
     window.onClose = running::quit

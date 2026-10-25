@@ -765,6 +765,24 @@ public class Input extends Input$shared {
     public static int LIBINPUT_DEVICE_CAP_POINTER() {
         return LIBINPUT_DEVICE_CAP_POINTER;
     }
+    private static final int LIBINPUT_DEVICE_CAP_TOUCH = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_device_capability.LIBINPUT_DEVICE_CAP_TOUCH = 2
+     * }
+     */
+    public static int LIBINPUT_DEVICE_CAP_TOUCH() {
+        return LIBINPUT_DEVICE_CAP_TOUCH;
+    }
+    private static final int LIBINPUT_DEVICE_CAP_TABLET_TOOL = (int)3L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_device_capability.LIBINPUT_DEVICE_CAP_TABLET_TOOL = 3
+     * }
+     */
+    public static int LIBINPUT_DEVICE_CAP_TABLET_TOOL() {
+        return LIBINPUT_DEVICE_CAP_TABLET_TOOL;
+    }
     private static final int LIBINPUT_DEVICE_CAP_GESTURE = (int)5L;
     /**
      * {@snippet lang=c :
@@ -773,6 +791,15 @@ public class Input extends Input$shared {
      */
     public static int LIBINPUT_DEVICE_CAP_GESTURE() {
         return LIBINPUT_DEVICE_CAP_GESTURE;
+    }
+    private static final int LIBINPUT_DEVICE_CAP_SWITCH = (int)6L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_device_capability.LIBINPUT_DEVICE_CAP_SWITCH = 6
+     * }
+     */
+    public static int LIBINPUT_DEVICE_CAP_SWITCH() {
+        return LIBINPUT_DEVICE_CAP_SWITCH;
     }
     private static final int LIBINPUT_KEY_STATE_PRESSED = (int)1L;
     /**
@@ -809,6 +836,33 @@ public class Input extends Input$shared {
      */
     public static int LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL() {
         return LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL;
+    }
+    private static final int LIBINPUT_SWITCH_STATE_ON = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_switch_state.LIBINPUT_SWITCH_STATE_ON = 1
+     * }
+     */
+    public static int LIBINPUT_SWITCH_STATE_ON() {
+        return LIBINPUT_SWITCH_STATE_ON;
+    }
+    private static final int LIBINPUT_SWITCH_LID = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_switch.LIBINPUT_SWITCH_LID = 1
+     * }
+     */
+    public static int LIBINPUT_SWITCH_LID() {
+        return LIBINPUT_SWITCH_LID;
+    }
+    private static final int LIBINPUT_SWITCH_TABLET_MODE = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_switch.LIBINPUT_SWITCH_TABLET_MODE = 2
+     * }
+     */
+    public static int LIBINPUT_SWITCH_TABLET_MODE() {
+        return LIBINPUT_SWITCH_TABLET_MODE;
     }
     private static final int LIBINPUT_EVENT_DEVICE_ADDED = (int)1L;
     /**
@@ -962,6 +1016,15 @@ public class Input extends Input$shared {
      */
     public static int LIBINPUT_EVENT_GESTURE_HOLD_END() {
         return LIBINPUT_EVENT_GESTURE_HOLD_END;
+    }
+    private static final int LIBINPUT_EVENT_SWITCH_TOGGLE = (int)900L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_SWITCH_TOGGLE = 900
+     * }
+     */
+    public static int LIBINPUT_EVENT_SWITCH_TOGGLE() {
+        return LIBINPUT_EVENT_SWITCH_TOGGLE;
     }
 
     private static class libinput_event_destroy {
@@ -1314,6 +1377,66 @@ public class Input extends Input$shared {
         try {
             if (TRACE_DOWNCALLS) {
                 traceDowncall("libinput_event_get_gesture_event", event);
+            }
+            return (MemorySegment)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_get_switch_event {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_get_switch_event");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * struct libinput_event_switch *libinput_event_get_switch_event(struct libinput_event *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_get_switch_event$descriptor() {
+        return libinput_event_get_switch_event.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * struct libinput_event_switch *libinput_event_get_switch_event(struct libinput_event *event)
+     * }
+     */
+    public static MethodHandle libinput_event_get_switch_event$handle() {
+        return libinput_event_get_switch_event.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * struct libinput_event_switch *libinput_event_get_switch_event(struct libinput_event *event)
+     * }
+     */
+    public static MemorySegment libinput_event_get_switch_event$address() {
+        return libinput_event_get_switch_event.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * struct libinput_event_switch *libinput_event_get_switch_event(struct libinput_event *event)
+     * }
+     */
+    public static MemorySegment libinput_event_get_switch_event(MemorySegment event) {
+        var mh$ = libinput_event_get_switch_event.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_get_switch_event", event);
             }
             return (MemorySegment)mh$.invokeExact(event);
         } catch (Error | RuntimeException ex) {
@@ -2648,6 +2771,186 @@ public class Input extends Input$shared {
         }
     }
 
+    private static class libinput_event_switch_get_switch {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_switch_get_switch");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_switch libinput_event_switch_get_switch(struct libinput_event_switch *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_switch_get_switch$descriptor() {
+        return libinput_event_switch_get_switch.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_switch libinput_event_switch_get_switch(struct libinput_event_switch *event)
+     * }
+     */
+    public static MethodHandle libinput_event_switch_get_switch$handle() {
+        return libinput_event_switch_get_switch.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_switch libinput_event_switch_get_switch(struct libinput_event_switch *event)
+     * }
+     */
+    public static MemorySegment libinput_event_switch_get_switch$address() {
+        return libinput_event_switch_get_switch.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_switch libinput_event_switch_get_switch(struct libinput_event_switch *event)
+     * }
+     */
+    public static int libinput_event_switch_get_switch(MemorySegment event) {
+        var mh$ = libinput_event_switch_get_switch.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_switch_get_switch", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_switch_get_switch_state {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_switch_get_switch_state");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_switch_state libinput_event_switch_get_switch_state(struct libinput_event_switch *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_switch_get_switch_state$descriptor() {
+        return libinput_event_switch_get_switch_state.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_switch_state libinput_event_switch_get_switch_state(struct libinput_event_switch *event)
+     * }
+     */
+    public static MethodHandle libinput_event_switch_get_switch_state$handle() {
+        return libinput_event_switch_get_switch_state.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_switch_state libinput_event_switch_get_switch_state(struct libinput_event_switch *event)
+     * }
+     */
+    public static MemorySegment libinput_event_switch_get_switch_state$address() {
+        return libinput_event_switch_get_switch_state.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_switch_state libinput_event_switch_get_switch_state(struct libinput_event_switch *event)
+     * }
+     */
+    public static int libinput_event_switch_get_switch_state(MemorySegment event) {
+        var mh$ = libinput_event_switch_get_switch_state.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_switch_get_switch_state", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_switch_get_time {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_switch_get_time");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_switch_get_time(struct libinput_event_switch *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_switch_get_time$descriptor() {
+        return libinput_event_switch_get_time.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_switch_get_time(struct libinput_event_switch *event)
+     * }
+     */
+    public static MethodHandle libinput_event_switch_get_time$handle() {
+        return libinput_event_switch_get_time.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_switch_get_time(struct libinput_event_switch *event)
+     * }
+     */
+    public static MemorySegment libinput_event_switch_get_time$address() {
+        return libinput_event_switch_get_time.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint32_t libinput_event_switch_get_time(struct libinput_event_switch *event)
+     * }
+     */
+    public static int libinput_event_switch_get_time(MemorySegment event) {
+        var mh$ = libinput_event_switch_get_time.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_switch_get_time", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
     private static class libinput_udev_create_context {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             Input.C_POINTER,
@@ -3250,6 +3553,15 @@ public class Input extends Input$shared {
            throw new AssertionError("should not reach here", ex$);
         }
     }
+    private static final int LIBINPUT_CONFIG_TAP_DISABLED = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_tap_state.LIBINPUT_CONFIG_TAP_DISABLED = 0
+     * }
+     */
+    public static int LIBINPUT_CONFIG_TAP_DISABLED() {
+        return LIBINPUT_CONFIG_TAP_DISABLED;
+    }
     private static final int LIBINPUT_CONFIG_TAP_ENABLED = (int)1L;
     /**
      * {@snippet lang=c :
@@ -3380,6 +3692,651 @@ public class Input extends Input$shared {
            throw new AssertionError("should not reach here", ex$);
         }
     }
+    private static final int LIBINPUT_CONFIG_TAP_MAP_LRM = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_tap_button_map.LIBINPUT_CONFIG_TAP_MAP_LRM = 0
+     * }
+     */
+    public static int LIBINPUT_CONFIG_TAP_MAP_LRM() {
+        return LIBINPUT_CONFIG_TAP_MAP_LRM;
+    }
+    private static final int LIBINPUT_CONFIG_TAP_MAP_LMR = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_tap_button_map.LIBINPUT_CONFIG_TAP_MAP_LMR = 1
+     * }
+     */
+    public static int LIBINPUT_CONFIG_TAP_MAP_LMR() {
+        return LIBINPUT_CONFIG_TAP_MAP_LMR;
+    }
+
+    private static class libinput_device_config_tap_set_button_map {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_tap_set_button_map");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_tap_set_button_map(struct libinput_device *device, enum libinput_config_tap_button_map map)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_tap_set_button_map$descriptor() {
+        return libinput_device_config_tap_set_button_map.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_tap_set_button_map(struct libinput_device *device, enum libinput_config_tap_button_map map)
+     * }
+     */
+    public static MethodHandle libinput_device_config_tap_set_button_map$handle() {
+        return libinput_device_config_tap_set_button_map.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_tap_set_button_map(struct libinput_device *device, enum libinput_config_tap_button_map map)
+     * }
+     */
+    public static MemorySegment libinput_device_config_tap_set_button_map$address() {
+        return libinput_device_config_tap_set_button_map.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_tap_set_button_map(struct libinput_device *device, enum libinput_config_tap_button_map map)
+     * }
+     */
+    public static int libinput_device_config_tap_set_button_map(MemorySegment device, int map) {
+        var mh$ = libinput_device_config_tap_set_button_map.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_tap_set_button_map", device, map);
+            }
+            return (int)mh$.invokeExact(device, map);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+    private static final int LIBINPUT_CONFIG_DRAG_DISABLED = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_drag_state.LIBINPUT_CONFIG_DRAG_DISABLED = 0
+     * }
+     */
+    public static int LIBINPUT_CONFIG_DRAG_DISABLED() {
+        return LIBINPUT_CONFIG_DRAG_DISABLED;
+    }
+    private static final int LIBINPUT_CONFIG_DRAG_ENABLED = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_drag_state.LIBINPUT_CONFIG_DRAG_ENABLED = 1
+     * }
+     */
+    public static int LIBINPUT_CONFIG_DRAG_ENABLED() {
+        return LIBINPUT_CONFIG_DRAG_ENABLED;
+    }
+
+    private static class libinput_device_config_tap_set_drag_enabled {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_tap_set_drag_enabled");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_tap_set_drag_enabled(struct libinput_device *device, enum libinput_config_drag_state enable)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_tap_set_drag_enabled$descriptor() {
+        return libinput_device_config_tap_set_drag_enabled.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_tap_set_drag_enabled(struct libinput_device *device, enum libinput_config_drag_state enable)
+     * }
+     */
+    public static MethodHandle libinput_device_config_tap_set_drag_enabled$handle() {
+        return libinput_device_config_tap_set_drag_enabled.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_tap_set_drag_enabled(struct libinput_device *device, enum libinput_config_drag_state enable)
+     * }
+     */
+    public static MemorySegment libinput_device_config_tap_set_drag_enabled$address() {
+        return libinput_device_config_tap_set_drag_enabled.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_tap_set_drag_enabled(struct libinput_device *device, enum libinput_config_drag_state enable)
+     * }
+     */
+    public static int libinput_device_config_tap_set_drag_enabled(MemorySegment device, int enable) {
+        var mh$ = libinput_device_config_tap_set_drag_enabled.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_tap_set_drag_enabled", device, enable);
+            }
+            return (int)mh$.invokeExact(device, enable);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+    private static final int LIBINPUT_CONFIG_DRAG_LOCK_DISABLED = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_drag_lock_state.LIBINPUT_CONFIG_DRAG_LOCK_DISABLED = 0
+     * }
+     */
+    public static int LIBINPUT_CONFIG_DRAG_LOCK_DISABLED() {
+        return LIBINPUT_CONFIG_DRAG_LOCK_DISABLED;
+    }
+    private static final int LIBINPUT_CONFIG_DRAG_LOCK_ENABLED = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_drag_lock_state.LIBINPUT_CONFIG_DRAG_LOCK_ENABLED = 1
+     * }
+     */
+    public static int LIBINPUT_CONFIG_DRAG_LOCK_ENABLED() {
+        return LIBINPUT_CONFIG_DRAG_LOCK_ENABLED;
+    }
+
+    private static class libinput_device_config_tap_set_drag_lock_enabled {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_tap_set_drag_lock_enabled");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_tap_set_drag_lock_enabled(struct libinput_device *device, enum libinput_config_drag_lock_state enable)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_tap_set_drag_lock_enabled$descriptor() {
+        return libinput_device_config_tap_set_drag_lock_enabled.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_tap_set_drag_lock_enabled(struct libinput_device *device, enum libinput_config_drag_lock_state enable)
+     * }
+     */
+    public static MethodHandle libinput_device_config_tap_set_drag_lock_enabled$handle() {
+        return libinput_device_config_tap_set_drag_lock_enabled.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_tap_set_drag_lock_enabled(struct libinput_device *device, enum libinput_config_drag_lock_state enable)
+     * }
+     */
+    public static MemorySegment libinput_device_config_tap_set_drag_lock_enabled$address() {
+        return libinput_device_config_tap_set_drag_lock_enabled.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_tap_set_drag_lock_enabled(struct libinput_device *device, enum libinput_config_drag_lock_state enable)
+     * }
+     */
+    public static int libinput_device_config_tap_set_drag_lock_enabled(MemorySegment device, int enable) {
+        var mh$ = libinput_device_config_tap_set_drag_lock_enabled.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_tap_set_drag_lock_enabled", device, enable);
+            }
+            return (int)mh$.invokeExact(device, enable);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+    private static final int LIBINPUT_CONFIG_SEND_EVENTS_ENABLED = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_send_events_mode.LIBINPUT_CONFIG_SEND_EVENTS_ENABLED = 0
+     * }
+     */
+    public static int LIBINPUT_CONFIG_SEND_EVENTS_ENABLED() {
+        return LIBINPUT_CONFIG_SEND_EVENTS_ENABLED;
+    }
+    private static final int LIBINPUT_CONFIG_SEND_EVENTS_DISABLED = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_send_events_mode.LIBINPUT_CONFIG_SEND_EVENTS_DISABLED = 1
+     * }
+     */
+    public static int LIBINPUT_CONFIG_SEND_EVENTS_DISABLED() {
+        return LIBINPUT_CONFIG_SEND_EVENTS_DISABLED;
+    }
+    private static final int LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_send_events_mode.LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE = 2
+     * }
+     */
+    public static int LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE() {
+        return LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE;
+    }
+
+    private static class libinput_device_config_send_events_get_modes {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_send_events_get_modes");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_send_events_get_modes(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_send_events_get_modes$descriptor() {
+        return libinput_device_config_send_events_get_modes.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_send_events_get_modes(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_config_send_events_get_modes$handle() {
+        return libinput_device_config_send_events_get_modes.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_send_events_get_modes(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_config_send_events_get_modes$address() {
+        return libinput_device_config_send_events_get_modes.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_send_events_get_modes(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_config_send_events_get_modes(MemorySegment device) {
+        var mh$ = libinput_device_config_send_events_get_modes.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_send_events_get_modes", device);
+            }
+            return (int)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_config_send_events_set_mode {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_send_events_set_mode");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_send_events_set_mode(struct libinput_device *device, uint32_t mode)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_send_events_set_mode$descriptor() {
+        return libinput_device_config_send_events_set_mode.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_send_events_set_mode(struct libinput_device *device, uint32_t mode)
+     * }
+     */
+    public static MethodHandle libinput_device_config_send_events_set_mode$handle() {
+        return libinput_device_config_send_events_set_mode.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_send_events_set_mode(struct libinput_device *device, uint32_t mode)
+     * }
+     */
+    public static MemorySegment libinput_device_config_send_events_set_mode$address() {
+        return libinput_device_config_send_events_set_mode.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_send_events_set_mode(struct libinput_device *device, uint32_t mode)
+     * }
+     */
+    public static int libinput_device_config_send_events_set_mode(MemorySegment device, int mode) {
+        var mh$ = libinput_device_config_send_events_set_mode.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_send_events_set_mode", device, mode);
+            }
+            return (int)mh$.invokeExact(device, mode);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_config_accel_is_available {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_accel_is_available");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_device_config_accel_is_available(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_accel_is_available$descriptor() {
+        return libinput_device_config_accel_is_available.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_device_config_accel_is_available(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_config_accel_is_available$handle() {
+        return libinput_device_config_accel_is_available.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_device_config_accel_is_available(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_config_accel_is_available$address() {
+        return libinput_device_config_accel_is_available.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_device_config_accel_is_available(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_config_accel_is_available(MemorySegment device) {
+        var mh$ = libinput_device_config_accel_is_available.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_accel_is_available", device);
+            }
+            return (int)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_config_accel_set_speed {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_DOUBLE
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_accel_set_speed");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_accel_set_speed(struct libinput_device *device, double speed)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_accel_set_speed$descriptor() {
+        return libinput_device_config_accel_set_speed.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_accel_set_speed(struct libinput_device *device, double speed)
+     * }
+     */
+    public static MethodHandle libinput_device_config_accel_set_speed$handle() {
+        return libinput_device_config_accel_set_speed.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_accel_set_speed(struct libinput_device *device, double speed)
+     * }
+     */
+    public static MemorySegment libinput_device_config_accel_set_speed$address() {
+        return libinput_device_config_accel_set_speed.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_accel_set_speed(struct libinput_device *device, double speed)
+     * }
+     */
+    public static int libinput_device_config_accel_set_speed(MemorySegment device, double speed) {
+        var mh$ = libinput_device_config_accel_set_speed.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_accel_set_speed", device, speed);
+            }
+            return (int)mh$.invokeExact(device, speed);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+    private static final int LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_accel_profile.LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT = 1
+     * }
+     */
+    public static int LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT() {
+        return LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT;
+    }
+    private static final int LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_accel_profile.LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE = 2
+     * }
+     */
+    public static int LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE() {
+        return LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
+    }
+
+    private static class libinput_device_config_accel_get_profiles {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_accel_get_profiles");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_accel_get_profiles(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_accel_get_profiles$descriptor() {
+        return libinput_device_config_accel_get_profiles.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_accel_get_profiles(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_config_accel_get_profiles$handle() {
+        return libinput_device_config_accel_get_profiles.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_accel_get_profiles(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_config_accel_get_profiles$address() {
+        return libinput_device_config_accel_get_profiles.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_accel_get_profiles(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_config_accel_get_profiles(MemorySegment device) {
+        var mh$ = libinput_device_config_accel_get_profiles.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_accel_get_profiles", device);
+            }
+            return (int)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_config_accel_set_profile {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_accel_set_profile");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_accel_set_profile(struct libinput_device *device, enum libinput_config_accel_profile profile)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_accel_set_profile$descriptor() {
+        return libinput_device_config_accel_set_profile.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_accel_set_profile(struct libinput_device *device, enum libinput_config_accel_profile profile)
+     * }
+     */
+    public static MethodHandle libinput_device_config_accel_set_profile$handle() {
+        return libinput_device_config_accel_set_profile.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_accel_set_profile(struct libinput_device *device, enum libinput_config_accel_profile profile)
+     * }
+     */
+    public static MemorySegment libinput_device_config_accel_set_profile$address() {
+        return libinput_device_config_accel_set_profile.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_accel_set_profile(struct libinput_device *device, enum libinput_config_accel_profile profile)
+     * }
+     */
+    public static int libinput_device_config_accel_set_profile(MemorySegment device, int profile) {
+        var mh$ = libinput_device_config_accel_set_profile.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_accel_set_profile", device, profile);
+            }
+            return (int)mh$.invokeExact(device, profile);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
 
     private static class libinput_device_config_scroll_has_natural_scroll {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
@@ -3493,6 +4450,762 @@ public class Input extends Input$shared {
         try {
             if (TRACE_DOWNCALLS) {
                 traceDowncall("libinput_device_config_scroll_set_natural_scroll_enabled", device, enable);
+            }
+            return (int)mh$.invokeExact(device, enable);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_config_left_handed_is_available {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_left_handed_is_available");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_device_config_left_handed_is_available(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_left_handed_is_available$descriptor() {
+        return libinput_device_config_left_handed_is_available.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_device_config_left_handed_is_available(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_config_left_handed_is_available$handle() {
+        return libinput_device_config_left_handed_is_available.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_device_config_left_handed_is_available(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_config_left_handed_is_available$address() {
+        return libinput_device_config_left_handed_is_available.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_device_config_left_handed_is_available(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_config_left_handed_is_available(MemorySegment device) {
+        var mh$ = libinput_device_config_left_handed_is_available.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_left_handed_is_available", device);
+            }
+            return (int)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_config_left_handed_set {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_left_handed_set");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_left_handed_set(struct libinput_device *device, int left_handed)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_left_handed_set$descriptor() {
+        return libinput_device_config_left_handed_set.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_left_handed_set(struct libinput_device *device, int left_handed)
+     * }
+     */
+    public static MethodHandle libinput_device_config_left_handed_set$handle() {
+        return libinput_device_config_left_handed_set.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_left_handed_set(struct libinput_device *device, int left_handed)
+     * }
+     */
+    public static MemorySegment libinput_device_config_left_handed_set$address() {
+        return libinput_device_config_left_handed_set.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_left_handed_set(struct libinput_device *device, int left_handed)
+     * }
+     */
+    public static int libinput_device_config_left_handed_set(MemorySegment device, int left_handed) {
+        var mh$ = libinput_device_config_left_handed_set.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_left_handed_set", device, left_handed);
+            }
+            return (int)mh$.invokeExact(device, left_handed);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+    private static final int LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_click_method.LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS = 1
+     * }
+     */
+    public static int LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS() {
+        return LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
+    }
+    private static final int LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_click_method.LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER = 2
+     * }
+     */
+    public static int LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER() {
+        return LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER;
+    }
+
+    private static class libinput_device_config_click_get_methods {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_click_get_methods");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_click_get_methods(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_click_get_methods$descriptor() {
+        return libinput_device_config_click_get_methods.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_click_get_methods(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_config_click_get_methods$handle() {
+        return libinput_device_config_click_get_methods.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_click_get_methods(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_config_click_get_methods$address() {
+        return libinput_device_config_click_get_methods.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_click_get_methods(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_config_click_get_methods(MemorySegment device) {
+        var mh$ = libinput_device_config_click_get_methods.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_click_get_methods", device);
+            }
+            return (int)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_config_click_set_method {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_click_set_method");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_click_set_method(struct libinput_device *device, enum libinput_config_click_method method)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_click_set_method$descriptor() {
+        return libinput_device_config_click_set_method.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_click_set_method(struct libinput_device *device, enum libinput_config_click_method method)
+     * }
+     */
+    public static MethodHandle libinput_device_config_click_set_method$handle() {
+        return libinput_device_config_click_set_method.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_click_set_method(struct libinput_device *device, enum libinput_config_click_method method)
+     * }
+     */
+    public static MemorySegment libinput_device_config_click_set_method$address() {
+        return libinput_device_config_click_set_method.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_click_set_method(struct libinput_device *device, enum libinput_config_click_method method)
+     * }
+     */
+    public static int libinput_device_config_click_set_method(MemorySegment device, int method) {
+        var mh$ = libinput_device_config_click_set_method.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_click_set_method", device, method);
+            }
+            return (int)mh$.invokeExact(device, method);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+    private static final int LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_middle_emulation_state.LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED = 0
+     * }
+     */
+    public static int LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED() {
+        return LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED;
+    }
+    private static final int LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_middle_emulation_state.LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED = 1
+     * }
+     */
+    public static int LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED() {
+        return LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED;
+    }
+
+    private static class libinput_device_config_middle_emulation_is_available {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_middle_emulation_is_available");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_device_config_middle_emulation_is_available(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_middle_emulation_is_available$descriptor() {
+        return libinput_device_config_middle_emulation_is_available.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_device_config_middle_emulation_is_available(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_config_middle_emulation_is_available$handle() {
+        return libinput_device_config_middle_emulation_is_available.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_device_config_middle_emulation_is_available(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_config_middle_emulation_is_available$address() {
+        return libinput_device_config_middle_emulation_is_available.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_device_config_middle_emulation_is_available(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_config_middle_emulation_is_available(MemorySegment device) {
+        var mh$ = libinput_device_config_middle_emulation_is_available.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_middle_emulation_is_available", device);
+            }
+            return (int)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_config_middle_emulation_set_enabled {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_middle_emulation_set_enabled");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_middle_emulation_set_enabled(struct libinput_device *device, enum libinput_config_middle_emulation_state enable)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_middle_emulation_set_enabled$descriptor() {
+        return libinput_device_config_middle_emulation_set_enabled.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_middle_emulation_set_enabled(struct libinput_device *device, enum libinput_config_middle_emulation_state enable)
+     * }
+     */
+    public static MethodHandle libinput_device_config_middle_emulation_set_enabled$handle() {
+        return libinput_device_config_middle_emulation_set_enabled.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_middle_emulation_set_enabled(struct libinput_device *device, enum libinput_config_middle_emulation_state enable)
+     * }
+     */
+    public static MemorySegment libinput_device_config_middle_emulation_set_enabled$address() {
+        return libinput_device_config_middle_emulation_set_enabled.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_middle_emulation_set_enabled(struct libinput_device *device, enum libinput_config_middle_emulation_state enable)
+     * }
+     */
+    public static int libinput_device_config_middle_emulation_set_enabled(MemorySegment device, int enable) {
+        var mh$ = libinput_device_config_middle_emulation_set_enabled.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_middle_emulation_set_enabled", device, enable);
+            }
+            return (int)mh$.invokeExact(device, enable);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+    private static final int LIBINPUT_CONFIG_SCROLL_NO_SCROLL = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_scroll_method.LIBINPUT_CONFIG_SCROLL_NO_SCROLL = 0
+     * }
+     */
+    public static int LIBINPUT_CONFIG_SCROLL_NO_SCROLL() {
+        return LIBINPUT_CONFIG_SCROLL_NO_SCROLL;
+    }
+    private static final int LIBINPUT_CONFIG_SCROLL_2FG = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_scroll_method.LIBINPUT_CONFIG_SCROLL_2FG = 1
+     * }
+     */
+    public static int LIBINPUT_CONFIG_SCROLL_2FG() {
+        return LIBINPUT_CONFIG_SCROLL_2FG;
+    }
+    private static final int LIBINPUT_CONFIG_SCROLL_EDGE = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_scroll_method.LIBINPUT_CONFIG_SCROLL_EDGE = 2
+     * }
+     */
+    public static int LIBINPUT_CONFIG_SCROLL_EDGE() {
+        return LIBINPUT_CONFIG_SCROLL_EDGE;
+    }
+    private static final int LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN = (int)4L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_scroll_method.LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN = 4
+     * }
+     */
+    public static int LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN() {
+        return LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN;
+    }
+
+    private static class libinput_device_config_scroll_get_methods {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_scroll_get_methods");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_scroll_get_methods(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_scroll_get_methods$descriptor() {
+        return libinput_device_config_scroll_get_methods.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_scroll_get_methods(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_config_scroll_get_methods$handle() {
+        return libinput_device_config_scroll_get_methods.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_scroll_get_methods(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_config_scroll_get_methods$address() {
+        return libinput_device_config_scroll_get_methods.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint32_t libinput_device_config_scroll_get_methods(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_config_scroll_get_methods(MemorySegment device) {
+        var mh$ = libinput_device_config_scroll_get_methods.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_scroll_get_methods", device);
+            }
+            return (int)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_config_scroll_set_method {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_scroll_set_method");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_scroll_set_method(struct libinput_device *device, enum libinput_config_scroll_method method)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_scroll_set_method$descriptor() {
+        return libinput_device_config_scroll_set_method.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_scroll_set_method(struct libinput_device *device, enum libinput_config_scroll_method method)
+     * }
+     */
+    public static MethodHandle libinput_device_config_scroll_set_method$handle() {
+        return libinput_device_config_scroll_set_method.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_scroll_set_method(struct libinput_device *device, enum libinput_config_scroll_method method)
+     * }
+     */
+    public static MemorySegment libinput_device_config_scroll_set_method$address() {
+        return libinput_device_config_scroll_set_method.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_scroll_set_method(struct libinput_device *device, enum libinput_config_scroll_method method)
+     * }
+     */
+    public static int libinput_device_config_scroll_set_method(MemorySegment device, int method) {
+        var mh$ = libinput_device_config_scroll_set_method.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_scroll_set_method", device, method);
+            }
+            return (int)mh$.invokeExact(device, method);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_config_scroll_set_button {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_scroll_set_button");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_scroll_set_button(struct libinput_device *device, uint32_t button)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_scroll_set_button$descriptor() {
+        return libinput_device_config_scroll_set_button.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_scroll_set_button(struct libinput_device *device, uint32_t button)
+     * }
+     */
+    public static MethodHandle libinput_device_config_scroll_set_button$handle() {
+        return libinput_device_config_scroll_set_button.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_scroll_set_button(struct libinput_device *device, uint32_t button)
+     * }
+     */
+    public static MemorySegment libinput_device_config_scroll_set_button$address() {
+        return libinput_device_config_scroll_set_button.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_scroll_set_button(struct libinput_device *device, uint32_t button)
+     * }
+     */
+    public static int libinput_device_config_scroll_set_button(MemorySegment device, int button) {
+        var mh$ = libinput_device_config_scroll_set_button.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_scroll_set_button", device, button);
+            }
+            return (int)mh$.invokeExact(device, button);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+    private static final int LIBINPUT_CONFIG_DWT_DISABLED = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_dwt_state.LIBINPUT_CONFIG_DWT_DISABLED = 0
+     * }
+     */
+    public static int LIBINPUT_CONFIG_DWT_DISABLED() {
+        return LIBINPUT_CONFIG_DWT_DISABLED;
+    }
+    private static final int LIBINPUT_CONFIG_DWT_ENABLED = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_dwt_state.LIBINPUT_CONFIG_DWT_ENABLED = 1
+     * }
+     */
+    public static int LIBINPUT_CONFIG_DWT_ENABLED() {
+        return LIBINPUT_CONFIG_DWT_ENABLED;
+    }
+
+    private static class libinput_device_config_dwt_is_available {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_dwt_is_available");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_device_config_dwt_is_available(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_dwt_is_available$descriptor() {
+        return libinput_device_config_dwt_is_available.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_device_config_dwt_is_available(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_config_dwt_is_available$handle() {
+        return libinput_device_config_dwt_is_available.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_device_config_dwt_is_available(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_config_dwt_is_available$address() {
+        return libinput_device_config_dwt_is_available.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_device_config_dwt_is_available(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_config_dwt_is_available(MemorySegment device) {
+        var mh$ = libinput_device_config_dwt_is_available.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_dwt_is_available", device);
+            }
+            return (int)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_config_dwt_set_enabled {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_dwt_set_enabled");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_dwt_set_enabled(struct libinput_device *device, enum libinput_config_dwt_state enable)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_dwt_set_enabled$descriptor() {
+        return libinput_device_config_dwt_set_enabled.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_dwt_set_enabled(struct libinput_device *device, enum libinput_config_dwt_state enable)
+     * }
+     */
+    public static MethodHandle libinput_device_config_dwt_set_enabled$handle() {
+        return libinput_device_config_dwt_set_enabled.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_dwt_set_enabled(struct libinput_device *device, enum libinput_config_dwt_state enable)
+     * }
+     */
+    public static MemorySegment libinput_device_config_dwt_set_enabled$address() {
+        return libinput_device_config_dwt_set_enabled.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_config_status libinput_device_config_dwt_set_enabled(struct libinput_device *device, enum libinput_config_dwt_state enable)
+     * }
+     */
+    public static int libinput_device_config_dwt_set_enabled(MemorySegment device, int enable) {
+        var mh$ = libinput_device_config_dwt_set_enabled.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_dwt_set_enabled", device, enable);
             }
             return (int)mh$.invokeExact(device, enable);
         } catch (Error | RuntimeException ex) {

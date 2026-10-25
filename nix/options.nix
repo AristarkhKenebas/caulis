@@ -50,8 +50,73 @@ let
     }; })); default = null; description = "settings per monitor, by connector (\"DP-2\", \"eDP-1\", ...)"; };
     "keyboard" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
       "layouts" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "as for setxkbmap: \"us,ru\""; };
+      "variants" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "one per layout: \",phonetic\""; };
       "options" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "e.g. \"grp:alt_shift_toggle\""; };
-    }; }); default = null; description = "keyboard layouts"; };
+      "model" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "e.g. \"pc105\""; };
+      "repeatRate" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (100)); default = null; description = "held keys repeat this many times a second (0: never)"; };
+      "repeatDelay" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (100) (2000)); default = null; description = "milliseconds before a held key repeats"; };
+    }; }); default = null; description = "keyboard layouts and key repeat"; };
+    "input" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
+      "focusFollowsMouse" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "the window under the pointer gets the keyboard"; };
+      "pointers" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
+        "enabled" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "false: not used at all"; };
+        "offWithMouse" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: off while a mouse is plugged in"; };
+        "speed" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck lib.types.number (x: x >= -1 && x <= 1) // { description = "a number from -1 to 1"; }); default = null; description = "pointer speed, -1 to 1 (0: the device's normal)"; };
+        "accelProfile" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "flat" "adaptive" ]); default = null; description = "flat: as fast as the hand; adaptive: faster when moved fast"; };
+        "naturalScroll" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "content follows the fingers"; };
+        "scrollFactor" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck lib.types.number (x: x >= 0.1 && x <= 10) // { description = "a number from 0.1 to 10"; }); default = null; description = "scrolling goes this many times as far"; };
+        "scrollMethod" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "none" "two-finger" "edge" "button" ]); default = null; description = "how it scrolls"; };
+        "scrollButton" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "with scrollMethod button: the button (\"MouseMiddle\")"; };
+        "leftHanded" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "buttons swapped"; };
+        "middleEmulation" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "left and right together are a middle click"; };
+        "tap" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: a tap is a click"; };
+        "tapButtons" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "left-right-middle" "left-middle-right" ]); default = null; description = "touchpads: what two and three fingers tap"; };
+        "tapDrag" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: tap, touch again and move to drag"; };
+        "dragLock" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: a drag goes on when the finger lifts for a moment"; };
+        "disableWhileTyping" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: off while typing"; };
+        "clickMethod" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "areas" "fingers" ]); default = null; description = "touchpads: a click by the area pressed or by the number of fingers"; };
+      }; }); default = null; description = "every mouse, trackball and touchpad"; };
+      "touchpads" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
+        "enabled" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "false: not used at all"; };
+        "offWithMouse" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: off while a mouse is plugged in"; };
+        "speed" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck lib.types.number (x: x >= -1 && x <= 1) // { description = "a number from -1 to 1"; }); default = null; description = "pointer speed, -1 to 1 (0: the device's normal)"; };
+        "accelProfile" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "flat" "adaptive" ]); default = null; description = "flat: as fast as the hand; adaptive: faster when moved fast"; };
+        "naturalScroll" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "content follows the fingers"; };
+        "scrollFactor" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck lib.types.number (x: x >= 0.1 && x <= 10) // { description = "a number from 0.1 to 10"; }); default = null; description = "scrolling goes this many times as far"; };
+        "scrollMethod" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "none" "two-finger" "edge" "button" ]); default = null; description = "how it scrolls"; };
+        "scrollButton" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "with scrollMethod button: the button (\"MouseMiddle\")"; };
+        "leftHanded" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "buttons swapped"; };
+        "middleEmulation" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "left and right together are a middle click"; };
+        "tap" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: a tap is a click"; };
+        "tapButtons" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "left-right-middle" "left-middle-right" ]); default = null; description = "touchpads: what two and three fingers tap"; };
+        "tapDrag" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: tap, touch again and move to drag"; };
+        "dragLock" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: a drag goes on when the finger lifts for a moment"; };
+        "disableWhileTyping" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: off while typing"; };
+        "clickMethod" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "areas" "fingers" ]); default = null; description = "touchpads: a click by the area pressed or by the number of fingers"; };
+      }; }); default = null; description = "touchpads (on top of pointers)"; };
+      "devices" = lib.mkOption { type = lib.types.nullOr (lib.types.attrsOf (lib.types.submodule { options = {
+        "enabled" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "false: not used at all"; };
+        "offWithMouse" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: off while a mouse is plugged in"; };
+        "speed" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck lib.types.number (x: x >= -1 && x <= 1) // { description = "a number from -1 to 1"; }); default = null; description = "pointer speed, -1 to 1 (0: the device's normal)"; };
+        "accelProfile" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "flat" "adaptive" ]); default = null; description = "flat: as fast as the hand; adaptive: faster when moved fast"; };
+        "naturalScroll" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "content follows the fingers"; };
+        "scrollFactor" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck lib.types.number (x: x >= 0.1 && x <= 10) // { description = "a number from 0.1 to 10"; }); default = null; description = "scrolling goes this many times as far"; };
+        "scrollMethod" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "none" "two-finger" "edge" "button" ]); default = null; description = "how it scrolls"; };
+        "scrollButton" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "with scrollMethod button: the button (\"MouseMiddle\")"; };
+        "leftHanded" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "buttons swapped"; };
+        "middleEmulation" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "left and right together are a middle click"; };
+        "tap" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: a tap is a click"; };
+        "tapButtons" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "left-right-middle" "left-middle-right" ]); default = null; description = "touchpads: what two and three fingers tap"; };
+        "tapDrag" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: tap, touch again and move to drag"; };
+        "dragLock" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: a drag goes on when the finger lifts for a moment"; };
+        "disableWhileTyping" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "touchpads: off while typing"; };
+        "clickMethod" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "areas" "fingers" ]); default = null; description = "touchpads: a click by the area pressed or by the number of fingers"; };
+      }; })); default = null; description = "single devices by name (--devices lists them; * matches anything)"; };
+    }; }); default = null; description = "mice, touchpads, focus"; };
+    "lid" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
+      "close" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "when the laptop's lid closes"; };
+      "open" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "when it opens"; };
+    }; }); default = null; description = "the laptop's lid"; };
     "cursor" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
       "theme" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "an installed cursor theme"; };
       "size" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (8) (256)); default = null; description = "its size"; };
@@ -87,7 +152,20 @@ let
       "restoreShortcuts" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the restoreShortcuts key (false: off)"; };
       "windowDrag" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the windowDrag key (false: off)"; };
     }; }); default = null; description = "the usual keys, changed or turned off"; };
-    "bind" = lib.mkOption { type = lib.types.nullOr (lib.types.attrsOf lib.types.str); default = null; description = "your own keys: combination → action (\"exec firefox\", \"workspace 3\", ...)"; };
+    "bind" = lib.mkOption { type = lib.types.nullOr (lib.types.attrsOf (lib.types.either lib.types.str (lib.types.submodule { options = {
+        "action" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "what it does (\"exec firefox\", \"workspace 3\", ...)"; };
+        "repeat" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "repeats while held"; };
+        "release" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "runs when the key is let go"; };
+        "locked" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "works on a locked screen too"; };
+        "description" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "what it does, in words"; };
+      }; }))); default = null; description = "your own keys: combination → action (\"exec firefox\", \"workspace 3\", ...) or { action, repeat, release, locked, description }"; };
+    "modes" = lib.mkOption { type = lib.types.nullOr (lib.types.attrsOf (lib.types.attrsOf (lib.types.either lib.types.str (lib.types.submodule { options = {
+        "action" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "what it does (\"exec firefox\", \"workspace 3\", ...)"; };
+        "repeat" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "repeats while held"; };
+        "release" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "runs when the key is let go"; };
+        "locked" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "works on a locked screen too"; };
+        "description" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "what it does, in words"; };
+      }; })))); default = null; description = "key modes (\"resize\"): their own keys, on with the action \"mode resize\", off with \"mode reset\""; };
     "rules" = lib.mkOption { type = lib.types.nullOr (lib.types.listOf (lib.types.submodule { options = {
       "appId" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "windows with this app id (case does not matter)"; };
       "appIdPattern" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "windows whose app id fits this"; };

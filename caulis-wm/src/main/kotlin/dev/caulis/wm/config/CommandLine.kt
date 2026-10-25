@@ -19,8 +19,9 @@ import java.nio.file.Path
  *
  * my-compositor --do <action> [--window <id>]   runs an action ("exec firefox", "workspace 2", ...)
  * my-compositor --state                          what is on screen
+ * my-compositor --devices                        keyboards, mice, touchpads (names for device settings)
  * my-compositor --events [kind ...]              what changes, a line each (kinds: windows,
- *                                                focus, workspaces, monitors, notices, config, lock)
+ *                                                focus, workspaces, monitors, notices, config, lock, keys)
  * ```
  */
 object CommandLine {
@@ -56,7 +57,7 @@ object CommandLine {
                 println(nixOptions())
                 0
             }
-            "--do", "--state", "--events" -> talk(caulis, arguments)
+            "--do", "--state", "--events", "--devices" -> talk(caulis, arguments)
             else -> null
         }
     }
@@ -81,6 +82,11 @@ object CommandLine {
                         ipc.run(action, window)
                     }
                     "--state" -> println(Json.write(IpcJson.state(ipc.state())))
+                    "--devices" -> {
+                        val devices = ipc.devices()
+                        if (devices.isEmpty()) println("No devices of its own (in a window, the outer session has them).")
+                        for (device in devices) println("${device.name}  (${device.kindsList.joinToString()})")
+                    }
                     "--events" -> {
                         val kinds = arguments.drop(1).map { name ->
                             EventKind.entries.firstOrNull { it.name == "EVENT_KIND_" + name.uppercase().replace('-', '_') && it != EventKind.EVENT_KIND_UNSPECIFIED }

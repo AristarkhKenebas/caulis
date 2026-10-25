@@ -151,5 +151,34 @@ public interface EventOrBuilder extends
    */
   boolean getLockChanged();
 
+  /**
+   * <pre>
+   * Another key mode is on ("resize"); empty: the usual keys again.
+   * </pre>
+   *
+   * <code>string key_mode_changed = 10;</code>
+   * @return Whether the keyModeChanged field is set.
+   */
+  boolean hasKeyModeChanged();
+  /**
+   * <pre>
+   * Another key mode is on ("resize"); empty: the usual keys again.
+   * </pre>
+   *
+   * <code>string key_mode_changed = 10;</code>
+   * @return The keyModeChanged.
+   */
+  java.lang.String getKeyModeChanged();
+  /**
+   * <pre>
+   * Another key mode is on ("resize"); empty: the usual keys again.
+   * </pre>
+   *
+   * <code>string key_mode_changed = 10;</code>
+   * @return The bytes for keyModeChanged.
+   */
+  com.google.protobuf.ByteString
+      getKeyModeChangedBytes();
+
   public dev.caulis.ipc.v1.Event.WhatCase getWhatCase();
 }

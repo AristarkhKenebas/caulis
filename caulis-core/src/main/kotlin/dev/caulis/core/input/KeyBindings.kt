@@ -15,11 +15,26 @@ package dev.caulis.core.input
  * used. Such keys are not passed to programs — neither the press nor its release.
  *
  * Keys are physical (Linux key codes), so combinations work the same with every
- * keyboard layout (Super+Q stays on the same key with a Russian layout).
+ * keyboard layout (Super+Q stays on the same key with a Russian layout). Mouse buttons
+ * ("Super+MouseSide", "mouse:276") and the wheel ("Super+WheelUp") are keys too, and a
+ * modifier alone ("Super") is a tap of it: pressed and let go with nothing else in between.
  */
 class KeyBindings {
 
-    private class Binding(val modifiers: Set<Modifier>, val key: Int, val action: () -> Unit)
+    /**
+     * How a combination behaves: [repeat] while held (volume keys), runs on [release]
+     * instead of on the press, works [whileLocked] (the compositor decides that), and
+     * [description] says what it does (for lists of keys).
+     */
+    data class Options(
+        val repeat: Boolean = false,
+        val release: Boolean = false,
+        val whileLocked: Boolean = false,
+        val description: String? = null,
+    )
+
+    // key = null: a tap of the modifiers alone.
+    private class Binding(val modifiers: Set<Modifier>, val key: Int?, val options: Options, val combination: String, val action: () -> Unit)
 
     enum class Modifier(vararg val codes: Int) {
         CTRL(29, 97), ALT(56, 100), SHIFT(42, 54), SUPER(125, 126);
@@ -33,10 +48,42 @@ class KeyBindings {
     private val held = LinkedHashSet<Int>()
     private val swallowed = HashSet<Int>()
 
-    /** Runs [action] when [combination] (e.g. "Super+Shift+Q", see [parse]) is pressed. */
-    fun bind(combination: String, action: () -> Unit) {
-        val (modifiers, key) = parse(combination)
-        bindings += Binding(modifiers, key, action)
+    // Combinations that run when their key is let go, by key.
+    private val onRelease = HashMap<Int, Binding>()
+
+    // A modifier alone held so far, with nothing else pressed since (a tap if it is let go now).
+    private var tapCandidate: Set<Modifier>? = null
+
+    // Repeating the combination held now.
+    private var repeating: AutoCloseable? = null
+    private var repeatingKey = 0
+
+    /**
+     * Runs [task] once after a delay in milliseconds; set by whoever has a loop. Needed for
+     * [Options.repeat]; without it combinations do not repeat.
+     */
+    var schedule: ((Long, () -> Unit) -> AutoCloseable)? = null
+
+    /** Key repeat: delay before the first repeat, and repeats per second. */
+    var repeatDelay = Seat.REPEAT_DELAY
+    var repeatRate = Seat.REPEAT_RATE
+
+    /** Runs [action] when [combination] (e.g. "Super+Shift+Q", "Super", "Super+WheelUp", see [parse]) is pressed. */
+    fun bind(combination: String, action: () -> Unit) = bind(combination, Options(), action)
+
+    /** The same, behaving as [options] say. */
+    fun bind(combination: String, options: Options, action: () -> Unit) {
+        val (modifiers, key) = parseAllowingTap(combination)
+        bindings += Binding(modifiers, key, options, combination, action)
+    }
+
+    /** The combinations with a description: combination → what it does. */
+    fun described(): List<Pair<String, String>> = bindings.mapNotNull { b -> b.options.description?.let { b.combination to it } }
+
+    /** True if some combination is the key or button [code] with the modifiers held now (wheel: [WHEEL_UP], ...). */
+    fun has(code: Int): Boolean {
+        val active = heldModifiers()
+        return bindings.any { it.key == code && it.modifiers == active }
     }
 
     /** True while [modifier] is held down (e.g. for Super+drag to move windows). */
@@ -45,30 +92,94 @@ class KeyBindings {
     /** The modifiers held down now. */
     fun heldModifiers(): Set<Modifier> = held.mapNotNull(Modifier::of).toSet()
 
-    /** Handles a key; returns true if it belonged to a combination (do not pass it on). */
+    /**
+     * Handles a key or mouse button (Linux codes); returns true if it belonged to a
+     * combination (do not pass it on).
+     */
     fun key(evdevCode: Int, pressed: Boolean): Boolean {
         if (!pressed) {
+            val wasModifiers = heldModifiers()
             held -= evdevCode
+            if (evdevCode == repeatingKey) stopRepeating()
+            // A modifier alone pressed and let go: its tap.
+            val tap = tapCandidate
+            tapCandidate = null
+            if (tap != null && Modifier.of(evdevCode) != null) {
+                bindings.lastOrNull { it.key == null && it.modifiers == wasModifiers }?.let { it.action(); return false }
+            }
+            onRelease.remove(evdevCode)?.let { it.action(); swallowed.remove(evdevCode); return true }
             return swallowed.remove(evdevCode)
         }
         held += evdevCode
         val active = heldModifiers()
+        tapCandidate = if (Modifier.of(evdevCode) != null && held.all { Modifier.of(it) != null }) active else null
+        if (Modifier.of(evdevCode) != null) return false
         // Exact match: Super+Q does not also fire for Super+Shift+Q.
         val binding = bindings.lastOrNull { it.key == evdevCode && it.modifiers == active } ?: return false
         swallowed += evdevCode
+        when {
+            binding.options.release -> onRelease[evdevCode] = binding
+            binding.options.repeat -> {
+                binding.action()
+                startRepeating(evdevCode, binding)
+            }
+            else -> binding.action()
+        }
+        return true
+    }
+
+    /**
+     * The wheel turned one step ([WHEEL_UP], [WHEEL_DOWN], [WHEEL_LEFT], [WHEEL_RIGHT]);
+     * returns true if it belonged to a combination.
+     */
+    fun wheel(direction: Int): Boolean {
+        tapCandidate = null
+        val active = heldModifiers()
+        val binding = bindings.lastOrNull { it.key == direction && it.modifiers == active } ?: return false
         binding.action()
         return true
+    }
+
+    /** Something else happened while modifiers were held (a click, a scroll): no tap then. */
+    fun interrupted() {
+        tapCandidate = null
+    }
+
+    private fun startRepeating(code: Int, binding: Binding) {
+        val schedule = schedule ?: return
+        stopRepeating()
+        repeatingKey = code
+        fun next(delay: Long) {
+            repeating = schedule(delay) {
+                if (repeatingKey == code && code in held) {
+                    binding.action()
+                    next(1000L / repeatRate.coerceAtLeast(1))
+                }
+            }
+        }
+        if (repeatRate > 0) next(repeatDelay.toLong())
+    }
+
+    private fun stopRepeating() {
+        repeating?.close()
+        repeating = null
+        repeatingKey = 0
     }
 
     /** Forgets every combination (keys held down stay held). */
     fun clear() {
         bindings.clear()
+        onRelease.clear()
+        stopRepeating()
     }
 
     /** Forgets held keys (e.g. after switching to another terminal and back). */
     fun releaseAll() {
         held.clear()
         swallowed.clear()
+        onRelease.clear()
+        tapCandidate = null
+        stopRepeating()
     }
 
     companion object {
@@ -146,7 +257,25 @@ class KeyBindings {
             names(166, "XF86AudioStop", "Stop")
             names(224, "XF86MonBrightnessDown", "BrightnessDown")
             names(225, "XF86MonBrightnessUp", "BrightnessUp")
+            // Mouse buttons (also "mouse:272" and so on) and the wheel.
+            names(0x110, "MouseLeft", "LeftButton", "Button1")
+            names(0x111, "MouseRight", "RightButton", "Button3")
+            names(0x112, "MouseMiddle", "MiddleButton", "Button2")
+            names(0x113, "MouseSide", "SideButton", "Button8")
+            names(0x114, "MouseExtra", "ExtraButton", "Button9")
+            names(0x115, "MouseForward", "ForwardButton")
+            names(0x116, "MouseBack", "BackButton")
+            names(WHEEL_UP, "WheelUp", "ScrollUp", "MouseUp")
+            names(WHEEL_DOWN, "WheelDown", "ScrollDown", "MouseDown")
+            names(WHEEL_LEFT, "WheelLeft", "ScrollLeft")
+            names(WHEEL_RIGHT, "WheelRight", "ScrollRight")
         }
+
+        /** Pretend key codes for one step of the wheel. */
+        const val WHEEL_UP = 0x10001
+        const val WHEEL_DOWN = 0x10002
+        const val WHEEL_LEFT = 0x10003
+        const val WHEEL_RIGHT = 0x10004
 
         // "Page_Up", "page-up", "PAGEUP" -> "pageup" (a lone "-" or "_" stays itself).
         private fun normalize(name: String): String =
@@ -174,6 +303,11 @@ class KeyBindings {
             val modifiers = LinkedHashSet<Modifier>()
             val keys = ArrayList<Pair<String, Int>>()
             for (part in parts.flatMap(::parts)) {
+                // "mouse:276": a button by its Linux code.
+                Regex("(?i)mouse:(\\d+)").matchEntire(part.trim())?.let { m ->
+                    keys += part to m.groupValues[1].toInt().also { require(it in 0x110..0x2ff) { "\"$part\" is not a mouse button (mouse:272 to mouse:767)" } }
+                    continue
+                }
                 val name = normalize(part)
                 val modifier = MODIFIER_NAMES[name]
                 if (modifier != null) {
@@ -188,6 +322,16 @@ class KeyBindings {
                 0 -> throw IllegalArgumentException("\"$whole\" has no key besides the modifiers (e.g. \"$whole+Q\")")
                 else -> throw IllegalArgumentException("\"$whole\" has more than one key (${keys.joinToString { it.first }}); a combination is modifiers and one key")
             }
+        }
+
+        /**
+         * As [parse], but modifiers alone are allowed too: "Super" is a tap of Super (the key
+         * is null then).
+         */
+        fun parseAllowingTap(combination: String): Pair<Set<Modifier>, Int?> {
+            val all = parts(combination)
+            if (all.isNotEmpty() && all.all { normalize(it) in MODIFIER_NAMES }) return all.map { MODIFIER_NAMES.getValue(normalize(it)) }.toSet() to null
+            return parse(combination)
         }
 
         /** The modifiers of [text] ("Super+Shift", "super shift"; "" = none); throws when a name is unknown. */

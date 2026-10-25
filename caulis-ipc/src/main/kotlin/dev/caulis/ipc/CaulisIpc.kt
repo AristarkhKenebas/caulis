@@ -73,6 +73,10 @@ class CaulisIpc private constructor(private val channel: SocketChannel) : AutoCl
     fun checkConfig(text: String): List<String> =
         request(Request.newBuilder().setCheckConfig(dev.caulis.ipc.v1.CheckConfig.newBuilder().setText(text))).orFail().problems.problemsList
 
+    /** The input devices (their names are what device settings match). */
+    fun devices(): List<dev.caulis.ipc.v1.Device> =
+        request(Request.newBuilder().setGetDevices(dev.caulis.ipc.v1.GetDevices.getDefaultInstance())).orFail().devices.devicesList
+
     /** Events of these [kinds] from now on (none: all); read them with [nextEvent]. */
     fun subscribe(vararg kinds: EventKind) {
         request(Request.newBuilder().setSubscribe(dev.caulis.ipc.v1.Subscribe.newBuilder().addAllKinds(kinds.toList()))).orFail()

@@ -20,6 +20,7 @@ public  final class State extends
     monitors_ = emptyProtobufList();
     focusedMonitor_ = "";
     primaryMonitor_ = "";
+    keyMode_ = "";
   }
   public static final int WINDOWS_FIELD_NUMBER = 1;
   private com.google.protobuf.Internal.ProtobufList<dev.caulis.ipc.v1.Window> windows_;
@@ -636,6 +637,73 @@ public  final class State extends
       com.google.protobuf.ByteString value) {
     checkByteStringIsUtf8(value);
     primaryMonitor_ = value.toStringUtf8();
+
+  }
+
+  public static final int KEY_MODE_FIELD_NUMBER = 9;
+  private java.lang.String keyMode_;
+  /**
+   * <pre>
+   * The key mode that is on ("resize"); empty: the usual keys.
+   * </pre>
+   *
+   * <code>string key_mode = 9;</code>
+   * @return The keyMode.
+   */
+  @java.lang.Override
+  public java.lang.String getKeyMode() {
+    return keyMode_;
+  }
+  /**
+   * <pre>
+   * The key mode that is on ("resize"); empty: the usual keys.
+   * </pre>
+   *
+   * <code>string key_mode = 9;</code>
+   * @return The bytes for keyMode.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getKeyModeBytes() {
+    return com.google.protobuf.ByteString.copyFromUtf8(keyMode_);
+  }
+  /**
+   * <pre>
+   * The key mode that is on ("resize"); empty: the usual keys.
+   * </pre>
+   *
+   * <code>string key_mode = 9;</code>
+   * @param value The keyMode to set.
+   */
+  private void setKeyMode(
+      java.lang.String value) {
+    java.util.Objects.requireNonNull(value);
+
+    keyMode_ = value;
+  }
+  /**
+   * <pre>
+   * The key mode that is on ("resize"); empty: the usual keys.
+   * </pre>
+   *
+   * <code>string key_mode = 9;</code>
+   */
+  private void clearKeyMode() {
+
+    keyMode_ = getDefaultInstance().getKeyMode();
+  }
+  /**
+   * <pre>
+   * The key mode that is on ("resize"); empty: the usual keys.
+   * </pre>
+   *
+   * <code>string key_mode = 9;</code>
+   * @param value The bytes for keyMode to set.
+   */
+  private void setKeyModeBytes(
+      com.google.protobuf.ByteString value) {
+    checkByteStringIsUtf8(value);
+    keyMode_ = value.toStringUtf8();
 
   }
 
@@ -1396,6 +1464,75 @@ public  final class State extends
       return this;
     }
 
+    /**
+     * <pre>
+     * The key mode that is on ("resize"); empty: the usual keys.
+     * </pre>
+     *
+     * <code>string key_mode = 9;</code>
+     * @return The keyMode.
+     */
+    @java.lang.Override
+    public java.lang.String getKeyMode() {
+      return instance.getKeyMode();
+    }
+    /**
+     * <pre>
+     * The key mode that is on ("resize"); empty: the usual keys.
+     * </pre>
+     *
+     * <code>string key_mode = 9;</code>
+     * @return The bytes for keyMode.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getKeyModeBytes() {
+      return instance.getKeyModeBytes();
+    }
+    /**
+     * <pre>
+     * The key mode that is on ("resize"); empty: the usual keys.
+     * </pre>
+     *
+     * <code>string key_mode = 9;</code>
+     * @param value The keyMode to set.
+     * @return This builder for chaining.
+     */
+    public Builder setKeyMode(
+        java.lang.String value) {
+      copyOnWrite();
+      instance.setKeyMode(value);
+      return this;
+    }
+    /**
+     * <pre>
+     * The key mode that is on ("resize"); empty: the usual keys.
+     * </pre>
+     *
+     * <code>string key_mode = 9;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearKeyMode() {
+      copyOnWrite();
+      instance.clearKeyMode();
+      return this;
+    }
+    /**
+     * <pre>
+     * The key mode that is on ("resize"); empty: the usual keys.
+     * </pre>
+     *
+     * <code>string key_mode = 9;</code>
+     * @param value The bytes for keyMode to set.
+     * @return This builder for chaining.
+     */
+    public Builder setKeyModeBytes(
+        com.google.protobuf.ByteString value) {
+      copyOnWrite();
+      instance.setKeyModeBytes(value);
+      return this;
+    }
+
     // @@protoc_insertion_point(builder_scope:caulis.ipc.v1.State)
   }
   @java.lang.Override
@@ -1423,10 +1560,11 @@ public  final class State extends
             "scale_",
             "locked_",
             "primaryMonitor_",
+            "keyMode_",
           };
           java.lang.String info =
-              "\u0000\b\u0000\u0000\u0001\b\b\u0000\u0003\u0000\u0001\u001b\u0002\u001b\u0003\u001b" +
-              "\u0004\u0003\u0005\u0208\u0006\u0000\u0007\u0007\b\u0208";
+              "\u0000\t\u0000\u0000\u0001\t\t\u0000\u0003\u0000\u0001\u001b\u0002\u001b\u0003\u001b" +
+              "\u0004\u0003\u0005\u0208\u0006\u0000\u0007\u0007\b\u0208\t\u0208";
           return newMessageInfo(DEFAULT_INSTANCE, info, objects);
       }
       case GET_DEFAULT_INSTANCE: {

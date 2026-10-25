@@ -16,6 +16,8 @@ import dev.caulis.core.WorkspaceMode
 import dev.caulis.core.WorkspaceRule
 import dev.caulis.core.cursor.CursorTheme
 import dev.caulis.core.input.KeyBindings
+import dev.caulis.core.input.InputSettings
+import dev.caulis.core.input.Seat
 import dev.caulis.log.Log
 import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Direction
@@ -23,6 +25,9 @@ import dev.caulis.tiling.Layout
 import dev.caulis.tiling.TilingCommand
 import java.util.function.Consumer
 import kotlin.system.exitProcess
+
+/** How one of your keys behaves (repeat while held, on release, while locked, a description). */
+typealias BindOptions = dev.caulis.core.input.KeyBindings.Options
 
 /**
  * A complete compositor, configured in a few lines and started with [run]:
@@ -414,6 +419,12 @@ class Caulis {
     var keyboardLayouts = "us"
     var keyboardOptions = ""
 
+    /** Keyboard layout variants, one per layout as for setxkbmap: "", "dvorak", ",phonetic". Restart to change. */
+    var keyboardVariants = ""
+
+    /** The keyboard model as for setxkbmap ("pc105"). Restart to change. */
+    var keyboardModel = "pc105"
+
     /**
      * The screen locker [lock] (and the default Super+L) starts, e.g. "swaylock -c 1e1e2e",
      * "gtklock" or "hyprlock". While it runs, nothing of the desktop is visible and only it
@@ -589,7 +600,10 @@ class Caulis {
     /** Advanced: where programs' socket is created (null = XDG_RUNTIME_DIR, the usual place). */
     var socketDirectory: java.nio.file.Path? = null
 
-    internal val bindings = ArrayList<Pair<String, Caulis.() -> Unit>>()
+    /** One of your keys: its combination, how it behaves, the key mode it belongs to (null: the usual keys). */
+    class Binding internal constructor(val combination: String, val options: BindOptions, val mode: String?, val action: Caulis.() -> Unit)
+
+    internal val bindings = ArrayList<Binding>()
     internal val startActions = ArrayList<Caulis.() -> Unit>()
     internal val floatRules = ArrayList<(Window) -> Boolean>()
     internal val effectRules = ArrayList<(Window, Effects) -> Effects>()
@@ -629,9 +643,90 @@ class Caulis {
      * reported right here.
      */
     @JvmSynthetic // Java uses the Consumer version below
-    fun bind(vararg combination: String, action: Caulis.() -> Unit) {
-        KeyBindings.parse(combination.toList()) // a wrong name is reported here, not at the start
-        bindings += combination.joinToString("+") to action
+    fun bind(vararg combination: String, action: Caulis.() -> Unit) = bind(combination.joinToString("+"), BindOptions(), action)
+
+    /**
+     * The same, behaving as [options] say:
+     *
+     * ```
+     * bind("XF86AudioRaiseVolume", BindOptions(repeat = true, whileLocked = true)) { launch("wpctl set-volume @DEFAULT_SINK@ 5%+") }
+     * bind("Super", BindOptions(description = "overview")) { desktop.toggleOverview() }   // a tap of Super alone
+     * bind("Super+WheelDown") { run("workspace next") }
+     * bind("MouseSide") { run("workspace back") }
+     * ```
+     */
+    @JvmSynthetic
+    fun bind(combination: String, options: BindOptions, action: Caulis.() -> Unit) {
+        KeyBindings.parseAllowingTap(combination) // a wrong name is reported here, not at the start
+        bindings += Binding(combination, options, null, action)
+    }
+
+    /**
+     * Keys of a mode of their own (a "submap"): while it is on ([enterMode], or the action
+     * `mode resize`), these keys are the compositor's and the usual ones are not; keys not
+     * named here go to programs. Quitting and text consoles always work.
+     *
+     * ```
+     * bind("Super+R") { enterMode("resize") }
+     * mode("resize") {
+     *     bind("Left", BindOptions(repeat = true)) { run("resize left") }
+     *     bind("Escape") { enterMode(null) }
+     * }
+     * ```
+     */
+    fun mode(name: String, configure: KeyMode.() -> Unit) {
+        require(name.isNotBlank() && name != "reset" && name != "default") { "a mode needs a name of its own, not \"$name\"" }
+        KeyMode(name).configure()
+    }
+
+    /** What [mode] binds keys with. */
+    inner class KeyMode internal constructor(val name: String) {
+        @JvmSynthetic
+        fun bind(vararg combination: String, action: Caulis.() -> Unit) = bind(combination.joinToString("+"), BindOptions(), action)
+
+        @JvmSynthetic
+        fun bind(combination: String, options: BindOptions, action: Caulis.() -> Unit) {
+            KeyBindings.parseAllowingTap(combination)
+            bindings += Binding(combination, options, name, action)
+        }
+    }
+
+    /** Turns the key mode [name] on (see [mode]); null: back to the usual keys. */
+    fun enterMode(name: String?) = checkNotNull(running) { "Caulis is not running yet" }.enterMode(name)
+
+    /** The key mode that is on (null: the usual keys). */
+    val keyMode: String? get() = running?.keyMode
+
+    // --- input --------------------------------------------------------------------------------
+
+    /**
+     * How mice, trackballs and touchpads behave — all of them, touchpads, and single devices
+     * by name (`my-compositor --devices` lists them):
+     *
+     * ```
+     * input.pointers.speed = -0.3
+     * input.pointers.accelProfile = AccelProfile.FLAT
+     * input.touchpads.naturalScroll = true
+     * input.touchpads.disableWhileTyping = true
+     * input.devices["Logitech G Pro*"] = DeviceSettings().apply { speed = -0.6 }
+     * ```
+     */
+    val input = InputSettings()
+
+    /** Held keys repeat this many times a second (0: never). */
+    var repeatRate = Seat.REPEAT_RATE
+
+    /** Milliseconds a key is held before it repeats. */
+    var repeatDelay = Seat.REPEAT_DELAY
+
+    /** The keyboard gets to the window under the pointer as soon as the pointer is over it. */
+    var focusFollowsMouse = false
+
+    internal val lidActions = ArrayList<Caulis.(Boolean) -> Unit>()
+
+    /** Runs [action] when the laptop's lid closes (true) or opens (false); on the screen only. */
+    fun onLid(action: Caulis.(closed: Boolean) -> Unit) {
+        lidActions += action
     }
 
     internal val reloadActions = ArrayList<Caulis.() -> Unit>()
@@ -824,7 +919,7 @@ class Caulis {
     internal fun addableLists(): List<MutableList<*>> = listOf(
         titleBarRules, noticeListeners, bindings, startActions, floatRules, effectRules, panelEffectRules,
         scratchpads, swipes, windowOpened, windowClosed, focusChanged, workspaceChanged, reloadActions, rules,
-        workspaceRules,
+        workspaceRules, lidActions,
     )
 
     /** The window manager (workspaces, focus, layouts). Only while running. */

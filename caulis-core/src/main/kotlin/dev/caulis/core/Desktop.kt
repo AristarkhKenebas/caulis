@@ -3100,6 +3100,15 @@ class Desktop(
             titleHover = hover
             changed()
         }
+        // The keyboard follows the pointer: onto another window, it gets the focus (once, so
+        // keys can still move the focus while the pointer rests).
+        if (focusFollowsMouse && !locked) {
+            val under = windowAt(pointerX, pointerY) ?: (decoration as? Decoration.Bar)?.window ?: (decoration as? Decoration.Edge)?.window
+            if (under !== hovered) {
+                hovered = under
+                if (under != null && under !== focusedWindow && exclusiveLayer() == null) focus(under)
+            }
+        }
         if (decoration != null) {
             seat.pointerMotion(timeMillis, null, 0.0, 0.0)
             onChange()
@@ -3112,6 +3121,12 @@ class Desktop(
 
     // Our own cursor over a window's edge (resize arrows), or null.
     private var decorationCursor: String? = null
+
+    /** The window under the pointer gets the keyboard as soon as the pointer comes onto it. */
+    var focusFollowsMouse = false
+
+    // The window the pointer was over last (for focusFollowsMouse).
+    private var hovered: Window? = null
 
     // The button that closed a notice: its release is ours too.
     private var noticeButton: Int? = null

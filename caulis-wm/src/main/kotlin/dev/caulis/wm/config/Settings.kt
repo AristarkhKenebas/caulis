@@ -120,6 +120,28 @@ object Settings {
         "a shadow",
     )
 
+    private val device = SectionType(
+        listOf(
+            Field("enabled", FlagType, "false: not used at all"),
+            Field("offWithMouse", FlagType, "touchpads: off while a mouse is plugged in"),
+            Field("speed", DecimalType(-1.0, 1.0), "pointer speed, -1 to 1 (0: the device's normal)"),
+            Field("accelProfile", ChoiceType(listOf("flat", "adaptive")), "flat: as fast as the hand; adaptive: faster when moved fast"),
+            Field("naturalScroll", FlagType, "content follows the fingers"),
+            Field("scrollFactor", DecimalType(0.1, 10.0), "scrolling goes this many times as far"),
+            Field("scrollMethod", ChoiceType(listOf("none", "two-finger", "edge", "button")), "how it scrolls"),
+            Field("scrollButton", TextType("a mouse button"), "with scrollMethod button: the button (\"MouseMiddle\")"),
+            Field("leftHanded", FlagType, "buttons swapped"),
+            Field("middleEmulation", FlagType, "left and right together are a middle click"),
+            Field("tap", FlagType, "touchpads: a tap is a click"),
+            Field("tapButtons", ChoiceType(listOf("left-right-middle", "left-middle-right")), "touchpads: what two and three fingers tap"),
+            Field("tapDrag", FlagType, "touchpads: tap, touch again and move to drag"),
+            Field("dragLock", FlagType, "touchpads: a drag goes on when the finger lifts for a moment"),
+            Field("disableWhileTyping", FlagType, "touchpads: off while typing"),
+            Field("clickMethod", ChoiceType(listOf("areas", "fingers")), "touchpads: a click by the area pressed or by the number of fingers"),
+        ),
+        "device settings",
+    )
+
     private val windowAnimation = ChoiceType(listOf("pop", "fade", "scale", "slide-up", "genie", "fly", "none"))
 
     private val keys = Keys().let { usual ->
@@ -212,13 +234,42 @@ object Settings {
                 ),
                 "settings per monitor, by connector (\"DP-2\", \"eDP-1\", ...)",
             ),
-            Field("keyboard", SectionType(listOf(Field("layouts", TextType("layouts"), "as for setxkbmap: \"us,ru\""), Field("options", TextType("options"), "e.g. \"grp:alt_shift_toggle\"")), "the keyboard"), "keyboard layouts"),
+            Field(
+                "keyboard",
+                SectionType(
+                    listOf(
+                        Field("layouts", TextType("layouts"), "as for setxkbmap: \"us,ru\""),
+                        Field("variants", TextType("variants"), "one per layout: \",phonetic\""),
+                        Field("options", TextType("options"), "e.g. \"grp:alt_shift_toggle\""),
+                        Field("model", TextType("a model"), "e.g. \"pc105\""),
+                        Field("repeatRate", IntegerType(0, 100), "held keys repeat this many times a second (0: never)"),
+                        Field("repeatDelay", IntegerType(100, 2000), "milliseconds before a held key repeats"),
+                    ),
+                    "the keyboard",
+                ),
+                "keyboard layouts and key repeat",
+            ),
+            Field(
+                "input",
+                SectionType(
+                    listOf(
+                        Field("focusFollowsMouse", FlagType, "the window under the pointer gets the keyboard"),
+                        Field("pointers", device, "every mouse, trackball and touchpad"),
+                        Field("touchpads", device, "touchpads (on top of pointers)"),
+                        Field("devices", MapType(device, "device name"), "single devices by name (--devices lists them; * matches anything)"),
+                    ),
+                    "input",
+                ),
+                "mice, touchpads, focus",
+            ),
+            Field("lid", SectionType(listOf(Field("close", ActionType, "when the laptop's lid closes"), Field("open", ActionType, "when it opens")), "the lid"), "the laptop's lid"),
             Field("cursor", SectionType(listOf(Field("theme", TextType("a cursor theme"), "an installed cursor theme"), Field("size", IntegerType(8, 256), "its size")), "the cursor"), "the cursor"),
             Field("terminal", TextType("a command"), "the terminal the terminal key opens"),
             Field("lockCommand", TextType("a command"), "the screen locker"),
             Field("titleBars", ChoiceType(listOf("program", "compositor", "none")), "who draws title bars"),
             Field("keys", keys, "the usual keys, changed or turned off"),
-            Field("bind", MapType(ActionType, "key combination"), "your own keys: combination → action (\"exec firefox\", \"workspace 3\", ...)"),
+            Field("bind", MapType(BindType, "key combination"), "your own keys: combination → action (\"exec firefox\", \"workspace 3\", ...) or { action, repeat, release, locked, description }"),
+            Field("modes", MapType(MapType(BindType, "key combination"), "mode"), "key modes (\"resize\"): their own keys, on with the action \"mode resize\", off with \"mode reset\""),
             Field("rules", ListType(rule), "rules for some windows"),
             Field(
                 "effects",
@@ -325,14 +376,14 @@ object Settings {
      * What a file added to the lists of a [Caulis] (rules, keys, programs to start), so that a
      * new version replaces them instead of adding to them.
      */
-    class Added(val rules: List<dev.caulis.wm.WindowRule>, val bindings: List<Pair<String, Caulis.() -> Unit>>, val startup: List<Caulis.() -> Unit>)
+    class Added(val rules: List<dev.caulis.wm.WindowRule>, val bindings: List<Caulis.Binding>, val startup: List<Caulis.() -> Unit>)
 
     /** Applies [values] (read by [root]) to [caulis]; what it adds to lists comes back. */
     @Suppress("UNCHECKED_CAST")
     fun apply(caulis: Caulis, values: Map<String, Any?>): Added {
         fun section(name: String) = values[name] as? Map<String, Any?>
         val rules = ArrayList<dev.caulis.wm.WindowRule>()
-        val bindings = ArrayList<Pair<String, Caulis.() -> Unit>>()
+        val bindings = ArrayList<Caulis.Binding>()
         val startup = ArrayList<Caulis.() -> Unit>()
 
         section("layout")?.let { caulis.layout = layout(it) }
@@ -361,6 +412,10 @@ object Settings {
             }
         }
         section("keyboard")?.let { k ->
+            (k["variants"] as String?)?.let { caulis.keyboardVariants = it }
+            (k["model"] as String?)?.let { caulis.keyboardModel = it }
+            (k["repeatRate"] as Int?)?.let { caulis.repeatRate = it }
+            (k["repeatDelay"] as Int?)?.let { caulis.repeatDelay = it }
             (k["layouts"] as String?)?.let { caulis.keyboardLayouts = it }
             (k["options"] as String?)?.let { caulis.keyboardOptions = it }
         }
@@ -374,9 +429,25 @@ object Settings {
         section("keys")?.let { k ->
             for ((name, value) in k) caulis.keys[name] = if (value === OffOrType.Off) null else value as String
         }
-        (values["bind"] as Map<String, Caulis.() -> Unit>?)?.forEach { (combination, action) ->
-            caulis.bind(combination, action = action)
+        (values["bind"] as Map<String, BindType.Bound>?)?.forEach { (combination, bound) ->
+            caulis.bind(combination, bound.options, bound.action)
             bindings += caulis.bindings.last()
+        }
+        (values["modes"] as Map<String, Map<String, BindType.Bound>>?)?.forEach { (mode, keys) ->
+            caulis.mode(mode) { for ((combination, bound) in keys) bind(combination, bound.options, bound.action) }
+        }
+        section("input")?.let { i ->
+            (i["focusFollowsMouse"] as Boolean?)?.let { caulis.focusFollowsMouse = it }
+            (i["pointers"] as Map<String, Any?>?)?.let { device(it, caulis.input.pointers) }
+            (i["touchpads"] as Map<String, Any?>?)?.let { device(it, caulis.input.touchpads) }
+            (i["devices"] as Map<String, Map<String, Any?>>?)?.forEach { (name, d) ->
+                device(d, caulis.input.devices.getOrPut(name) { dev.caulis.core.input.DeviceSettings() })
+            }
+        }
+        section("lid")?.let { l ->
+            val close = l["close"] as (Caulis.() -> Unit)?
+            val open = l["open"] as (Caulis.() -> Unit)?
+            caulis.onLid { closed -> (if (closed) close else open)?.invoke(this) }
         }
         (values["rules"] as List<Map<String, Any?>>?)?.forEach { r -> rules += rule(caulis, r) }
         section("effects")?.let { caulis.effects = effects(caulis, it) }
@@ -431,6 +502,25 @@ object Settings {
         }
         (values["logLevel"] as Int?)?.let { caulis.logLevel = it }
         return Added(rules, bindings, startup)
+    }
+
+    private fun device(d: Map<String, Any?>, into: dev.caulis.core.input.DeviceSettings) {
+        (d["enabled"] as Boolean?)?.let { into.enabled = it }
+        (d["offWithMouse"] as Boolean?)?.let { into.offWithMouse = it }
+        (d["speed"] as Double?)?.let { into.speed = it }
+        (d["accelProfile"] as String?)?.let { into.accelProfile = dev.caulis.core.input.AccelProfile.valueOf(it.uppercase()) }
+        (d["naturalScroll"] as Boolean?)?.let { into.naturalScroll = it }
+        (d["scrollFactor"] as Double?)?.let { into.scrollFactor = it }
+        (d["scrollMethod"] as String?)?.let { into.scrollMethod = dev.caulis.core.input.ScrollMethod.valueOf(it.uppercase().replace('-', '_')) }
+        (d["scrollButton"] as String?)?.let { into.scrollButton = KeyBindings.keyCode(it) ?: Regex("(?i)mouse:(\\d+)").matchEntire(it)?.groupValues?.get(1)?.toInt() }
+        (d["leftHanded"] as Boolean?)?.let { into.leftHanded = it }
+        (d["middleEmulation"] as Boolean?)?.let { into.middleEmulation = it }
+        (d["tap"] as Boolean?)?.let { into.tap = it }
+        (d["tapButtons"] as String?)?.let { into.tapButtons = dev.caulis.core.input.TapButtons.valueOf(it.uppercase().replace('-', '_')) }
+        (d["tapDrag"] as Boolean?)?.let { into.tapDrag = it }
+        (d["dragLock"] as Boolean?)?.let { into.dragLock = it }
+        (d["disableWhileTyping"] as Boolean?)?.let { into.disableWhileTyping = it }
+        (d["clickMethod"] as String?)?.let { into.clickMethod = dev.caulis.core.input.ClickMethod.valueOf(it.uppercase()) }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -611,6 +701,65 @@ object ActionType : SettingType() {
 
     override fun nix() = "lib.types.str"
     override fun jsonSchema() = """{"type":"string","minLength":1}"""
+}
+
+/**
+ * One of your keys in a file: an action ("exec firefox"), or one with how it behaves:
+ * `{ "action": "exec wpctl ...", "repeat": true, "locked": true, "description": "louder" }`.
+ * The combination (the name it is given under) is checked too.
+ */
+object BindType : SettingType() {
+    /** What a key does, and how it behaves. */
+    class Bound(val action: Caulis.() -> Unit, val options: dev.caulis.wm.BindOptions)
+
+    private val details = SectionType(
+        listOf(
+            Field("action", TextType("an action"), "what it does (\"exec firefox\", \"workspace 3\", ...)"),
+            Field("repeat", FlagType, "repeats while held"),
+            Field("release", FlagType, "runs when the key is let go"),
+            Field("locked", FlagType, "works on a locked screen too"),
+            Field("description", TextType(), "what it does, in words"),
+        ),
+        "a key",
+    )
+
+    override val words get() = "an action (\"exec firefox\"), or { action, repeat, release, locked, description }"
+
+    override fun read(json: JsonValue, path: String, problems: Problems): Any? {
+        val combination = path.substringAfterLast(".\"", "").removeSuffix("\"")
+        if (combination.isNotEmpty()) {
+            try {
+                KeyBindings.parseAllowingTap(combination)
+            } catch (e: IllegalArgumentException) {
+                problems.add(path, json, e.message ?: "not a key combination")
+                return null
+            }
+        }
+        val (text, options) = when (json) {
+            is JsonValue.Str -> json.value to dev.caulis.wm.BindOptions()
+            is JsonValue.Obj -> {
+                @Suppress("UNCHECKED_CAST")
+                val m = details.read(json, path, problems) as Map<String, Any?>? ?: return null
+                val action = m["action"] as String? ?: return problems.add(path, json, "it needs an \"action\"").let { null }
+                action to dev.caulis.wm.BindOptions(
+                    repeat = m["repeat"] == true,
+                    release = m["release"] == true,
+                    whileLocked = m["locked"] == true,
+                    description = m["description"] as String?,
+                )
+            }
+            else -> return problems.add(path, json, "$words, not ${json.kind}").let { null }
+        }
+        return try {
+            Bound(Actions.parse(text), options)
+        } catch (e: IllegalArgumentException) {
+            problems.add(path, json, e.message ?: "not an action")
+            null
+        }
+    }
+
+    override fun nix() = "(lib.types.either lib.types.str ${details.nix().replace("\n", "\n  ")})"
+    override fun jsonSchema() = """{"anyOf":[{"type":"string","minLength":1},${details.jsonSchema()}]}"""
 }
 
 /** A key combination ("Super+Shift+Q"), or only modifiers ("Super+Shift") for a group of keys. */

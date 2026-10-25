@@ -206,4 +206,42 @@ class ConfigFileTest {
         assertTrue("1 to 99" in problems("{ \"workspaces\": { \"count\": 0 } }").single())
         assertTrue("is not a workspace" in problems("{ \"bind\": { \"Super+Tab\": \"workspace sideways\" } }").single())
     }
+
+    @Test
+    fun `input, key modes, keys that repeat, the lid`() {
+        val read = ConfigFile.read(
+            """
+            {
+              "keyboard": { "layouts": "us,ru", "variants": ",phonetic", "repeatRate": 40, "repeatDelay": 250 },
+              "input": {
+                "focusFollowsMouse": true,
+                "pointers": { "speed": -0.3, "accelProfile": "flat" },
+                "touchpads": { "naturalScroll": true, "tapButtons": "left-right-middle", "clickMethod": "fingers", "disableWhileTyping": true },
+                "devices": { "Logitech*": { "speed": -0.6, "scrollFactor": 2, "scrollButton": "MouseMiddle" } }
+              },
+              "bind": {
+                "XF86AudioRaiseVolume": { "action": "exec wpctl set-volume @DEFAULT_SINK@ 5%+", "repeat": true, "locked": true },
+                "Super": "overview",
+                "Super+WheelDown": "workspace next",
+                "MouseSide": "workspace back",
+                "Super+R": "mode resize"
+              },
+              "modes": { "resize": { "Left": { "action": "resize left", "repeat": true }, "Escape": "mode reset" } },
+              "lid": { "close": "lock" }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(emptyList(), read.problems)
+        val caulis = Caulis()
+        Settings.apply(caulis, read.values)
+        assertEquals(40 to 250, caulis.repeatRate to caulis.repeatDelay)
+        assertEquals(",phonetic", caulis.keyboardVariants)
+        assertTrue(caulis.focusFollowsMouse)
+        assertEquals(dev.caulis.core.input.AccelProfile.FLAT, caulis.input.pointers.accelProfile)
+        assertEquals(0x112, caulis.input.devices.getValue("Logitech*").scrollButton)
+        assertEquals(listOf(null, null, null, null, null, "resize", "resize"), caulis.bindings.map { it.mode })
+        assertTrue(caulis.bindings.first().options.let { it.repeat && it.whileLocked })
+        assertTrue("1 to" in problems("{ \"input\": { \"pointers\": { \"speed\": 3 } } }").single())
+        assertTrue("needs an \"action\"" in problems("{ \"bind\": { \"Super+B\": { \"repeat\": true } } }").single())
+    }
 }

@@ -61,6 +61,7 @@ internal object IpcJson {
         "scale" to number(s.scale),
         "locked" to flag(s.locked),
         "primaryMonitor" to text(s.primaryMonitor),
+        "keyMode" to text(s.keyMode),
     )
 
     /** An event: `{"event": "window-opened", ...}`. */
@@ -79,6 +80,7 @@ internal object IpcJson {
         )
         Event.WhatCase.CONFIG_RELOADED -> obj("event" to text("config-reloaded"), "problems" to list(e.configReloaded.problemsList.map(::text)))
         Event.WhatCase.LOCK_CHANGED -> obj("event" to text("lock-changed"), "locked" to flag(e.lockChanged))
+        Event.WhatCase.KEY_MODE_CHANGED -> obj("event" to text("key-mode-changed"), "mode" to text(e.keyModeChanged))
         else -> obj("event" to text("unknown"))
     }
 }

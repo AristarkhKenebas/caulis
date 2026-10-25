@@ -1213,6 +1213,87 @@ everything. With Nix (step 24) all of them can be written in the same place:
 `programs.caulis.settings`, `programs.caulis.lua`, `programs.caulis.kotlinScript` — each
 checked by the compositor itself while building.
 
+## 28. Mice, touchpads, and keys that do more
+
+**Pointers and touchpads** — every setting is optional (the device's own default otherwise):
+
+```kotlin
+input.pointers.speed = -0.3                          // -1 slowest .. 1 fastest
+input.pointers.accelProfile = AccelProfile.FLAT      // as fast as the hand (games); ADAPTIVE: faster when quick
+input.touchpads.naturalScroll = true                 // content follows the fingers
+input.touchpads.disableWhileTyping = true
+input.touchpads.clickMethod = ClickMethod.FINGERS    // two fingers pressed = right click
+input.touchpads.tapButtons = TapButtons.LEFT_RIGHT_MIDDLE
+input.devices["Logitech G Pro*"] = DeviceSettings().apply { speed = -0.6; scrollFactor = 2.0 }
+input.devices["*Touchscreen*"] = DeviceSettings().apply { enabled = false }
+focusFollowsMouse = true                             // the keyboard goes to the window under the pointer
+repeatRate = 40; repeatDelay = 250                   // held keys: 40 a second, after 250 ms
+```
+
+Also: `tap`, `tapDrag`, `dragLock`, `leftHanded`, `middleEmulation`, `scrollMethod`
+(`TWO_FINGER`, `EDGE`, `BUTTON` with `scrollButton`), `offWithMouse` (a touchpad that is off
+while a mouse is plugged in). Device names — for `input.devices` — are listed by
+`my-compositor --devices`; `*` matches anything. Changes are taken on at once. The keyboard
+itself: `keyboardLayouts`, `keyboardVariants`, `keyboardOptions`, `keyboardModel`.
+
+**Keys that do more:**
+
+```kotlin
+bind("XF86AudioRaiseVolume", BindOptions(repeat = true, whileLocked = true)) { launch("wpctl set-volume @DEFAULT_SINK@ 5%+") }
+bind("Super", BindOptions(description = "overview")) { desktop.toggleOverview() }   // Super tapped alone
+bind("Super+P", BindOptions(release = true)) { launch("grim") }                        // when let go
+bind("Super+WheelDown") { run("workspace next") }                                       // the wheel
+bind("MouseSide") { run("workspace back") }                                             // mouse buttons: MouseLeft/Right/Middle/Side/Extra/Forward/Back, mouse:276
+```
+
+`repeat` repeats while held (at the keyboard's repeat rate), `whileLocked` works on the lock
+screen too (volume, brightness), `release` runs when the key is let go. A modifier alone
+(`"Super"`) is a tap: pressed and let go with nothing in between — Super+Q never counts as one.
+
+**Key modes** ("submaps"): keys of their own, on until you leave — e.g. a resize mode:
+
+```kotlin
+bind("Super+R") { enterMode("resize") }
+mode("resize") {
+    bind("Left", BindOptions(repeat = true)) { run("resize left") }
+    bind("Right", BindOptions(repeat = true)) { run("resize right") }
+    bind("Escape") { enterMode(null) }
+}
+```
+
+While a mode is on, the usual keys are off (keys not named in it go to programs); quitting and
+the text consoles always work. Bars show the mode: the IPC socket tells `key-mode-changed`.
+
+The laptop's lid: `onLid { closed -> if (closed) lock() }`.
+
+In config.json (and Nix, and Lua) the same:
+
+```jsonc
+{
+  "keyboard": { "layouts": "us,ru", "repeatRate": 40, "repeatDelay": 250 },
+  "input": {
+    "focusFollowsMouse": true,
+    "pointers": { "speed": -0.3, "accelProfile": "flat" },
+    "touchpads": { "naturalScroll": true, "clickMethod": "fingers" },
+    "devices": { "Logitech*": { "scrollFactor": 2 } }
+  },
+  "bind": {
+    "XF86AudioRaiseVolume": { "action": "exec wpctl set-volume @DEFAULT_SINK@ 5%+", "repeat": true, "locked": true },
+    "Super+R": "mode resize"
+  },
+  "modes": { "resize": { "Left": { "action": "resize left", "repeat": true }, "Escape": "mode reset" } },
+  "lid": { "close": "lock" }
+}
+```
+
+```lua
+caulis.bind("XF86AudioRaiseVolume", "exec wpctl set-volume @DEFAULT_SINK@ 5%+", { repeating = true, locked = true })
+caulis.bind("Left", "resize left", { mode = "resize", repeating = true })
+caulis.on("lid", function(closed) if closed then caulis.run("lock") end end)
+```
+
+(In Lua it is `repeating`: `repeat` is a word of the language.)
+
 ## When something goes wrong
 
 ### Look in the log

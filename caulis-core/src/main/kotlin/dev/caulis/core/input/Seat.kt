@@ -36,6 +36,26 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
         keyboardFocusListeners += listener
     }
 
+    /** Held keys repeat this many times a second (0: never; 1 to 100). Programs repeat keys themselves; this tells them how. */
+    var repeatRate = REPEAT_RATE
+        set(value) {
+            require(value in 0..100) { "repeatRate is 0 to 100 a second, not $value" }
+            field = value
+            repeatChanged()
+        }
+
+    /** How long a key is held before it repeats, in milliseconds (100 to 2000). */
+    var repeatDelay = REPEAT_DELAY
+        set(value) {
+            require(value in 100..2000) { "repeatDelay is 100 to 2000 ms, not $value" }
+            field = value
+            repeatChanged()
+        }
+
+    private fun repeatChanged() {
+        for (keyboard in keyboards) if (keyboard.version >= 4) keyboard.sendRepeatInfo(repeatRate, repeatDelay)
+    }
+
     /** The surface under the pointer, or null. */
     var pointerFocus: Surface? = null
         private set
@@ -94,7 +114,7 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
                 override fun release(resource: WlKeyboard) {}
             }
             id.sendKeymap(WlKeyboard.KeymapFormat.XKB_V1, keymap.shared.fd, keymap.sharedSize)
-            id.sendRepeatInfo(REPEAT_RATE, REPEAT_DELAY)
+            if (id.version >= 4) id.sendRepeatInfo(repeatRate, repeatDelay)
             // A keyboard created while its client already has focus starts focused.
             val focus = keyboardFocus
             if (focus != null && focus.resource.client === id.client) {
@@ -281,7 +301,7 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
     companion object {
         const val VERSION = 9
 
-        /** Key repeat: characters per second and delay before repeating, in milliseconds. */
+        /** Key repeat by default: characters per second and delay before repeating, in milliseconds. */
         const val REPEAT_RATE = 30
         const val REPEAT_DELAY = 300
     }

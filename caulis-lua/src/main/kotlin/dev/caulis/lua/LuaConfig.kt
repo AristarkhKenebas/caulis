@@ -121,11 +121,29 @@ class LuaConfig : ConfigLanguage {
                     }
                     else -> throw LuaError("bind: an action (\"exec firefox\") or a function, not ${action.typename()}")
                 }
+                // { repeating = true, release = true, locked = true, description = "...", mode = "resize" } ("repeat" is a word of Lua)
+                val more = args.arg(3)
+                val options = if (more.istable()) {
+                    val t = more.checktable()
+                    dev.caulis.wm.BindOptions(
+                        repeat = t.get("repeating").optboolean(false),
+                        release = t.get("release").optboolean(false),
+                        whileLocked = t.get("locked").optboolean(false),
+                        description = t.get("description").optjstring(null),
+                    )
+                } else {
+                    dev.caulis.wm.BindOptions()
+                }
+                val mode = if (more.istable()) more.get("mode").optjstring(null) else null
                 try {
-                    caulis.bind(combination, action = run)
+                    if (mode != null) caulis.mode(mode) { bind(combination, options, run) } else caulis.bind(combination, options, run)
                 } catch (e: IllegalArgumentException) {
                     throw LuaError(e.message ?: "not a key combination")
                 }
+                LuaValue.NONE
+            }
+            function("mode") { args ->
+                running("mode") { enterMode(args.optjstring(1, null)?.takeIf { it != "reset" }) }
                 LuaValue.NONE
             }
             function("on") { args ->
@@ -138,6 +156,7 @@ class LuaConfig : ConfigLanguage {
                     "window-closed" -> caulis.onWindowClosed { w -> call("on window-closed", fn, window(w)) }
                     "focus-changed" -> caulis.onFocusChanged { w -> call("on focus-changed", fn, w?.let(::window) ?: LuaValue.NIL) }
                     "workspace-changed" -> caulis.onWorkspaceChanged { n -> call("on workspace-changed", fn, LuaValue.valueOf(n)) }
+                    "lid" -> caulis.onLid { closed -> call("on lid", fn, LuaValue.valueOf(closed)) }
                     "notice" -> caulis.onNotice { n: Notice -> call("on notice", fn, LuaValue.valueOf(n.text), LuaValue.valueOf(n.level.name.lowercase())) }
                     else -> throw LuaError("there is no event \"$event\" (there are: ${EVENTS.joinToString()})")
                 }
@@ -314,7 +333,7 @@ class LuaConfig : ConfigLanguage {
     }
 
     private companion object {
-        val EVENTS = listOf("start", "reload", "window-opened", "window-closed", "focus-changed", "workspace-changed", "notice")
+        val EVENTS = listOf("start", "reload", "window-opened", "window-closed", "focus-changed", "workspace-changed", "notice", "lid")
 
         // How long Lua code may run: the whole file, and one key, event or timer.
         const val LOAD_LIMIT = 5_000_000_000L

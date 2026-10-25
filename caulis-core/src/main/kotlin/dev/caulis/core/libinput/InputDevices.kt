@@ -1,6 +1,11 @@
 package dev.caulis.core.libinput
 
+import dev.caulis.core.input.AccelProfile
+import dev.caulis.core.input.ClickMethod
 import dev.caulis.core.input.Gesture
+import dev.caulis.core.input.InputSettings
+import dev.caulis.core.input.ScrollMethod
+import dev.caulis.core.input.TapButtons
 import dev.caulis.core.session.Session
 import dev.caulis.event.EventLoop
 import dev.caulis.ffi.CStrings
@@ -32,6 +37,27 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
 
     /** Touchpad gestures with several fingers (swipe, pinch, hold). */
     var onGesture: (Gesture) -> Unit = {}
+
+    /** A switch changed: the laptop's lid ([Switch.LID], on = closed) or tablet mode. */
+    var onSwitch: (Switch, on: Boolean) -> Unit = { _, _ -> }
+
+    /** Devices came or went (for listing them). */
+    var onDevicesChanged: () -> Unit = {}
+
+    /** How pointers and touchpads behave; applied to those there are and those that come. */
+    var settings: InputSettings = InputSettings()
+        set(value) {
+            field = value
+            for (device in devices.values) configure(device)
+        }
+
+    /** The devices there are now. */
+    val list: List<InputDevice> get() = devices.values.toList()
+
+    // By the address of libinput's device.
+    private val devices = LinkedHashMap<Long, InputDevice>()
+
+    private val log = dev.caulis.log.Logger("input")
 
     private val arena = Arena.ofShared()
     private val udev: MemorySegment = Input.udev_new()
@@ -103,8 +129,22 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
     private fun handle(event: MemorySegment) {
         val device = Input.libinput_event_get_device(event)
         when (Input.libinput_event_get_type(event)) {
-            Input.LIBINPUT_EVENT_DEVICE_ADDED() -> configure(device)
-            Input.LIBINPUT_EVENT_DEVICE_REMOVED() -> releaseHeld(device)
+            Input.LIBINPUT_EVENT_DEVICE_ADDED() -> added(device)
+            Input.LIBINPUT_EVENT_DEVICE_REMOVED() -> {
+                releaseHeld(device)
+                devices.remove(device.address())?.let { log.info { "Device gone: ${it.name}" } }
+                onDevicesChanged()
+            }
+
+            Input.LIBINPUT_EVENT_SWITCH_TOGGLE() -> {
+                val switch = Input.libinput_event_get_switch_event(event)
+                val which = when (Input.libinput_event_switch_get_switch(switch)) {
+                    Input.LIBINPUT_SWITCH_LID() -> Switch.LID
+                    Input.LIBINPUT_SWITCH_TABLET_MODE() -> Switch.TABLET_MODE
+                    else -> null
+                }
+                if (which != null) onSwitch(which, Input.libinput_event_switch_get_switch_state(switch) == Input.LIBINPUT_SWITCH_STATE_ON())
+            }
 
             Input.LIBINPUT_EVENT_KEYBOARD_KEY() -> {
                 val key = Input.libinput_event_get_keyboard_event(event)
@@ -156,8 +196,10 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
             Input.LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL() to false,
         )) {
             if (Input.libinput_event_pointer_has_axis(pointer, axis) == 0) continue
-            val value = Input.libinput_event_pointer_get_scroll_value(pointer, axis)
-            val value120 = if (wheel) Input.libinput_event_pointer_get_scroll_value_v120(pointer, axis).toInt() else 0
+            // The device's own scroll factor.
+            val factor = devices[Input.libinput_event_get_device(event).address()]?.scrollFactor ?: 1.0
+            val value = Input.libinput_event_pointer_get_scroll_value(pointer, axis) * factor
+            val value120 = if (wheel) Math.round(Input.libinput_event_pointer_get_scroll_value_v120(pointer, axis) * factor).toInt() else 0
             onPointerAxis(time, vertical, value, value120)
         }
     }
@@ -185,10 +227,78 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
         )
     }
 
-    // Sensible defaults for new devices: tap-to-click on touchpads.
-    private fun configure(device: MemorySegment) {
-        if (Input.libinput_device_config_tap_get_finger_count(device) > 0) {
-            Input.libinput_device_config_tap_set_enabled(device, Input.LIBINPUT_CONFIG_TAP_ENABLED())
+    // A device came: what it is, and its settings.
+    private fun added(device: MemorySegment) {
+        val name = CStrings.borrowed(Input.libinput_device_get_name(device)) ?: "unknown"
+        fun has(capability: Int) = Input.libinput_device_has_capability(device, capability) != 0
+        val touchpad = Input.libinput_device_config_tap_get_finger_count(device) > 0
+        val kinds = buildSet {
+            if (has(Input.LIBINPUT_DEVICE_CAP_KEYBOARD())) add(InputDevice.Kind.KEYBOARD)
+            if (has(Input.LIBINPUT_DEVICE_CAP_POINTER())) add(if (touchpad) InputDevice.Kind.TOUCHPAD else InputDevice.Kind.POINTER)
+            if (has(Input.LIBINPUT_DEVICE_CAP_TOUCH())) add(InputDevice.Kind.TOUCHSCREEN)
+            if (has(Input.LIBINPUT_DEVICE_CAP_TABLET_TOOL())) add(InputDevice.Kind.TABLET)
+            if (has(Input.LIBINPUT_DEVICE_CAP_SWITCH())) add(InputDevice.Kind.SWITCH)
+        }
+        val known = InputDevice(name, kinds, device)
+        devices[device.address()] = known
+        log.info { "Device: $name (${kinds.joinToString { it.name.lowercase() }})" }
+        configure(known)
+        onDevicesChanged()
+    }
+
+    // Applies the settings that are for [device] (pointers and touchpads).
+    private fun configure(device: InputDevice) {
+        val d = device.handle
+        val touchpad = InputDevice.Kind.TOUCHPAD in device.kinds
+        if (InputDevice.Kind.POINTER !in device.kinds && !touchpad) return
+        val s = settings.forDevice(device.name, touchpad)
+        device.scrollFactor = s.scrollFactor ?: 1.0
+        fun flag(value: Boolean?, on: Int, off: Int, set: (Int) -> Int) = value?.let { set(if (it) on else off) }
+        val modes = Input.libinput_device_config_send_events_get_modes(d)
+        val mode = when {
+            s.enabled == false -> Input.LIBINPUT_CONFIG_SEND_EVENTS_DISABLED()
+            s.offWithMouse == true && modes and Input.LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE() != 0 -> Input.LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE()
+            else -> Input.LIBINPUT_CONFIG_SEND_EVENTS_ENABLED()
+        }
+        Input.libinput_device_config_send_events_set_mode(d, mode)
+        if (Input.libinput_device_config_accel_is_available(d) != 0) {
+            s.speed?.let { Input.libinput_device_config_accel_set_speed(d, it) }
+            s.accelProfile?.let {
+                Input.libinput_device_config_accel_set_profile(d, if (it == AccelProfile.FLAT) Input.LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT() else Input.LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE())
+            }
+        }
+        if (Input.libinput_device_config_scroll_has_natural_scroll(d) != 0) {
+            s.naturalScroll?.let { Input.libinput_device_config_scroll_set_natural_scroll_enabled(d, if (it) 1 else 0) }
+        }
+        s.scrollMethod?.let { method ->
+            val wanted = when (method) {
+                ScrollMethod.NONE -> Input.LIBINPUT_CONFIG_SCROLL_NO_SCROLL()
+                ScrollMethod.TWO_FINGER -> Input.LIBINPUT_CONFIG_SCROLL_2FG()
+                ScrollMethod.EDGE -> Input.LIBINPUT_CONFIG_SCROLL_EDGE()
+                ScrollMethod.BUTTON -> Input.LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN()
+            }
+            if (wanted == 0 || Input.libinput_device_config_scroll_get_methods(d) and wanted != 0) Input.libinput_device_config_scroll_set_method(d, wanted)
+        }
+        s.scrollButton?.let { Input.libinput_device_config_scroll_set_button(d, it) }
+        if (Input.libinput_device_config_left_handed_is_available(d) != 0) s.leftHanded?.let { Input.libinput_device_config_left_handed_set(d, if (it) 1 else 0) }
+        if (Input.libinput_device_config_middle_emulation_is_available(d) != 0) {
+            flag(s.middleEmulation, Input.LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED(), Input.LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED()) { Input.libinput_device_config_middle_emulation_set_enabled(d, it) }
+        }
+        if (touchpad) {
+            // Tapping is on unless said otherwise.
+            Input.libinput_device_config_tap_set_enabled(d, if (s.tap != false) Input.LIBINPUT_CONFIG_TAP_ENABLED() else Input.LIBINPUT_CONFIG_TAP_DISABLED())
+            s.tapButtons?.let {
+                Input.libinput_device_config_tap_set_button_map(d, if (it == TapButtons.LEFT_RIGHT_MIDDLE) Input.LIBINPUT_CONFIG_TAP_MAP_LRM() else Input.LIBINPUT_CONFIG_TAP_MAP_LMR())
+            }
+            flag(s.tapDrag, Input.LIBINPUT_CONFIG_DRAG_ENABLED(), Input.LIBINPUT_CONFIG_DRAG_DISABLED()) { Input.libinput_device_config_tap_set_drag_enabled(d, it) }
+            flag(s.dragLock, Input.LIBINPUT_CONFIG_DRAG_LOCK_ENABLED(), Input.LIBINPUT_CONFIG_DRAG_LOCK_DISABLED()) { Input.libinput_device_config_tap_set_drag_lock_enabled(d, it) }
+            if (Input.libinput_device_config_dwt_is_available(d) != 0) {
+                flag(s.disableWhileTyping, Input.LIBINPUT_CONFIG_DWT_ENABLED(), Input.LIBINPUT_CONFIG_DWT_DISABLED()) { Input.libinput_device_config_dwt_set_enabled(d, it) }
+            }
+            s.clickMethod?.let { method ->
+                val wanted = if (method == ClickMethod.AREAS) Input.LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS() else Input.LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER()
+                if (Input.libinput_device_config_click_get_methods(d) and wanted != 0) Input.libinput_device_config_click_set_method(d, wanted)
+            }
         }
     }
 
@@ -228,3 +338,16 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
         const val BTN_MOUSE = 0x110
     }
 }
+
+/** An input device: its name (as settings name it), what it is, and libinput's handle. */
+class InputDevice internal constructor(val name: String, val kinds: Set<Kind>, internal val handle: MemorySegment) {
+    enum class Kind { KEYBOARD, POINTER, TOUCHPAD, TOUCHSCREEN, TABLET, SWITCH }
+
+    // Its own scroll factor (from its settings).
+    internal var scrollFactor = 1.0
+
+    override fun toString() = "$name (${kinds.joinToString { it.name.lowercase() }})"
+}
+
+/** Switches a computer has. */
+enum class Switch { LID, TABLET_MODE }
