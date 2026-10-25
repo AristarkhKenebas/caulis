@@ -156,6 +156,20 @@ class MonitorsTest {
         }
     }
 
+    @Test
+    fun `a placement opens a window on its monitor, maximized from the first frame`() = withServer { server, client ->
+        server.onServer { d -> d.placementFor = { WindowPlacement(monitor = "TEST-2", maximized = true) } }
+        val window = client.window()
+        assertEquals(width to height, window.width to window.height, "the whole monitor in the very first configure")
+        assertTrue(dev.caulis.protocol.client.xdgshell.XdgToplevel.State.MAXIMIZED in window.states)
+        window.draw()
+        client.waitFor { server.onServer { d -> d.allWindows.singleOrNull()?.mapped } == true }
+        server.onServer { d ->
+            assertEquals("TEST-2", d.monitorOf(d.allWindows.single()).name)
+            assertEquals(width, d.allWindows.single().x, "at the second monitor's corner")
+        }
+    }
+
     private fun withServer(mode: WorkspaceMode = WorkspaceMode.PER_MONITOR, test: (ScreenTestServer, TestClient) -> Unit) {
         assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
         ScreenTestServer(monitorCount = 2, workspaceMode = mode).use { server ->

@@ -245,17 +245,39 @@ how long; 0 turns it off).
 
 ## 6. Rules and events
 
-```kotlin
-// These float above the tiled windows instead of taking a tile:
-floatWhen { it.appId == "pavucontrol" }
+Rules say where windows open and how they look — one `rule { }` per kind of window:
 
-// React to what happens:
-onWindowOpened { window ->
-    if (window.appId == "firefox") desktop.moveToWorkspace(window, 2)
-}
+```kotlin
+rule { appId("firefox"); workspace = 2 }                         // opens there; you stay where you are
+rule { appId("spotify"); workspace = 9; focus = false }          // and does not take the keyboard
+rule { appId("pavucontrol"); floating = true; size(700, 500); center() }
+rule { title("Picture-in-Picture"); floating = true; size(480, 270); position(20, 20) }
+rule { appId("mpv"); titleBars = TitleBars.NONE; opacity = 1f }  // looks: as long as it fits
+rule { program("steam"); monitor = "HDMI-A-1"; maximized = true }
+```
+
+Which windows: `appId("…")` (the whole id, case does not matter), `title("…")` (contained
+in the title), `program("…")` (the executable, as `ps` shows it), `Regex(…)` for either, or
+`where { window -> … }` for anything else; all that are given must fit. What happens:
+`workspace`, `monitor`, `goToWorkspace = true` (show it), `floating`, `size(w, h)`,
+`position(x, y)`, `center()`, `maximized`, `fullscreen`, `focus = false`, and for its looks
+`titleBars`, `opacity`, `effects { it.copy(…) }`.
+
+Where and how a window starts is decided before its first frame, so it never flashes up
+somewhere else. Some programs set their title only after opening (Spotify, browsers): such
+a window gets the rule when it starts to fit, once — move it elsewhere afterwards and it
+stays. The app id of a program: open it and look in the log (*Opened …*), or press Super+F12.
+
+Events, for everything rules do not cover:
+
+```kotlin
+onWindowOpened { window -> println("Opened ${window.title}") }
 onWindowClosed { window -> println("Closed ${window.title}") }
 onWorkspaceChanged { number -> println("Workspace $number") }
 ```
+
+`floatWhen { }`, `effectsFor { }` and `titleBarsFor { }` still work too (rules are the
+shorter way to say the same).
 
 If your code throws an exception, Caulis writes it to the log and keeps running — a mistake
 in a key binding never takes your desktop down.

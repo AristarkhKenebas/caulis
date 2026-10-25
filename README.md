@@ -41,7 +41,9 @@ val Mine = tiling("Mine") {
 }
 ```
 
-Change layouts while running: windows glide to their new places. Every usual key has a name
+Change layouts while running: windows glide to their new places. Rules say where windows
+open and how they look: `rule { appId("firefox"); workspace = 2 }`,
+`rule { appId("pavucontrol"); floating = true; size(700, 500); center() }`. Every usual key has a name
 and can be changed or turned off (`keys { close = "Super+Shift+Q"; quit = null }`).
 
 Several monitors work, each with its own workspace (or one workspace over all), panels and

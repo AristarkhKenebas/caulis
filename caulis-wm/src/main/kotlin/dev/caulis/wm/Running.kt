@@ -15,6 +15,7 @@ import dev.caulis.core.LayerShell
 import dev.caulis.core.LinuxDmabuf
 import dev.caulis.core.Monitor
 import dev.caulis.core.NoticeLevel
+import dev.caulis.core.WindowPlacement
 import dev.caulis.core.Output
 import dev.caulis.core.Presentation
 import dev.caulis.core.SessionLockManager
@@ -100,6 +101,22 @@ internal class Running(
     // Takes on changed code while running (null when off or not started from a project).
     private var reloader: Reloader? = null
 
+    // Which rules (by what they say) each window got its placement from already: a rule is
+    // applied once, when the window opens or first fits it.
+    private val rulesApplied = java.util.WeakHashMap<dev.caulis.core.Window, MutableSet<String>>()
+
+    // The title bars each window was last told (a rule may change them with its title).
+    private val shownTitleBars = java.util.WeakHashMap<dev.caulis.core.Window, dev.caulis.core.TitleBars?>()
+
+    private val rulesLog = Logger("windows")
+
+    private fun fits(rule: WindowRule, window: dev.caulis.core.Window): Boolean = safely("$rule", false) { rule.fits(window) }
+
+    // Who draws a window's title bar: the last rule that fits and says, then titleBarsFor.
+    private fun titleBarsOf(window: dev.caulis.core.Window): dev.caulis.core.TitleBars? =
+        config.rules.lastOrNull { it.titleBars != null && fits(it, window) }?.titleBars
+            ?: config.titleBarRules.firstNotNullOfOrNull { rule -> safely("titleBarsFor", null) { rule(window) } }
+
     // The user's event listeners of the configuration of the moment (replaced on a reload).
     private val configListeners = ArrayList<AutoCloseable>()
 
@@ -155,8 +172,29 @@ internal class Running(
         // configuration of the moment, so they need no setting again after a reload.
         val defaultRule = desktop.floatRule
         desktop.windowEffects = { window ->
-            config.effectRules.fold(desktop.effects) { fx, rule -> safely("effectsFor", fx) { rule(window, fx) } }
+            val fx = config.effectRules.fold(desktop.effects) { fx, rule -> safely("effectsFor", fx) { rule(window, fx) } }
+            config.rules.fold(fx) { now, rule -> if (fits(rule, window)) safely("$rule effects", now) { rule.effectsOf(now) } else now }
         }
+        // Window rules: where windows open (decided before their first frame), and once more
+        // for a window that fits a rule only after it changed its title or app id.
+        desktop.placementFor = { window ->
+            val fitting = config.rules.filter { it.hasPlacement && fits(it, window) }
+            rulesApplied.getOrPut(window) { HashSet() } += fitting.map { it.signature }
+            fitting.fold(WindowPlacement.USUAL) { placement, rule -> placement.and(rule.placement()) }.takeIf { fitting.isNotEmpty() }
+        }
+        desktop.onWindowInfoChanged { window ->
+            val applied = rulesApplied.getOrPut(window) { HashSet() }
+            for (rule in config.rules) {
+                if (!rule.hasPlacement || rule.signature in applied || !fits(rule, window)) continue
+                applied += rule.signature
+                rulesLog.info { "$window fits $rule now" }
+                safely("$rule") { desktop.applyPlacement(window, rule.placement()) }
+            }
+            // Its title bar may follow a rule that fits it now (or no longer).
+            val bars = titleBarsOf(window)
+            if (shownTitleBars.put(window, bars) != bars) desktop.titleBarsChanged()
+        }
+        desktop.onWindowOpened { window -> shownTitleBars[window] = titleBarsOf(window) }
         desktop.layerEffects = { layer ->
             config.panelEffectRules.firstNotNullOfOrNull { rule -> safely("panelEffects", null) { rule(layer) } } ?: Effects.NONE
         }
@@ -172,9 +210,7 @@ internal class Running(
         desktop.effects = config.effects
         desktop.titleBars = config.titleBars
         desktop.titleBarStyle = config.titleBarStyle
-        desktop.titleBarsFor = if (config.titleBarRules.isEmpty()) null else { window ->
-            config.titleBarRules.firstNotNullOfOrNull { rule -> safely("titleBarsFor", null) { rule(window) } }
-        }
+        desktop.titleBarsFor = if (config.titleBarRules.isEmpty() && config.rules.none { it.titleBars != null }) null else ::titleBarsOf
         desktop.noticeStyle = config.noticeStyle
         desktop.animationMillis = config.animationMillis
 
@@ -266,6 +302,11 @@ internal class Running(
         }
         configNotices.forEach(desktop::dismiss)
         configNotices.clear()
+        // New rules are for windows that open from now on (or fit them later), not for those
+        // already open where they fit: those stay where you have them.
+        for (window in desktop.allWindows) {
+            rulesApplied.getOrPut(window) { HashSet() } += next.rules.filter { it.hasPlacement && safely("$it", false) { it.fits(window) } }.map { it.signature }
+        }
         next.running = this
         before.running = null
         config = next

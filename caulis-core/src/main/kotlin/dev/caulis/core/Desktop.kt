@@ -29,6 +29,13 @@ class Desktop(
     screenHeight: Int,
 ) : XdgShell.Listener, LayerShell.Listener, SessionLockManager.Listener {
 
+    init {
+        // Text (title bars, notices) is drawn with Java's 2D graphics into pictures, never in
+        // windows of its own: without this it would connect to the X server of DISPLAY (the
+        // outer session's, or one that is gone) and fail when it cannot.
+        if (System.getProperty("java.awt.headless") == null) System.setProperty("java.awt.headless", "true")
+    }
+
     // --- monitors, size and scale ---------------------------------------------------------
 
     private val monitorList = ArrayList<Monitor>()
@@ -359,6 +366,7 @@ class Desktop(
     override fun windowInfoChanged(window: Window) {
         windowsLog.trace { "Now called $window" }
         windowListChanged()
+        if (window.mapped) notify(windowInfoListeners, window, "window-info-changed")
     }
 
     // --- a picture of the whole state, for finding problems ------------------------------------
@@ -552,6 +560,13 @@ class Desktop(
     private val windowClosedListeners = ArrayList<(Window) -> Unit>()
     private val focusListeners = ArrayList<(Window?) -> Unit>()
     private val workspaceListeners = ArrayList<(Workspace) -> Unit>()
+    private val windowInfoListeners = ArrayList<(Window) -> Unit>()
+
+    /** Runs [listener] when a window's title or app id changes. Close the result to stop. */
+    fun onWindowInfoChanged(listener: (Window) -> Unit): AutoCloseable {
+        windowInfoListeners += listener
+        return AutoCloseable { windowInfoListeners -= listener }
+    }
 
     /** Runs [listener] when a window appears (after it got its place and the focus). Close the result to stop. */
     fun onWindowOpened(listener: (Window) -> Unit): AutoCloseable {
@@ -627,6 +642,9 @@ class Desktop(
 
     /** The workspace on the monitor with the focus. */
     val activeWorkspace: Workspace get() = focusedMonitor.workspace
+
+    /** The number of the workspace [window] is on (null: in a scratchpad, or not open). */
+    fun workspaceNumberOf(window: Window): Int? = if (scratchpadOf(window) != null) null else workspaceOf(window)?.number
 
     init {
         // Until the backend adds monitors: one of the size given (tests, the very first frame).
@@ -1555,6 +1573,9 @@ class Desktop(
     // Set by ServerDecorations: tells the programs again when the settings change.
     internal var decorationsChanged: () -> Unit = {}
 
+    /** Asks [titleBarsFor] again for every window (its answer may have changed, e.g. with a title). */
+    fun titleBarsChanged() = decorationsChanged()
+
     // A window's title bar came or went: its place changes.
     internal fun decorationOfChanged(window: Window) {
         val workspace = workspaceOf(window) ?: return
@@ -1841,19 +1862,97 @@ class Desktop(
         changed()
     }
 
+    // --- where new windows go ----------------------------------------------------------------
+
+    /**
+     * Decides where each new window goes and how it starts — workspace, monitor, floating,
+     * size, place, maximized, fullscreen ([WindowPlacement]) — before its first frame.
+     * Null: as usual. (caulis-wm's `rule { }` sets this.)
+     */
+    var placementFor: (Window) -> WindowPlacement? = { null }
+
+    // What placementFor said, from a window's first configure until it appears.
+    private val placements = HashMap<Window, WindowPlacement>()
+
+    private fun placementOf(window: Window): WindowPlacement = placements.getOrPut(window) {
+        try {
+            placementFor(window) ?: WindowPlacement.USUAL
+        } catch (e: Exception) {
+            log.error("Your placement rule failed for $window (ignored): $e", e)
+            WindowPlacement.USUAL
+        }
+    }
+
+    private fun monitorNamed(name: String?): Monitor? = name?.let { wanted -> monitorList.firstOrNull { it.name == wanted } }
+
+    // The workspace a new window opens on: the one its placement says, or the one with the focus.
+    private fun workspaceFor(placement: WindowPlacement): Workspace {
+        val monitor = monitorNamed(placement.monitor) ?: focusedMonitor
+        return placement.workspace?.let { workspace(it, monitor) } ?: monitor.workspace
+    }
+
+    // Its floating place on [monitor]: as the placement says, else the next step of the cascade.
+    // [width] x [height] is its picture; its title bar (if ours) stays on screen above it.
+    private fun floatingPlace(window: Window, placement: WindowPlacement, monitor: Monitor, width: Int, height: Int): Rect {
+        val w = placement.width ?: width
+        val h = placement.height ?: height
+        val bar = titleHeight(window)
+        val area = monitor.usableArea
+        return when {
+            placement.x != null || placement.y != null -> Rect(area.x + (placement.x ?: 0), area.y + (placement.y ?: 0) + bar, w, h)
+            placement.center -> Rect(area.x + (area.width - w) / 2, area.y + (area.height - h - bar) / 2 + bar, w, h)
+            else -> cascadeRect(w, h, monitor.area).translate(0, bar)
+        }
+    }
+
+    /**
+     * Applies [placement] to [window], which is open already (e.g. a rule that matches it
+     * only after it changed its title): to its workspace or monitor, floating, its size,
+     * maximized, fullscreen.
+     */
+    fun applyPlacement(window: Window, placement: WindowPlacement) {
+        if (scratchpadOf(window) != null || workspaceOf(window) == null) return
+        layoutLog.info { "$window: placed by a rule ($placement)" }
+        val monitor = monitorNamed(placement.monitor)
+        when {
+            placement.workspace != null -> moveToWorkspace(window, workspace(placement.workspace, monitor ?: monitorOf(window)))
+            monitor != null -> moveToWorkspace(window, monitor.workspace)
+        }
+        placement.floating?.let { setFloating(window, it) }
+        if (placement.width != null || placement.height != null || placement.x != null || placement.y != null || placement.center) {
+            val visible = window.visibleRect
+            val place = floatingPlace(window, placement, monitorOf(window), visible.width, visible.height)
+            floatingRects[window] = place
+            if (!window.tiled && !window.maximized && !window.fullscreen) {
+                moveSmoothly(window, place.x, place.y)
+                window.configure(place.width, place.height)
+            }
+        }
+        placement.maximized?.let { setMaximized(window, it) }
+        placement.fullscreen?.let { setFullscreen(window, it) }
+        if (placement.goToWorkspace) focus(window)
+        changed()
+    }
+
     // --- windows appear and disappear ----------------------------------------------------
 
     // The layout decides the size before the first frame, so a new window never shows up
     // in a wrong size first (R1). Maximized/fullscreen apps get the whole desktop.
     override fun initialSize(window: Window): Pair<Int, Int> {
-        if (window.maximized && !window.fullscreen) return withoutTitle(window, focusedMonitor.usableArea).let { it.width to it.height }
         scratchpadFor(window)?.let { pad ->
             window.tiled = pad.style is Scratchpad.Overlay // told in the very first configure
             return padTargets(pad, extra = window).getValue(window).let { it.width to it.height }
         }
-        if (window.maximized || window.fullscreen) return focusedMonitor.area.let { it.width to it.height }
-        if (floatRule(window)) return 0 to 0
-        val target = arrange(activeWorkspace, extra = window)[window] ?: return 0 to 0
+        // Where it goes (rules), told in the very first configure too.
+        val placement = placementOf(window)
+        placement.maximized?.let { window.maximized = it }
+        placement.fullscreen?.let { window.fullscreen = it }
+        val workspace = workspaceFor(placement)
+        val monitor = workspace.monitor ?: focusedMonitor
+        if (window.maximized && !window.fullscreen) return withoutTitle(window, monitor.usableArea).let { it.width to it.height }
+        if (window.fullscreen) return monitor.area.let { it.width to it.height }
+        if (placement.floating ?: floatRule(window)) return (placement.width ?: 0) to (placement.height ?: 0)
+        val target = arrange(workspace, extra = window)[window] ?: return 0 to 0
         window.tiled = true
         return target.width to target.height
     }
@@ -1867,36 +1966,42 @@ class Desktop(
             notify(windowOpenedListeners, window, "window-opened")
             return
         }
-        val workspace = activeWorkspace
+        val placement = placementOf(window)
+        placements -= window
+        val workspace = workspaceFor(placement)
+        val monitor = workspace.monitor ?: focusedMonitor
         val visibleRect = window.visibleRect
-        // Its place when floating: its own size, or (if the layout sized it) 2/3 of the desktop.
-        val floatingPlace = (if (window.tiled) cascadeRect(width * 2 / 3, height * 2 / 3) else cascadeRect(visibleRect.width, visibleRect.height))
-            .let { it.translate(0, titleHeight(window)) } // its title bar stays on screen
+        // Its place when floating: its own size, or (if the layout sized it) 2/3 of the monitor.
+        val floatingPlace = if (window.tiled) floatingPlace(window, placement, monitor, monitor.area.width * 2 / 3, monitor.area.height * 2 / 3)
+            else floatingPlace(window, placement, monitor, visibleRect.width, visibleRect.height)
         floatingRects[window] = floatingPlace
         workspace.add(window)
-        if (floatRule(window) || workspace.layout === Floating) {
-            if (floatRule(window)) workspace.floating += window
+        val floats = placement.floating ?: floatRule(window)
+        if (floats || workspace.layout === Floating) {
+            if (floats) workspace.floating += window
             window.tiled = false
             window.x = floatingPlace.x
             window.y = floatingPlace.y
         }
         if (window.maximized || window.fullscreen) {
             // Started maximized: if it is ever restored, it gets a sensible floating place.
-            floatingRects[window] = Rect(floatingPlace.x, floatingPlace.y, width * 2 / 3, height * 2 / 3)
-            val monitor = workspace.monitor ?: focusedMonitor
+            if (placement.width == null) floatingRects[window] = Rect(floatingPlace.x, floatingPlace.y, monitor.area.width * 2 / 3, monitor.area.height * 2 / 3)
             window.x = if (window.fullscreen) monitor.area.x else monitor.usableArea.x
             window.y = if (window.fullscreen) monitor.area.y else monitor.usableArea.y + titleHeight(window)
         }
         // Its own tile was decided before the first frame: it appears there right away.
         val targets = arrange(workspace)
         targets[window]?.let { window.x = it.x; window.y = it.y }
-        focus(window)
+        // The keyboard: if it is on screen (or should be shown) and may take it.
+        val shown = monitorList.any { it.workspace === workspace }
+        if (placement.goToWorkspace || (shown && placement.focus)) focus(window) else changed()
         windowsLog.info { "Opened $window (workspace ${workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
         notify(windowOpenedListeners, window, "window-opened")
     }
 
     override fun windowUnmapped(window: Window) {
         windowsLog.info { "Closed $window" }
+        placements -= window
         titleTextures.remove(window)?.second?.close()
         if (titleHover?.first === window) titleHover = null
         if (titlePressed?.first === window) titlePressed = null

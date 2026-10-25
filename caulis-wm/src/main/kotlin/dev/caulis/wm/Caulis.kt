@@ -445,6 +445,24 @@ class Caulis {
         startActions += action
     }
 
+    internal val rules = ArrayList<WindowRule>()
+
+    /**
+     * A rule for some windows: which ones, where they open and how they look (see [WindowRule]):
+     *
+     * ```
+     * rule { appId("firefox"); workspace = 2 }
+     * rule { appId("spotify"); workspace = 9; focus = false }
+     * rule { appId("pavucontrol"); floating = true; size(700, 500); center() }
+     * rule { title("Picture-in-Picture"); floating = true; size(480, 270); position(20, 20) }
+     * rule { appId("mpv"); titleBars = TitleBars.NONE; opacity = 1f }
+     * ```
+     */
+    @JvmSynthetic
+    fun rule(configure: WindowRule.() -> Unit) {
+        rules += WindowRule().apply(configure)
+    }
+
     /**
      * Windows for which [rule] is true float above the tiled ones instead of joining the
      * layout, e.g. `floatWhen { it.appId == "pavucontrol" }`. Dialogs always float.
@@ -572,6 +590,7 @@ class Caulis {
     fun bind(combination: String, action: Consumer<Caulis>): Caulis = apply { bind(combination) { action.accept(this) } }
     fun bind(combination: List<String>, action: Consumer<Caulis>): Caulis = apply { bind(*combination.toTypedArray()) { action.accept(this) } }
     fun onStart(action: Consumer<Caulis>): Caulis = apply { onStart { action.accept(this) } }
+    fun rule(configure: Consumer<WindowRule>): Caulis = apply { rule { configure.accept(this) } }
     fun floatWhen(rule: java.util.function.Predicate<Window>): Caulis = apply { floatWhen { rule.test(it) } }
     fun effects(effects: Effects): Caulis = apply { this.effects = effects }
     fun effectsFor(rule: java.util.function.BiFunction<Window, Effects, Effects>): Caulis = apply { effectsFor { window, fx -> rule.apply(window, fx) } }
@@ -628,6 +647,8 @@ class Caulis {
      * it needs is there; throws [CannotStartException] with plain explanations if not.
      */
     fun run() {
+        // Java's 2D graphics only draws into pictures here (see Desktop): never into windows.
+        if (System.getProperty("java.awt.headless") == null) System.setProperty("java.awt.headless", "true")
         // A reload runs main() again: hand this configuration over instead of starting.
         Reloader.capturing.get()?.let { slot ->
             slot[0] = this
