@@ -90,7 +90,7 @@ class Idle(display: Display, private val loop: EventLoop, private val desktop: D
             override fun destroy(resource: ExtIdleNotificationV1) {}
         }
         log.info { "${id.client.name} wants to know after ${timeout / 1000.0} s without input" }
-        val close = watch(timeout.toLong().coerceAtLeast(0), ignoreInhibitors, onIdle = { if (id.isAlive) id.sendIdled() }, onResume = { if (id.isAlive) id.sendResumed() })
+        val close = watch(Integer.toUnsignedLong(timeout), ignoreInhibitors, onIdle = { if (id.isAlive) id.sendIdled() }, onResume = { if (id.isAlive) id.sendResumed() })
         id.onDestroy { close.close() }
     }
 

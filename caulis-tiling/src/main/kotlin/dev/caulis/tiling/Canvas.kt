@@ -139,12 +139,24 @@ private class CanvasModel(
                 false
             } else {
                 val target = cells.moved(command.direction.dx, command.direction.dy)
-                // Someone already there trades places with it.
-                val occupant = places.entries.firstOrNull { (other, c) -> other !== window && c.overlaps(target) }
-                if (occupant != null) places[occupant.key] = occupant.value.copy(x = cells.x, y = cells.y)
-                places[window] = target
-                follow = true
-                true
+                // Someone already there trades places with it — only when that leaves nobody on
+                // top of anybody (one window in the way, fitting where this one was).
+                val inTheWay = places.entries.filter { (other, c) -> other !== window && c.overlaps(target) }
+                val swapped = inTheWay.singleOrNull()?.let { (other, c) -> other to c.copy(x = cells.x, y = cells.y) }
+                val fits = when {
+                    inTheWay.isEmpty() -> true
+                    swapped == null -> false
+                    else -> !swapped.second.overlaps(target) &&
+                        places.none { (other, c) -> other !== window && other !== swapped.first && c.overlaps(swapped.second) }
+                }
+                if (!fits) {
+                    false
+                } else {
+                    swapped?.let { (other, c) -> places[other] = c }
+                    places[window] = target
+                    follow = true
+                    true
+                }
             }
         }
         is TilingCommand.Resize -> {
@@ -160,7 +172,8 @@ private class CanvasModel(
                     Direction.LEFT -> cells.copy(x = cells.x - step, width = cells.width + step)
                     Direction.UP -> cells.copy(y = cells.y - step, height = cells.height + step)
                 }
-                if (resized.width < 1 || resized.height < 1) {
+                // Never smaller than a cell, never over another window.
+                if (resized.width < 1 || resized.height < 1 || places.any { (other, c) -> other !== window && c.overlaps(resized) }) {
                     false
                 } else {
                     places[window] = resized

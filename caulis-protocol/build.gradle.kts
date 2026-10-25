@@ -2,8 +2,10 @@
 // from the protocol XML files in src/main/protocols.
 
 plugins {
-    id("caulis.library")
+    id("caulis.published")
 }
+
+description = "The Wayland protocol for Caulis: wire format, server and client objects, generated protocol classes."
 
 dependencies {
     api(project(":caulis-native"))

@@ -27,7 +27,10 @@ class Desktop(
     private val compositor: Compositor,
     screenWidth: Int,
     screenHeight: Int,
-) : XdgShell.Listener, LayerShell.Listener, SessionLockManager.Listener {
+) : XdgShell.Listener, LayerShell.Listener, SessionLockManager.Listener, AutoCloseable {
+
+    // Our listener for saved shader files (taken away again in close).
+    private var shaderSaved: (() -> Unit)? = null
 
     init {
         // Text (title bars, notices) is drawn with Java's 2D graphics into pictures, never in
@@ -36,7 +39,7 @@ class Desktop(
         if (System.getProperty("java.awt.headless") == null) System.setProperty("java.awt.headless", "true")
         // A shader file was saved: draw with its new code (only a weak link: tests make many desktops).
         val me = java.lang.ref.WeakReference(this)
-        WatchedText.anyChange += {
+        val listener: () -> Unit = {
             me.get()?.let { desktop ->
                 desktop.compositor.display.loop.post {
                     if (desktop.screenShader != null) desktop.views.forEach { it.damageEverything() } // (its file, perhaps)
@@ -45,11 +48,32 @@ class Desktop(
                 }
             }
         }
+        WatchedText.anyChange += listener
+        shaderSaved = listener
         // A window's last look, taken while its picture is still there (it may be going away).
         compositor.pictureGoing = { surface ->
             val window = allWindows.firstOrNull { it.surface === surface && it.mapped }
             if (window != null) lastLookOf(window)?.let { look -> lastLooks.put(window, look)?.target?.close() }
         }
+    }
+
+    /**
+     * Lets go of what the desktop keeps on the GPU (title bars, pictures of animations and
+     * fades, backgrounds) and of its listeners. Call it when the compositor ends.
+     */
+    override fun close() {
+        shaderSaved?.let { WatchedText.anyChange -= it }
+        shaderSaved = null
+        titleTextures.values.forEach { it.second.close() }
+        titleTextures.clear()
+        fades.keys.toList().forEach(::dropFade)
+        flights.forEach { it.target.close() }
+        flights.clear()
+        lastLooks.values.forEach { it.target.close() }
+        lastLooks.clear()
+        appearingPictures.values.forEach { it.close() }
+        appearingPictures.clear()
+        backdrops.close()
     }
 
     // --- monitors, size and scale ---------------------------------------------------------
@@ -175,6 +199,8 @@ class Desktop(
     /** A monitor went away: its workspaces stay (Super+N brings them back on another monitor). */
     fun removeMonitor(monitor: Monitor) {
         if (monitor !in monitorList) return
+        dropFade(monitor)
+        backdrops.forget(monitor.name)
         if (monitorList.size == 1) {
             // The last one: it stays as the stand-in, so windows keep a place until a monitor comes.
             placeholder = monitor
@@ -310,7 +336,16 @@ class Desktop(
     // --- a scale change: the last frame melts into the new layout -------------------------
 
     // The picture each monitor showed before its scale changed, and when it began to fade.
-    private val fades = HashMap<Monitor, Pair<GpuTexture, Long>>()
+    // A monitor's picture from before a scale change: its texture, since when, and what to
+    // close when it is over (the picture it was drawn into).
+    private class Fade(val texture: GpuTexture, val since: Long, val owner: AutoCloseable)
+
+    private val fades = HashMap<Monitor, Fade>()
+
+    private fun dropFade(monitor: Monitor) {
+        fades.remove(monitor)?.owner?.close()
+        fadeAlphas -= monitor
+    }
     private val fadeAlphas = HashMap<Monitor, Float>()
 
     // Takes the picture on [monitor] now (as a screenshot does); it fades out over the new
@@ -320,25 +355,36 @@ class Desktop(
         val width = monitor.pixelWidth
         val height = monitor.pixelHeight
         if (width <= 0 || height <= 0) return
-        fades.remove(monitor)?.first?.close()
+        dropFade(monitor)
         try {
-            renderer.createTarget(width, height).use { target ->
-                val view = createView(monitor)
-                try {
-                    render(view, target, age = 0)
-                } finally {
-                    removeView(view)
-                }
-                java.lang.foreign.Arena.ofConfined().use { arena ->
-                    val pixels = arena.allocate(width.toLong() * height * 4)
-                    target.readPixels(pixels, width * 4)
-                    val texture = renderer.createTexture(width, height)
-                    texture.upload(pixels, 0, height)
-                    fades[monitor] = texture to System.nanoTime()
-                    fadeAlphas[monitor] = 1f
+            // Drawn as on screen, without our cursor (it would fade out as a ghost) and without
+            // telling programs anything (their frames are on the real screen).
+            val target = renderer.createTarget(width, height)
+            try {
+                renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2])
+                draw(captureItems(cursor = false, hide = false), monitor.area, monitor::toPixels, monitor.scale, monitor)
+                renderer.end()
+            } catch (e: Throwable) {
+                target.close()
+                throw e
+            }
+            val texture = target.texture
+            if (texture != null) {
+                fades[monitor] = Fade(texture, System.nanoTime(), target) // read where it is: no copy
+            } else {
+                target.use {
+                    java.lang.foreign.Arena.ofConfined().use { arena ->
+                        val pixels = arena.allocate(width.toLong() * height * 4)
+                        target.readPixels(pixels, width * 4)
+                        val copy = renderer.createTexture(width, height)
+                        copy.upload(pixels, 0, height)
+                        fades[monitor] = Fade(copy, System.nanoTime(), copy)
+                    }
                 }
             }
-        } catch (e: Exception) {
+            fadeAlphas[monitor] = 1f
+        } catch (e: Throwable) {
+            e.rethrowIfFatal()
             renderLog.warn("The picture before the scale change could not be kept (it changes without fading)", e)
         }
         version++
@@ -349,11 +395,9 @@ class Desktop(
     private fun fading(): Boolean {
         val now = System.nanoTime()
         for ((monitor, fade) in fades.toList()) {
-            val t = (now - fade.second) / 1_000_000.0 / animations.scaleChangeMillis.coerceAtLeast(1)
+            val t = (now - fade.since) / 1_000_000.0 / animations.scaleChangeMillis.coerceAtLeast(1)
             if (t >= 1.0) {
-                fade.first.close()
-                fades -= monitor
-                fadeAlphas -= monitor
+                dropFade(monitor)
                 version++
             } else {
                 fadeAlphas[monitor] = (1 - t * t * (3 - 2 * t)).toFloat() // smooth at both ends
@@ -521,19 +565,27 @@ class Desktop(
 
     // Everything on screen, with or without our cursor; windows hidden from capture are
     // black boxes (their popups too).
-    private fun captureItems(cursor: Boolean): List<DrawItem> {
+    private fun captureItems(cursor: Boolean, hide: Boolean = true): List<DrawItem> {
         val all = items()
         val shown = if (cursor) all else all.subList(0, itemsCursorStart.coerceAtMost(all.size))
+        if (!hide) return shown
         if (allWindows.none { behaviorOf(it).hiddenFromCapture } && layerSurfaces.none { layerBehaviorOf(it).hiddenFromCapture }) return shown
         return shown.map { item ->
-            val owner = (item as? DrawItem.Picture)?.surface?.let(::ownerOf)
+            // Whose picture it is: a window's (or panel's) own, its title bar, its picture
+            // flying or appearing in an animation.
+            val owner = when {
+                item is DrawItem.Picture -> ownerOf(item.surface)
+                item.key is EffectKey -> (item.key as EffectKey).owner
+                item.key is Flight -> (item.key as Flight).window
+                else -> null
+            }
             val hidden = when (owner) {
                 is Window -> behaviorOf(owner).hiddenFromCapture
                 is LayerSurface -> layerBehaviorOf(owner).hiddenFromCapture
                 else -> false
             }
-            if (item is DrawItem.Picture && hidden) {
-                DrawItem.Color(EffectKey("hidden from capture", item.surface), item.rect, 0f, 0f, 0f, item.covers).also { it.only = item.only }
+            if (hidden && (item is DrawItem.Picture || item is DrawItem.Image || item is DrawItem.Effect)) {
+                DrawItem.Color(EffectKey("hidden from capture", item.key), item.rect, 0f, 0f, 0f, item.covers).also { it.only = item.only }
             } else {
                 item
             }
@@ -562,7 +614,7 @@ class Desktop(
     fun capture(target: GpuTarget, cursor: Boolean, monitor: Monitor = monitorList.first()) {
         val items = captureItems(cursor)
         renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2])
-        draw(items, monitor.area, monitor::toPixels, monitor.scale)
+        draw(items, monitor.area, monitor::toPixels, monitor.scale, monitor)
         renderer.end()
     }
 
@@ -626,7 +678,8 @@ class Desktop(
             for (listener in windowListListeners.toList()) {
                 try {
                     listener()
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
+                    e.rethrowIfFatal()
                     log.error("A window list listener failed (ignored): $e", e)
                 }
             }
@@ -714,11 +767,34 @@ class Desktop(
 
     // Calls listeners one by one; a mistake in one of them is reported and the rest go on
     // (your code must never be able to bring the whole desktop down).
+    // A layout's places for [windows] (fewer: the rest are not placed, as Floating does); one
+    // that fails leaves every window the whole [area] meanwhile.
+    private fun arrangeSafely(workspace: Workspace, windows: List<Window>, area: Rect, focused: Window?): List<Rect> =
+        userCode("The layout ${workspace.layout.name}", null) { workspace.model.arrange(windows, area, focused) } ?: windows.map { area }
+
+    // Your code (a rule, a curve, a layout, effects): what it throws is logged and [fallback]
+    // used, so one mistake never stops the drawing or the desktop.
+    private inline fun <T> userCode(what: String, fallback: T, body: () -> T): T = try {
+        body()
+    } catch (e: Throwable) {
+        e.rethrowIfFatal()
+        log.error("$what failed (ignored): $e", e)
+        fallback
+    }
+
+    // A curve's point, guarded (a curve of yours may throw): straight on if it does.
+    private fun Curve.safeAt(t: Double): Double = userCode("Your animation curve", t) { at(t) }
+
+    // Floats or not: your floatRule, or (if it fails) the usual answer.
+    private fun floats(window: Window): Boolean =
+        userCode("Your floatRule", window.parent != null || window.fixedSize || window.prefersFloating) { floatRule(window) }
+
     private fun <T> notify(listeners: List<(T) -> Unit>, value: T, event: String) {
         for (listener in listeners.toList()) {
             try {
                 listener(value)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                e.rethrowIfFatal()
                 log.error("Your $event handler failed (ignored): $e", e)
             }
         }
@@ -889,7 +965,7 @@ class Desktop(
             val wasFloating = window in from.floating
             from.remove(window)
             from.model.forget(window)
-            if (wasMinimized) to.minimized += window else to.add(window)
+            if (wasMinimized) to.minimizedList += window else to.add(window)
             if (wasFloating) to.floating += window
         }
         workspaces.values.remove(from)
@@ -1029,7 +1105,7 @@ class Desktop(
             }
         }
         if (before > 0 && before != activeWorkspace.number) previousWorkspaceNumber = before
-        focus(activeWorkspace.windows.lastOrNull())
+        focus(topWindow(activeWorkspace))
         layoutLog.info { "Workspace ${activeWorkspace.number} (${activeWorkspace.layout.name})${if (monitorList.size > 1) " on ${focusedMonitor.name}" else ""}" }
         notify(workspaceListeners, activeWorkspace, "workspace")
     }
@@ -1055,6 +1131,13 @@ class Desktop(
         }
     }
 
+    // An empty workspace nobody sees goes away (unless it always exists), as one left empty does.
+    private fun dropIfEmpty(workspace: Workspace) {
+        if (workspace.isEmpty && workspace.number > 0 && ruleOf(workspace.number)?.persistent != true && monitorList.none { it.workspace === workspace }) {
+            workspaces.values.remove(workspace)
+        }
+    }
+
     // [workspace] is shown on [on] now (the one shown there before is hidden, gone if empty).
     private fun show(workspace: Workspace, on: Monitor) {
         val previous = on.workspace
@@ -1075,9 +1158,7 @@ class Desktop(
         workspace.lastMonitorName = on.name
         if (workspaceMode == WorkspaceMode.PINNED && workspace.number > 0 && !onlyStandIn()) pinnedHomes.putIfAbsent(workspace.number, on.name)
         // Empty workspaces disappear once you leave them (never one on screen), unless they always exist.
-        if (previous.isEmpty && previous.number > 0 && ruleOf(previous.number)?.persistent != true && monitorList.none { it.workspace === previous }) {
-            workspaces.values.remove(previous)
-        }
+        dropIfEmpty(previous)
         arrange(workspace)
         changed()
     }
@@ -1086,7 +1167,7 @@ class Desktop(
     fun focusMonitor(monitor: Monitor) {
         if (monitor !in monitorList) return
         setFocusedMonitor(monitor)
-        focus(monitor.workspace.windows.lastOrNull())
+        focus(topWindow(monitor.workspace))
     }
 
     /** The monitor next to the focused one in a direction ([dx], [dy] = -1, 0 or 1), if any. */
@@ -1132,6 +1213,7 @@ class Desktop(
      */
     fun moveToWorkspace(window: Window, number: Int) {
         if (number !in 1..workspaceCount) return
+        if (workspaceOf(window) == null) return // (a scratchpad's: no workspace is made for it)
         val monitor = when (workspaceMode) {
             WorkspaceMode.PRIMARY_ONLY -> primaryMonitor
             WorkspaceMode.SPANNING, WorkspaceMode.SEPARATE -> monitorOf(window)
@@ -1161,7 +1243,8 @@ class Desktop(
         window.setActivated(false)
         arrange(from)
         arrange(to)
-        if (from === activeWorkspace) focus(from.windows.lastOrNull())
+        if (from === activeWorkspace) focus(topWindow(from))
+        dropIfEmpty(from)
         changed()
     }
 
@@ -1342,8 +1425,9 @@ class Desktop(
     private val lockListeners = ArrayList<(Boolean) -> Unit>()
 
     /** Runs [listener] when the session gets locked (true) or unlocked (false). */
-    fun onLockChanged(listener: (Boolean) -> Unit) {
+    fun onLockChanged(listener: (Boolean) -> Unit): AutoCloseable {
         lockListeners += listener
+        return AutoCloseable { lockListeners -= listener }
     }
 
     private fun lockSurfaces(): List<LockSurface> = lock?.surfaces?.filter { it.mapped } ?: emptyList()
@@ -1454,7 +1538,7 @@ class Desktop(
 
     // The scratchpad a new window belongs to (by the scratchpads' rules).
     private fun scratchpadFor(window: Window): Scratchpad? =
-        scratchpads.values.firstOrNull { pad -> try { pad.match(window) } catch (e: Exception) { false } }
+        scratchpads.values.firstOrNull { pad -> userCode("Your scratchpad ${pad.name}'s match", false) { pad.match(window) } }
 
     /**
      * Shows the scratchpad [name], or hides it if it is shown. Returns false if it has no
@@ -1492,6 +1576,8 @@ class Desktop(
         focus(pad.windows.last())
     }
 
+    private val padTimers = HashMap<Scratchpad, EventLoop.Timer>()
+
     private fun hideScratchpad(pad: Scratchpad) {
         pad.leaving = true
         val now = System.nanoTime()
@@ -1499,7 +1585,10 @@ class Desktop(
             val from = shownRects[window] ?: currentRect(window)
             glides[window] = Glide(from, now, to = pad.hiddenRect(from, padArea(pad)))
         }
-        compositor.display.loop.after(animationMillis) {
+        // (A hide before this one, shown again in between, must not end this one early.)
+        padTimers.remove(pad)?.cancel()
+        padTimers[pad] = compositor.display.loop.after(animationMillis) {
+            padTimers -= pad
             if (!pad.leaving) return@after // shown again meanwhile
             pad.leaving = false
             pad.shown = false
@@ -1516,7 +1605,7 @@ class Desktop(
     private fun padTargets(pad: Scratchpad, extra: Window? = null): Map<Window, Rect> {
         val windows = pad.windows + listOfNotNull(extra)
         if (pad.style is Scratchpad.Overlay) {
-            val rects = pad.workspace.model.arrange(windows, padArea(pad), windows.lastOrNull())
+            val rects = arrangeSafely(pad.workspace, windows, padArea(pad), windows.lastOrNull())
             return windows.zip(rects).associate { (window, rect) -> window to fit(window, rect) }
         }
         val rect = pad.shownRect(padArea(pad))
@@ -1564,7 +1653,7 @@ class Desktop(
         if (tiled.isEmpty()) return emptyMap()
         val top = workspace.windows.lastOrNull { it in tiled } ?: extra
         val area = (workspace.monitor?.takeIf { it in monitorList } ?: focusedMonitor).usableArea
-        val rects = workspace.model.arrange(tiled, area, top)
+        val rects = arrangeSafely(workspace, tiled, area, top)
         val targets = tiled.zip(rects).associate { (window, rect) -> window to fit(window, withMargins(window, rect, area)) }
         layoutLog.trace { "Arrange workspace ${workspace.number} (${workspace.layout.name}) in $area: " + targets.entries.joinToString { (w, r) -> "${w.title.take(24)}=$r" } }
         if (extra == null) place(targets)
@@ -1605,7 +1694,8 @@ class Desktop(
     private fun withMargins(window: Window, place: Rect, area: Rect): Rect {
         val m = try {
             marginsFor(window)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            e.rethrowIfFatal()
             log.error("Your margins rule failed for $window (ignored): $e", e)
             null
         } ?: return place
@@ -1706,7 +1796,7 @@ class Desktop(
 
     fun toggleOverview() = setOverview(!inOverview)
 
-    /** How much of the monitor the overview's windows take (0.5 to 1: the rest is a margin around them). */
+    /** How much of the monitor the overview's windows take (0.3 to 1: the rest is a margin around them). */
     var overviewFill = 0.9
         set(value) {
             require(value in 0.3..1.0) { "overviewFill is 0.3 to 1" }
@@ -1728,7 +1818,7 @@ class Desktop(
     private fun cameraAt(now: Long): Camera {
         val t = (now - cameraStart) / (cameraMillis * 1_000_000.0)
         if (t >= 1.0 || animationMillis == 0L || animations.overviewMillis == 0L) return cameraTo
-        return cameraFrom.mix(cameraTo, animations.curve.at(t))
+        return cameraFrom.mix(cameraTo, animations.curve.safeAt(t))
     }
 
     private fun cameraMoving(now: Long) = cameraTo !== cameraFrom && (now - cameraStart) < cameraMillis * 1_000_000
@@ -1968,7 +2058,7 @@ class Desktop(
     }
 
     /** Who draws [window]'s title bar now. */
-    fun titleBarsOf(window: Window): TitleBars = titleBarsFor?.invoke(window) ?: titleBars
+    fun titleBarsOf(window: Window): TitleBars = titleBarsFor?.let { rule -> userCode("Your titleBarsFor", null) { rule(window) } } ?: titleBars
 
     /** How high the compositor's title bar over [window] is, in desktop units (0: it has none). */
     fun titleHeight(window: Window): Int {
@@ -2024,7 +2114,8 @@ class Desktop(
         val g = image.createGraphics()
         try {
             titleBarStyle.painter.paint(g, look)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            e.rethrowIfFatal()
             log.error("Drawing a title bar failed (your TitleBarPainter?)", e)
         } finally {
             g.dispose()
@@ -2181,7 +2272,8 @@ class Desktop(
 
     private fun layerBehaviorOf(layer: LayerSurface): LayerBehavior = try {
         layerBehaviorFor(layer)
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
+        e.rethrowIfFatal()
         log.error("Your panel rule failed for ${layer.namespace} (ignored): $e", e)
         LayerBehavior.USUAL
     }
@@ -2220,7 +2312,7 @@ class Desktop(
         val now = System.nanoTime()
         val change = focusLooks[owner]
         if (change == null || change.first != focused) focusLooks[owner] = focused to if (change == null) 0L else now
-        val e = animationProgress(focusLooks.getValue(owner).second, fx.focusChangeMillis, now)?.let { animations.curve.at(it).toFloat().coerceIn(0f, 1f) }
+        val e = animationProgress(focusLooks.getValue(owner).second, fx.focusChangeMillis, now)?.let { animations.curve.safeAt(it).toFloat().coerceIn(0f, 1f) }
         if (e != null) focusChanging = true
         fun shadowOf(focus: Boolean) = (if (focus) fx.shadow else fx.inactiveShadow ?: fx.shadow)?.takeIf { it != Shadow.NONE }
         fun addShadow(shadow: Shadow, alpha: Float, key: String) {
@@ -2258,6 +2350,10 @@ class Desktop(
      * neighbour closing), in milliseconds. 0 = they jump.
      */
     var animationMillis = 220L
+        set(value) {
+            require(value in 0..10_000) { "animationMillis is 0 to 10000, not $value" }
+            field = value
+        }
 
     /**
      * How windows appear and go away and how workspaces change (see [Animations]); how long
@@ -2329,7 +2425,8 @@ class Desktop(
             draw(parts, null, { r -> Rect(px(r.x - box.x), px(r.y - box.y), px(r.width).coerceAtLeast(1), px(r.height).coerceAtLeast(1)) }, scale)
             renderer.end()
             Triple(target, texture, box)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            e.rethrowIfFatal()
             renderLog.warn("A picture of $window for its animation could not be made (it changes without one): $e")
             null
         }
@@ -2362,13 +2459,14 @@ class Desktop(
     // How a flight is drawn now (null once it is over).
     private fun flightItem(flight: Flight, now: Long): DrawItem? {
         val t = animationProgress(flight.start, flight.millis, now) ?: return null
-        val e = flight.curve.at(t)
+        val e = flight.curve.safeAt(t)
         // Going away and coming back out of the dock run backwards (1 → 0).
         val progress = if (flight.kind == FlightKind.MINIMIZE) e else 1 - e
         val area = monitorList.firstOrNull { it.workspace === flight.workspace }?.usableArea ?: focusedMonitor.usableArea
         val frame = try {
             flight.animation.frame(Motion(flight.window, flight.from, flight.to, progress, t, area))
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            e.rethrowIfFatal()
             log.error("Your window animation failed (it is drawn without): $e", e)
             WindowFrame(flight.to)
         }
@@ -2474,8 +2572,9 @@ class Desktop(
         val animation = animations.windowMove
         val t = animationProgress(glide.startNanos, millisOf(animation), nowNanos) ?: return null
         return try {
-            animation.frame(Motion(null, glide.from, target, curveOf(animation).at(t), t, focusedMonitor.usableArea)).rect
-        } catch (e: Exception) {
+            animation.frame(Motion(null, glide.from, target, curveOf(animation).safeAt(t), t, focusedMonitor.usableArea)).rect
+        } catch (e: Throwable) {
+            e.rethrowIfFatal()
             log.error("Your window move animation failed (windows jump): $e", e)
             null
         }
@@ -2542,7 +2641,8 @@ class Desktop(
     /** What [behaviorFor] says of [window] now (as usual if it fails). */
     fun behaviorOf(window: Window): WindowBehavior = try {
         behaviorFor(window)
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
+        e.rethrowIfFatal()
         log.error("Your window behaviour rule failed for $window (ignored): $e", e)
         WindowBehavior.USUAL
     }
@@ -2553,6 +2653,11 @@ class Desktop(
 
     /** True if [window] is pinned: it floats and stays on screen when its monitor shows another workspace. */
     fun isPinned(window: Window): Boolean = window in pinned
+
+    // The window of [workspace] that gets the keyboard when it is shown: the top one of its
+    // own — a pinned window (which only came along) just when there is no other.
+    private fun topWindow(workspace: Workspace): Window? =
+        workspace.windows.lastOrNull { it !in pinned } ?: workspace.windows.lastOrNull()
 
     /** Pins [window] (it floats, and goes along to every workspace its monitor shows) or lets it go. */
     fun setPinned(window: Window, on: Boolean) {
@@ -2573,7 +2678,8 @@ class Desktop(
     private fun placementOf(window: Window): WindowPlacement = placements.getOrPut(window) {
         try {
             placementFor(window) ?: WindowPlacement.USUAL
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            e.rethrowIfFatal()
             log.error("Your placement rule failed for $window (ignored): $e", e)
             WindowPlacement.USUAL
         }
@@ -2581,10 +2687,16 @@ class Desktop(
 
     private fun monitorNamed(name: String?): Monitor? = name?.let { wanted -> monitorList.firstOrNull { it.name == wanted } }
 
+    // The placement's workspace if there is one with that number (else it is not used: a window
+    // on workspace 42 of 9 could never be reached).
+    private fun validWorkspace(placement: WindowPlacement): Int? = placement.workspace?.let { number ->
+        if (number <= workspaceCount) number else null.also { layoutLog.warn("There is no workspace $number (workspaceCount is $workspaceCount): the window opens where it would anyway") }
+    }
+
     // The workspace a new window opens on: the one its placement says, or the one with the focus.
     private fun workspaceFor(placement: WindowPlacement): Workspace {
         val monitor = monitorNamed(placement.monitor) ?: focusedMonitor
-        return placement.workspace?.let { workspace(it, monitor) } ?: monitor.workspace
+        return validWorkspace(placement)?.let { workspace(it, monitor) } ?: monitor.workspace
     }
 
     // Its floating place on [monitor]: as the placement says, else the next step of the cascade.
@@ -2611,7 +2723,7 @@ class Desktop(
         layoutLog.info { "$window: placed by a rule ($placement)" }
         val monitor = monitorNamed(placement.monitor)
         when {
-            placement.workspace != null -> moveToWorkspace(window, workspace(placement.workspace, monitor ?: monitorOf(window)))
+            validWorkspace(placement) != null -> moveToWorkspace(window, workspace(placement.workspace!!, monitor ?: monitorOf(window)))
             monitor != null -> moveToWorkspace(window, monitor.workspace)
         }
         placement.floating?.let { setFloating(window, it) }
@@ -2650,7 +2762,7 @@ class Desktop(
         val monitor = workspace.monitor ?: focusedMonitor
         if (window.maximized && !window.fullscreen) return withoutTitle(window, monitor.usableArea).let { it.width to it.height }
         if (window.fullscreen) return monitor.area.let { it.width to it.height }
-        if (placement.floating ?: (placement.pinned == true || floatRule(window))) return (placement.width ?: 0) to (placement.height ?: 0)
+        if (placement.floating ?: (placement.pinned == true || floats(window))) return (placement.width ?: 0) to (placement.height ?: 0)
         val target = arrange(workspace, extra = window)[window] ?: return 0 to 0
         window.tiled = true
         return target.width to target.height
@@ -2675,7 +2787,7 @@ class Desktop(
             else floatingPlace(window, placement, monitor, visibleRect.width, visibleRect.height)
         floatingRects[window] = floatingPlace
         workspace.add(window)
-        val floats = placement.floating ?: (placement.pinned == true || floatRule(window))
+        val floats = placement.floating ?: (placement.pinned == true || floats(window))
         if (floats || workspace.layout === Floating) {
             if (floats) workspace.floating += window
             window.tiled = false
@@ -2724,11 +2836,18 @@ class Desktop(
         if (titleHover?.first === window) titleHover = null
         if (titlePressed?.first === window) titlePressed = null
         minimizeTargets -= window
+        // What every closed window leaves behind (a scratchpad's too).
+        pending.remove(window)
+        floatingRects -= window
+        glides -= window
+        shownRects -= window
+        screenRects -= window
+        if (grab?.window === window) grab = null
+        if (hovered === window) hovered = null
+        if (lastFocused === window) lastFocused = null
         windowListChanged()
         scratchpadOf(window)?.let { pad ->
             pad.windows -= window
-            glides -= window
-            shownRects -= window
             if (pad.windows.isEmpty()) {
                 pad.shown = false
                 pad.leaving = false
@@ -2744,16 +2863,21 @@ class Desktop(
         val workspace = workspaceOf(window)
         workspace?.remove(window)
         workspace?.model?.forget(window) // closed for good: its place is free now
-        pending.remove(window)
-        floatingRects -= window
-        glides -= window
-        shownRects -= window
-        screenRects -= window
-        if (grab?.window === window) grab = null
-        if (workspace != null) arrange(workspace)
+        if (workspace != null) {
+            arrange(workspace)
+            dropIfEmpty(workspace)
+        }
         if (seat.keyboardFocus === window.surface) focus(windows.lastOrNull())
         changed()
         notify(windowClosedListeners, window, "window-closed")
+    }
+
+    // Also for a window that never appeared: its placement (asked before its first frame) and
+    // its place in a remembering layout (given to learn its size) go.
+    override fun windowDestroyed(window: Window) {
+        placements -= window
+        for (workspace in workspaces.values) workspace.model.forget(window)
+        scratchpads.values.forEach { it.windows -= window }
     }
 
     override fun windowCommitted(window: Window) {
@@ -2878,8 +3002,8 @@ class Desktop(
         val shown = shownRects[window]
         stopFlights(window)
         if (shown != null) flightOf(window, FlightKind.MINIMIZE, animations.minimize, to = minimizedRect(window, shown))?.let { flights += it }
-        workspace.windows -= window
-        workspace.minimized += window
+        workspace.windowList -= window
+        workspace.minimizedList += window
         window.setMinimized(true)
         pending.remove(window)
         if (grab?.window === window) grab = null
@@ -3103,14 +3227,19 @@ class Desktop(
     }
 
     override fun popupGrab(popup: Popup) {
+        // Only a program you are using now may take the keyboard with a menu (one in the
+        // background would get your keys): else the menu is closed at once (an invalid grab).
+        val client = popup.resource.client
+        val inUse = seat.keyboardFocus?.resource?.client === client || seat.pointerFocus?.resource?.client === client
+        if (!inUse || locked || (popup.parent == null && popup.layerParent == null)) {
+            windowsLog.info { "${client.name} asked for a menu grab while not in use: the menu is closed" }
+            popup.dismiss()
+            return
+        }
         grabs += popup
         seat.focusKeyboard(popup.surface)
     }
 
-    /**
-     * Raises [window], marks it active and gives it the keyboard (null = nothing focused).
-     * A minimized window comes back; a window on another workspace brings that workspace.
-     */
     /** Marks [window] as wanting attention (or not); bars and the IPC socket show it, the focus clears it. */
     fun setUrgent(window: Window, urgent: Boolean) {
         if (window.urgent == urgent) return
@@ -3124,6 +3253,10 @@ class Desktop(
     /** The windows that want attention, oldest first. */
     val urgentWindows: List<Window> get() = allWindows.filter { it.urgent }
 
+    /**
+     * Raises [window], marks it active and gives it the keyboard (null = nothing focused).
+     * A minimized window comes back; a window on another workspace brings that workspace.
+     */
     fun focus(window: Window?) {
         // One that never takes the keyboard: the top one of its workspace that does, instead.
         if (window != null && !behaviorOf(window).takesFocus) {
@@ -3162,13 +3295,25 @@ class Desktop(
                 if (showing != null) {
                     setFocusedMonitor(showing)
                 } else {
-                    show(workspace, on = focusedMonitor)
+                    // Where this workspace belongs, as the workspace mode says (as switchTo does).
+                    when {
+                        workspaceMode == WorkspaceMode.SPANNING && workspace.number > 0 ->
+                            for (monitor in monitorList) show(workspace(workspace.number, monitor), on = monitor)
+                        else -> {
+                            val on = monitorNamed(workspace.homeMonitor)
+                                ?: (if (workspaceMode == WorkspaceMode.PRIMARY_ONLY && workspace.number > 0) primaryMonitor else null)
+                                ?: (if (workspace.number > 0) homeOf(workspace.number) else null)
+                                ?: focusedMonitor
+                            setFocusedMonitor(on)
+                            show(workspace, on = on)
+                        }
+                    }
                     layoutLog.info { "Workspace ${workspace.number} (${workspace.layout.name})" }
                     notify(workspaceListeners, workspace, "workspace")
                 }
             }
-            if (activeWorkspace.minimized.remove(window)) {
-                activeWorkspace.windows += window
+            if (activeWorkspace.minimizedList.remove(window)) {
+                activeWorkspace.windowList += window
                 window.setMinimized(false)
                 // Back out of its dock icon (or up from below), as the restore animation says.
                 stopFlights(window)
@@ -3176,7 +3321,7 @@ class Desktop(
                 flightOf(window, FlightKind.RESTORE, animations.restore, to = minimizedRect(window, currentRect(window)))?.let { flights += it }
             }
         }
-        val list = activeWorkspace.windows
+        val list = activeWorkspace.windowList
         for (other in list) if (other !== window) other.setActivated(false)
         if (window != null) {
             list -= window
@@ -3571,8 +3716,21 @@ class Desktop(
         val changes = surface.takeChanges()
         if (changes.isNotEmpty()) {
             for (view in views + captureViews) {
-                val shownAt = view.shown.firstOrNull { it is DrawItem.Picture && it.surface === surface }?.rect ?: continue
-                for (change in changes) view.damage(change.translate(shownAt.x, shownAt.y))
+                // Everywhere it is drawn, at the size it is drawn (smaller in the overview,
+                // stretched while it glides): rounded outwards, so no changed pixel is missed.
+                for (item in view.shown) {
+                    if (item !is DrawItem.Picture || item.surface !== surface) continue
+                    val shownAt = item.rect
+                    val sx = if (surface.width > 0) shownAt.width.toDouble() / surface.width else 1.0
+                    val sy = if (surface.height > 0) shownAt.height.toDouble() / surface.height else 1.0
+                    for (change in changes) {
+                        val left = Math.floor(change.x * sx).toInt()
+                        val top = Math.floor(change.y * sy).toInt()
+                        val right = Math.ceil(change.right * sx).toInt()
+                        val bottom = Math.ceil(change.bottom * sy).toInt()
+                        view.damage(Rect(shownAt.x + left, shownAt.y + top, right - left, bottom - top))
+                    }
+                }
             }
         }
         for (listener in commitListeners.toList()) listener(surface)
@@ -3598,7 +3756,11 @@ class Desktop(
         presentDirect: ((DmabufBuffer) -> Boolean)? = null,
     ): Boolean {
         val noticesMoving = noticeBoard.animating() // (also lets go of those that faded away)
-        if (glides.isNotEmpty() || cameraMoving(System.nanoTime()) || fading() || noticesMoving || animating() || backdrops.changing() || paintsMoving || focusChanging) {
+        // Each asked every time (they move their animations on: none may be skipped by another).
+        val fadingNow = fading()
+        val animatingNow = animating()
+        val backdropsChanging = backdrops.changing()
+        if (glides.isNotEmpty() || cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsMoving || focusChanging) {
             // Windows are gliding (or the overview zooms): the scene changes every frame until done.
             version++
             onChange()
@@ -3881,7 +4043,7 @@ class Desktop(
         visible.clear()
         visible += sceneVisible
         // The frame before a scale change, fading out over the new one (the cursor stays above).
-        for ((monitor, fade) in fades) all += DrawItem.Image("$FADE_KEY ${monitor.name}", fade.first, monitor.area, alpha = fadeAlphas[monitor] ?: 1f)
+        for ((monitor, fade) in fades) all += DrawItem.Image("$FADE_KEY ${monitor.name}", fade.texture, monitor.area, alpha = fadeAlphas[monitor] ?: 1f)
         val cursorStart = all.size
         itemsCursorStart = cursorStart
         addCursor(all)
@@ -3936,8 +4098,9 @@ class Desktop(
                 continue
             }
             val frame = try {
-                animation.frame(curveOf(animation).at(t), slide.direction, monitor.area)
-            } catch (e: Exception) {
+                animation.frame(curveOf(animation).safeAt(t), slide.direction, monitor.area)
+            } catch (e: Throwable) {
+                e.rethrowIfFatal()
                 log.error("Your workspace animation failed (workspaces change at once): $e", e)
                 slides -= monitor
                 continue
@@ -4045,7 +4208,7 @@ class Desktop(
             // Everything behind it darker (a launcher in front of the desktop).
             val dim = layerBehaviorOf(layerSurface).dimAround
             if (dim > 0f) all += DrawItem.Tint(EffectKey("dim around", layerSurface), monitorOf(layerSurface).area, 0f, 0f, 0f, 0f, dim)
-            val look = addEffects(all, layerSurface, surface, Rect(0, 0, surface.width, surface.height), rect, 1.0, layerEffects(layerSurface), focused = true)
+            val look = addEffects(all, layerSurface, surface, Rect(0, 0, surface.width, surface.height), rect, 1.0, userCode("Your layerEffects", Effects.NONE) { layerEffects(layerSurface) }, focused = true)
             addTree(all, surface, layerSurface.x, layerSurface.y, look = look)
         }
     }
@@ -4076,8 +4239,9 @@ class Desktop(
             val animation = animations.windowOpen
             val t = animationProgress(appearSince, millisOf(animation), now)
             val frame = if (t == null) null else try {
-                animation.frame(Motion(window, world, world, curveOf(animation).at(t), t, monitorOf(window).usableArea))
-            } catch (e: Exception) {
+                animation.frame(Motion(window, world, world, curveOf(animation).safeAt(t), t, monitorOf(window).usableArea))
+            } catch (e: Throwable) {
+                e.rethrowIfFatal()
                 log.error("Your window animation failed (it is drawn without): $e", e)
                 null
             }
@@ -4105,7 +4269,7 @@ class Desktop(
         // While gliding (or zoomed out), the picture is stretched to the in-between size.
         val scaleX = if (target.width > 0) rect.width.toDouble() / target.width else 1.0
         val scaleY = if (target.height > 0) rect.height.toDouble() / target.height else 1.0
-        val fx = faded(if (window.fullscreen) Effects.NONE else windowEffects(window), alpha)
+        val fx = faded(if (window.fullscreen) Effects.NONE else userCode("Your windowEffects", effects) { windowEffects(window) }, alpha)
         // The compositor's title bar over it, if it has one: effects go around both.
         val bar = titleHeight(window).let { if (it > 0) Rect(rect.x, rect.y - (it * scaleY).roundToInt(), rect.width, (it * scaleY).roundToInt()) else null }
         val frame = bar?.union(rect) ?: rect

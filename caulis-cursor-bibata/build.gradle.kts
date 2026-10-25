@@ -3,8 +3,10 @@
 // this module is GPL-3.0, as Bibata itself — see LICENSE and README.md.
 
 plugins {
-    id("caulis.library")
+    id("caulis.published")
 }
+
+description = "The Bibata cursor themes, ready for Caulis compositors (GPL-3.0, as Bibata)."
 
 dependencies {
     api(project(":caulis-core"))

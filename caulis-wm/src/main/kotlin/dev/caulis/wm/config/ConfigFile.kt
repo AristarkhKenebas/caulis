@@ -81,7 +81,11 @@ object ConfigFile {
      * (rules, keys, events) is replaced.
      */
     fun applyTo(caulis: Caulis): List<String> {
-        for ((list, items) in caulis.configAdded) list.removeIf { item -> items.any { it === item } }
+        for ((list, items) in caulis.configAdded) {
+            list.removeIf { item -> items.any { it === item } }
+            // Timers it started end too (applied again, it starts its own anew).
+            items.filterIsInstance<Caulis.WaitingTimer>().forEach { it.close() }
+        }
         val lists = caulis.addableLists()
         val sizes = lists.map { it.size }
         val problems = ArrayList<String>()
@@ -113,12 +117,8 @@ object ConfigFile {
             return listOf("$path cannot be read: ${e.message ?: e}")
         }
         val problems = read.problems.map { "config.json, $it" }.toMutableList()
-        try {
-            Settings.apply(caulis, read.values)
-            log.info { "Applied $path (${read.values.size} settings${if (problems.isEmpty()) "" else ", ${problems.size} problems"})" }
-        } catch (e: Exception) {
-            problems += "config.json could not be applied in full: ${e.message ?: e}"
-        }
+        problems += Settings.applyEach(caulis, read.values).map { "config.json, $it" }
+        log.info { "Applied $path (${read.values.size} settings${if (problems.isEmpty()) "" else ", ${problems.size} problems"})" }
         return problems
     }
 }

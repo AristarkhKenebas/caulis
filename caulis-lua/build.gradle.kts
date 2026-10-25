@@ -3,8 +3,10 @@
 // read config.lua; it is found by itself (ServiceLoader).
 
 plugins {
-    id("caulis.library")
+    id("caulis.published")
 }
+
+description = "config.lua for Caulis compositors: the configuration in Lua (LuaJ)."
 
 dependencies {
     api(project(":caulis-wm"))

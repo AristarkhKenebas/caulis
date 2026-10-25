@@ -21,7 +21,19 @@ import dev.caulis.ffi.Readiness
 class EventLoop : AutoCloseable {
 
     private val epoll = Epoll()
-    private val handlers = HashMap<Int, (Readiness) -> Unit>()
+
+    // A descriptor's handler, and the iteration it was added in.
+    private class Registration(val handler: (Readiness) -> Unit, val since: Long)
+
+    private val handlers = HashMap<Int, Registration>()
+    private var iteration = 0L
+    private val log = dev.caulis.log.Logger("loop")
+
+    /**
+     * What happens when a handler, timer or task throws (it is logged and the loop goes on
+     * with the next one; only running out of memory ends the loop).
+     */
+    var onError: (what: String, error: Throwable) -> Unit = { what, error -> log.error("$what failed (the loop goes on): $error", error) }
     private val beforeWaitTasks = ArrayList<() -> Unit>()
 
     // Timers, the earliest first. Kept in Kotlin: the wait below simply ends in time for the next one.
@@ -49,7 +61,7 @@ class EventLoop : AutoCloseable {
     /** Calls [handler] whenever [fd] is ready. */
     fun add(fd: Fd, read: Boolean = true, write: Boolean = false, handler: (Readiness) -> Unit) {
         epoll.add(fd, read, write)
-        handlers[fd.value] = handler
+        handlers[fd.value] = Registration(handler, iteration)
     }
 
     /** Changes whether [fd] is watched for reading and/or writing. */
@@ -90,21 +102,45 @@ class EventLoop : AutoCloseable {
      * is due sooner), handle what is ready, then run the timers that are due.
      */
     fun dispatch(timeoutMillis: Int) {
-        for (task in beforeWaitTasks) task()
+        for (task in beforeWaitTasks.toList()) guarded("a before-wait task") { task() }
         val wait = timers.peek()?.let { next ->
             val untilDue = (next.dueNanos - System.nanoTime() + 999_999) / 1_000_000
             untilDue.coerceIn(0, timeoutMillis.toLong()).toInt()
         } ?: timeoutMillis
-        epoll.wait(wait) { fd, ready -> handlers[fd]?.invoke(ready) }
-        while (true) (posted.poll() ?: break).invoke()
+        val batch = ++iteration
+        epoll.wait(wait) { fd, ready ->
+            // A descriptor added during this batch got its number from one closed earlier in
+            // it: the event is the old one's, not its.
+            val registration = handlers[fd]?.takeIf { it.since < batch } ?: return@wait
+            guarded("the handler of descriptor $fd") { registration.handler(ready) }
+        }
+        while (true) {
+            val task = posted.poll() ?: break
+            guarded("a posted task") { task() }
+        }
         val now = System.nanoTime()
         while (true) {
             val next = timers.peek() ?: break
             if (next.dueNanos > now) break
             timers.poll()
-            next.task()
+            guarded("a timer") { next.task() }
         }
         lastIterationNanos = System.nanoTime()
+    }
+
+    // Runs [body]; what it throws is reported, not passed on (one broken part never stops
+    // the others) — except running out of memory, after which nothing can be trusted.
+    private inline fun guarded(what: String, body: () -> Unit) {
+        try {
+            body()
+        } catch (e: OutOfMemoryError) {
+            throw e
+        } catch (e: Throwable) {
+            try {
+                onError(what, e)
+            } catch (_: Throwable) {
+            }
+        }
     }
 
     /** Runs until [stop] is called (from any thread). */

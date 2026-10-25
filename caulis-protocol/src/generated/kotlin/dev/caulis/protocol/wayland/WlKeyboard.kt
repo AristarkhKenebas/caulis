@@ -78,6 +78,7 @@ public class WlKeyboard private constructor(client: Client, id: Int, version: In
      */
     public fun sendEnter(serial: Int, surface: WlSurface, keys: ByteArray) {
         if (!isAlive || !client.isConnected) return
+        if (!surface.isAlive) return
         if (Wire.tracing) Wire.event(this, "enter", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}, keys=${Wire.show(keys)}")
         event(1).uint(serial).obj(surface).array(keys).end()
     }
@@ -98,6 +99,7 @@ public class WlKeyboard private constructor(client: Client, id: Int, version: In
      */
     public fun sendLeave(serial: Int, surface: WlSurface) {
         if (!isAlive || !client.isConnected) return
+        if (!surface.isAlive) return
         if (Wire.tracing) Wire.event(this, "leave", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}")
         event(2).uint(serial).obj(surface).end()
     }

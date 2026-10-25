@@ -490,6 +490,7 @@ public class WlSurface private constructor(client: Client, id: Int, version: Int
      */
     public fun sendEnter(output: WlOutput) {
         if (!isAlive || !client.isConnected) return
+        if (!output.isAlive) return
         if (Wire.tracing) Wire.event(this, "enter", "output=${Wire.show(output)}")
         event(0).obj(output).end()
     }
@@ -509,6 +510,7 @@ public class WlSurface private constructor(client: Client, id: Int, version: Int
      */
     public fun sendLeave(output: WlOutput) {
         if (!isAlive || !client.isConnected) return
+        if (!output.isAlive) return
         if (Wire.tracing) Wire.event(this, "leave", "output=${Wire.show(output)}")
         event(1).obj(output).end()
     }

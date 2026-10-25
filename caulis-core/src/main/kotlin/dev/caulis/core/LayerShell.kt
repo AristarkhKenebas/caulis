@@ -28,7 +28,7 @@ class LayerShell(display: Display) {
     var listener: Listener = object : Listener {}
 
     init {
-        display.addGlobal(ZwlrLayerShellV1, VERSION) { shell ->
+        display.addPrivilegedGlobal(ZwlrLayerShellV1, VERSION) { shell ->
             shell.requests = object : ZwlrLayerShellV1.Requests {
                 override fun getLayerSurface(resource: ZwlrLayerShellV1, id: ZwlrLayerSurfaceV1, surface: WlSurface, output: WlOutput?, layer: Int, namespace: String) {
                     if (layer !in 0..3) {
@@ -156,6 +156,11 @@ class LayerSurface internal constructor(
             }
 
             override fun ackConfigure(resource: ZwlrLayerSurfaceV1, serial: Int) {
+                // Serials go up: one never sent (or ahead of the last) is the program's mistake.
+                if (!configureSent || Integer.compareUnsigned(serial, this@LayerSurface.serial) > 0) {
+                    resource.postError(ZwlrLayerSurfaceV1.Error.INVALID_SURFACE_STATE, "serial $serial was never sent")
+                    return
+                }
                 acknowledged = true
             }
 

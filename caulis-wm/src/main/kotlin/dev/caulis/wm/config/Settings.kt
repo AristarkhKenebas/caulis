@@ -195,9 +195,9 @@ object Settings {
     // Which windows a rule is for (also inside "not" and "anyOf").
     private val matchFields = listOf(
         Field("appId", TextType("an app id"), "windows with this app id (case does not matter)"),
-        Field("appIdPattern", TextType("a regular expression"), "windows whose app id fits this"),
+        Field("appIdPattern", RegexType, "windows whose app id fits this"),
         Field("title", TextType(), "windows whose title contains this"),
-        Field("titlePattern", TextType("a regular expression"), "windows whose title fits this"),
+        Field("titlePattern", RegexType, "windows whose title fits this"),
         Field("program", TextType("a program name"), "windows of this program (as ps shows it)"),
         Field("initialAppId", TextType("an app id"), "windows whose app id was this when they opened"),
         Field("initialTitle", TextType(), "windows whose title contained this when they opened"),
@@ -229,7 +229,7 @@ object Settings {
     private val panelRule = SectionType(
         listOf(
             Field("namespace", TextType("a panel's name"), "panels that call themselves this (waybar, fuzzel, ...)"),
-            Field("namespacePattern", TextType("a regular expression"), "panels whose name fits this"),
+            Field("namespacePattern", RegexType, "panels whose name fits this"),
             Field("layer", ChoiceType(listOf("background", "bottom", "top", "overlay")), "panels on this layer"),
             Field("blur", FlagType, "frosted glass behind it"),
             Field("cornerRadius", IntegerType(0, 200), "how round its corners are"),
@@ -527,6 +527,24 @@ object Settings {
 
     /** Applies [values] (read by [root]) to [caulis]; what it adds to lists comes back. */
     @Suppress("UNCHECKED_CAST")
+    /**
+     * [apply]s each setting on its own, in the usual order: one that cannot be applied (a
+     * picture that cannot be read, a mistake in code it calls) is a problem, the rest still apply.
+     */
+    fun applyEach(caulis: Caulis, values: Map<String, Any?>): List<String> {
+        val problems = ArrayList<String>()
+        val order = root.fields.map { it.name }
+        for (name in values.keys.sortedBy { order.indexOf(it).let { i -> if (i < 0) Int.MAX_VALUE else i } }) {
+            try {
+                apply(caulis, mapOf(name to values[name]))
+            } catch (e: Throwable) {
+                if (e is OutOfMemoryError) throw e
+                problems += "$name could not be applied: ${e.message ?: e}"
+            }
+        }
+        return problems
+    }
+
     fun apply(caulis: Caulis, values: Map<String, Any?>): Added {
         fun section(name: String) = values[name] as? Map<String, Any?>
         val rules = ArrayList<dev.caulis.wm.WindowRule>()

@@ -48,6 +48,7 @@ public class WlTouch private constructor(client: Client, id: Int, version: Int) 
      */
     public fun sendDown(serial: Int, time: Int, surface: WlSurface, id: Int, x: Double, y: Double) {
         if (!isAlive || !client.isConnected) return
+        if (!surface.isAlive) return
         if (Wire.tracing) Wire.event(this, "down", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, surface=${Wire.show(surface)}, id=${Wire.show(id)}, x=${Wire.show(x)}, y=${Wire.show(y)}")
         event(0).uint(serial).uint(time).obj(surface).int(id).fixed(x).fixed(y).end()
     }

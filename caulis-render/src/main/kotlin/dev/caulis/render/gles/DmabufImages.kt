@@ -54,8 +54,13 @@ internal class DmabufImages(private val egl: EglContext) {
         Gles.glTexParameteri(Gles.GL_TEXTURE_2D(), Gles.GL_TEXTURE_MAG_FILTER(), Gles.GL_LINEAR())
         Gles.glTexParameteri(Gles.GL_TEXTURE_2D(), Gles.GL_TEXTURE_WRAP_S(), Gles.GL_CLAMP_TO_EDGE())
         Gles.glTexParameteri(Gles.GL_TEXTURE_2D(), Gles.GL_TEXTURE_WRAP_T(), Gles.GL_CLAMP_TO_EDGE())
-        egl.extensionFunctions.imageTargetTexture2D(Gles.GL_TEXTURE_2D(), image)
-        Gl.check("binding a dma-buf to a texture")
+        try {
+            egl.extensionFunctions.imageTargetTexture2D(Gles.GL_TEXTURE_2D(), image)
+            Gl.check("binding a dma-buf to a texture")
+        } catch (e: Exception) {
+            Gl.delete(id, Gles::glDeleteTextures) // (the image is the caller's)
+            throw e
+        }
         return ImageTexture(id, width, height, image, this)
     }
 

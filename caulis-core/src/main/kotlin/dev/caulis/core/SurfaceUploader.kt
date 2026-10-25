@@ -78,6 +78,9 @@ internal class SurfaceUploader(private val renderer: Renderer) {
                 buffer.client.server.log.warn("Client ${buffer.client.pid}: ${e.message}")
                 buffer.client.disconnect()
                 return
+            } catch (e: IllegalStateException) {
+                // Its pool was destroyed after the attach (allowed): there is nothing to show.
+                return
             }
             texture.upload(pixels, firstRow, rowCount)
         }
@@ -95,7 +98,15 @@ internal class SurfaceUploader(private val renderer: Renderer) {
 
     // A scratch buffer of at least [bytes]; replaced (and the old one left to the GC) when too small.
     private fun staging(bytes: Long): MemorySegment {
-        if (staging.byteSize() < bytes) staging = Arena.ofAuto().allocate(bytes, 16)
+        // Bigger when needed; back to a usual size after one huge picture (it is not kept).
+        if (staging.byteSize() < bytes || (staging.byteSize() > KEEP_STAGING && bytes <= KEEP_STAGING)) {
+            staging = Arena.ofAuto().allocate(bytes, 16)
+        }
         return staging.asSlice(0, bytes)
+    }
+
+    private companion object {
+        // A 4K picture's rows: what the staging memory may stay at.
+        const val KEEP_STAGING = 3840L * 2160 * 4
     }
 }

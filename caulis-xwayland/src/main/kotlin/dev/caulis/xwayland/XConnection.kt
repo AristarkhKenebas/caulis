@@ -40,7 +40,11 @@ internal class XConnection(fd: Int) : AutoCloseable {
     val resourceIdMask: Int
 
     init {
-        check(Xcb.xcb_connection_has_error(c) == 0) { "could not connect to Xwayland (error ${Xcb.xcb_connection_has_error(c)})" }
+        val error = Xcb.xcb_connection_has_error(c)
+        if (error != 0) {
+            Xcb.xcb_disconnect(c) // (a failed connection is still an object of its own to free)
+            error("could not connect to Xwayland (error $error)")
+        }
         Arena.ofConfined().use { arena ->
             val iterator = Xcb.xcb_setup_roots_iterator(arena, Xcb.xcb_get_setup(c))
             val screen = xcb_screen_iterator_t.data(iterator).reinterpret(xcb_screen_t.layout().byteSize())

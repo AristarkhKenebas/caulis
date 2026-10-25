@@ -13,6 +13,7 @@ import dev.caulis.wm.config.IntegerType
 import dev.caulis.wm.config.ListType
 import dev.caulis.wm.config.MapType
 import dev.caulis.wm.config.OffOrType
+import dev.caulis.wm.config.RegexType
 import dev.caulis.wm.config.SectionType
 import dev.caulis.wm.config.SettingType
 import dev.caulis.wm.config.Settings
@@ -52,7 +53,7 @@ internal object LuaStubs {
         is IntegerType -> "integer"
         is DecimalType -> "number"
         FlagType -> "boolean"
-        is TextType, is FileType, ColorType, ActionType, is CombinationType -> "string"
+        is TextType, is FileType, ColorType, ActionType, RegexType, is CombinationType -> "string"
         BindType -> "string|{ action: string, repeat?: boolean, release?: boolean, locked?: boolean, description?: string }"
         is ChoiceType -> type.values.joinToString("|") { "\"$it\"" }
         is ListType -> "(${luaType(type.item, path, classes)})[]"

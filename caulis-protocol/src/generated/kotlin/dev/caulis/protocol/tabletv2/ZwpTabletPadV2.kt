@@ -167,6 +167,8 @@ public class ZwpTabletPadV2 private constructor(client: Client, id: Int, version
      */
     public fun sendEnter(serial: Int, tablet: ZwpTabletV2, surface: WlSurface) {
         if (!isAlive || !client.isConnected) return
+        if (!tablet.isAlive) return
+        if (!surface.isAlive) return
         if (Wire.tracing) Wire.event(this, "enter", "serial=${Wire.show(serial)}, tablet=${Wire.show(tablet)}, surface=${Wire.show(surface)}")
         event(5).uint(serial).obj(tablet).obj(surface).end()
     }
@@ -179,6 +181,7 @@ public class ZwpTabletPadV2 private constructor(client: Client, id: Int, version
      */
     public fun sendLeave(serial: Int, surface: WlSurface) {
         if (!isAlive || !client.isConnected) return
+        if (!surface.isAlive) return
         if (Wire.tracing) Wire.event(this, "leave", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}")
         event(6).uint(serial).obj(surface).end()
     }

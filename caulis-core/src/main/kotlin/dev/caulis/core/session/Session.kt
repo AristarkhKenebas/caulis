@@ -52,9 +52,13 @@ class Session private constructor(private val loop: EventLoop) : AutoCloseable {
         }, arena))
         libseat_seat_listener.disable_seat(listener, libseat_seat_listener.disable_seat.allocate({ seat, _ ->
             Upcalls.guard("disable_seat") {
-                setActive(false)
-                // Tell libseat we let go; only then may the other session take over.
-                Seat.libseat_disable_seat(seat)
+                try {
+                    setActive(false)
+                } finally {
+                    // Tell libseat we let go (whatever a listener did); only then may the other
+                    // session take over — without it the switch hangs.
+                    Seat.libseat_disable_seat(seat)
+                }
             }
         }, arena))
         seat = Seat.libseat_open_seat(listener, MemorySegment.NULL)
@@ -67,7 +71,14 @@ class Session private constructor(private val loop: EventLoop) : AutoCloseable {
         }
         seatName = CStrings.borrowed(Seat.libseat_seat_name(seat)) ?: "seat0"
         fd = Fd.borrow(Seat.libseat_get_fd(seat))
-        loop.add(fd) { Seat.libseat_dispatch(seat, 0) }
+        loop.add(fd) { ready ->
+            // seatd or logind went away (restarted): its socket hangs up for ever; listening on
+            // would spin the loop at full speed.
+            if (ready.hangUp || ready.error || Seat.libseat_dispatch(seat, 0) < 0) {
+                sessionLog.error("The seat's service (seatd or logind) went away; devices can no longer be switched")
+                loop.remove(fd)
+            }
+        }
         // The first "enable" may arrive a little later; wait for it here.
         repeat(50) {
             if (!active) Seat.libseat_dispatch(seat, 100)
@@ -82,7 +93,15 @@ class Session private constructor(private val loop: EventLoop) : AutoCloseable {
         if (active == value) return
         active = value
         sessionLog.info(if (value) "The session is ours again (back on this console): devices resume" else "The session is paused (another console): devices are released")
-        activeListeners.forEach { it(value) }
+        // Each listener on its own: one that fails does not keep the others from hearing it.
+        for (listener in activeListeners) {
+            try {
+                listener(value)
+            } catch (e: Throwable) {
+                if (e is OutOfMemoryError) throw e
+                sessionLog.error("A listener of the session failed: $e", e)
+            }
+        }
     }
 
     /** Opens a GPU or input device (e.g. /dev/dri/card0, /dev/input/event3). */

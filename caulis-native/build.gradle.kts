@@ -2,8 +2,10 @@
 // Everything above it uses safe Kotlin classes from here.
 
 plugins {
-    id("caulis.library")
+    id("caulis.published")
 }
+
+description = "Caulis's bridge to C libraries (FFM API): file descriptors, the event loop, libinput, libseat, DRM, EGL bindings."
 
 dependencies {
     api(project(":caulis-log"))

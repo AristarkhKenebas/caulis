@@ -42,10 +42,15 @@ import java.nio.file.Path
  * ```
  *
  * A mistake is reported with its line and the rest still applies. Lua code that runs too
- * long (a loop that never ends) is stopped, so the desktop never freezes. Code typed at
+ * long (a loop that never ends, also inside pcall or a coroutine) is stopped, so the desktop
+ * does not freeze. It is your own code, as trusted as config.kts: os and io are there
+ * (os.execute starts programs), only the debug hooks and Java itself (luajava) are not. Code typed at
  * `--repl` (or sent with `--lua`) runs in this same state, with its variables.
  */
 class LuaConfig : ConfigLanguage {
+
+    // Lua code ran past its time: an Error, so Lua's pcall cannot catch it and go on.
+    private class TooLong : Error("it runs too long (an endless loop?)", null, false, false)
 
     override val fileName = "config.lua"
 
@@ -58,10 +63,88 @@ class LuaConfig : ConfigLanguage {
         val log = Logger("lua")
         val name = file.fileName.toString()
         val problems = ArrayList<String>()
-        val globals: Globals = JsePlatform.debugGlobals()
+        val globals: Globals = JsePlatform.standardGlobals()
 
-        // When the Lua code running now must stop (it runs too long).
+        // When the Lua code running now must stop (it runs too long). (Coroutines run on
+        // threads of their own, and read it there.)
+        @Volatile
         var deadline = Long.MAX_VALUE
+
+        // debug.sethook and debug.getinfo, kept for ourselves: the code itself must not take
+        // its time limit away.
+        val sethook: LuaValue
+        val getinfo: LuaValue
+
+        // Every so many instructions: has it run too long? Thrown as an Error, which pcall
+        // does not catch.
+        val hook = object : VarArgFunction() {
+            override fun invoke(args: Varargs): Varargs {
+                if (System.nanoTime() > deadline) throw TooLong()
+                return NONE
+            }
+        }
+
+        init {
+            globals.load(org.luaj.vm2.lib.DebugLib())
+            val debug = globals.get("debug")
+            sethook = debug.get("sethook")
+            getinfo = debug.get("getinfo")
+            // What is left of debug: a traceback for your own messages.
+            globals.set("debug", LuaTable().also { it.set("traceback", debug.get("traceback")) })
+            // Java from Lua could reach into the compositor's insides.
+            globals.set("luajava", LuaValue.NIL)
+            // A coroutine runs on a thread of its own: it gets the time limit too.
+            val coroutine = globals.get("coroutine")
+            val create = coroutine.get("create")
+            coroutine.set("create", object : VarArgFunction() {
+                override fun invoke(args: Varargs): Varargs {
+                    val thread = create.call(args.arg1())
+                    sethook.invoke(LuaValue.varargsOf(arrayOf(thread, hook, LuaValue.valueOf(""), LuaValue.valueOf(HOOK_EVERY))))
+                    return thread
+                }
+            })
+            coroutine.set(
+                "wrap",
+                globals.load(
+                    """
+                    local create, resume, pack, unpack = coroutine.create, coroutine.resume, table.pack, table.unpack
+                    return function(f)
+                      local co = create(f)
+                      return function(...)
+                        local r = pack(resume(co, ...))
+                        if not r[1] then error(r[2], 0) end
+                        return unpack(r, 2, r.n)
+                      end
+                    end
+                    """.trimIndent(),
+                    "=coroutine.wrap",
+                ).call(),
+            )
+        }
+
+        // Runs [body] with [limit] nanoseconds at most (or less, when called from Lua code
+        // that has less time left).
+        inline fun <T> limited(limit: Long, body: () -> T): T {
+            val outer = deadline
+            deadline = minOf(outer, System.nanoTime() + limit)
+            try {
+                return body()
+            } finally {
+                deadline = outer
+            }
+        }
+
+        // What went wrong in Lua code, in words (also errors Java throws for it: a stack
+        // overflow, a string too big).
+        fun problem(e: Throwable): String {
+            if (e is OutOfMemoryError) throw e
+            return when (e) {
+                is TooLong -> "it runs too long (an endless loop?)"
+                is LuaError -> if (e.cause is TooLong) "it runs too long (an endless loop?)" else message(e)
+                is StackOverflowError -> "it calls itself without end (the stack overflowed)"
+                else -> "${e.javaClass.simpleName}${e.message?.let { ": $it" } ?: ""}"
+            }
+        }
 
         fun load(): List<String> {
             val code = try {
@@ -74,39 +157,22 @@ class LuaConfig : ConfigLanguage {
             globals.get("package").set("path", "$folder/?.lua;$folder/?/init.lua")
             globals.set("caulis", api())
             // Every so many instructions: has it run too long?
-            globals.get("debug").get("sethook").call(
-                object : VarArgFunction() {
-                    override fun invoke(args: Varargs): Varargs {
-                        if (System.nanoTime() > deadline) throw LuaError("it runs too long (an endless loop?)")
-                        return NONE
-                    }
-                },
-                LuaValue.valueOf(""),
-                LuaValue.valueOf(10_000),
-            )
-            deadline = System.nanoTime() + LOAD_LIMIT
+            sethook.call(hook, LuaValue.valueOf(""), LuaValue.valueOf(HOOK_EVERY))
             try {
-                globals.load(code, "@$name").call()
-            } catch (e: LuaError) {
-                problems += message(e)
-            } finally {
-                deadline = Long.MAX_VALUE
+                limited(LOAD_LIMIT) { globals.load(code, "@$name").call() }
+            } catch (e: Throwable) {
+                problems += problem(e)
             }
             caulis.evaluator("lua", ::eval)
             return problems
         }
 
         // Code typed at --repl: run in this state; what it returns, as text.
-        fun eval(code: String): Result<String> {
-            deadline = System.nanoTime() + CALL_LIMIT
-            return try {
-                val results = globals.load(code, "=repl").invoke()
-                Result.success((1..results.narg()).joinToString("\t") { show(results.arg(it)) })
-            } catch (e: LuaError) {
-                Result.failure(IllegalArgumentException(message(e)))
-            } finally {
-                deadline = Long.MAX_VALUE
-            }
+        fun eval(code: String): Result<String> = try {
+            val results = limited(CALL_LIMIT) { globals.load(code, "=repl").invoke() }
+            Result.success((1..results.narg()).joinToString("\t") { show(results.arg(it)) })
+        } catch (e: Throwable) {
+            Result.failure(IllegalArgumentException(problem(e)))
         }
 
         // A value as Lua's prompt would show it (tables one level deep).
@@ -192,7 +258,7 @@ class LuaConfig : ConfigLanguage {
                         caulis.bind(combination, options, run)
                     }
                 } catch (e: IllegalArgumentException) {
-                    throw LuaError(e.message ?: "not a key combination")
+                    throw LuaError(e.message ?: "not a key combination or mode")
                 }
                 handle("unbind" to { _ -> binding.unbind() }, "setEnabled" to { a -> binding.enabled = a.arg1().toboolean() })
             }
@@ -205,8 +271,10 @@ class LuaConfig : ConfigLanguage {
                 val fn = args.checkfunction(2)
                 val listening: AutoCloseable = when (event) {
                     "start" -> {
-                        caulis.onStart { call("on start", fn) }
-                        AutoCloseable {}
+                        // (Taken away before it ran, it does not run.)
+                        var removed = false
+                        caulis.onStart { if (!removed) call("on start", fn) }
+                        AutoCloseable { removed = true }
                     }
                     "reload" -> caulis.onReload { call("on reload", fn) }
                     "unload" -> caulis.onUnload { call("on unload", fn) }
@@ -244,13 +312,14 @@ class LuaConfig : ConfigLanguage {
             function("after") { args ->
                 val millis = args.checklong(1)
                 val fn = args.checkfunction(2)
-                closing(running("after") { after(millis) { call("a timer", fn) } })
+                // (Also in the file itself: it then counts from when the compositor runs.)
+                closing(caulis.after(millis) { call("a timer", fn) })
             }
             function("every") { args ->
                 val millis = args.checklong(1)
                 val fn = args.checkfunction(2)
                 if (millis < 10) throw LuaError("every: at least 10 milliseconds apart, not $millis")
-                closing(running("every") { every(millis) { call("a repeating timer", fn) } })
+                closing(caulis.every(millis) { call("a repeating timer", fn) })
             }
             function("layout") { args ->
                 val layoutName = args.checkjstring(1)
@@ -287,7 +356,7 @@ class LuaConfig : ConfigLanguage {
             }
             val read = ConfigFile.read(json)
             for (problem in read.problems) problems += problem.replaceFirst(Regex("^line (\\d+): "), "$name:$1: ")
-            Settings.apply(caulis, read.values)
+            for (problem in Settings.applyEach(caulis, read.values)) problems += "$name:$line: $problem"
         }
 
         fun toJson(value: LuaValue, line: Int): JsonValue = when {
@@ -298,7 +367,11 @@ class LuaConfig : ConfigLanguage {
                 val table = value.checktable()
                 val length = table.length()
                 val keys = table.keys()
-                if (length > 0 && keys.size == length) {
+                // An empty table is an empty list ({}: "nothing to start"); a section with
+                // nothing in it means the same then.
+                if (keys.isEmpty()) {
+                    JsonValue.Arr(emptyList(), line, 0)
+                } else if (length > 0 && keys.size == length) {
                     JsonValue.Arr((1..length).map { toJson(table.get(it), line) }, line, 0)
                 } else {
                     val fields = LinkedHashMap<String, JsonValue>()
@@ -314,7 +387,7 @@ class LuaConfig : ConfigLanguage {
 
         // The line of config.lua running now.
         fun currentLine(): Int {
-            val info = globals.get("debug").get("getinfo")
+            val info = getinfo
             for (level in 1..20) {
                 val frame = info.call(LuaValue.valueOf(level), LuaValue.valueOf("Sl"))
                 if (frame.isnil()) break
@@ -327,15 +400,12 @@ class LuaConfig : ConfigLanguage {
 
         // Calls [fn] (a key, an event, a timer); a mistake is shown, never thrown at the desktop.
         fun call(what: String, fn: LuaValue, vararg args: LuaValue) {
-            deadline = System.nanoTime() + CALL_LIMIT
             try {
-                fn.invoke(LuaValue.varargsOf(args))
-            } catch (e: LuaError) {
-                val message = "$what: ${message(e)}"
+                limited(CALL_LIMIT) { fn.invoke(LuaValue.varargsOf(args)) }
+            } catch (e: Throwable) {
+                val message = "$what: ${problem(e)}"
                 log.warn(message)
                 caulis.runningOrNull()?.notify(message, NoticeLevel.WARNING)
-            } finally {
-                deadline = Long.MAX_VALUE
             }
         }
 
@@ -403,9 +473,8 @@ class LuaConfig : ConfigLanguage {
                     set("width", area.width)
                     set("height", area.height)
                 }
-                deadline = System.nanoTime() + CALL_LIMIT
                 val problem = try {
-                    val result = fn.call(list, box, LuaValue.valueOf(focused + 1))
+                    val result = limited(CALL_LIMIT) { fn.call(list, box, LuaValue.valueOf(focused + 1)) }
                     if (!result.istable()) "it returned ${result.typename()}, not a table of rectangles" else {
                         val rects = (1..windows.size).map { i ->
                             val r = result.get(i)
@@ -418,10 +487,8 @@ class LuaConfig : ConfigLanguage {
                         }
                         "it gave ${rects.count { it != null }} rectangles for ${windows.size} windows"
                     }
-                } catch (e: LuaError) {
-                    message(e)
-                } finally {
-                    deadline = Long.MAX_VALUE
+                } catch (e: Throwable) {
+                    problem(e)
                 }
                 if (problem != said) {
                     said = problem
@@ -462,14 +529,18 @@ class LuaConfig : ConfigLanguage {
         }
     }
 
-    private companion object {
+    internal companion object {
         val EVENTS = listOf(
             "start", "reload", "unload", "window-opened", "window-closed", "window-changed", "focus-changed",
             "workspace-changed", "monitor-added", "monitor-removed", "notice", "lid",
         )
 
         // How long Lua code may run: the whole file, and one key, event or timer.
-        const val LOAD_LIMIT = 5_000_000_000L
+        @Volatile
+        var LOAD_LIMIT = 5_000_000_000L // (tests shorten it)
         const val CALL_LIMIT = 500_000_000L
+
+        // How many Lua instructions between two looks at the clock.
+        const val HOOK_EVERY = 10_000
     }
 }

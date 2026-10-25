@@ -45,6 +45,7 @@ public class WpPresentationFeedback private constructor(client: Client, id: Int,
      */
     public fun sendSyncOutput(output: WlOutput) {
         if (!isAlive || !client.isConnected) return
+        if (!output.isAlive) return
         if (Wire.tracing) Wire.event(this, "sync_output", "output=${Wire.show(output)}")
         event(0).obj(output).end()
     }

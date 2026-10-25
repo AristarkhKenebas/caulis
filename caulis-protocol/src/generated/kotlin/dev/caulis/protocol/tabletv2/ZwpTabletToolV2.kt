@@ -217,6 +217,8 @@ public class ZwpTabletToolV2 private constructor(client: Client, id: Int, versio
      */
     public fun sendProximityIn(serial: Int, tablet: ZwpTabletV2, surface: WlSurface) {
         if (!isAlive || !client.isConnected) return
+        if (!tablet.isAlive) return
+        if (!surface.isAlive) return
         if (Wire.tracing) Wire.event(this, "proximity_in", "serial=${Wire.show(serial)}, tablet=${Wire.show(tablet)}, surface=${Wire.show(surface)}")
         event(6).uint(serial).obj(tablet).obj(surface).end()
     }

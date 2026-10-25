@@ -103,6 +103,7 @@ public class ZwlrDataControlDeviceV1 private constructor(client: Client, id: Int
      */
     public fun sendSelection(id: ZwlrDataControlOfferV1?) {
         if (!isAlive || !client.isConnected) return
+        if (id != null && !id.isAlive) return
         if (Wire.tracing) Wire.event(this, "selection", "id=${Wire.show(id)}")
         event(1).obj(id).end()
     }
@@ -141,6 +142,7 @@ public class ZwlrDataControlDeviceV1 private constructor(client: Client, id: Int
     public fun sendPrimarySelection(id: ZwlrDataControlOfferV1?) {
         if (!isAlive || !client.isConnected) return
         if (version < 2) return // the client is too old for this event
+        if (id != null && !id.isAlive) return
         if (Wire.tracing) Wire.event(this, "primary_selection", "id=${Wire.show(id)}")
         event(3).obj(id).end()
     }

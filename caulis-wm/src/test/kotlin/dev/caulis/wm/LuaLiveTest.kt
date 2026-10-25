@@ -150,6 +150,34 @@ class LuaLiveTest {
         }
     }
 
+    @Test
+    fun `a timer in the file itself starts when the compositor runs, and saving the file never doubles it`() = with(harness) {
+        val folder = Files.createTempDirectory("caulis-lua")
+        val file = folder.resolve("config.lua")
+        Files.writeString(file, "ticks = (ticks or 0)\ncaulis.every(30, function() ticks = ticks + 1 end)\n")
+        try {
+            withCaulis({
+                useConfigFile = true
+                configDir = folder
+                configName = "luatimer"
+            }) { caulis, client ->
+                val socket = caulis.socketDirectory!!.resolve("luatimer-${caulis.onLoop { it.socket }}.sock")
+                dev.caulis.ipc.CaulisIpc.connect(socket).use { ipc ->
+                    client.waitFor { (ipc.eval("return ticks").toIntOrNull() ?: 0) >= 3 }
+                    // Saved again (a new state): one timer, not two.
+                    Files.writeString(file, "ticks = 0\ncaulis.every(30, function() ticks = ticks + 1 end)\n-- saved again\n")
+                    client.waitFor { caulis.onLoop { r -> r.desktop.notices.any { "config.lua" in it.text } } }
+                    val start = ipc.eval("return ticks").toInt()
+                    Thread.sleep(600)
+                    val ticked = ipc.eval("return ticks").toInt() - start
+                    kotlin.test.assertTrue(ticked in 10..30, "about 20 ticks in 600 ms from one timer, not 40: $ticked")
+                }
+            }
+        } finally {
+            folder.toFile().deleteRecursively()
+        }
+    }
+
     private fun CaulisTest.press(caulis: Caulis) = caulis.onLoop { r ->
         r.key(0, KEY_SUPER, true)
         r.key(0, KEY_B, true)

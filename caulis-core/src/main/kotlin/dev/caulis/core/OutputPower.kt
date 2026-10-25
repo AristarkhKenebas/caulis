@@ -20,7 +20,7 @@ class OutputPower(display: Display, private val desktop: Desktop) {
     private val powers = ArrayList<Pair<ZwlrOutputPowerV1, Monitor>>()
 
     init {
-        display.addGlobal(ZwlrOutputPowerManagerV1, 1) { manager ->
+        display.addPrivilegedGlobal(ZwlrOutputPowerManagerV1, 1) { manager ->
             manager.requests = object : ZwlrOutputPowerManagerV1.Requests {
                 override fun getOutputPower(resource: ZwlrOutputPowerManagerV1, id: ZwlrOutputPowerV1, output: WlOutput) {
                     id.requests = object : ZwlrOutputPowerV1.Requests {
@@ -64,7 +64,7 @@ class GammaControl(display: Display, private val desktop: Desktop) {
     private val owners = HashMap<Monitor, ZwlrGammaControlV1>()
 
     init {
-        display.addGlobal(ZwlrGammaControlManagerV1, 1) { manager ->
+        display.addPrivilegedGlobal(ZwlrGammaControlManagerV1, 1) { manager ->
             manager.requests = object : ZwlrGammaControlManagerV1.Requests {
                 override fun getGammaControl(resource: ZwlrGammaControlManagerV1, id: ZwlrGammaControlV1, output: WlOutput) {
                     val monitor = output.dataAs<Output>()?.let { o -> desktop.monitors.firstOrNull { it.output === o } }
@@ -105,14 +105,21 @@ class GammaControl(display: Display, private val desktop: Desktop) {
     }
 
     // The three tables (red, green, blue: [size] 16-bit values each) from [fd].
+    // The tables must be there already: a pipe nobody writes to never stops the compositor (it
+    // only reads what is there, as wlroots does, and a short table fails).
     private fun read(fd: Fd, size: Int): List<ShortArray>? = Arena.ofConfined().use { temp ->
         val bytes = size * 3L * 2
         val buffer = temp.allocate(bytes)
         var at = 0L
-        while (at < bytes) {
-            val count = fd.read(buffer.asSlice(at))
-            if (count <= 0) return null
-            at += count
+        try {
+            fd.setNonBlocking()
+            while (at < bytes) {
+                val count = fd.read(buffer.asSlice(at))
+                if (count <= 0) return null
+                at += count
+            }
+        } catch (e: dev.caulis.ffi.NativeException) {
+            return null // (EAGAIN: not all of it was written yet)
         }
         (0 until 3).map { table -> ShortArray(size) { i -> buffer.getAtIndex(ValueLayout.JAVA_SHORT, table * size.toLong() + i) } }
     }

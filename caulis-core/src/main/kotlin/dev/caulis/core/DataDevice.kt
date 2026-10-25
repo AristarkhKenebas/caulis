@@ -120,6 +120,12 @@ class DataDeviceManager(display: Display, private val seat: Seat) {
                 }
 
                 override fun setSelection(resource: WlDataDevice, source: WlDataSource?, serial: Int) {
+                    // Only the program you use may set the clipboard (one in the background
+                    // could swap what you copied); clipboard managers use data-control.
+                    if (!this@DataDeviceManager.seat.inUse(resource.client)) {
+                        source?.sendCancelled()
+                        return
+                    }
                     this@DataDeviceManager.setSelection(source?.dataAs<Source>())
                 }
 

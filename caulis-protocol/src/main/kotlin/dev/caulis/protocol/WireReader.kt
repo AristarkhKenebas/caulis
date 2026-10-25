@@ -61,10 +61,12 @@ abstract class WireReader {
         val bytes = data.asSlice(position, length - 1).toArray(JAVA_BYTE)
         position += padded
         // Wayland strings are UTF-8. Broken bytes (some apps send them in titles) are
-        // replaced instead of disconnecting the app.
+        // replaced instead of disconnecting the app — by "?", one byte: the text never grows,
+        // so passed on to another client it still fits in a message.
         return StandardCharsets.UTF_8.newDecoder()
             .onMalformedInput(CodingErrorAction.REPLACE)
             .onUnmappableCharacter(CodingErrorAction.REPLACE)
+            .replaceWith("?")
             .decode(ByteBuffer.wrap(bytes))
             .toString()
     }

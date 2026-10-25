@@ -2,10 +2,12 @@
 // (surfaces, shared-memory buffers, outputs) and, later, the backends.
 
 plugins {
-    id("caulis.library")
+    id("caulis.published")
     // Test helpers (a test server, a small client) other modules' tests can use too.
     `java-test-fixtures`
 }
+
+description = "The core of Caulis, a Wayland compositor library: protocols, window management, effects, DRM and nested backends."
 
 dependencies {
     api(project(":caulis-protocol"))

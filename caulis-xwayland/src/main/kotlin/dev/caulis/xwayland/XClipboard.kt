@@ -386,9 +386,11 @@ internal class XClipboard(
     private fun answered(event: MemorySegment) {
         if (xcb_selection_notify_event_t.requestor(event) != window) return
         val property = xcb_selection_notify_event_t.property(event)
-        when (xcb_selection_notify_event_t.target(event)) {
+        when (val target = xcb_selection_notify_event_t.target(event)) {
             targets -> if (property != XConnection.NONE) offerFromX()
-            else -> receiving?.answered(property)
+            // Only the answer for the paste waited for now (a late one for a paste given up
+            // on must not end up in the next program's paste).
+            else -> receiving?.takeIf { it.target == target }?.answered(property)
         }
     }
 
@@ -599,7 +601,7 @@ internal class XClipboard(
         // At most this much is held for a slower side before the faster one is made to wait.
         const val MAX_HELD = 4 * PIECE
         // The largest single answer an X program may give (with BIG-REQUESTS).
-        const val MAX_READ = 1 shl 28
+        const val MAX_READ = 1 shl 26 // (64 MB in one piece; bigger comes in parts, INCR)
         const val TIMEOUT_MILLIS = 5000L
         const val WRITE_TIMEOUT_MILLIS = 60_000L
         val TEXT_TYPES = listOf("text/plain;charset=utf-8", "UTF8_STRING", "text/plain", "STRING", "TEXT")

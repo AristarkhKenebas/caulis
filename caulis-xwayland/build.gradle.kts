@@ -2,8 +2,10 @@
 // is the window manager of their windows (through XCB), so they are windows like any other.
 
 plugins {
-    id("caulis.library")
+    id("caulis.published")
 }
+
+description = "X11 programs in a Caulis compositor: Xwayland and an X11 window manager."
 
 dependencies {
     api(project(":caulis-core"))

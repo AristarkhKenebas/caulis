@@ -46,6 +46,12 @@ internal class Outgoing(private val socket: UnixSocket, private val arena: Arena
         fds += QueuedFd(fd.duplicate(), sentTotal + messageStart)
     }
 
+    /** Drops (and closes) the descriptors of the message starting at [messageStart]. */
+    fun cancelFds(messageStart: Int) {
+        val at = sentTotal + messageStart
+        fds.removeAll { queued -> (queued.messageStart == at).also { if (it) queued.fd.close() } }
+    }
+
     enum class Result { SENT_ALL, SOCKET_FULL, BROKEN }
 
     /** Sends as much as the socket takes. */

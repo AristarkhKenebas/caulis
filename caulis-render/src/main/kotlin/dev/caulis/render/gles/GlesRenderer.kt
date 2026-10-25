@@ -105,20 +105,43 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
     override val dmabufFormats: List<DmabufFormat> by lazy {
         val functions = egl.extensionFunctions
         functions.dmabufFormats(egl.display).flatMap { format ->
-            // MODIFIER_INVALID = "implicit layout": what clients without modifier support use.
-            (functions.dmabufModifiers(egl.display, format) + Dmabuf.MODIFIER_INVALID).distinct()
+            // "External only" layouts need a special shader (video formats, YUV), which we do
+            // not have: never offered — a program would show black. (It falls back to another
+            // format, e.g. the video decoder hands RGB pictures instead.)
+            val all = functions.dmabufModifiersAll(egl.display, format)
+            val usable = all.filter { !it.second }.map { it.first }
+            // MODIFIER_INVALID = "implicit layout": what clients without modifier support use —
+            // only for a format that can be drawn at all (and, without any list, not for YUV).
+            val implicit = usable.isNotEmpty() || (all.isEmpty() && !isYuv(format))
+            (usable + if (implicit) listOf(Dmabuf.MODIFIER_INVALID) else emptyList()).distinct()
                 .map { DmabufFormat(format, it) }
         }
     }
 
+    // Video formats (luma and chroma), which need the external-image shader.
+    private fun isYuv(format: Int): Boolean {
+        val name = String(CharArray(4) { i -> ((format ushr (8 * i)) and 0xff).toChar() })
+        return name in YUV_FORMATS
+    }
+
     override fun importDmabuf(buffer: Dmabuf): GpuTexture? {
         val image = images.createImage(buffer) ?: return null
-        return images.texture(image, buffer.width, buffer.height)
+        return try {
+            images.texture(image, buffer.width, buffer.height)
+        } catch (e: Exception) {
+            images.destroyImage(image) // the GPU cannot read it after all: not importable
+            null
+        }
     }
 
     override fun importDmabufTarget(buffer: Dmabuf): GpuTarget? {
         val image = images.createImage(buffer) ?: return null
-        val texture = images.texture(image, buffer.width, buffer.height)
+        val texture = try {
+            images.texture(image, buffer.width, buffer.height)
+        } catch (e: Exception) {
+            images.destroyImage(image)
+            return null
+        }
         return try {
             GlesImportedTarget(buffer.width, buffer.height, texture)
         } catch (e: IllegalStateException) {
@@ -137,6 +160,8 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         Gles.glBlitFramebuffer(from.x, from.y, from.right, from.bottom, 0, 0, target.width, target.height, Gles.GL_COLOR_BUFFER_BIT(), filter)
         Gles.glBindFramebuffer(Gles.GL_FRAMEBUFFER(), 0)
         Gl.check("copying a picture")
+        // In the middle of a frame: what is drawn next goes where it went before.
+        this.target?.let { bindTarget(it, clip) }
     }
 
     override fun finish() = Gles.glFinish()
@@ -271,6 +296,7 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
                 1 -> Gles.glUniform1f(at, value[0])
                 2 -> Gles.glUniform2f(at, value[0], value[1])
                 4 -> Gles.glUniform4f(at, value[0], value[1], value[2], value[3])
+                else -> throw IllegalArgumentException("the shader value $name has ${value.size} numbers: 1, 2 or 4 (a vec3 goes as a vec4)")
             }
         }
         for ((name, value) in ints) Gles.glUniform1i(program.uniform(name), value)
@@ -391,15 +417,26 @@ internal class Program(vertexSource: String, fragmentSource: String) : AutoClose
     private val uniforms = HashMap<String, Int>()
 
     init {
-        val vertex = compile(Gles.GL_VERTEX_SHADER(), vertexSource)
-        val fragment = compile(Gles.GL_FRAGMENT_SHADER(), fragmentSource)
-        Gles.glAttachShader(id, vertex)
-        Gles.glAttachShader(id, fragment)
-        Gles.glLinkProgram(id)
-        Gles.glDeleteShader(vertex)
-        Gles.glDeleteShader(fragment)
-        check(status(Gles::glGetProgramiv, Gles.GL_LINK_STATUS()) == Gles.GL_TRUE()) {
-            "Shader program failed to link: ${log(Gles::glGetProgramInfoLog, id)}"
+        // A shader of yours that does not compile or link leaves nothing behind on the GPU.
+        try {
+            val vertex = compile(Gles.GL_VERTEX_SHADER(), vertexSource)
+            val fragment = try {
+                compile(Gles.GL_FRAGMENT_SHADER(), fragmentSource)
+            } catch (e: Exception) {
+                Gles.glDeleteShader(vertex)
+                throw e
+            }
+            Gles.glAttachShader(id, vertex)
+            Gles.glAttachShader(id, fragment)
+            Gles.glLinkProgram(id)
+            Gles.glDeleteShader(vertex)
+            Gles.glDeleteShader(fragment)
+            check(status(Gles::glGetProgramiv, Gles.GL_LINK_STATUS()) == Gles.GL_TRUE()) {
+                "Shader program failed to link: ${log(Gles::glGetProgramInfoLog, id)}"
+            }
+        } catch (e: Exception) {
+            Gles.glDeleteProgram(id)
+            throw e
         }
     }
 
@@ -421,7 +458,11 @@ internal class Program(vertexSource: String, fragmentSource: String) : AutoClose
             Gles.glGetShaderiv(shader, Gles.GL_COMPILE_STATUS(), value)
             value.get(JAVA_INT, 0)
         }
-        check(ok == Gles.GL_TRUE()) { "Shader failed to compile: ${log(Gles::glGetShaderInfoLog, shader)}" }
+        if (ok != Gles.GL_TRUE()) {
+            val why = log(Gles::glGetShaderInfoLog, shader)
+            Gles.glDeleteShader(shader)
+            error("Shader failed to compile: $why")
+        }
         return shader
     }
 
@@ -441,3 +482,9 @@ internal class Program(vertexSource: String, fragmentSource: String) : AutoClose
 
     override fun close() = Gles.glDeleteProgram(id)
 }
+
+private val YUV_FORMATS = setOf(
+    "NV12", "NV21", "NV16", "NV61", "NV24", "NV42", "NV15", "NV20", "NV30", "P010", "P012", "P016", "P210", "P030",
+    "YUYV", "YVYU", "UYVY", "VYUY", "AYUV", "XYUV", "YU12", "YV12", "YU16", "YV16", "YU24", "YV24",
+    "Y210", "Y212", "Y216", "Y410", "Y412", "Y416", "XV30", "XV36", "XV48", "VUY8", "VU24",
+)

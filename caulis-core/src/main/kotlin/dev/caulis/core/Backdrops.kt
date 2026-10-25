@@ -52,7 +52,8 @@ internal class Backdrops(
 
     private fun backgroundOf(monitor: Monitor, workspace: Int): Background = try {
         backgroundFor?.invoke(monitor, workspace) ?: background
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
+        e.rethrowIfFatal()
         log.error("Your backgroundFor failed (the usual background is shown): $e", e)
         background
     }
@@ -154,15 +155,24 @@ internal class Backdrops(
     // By file: its picture, or null while it is read (or when it could not be).
     private val pictures = HashMap<Path, Picture?>()
 
-    // Picture files followed for changes (a new version is read again).
-    private val followed = HashSet<Path>()
+    // Picture files followed for changes (a new version is read again), and when each was
+    // last drawn (one not drawn for a while is let go: a slideshow does not pile up pictures).
+    private val followed = HashMap<Path, AutoCloseable>()
+    private val lastUsed = HashMap<Path, Long>()
+
+    // Each reading of a file has a number: a slow older one never replaces a newer one.
+    private val readings = HashMap<Path, Int>()
 
     private fun picture(path: Path): Picture? {
+        lastUsed[path] = System.nanoTime()
         if (path in pictures) return pictures[path]
         pictures[path] = null
-        if (followed.add(path)) {
-            FileWatch.watch(path) {
+        val reading = (readings[path] ?: 0) + 1
+        readings[path] = reading
+        if (path !in followed) {
+            followed[path] = FileWatch.watch(path) {
                 loop.post {
+                    if (path !in followed) return@post
                     pictures.remove(path)?.texture?.close()
                     changed()
                 }
@@ -181,7 +191,9 @@ internal class Backdrops(
                 return@start
             }
             loop.post {
-                pictures[path] = Picture(upload(argb), argb.width, argb.height)
+                // Read again meanwhile (the file was saved), or let go: this one is not needed.
+                if (readings[path] != reading || path !in pictures) return@post
+                pictures.put(path, Picture(upload(argb), argb.width, argb.height))?.texture?.close()
                 log.info { "Background picture $path: ${argb.width}x${argb.height}" }
                 changed()
             }
@@ -275,7 +287,8 @@ internal class Backdrops(
                 is Background.Painted -> background.painter.paint(g, BackgroundLook(width, height, monitor.scale, monitor.name, workspace))
                 else -> {}
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            e.rethrowIfFatal()
             log.error("Painting the background failed (your BackgroundPainter?): $e", e)
         } finally {
             g.dispose()
@@ -303,6 +316,14 @@ internal class Backdrops(
      * wallpaper program, or a fullscreen window). A moving shader there asks for its next frame.
      */
     fun sceneBuilt(seen: Set<String>) {
+        // Pictures not drawn for a while: let go (read again if they come back).
+        val now = System.nanoTime()
+        for ((path, used) in lastUsed.toList()) {
+            if (now - used < UNUSED_NANOS) continue
+            lastUsed.remove(path)
+            pictures.remove(path)?.texture?.close()
+            followed.remove(path)?.close()
+        }
         val fps = movingOn.filter { it.first in seen }.maxOfOrNull { it.second }
         movingOn.clear()
         if (fps == null || tick != null) return
@@ -312,13 +333,24 @@ internal class Backdrops(
         }
     }
 
+    /** [monitor] went away: its pictures go too (a monitor coming back paints them anew). */
+    fun forget(monitor: String) {
+        shown -= monitor
+        leaving -= monitor
+        for (key in paintings.keys.filter { it.startsWith("$monitor ") }) paintings.remove(key)?.second?.close()
+    }
+
     fun close() {
         tick?.cancel()
         pictures.values.forEach { it?.texture?.close() }
+        followed.values.forEach { it.close() }
         paintings.values.forEach { it.second.close() }
     }
 
     private companion object {
+        // How long a picture nobody draws is kept.
+        const val UNUSED_NANOS = 60_000_000_000L
+
         val USUAL_COLOR = (Background.USUAL as Background.Solid).color
     }
 }

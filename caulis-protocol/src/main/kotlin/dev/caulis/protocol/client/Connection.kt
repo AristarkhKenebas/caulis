@@ -139,6 +139,8 @@ class Connection private constructor(private val socket: UnixSocket) : WireOutpu
 
     override fun queueFd(fd: Fd, messageStart: Int) = outgoing.queueFd(fd, messageStart)
 
+    override fun cancelMessage(messageStart: Int) = outgoing.cancelFds(messageStart)
+
     override fun messageWritten() {}
 
     /** Sends queued requests. Returns false if the socket is full (try again when writable). */

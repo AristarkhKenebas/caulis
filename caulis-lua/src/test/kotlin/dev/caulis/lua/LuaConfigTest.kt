@@ -66,6 +66,44 @@ class LuaConfigTest {
     }
 
     @Test
+    fun `code that never ends is stopped however it tries to escape, and Java errors are mistakes too`() {
+        val usual = LuaConfig.LOAD_LIMIT
+        LuaConfig.LOAD_LIMIT = 300_000_000L
+        try {
+            for ((code, expected) in listOf(
+                "debug.sethook() while true do end" to "attempt to call nil", // there is no sethook to take the limit away
+                "coroutine.wrap(function() while true do end end)()" to "runs too long",
+                "while true do pcall(function() while true do end end) end" to "runs too long",
+                "local function f() return 1 + f() end f()" to "", // a stack overflow (LuaJ reports it its own way)
+                "local s = string.rep('x', 2^31)" to "",
+                "luajava.bindClass('java.lang.System'):exit(1)" to "index",
+            )) {
+                val start = System.nanoTime()
+                val (_, problems) = apply(code)
+                val seconds = (System.nanoTime() - start) / 1e9
+                assertEquals(1, problems.size, "$code: $problems")
+                assertTrue(expected in problems.single(), "$code: ${problems.single()}")
+                assertTrue(seconds < 3, "$code took $seconds s")
+            }
+        } finally {
+            LuaConfig.LOAD_LIMIT = usual
+        }
+    }
+
+    @Test
+    fun `a bad regular expression is a problem with its line, the settings after it still apply`() {
+        val (caulis, problems) = apply(
+            """
+            caulis.rule { appIdPattern = "(" }
+            caulis.settings { scale = 1.5 }
+            """,
+        )
+        assertEquals(1, problems.size, "$problems")
+        assertTrue("regular expression" in problems.single(), problems.single())
+        assertEquals(1.5, caulis.scale)
+    }
+
+    @Test
     fun `mistakes say their line, the rest still applies`() {
         val (caulis, problems) = apply(
             """

@@ -222,7 +222,9 @@ internal class Reloader private constructor(
             capturing.remove()
             loadedHere = loader.found
         }
-        return slot[0] ?: throw ReloadFailed("main() did not start Caulis (caulis { } or run()), so there was nothing to take on")
+        val handed = slot[0] ?: throw ReloadFailed("main() did not start Caulis (caulis { } or run()), so there was nothing to take on")
+        latestMain = Class.forName(project.mainClass, false, loader) // (a saved config file runs this one again)
+        return handed
     }
 
     // On the compositor's thread: the new configuration replaces the old one (back to it if that fails).
@@ -336,6 +338,10 @@ internal class Reloader private constructor(
         @Volatile
         internal var startedFrom: String? = null
 
+        // Its newest version, after a hot reload (null: the one it started with).
+        @Volatile
+        internal var latestMain: Class<*>? = null
+
         /**
          * Runs this program's main() once more, in its own class loader, and returns the
          * configuration it hands over (null: how it was started is unknown).
@@ -347,7 +353,7 @@ internal class Reloader private constructor(
             val slot = arrayOfNulls<Caulis>(1)
             capturing.set(slot)
             try {
-                Class.forName(mainClass, true, Caulis::class.java.classLoader)
+                (latestMain ?: Class.forName(mainClass, true, Caulis::class.java.classLoader))
                     .getMethod("main", Array<String>::class.java).invoke(null, arguments.toTypedArray())
             } catch (e: InvocationTargetException) {
                 if (e.cause !is Captured) throw e.cause ?: e

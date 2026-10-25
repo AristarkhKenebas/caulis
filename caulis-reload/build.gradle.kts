@@ -3,8 +3,10 @@
 // `run` task only — it is big (the Kotlin compiler) and an installed compositor needs none.
 
 plugins {
-    id("caulis.library")
+    id("caulis.published")
 }
+
+description = "Fast hot reload for Caulis compositors in development (compiles inside the running compositor)."
 
 dependencies {
     api(project(":caulis-wm"))

@@ -448,7 +448,7 @@ class Caulis {
     /** The cursor size in pixels (24 is usual; 32 or 48 for a bigger one). Null = `XCURSOR_SIZE` or 24. */
     var cursorSize: Int? = null
         set(value) {
-            require(value == null || value in 8..512) { "cursorSize must be between 8 and 512" }
+            require(value == null || value in 8..256) { "cursorSize must be between 8 and 256" }
             field = value
             running?.applyCursor()
         }
@@ -594,6 +594,15 @@ class Caulis {
      * pictures being drawn, with less delay. Off: always drawn into the pictures.
      */
     var hardwareCursor = true
+
+    /**
+     * Which programs may use the privileged features: screenshots and screen sharing,
+     * clipboard managers, panels and lock screens, arranging monitors, gamma, managing other
+     * programs' windows. All by default (as most compositors); e.g. only some programs:
+     * `privilegedClients = { client -> client.program in setOf("grim", "waybar", "swaylock") }`.
+     * Asked when a program connects.
+     */
+    var privilegedClients: (dev.caulis.protocol.Client) -> Boolean = { true }
 
     /** Show fullscreen programs' pictures directly on the monitor (screen mode). */
     var directScanout = true
@@ -1035,7 +1044,7 @@ class Caulis {
     internal fun addableLists(): List<MutableList<*>> = listOf(
         titleBarRules, noticeListeners, bindings, startActions, floatRules, effectRules, panelEffectRules, panelRules,
         scratchpads, swipes, windowOpened, windowClosed, focusChanged, workspaceChanged, reloadActions, rules,
-        windowChanged, monitorAdded, monitorRemoved, unloadActions,
+        windowChanged, monitorAdded, monitorRemoved, unloadActions, waitingTimers,
         workspaceRules, lidActions, idleWatches,
     )
 
@@ -1068,12 +1077,37 @@ class Caulis {
     // Timers started with [after] (cancelled when this configuration is replaced by a reload).
     internal val timers = ArrayList<dev.caulis.event.EventLoop.Timer>()
 
+    // A timer asked for before the compositor runs (in the configuration itself): it starts
+    // when this configuration does, and ends with it.
+    internal class WaitingTimer(val start: () -> AutoCloseable) : AutoCloseable {
+        private var started: AutoCloseable? = null
+        private var cancelled = false
+
+        fun begin() {
+            if (!cancelled && started == null) started = start()
+        }
+
+        override fun close() {
+            cancelled = true
+            started?.close()
+        }
+    }
+
+    internal val waitingTimers = ArrayList<WaitingTimer>()
+
+    // The timers asked for before this configuration ran start now (it runs).
+    internal fun startWaitingTimers() = waitingTimers.toList().forEach { it.begin() }
+
+    // Not running yet: [start] waits until this configuration runs.
+    private fun later(start: () -> AutoCloseable): AutoCloseable = WaitingTimer(start).also { waitingTimers += it }
+
     /**
-     * Runs [action] once, [millis] from now, on the compositor's thread. Only while running;
-     * close the result to cancel it. A reload cancels the timers of the configuration before.
+     * Runs [action] once, [millis] from now, on the compositor's thread; close the result to
+     * cancel it. Asked for in the configuration itself, it counts from when it runs. A reload
+     * cancels the timers of the configuration before.
      */
     fun after(millis: Long, action: Caulis.() -> Unit): AutoCloseable {
-        val r = checkNotNull(running) { "Caulis is not running yet" }
+        val r = running ?: return later { after(millis, action) }
         lateinit var timer: dev.caulis.event.EventLoop.Timer
         timer = r.loop.after(millis.coerceAtLeast(0)) {
             timers -= timer
@@ -1088,11 +1122,12 @@ class Caulis {
 
     /**
      * Runs [action] every [millis] from now on, on the compositor's thread, until the result is
-     * closed (or the configuration is reloaded). Only while running.
+     * closed (or the configuration is reloaded). Asked for in the configuration itself, it
+     * starts when it runs.
      */
     fun every(millis: Long, action: Caulis.() -> Unit): AutoCloseable {
         require(millis >= 10) { "every: at least 10 milliseconds apart, not $millis" }
-        val r = checkNotNull(running) { "Caulis is not running yet" }
+        val r = running ?: return later { every(millis, action) }
         var stopped = false
         var timer: dev.caulis.event.EventLoop.Timer? = null
         fun next() {

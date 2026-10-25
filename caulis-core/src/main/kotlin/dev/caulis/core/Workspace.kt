@@ -40,11 +40,15 @@ class Workspace internal constructor(
     var model: TilingModel = layout.createModel()
         private set
 
+    // (Changed only by the desktop: what others see is read-only.)
+    internal val windowList = ArrayList<Window>()
+    internal val minimizedList = ArrayList<Window>()
+
     /** Windows shown on this workspace, bottom to top (drawing order). */
-    val windows = ArrayList<Window>()
+    val windows: List<Window> get() = windowList
 
     /** Minimized windows of this workspace (hidden until brought back). */
-    val minimized = ArrayList<Window>()
+    val minimized: List<Window> get() = minimizedList
 
     // Oldest first: the order layouts place windows in (focus does not change it).
     internal val tilingOrder = ArrayList<Window>()
@@ -63,13 +67,13 @@ class Workspace internal constructor(
         }
 
     internal fun add(window: Window) {
-        windows += window
+        windowList += window
         tilingOrder += window
     }
 
     internal fun remove(window: Window) {
-        windows -= window
-        minimized -= window
+        windowList -= window
+        minimizedList -= window
         tilingOrder -= window
         floating -= window
     }

@@ -64,7 +64,7 @@ class ScreenCapture(
         desktop.frameListeners += ::serviceWaiting
         desktop.commitListeners += { surface -> windowSessions.forEach { it.committed(surface) } }
 
-        display.addGlobal(ZwlrScreencopyManagerV1, WLR_VERSION) { manager ->
+        display.addPrivilegedGlobal(ZwlrScreencopyManagerV1, WLR_VERSION) { manager ->
             val damageViews = HashMap<Pair<Boolean, Monitor>, DesktopView>() // per cursor choice and monitor: what this program got last
             manager.onDestroy { damageViews.values.forEach(desktop::removeCaptureView) }
             manager.requests = object : ZwlrScreencopyManagerV1.Requests {
@@ -85,7 +85,7 @@ class ScreenCapture(
             }
         }
 
-        display.addGlobal(ExtOutputImageCaptureSourceManagerV1, 1) { manager ->
+        display.addPrivilegedGlobal(ExtOutputImageCaptureSourceManagerV1, 1) { manager ->
             manager.requests = object : ExtOutputImageCaptureSourceManagerV1.Requests {
                 override fun createSource(resource: ExtOutputImageCaptureSourceManagerV1, source: ExtImageCaptureSourceV1, output: WlOutput) =
                     source(source, Source.Screen(output.dataAs<Output>()))
@@ -93,7 +93,7 @@ class ScreenCapture(
                 override fun destroy(resource: ExtOutputImageCaptureSourceManagerV1) {}
             }
         }
-        display.addGlobal(ExtForeignToplevelImageCaptureSourceManagerV1, 1) { manager ->
+        display.addPrivilegedGlobal(ExtForeignToplevelImageCaptureSourceManagerV1, 1) { manager ->
             manager.requests = object : ExtForeignToplevelImageCaptureSourceManagerV1.Requests {
                 override fun createSource(resource: ExtForeignToplevelImageCaptureSourceManagerV1, source: ExtImageCaptureSourceV1, toplevelHandle: ExtForeignToplevelHandleV1) =
                     source(source, toplevels?.windowOf(toplevelHandle)?.let(Source::OneWindow) ?: Source.Gone)
@@ -101,7 +101,7 @@ class ScreenCapture(
                 override fun destroy(resource: ExtForeignToplevelImageCaptureSourceManagerV1) {}
             }
         }
-        display.addGlobal(ExtImageCopyCaptureManagerV1, 1) { manager ->
+        display.addPrivilegedGlobal(ExtImageCopyCaptureManagerV1, 1) { manager ->
             manager.requests = object : ExtImageCopyCaptureManagerV1.Requests {
                 override fun createSession(resource: ExtImageCopyCaptureManagerV1, session: ExtImageCopyCaptureSessionV1, source: ExtImageCaptureSourceV1, options: Int) {
                     if (options and ExtImageCopyCaptureManagerV1.Options.PAINT_CURSORS.inv() != 0) {

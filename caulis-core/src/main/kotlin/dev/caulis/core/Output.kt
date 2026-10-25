@@ -61,14 +61,14 @@ class Output(
     }
 
     init {
-        synchronized(all) { all.getOrPut(display) { ArrayList() } += this }
+        outputsOf(display) += this
     }
 
     /** The monitor is gone: clients stop seeing it (their wl_output objects stay valid but idle). */
     fun remove() {
         display.removeGlobal(global)
         bound.clear()
-        synchronized(all) { all[display]?.remove(this) }
+        outputsOf(display) -= this
     }
 
     /** This monitor's wl_output objects that [client] has. */
@@ -159,10 +159,13 @@ class Output(
     companion object {
         const val VERSION = 4
 
-        // The monitors of each display.
-        private val all = java.util.WeakHashMap<Display, MutableList<Output>>()
+        // What a display keeps for us (see Display.attachments): its monitors, and who gets pixels.
+        private object Monitors
+        private object Scaled
 
-        private val scaledClients = java.util.WeakHashMap<Display, (dev.caulis.protocol.Client, Output) -> Double?>()
+        @Suppress("UNCHECKED_CAST")
+        private fun outputsOf(display: Display): MutableList<Output> =
+            display.attachments.getOrPut(Monitors) { java.util.concurrent.CopyOnWriteArrayList<Output>() } as MutableList<Output>
 
         /**
          * Tells some clients the monitors' size in pixels of their own, not in desktop units:
@@ -172,7 +175,7 @@ class Output(
          */
         @JvmStatic
         fun reportScaledTo(display: Display, pixelsPerUnit: (dev.caulis.protocol.Client, Output) -> Double?) {
-            synchronized(scaledClients) { scaledClients[display] = pixelsPerUnit }
+            display.attachments[Scaled] = pixelsPerUnit
         }
 
         /** Tells the clients [pixels] accepts (Xwayland) the monitors' size in the screen's real pixels. */
@@ -180,12 +183,13 @@ class Output(
         fun reportPixelsTo(display: Display, pixels: (dev.caulis.protocol.Client) -> Boolean) =
             reportScaledTo(display) { client, output -> if (pixels(client)) output.scale else null }
 
+        @Suppress("UNCHECKED_CAST")
         private fun scaledFor(display: Display): (dev.caulis.protocol.Client, Output) -> Double? =
-            synchronized(scaledClients) { scaledClients[display] } ?: { _, _ -> null }
+            display.attachments[Scaled] as ((dev.caulis.protocol.Client, Output) -> Double?)? ?: { _, _ -> null }
 
         /** The monitors [display] has now. */
         @JvmStatic
-        fun of(display: Display): List<Output> = synchronized(all) { all[display]?.toList() ?: emptyList() }
+        fun of(display: Display): List<Output> = outputsOf(display).toList()
     }
 }
 

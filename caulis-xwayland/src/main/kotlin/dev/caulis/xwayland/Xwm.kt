@@ -94,6 +94,11 @@ class Xwm internal constructor(
         x.setProperty(x.root, atom("_NET_CLIENT_LIST"), Xcb.XCB_ATOM_WINDOW(), intArrayOf())
         x.setProperty(x.root, atom("_NET_CLIENT_LIST_STACKING"), Xcb.XCB_ATOM_WINDOW(), intArrayOf())
 
+        // Our own connection must not keep Xwayland running once the programs are gone — said
+        // before any program can come in (one that comes and goes at once, like xrdb, would
+        // otherwise leave Xwayland running for good).
+        if (!x.letServerTerminate()) log.trace { "This Xwayland cannot stop by itself (XFixes older than 6)" }
+
         // Announce ourselves as the window manager (ICCCM): Xwayland only lets X11 programs in after this.
         java.lang.foreign.Arena.ofConfined().use { arena ->
             for (selection in listOf("WM_S0", "_NET_WM_CM_S0")) {
@@ -103,8 +108,6 @@ class Xwm internal constructor(
 
         xfixesEvent = x.xfixesFirstEvent()
         this.clipboard = XClipboard(x, loop, clipboard) { it in windows }
-        // Our own connection does not keep Xwayland running once the programs are gone.
-        if (!x.letServerTerminate()) log.trace { "This Xwayland cannot stop by itself (XFixes older than 6)" }
         updateCursor()
         tellResources()
         x.flush()
@@ -151,7 +154,12 @@ class Xwm internal constructor(
                 clipboard.windowGone(id)
                 windows.remove(id)?.let(::gone)
             }
-            Xcb.XCB_MAP_REQUEST() -> windows[xcb_map_request_event_t.window(event)]?.let(::mapRequested)
+            // (A window we never saw created — reparented to the root, as tray icons and some
+            // Wine and Java windows are — is taken on now, instead of waiting for ever.)
+            Xcb.XCB_MAP_REQUEST() -> xcb_map_request_event_t.window(event).let { id ->
+                (windows[id] ?: track(id, overrideRedirect = false, Rect(0, 0, 1, 1)))?.let(::mapRequested)
+            }
+            REPARENT_NOTIFY -> reparented(event)
             Xcb.XCB_MAP_NOTIFY() -> windows[xcb_map_notify_event_t.window(event)]?.let { window ->
                 window.overrideRedirect = xcb_map_notify_event_t.override_redirect(event).toInt() != 0
                 window.xMapped = true
@@ -183,17 +191,40 @@ class Xwm internal constructor(
     private fun created(event: MemorySegment) {
         val id = xcb_create_notify_event_t.window(event)
         stack.created(id)
-        if (id == checkWindow || clipboard.owns(id)) return
-        val window = XWindow(this, id, xcb_create_notify_event_t.override_redirect(event).toInt() != 0)
-        window.xGeometry = Rect(
-            xcb_create_notify_event_t.x(event).toInt(), xcb_create_notify_event_t.y(event).toInt(),
-            xcb_create_notify_event_t.width(event).toInt() and 0xffff, xcb_create_notify_event_t.height(event).toInt() and 0xffff,
+        track(
+            id, xcb_create_notify_event_t.override_redirect(event).toInt() != 0,
+            Rect(
+                xcb_create_notify_event_t.x(event).toInt(), xcb_create_notify_event_t.y(event).toInt(),
+                xcb_create_notify_event_t.width(event).toInt() and 0xffff, xcb_create_notify_event_t.height(event).toInt() and 0xffff,
+            ),
         )
+    }
+
+    // ReparentNotify (no generated struct: window at byte 8, parent at 12, override-redirect at 20).
+    // A window of ours that moved into another one is no longer a top-level window; one that
+    // moved into the root is one now.
+    private fun reparented(event: MemorySegment) {
+        val id = event.get(java.lang.foreign.ValueLayout.JAVA_INT_UNALIGNED, 8)
+        val parent = event.get(java.lang.foreign.ValueLayout.JAVA_INT_UNALIGNED, 12)
+        val overrideRedirect = event.get(JAVA_BYTE, 20).toInt() != 0
+        if (parent == x.root) {
+            if (id !in windows) track(id, overrideRedirect, Rect(0, 0, 1, 1))
+        } else {
+            windows.remove(id)?.let(::gone)
+        }
+    }
+
+    // A top-level window from now on (null: one of ours, not a program's).
+    private fun track(id: Int, overrideRedirect: Boolean, geometry: Rect): XWindow? {
+        if (id == checkWindow || clipboard.owns(id)) return null
+        val window = XWindow(this, id, overrideRedirect)
+        window.xGeometry = geometry
         windows[id] = window
         // Its properties change later (title, class, ...) and it may take the keyboard: we want to hear it.
         x.changeAttributes(id, Xcb.XCB_CW_EVENT_MASK(), intArrayOf(Xcb.XCB_EVENT_MASK_PROPERTY_CHANGE() or Xcb.XCB_EVENT_MASK_FOCUS_CHANGE()))
         readProperties(window)
         log.trace { "Created $window at ${window.xGeometry}${if (window.overrideRedirect) " (places itself)" else ""}" }
+        return window
     }
 
     private fun mapRequested(window: XWindow) {
@@ -233,6 +264,7 @@ class Xwm internal constructor(
         if (window.unmanaged) {
             showUnmanaged(window)
             window.inDesktop = true
+            window.shownUnmanaged = true
             restack()
             return
         }
@@ -240,6 +272,7 @@ class Xwm internal constructor(
         val (width, height) = desktop.initialSize(window)
         if (width > 0 && height > 0) window.configure(width, height)
         window.inDesktop = true
+        window.shownUnmanaged = false
         desktop.windowMapped(window)
         updateClientList()
         restack()
@@ -249,7 +282,8 @@ class Xwm internal constructor(
         if (!window.inDesktop) return
         window.inDesktop = false
         val surface = window.xSurface
-        if (window.unmanaged) {
+        // As it was shown (its type may have changed since: a window shown as one must go as one).
+        if (window.shownUnmanaged) {
             surface?.let(desktop::hideUnmanaged) // gives the keyboard back if it had it
         } else {
             desktop.windowUnmapped(window)
@@ -730,6 +764,16 @@ class Xwm internal constructor(
 
     override fun close() {
         focusWatch?.close() // the desktop no longer tells a window manager that is gone
+        // Its windows leave the desktop now, while the X connection still works (the desktop
+        // arranging and focusing the others may ask X windows to move).
+        for (window in windows.values.toList()) {
+            try {
+                hide(window)
+            } catch (e: Exception) {
+                log.trace { "Hiding $window at the end failed: $e" }
+            }
+        }
+        windows.clear()
         clipboard.close()
         if (watching) loop.remove(dev.caulis.ffi.Fd.borrow(x.fd))
         watching = false
@@ -752,6 +796,7 @@ class Xwm internal constructor(
     }
 
     private companion object {
+        const val REPARENT_NOTIFY = 21 // (XCB_REPARENT_NOTIFY)
         const val NORMAL_STATE = 1
         const val ICONIC_STATE = 3
         const val WITHDRAWN_STATE = 0

@@ -85,6 +85,17 @@ class Xwayland(
     private val servers: List<XServer> get() = listOfNotNull(direct) + worlds.values
 
     init {
+        // The X11 libraries are separate packages on some systems (libxcb-composite0, ...):
+        // missing ones mean no X11 programs, said once now — not a crash at the first one.
+        try {
+            Class.forName("dev.caulis.ffi.c.xcb.Xcb")
+        } catch (e: Throwable) {
+            if (e is OutOfMemoryError) throw e
+            throw IllegalStateException(
+                "X11 programs cannot run: a library is missing (libxcb, libxcb-composite, libxcb-xfixes and libxcb-render are needed): ${e.cause?.message ?: e.message ?: e}",
+                e,
+            )
+        }
         val (n, lock) = claimDisplay()
         number = n
         lockFile = lock
@@ -221,17 +232,21 @@ class Xwayland(
     }
 
     // Xwayland stops [idleSeconds] after the last X11 program (it starts again with the next):
-    // "-terminate <seconds>" since Xwayland 23.1, plain "-terminate" (at once) before.
-    private val terminateArguments: List<String> by lazy {
-        if (idleSeconds <= 0) emptyList()
-        else {
-            val delay = runCatching {
-                val help = ProcessBuilder("Xwayland", "-help").redirectErrorStream(true).start()
-                help.inputStream.bufferedReader().readText().also { help.waitFor() }
-            }.getOrDefault("").contains("-terminate [delay]")
-            if (delay) listOf("-terminate", idleSeconds.toString()) else listOf("-terminate")
+    // "-terminate <seconds>" since Xwayland 23.1, plain "-terminate" (at once) before. Asked of
+    // Xwayland at the start, on a thread of its own (it takes a moment; the loop never waits).
+    private val terminateDelay = java.util.concurrent.CompletableFuture.supplyAsync({
+        runCatching {
+            val help = ProcessBuilder("Xwayland", "-help").redirectErrorStream(true).start()
+            help.inputStream.bufferedReader().readText().also { help.waitFor() }
+        }.getOrDefault("").contains("-terminate [delay]")
+    }, { task -> Thread.ofVirtual().name("xwayland-help").start(task) })
+
+    private val terminateArguments: List<String>
+        get() = when {
+            idleSeconds <= 0 -> emptyList()
+            terminateDelay.getNow(false) -> listOf("-terminate", idleSeconds.toString())
+            else -> listOf("-terminate")
         }
-    }
 
     override fun close() {
         router?.close()

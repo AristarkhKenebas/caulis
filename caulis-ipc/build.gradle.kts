@@ -2,8 +2,10 @@
 // side is in caulis-wm; programs in other languages make their code from caulis.proto.
 
 plugins {
-    id("caulis.library")
+    id("caulis.published")
 }
+
+description = "The IPC socket of Caulis compositors: Protocol Buffers messages and a JVM client."
 
 val libs = versionCatalogs.named("libs")
 

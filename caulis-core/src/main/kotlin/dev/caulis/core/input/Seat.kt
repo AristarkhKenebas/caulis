@@ -29,6 +29,10 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
     var keyboardFocus: Surface? = null
         private set
 
+    /** True if [client] has the keyboard or the pointer: the program the user uses now. */
+    fun inUse(client: dev.caulis.protocol.Client): Boolean =
+        keyboardFocus?.resource?.client === client || pointerFocus?.resource?.client === client
+
     private val keyboardFocusListeners = ArrayList<(Surface?) -> Unit>()
 
     /** Runs [listener] whenever the keyboard focus moves (e.g. to send the clipboard to the new client). */

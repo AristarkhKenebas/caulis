@@ -104,12 +104,11 @@ object CommandLine {
                             val line = readlnOrNull() ?: break
                             if (line.isBlank()) continue
                             try {
-                                // A bare expression shows its value, as Lua's own prompt does.
-                                val output = try {
-                                    ipc.eval("return $line")
-                                } catch (e: IpcException) {
-                                    ipc.eval(line)
-                                }
+                                // A bare expression shows its value, as Lua's own prompt does; a
+                                // statement runs as it is (never twice: it may change things).
+                                val statement = Regex("^(local|for|if|while|repeat|function|return|do|goto)\\b").containsMatchIn(line.trim()) ||
+                                    Regex("(?<![=~<>])=(?!=)").containsMatchIn(line)
+                                val output = ipc.eval(if (statement) line else "return $line")
                                 if (output.isNotEmpty()) println(output)
                             } catch (e: IpcException) {
                                 println(e.message)
@@ -166,6 +165,12 @@ object CommandLine {
     }
 
     // The words after the main class on the java command line.
-    private fun programArguments(): List<String> =
-        System.getProperty("sun.java.command")?.trim()?.split(Regex("\\s+"))?.drop(1).orEmpty()
+    // (From the process itself, word by word as they were given: a path with spaces stays one.)
+    private fun programArguments(): List<String> {
+        val main = System.getProperty("sun.java.command")?.trim()?.substringBefore(' ').orEmpty()
+        val all = ProcessHandle.current().info().arguments().orElse(null)?.toList()
+        val at = all?.indexOf(main) ?: -1
+        if (all != null && at >= 0) return all.drop(at + 1)
+        return System.getProperty("sun.java.command")?.trim()?.split(Regex("\\s+"))?.drop(1).orEmpty()
+    }
 }

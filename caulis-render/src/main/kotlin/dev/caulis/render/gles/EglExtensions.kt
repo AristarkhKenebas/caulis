@@ -56,7 +56,11 @@ internal class EglExtensions {
     }
 
     /** Memory layouts the GPU can import for [format], without the "external only" ones. */
-    fun dmabufModifiers(display: MemorySegment, format: Int): List<Long> = Arena.ofConfined().use { arena ->
+    fun dmabufModifiers(display: MemorySegment, format: Int): List<Long> =
+        dmabufModifiersAll(display, format).filter { !it.second }.map { it.first }
+
+    /** Every memory layout the GPU knows for [format], each with whether it is "external only". */
+    fun dmabufModifiersAll(display: MemorySegment, format: Int): List<Pair<Long, Boolean>> = Arena.ofConfined().use { arena ->
         val count = arena.allocate(JAVA_INT)
         check(queryModifiers.invokeExact(display, format, 0, MemorySegment.NULL, MemorySegment.NULL, count) as Int == Egl.EGL_TRUE())
         val n = count.get(JAVA_INT, 0)
@@ -64,9 +68,8 @@ internal class EglExtensions {
         val modifiers = arena.allocate(java.lang.foreign.ValueLayout.JAVA_LONG, n.toLong())
         val externalOnly = arena.allocate(JAVA_INT, n.toLong())
         check(queryModifiers.invokeExact(display, format, n, modifiers, externalOnly, count) as Int == Egl.EGL_TRUE())
-        (0 until count.get(JAVA_INT, 0))
-            // "External only" layouts need a special shader (video formats); not used for now.
-            .filter { externalOnly.getAtIndex(JAVA_INT, it.toLong()) == 0 }
-            .map { modifiers.getAtIndex(java.lang.foreign.ValueLayout.JAVA_LONG, it.toLong()) }
+        (0 until count.get(JAVA_INT, 0)).map {
+            modifiers.getAtIndex(java.lang.foreign.ValueLayout.JAVA_LONG, it.toLong()) to (externalOnly.getAtIndex(JAVA_INT, it.toLong()) != 0)
+        }
     }
 }

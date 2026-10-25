@@ -67,6 +67,7 @@ public class ZwpPrimarySelectionDeviceV1 private constructor(client: Client, id:
      */
     public fun sendSelection(id: ZwpPrimarySelectionOfferV1?) {
         if (!isAlive || !client.isConnected) return
+        if (id != null && !id.isAlive) return
         if (Wire.tracing) Wire.event(this, "selection", "id=${Wire.show(id)}")
         event(1).obj(id).end()
     }

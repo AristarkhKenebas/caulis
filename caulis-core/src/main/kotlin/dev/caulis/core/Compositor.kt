@@ -135,6 +135,11 @@ class Compositor(val display: Display, private val renderer: Renderer?) {
                 resource.postError(WlSubcompositor.Error.BAD_PARENT, "a surface cannot be its own parent")
                 return
             }
+            // One sub-surface at a time (a second one would leave the first's place behind).
+            if (child.subsurface != null) {
+                resource.postError(WlSubcompositor.Error.BAD_SURFACE, "the surface already is a sub-surface")
+                return
+            }
             if (!child.assignRole(Surface.Role.SUBSURFACE, resource, WlSubcompositor.Error.BAD_SURFACE)) return
             Subsurface(id, child, parentSurface)
         }
@@ -775,12 +780,16 @@ class Subsurface internal constructor(resource: WlSubsurface, val surface: Surfa
     internal fun detach() {
         parent?.stack?.remove(surface)
         parent = null
-        surface.subsurface = null
+        if (surface.subsurface === this) surface.subsurface = null
     }
 }
 
 /** A set of rectangles a client describes (e.g. which part of a surface accepts input). */
 class Region internal constructor(resource: WlRegion) {
+
+    private companion object {
+        const val MAX_PARTS = 256
+    }
 
     private val parts = ArrayList<Pair<Rect, Boolean>>() // rectangle, added (true) or subtracted
 
@@ -790,12 +799,24 @@ class Region internal constructor(resource: WlRegion) {
             override fun destroy(resource: WlRegion) {}
 
             override fun add(resource: WlRegion, x: Int, y: Int, width: Int, height: Int) {
-                parts += Rect(x, y, width, height) to true
+                part(Rect(x, y, width, height), true)
             }
 
             override fun subtract(resource: WlRegion, x: Int, y: Int, width: Int, height: Int) {
-                parts += Rect(x, y, width, height) to false
+                part(Rect(x, y, width, height), false)
             }
+        }
+    }
+
+    // Many parts (a client could send millions, each costing work every frame) become one:
+    // all that was added, roughly — what matters is never more than [MAX_PARTS] to look at.
+    private fun part(rect: Rect, added: Boolean) {
+        if (rect.width <= 0 || rect.height <= 0) return
+        parts += rect to added
+        if (parts.size > MAX_PARTS) {
+            val all = parts.filter { it.second }.map { it.first }.reduceOrNull(Rect::union)
+            parts.clear()
+            if (all != null) parts += all to true
         }
     }
 
@@ -807,9 +828,14 @@ class Region internal constructor(resource: WlRegion) {
          * Rectangles that are certainly inside the region: added ones that no later
          * subtraction touches. (Careful rather than exact: it may leave parts out.)
          */
-        fun solidRects(): List<Rect> = parts.withIndex().filter { (index, part) ->
-            part.second && parts.subList(index + 1, parts.size).none { !it.second && it.first.intersect(part.first) != null }
-        }.map { it.value.first }
+        fun solidRects(): List<Rect> = solid
+
+        // (Worked out once: it is asked every frame.)
+        private val solid: List<Rect> by lazy {
+            parts.withIndex().filter { (index, part) ->
+                part.second && parts.subList(index + 1, parts.size).none { !it.second && it.first.intersect(part.first) != null }
+            }.map { it.value.first }
+        }
 
         /** The last rectangle covering the point decides (later operations win). */
         fun contains(x: Int, y: Int): Boolean {

@@ -4,8 +4,10 @@
 // Kotlin compiler.
 
 plugins {
-    id("caulis.library")
+    id("caulis.published")
 }
+
+description = "config.kts for Caulis compositors: the configuration as a Kotlin script."
 
 dependencies {
     api(project(":caulis-wm"))

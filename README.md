@@ -88,8 +88,12 @@ Wayland way when they can, and through X11 when that fails.
 
 ## Requirements
 
-- JDK 27
-- Linux
+- JDK 27 (the classes are Java 26 bytecode)
+- Linux, with the system libraries Caulis calls directly: libdrm, libgbm, libEGL, libGLESv2
+  (Mesa, or a driver with GBM), libinput, libudev, libseat (seatd or systemd-logind),
+  libxkbcommon — and, for X11 programs, Xwayland 23.1 or newer with libxcb, libxcb-composite,
+  libxcb-xfixes and libxcb-render (separate packages on Debian and Ubuntu: without them X11
+  programs are off, nothing else)
 
 Or with [Nix](https://nixos.org): `nix develop` (or `nix-shell`) gives a shell with JDK 27,
 Xwayland and every library. The flake also has Home Manager and NixOS modules for writing a

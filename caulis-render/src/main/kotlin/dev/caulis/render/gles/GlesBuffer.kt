@@ -30,11 +30,22 @@ internal class GlesBuffer private constructor(
         val exported = export()
         try {
             val image = images.createImage(exported) ?: error("the GPU cannot draw into its own buffer")
-            this.image = images.texture(image, width, height)
+            this.image = try {
+                images.texture(image, width, height)
+            } catch (e: Exception) {
+                images.destroyImage(image)
+                throw e
+            }
         } finally {
             exported.close() // the EGL image keeps its own reference to the memory
         }
-        attach(this.image.id)
+        try {
+            attach(this.image.id)
+        } catch (e: Exception) {
+            this.image.close()
+            super.close()
+            throw e
+        }
     }
 
     override fun handle(plane: Int): Int = Arena.ofConfined().use { arena ->
@@ -74,7 +85,12 @@ internal class GlesBuffer private constructor(
                 }
             }
             check(bo != MemorySegment.NULL) { "could not allocate a ${width}x$height GPU buffer" }
-            return GlesBuffer(width, height, bo, images)
+            return try {
+                GlesBuffer(width, height, bo, images)
+            } catch (e: Exception) {
+                Gbm.gbm_bo_destroy(bo) // (what was made from it is undone in its init)
+                throw e
+            }
         }
     }
 }

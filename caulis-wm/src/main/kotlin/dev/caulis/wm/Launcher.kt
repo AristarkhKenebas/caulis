@@ -102,6 +102,9 @@ internal class Launcher(
             throughX || !wasWatched || started.showedWindow -> log.trace { "\"${started.command}\" ended (status $status)" }
             status == 0 || status in ENDED_BY_USER -> log.trace { "\"${started.command}\" ended (status $status)" }
             System.nanoTime() - started.startedNanos > FAIL_WITHIN_NANOS -> log.trace { "\"${started.command}\" ended (status $status)" }
+            // A script (several commands, redirections): its failure is its own business —
+            // running it again would repeat what it did.
+            SHELL_SYNTAX.containsMatchIn(started.command) -> log.info { "\"${started.command}\" ended (status $status)" }
             !x11Available() -> log.info { "\"${started.command}\" quit at once (status $status); X11 is off, so it is not tried that way" }
             else -> {
                 val program = programName(started.command)
@@ -117,7 +120,9 @@ internal class Launcher(
 
     companion object {
         // A program that fails this soon, without a window, did not manage to start.
-        private const val FAIL_WITHIN_NANOS = 20_000_000_000L
+        // (A program that cannot reach Wayland gives up at once, not after seconds.)
+        private const val FAIL_WITHIN_NANOS = 3_000_000_000L
+        private val SHELL_SYNTAX = Regex("""[;&|<>`$]""")
         private const val MAX_DEPTH = 16
         private const val NOT_FOUND = 127
         private const val NOT_EXECUTABLE = 126

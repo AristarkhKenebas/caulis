@@ -85,7 +85,7 @@ sealed interface TilingCommand {
          */
         fun number(now: Double): Double {
             val text = argument.trim()
-            val value = text.toDoubleOrNull() ?: throw IllegalArgumentException("\"$name\" needs a number (0.6, +0.05 or -0.05), not \"$text\"")
+            val value = text.toDoubleOrNull()?.takeIf { it.isFinite() } ?: throw IllegalArgumentException("\"$name\" needs a number (0.6, +0.05 or -0.05), not \"$text\"")
             return if (text.startsWith("+") || text.startsWith("-")) now + value else value
         }
 

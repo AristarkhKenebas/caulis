@@ -102,6 +102,7 @@ public class ExtDataControlDeviceV1 private constructor(client: Client, id: Int,
      */
     public fun sendSelection(id: ExtDataControlOfferV1?) {
         if (!isAlive || !client.isConnected) return
+        if (id != null && !id.isAlive) return
         if (Wire.tracing) Wire.event(this, "selection", "id=${Wire.show(id)}")
         event(1).obj(id).end()
     }
@@ -139,6 +140,7 @@ public class ExtDataControlDeviceV1 private constructor(client: Client, id: Int,
      */
     public fun sendPrimarySelection(id: ExtDataControlOfferV1?) {
         if (!isAlive || !client.isConnected) return
+        if (id != null && !id.isAlive) return
         if (Wire.tracing) Wire.event(this, "primary_selection", "id=${Wire.show(id)}")
         event(3).obj(id).end()
     }

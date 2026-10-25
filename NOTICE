@@ -1,0 +1,54 @@
+Caulis
+Licensed under the Mozilla Public License 2.0 (see LICENSE), except caulis-cursor-bibata
+(GPL-3.0, as the Bibata cursor themes; see caulis-cursor-bibata/LICENSE).
+
+The Kotlin classes in caulis-protocol/src/generated are made from the Wayland protocol
+descriptions in caulis-protocol/src/main/protocols and carry their documentation. Those files
+are by their authors, under the licenses in each file — the MIT (Expat) license and the
+historical Wayland permission notice, and, for server-decoration.xml (KDE's
+org_kde_kwin_server_decoration), the LGPL-2.1-or-later:
+
+  Copyright © 2008-2011 Kristian Høgsberg
+  Copyright © 2008-2013 Kristian Høgsberg
+  Copyright © 2010-2011 Intel Corporation
+  Copyright © 2010-2013 Intel Corporation
+  Copyright © 2012-2013 Collabora, Ltd.
+  Copyright © 2013-2014 Collabora, Ltd.
+  Copyright © 2013-2016 Collabora, Ltd.
+  Copyright © 2013      Jasper St. Pierre
+  Copyright © 2013      Rafael Antognolli
+  Copyright © 2014, 2015 Collabora, Ltd.
+  Copyright © 2014      Jonas Ådahl
+  Copyright 2014 © Stephen "Lyude" Chandler Paul
+  Copyright © 2015, 2016 Red Hat
+  Copyright © 2015-2017 Red Hat Inc.
+  Copyright © 2015-2017 Samsung Electronics Co., Ltd
+  Copyright © 2015, 2021 Red Hat Inc.
+  Copyright 2015-2024 © Red Hat, Inc.
+  Copyright © 2015 Giulio camuffo
+  Copyright © 2015 Martin Gräßlin
+  Copyright © 2015      Red Hat Inc.
+  Copyright © 2015 Samsung Electronics Co., Ltd
+  Copyright © 2017 Drew DeVault
+  Copyright © 2017 Red Hat Inc.
+  Copyright © 2018 Ilia Bozhinov
+  Copyright © 2018 Simon Ser
+  Copyright 2018 The Chromium Authors
+  Copyright © 2019 Andri Yngvason
+  Copyright © 2019 Ivan Molodetskikh
+  Copyright © 2019 Purism SPC
+  Copyright © 2020 Aleix Pol Gonzalez <aleixpol@kde.org>
+  Copyright © 2020 Carlos Garnacho <carlosg@gnome.org>
+  Copyright © 2020 Isaac Freund
+  Copyright © 2021-2023 Andri Yngvason
+  Copyright 2021 Isaac Freund
+  Copyright © 2022 Andri Yngvason
+  Copyright © 2022 Joshua Ashton
+  Copyright © 2022 Kenny Levinsen
+  Copyright © 2022 Simon Ser
+  Copyright © 2022 wb9688
+  Copyright © 2023 i509VCB
+  Copyright 2023 Simon Ser
+  Copyright © 2024 Neal Gompa
+  Copyright © 2024 Simon Ser
+  SPDX-FileCopyrightText: 2015 Martin Gräßlin

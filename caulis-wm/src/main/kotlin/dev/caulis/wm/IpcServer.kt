@@ -1,5 +1,6 @@
 package dev.caulis.wm
 
+import dev.caulis.core.rethrowIfFatal
 import dev.caulis.core.NoticeLevel
 import dev.caulis.ffi.Fd
 import dev.caulis.ffi.NativeException
@@ -115,6 +116,11 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
                 socket.close()
                 continue
             }
+            if (connections.size >= MAX_CONNECTIONS) {
+                log.warn("Refused program ${peer.pid}: $MAX_CONNECTIONS programs are connected already")
+                socket.close()
+                continue
+            }
             val connection = Connection(socket, peer.pid)
             connections += connection
             log.trace { "Program ${peer.pid} connected" }
@@ -126,7 +132,10 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
     }
 
     private fun read(connection: Connection) {
-        while (connection.open) {
+        // A few reads at a time: a program that never stops sending does not hold the loop
+        // (the rest is read on the next round).
+        var reads = 0
+        while (connection.open && reads++ < MAX_READS) {
             val count = try {
                 connection.socket.receive(connection.buffer, NO_FDS)
             } catch (e: NativeException) {
@@ -209,7 +218,10 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
                 Request.WhatCase.EVAL -> {
                     val language = request.eval.language.ifBlank { "lua" }
                     val evaluate = running.config.evaluators[language]
-                    if (evaluate == null) {
+                    if (running.desktop.locked) {
+                        // (Code can do anything an action can: not while the screen is locked.)
+                        reply.setError("the screen is locked")
+                    } else if (evaluate == null) {
                         reply.setError("no ${language.uppercase()} configuration is loaded (config.$language)")
                     } else {
                         log.info { "Code typed in ($language): ${request.eval.code.take(200)}" }
@@ -218,7 +230,8 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
                 }
                 else -> reply.setError("an empty request (or one of a newer protocol)")
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            e.rethrowIfFatal()
             log.warn("A request failed: $e")
             reply.clearWhat().setError("it failed: ${e.message ?: e}")
         }
@@ -442,6 +455,8 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
         private const val READ_SIZE = 64 * 1024L
         private const val MAX_MESSAGE = 1024 * 1024L
         private const val MAX_PENDING = 8 * 1024 * 1024L
+        private const val MAX_CONNECTIONS = 64
+        private const val MAX_READS = 16
 
         // Actions a program may run while the screen is locked.
         private val WHILE_LOCKED = setOf("exec", "lock", "notify", "dump-state")

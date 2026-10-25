@@ -81,6 +81,9 @@ class Rotator @JvmOverloads constructor(private val renderer: Renderer, private 
         val shader = desktop?.screenShader
         if (transform == Transform.NORMAL && shader == null) {
             drawnBefore = false
+            // Not needed any more (a whole screen's worth of memory).
+            picture?.close()
+            picture = null
             return draw
         }
         return { screen, _ ->

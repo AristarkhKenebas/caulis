@@ -58,6 +58,7 @@ class ChildProcess private constructor(val pid: Int, val ended: Fd) : AutoClosea
                 }
                 val actions = arena.allocate(Libc.SPAWN_ACTIONS_SIZE, 16)
                 Libc.spawnActionsInit(actions)
+                var nothing: Fd? = null
                 try {
                     // First every source onto a number above all used ones, then onto its target:
                     // a source that happens to have another one's target number is not overwritten.
@@ -65,8 +66,13 @@ class ChildProcess private constructor(val pid: Int, val ended: Fd) : AutoClosea
                     val entries = handOver.entries.toList()
                     entries.forEachIndexed { i, (_, fd) -> Libc.spawnActionsDup2(actions, fd.value, above + i) }
                     entries.forEachIndexed { i, (target, _) -> Libc.spawnActionsDup2(actions, above + i, target) }
-                    // Nothing else of ours goes along (the JVM keeps files open that are not close-on-exec).
-                    Libc.spawnActionsCloseFrom(actions, (handOver.keys.maxOrNull() ?: 2) + 1)
+                    // Nothing else of ours goes along (the JVM keeps files open that are not close-on-exec):
+                    // above the highest target all are closed; numbers between targets get /dev/null.
+                    val highest = handOver.keys.maxOrNull() ?: 2
+                    val gaps = (3..highest).filter { it !in handOver }
+                    nothing = if (gaps.isEmpty()) null else Device.open(java.nio.file.Path.of("/dev/null"))
+                    nothing?.let { empty -> for (gap in gaps) Libc.spawnActionsDup2(actions, empty.value, gap) }
+                    Libc.spawnActionsCloseFrom(actions, highest + 1)
                     val pidOut = arena.allocate(JAVA_INT)
                     val pid = Libc.spawn(
                         arena.allocateFrom(program), actions,
@@ -77,6 +83,7 @@ class ChildProcess private constructor(val pid: Int, val ended: Fd) : AutoClosea
                     ChildProcess(pid, Fd.adopt(Libc.pidfdOpen(pid)))
                 } finally {
                     Libc.spawnActionsDestroy(actions)
+                    nothing?.close()
                 }
             }
     }

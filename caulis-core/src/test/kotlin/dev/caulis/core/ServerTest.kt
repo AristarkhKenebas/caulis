@@ -46,6 +46,27 @@ class ServerTest {
     }
 
     @Test
+    fun `a descriptor sent with a malformed request is closed, not kept for good`() {
+        TestServer().use { server ->
+            fun open() = java.nio.file.Files.list(java.nio.file.Path.of("/proc/self/fd")).use { it.count() }
+            RawClient(server.socketPath).use { it.globals() } // (everything the server opens once)
+            val before = open()
+            repeat(50) {
+                RawClient(server.socketPath).use { bad ->
+                    val (name, _) = bad.globals().getValue("wl_shm")
+                    bad.request(registry, 0, name, "wl_shm", 1, 10) // bind
+                    SharedMemory.create("pool", 4096).use { memory ->
+                        bad.request(10, 0, 11, 4096, 999, fds = listOf(memory.fd)) // create_pool with one int too many
+                    }
+                    bad.readUntil { it.objectId == display && it.opcode == errorEvent }
+                }
+            }
+            Thread.sleep(200)
+            assertTrue(open() - before < 10, "descriptors left open: ${open() - before}")
+        }
+    }
+
+    @Test
     fun `using an unknown object disconnects only that client`() {
         TestServer().use { server ->
             RawClient(server.socketPath).use { bad ->

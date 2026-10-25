@@ -211,7 +211,8 @@ internal class XServer(
         try {
             xwm = Xwm(XConnection(socket.fd.duplicate().value), desktop, loop, { serials[it] }, clipboard, pixelScale)
             for ((serial, surface) in serials) xwm?.surfaceAssociated(serial, surface)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            if (e is OutOfMemoryError) throw e
             log.error("The X11 window manager of $name could not start", e)
         }
     }

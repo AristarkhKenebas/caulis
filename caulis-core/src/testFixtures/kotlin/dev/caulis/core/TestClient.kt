@@ -51,7 +51,7 @@ class TestClient(val connection: Connection) : AutoCloseable {
         registry.bind(names[name] ?: error("the server has no $name"), type, version)
 
     /** A window and what the compositor last asked of it. */
-    inner class TestWindow(val surface: WlSurface, val toplevel: XdgToplevel) {
+    inner class TestWindow(val surface: WlSurface, val toplevel: XdgToplevel, val xdgSurface: XdgSurface) {
         var width = 0
         var height = 0
         var states: Set<Int> = emptySet()
@@ -68,7 +68,7 @@ class TestClient(val connection: Connection) : AutoCloseable {
         val surface = compositor.createSurface()
         val xdgSurface = wmBase.getXdgSurface(surface)
         val toplevel = xdgSurface.getToplevel()
-        val window = TestWindow(surface, toplevel)
+        val window = TestWindow(surface, toplevel, xdgSurface)
         toplevel.events = object : XdgToplevel.Events {
             override fun configure(proxy: XdgToplevel, width: Int, height: Int, states: ByteArray) {
                 window.width = width

@@ -29,6 +29,12 @@ data class WindowPlacement @JvmOverloads constructor(
     /** True: pinned — it floats on whichever workspace its monitor shows (see [Desktop.setPinned]). */
     val pinned: Boolean? = null,
 ) {
+    init {
+        require(workspace == null || workspace in 1..99) { "a workspace is 1 to 99, not $workspace" }
+        require(width == null || width > 0) { "a width is more than 0, not $width" }
+        require(height == null || height > 0) { "a height is more than 0, not $height" }
+    }
+
     /** This placement with [other]'s settings on top (where [other] says something). */
     fun and(other: WindowPlacement) = WindowPlacement(
         workspace = other.workspace ?: workspace,

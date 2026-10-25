@@ -24,6 +24,9 @@ class XWindow internal constructor(private val xwm: Xwm, val id: Int, overrideRe
     internal var xMapped = false
     internal var inDesktop = false
 
+    // Shown as a menu or tooltip (true) or as a window (false), when it was shown.
+    internal var shownUnmanaged = false
+
     // What the program said about itself.
     internal var protocols: Set<Int> = emptySet()
     internal var wantsDecorations = true

@@ -168,6 +168,7 @@ public class ZwlrForeignToplevelHandleV1 private constructor(client: Client, id:
      */
     public fun sendOutputEnter(output: WlOutput) {
         if (!isAlive || !client.isConnected) return
+        if (!output.isAlive) return
         if (Wire.tracing) Wire.event(this, "output_enter", "output=${Wire.show(output)}")
         event(2).obj(output).end()
     }
@@ -181,6 +182,7 @@ public class ZwlrForeignToplevelHandleV1 private constructor(client: Client, id:
      */
     public fun sendOutputLeave(output: WlOutput) {
         if (!isAlive || !client.isConnected) return
+        if (!output.isAlive) return
         if (Wire.tracing) Wire.event(this, "output_leave", "output=${Wire.show(output)}")
         event(3).obj(output).end()
     }
@@ -239,6 +241,7 @@ public class ZwlrForeignToplevelHandleV1 private constructor(client: Client, id:
     public fun sendParent(parent: ZwlrForeignToplevelHandleV1?) {
         if (!isAlive || !client.isConnected) return
         if (version < 3) return // the client is too old for this event
+        if (parent != null && !parent.isAlive) return
         if (Wire.tracing) Wire.event(this, "parent", "parent=${Wire.show(parent)}")
         event(7).obj(parent).end()
     }

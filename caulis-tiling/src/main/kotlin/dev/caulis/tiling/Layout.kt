@@ -109,8 +109,9 @@ object Split {
      */
     fun weighted(total: Int, weights: List<Int>, gap: Int): List<Pair<Int, Int>> {
         if (weights.isEmpty()) return emptyList()
+        require(weights.all { it > 0 }) { "weights are more than 0, not $weights" }
         val usable = (total - gap * (weights.size - 1)).coerceAtLeast(weights.size)
-        val sum = weights.sum().toLong()
+        val sum = weights.sumOf { it.toLong() }
         val sizes = weights.map { (usable * it.toLong() / sum).toInt().coerceAtLeast(1) }.toMutableList()
         var leftover = usable - sizes.sum()
         var i = 0

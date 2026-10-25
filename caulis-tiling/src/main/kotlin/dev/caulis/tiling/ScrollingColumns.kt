@@ -22,6 +22,11 @@ class ScrollingColumns @JvmOverloads constructor(
     private val newWidth: Double = 0.5,
     private val centerFocused: Boolean = false,
 ) : RememberingLayout("Columns (scrolling)") {
+    init {
+        require(widths.isNotEmpty() && widths.all { it > 0.0 && it <= 1.0 }) { "column widths are shares of the screen, more than 0 and up to 1: $widths" }
+        require(newWidth > 0.0 && newWidth <= 1.0) { "a new column's width is more than 0 and up to 1, not $newWidth" }
+    }
+
     override fun createModel(): TilingModel = ColumnsModel(gaps, widths, newWidth, centerFocused)
 }
 

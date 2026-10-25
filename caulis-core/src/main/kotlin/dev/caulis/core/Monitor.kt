@@ -58,10 +58,6 @@ class Monitor internal constructor(
     // The size in units its pixels make at its scale.
     internal fun units(pixels: Int) = Math.round(pixels / scale).toInt().coerceAtLeast(1)
 
-    internal fun resized() {
-        area = Rect(area.x, area.y, units(pixelWidth), units(pixelHeight))
-    }
-
     /** A rectangle in desktop units as this monitor's pixels (edges rounded the same way everywhere). */
     fun toPixels(rect: Rect): Rect {
         val left = px(rect.x - area.x)

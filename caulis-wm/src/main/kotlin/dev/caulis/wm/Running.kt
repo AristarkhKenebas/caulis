@@ -3,6 +3,7 @@ package dev.caulis.wm
 import dev.caulis.log.Log
 import dev.caulis.log.Logger
 import dev.caulis.core.Compositor
+import dev.caulis.core.rethrowIfFatal
 import dev.caulis.core.DataDeviceManager
 import dev.caulis.core.Desktop
 import dev.caulis.core.Effects
@@ -67,19 +68,24 @@ internal class Running(
     // start, so mistakes found while starting (a key used twice) are shown too. Not lines
     // about notices themselves: showing one is logged too.
     private val logNotices: AutoCloseable = Log.watch { entry ->
-        // (A broken rule is not logged: that line would come here again.)
-        val wanted = entry.area != "notices" && try { config.noticesFromLog(entry) } catch (e: Exception) { false }
-        if (wanted) {
+        if (entry.area == "notices") return@watch // (that line would come here again)
+        // Lines come from any thread; your rule and the notice are the compositor's thread's.
+        loop.post {
+            val wanted = try {
+                config.noticesFromLog(entry)
+            } catch (e: Throwable) {
+                e.rethrowIfFatal()
+                false // (a broken rule is not logged: that line would come here again)
+            }
+            if (!wanted) return@post
             val level = when {
                 entry.isError -> NoticeLevel.ERROR
                 entry.isWarning -> NoticeLevel.WARNING
                 else -> NoticeLevel.INFO
             }
             val text = entry.message + (entry.cause?.let { cause -> if (cause.toString() in entry.message) "" else " — $cause" } ?: "")
-            loop.post {
-                val notice = desktop.notify(text, level)
-                if (entry.area == "config") configNotices += notice
-            }
+            val notice = desktop.notify(text, level)
+            if (entry.area == "config") configNotices += notice
         }
     }
 
@@ -93,7 +99,7 @@ internal class Running(
     val desktop = Desktop(renderer, seat, compositor, width, height)
 
     /** Numbers for windows (the IPC socket, scripts). */
-    val windowIds = WindowIds(desktop)
+    val windowIds = WindowIds(desktop, loop)
     private val pointerGestures = PointerGestures(display, seat)
 
     /** Socket name programs connect to, e.g. "wayland-1". */
@@ -189,10 +195,10 @@ internal class Running(
 
     // What rules may ask about [window]: its tags are those given by hand, then those of each
     // rule in turn that fits it (a rule sees the tags of the ones before).
-    private fun factsOf(window: dev.caulis.core.Window): WindowRule.Facts {
+    private fun factsOf(window: dev.caulis.core.Window, rules: List<WindowRule> = config.rules): WindowRule.Facts {
         val (appId, title) = initials.getOrPut(window) { window.appId to window.title }
         val tags = LinkedHashSet(manualTags[window].orEmpty())
-        for (rule in config.rules) {
+        for (rule in rules) {
             if (rule.tags.isEmpty() || rule.tags.all { it in tags }) continue
             if (safely("$rule", false) { rule.fits(window, WindowRule.Facts(desktop, tags, appId, title)) }) tags += rule.tags
         }
@@ -359,6 +365,7 @@ internal class Running(
     private fun applyConfig() {
         val config = config
         desktop.effects = config.effects
+        display.privileged = { client -> safely("privilegedClients", false) { this.config.privilegedClients(client) } }
         desktop.screenShader = config.screenShader
         desktop.titleBars = config.titleBars
         desktop.titleBarStyle = config.titleBarStyle
@@ -500,26 +507,49 @@ internal class Running(
 
     // Takes the configuration on again when [path] changes.
     private fun followConfigFile(path: java.nio.file.Path) {
-        dev.caulis.core.FileWatch.watch(path) {
-            loop.post {
+        configWatches += dev.caulis.core.FileWatch.watch(path) {
+            // main() (and with it config.lua, config.kts: compiling takes seconds) runs on a
+            // thread of its own: the desktop goes on meanwhile. One reload at a time.
+            configReloads.execute {
                 val next = try {
                     Reloader.rerunMain()
                 } catch (e: Throwable) {
-                    if (e is VirtualMachineError) throw e
+                    if (e is OutOfMemoryError) throw e
                     log.warn("The configuration could not be read again: ${e.message ?: e}")
                     null
                 }
-                if (next == null) {
-                    // main() cannot be run again here: the file onto the configuration as it is.
-                    config.configProblems = dev.caulis.wm.config.ConfigFile.applyTo(config)
-                    reconfigure(config)
-                } else {
-                    reconfigure(next)
-                }
-                log.info { "${path.fileName} taken on" }
-                desktop.notify(path.fileName.toString(), NoticeLevel.INFO, "Configuration reloaded")
+                loop.post { takeOnConfig(next, path) }
             }
         }
+    }
+
+    // On the compositor's thread: [next] (or the files once more onto the configuration as it
+    // is, when main() cannot be run again) replaces the configuration — or, if that fails, the
+    // one before keeps running.
+    private fun takeOnConfig(next: Caulis?, path: java.nio.file.Path) {
+        val before = config
+        try {
+            if (next == null) {
+                config.configProblems = dev.caulis.wm.config.ConfigFile.applyTo(config)
+                reconfigure(config)
+            } else {
+                reconfigure(next)
+            }
+        } catch (e: Throwable) {
+            e.rethrowIfFatal()
+            log.warn("Taking on ${path.fileName} failed, back to the one before: $e")
+            runCatching { reconfigure(before) }
+            desktop.notify("$e", NoticeLevel.WARNING, "Your configuration failed — the one before keeps running")
+            return
+        }
+        log.info { "${path.fileName} taken on" }
+        desktop.notify(path.fileName.toString(), NoticeLevel.INFO, "Configuration reloaded")
+    }
+
+    // Config files followed, and the thread that reads them again.
+    private val configWatches = ArrayList<AutoCloseable>()
+    private val configReloads = java.util.concurrent.Executors.newSingleThreadExecutor { task ->
+        Thread(task, "caulis-config-reload").apply { isDaemon = true }
     }
 
     /**
@@ -560,16 +590,11 @@ internal class Running(
         // New rules are for windows that open from now on (or fit them later), not for those
         // already open where they fit: those stay where you have them.
         for (window in desktop.allWindows) {
-            rulesApplied.getOrPut(window) { HashSet() } += next.rules.filter { it.hasPlacement && safely("$it", false) { it.fits(window) } }.map { it.signature }
+            val facts = factsOf(window, next.rules)
+            rulesApplied.getOrPut(window) { HashSet() } += next.rules.filter { it.hasPlacement && safely("$it", false) { it.fits(window, facts) } }.map { it.signature }
         }
         // (The same configuration when config.json was applied onto it: nothing to compare.)
         val same = before === next
-        // The configuration that goes hears it first (to stop what it started), then its timers end.
-        if (!same) before.unloadActions.forEach { action -> safely("onUnload") { action(before) } }
-        if (!same) {
-            before.timers.forEach { it.cancel() }
-            before.timers.clear()
-        }
         before.running = null
         next.running = this
         config = next
@@ -590,6 +615,15 @@ internal class Running(
             val margins = marginsOf(window)
             if (shownMargins.put(window, margins) != margins) desktop.marginsChanged(window)
         }
+        // Only now that the new one runs, the one that goes hears it (to stop what it started)
+        // and its timers end: a new one that fails on the way leaves the old one whole.
+        if (!same) {
+            before.unloadActions.forEach { action -> safely("onUnload") { action(before) } }
+            before.timers.forEach { it.cancel() }
+            before.timers.clear()
+            before.waitingTimers.forEach { it.close() }
+        }
+        next.startWaitingTimers()
         next.reloadActions.forEach { action -> safely("onReload") { action(next) } }
         ipc?.configReloaded(next.configProblems)
         return restartOnly to notes
@@ -729,7 +763,8 @@ internal class Running(
     // Runs the user's code; a mistake in it is reported and the compositor keeps running.
     internal fun <T> safely(what: String, fallback: T, action: () -> T): T = try {
         action()
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
+        e.rethrowIfFatal()
         log.error("Your code for \"$what\" failed (ignored): $e", e)
         fallback
     }
@@ -932,6 +967,7 @@ internal class Running(
             for (problem in config.configProblems) configNotices += desktop.notify(problem, NoticeLevel.WARNING)
             if (config.useConfigFile) followConfigFile()
             config.startActions.forEach { action -> safely("onStart") { action(config) } }
+            config.startWaitingTimers()
             if (config.hotReload) reloader = safely("hot reload", null) { Reloader.start(this) }
             log.info { "Your files (shaders, pictures): ${config.configFolder}${if (java.nio.file.Files.isDirectory(config.configFolder)) "" else " (not there yet)"}" }
             loop.run()
@@ -941,10 +977,13 @@ internal class Running(
     }
 
     override fun close() {
+        configWatches.forEach(AutoCloseable::close)
+        configReloads.shutdownNow()
         ipc?.close()
         reloader?.close()
         logNotices.close()
         xwayland?.close()
+        desktop.close()
         seat.close()
         keymap.close()
         display.close()

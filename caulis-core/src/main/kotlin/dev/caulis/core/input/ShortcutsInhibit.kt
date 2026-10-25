@@ -26,6 +26,8 @@ class ShortcutsInhibit(display: Display, private val seat: Seat) {
     /** True while the window with the keyboard keeps the compositor's keys for itself. */
     val active: Boolean get() = activeOne != null
 
+    private val watched = HashSet<Surface>()
+
     init {
         display.addGlobal(ZwpKeyboardShortcutsInhibitManagerV1, VERSION) { manager ->
             manager.requests = object : ZwpKeyboardShortcutsInhibitManagerV1.Requests {
@@ -41,7 +43,11 @@ class ShortcutsInhibit(display: Display, private val seat: Seat) {
                         override fun destroy(resource: ZwpKeyboardShortcutsInhibitorV1) = forget(target, resource)
                     }
                     id.onDestroy { forget(target, id) }
-                    target.resource.onDestroy { forget(target, id) }
+                    // Once per surface (inhibitors come and go; listeners on it would pile up).
+                    if (watched.add(target)) target.resource.onDestroy {
+                        inhibitors[target]?.let { forget(target, it) }
+                        watched.remove(target)
+                    }
                     update()
                 }
 

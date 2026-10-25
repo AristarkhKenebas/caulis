@@ -3,8 +3,10 @@
 // window management. See dev.caulis.wm.Caulis.
 
 plugins {
-    id("caulis.library")
+    id("caulis.published")
 }
+
+description = "Caulis: a Wayland compositor in a few lines of Kotlin or Java, with config.json, keys, rules and hot reload."
 
 dependencies {
     api(project(":caulis-core"))

@@ -55,6 +55,11 @@ class PrimarySelection(display: Display, private val seat: Seat, private val cli
                     id.onDestroy { devices -= id }
                     id.requests = object : ZwpPrimarySelectionDeviceV1.Requests {
                         override fun setSelection(resource: ZwpPrimarySelectionDeviceV1, source: ZwpPrimarySelectionSourceV1?, serial: Int) {
+                            // As the clipboard: only the program you use.
+                            if (!this@PrimarySelection.seat.inUse(resource.client)) {
+                                source?.sendCancelled()
+                                return
+                            }
                             clipboard.setPrimary(source?.dataAs<Source>())
                         }
 

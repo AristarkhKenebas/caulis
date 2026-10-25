@@ -26,6 +26,7 @@ import java.nio.file.Path
 class DrmDevice(private val loop: EventLoop, private val session: Session, val path: Path) : AutoCloseable {
 
     private val device: Session.Device = session.openDevice(path)
+    private val log = dev.caulis.log.Logger("drm")
 
     /** The raw descriptor (the renderer draws on the same device). */
     val fd: Int get() = device.fd.value
@@ -77,7 +78,16 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
                 flipHandlers[crtc]?.invoke(nanos, Integer.toUnsignedLong(sequence), userData.address())
             }
         }, arena))
-        loop.add(device.fd) { Drm.drmHandleEvent(fd, eventContext) }
+        loop.add(device.fd) { ready ->
+            // A device that hung up (unplugged GPU) reports it for ever: stop listening, or the
+            // loop would spin at full speed.
+            if (ready.hangUp || ready.error) {
+                log.error("The GPU $path stopped answering")
+                loop.remove(device.fd)
+                return@add
+            }
+            if (Drm.drmHandleEvent(fd, eventContext) < 0) log.warn("Reading the GPU's events failed")
+        }
     }
 
     internal fun onFlip(crtc: Int, handler: (nanos: Long, sequence: Long, serial: Long) -> Unit) {

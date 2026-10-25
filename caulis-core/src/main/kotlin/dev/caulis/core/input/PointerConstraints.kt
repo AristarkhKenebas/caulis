@@ -57,6 +57,7 @@ class PointerConstraints(display: Display, private val seat: Seat) {
     }
 
     private val constraints = HashMap<Surface, Constraint>()
+    private val watched = HashSet<Surface>()
 
     /** Decides whether a surface's constraint may work now (its window has the keyboard). */
     var allowed: (Surface) -> Boolean = { surface -> seat.keyboardFocus?.resource?.client === surface.resource.client }
@@ -121,7 +122,11 @@ class PointerConstraints(display: Display, private val seat: Seat) {
         id.onDestroy {
             if (constraints[surface] === constraint) constraints.remove(surface)
         }
-        surface.resource.onDestroy { constraints.remove(surface) }
+        // Once per surface (constraints come and go; listeners on the surface would pile up).
+        if (watched.add(surface)) surface.resource.onDestroy {
+            constraints.remove(surface)
+            watched.remove(surface)
+        }
         // The pointer is over it already: it works at once.
         if (seat.pointerFocus === surface && allowed(surface)) constraint.activate()
         return constraint

@@ -32,6 +32,16 @@ class Display(val loop: EventLoop) : AutoCloseable {
     private val sockets = ArrayList<Pair<UnixListener, FileLock>>()
     private val connected = ArrayList<Client>()
     private val globals = LinkedHashMap<Int, Global>()
+
+    // Globals just taken away: clients may still bind them for a moment (they had not heard
+    // yet), as libwayland's users do it — never an error for a client's honest race.
+    private val leaving = HashMap<Int, Global>()
+
+    /**
+     * What parts built on this display keep about it (by a key of their own): it lives and
+     * goes with the display — never in a static map that would keep the display alive.
+     */
+    val attachments: MutableMap<Any, Any> = java.util.concurrent.ConcurrentHashMap()
     private val registries = ArrayList<WlRegistry>()
     private var nextGlobalName = 1
 
@@ -147,6 +157,18 @@ class Display(val loop: EventLoop) : AutoCloseable {
      * Offers a feature only to the clients [visibleTo] accepts (e.g. one only Xwayland may
      * use): the others neither see nor can bind it.
      */
+    /**
+     * Which clients may use the privileged features — screenshots and screen sharing,
+     * clipboard managers, panels and lock screens, arranging monitors, gamma, managing other
+     * programs' windows. Every client by default (as most compositors do); decide it before
+     * clients connect, e.g. by the program behind a client (Client.pid).
+     */
+    var privileged: (Client) -> Boolean = { true }
+
+    /** A feature only [privileged] clients see (see there). */
+    fun <T : Resource> addPrivilegedGlobal(type: ResourceType<T>, version: Int, onBind: (T) -> Unit): Global =
+        addGlobal(type, version, { client -> privileged(client) }, onBind)
+
     fun <T : Resource> addGlobal(type: ResourceType<T>, version: Int, visibleTo: (Client) -> Boolean, onBind: (T) -> Unit): Global {
         require(version in 1..type.version) {
             "$type: version $version is not supported by the generated code (max ${type.version})"
@@ -174,6 +196,8 @@ class Display(val loop: EventLoop) : AutoCloseable {
     fun removeGlobal(global: Global) {
         if (globals.remove(global.name) == null) return
         for (registry in registries) if (global.visibleTo(registry.client)) registry.sendGlobalRemove(global.name)
+        leaving[global.name] = global
+        loop.after(LEAVING_MILLIS) { leaving.remove(global.name) }
     }
 
     // --- wl_display and wl_registry, implemented here -------------------------------
@@ -197,7 +221,7 @@ class Display(val loop: EventLoop) : AutoCloseable {
 
     private val registryRequests = object : WlRegistry.Requests {
         override fun bind(resource: WlRegistry, name: Int, interfaceName: String, version: Int, id: Int) {
-            val global = globals[name]?.takeIf { it.visibleTo(resource.client) }
+            val global = (globals[name] ?: leaving[name])?.takeIf { it.visibleTo(resource.client) }
             if (global == null || global.type.name != interfaceName) {
                 throw ProtocolException(resource.client.displayObject, WlDisplay.Error.INVALID_OBJECT,
                     "no global $name of type $interfaceName")
@@ -253,6 +277,9 @@ class Display(val loop: EventLoop) : AutoCloseable {
     }
 
     companion object {
+        // How long a global taken away can still be bound.
+        private const val LEAVING_MILLIS = 5000L
+
         fun defaultRuntimeDir(): Path = Path.of(
             System.getenv("XDG_RUNTIME_DIR") ?: error("XDG_RUNTIME_DIR is not set"),
         )

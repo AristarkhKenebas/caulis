@@ -29,8 +29,8 @@ class Keymap private constructor(
             ?: error("xkbcommon could not write the keymap")
         val bytes = text.toByteArray() + 0
         sharedSize = bytes.size
-        shared = SharedMemory.create("caulis-keymap", bytes.size.toLong())
-        shared.write { memory -> MemorySegment.copy(MemorySegment.ofArray(bytes), 0, memory, 0, bytes.size.toLong()) }
+        // Sealed against writing: one client must not change the keymap the others get.
+        shared = SharedMemory.sealed("caulis-keymap", bytes)
     }
 
     /** Tracks pressed keys and modifiers for this keymap. */

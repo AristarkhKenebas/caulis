@@ -18,6 +18,33 @@ class SharedMemoryTest {
     }
 
     @Test
+    fun `memory sealed with its contents cannot be written by anyone it is sent to`() {
+        SharedMemory.sealed("keymap", "xkb_keymap {".toByteArray()).use { memory ->
+            assertEquals('x'.code.toByte(), memory.read { it.get(java.lang.foreign.ValueLayout.JAVA_BYTE, 0) })
+            // A client writes through its copy of the descriptor:
+            val failed = runCatching {
+                java.nio.channels.FileChannel.open(java.nio.file.Path.of("/proc/self/fd/${memory.fd.value}"), java.nio.file.StandardOpenOption.WRITE).use {
+                    it.write(java.nio.ByteBuffer.wrap("TAMPERED".toByteArray()))
+                }
+            }
+            kotlin.test.assertTrue(failed.isFailure, "writing was refused")
+            assertEquals('x'.code.toByte(), memory.read { it.get(java.lang.foreign.ValueLayout.JAVA_BYTE, 0) })
+        }
+    }
+
+    @Test
+    fun `a file the other process may only read is never mapped for writing`() {
+        val file = java.nio.file.Files.createTempFile("readonly", ".bin")
+        try {
+            java.nio.file.Files.write(file, ByteArray(4096))
+            val fd = Arena.ofConfined().use { temp -> Fd.adopt(Libc.open(temp.allocateFrom(file.toString()), 0 or LibC.O_CLOEXEC(), 0)) }
+            assertFailsWith<SharedMemoryException> { SharedMemory.map(fd, 4096, writable = true) }
+        } finally {
+            java.nio.file.Files.deleteIfExists(file)
+        }
+    }
+
+    @Test
     fun `sealed memory cannot be shrunk by anyone`() {
         SharedMemory.create("test", 4096).use { memory ->
             val error = assertFailsWith<NativeException> { Libc.ftruncate(memory.fd.value, 0) }

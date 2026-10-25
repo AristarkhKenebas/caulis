@@ -21,7 +21,9 @@ class MessageWriter internal constructor(private val client: WireOutput) {
 
     // Starts a message: the 8-byte header is written at the end, once the size is known.
     internal fun begin(output: ByteBuffer, objectId: Int, opcode: Int): MessageWriter {
-        check(!active) { "Previous event was not finished with end()" }
+        // One left half-written (its sender failed in the middle) is taken back first: a
+        // broken message never reaches the other side, nor blocks the ones after it.
+        if (active) abandon()
         buffer = output
         start = output.position()
         messageId = objectId
@@ -81,10 +83,20 @@ class MessageWriter internal constructor(private val client: WireOutput) {
         return this
     }
 
+    // Takes back the message being written: its bytes and its descriptors.
+    private fun abandon() {
+        buffer.position(start)
+        active = false
+        client.cancelMessage(start)
+    }
+
     /** Finishes the event: writes its header and hands it to the client's queue. */
     fun end() {
         val size = buffer.position() - start
-        require(size <= MAX_MESSAGE_SIZE) { "Event is too large: $size bytes" }
+        if (size > MAX_MESSAGE_SIZE) {
+            abandon()
+            throw IllegalArgumentException("Event is too large: $size bytes (it was not sent)")
+        }
         buffer.putInt(start, messageId)
         buffer.putInt(start + 4, (size shl 16) or messageOpcode)
         active = false
@@ -107,6 +119,9 @@ internal interface WireOutput {
 
     /** Remembers a descriptor to send with the message starting at [messageStart]. */
     fun queueFd(fd: Fd, messageStart: Int)
+
+    /** The message starting at [messageStart] is taken back: its descriptors are not sent. */
+    fun cancelMessage(messageStart: Int)
 
     fun messageWritten()
 }

@@ -71,13 +71,46 @@ class SharedMemory private constructor(
         }
 
         /**
-         * Maps memory received from another process. Takes ownership of [fd].
+         * Shared memory holding [contents] that nobody can change any more — not even a
+         * process it is sent to (sealed against writing too): e.g. a keymap every client gets.
+         */
+        fun sealed(name: String, contents: ByteArray): SharedMemory {
+            require(contents.isNotEmpty()) { "Nothing to share" }
+            val fd = Arena.ofConfined().use { temp ->
+                Fd.adopt(Libc.memfdCreate(temp.allocateFrom(name), LibC.MFD_CLOEXEC() or LibC.MFD_ALLOW_SEALING()))
+            }
+            try {
+                FileChannel.open(Path.of("/proc/self/fd/${fd.value}"), StandardOpenOption.WRITE).use { channel ->
+                    val buffer = java.nio.ByteBuffer.wrap(contents)
+                    while (buffer.hasRemaining()) channel.write(buffer)
+                }
+                // Written without a mapping, so it can be sealed against writing now.
+                val seals = LibC.F_SEAL_SHRINK() or LibC.F_SEAL_GROW() or F_SEAL_WRITE or LibC.F_SEAL_SEAL()
+                Libc.fcntl(fd.value, LibC.F_ADD_SEALS(), seals)
+                return map(fd, contents.size.toLong())
+            } catch (e: Exception) {
+                fd.close()
+                throw e
+            }
+        }
+
+        // (Not among the generated constants.)
+        private const val F_SEAL_WRITE = 0x0008
+        private const val O_ACCMODE = 3
+
+        /**
+         * Maps memory received from another process. Takes ownership of [fd]. [writable] only
+         * if the other process opened it for writing itself: we never write into a file it
+         * may only read (re-opening it would give us our own rights, not its).
          * Fails if the file is smaller than [size] (the other process lied about it).
          */
         fun map(fd: Fd, size: Long, writable: Boolean = false): SharedMemory {
             require(size > 0) { "Size must be positive, got $size" }
             val arena = Arena.ofShared()
             try {
+                if (writable && Libc.fcntl(fd.value, LibC.F_GETFL()) and O_ACCMODE != LibC.O_RDWR()) {
+                    throw SharedMemoryException("The descriptor is not open for writing")
+                }
                 // Opening /proc/self/fd/N gives a FileChannel for an existing descriptor.
                 val options = if (writable) {
                     arrayOf(StandardOpenOption.READ, StandardOpenOption.WRITE)

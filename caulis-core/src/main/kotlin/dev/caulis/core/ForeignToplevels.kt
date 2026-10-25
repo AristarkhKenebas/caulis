@@ -45,7 +45,7 @@ class ForeignToplevels(private val display: Display, private val desktop: Deskto
     private var nextIdentifier = 1L
 
     init {
-        display.addGlobal(ZwlrForeignToplevelManagerV1, WLR_VERSION) { manager ->
+        display.addPrivilegedGlobal(ZwlrForeignToplevelManagerV1, WLR_VERSION) { manager ->
             log.info { "${manager.client.name} watches the windows (a dock or taskbar)" }
             wlr[manager] = LinkedHashMap()
             manager.requests = object : ZwlrForeignToplevelManagerV1.Requests {

@@ -32,14 +32,15 @@ class Client internal constructor(
     }
 
     /** A short name for logs: the program's name and process id, e.g. "foot[4123]". */
-    val name: String by lazy {
-        givenName?.let { return@lazy it }
-        val program = try {
+    val name: String by lazy { givenName ?: "$program[$pid]" }
+
+    /** Its program's name, as `ps` shows it ("grim", "waybar"), or "client" if unknown. */
+    val program: String by lazy {
+        try {
             java.nio.file.Files.readString(java.nio.file.Path.of("/proc/$pid/comm")).trim()
         } catch (_: Exception) {
             "client"
         }
-        "$program[$pid]"
     }
 
     private val arena = Arena.ofShared()
@@ -52,7 +53,9 @@ class Client internal constructor(
     internal val displayObject: WlDisplay = WlDisplay.create(this, 1, 1)
 
     private val resources = HashMap<Int, Resource>()
-    private val recentlyDestroyed = HashSet<Int>()
+    // Ids the client destroyed lately (it may still talk to them a moment): the oldest are
+    // forgotten past a limit, so a client cycling through ids cannot grow this for ever.
+    private val recentlyDestroyed = LinkedHashSet<Int>()
     private var nextServerId = FIRST_SERVER_ID
 
     /** False after the client disconnected or was disconnected. */
@@ -115,11 +118,15 @@ class Client internal constructor(
         try {
             reader.reset(arguments)
             target.dispatch(opcode, reader)
+            reader.requestHandled()
         } catch (e: ProtocolException) {
+            reader.requestFailed()
             postError(e.resource, e.code, e.message ?: "protocol error")
-        } catch (e: Exception) {
-            // A bug in the compositor (or in user code) while handling this request.
-            // Only this client is affected.
+        } catch (e: Throwable) {
+            if (e is OutOfMemoryError) throw e
+            reader.requestFailed()
+            // A bug in the compositor (or in user code) while handling this request — also
+            // an Error such as a stack overflow. Only this client is affected.
             server.log.error("Error while handling ${target.type.name} request $opcode from $name", e)
             postError(displayObject, WlDisplay.Error.IMPLEMENTATION, "compositor error: ${e.message}")
         }
@@ -162,6 +169,7 @@ class Client internal constructor(
         // Tell the client the id may be reused (only for ids the client chose).
         if (!isServerId(resource.id) && isConnected) {
             recentlyDestroyed += resource.id
+            if (recentlyDestroyed.size > MAX_RECENTLY_DESTROYED) recentlyDestroyed.remove(recentlyDestroyed.first())
             displayObject.sendDeleteId(resource.id)
         }
     }
@@ -174,10 +182,17 @@ class Client internal constructor(
     fun postError(resource: Resource, code: Int, message: String) {
         if (!isConnected || closing) return
         server.log.warn("$name: ${resource.type.name}@${resource.id} error $code: $message")
-        displayObject.sendError(resource, code, message)
         closing = true
-        outgoing.flush()
-        disconnect()
+        try {
+            displayObject.sendError(resource, code, message)
+            outgoing.flush()
+        } catch (e: Throwable) {
+            if (e is OutOfMemoryError) throw e
+            // (The message could not be written: the client goes without it.)
+            server.log.warn("$name: the error could not be sent ($e)")
+        } finally {
+            disconnect()
+        }
     }
 
     /** Closes the connection and destroys every object of this client. */
@@ -185,7 +200,15 @@ class Client internal constructor(
         if (!isConnected) return
         isConnected = false
         server.log.info { "$name left" }
-        for (resource in resources.values.toList()) resource.markDestroyed()
+        // Each object on its own: one whose destroy listener fails leaves the others to go too.
+        for (resource in resources.values.toList()) {
+            try {
+                resource.markDestroyed()
+            } catch (e: Throwable) {
+                if (e is OutOfMemoryError) throw e
+                server.log.error("$name: cleaning up ${resource.type.name}@${resource.id} failed", e)
+            }
+        }
         resources.clear()
         incoming.close()
         outgoing.close()
@@ -216,6 +239,8 @@ class Client internal constructor(
 
     override fun queueFd(fd: Fd, messageStart: Int) = outgoing.queueFd(fd, messageStart)
 
+    override fun cancelMessage(messageStart: Int) = outgoing.cancelFds(messageStart)
+
     /**
      * Sends queued events. Returns true when everything was sent, false if the socket
      * is full (then the server waits until it is writable and calls this again).
@@ -235,6 +260,8 @@ class Client internal constructor(
     companion object {
         /** Ids from here up are chosen by the compositor, below by the client. */
         const val FIRST_SERVER_ID: Int = 0xFF000000.toInt()
+
+        private const val MAX_RECENTLY_DESTROYED = 4096
 
         /**
          * True for ids the compositor chose. Ids are unsigned in the protocol, but Kotlin's

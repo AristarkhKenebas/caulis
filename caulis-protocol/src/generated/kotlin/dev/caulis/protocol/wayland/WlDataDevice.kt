@@ -113,6 +113,8 @@ public class WlDataDevice private constructor(client: Client, id: Int, version: 
      */
     public fun sendEnter(serial: Int, surface: WlSurface, x: Double, y: Double, id: WlDataOffer?) {
         if (!isAlive || !client.isConnected) return
+        if (!surface.isAlive) return
+        if (id != null && !id.isAlive) return
         if (Wire.tracing) Wire.event(this, "enter", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}, x=${Wire.show(x)}, y=${Wire.show(y)}, id=${Wire.show(id)}")
         event(1).uint(serial).obj(surface).fixed(x).fixed(y).obj(id).end()
     }
@@ -185,6 +187,7 @@ public class WlDataDevice private constructor(client: Client, id: Int, version: 
      */
     public fun sendSelection(id: WlDataOffer?) {
         if (!isAlive || !client.isConnected) return
+        if (id != null && !id.isAlive) return
         if (Wire.tracing) Wire.event(this, "selection", "id=${Wire.show(id)}")
         event(5).obj(id).end()
     }

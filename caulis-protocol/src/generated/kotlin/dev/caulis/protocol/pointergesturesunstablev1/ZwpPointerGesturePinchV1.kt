@@ -53,6 +53,7 @@ public class ZwpPointerGesturePinchV1 private constructor(client: Client, id: In
      */
     public fun sendBegin(serial: Int, time: Int, surface: WlSurface, fingers: Int) {
         if (!isAlive || !client.isConnected) return
+        if (!surface.isAlive) return
         if (Wire.tracing) Wire.event(this, "begin", "serial=${Wire.show(serial)}, time=${Wire.show(time)}, surface=${Wire.show(surface)}, fingers=${Wire.show(fingers)}")
         event(0).uint(serial).uint(time).obj(surface).uint(fingers).end()
     }

@@ -436,6 +436,9 @@ class DrmOutput internal constructor(
         }
     }
 
+    // Programs' buffers whose flip never came: given back after the next flip that does.
+    private val lateDirect = ArrayList<DmabufBuffer>()
+
     // Waits for the flip of commit [serial]; one that does not come within a second is given up.
     private fun awaitFlip(serial: Long) {
         awaitedSerial = serial
@@ -445,7 +448,9 @@ class DrmOutput internal constructor(
             if (awaitedSerial != serial || !flipPending) return@after
             log.warn("$name: the monitor did not show the picture within $FLIP_TIMEOUT_MILLIS ms; setting it up anew")
             queued = null
-            queuedDirect?.stopShowing()
+            // The kernel may still show it: the program gets it back after the next picture
+            // that does reach the screen, not now.
+            queuedDirect?.let { lateDirect += it }
             queuedDirect = null
             cursorOnlyPending = false
             awaitedSerial = -1
@@ -464,6 +469,9 @@ class DrmOutput internal constructor(
     fun presentDirect(buffer: DmabufBuffer): Boolean {
         val current = mode ?: return false
         if (!isSessionActive() || flipPending || needsModeset || !powered) return false
+        // On a descriptor shared with the renderer, a program's buffer handles could never be
+        // closed (they may be the GPU driver's own): no direct showing then.
+        if (device.sharedWithRenderer) return false
         if (buffer.width != current.width || buffer.height != current.height) return false
         val framebuffer = buffer.attachment(this) { ScanoutFramebuffer(device, device.importFramebuffer(buffer.dmabuf)) }
         val id = framebuffer.id ?: return false
@@ -476,10 +484,17 @@ class DrmOutput internal constructor(
             return false
         }
         val serial = ++commitSerial
+        val gamma = pendingGamma
+        val withCursor = cursorDirty
         val result = device.commit(Drm.DRM_MODE_ATOMIC_NONBLOCK() or Drm.DRM_MODE_PAGE_FLIP_EVENT(), serial) { request ->
             request.set(planeId, planeProps, "FB_ID", id.toLong())
+            // The cursor and a new gamma table go along, as with our own pictures.
+            if (withCursor) cursorState(request)
+            if (gamma != null) request.setIfPresent(crtcId, crtcProps, "GAMMA_LUT", gamma.toLong())
         }
         if (result != 0) return false
+        if (withCursor) cursorDirty = false
+        gammaApplied(gamma)
         buffer.startShowing()
         queuedDirect = buffer
         awaitFlip(serial)
@@ -506,13 +521,19 @@ class DrmOutput internal constructor(
         flipWatchdog?.cancel()
         flipWatchdog = null
         if (cursorOnlyPending) {
-            // Only the cursor moved: nothing to report; the next picture (or move) may come.
+            // Only the cursor moved: nothing to report. A picture first (it takes the cursor
+            // with it); the cursor alone only if no picture came — else, with the mouse moving
+            // every refresh, windows would never get a frame.
             cursorOnlyPending = false
             lastFlipNanos = System.nanoTime()
-            if (cursorDirty && !needsModeset) commitCursor() else nextFrame()
+            nextFrame()
+            cursorAlone()
             return
         }
         val wasQueued = flipPending
+        // Buffers given up on by the watchdog: something newer is on screen now.
+        lateDirect.forEach { it.stopShowing() }
+        lateDirect.clear()
         if (wasQueued) {
             val previousDirect = shownDirect
             if (queuedDirect != null) {
@@ -522,8 +543,9 @@ class DrmOutput internal constructor(
                 shown = queued
                 shownDirect = null
             }
-            // The program may draw into its previous buffer again.
-            if (previousDirect != null && previousDirect !== shownDirect) previousDirect.stopShowing()
+            // The program may draw into its previous buffer again (every start of showing has
+            // its stop — also when it committed the same buffer once more).
+            previousDirect?.stopShowing()
             queued = null
             queuedDirect = null
         }
@@ -536,6 +558,12 @@ class DrmOutput internal constructor(
             }
         }
         nextFrame()
+        cursorAlone()
+    }
+
+    // The cursor moved, and no picture is on its way to take it along: it goes on its own.
+    private fun cursorAlone() {
+        if (cursorDirty && !flipPending && !needsModeset && powered && isSessionActive() && mode != null) commitCursor()
     }
 
     /**
@@ -697,7 +725,18 @@ class DrmOutput internal constructor(
                 request.set(crtcId, crtcProps, "ACTIVE", 0)
                 request.set(planeId, planeProps, "FB_ID", 0)
                 request.set(planeId, planeProps, "CRTC_ID", 0)
-            }
+                // Every plane on the CRTC goes too: a plane left showing on a CRTC switched off
+                // makes drivers refuse the whole commit (the monitor would stay lit).
+                if (cursorPlaneId != 0) {
+                    request.set(cursorPlaneId, cursorProps, "FB_ID", 0)
+                    request.set(cursorPlaneId, cursorProps, "CRTC_ID", 0)
+                }
+                for (plane in strayPlanes()) {
+                    val props = device.properties(plane, Drm.DRM_MODE_OBJECT_PLANE())
+                    request.set(plane, props, "FB_ID", 0)
+                    request.set(plane, props, "CRTC_ID", 0)
+                }
+            }.also { result -> if (result != 0) log.warn("$name could not be switched off (${errno(result)})") }
         }
         mode = null
     }
@@ -709,6 +748,8 @@ class DrmOutput internal constructor(
 
     // Gives programs' buffers back (the monitor stops showing them).
     private fun releaseDirect() {
+        lateDirect.forEach { it.stopShowing() }
+        lateDirect.clear()
         queuedDirect?.stopShowing()
         queuedDirect = null
         shownDirect?.stopShowing()

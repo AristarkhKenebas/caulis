@@ -88,6 +88,25 @@ class TextType(private val description: String = "text") : SettingType() {
     override fun jsonSchema() = """{"type":"string","minLength":1}"""
 }
 
+/** A regular expression: checked here, so a broken one is a problem with its line, not a failure later. */
+object RegexType : SettingType() {
+    override val words get() = "a regular expression"
+
+    override fun read(json: JsonValue, path: String, problems: Problems): Any? {
+        val text = (json as? JsonValue.Str)?.value ?: return problems.add(path, json, "$words, not ${json.kind}").let { null }
+        if (text.isBlank()) return problems.add(path, json, "empty").let { null }
+        return try {
+            Regex(text)
+            text
+        } catch (e: IllegalArgumentException) {
+            problems.add(path, json, "not $words: ${e.message?.lineSequence()?.first()}").let { null }
+        }
+    }
+
+    override fun nix() = "lib.types.str"
+    override fun jsonSchema() = """{"type":"string","minLength":1,"format":"regex"}"""
+}
+
 /**
  * A file: a name next to the configuration, `~/...` or `/...` — and in Nix also a path
  * (`./aurora.glsl`), which goes into the store and so into config.json as its store path.
@@ -155,7 +174,7 @@ class MapType(val value: SettingType, private val names: String = "name") : Sett
     override val words get() = "$names → ${value.words}"
 
     override fun read(json: JsonValue, path: String, problems: Problems): Any? {
-        val fields = (json as? JsonValue.Obj)?.fields ?: return problems.add(path, json, "an object ($words), not ${json.kind}").let { null }
+        val fields = (json as? JsonValue.Obj)?.fields ?: emptyIfEmptyList(json) ?: return problems.add(path, json, "an object ($words), not ${json.kind}").let { null }
         val out = LinkedHashMap<String, Any?>()
         var ok = true
         for ((name, v) in fields) {
@@ -217,7 +236,8 @@ class SectionType(val fields: List<Field>, private val description: String = "a 
     override val words get() = description
 
     override fun read(json: JsonValue, path: String, problems: Problems): Any? {
-        val given = (json as? JsonValue.Obj)?.fields ?: return problems.add(path, json, "an object, not ${json.kind}").let { null }
+        // (An empty list is an empty section too: Lua writes both as {}.)
+        val given = (json as? JsonValue.Obj)?.fields ?: emptyIfEmptyList(json) ?: return problems.add(path, json, "an object, not ${json.kind}").let { null }
         val out = LinkedHashMap<String, Any?>()
         val before = problems.all.size
         for ((name, value) in given) {
@@ -258,3 +278,7 @@ class SectionType(val fields: List<Field>, private val description: String = "a 
         return d[a.length][b.length]
     }
 }
+
+// [json] if it is an empty list, as an empty object's fields (else null).
+private fun emptyIfEmptyList(json: JsonValue): Map<String, JsonValue>? =
+    if (json is JsonValue.Arr && json.items.isEmpty()) emptyMap() else null

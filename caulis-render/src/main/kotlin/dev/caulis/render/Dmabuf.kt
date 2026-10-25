@@ -26,7 +26,18 @@ class Dmabuf(
     }
 
     /** Closes the descriptors of all planes. */
-    override fun close() = planes.forEach { it.fd.close() }
+    override fun close() {
+        // Every plane's, even if closing one fails.
+        var failure: Exception? = null
+        for (plane in planes) {
+            try {
+                plane.fd.close()
+            } catch (e: Exception) {
+                failure = failure ?: e
+            }
+        }
+        failure?.let { throw it }
+    }
 
     companion object {
         /** DRM fourcc codes are four characters packed into an Int. */

@@ -151,6 +151,7 @@ public class ZwlrOutputHeadV1 private constructor(client: Client, id: Int, versi
      */
     public fun sendCurrentMode(mode: ZwlrOutputModeV1) {
         if (!isAlive || !client.isConnected) return
+        if (!mode.isAlive) return
         if (Wire.tracing) Wire.event(this, "current_mode", "mode=${Wire.show(mode)}")
         event(5).obj(mode).end()
     }

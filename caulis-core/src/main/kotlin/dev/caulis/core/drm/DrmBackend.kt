@@ -73,9 +73,17 @@ class DrmBackend private constructor(
     init {
         session.onActiveChanged { nowActive ->
             if (nowActive) {
-                // Another program may have changed the monitors meanwhile: look again, redraw all.
+                // The monitors we had first (whatever the rescan meets), then another program
+                // may have changed them meanwhile: look again.
+                active.values.toList().forEach { output ->
+                    try {
+                        output.resume()
+                    } catch (e: Throwable) {
+                        if (e is OutOfMemoryError) throw e
+                        log.error("${output.name} could not resume: $e", e)
+                    }
+                }
                 rescan()
-                active.values.forEach { it.resume() }
             }
         }
         watchHotplug()
@@ -290,7 +298,12 @@ class DrmBackend private constructor(
         fun usable(i: Int) = info.possibleCrtcs and (1 shl i) != 0 && crtcIds[i] !in used
         // The CRTC it is on already, if it is free (no flicker, nothing to take from another
         // monitor); else the first free one it can use.
-        val index = crtcIds.indexOf(info.currentCrtc).takeIf { it >= 0 && usable(it) } ?: crtcIds.indices.firstOrNull(::usable)
+        // A free one no other connector still shows on (one lit by the firmware for a monitor we
+        // do not use would refuse the first picture) before one that is merely ours to take.
+        val heldByOthers = connectedConnectors().values.filter { it.id != info.id }.map { it.currentCrtc }.toSet()
+        val index = crtcIds.indexOf(info.currentCrtc).takeIf { it >= 0 && usable(it) }
+            ?: crtcIds.indices.firstOrNull { usable(it) && crtcIds[it] !in heldByOthers }
+            ?: crtcIds.indices.firstOrNull(::usable)
         if (index == null) {
             log.warn("No free display controller (CRTC) for ${info.name}")
             return null
@@ -422,7 +435,12 @@ class DrmBackend private constructor(
                             own?.close()
                             throw e
                         }
-                        return DrmBackend(loop, session, device, renderer)
+                        return try {
+                            DrmBackend(loop, session, device, renderer)
+                        } catch (e: Exception) {
+                            renderer.close()
+                            throw e
+                        }
                     } catch (e: Exception) {
                         device.close()
                         lastError = e

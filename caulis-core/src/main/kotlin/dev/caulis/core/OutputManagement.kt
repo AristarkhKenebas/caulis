@@ -58,7 +58,7 @@ class OutputManagement(display: Display, private val desktop: Desktop) {
     private val clients = ArrayList<Client>()
 
     init {
-        display.addGlobal(ZwlrOutputManagerV1, VERSION) { manager ->
+        display.addPrivilegedGlobal(ZwlrOutputManagerV1, VERSION) { manager ->
             val client = Client(manager)
             clients += client
             manager.onDestroy { clients -= client }

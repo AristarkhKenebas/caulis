@@ -29,6 +29,9 @@ class XdgShell(private val display: Display) {
         fun initialSize(window: Window): Pair<Int, Int> = 0 to 0
         fun windowMapped(window: Window) {}
         fun windowUnmapped(window: Window) {}
+
+        /** [window] is gone for good (also one that never appeared): forget everything about it. */
+        fun windowDestroyed(window: Window) {}
         fun windowCommitted(window: Window) {}
 
         /** The window's title or app id changed. */
@@ -101,6 +104,19 @@ class ShellSurface internal constructor(
     var role: Any? = null
         private set
 
+    // Its toplevel or popup was destroyed (or the xdg_surface itself): commits do nothing more,
+    // so a window can never come back from the dead.
+    internal var roleGone = false
+        private set
+
+    // Unmaps it and makes it inert for good (its role object or the xdg_surface went away).
+    internal fun roleDestroyed() {
+        if (roleGone) return
+        unmap()
+        roleGone = true
+        (role as? Window)?.let { shell.listener.windowDestroyed(it) }
+    }
+
     private val sentSerials = ArrayList<Int>()
     private var acknowledged = false
     private var initialConfigureSent = false
@@ -151,6 +167,12 @@ class ShellSurface internal constructor(
                 // Without a parent, another shell adopts it before its first commit (a panel's
                 // menu: zwlr_layer_surface_v1.get_popup).
                 val parentShell = parent?.dataAs<ShellSurface>()
+                // The parent must be a toplevel or popup already (so a popup can never be its
+                // own parent, or its parent's parent: no cycles to follow forever).
+                if (parent != null && (parentShell == null || parentShell.role == null || parentShell.roleGone)) {
+                    resource.postError(XdgWmBase.Error.INVALID_POPUP_PARENT, "the parent is not a toplevel or popup")
+                    return
+                }
                 val rules = positioner.dataAs<Positioner>()!!
                 if (rules.width <= 0 || rules.height <= 0) {
                     resource.postError(XdgWmBase.Error.INVALID_POSITIONER, "positioner has no size")
@@ -181,10 +203,11 @@ class ShellSurface internal constructor(
             }
         }
         surface.onCommit { committed() }
-        resource.onDestroy { unmap() }
+        resource.onDestroy { roleDestroyed() }
     }
 
     private fun committed() {
+        if (roleGone) return
         val currentRole = role ?: return
         pendingGeometry?.let { geometry = it; pendingGeometry = null }
 
@@ -239,7 +262,6 @@ class ShellSurface internal constructor(
     }
 }
 
-/** An application window (xdg_toplevel). */
 /** A Wayland program's window (xdg_toplevel). */
 class XdgWindow internal constructor(val resource: XdgToplevel, val shell: ShellSurface) : Window() {
 
@@ -257,10 +279,20 @@ class XdgWindow internal constructor(val resource: XdgToplevel, val shell: Shell
     init {
         resource.data = this
         resource.requests = object : XdgToplevel.Requests {
-            override fun destroy(resource: XdgToplevel) = shell.unmap()
+            override fun destroy(resource: XdgToplevel) = shell.roleDestroyed()
 
             override fun setParent(resource: XdgToplevel, parent: XdgToplevel?) {
-                this@XdgWindow.parent = parent?.dataAs<Window>()
+                val wanted = parent?.dataAs<Window>()
+                // Not itself, nor one of its own children (a loop of parents).
+                var ancestor = wanted
+                while (ancestor != null) {
+                    if (ancestor === this@XdgWindow) {
+                        resource.postError(XdgToplevel.Error.INVALID_PARENT, "a window cannot be its own parent")
+                        return
+                    }
+                    ancestor = ancestor.parent
+                }
+                this@XdgWindow.parent = wanted
             }
 
             override fun setTitle(resource: XdgToplevel, title: String) {
@@ -384,9 +416,13 @@ class Popup internal constructor(
     init {
         resource.data = this
         resource.requests = object : XdgPopup.Requests {
-            override fun destroy(resource: XdgPopup) = shell.unmap()
+            override fun destroy(resource: XdgPopup) = shell.roleDestroyed()
 
             override fun grab(resource: XdgPopup, seat: WlSeat, serial: Int) {
+                if (shell.mapped) {
+                    resource.postError(XdgPopup.Error.INVALID_GRAB, "a grab after the popup was mapped")
+                    return
+                }
                 shell.shell.listener.popupGrab(this@Popup)
             }
 
@@ -484,10 +520,18 @@ class Positioner internal constructor(resource: XdgPositioner) {
             }
 
             override fun setAnchor(resource: XdgPositioner, anchor: Int) {
+                if (anchor !in 0..8) {
+                    resource.postError(XdgPositioner.Error.INVALID_INPUT, "anchor $anchor is not one of the nine")
+                    return
+                }
                 rules.anchor = anchor
             }
 
             override fun setGravity(resource: XdgPositioner, gravity: Int) {
+                if (gravity !in 0..8) {
+                    resource.postError(XdgPositioner.Error.INVALID_INPUT, "gravity $gravity is not one of the nine")
+                    return
+                }
                 rules.gravity = gravity
             }
 

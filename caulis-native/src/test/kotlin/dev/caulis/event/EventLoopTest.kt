@@ -24,6 +24,23 @@ class EventLoopTest {
     }
 
     @Test
+    fun `a timer or task that throws - even an Error - is reported, the others still run`() {
+        EventLoop().use { loop ->
+            val ran = ArrayList<String>()
+            val failed = ArrayList<String>()
+            loop.onError = { what, e -> failed += "$what: ${e.javaClass.simpleName}" }
+            loop.after(5) { throw IllegalStateException("broken") }
+            loop.after(6) { throw StackOverflowError() }
+            loop.after(7) { ran += "after them" }
+            loop.post { throw NoClassDefFoundError("libxcb-composite") }
+            loop.after(30) { loop.stop() }
+            loop.run()
+            assertEquals(listOf("after them"), ran)
+            assertEquals(listOf("a posted task: NoClassDefFoundError", "a timer: IllegalStateException", "a timer: StackOverflowError"), failed)
+        }
+    }
+
+    @Test
     fun `the watchdog notices a stuck loop`() {
         EventLoop().use { loop ->
             val stuck = CountDownLatch(1)

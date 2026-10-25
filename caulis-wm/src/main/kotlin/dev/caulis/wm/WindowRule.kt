@@ -416,12 +416,14 @@ class WindowRule internal constructor() {
     override fun toString() = "rule(${conditionNames().ifEmpty { "every window" }})"
 
     private companion object {
-        // By process (asked often: effects are decided every frame).
-        private val programs = java.util.concurrent.ConcurrentHashMap<Int, String>()
+        // By window (asked often: effects are decided every frame). A window's program never
+        // changes; kept no longer than the window (a process number is used again later).
+        private val programs = java.util.Collections.synchronizedMap(java.util.WeakHashMap<Window, String>())
 
         fun programOf(window: Window): String? {
+            programs[window]?.let { return it }
             val pid = window.pid.takeIf { it > 0 } ?: return null
-            return programs.getOrPut(pid) { readProgram(pid) ?: return null }
+            return readProgram(pid)?.also { programs[window] = it }
         }
 
         private fun readProgram(pid: Int): String? {

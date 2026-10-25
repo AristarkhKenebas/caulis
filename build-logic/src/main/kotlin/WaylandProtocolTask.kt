@@ -257,6 +257,12 @@ internal class KotlinWriter(
         line("    public fun send${pascal(event.name)}(${params.joinToString(", ")}) {")
         line("        if (!isAlive || !client.isConnected) return")
         if (event.since > 1) line("        if (version < ${event.since}) return // the client is too old for this event")
+        // An object the client destroyed meanwhile is never named in an event (its id may be another's now).
+        for (arg in event.args.filter { it.type == "object" }) {
+            val name = paramName(arg.name)
+            val nullable = arg.allowNull || arg.interfaceName == null
+            line(if (nullable) "        if ($name != null && !$name.isAlive) return" else "        if (!$name.isAlive) return")
+        }
         val shown = traceArgs(event.args.map { it.name to paramName(it.name) })
         line("        if (Wire.tracing) Wire.event(this, \"${event.name}\", \"$shown\")")
         val writes = event.args.joinToString("") { ".${writeCall(it)}(${paramName(it.name)})" }

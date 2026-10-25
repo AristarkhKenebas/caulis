@@ -95,6 +95,7 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
      */
     public fun sendEnter(serial: Int, surface: WlSurface, surfaceX: Double, surfaceY: Double) {
         if (!isAlive || !client.isConnected) return
+        if (!surface.isAlive) return
         if (Wire.tracing) Wire.event(this, "enter", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}, surface_x=${Wire.show(surfaceX)}, surface_y=${Wire.show(surfaceY)}")
         event(0).uint(serial).obj(surface).fixed(surfaceX).fixed(surfaceY).end()
     }
@@ -110,6 +111,7 @@ public class WlPointer private constructor(client: Client, id: Int, version: Int
      */
     public fun sendLeave(serial: Int, surface: WlSurface) {
         if (!isAlive || !client.isConnected) return
+        if (!surface.isAlive) return
         if (Wire.tracing) Wire.event(this, "leave", "serial=${Wire.show(serial)}, surface=${Wire.show(surface)}")
         event(1).uint(serial).obj(surface).end()
     }

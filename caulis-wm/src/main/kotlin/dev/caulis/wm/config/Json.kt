@@ -37,6 +37,9 @@ class JsonException(message: String, val line: Int, val column: Int) : Exception
  */
 object Json {
 
+    /** How deep lists and sections may be nested. */
+    const val MAX_DEPTH = 128
+
     /** [value] as text, two spaces in per level (short lists of numbers stay on one line). */
     fun write(value: JsonValue): String = buildString { write(value, "") }
 
@@ -154,14 +157,24 @@ object Json {
             }
         }
 
+        // How deep lists and sections are nested now (a limit keeps a hostile text from
+        // overflowing the stack).
+        var depth = 0
+
         fun value(): JsonValue {
             space()
             if (end) fail("the file ends where a value should be")
             val l = line
             val c = column
             return when (val ch = peek()) {
-                '{' -> obj(l, c)
-                '[' -> arr(l, c)
+                '{', '[' -> {
+                    if (++depth > MAX_DEPTH) fail("nested more than $MAX_DEPTH deep")
+                    try {
+                        if (ch == '{') obj(l, c) else arr(l, c)
+                    } finally {
+                        depth--
+                    }
+                }
                 '"' -> JsonValue.Str(string(), l, c)
                 't' -> word("true", l, c) { JsonValue.Bool(true, l, c) }
                 'f' -> word("false", l, c) { JsonValue.Bool(false, l, c) }

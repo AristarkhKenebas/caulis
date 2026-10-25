@@ -18,7 +18,18 @@ class MessageReader internal constructor(private val client: Client) : WireReade
         throw ProtocolException(client.displayObject, WlDisplay.Error.INVALID_METHOD, message)
 
     /** A file descriptor (`fd`). The caller owns it and must close it. */
-    fun fd(): Fd = client.takeReceivedFd() ?: fail("a file descriptor was expected but none was sent")
+    fun fd(): Fd = (client.takeReceivedFd() ?: fail("a file descriptor was expected but none was sent")).also { taken += it }
+
+    // Descriptors of the request being read: closed if it fails before its handler took them
+    // (a malformed request must not leave them open for good).
+    private val taken = ArrayList<Fd>(2)
+
+    internal fun requestHandled() = taken.clear()
+
+    internal fun requestFailed() {
+        taken.forEach { it.close() }
+        taken.clear()
+    }
 
     /** The id of a new object the client wants created (`new_id`). */
     fun newId(): Int {
