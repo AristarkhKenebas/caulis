@@ -12,3 +12,15 @@ application {
         "-XX:+UseZGC",
     )
 }
+
+// Fast hot reload while developing with ./gradlew run (not in what installDist builds).
+val development by configurations.creating
+dependencies {
+    development(project(":caulis-reload"))
+}
+tasks.named<JavaExec>("run") {
+    classpath += development
+    // The Kotlin compiler inside uses sun.misc.Unsafe; this keeps Java from warning about it.
+    // (Added beside applicationDefaultJvmArgs: jvmArgs(...) would replace those.)
+    jvmArgumentProviders += CommandLineArgumentProvider { listOf("--sun-misc-unsafe-memory-access=allow") }
+}

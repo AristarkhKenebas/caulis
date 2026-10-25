@@ -37,7 +37,13 @@ dependencies {
     testRuntimeOnly(library("junit-launcher"))
 }
 
+// Modules whose tests run compositors on the GPU (or compile heavily beside them): their test
+// runs take turns, see GpuTests.
+val gpuTests = gradle.sharedServices.registerIfAbsent("gpuTests", GpuTests::class) { maxParallelUsages = 1 }
+val gpuTestModules = setOf("caulis-core", "caulis-render", "caulis-xwayland", "caulis-wm", "caulis-reload")
+
 tasks.withType<Test>().configureEach {
+    if (project.name in gpuTestModules) usesService(gpuTests)
     useJUnitPlatform()
     // Caulis calls C libraries through the Foreign Function & Memory API.
     // Java asks for an explicit permission to do that.

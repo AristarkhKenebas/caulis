@@ -115,8 +115,8 @@ Each new window takes half of the previous one's space — that is the `Dwindle`
 
 ### Change it while it runs
 
-Leave it running, change `Main.kt` and save: a few seconds later the compositor takes the
-change on — keys, layouts, looks, rules, events — and your windows and programs stay where
+Leave it running, change `Main.kt` and save: a second or two later the compositor takes
+the change on — keys, layouts, looks, rules, events — and your windows and programs stay where
 they are. A notice at the top says *Configuration reloaded*.
 
 If the new code does not compile, or fails (a key name it does not know, an exception), the
@@ -130,10 +130,15 @@ goes by itself.
   `Canvas`) keeps it; a new kind of layout replaces it.
 - `onStart` runs only once; `onReload { }` runs after each reload.
 - Threads your own code started keep running; `exitProcess` in `main` would end everything.
-- The first change after starting can take a little longer: Gradle warms up.
+- Your code is compiled right inside the running compositor (the module `caulis-reload`,
+  which the starter project adds to `./gradlew run` only): one to two seconds from saving.
+  The compiler warms up during the first half minute after starting, so a change right
+  away takes longer. Projects with Kotlin compiler plugins, Compose, kapt/KSP or their own
+  compiler settings are compiled by their Gradle build instead (several seconds); the log
+  says so.
 
 It works when you start with `./gradlew run` (from the project); an installed compositor
-does not watch its sources. Turn it off with `hotReload = false`.
+does not watch its sources (and contains no compiler). Turn it off with `hotReload = false`.
 
 ## 4. Keys
 

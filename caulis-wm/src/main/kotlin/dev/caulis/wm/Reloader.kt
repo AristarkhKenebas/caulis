@@ -26,10 +26,15 @@ import kotlin.io.path.name
  * If it does not compile or the new code fails, the old configuration keeps running and a
  * notice says why.
  */
-internal class Reloader private constructor(private val running: Running, private val project: Project) : AutoCloseable {
+internal class Reloader private constructor(
+    private val running: Running,
+    private val project: Project,
+    /** Compiles in this JVM (caulis-reload), or null: the project's Gradle compiles. */
+    private val compiler: ReloadCompiler?,
+) : AutoCloseable {
 
     /** Where the user's project is, as found from how this program was started. */
-    class Project(val root: Path, val sources: Path, val outputs: List<Path>, val gradlew: Path, val mainClass: String, val arguments: List<String>)
+    class Project(val root: Path, val sources: Path, val outputs: List<Path>, val gradlew: Path?, val mainClass: String, val arguments: List<String>)
 
     private val log = Logger("reload")
     private val watcher: WatchService = FileSystems.getDefault().newWatchService()
@@ -44,14 +49,13 @@ internal class Reloader private constructor(private val running: Running, privat
     private fun watch() {
         try {
             registerAll(project.sources)
-            // Gradle is slow the first times (its JVM warms up): one quiet build once the
-            // compositor has settled, so the first real change is taken on in seconds too.
+            // Compilers are slow the first times (their code warms up): one quiet compile once
+            // the compositor has settled, so the first real change is taken on quickly too.
             // Changes meanwhile wait in the watcher.
             Thread.sleep(WARM_UP_DELAY_MILLIS)
-            // (The configuration's own compile task once more, so the Kotlin compiler warms up too.)
-            if (!closed) compile("compileKotlin", "--rerun")?.let { (status, _) -> log.trace { "Warm-up build done (status $status)" } }
+            if (!closed) warmUp()
             while (!closed) {
-                val key = watcher.take()
+                val key = pendingKey?.also { pendingKey = null } ?: watcher.take()
                 var relevant = key.pollEvents().any { event -> (event.context() as? Path)?.let(::relevant) ?: true }
                 // New folders are watched too (a new package).
                 (key.watchable() as? Path)?.let { folder ->
@@ -86,19 +90,72 @@ internal class Reloader private constructor(private val running: Running, privat
         }
     }
 
+    private fun warmUp() {
+        val started = System.nanoTime()
+        if (compiler != null) {
+            // A compiler in a JVM gets faster for several runs (its code is compiled to machine
+            // code bit by bit): a few rounds, unless a real change comes first.
+            val folder = project.root.resolve("build/caulis-reload/warm-up")
+            for (round in 1..WARM_UP_ROUNDS) {
+                fresh(folder)
+                val result = compiler.compile(project.root, compileClasspath(), folder)
+                log.trace { "Warm-up compile $round done after ${(System.nanoTime() - started) / 1_000_000} ms (${if (result.compiled) "compiled" else "did not compile"})" }
+                if (!result.compiled || closed || changesWaiting()) break
+            }
+            folder.toFile().deleteRecursively()
+        } else {
+            // (The configuration's own compile task once more, so the Kotlin compiler warms up too.)
+            compile("compileKotlin", "--rerun")?.let { (status, _) -> log.trace { "Warm-up build done in ${(System.nanoTime() - started) / 1_000_000} ms (status $status)" } }
+        }
+    }
+
+    // True if a change is waiting (it is not taken from the watcher: the loop sees it next).
+    private fun changesWaiting(): Boolean = pendingKey != null || watcher.poll()?.also { pendingKey = it } != null
+
+    // A change seen while warming up, for the loop to handle first.
+    private var pendingKey: java.nio.file.WatchKey? = null
+
+    // Each reload compiles into a folder of its own (the one before may still be in use).
+    private var reloads = 0
+
+    // The classpath to compile against: what the compositor runs with, without the project's
+    // own compiled classes (its sources are compiled instead).
+    private fun compileClasspath(): List<Path> =
+        System.getProperty("java.class.path").orEmpty().split(java.io.File.pathSeparatorChar).filter { it.isNotEmpty() }
+            .map { Path.of(it).toAbsolutePath() }.filter { entry -> !entry.startsWith(project.root.resolve("build")) }
+
+    private fun fresh(folder: Path) {
+        folder.toFile().deleteRecursively()
+        Files.createDirectories(folder)
+    }
+
     private fun reload() {
         log.info { "A file in ${project.sources} changed: compiling" }
         val started = System.nanoTime()
-        val output = compile() ?: return
-        if (output.first != 0) {
-            val problems = compileProblems(output.second)
-            log.warn("The configuration does not compile; the one before keeps running:\n" + problems.joinToString("\n"))
-            notify(problems.joinToString("\n"), "Your configuration does not compile — the one before keeps running")
-            return
+        // Where the new classes are: a fresh folder (compiled here), or the build's own (Gradle).
+        val classes: List<Path>
+        if (compiler != null) {
+            val folder = project.root.resolve("build/caulis-reload/${++reloads}")
+            fresh(folder)
+            // The folder from two reloads ago is no longer used by anything.
+            project.root.resolve("build/caulis-reload/${reloads - 2}").toFile().deleteRecursively()
+            val result = compiler.compile(project.root, compileClasspath(), folder)
+            if (!result.compiled) {
+                doesNotCompile(result.problems.take(MAX_LINES))
+                return
+            }
+            classes = listOf(folder, project.root.resolve("src/main/resources")) + project.outputs.filter { "resources" in it.toString() }
+        } else {
+            val output = compile() ?: return
+            if (output.first != 0) {
+                doesNotCompile(compileProblems(output.second))
+                return
+            }
+            classes = project.outputs
         }
         val compiled = System.nanoTime()
         val next = try {
-            evaluate()
+            evaluate(classes)
         } catch (e: Throwable) {
             if (e is VirtualMachineError) throw e
             // The user's own mistake, at the line of their code where it happened.
@@ -113,11 +170,17 @@ internal class Reloader private constructor(private val running: Running, privat
         running.loop.post { takeOn(next, started) }
     }
 
+    private fun doesNotCompile(problems: List<String>) {
+        log.warn("The configuration does not compile; the one before keeps running:\n" + problems.joinToString("\n"))
+        notify(problems.joinToString("\n"), "Your configuration does not compile — the one before keeps running")
+    }
+
     // Runs the project's Gradle to compile it: exit status and what it printed (null when closed or Gradle is missing).
     private fun compile(vararg tasks: String = arrayOf("classes")): Pair<Int, List<String>>? {
+        val gradlew = project.gradlew ?: return null
         val process = try {
-            ProcessBuilder(listOf(project.gradlew.toString(), "--quiet", "--console=plain", "-p", project.root.toString()) + tasks)
-                .directory(project.gradlew.parent.toFile())
+            ProcessBuilder(listOf(gradlew.toString(), "--quiet", "--console=plain", "-p", project.root.toString()) + tasks)
+                .directory(gradlew.parent.toFile())
                 .redirectErrorStream(true)
                 .start()
         } catch (e: Exception) {
@@ -151,8 +214,8 @@ internal class Reloader private constructor(private val running: Running, privat
     private var loadedHere: Set<String> = emptySet()
 
     // Loads the project's classes fresh and runs its main, which hands over its configuration.
-    private fun evaluate(): Caulis {
-        val loader = ProjectLoader(project.outputs, Caulis::class.java.classLoader)
+    private fun evaluate(classes: List<Path>): Caulis {
+        val loader = ProjectLoader(classes, Caulis::class.java.classLoader)
         val slot = arrayOfNulls<Caulis>(1)
         capturing.set(slot)
         try {
@@ -228,8 +291,9 @@ internal class Reloader private constructor(private val running: Running, privat
 
     companion object {
         private val log = Logger("reload")
-        private const val QUIET_MILLIS = 300L
+        private const val QUIET_MILLIS = 150L
         private const val WARM_UP_DELAY_MILLIS = 10_000L
+        private const val WARM_UP_ROUNDS = 3
         private const val MAX_LINES = 6
 
         // Set while a reload runs main: caulis { } and run() put their configuration here and stop.
@@ -238,12 +302,24 @@ internal class Reloader private constructor(private val running: Running, privat
         /** Starts watching for [running]'s configuration, if the program was started from a project with sources. */
         fun start(running: Running): Reloader? {
             val project = findProject() ?: return null
-            log.info { "Hot reload: watching ${project.sources} (compiled with ${project.gradlew})" }
-            return Reloader(running, project).also { it.thread.start() }
+            // In this JVM if caulis-reload is there and the project needs nothing more; else Gradle.
+            val found = runCatching { java.util.ServiceLoader.load(ReloadCompiler::class.java, Caulis::class.java.classLoader).firstOrNull() }
+                .onFailure { log.warn("The hot reload compiler could not be loaded: $it") }.getOrNull()
+            val cannot = found?.cannotCompile(project.root)
+            val compiler = found.takeIf { cannot == null }
+            if (compiler == null && project.gradlew == null) return null.also { why("no Gradle wrapper (gradlew) in ${project.root} or above, and no caulis-reload") }
+            log.info {
+                "Hot reload: watching ${project.sources}, " + when {
+                    compiler != null -> "compiled right here (caulis-reload)"
+                    cannot != null -> "compiled with ${project.gradlew}: $cannot"
+                    else -> "compiled with ${project.gradlew} (add caulis-reload to the run task for much faster reloads)"
+                }
+            }
+            return Reloader(running, project, compiler).also { it.thread.start() }
         }
 
         // The project this program was started from: its main class among compiled folders
-        // under some <project>/build, with <project>/src and a Gradle wrapper above.
+        // under some <project>/build, with <project>/src (and a Gradle wrapper above, if any).
         private fun findProject(): Project? {
             val command = System.getProperty("sun.java.command")?.trim()?.split(Regex("\\s+")) ?: return null.also { why("how it was started is unknown") }
             val mainClass = command.first()
@@ -258,7 +334,6 @@ internal class Reloader private constructor(private val running: Running, privat
             val sources = root.resolve("src")
             if (!sources.isDirectory()) return null.also { why("$root has no src folder") }
             val gradlew = generateSequence(root) { it.parent }.map { it.resolve("gradlew") }.firstOrNull { Files.isExecutable(it) }
-                ?: return null.also { why("no Gradle wrapper (gradlew) in $root or above") }
             return Project(root, sources, folders.filter { it.startsWith(build) }, gradlew, mainClass, command.drop(1))
         }
 

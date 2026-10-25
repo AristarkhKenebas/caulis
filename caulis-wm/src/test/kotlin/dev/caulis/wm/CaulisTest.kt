@@ -92,12 +92,26 @@ class CaulisTest {
             caulis.onStart { started.complete(running!!) }
             val thread = Thread.ofPlatform().start { caulis.run() }
             var running: Running? = null
+            // If the compositor's loop stands still for long, what it waits for is printed (for tests that fail rarely).
+            val watchdog = Thread.ofPlatform().daemon().start {
+                val r = runCatching { started.get(10, TimeUnit.SECONDS) }.getOrNull() ?: return@start
+                var reported = 0L
+                while (thread.isAlive) {
+                    try { Thread.sleep(500) } catch (_: InterruptedException) { return@start }
+                    val since = r.loop.lastIterationNanos
+                    if (System.nanoTime() - since > 2_000_000_000 && since != reported) {
+                        reported = since
+                        System.err.println("The compositor's loop has stood still for 2 s, at:\n" + thread.stackTrace.joinToString("\n") { "    at $it" })
+                    }
+                }
+            }
             try {
                 running = started.get(10, TimeUnit.SECONDS)
                 TestClient(Connection.connect(socketDirectory.resolve(running.socket))).use { client -> test(caulis, client) }
             } finally {
                 // (The compositor itself: after a reload it runs with another configuration.)
                 running?.let { r -> r.loop.post { r.quit() } }
+                watchdog.interrupt()
                 thread.join(5000)
                 socketDirectory.toFile().deleteRecursively()
             }

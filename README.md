@@ -16,7 +16,7 @@ fun main() = caulis {
 
 It opens as a window when started inside a Wayland session, and takes the whole screen when
 started from a text console. Change the code while it runs: saved, compiled and taken on in
-seconds, windows stay where they are (a mistake leaves the old version running and says
+a second or two, windows stay where they are (a mistake leaves the old version running and says
 where it is). The same in Java:
 
 ```java
@@ -73,6 +73,7 @@ Wayland way when they can, and through X11 when that fails.
 | `caulis-core` | surfaces, windows, input, outputs, the nested and screen backends |
 | `caulis-xwayland` | X11 programs: Xwayland started on demand, their window manager, the shared clipboard |
 | `caulis-wm` | `caulis { }`: a running compositor in a few lines |
+| `caulis-reload` | fast hot reload while developing: compiles your configuration inside the running compositor (optional, `run` task only) |
 | `caulis-cursor-bibata` | the Bibata cursor themes, ready to use (optional; GPL-3.0, as Bibata) |
 
 ## Requirements

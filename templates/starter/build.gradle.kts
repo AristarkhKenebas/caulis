@@ -29,3 +29,16 @@ application {
         "-XX:+UseZGC",
     )
 }
+
+// Only while developing with ./gradlew run: change Main.kt while the compositor runs and it
+// is compiled right inside it, taken on in about a second. Not in what installDist builds.
+val development by configurations.creating
+dependencies {
+    development("dev.caulis:caulis-reload:0.1.0-SNAPSHOT")
+}
+tasks.named<JavaExec>("run") {
+    classpath += development
+    // The Kotlin compiler inside uses sun.misc.Unsafe; this keeps Java from warning about it.
+    // (Added beside applicationDefaultJvmArgs: jvmArgs(...) would replace those.)
+    jvmArgumentProviders += CommandLineArgumentProvider { listOf("--sun-misc-unsafe-memory-access=allow") }
+}

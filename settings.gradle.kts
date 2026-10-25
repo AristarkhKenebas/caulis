@@ -26,6 +26,7 @@ include(
     "caulis-core",
     "caulis-xwayland",
     "caulis-wm",
+    "caulis-reload",
     "caulis-cursor-bibata",
     "tools:cursors",
     "examples:minimal",
