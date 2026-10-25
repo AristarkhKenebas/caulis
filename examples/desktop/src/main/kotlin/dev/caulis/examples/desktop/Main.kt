@@ -27,7 +27,10 @@ fun main() = caulis {
     effects = Effects.MODERN
     // Notices over the bar, gone by themselves: nothing moves for them.
     noticeStyle = NoticeStyle(placement = NoticePlacement.Banner(room = NoticePlacement.Banner.Room.COVER))
-    home.resolve(".local/share/backgrounds/WhiteSur/Sonoma-light.jpg").takeIf(Files::exists)?.let { background = Background.image(it) }
+    val wallpaper = home.resolve(".local/share/backgrounds/WhiteSur/Sonoma-light.jpg").takeIf(Files::exists)
+    wallpaper?.let { background = Background.image(it) }
+    // The lock screen shows the wallpaper and the ring at once (not a plain white screen).
+    lockCommand = "swaylock -f --indicator-idle-visible " + (wallpaper?.let { "-s fill -i '$it'" } ?: "-c 1e1e2e")
 
     // Programs choose Wayland where they can (Telegram and Firefox do by themselves).
     environment["QT_QPA_PLATFORM"] = "wayland;xcb"
@@ -45,9 +48,19 @@ fun main() = caulis {
     // Wi-Fi and Bluetooth: their own windows if installed, else in a terminal.
     bind("Super+N") { launch(if (has("nm-connection-editor")) "nm-connection-editor" else "foot --app-id caulis-wifi nmtui") }
     bind("Super+Shift+B") { launch(if (has("blueman-manager")) "blueman-manager" else "foot --app-id caulis-bluetooth bluetoothctl") }
-    bind("Super+P") { launch("pavucontrol") }
+    bind("Super+A") { launch("pavucontrol") }
     // Print (and the laptop's screenshot key): the chooser; Shift+Print the screen, Alt+Print the window.
     screenshots()
+
+    // Many laptops send the Windows shortcuts for their keys: the display key (F7) is
+    // Super+P, the screenshot key (F10) Super+Shift+S.
+    bind("Super+P") { run("displays next") }
+    bind("Super+Shift+S") { run("screenshot") }
+    // The star key (F9): notes.
+    bind("XF86Favorites") { launch(if (has("obsidian")) "obsidian" else "gnome-text-editor") }
+    // The touchpad off while typing (a palm on it moves nothing); Super+F8 switches it.
+    input.touchpads.disableWhileTyping = true
+    bind("Super+F8") { run("touchpad typing toggle") }
 
     rule { appId(Regex("^caulis-(wifi|bluetooth|run)$")); floating = true; size(760, 520); center() }
     rule { appId("org.pulseaudio.pavucontrol"); floating = true; size(760, 520); center() }
@@ -62,6 +75,6 @@ fun main() = caulis {
         if (has("nm-applet")) launch("nm-applet --indicator")
         if (has("blueman-applet")) launch("blueman-applet")
         if (has("mako")) launch("mako")
-        notify("Super+Return: terminal · Super+B: Firefox · Super+T: Telegram · Super+M: Spotify · Super+N: Wi-Fi · Print: screenshot · Ctrl+Alt+BackSpace: quit", title = "Caulis")
+        notify("Super+Return: terminal · Super+B: Firefox · Super+T: Telegram · Super+M: Spotify · Super+N: Wi-Fi · Super+A: sound · Print: screenshot · Ctrl+Alt+BackSpace: quit", title = "Caulis")
     }
 }

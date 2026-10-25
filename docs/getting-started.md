@@ -1429,7 +1429,10 @@ bottom of the screen. Volume uses PipeWire's `wpctl`, music `playerctl`, brightn
 through the login session (no root, no extra program). A key of your own replaces them; a
 key that does nothing yet is named in the log (`The key XF86Favorites is not bound`), so you
 know what to `bind`. The same as actions: `volume +5`, `volume mute`, `mic-mute`,
-`brightness -5`, `touchpad toggle`, `media play-pause`.
+`brightness -5`, `touchpad toggle`, `media play-pause`, `touchpad typing toggle` (the touchpad off
+while typing — a palm on it moves nothing — or not; `input.touchpads.disableWhileTyping` sets it
+from the start). Many laptops send the Windows shortcuts for some of their keys: the display key
+is often Super+P, the screenshot key Super+Shift+S — `bind("Super+P") { run("displays next") }`.
 
 **Sleep and hibernation.** Before the computer sleeps the screen is locked (so it wakes up
 locked) — `lockBeforeSleep = false` to leave it. Your own steps:

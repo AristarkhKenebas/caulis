@@ -70,7 +70,7 @@ object Actions {
         Triple("volume", "+5|-5|mute", "louder, quieter, or sound off and on (wpctl), shown on screen"),
         Triple("mic-mute", "", "the microphone off or on"),
         Triple("brightness", "+5|-5", "the screen brighter or darker"),
-        Triple("touchpad", "on|off|toggle", "the touchpad on or off"),
+        Triple("touchpad", "on|off|toggle | typing on|off|toggle", "the touchpad on or off; typing: off while typing (a palm on it moves nothing), or not"),
         Triple("media", "play-pause|next|previous|stop", "the music player (playerctl)"),
         Triple("displays", "next|extend|mirror|laptop|external", "how the laptop's screen and a monitor or projector are used together"),
     )
@@ -204,7 +204,12 @@ object Actions {
             "mic-mute" -> { _ -> running?.system?.microphone() }
             "brightness" -> (needs("+5 or -5").removePrefix("+").toIntOrNull() ?: throw IllegalArgumentException("\"$argument\" is not +5 or -5"))
                 .let { step -> { _ -> running?.system?.brightness(step) } }
-            "touchpad" -> when (argument.ifEmpty { "toggle" }) {
+            "touchpad" -> if (argument.startsWith("typing")) when (argument.removePrefix("typing").trim().ifEmpty { "toggle" }) {
+                "on" -> { _ -> running?.system?.touchpadWhileTyping(true) }
+                "off" -> { _ -> running?.system?.touchpadWhileTyping(false) }
+                "toggle" -> { _ -> running?.system?.touchpadWhileTyping(null) }
+                else -> throw IllegalArgumentException("\"$argument\" is not typing on, off or toggle")
+            } else when (argument.ifEmpty { "toggle" }) {
                 "on" -> { _ -> running?.system?.touchpad(true) }
                 "off" -> { _ -> running?.system?.touchpad(false) }
                 "toggle" -> { _ -> running?.system?.touchpad(null) }

@@ -84,6 +84,25 @@ internal class SystemControls(private val running: Running) {
         running.desktop.showLevel(if (devices.touchpadsOn) "Touchpad on" else "Touchpad off")
     }
 
+    /**
+     * The touchpad off while typing (a palm on it moves nothing), on, off or the other way
+     * ([on] null); the setting is [Caulis.input]'s, taken on at once.
+     */
+    fun touchpadWhileTyping(on: Boolean?) {
+        val devices = running.inputDevices
+        if (devices == null || !devices.hasTouchpad) {
+            running.desktop.showLevel("No touchpad here")
+            return
+        }
+        val settings = running.config.input
+        // (Unset: the touchpad's own default, which is off while typing nearly everywhere.)
+        val guard = on ?: (settings.touchpads.disableWhileTyping == false)
+        settings.touchpads.disableWhileTyping = guard
+        devices.settings = settings
+        log.info { "Touchpad while typing: ${if (guard) "off" else "on"}" }
+        running.desktop.showLevel(if (guard) "Touchpad off while typing" else "Touchpad works while typing")
+    }
+
     fun close() = worker.shutdownNow()
 
     // --- running the programs ---------------------------------------------------------------
