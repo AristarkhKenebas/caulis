@@ -1,6 +1,5 @@
 package dev.caulis.core.dbus
 
-import dev.caulis.log.InternalCaulisApi
 import dev.caulis.event.EventLoop
 import dev.caulis.ffi.Fd
 import dev.caulis.ffi.UnixSocket
@@ -16,11 +15,9 @@ import java.nio.file.Path
 
 /** An object path on the bus ("/org/freedesktop/login1"): its own type, as D-Bus has it. */
 @JvmInline
-@InternalCaulisApi
 value class ObjectPath(val value: String)
 
 /** A message from the bus: a method's reply or error, or a signal. */
-@InternalCaulisApi
 class DBusMessage internal constructor(
     val type: Int,
     val serial: Int,
@@ -33,6 +30,7 @@ class DBusMessage internal constructor(
     val signature: String,
     /** The values, in [signature]'s order: String, ObjectPath, Boolean, Int, Long, Double, List, Fd (h), ... */
     val body: List<Any?>,
+    internal val flags: Int = 0,
 ) {
     val isError: Boolean get() = type == ERROR
 
@@ -47,12 +45,22 @@ class DBusMessage internal constructor(
     }
 }
 
+/** A method of an exported object: what it takes and gives ([inSignature], [outSignature]) and what it does. */
+class DBusMethod(
+    val inSignature: String,
+    val outSignature: String,
+    /** Gets the call (its [DBusMessage.body]) and returns the answer's values; throws [DBusError] to answer with an error. */
+    val handler: (DBusMessage) -> List<Any?>,
+)
+
+/** An error answered to a caller ([name] as D-Bus names them, "org.example.Error.Failed"). */
+class DBusError(val name: String, message: String) : Exception(message)
+
 /**
- * A small client of D-Bus — the system bus (logind: sleep, brightness, the session's lock) or
+ * A small client (and server) of D-Bus — the system bus (logind: sleep, brightness, the session's lock) or
  * the session bus — on the compositor's event loop: no thread, no library. Enough of the wire
  * format for what a compositor asks: the basic types, arrays, structs, file descriptors.
  */
-@InternalCaulisApi
 class DBusConnection private constructor(private val socket: UnixSocket, private val loop: EventLoop) : AutoCloseable {
 
     private val log = Logger("dbus")
@@ -103,6 +111,105 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
             if (fds.isNotEmpty()) add(9 to Variant("u", fds.size))
         }
         send(DBusMessage.CALL, if (reply == null) NO_REPLY_EXPECTED else 0, number, fields, signature, args, fds)
+    }
+
+    // Our objects: path -> interface -> member -> method.
+    private val exported = HashMap<String, MutableMap<String, Map<String, DBusMethod>>>()
+
+    /**
+     * Asks the bus for the well-known [name] ("org.example.Service"); [done] hears whether we
+     * have it now (false: another program has it).
+     */
+    fun requestName(name: String, done: ((Boolean) -> Unit)? = null) {
+        call("org.freedesktop.DBus", ObjectPath("/org/freedesktop/DBus"), "org.freedesktop.DBus", "RequestName", "su", listOf(name, DO_NOT_QUEUE)) { reply ->
+            val ours = !reply.isError && (reply.body.firstOrNull() as? Int).let { it == PRIMARY_OWNER || it == ALREADY_OWNER }
+            if (ours) log.info { "Bus name $name is ours" } else log.warn("Bus name $name is taken by another program")
+            done?.invoke(ours)
+        }
+    }
+
+    /**
+     * Answers calls of [iface] on [path] with [methods] (by name) from now on; close the result
+     * to stop. Introspection (busctl, gdbus, d-feet) and Ping are answered by themselves.
+     */
+    fun export(path: String, iface: String, methods: Map<String, DBusMethod>): AutoCloseable {
+        exported.getOrPut(path) { LinkedHashMap() }[iface] = methods
+        return AutoCloseable {
+            exported[path]?.remove(iface)
+            if (exported[path]?.isEmpty() == true) exported -= path
+        }
+    }
+
+    /** Sends the signal [member] of [iface] from [path] with [args] (as [signature] says) to whoever listens. */
+    fun emitSignal(path: String, iface: String, member: String, signature: String = "", args: List<Any?> = emptyList()) {
+        if (closed) return
+        val fields = buildList {
+            add(1 to Variant("o", ObjectPath(path)))
+            add(2 to Variant("s", iface))
+            add(3 to Variant("s", member))
+            if (signature.isNotEmpty()) add(8 to Variant("g", signature))
+        }
+        send(DBusMessage.SIGNAL, NO_REPLY_EXPECTED, serial++, fields, signature, args, emptyList())
+    }
+
+    // A call to one of our objects: answered (a reply or an error), unless no answer is wanted.
+    private fun answer(call: DBusMessage) {
+        fun reply(signature: String, values: List<Any?>) {
+            if (call.flags and NO_REPLY_EXPECTED != 0) return
+            val fields = buildList {
+                add(5 to Variant("u", call.serial))
+                call.sender?.let { add(6 to Variant("s", it)) }
+                if (signature.isNotEmpty()) add(8 to Variant("g", signature))
+            }
+            send(DBusMessage.REPLY, NO_REPLY_EXPECTED, serial++, fields, signature, values, emptyList())
+        }
+        fun error(name: String, text: String) {
+            if (call.flags and NO_REPLY_EXPECTED != 0) return
+            val fields = buildList {
+                add(4 to Variant("s", name))
+                add(5 to Variant("u", call.serial))
+                call.sender?.let { add(6 to Variant("s", it)) }
+                add(8 to Variant("g", "s"))
+            }
+            send(DBusMessage.ERROR, NO_REPLY_EXPECTED, serial++, fields, "s", listOf(text), emptyList())
+        }
+        val path = call.path ?: return error(UNKNOWN_OBJECT, "no path")
+        val member = call.member ?: return error(UNKNOWN_METHOD, "no member")
+        when {
+            call.iface == "org.freedesktop.DBus.Peer" && member == "Ping" -> return reply("", emptyList())
+            call.iface == "org.freedesktop.DBus.Introspectable" && member == "Introspect" -> return reply("s", listOf(introspect(path)))
+        }
+        val interfaces = exported[path] ?: return error(UNKNOWN_OBJECT, "no object $path")
+        val method = if (call.iface != null) interfaces[call.iface]?.get(member) else interfaces.values.firstNotNullOfOrNull { it[member] }
+        if (method == null) return error(UNKNOWN_METHOD, "no method ${call.iface ?: "?"}.$member on $path")
+        if (call.signature != method.inSignature) return error(INVALID_ARGS, "$member takes (${method.inSignature}), not (${call.signature})")
+        try {
+            reply(method.outSignature, method.handler(call))
+        } catch (e: DBusError) {
+            error(e.name, e.message.orEmpty())
+        } catch (e: Exception) {
+            log.error("Answering $call failed", e)
+            error(FAILED, e.toString())
+        }
+    }
+
+    // What the object at [path] has, as introspection XML (its children too, so tools find it).
+    private fun introspect(path: String): String = buildString {
+        append("<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\" \"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n<node>\n")
+        exported[path]?.forEach { (iface, methods) ->
+            append("  <interface name=\"$iface\">\n")
+            for ((name, m) in methods) {
+                append("    <method name=\"$name\">")
+                for (t in splitSignature(m.inSignature)) append("<arg direction=\"in\" type=\"$t\"/>")
+                for (t in splitSignature(m.outSignature)) append("<arg direction=\"out\" type=\"$t\"/>")
+                append("</method>\n")
+            }
+            append("  </interface>\n")
+        }
+        val prefix = if (path == "/") "/" else "$path/"
+        exported.keys.filter { it.startsWith(prefix) && it != path }.map { it.removePrefix(prefix).substringBefore('/') }.distinct()
+            .forEach { append("  <node name=\"$it\"/>\n") }
+        append("</node>\n")
     }
 
     /** Runs [handler] for every signal [member] of [iface] (from [path], if given). Asks the bus for them. */
@@ -175,6 +282,7 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
                     log.error("Handling $message failed", e)
                 }
             }
+            DBusMessage.CALL -> answer(message)
             DBusMessage.SIGNAL -> for ((fits, handler) in signals.toList()) {
                 if (!fits(message)) continue
                 try {
@@ -217,6 +325,7 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
         reader.byte()
         reader.u32() // body length
         val serial = reader.u32()
+        val flags = data[2].toInt() and 0xff
         @Suppress("UNCHECKED_CAST")
         val fields = (reader.read("a(yv)") as List<List<Any?>>).associate { (it[0] as Int) to (it[1] as Variant).value }
         reader.align(8)
@@ -224,7 +333,7 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
         val body = reader.readAll(signature)
         return DBusMessage(
             type, serial, (fields[5] as Int?) ?: 0, (fields[1] as ObjectPath?)?.value, fields[2] as String?, fields[3] as String?,
-            fields[4] as String?, fields[7] as String?, signature, body,
+            fields[4] as String?, fields[7] as String?, signature, body, flags,
         )
     }
 
@@ -240,6 +349,13 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
     companion object {
         private const val READ_SIZE = 64 * 1024L
         private const val NO_REPLY_EXPECTED = 1
+        private const val DO_NOT_QUEUE = 4
+        private const val PRIMARY_OWNER = 1
+        private const val ALREADY_OWNER = 4
+        private const val UNKNOWN_OBJECT = "org.freedesktop.DBus.Error.UnknownObject"
+        private const val UNKNOWN_METHOD = "org.freedesktop.DBus.Error.UnknownMethod"
+        private const val INVALID_ARGS = "org.freedesktop.DBus.Error.InvalidArgs"
+        private const val FAILED = "org.freedesktop.DBus.Error.Failed"
 
         /** The system bus (logind, NetworkManager, BlueZ), or null if it cannot be reached. */
         @JvmStatic

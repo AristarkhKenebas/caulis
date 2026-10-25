@@ -103,6 +103,13 @@ class KeyboardState internal constructor(private val state: MemorySegment) : Aut
     /** The symbol a key produces now, e.g. XKB_KEY_q (for compositor shortcuts). */
     fun symbol(evdevCode: Int): Int = Xkb.xkb_state_key_get_one_sym(state, evdevCode + 8)
 
+    /** The character a key types now (with the layout and Shift, Caps Lock, AltGr), or null for none (arrows, Ctrl, F1). */
+    fun text(evdevCode: Int): String? {
+        val code = Xkb.xkb_state_key_get_utf32(state, evdevCode + 8)
+        if (code < 0x20 || code == 0x7f || !Character.isValidCodePoint(code)) return null
+        return String(Character.toChars(code))
+    }
+
     override fun close() = Xkb.xkb_state_unref(state)
 
     /** Modifier state in the form of wl_keyboard.modifiers. */

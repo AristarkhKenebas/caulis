@@ -187,7 +187,7 @@ val jextractXkb = tasks.register<JextractTask>("jextractXkb") {
         "function xkb_keymap_num_layouts",
         "function xkb_state_new", "function xkb_state_unref", "function xkb_state_update_key",
         "function xkb_state_serialize_mods", "function xkb_state_serialize_layout",
-        "function xkb_state_key_get_one_sym", "function xkb_state_update_mask",
+        "function xkb_state_key_get_one_sym", "function xkb_state_update_mask", "function xkb_state_key_get_utf32",
         "function xkb_keysym_get_name",
         "constant XKB_CONTEXT_NO_FLAGS", "constant XKB_KEYMAP_COMPILE_NO_FLAGS",
         "constant XKB_KEYMAP_FORMAT_TEXT_V1", "constant XKB_KEY_DOWN", "constant XKB_KEY_UP",

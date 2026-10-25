@@ -92,22 +92,34 @@ internal class Backdrops(
     /** True while a background melts into the next one: each frame is different. */
     fun changing(): Boolean = leaving.isNotEmpty()
 
+    // The part of each monitor's background shown (Desktop.setBackgroundView), by monitor name.
+    internal val views = HashMap<String, BackgroundView>()
+
     private fun item(monitor: Monitor, workspace: Int, background: Background, alpha: Float, pointerX: Double, pointerY: Double, now: Long, key: String): DrawItem {
         val area = monitor.area
         val pixels = monitor.pixelWidth to monitor.pixelHeight
+        val view = views[monitor.name]
+        val viewPart = view?.let { floatArrayOf(it.x.toFloat(), it.y.toFloat(), it.width.toFloat(), it.height.toFloat()) }
         return when (background) {
             is Background.Solid -> DrawItem.Custom(key, area, listOf(background, alpha)) { r -> fill(r, background.color, alpha) }
             is Background.Gradient, is Background.Painted -> {
                 val texture = painted(background, monitor, workspace)
-                DrawItem.Custom(key, area, listOf(background, texture, alpha)) { r ->
-                    if (texture != null) renderer.drawTexture(texture, r.x, r.y, r.width, r.height, opaque = false, alpha = alpha) else fill(r, USUAL_COLOR, alpha)
+                DrawItem.Custom(key, area, listOf(background, texture, alpha, view)) { r ->
+                    if (texture != null) renderer.drawTexture(texture, r.x, r.y, r.width, r.height, opaque = false, alpha = alpha, source = viewPart) else fill(r, USUAL_COLOR, alpha)
                 }
             }
             is Background.Image -> {
                 val picture = picture(background.path)
                 val over = if (background.span) desktop else area
                 val unitScale = if (background.span) largestScale else monitor.scale
-                DrawItem.Custom(key, area, listOf(background, picture, alpha, pixels, over, unitScale)) { r -> drawImage(r, area, over, unitScale, background, picture, alpha) }
+                if (view != null) {
+                    // The view's part of the whole picture, over the monitor.
+                    DrawItem.Custom(key, area, listOf(background, picture, alpha, pixels, view)) { r ->
+                        if (picture == null) fill(r, background.behind, alpha) else renderer.drawTexture(picture.texture, r.x, r.y, r.width, r.height, opaque = false, alpha = alpha, source = viewPart)
+                    }
+                } else {
+                    DrawItem.Custom(key, area, listOf(background, picture, alpha, pixels, over, unitScale)) { r -> drawImage(r, area, over, unitScale, background, picture, alpha) }
+                }
             }
             is Background.Shader -> {
                 val shader = background.shader
@@ -125,7 +137,8 @@ internal class Backdrops(
                 val code = shader.code
                 val fileProblem = shader.fileProblem
                 val source = shader.source(code)
-                DrawItem.Custom(key, area, listOf(background, source, frame, alpha, pixels, picture, all, if (shader.moving) pointer.toList() + onDesktop.toList() else null)) { r ->
+                val shaderView = viewPart ?: floatArrayOf(0f, 0f, 1f, 1f)
+                DrawItem.Custom(key, area, listOf(background, source, frame, alpha, pixels, picture, all, view, if (shader.moving) pointer.toList() + onDesktop.toList() else null)) { r ->
                     val drawn = renderer.drawShaded(
                         r.x, r.y, r.width, r.height, source,
                         floats = mapOf(
@@ -134,6 +147,7 @@ internal class Backdrops(
                             "monitor" to floatArrayOf(area.x.toFloat(), area.y.toFloat(), area.width.toFloat(), area.height.toFloat()),
                             "desktop" to floatArrayOf(all.x.toFloat(), all.y.toFloat(), all.width.toFloat(), all.height.toFloat()),
                             "scale" to floatArrayOf(monitor.scale.toFloat()), "physicalSize" to physical, "desktopPointer" to onDesktop,
+                            "view" to shaderView,
                         ),
                         ints = mapOf("hasPicture" to if (picture != null) 1 else 0),
                         texture = picture?.texture,

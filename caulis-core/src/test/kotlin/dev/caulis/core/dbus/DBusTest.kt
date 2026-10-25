@@ -41,6 +41,48 @@ class DBusTest {
         }
     }
 
+    @Test
+    fun `an exported object answers calls, says what it has, and sends signals`() {
+        EventLoop().use { loop ->
+            val server = DBusConnection.session(loop)
+            assumeTrue(server != null, "no session bus")
+            val client = DBusConnection.session(loop)!!
+            server!!.use { client.use {
+                fun until(done: () -> Boolean) {
+                    val end = System.nanoTime() + 5_000_000_000
+                    while (!done() && System.nanoTime() < end) loop.dispatch(20)
+                    check(done()) { "timed out" }
+                }
+                until { server.uniqueName != null && client.uniqueName != null }
+                server.export("/dev/caulis/Test", "dev.caulis.Test", mapOf(
+                    "Add" to DBusMethod("ii", "i") { call -> listOf((call.body[0] as Int) + (call.body[1] as Int)) },
+                    "Fail" to DBusMethod("", "") { throw DBusError("dev.caulis.Test.Error.No", "not today") },
+                ))
+                val name = server.uniqueName!!
+                var sum: Int? = null
+                var error: String? = null
+                var missing: String? = null
+                var xml: String? = null
+                var signal: List<Any?>? = null
+                client.onSignal("dev.caulis.Test", "Changed") { signal = it.body }
+                client.call(name, ObjectPath("/dev/caulis/Test"), "dev.caulis.Test", "Add", "ii", listOf(2, 40)) { sum = it.body.firstOrNull() as Int? }
+                client.call(name, ObjectPath("/dev/caulis/Test"), "dev.caulis.Test", "Fail") { error = it.errorName }
+                client.call(name, ObjectPath("/dev/caulis/Test"), "dev.caulis.Test", "Nothing") { missing = it.errorName }
+                client.call(name, ObjectPath("/dev/caulis/Test"), "org.freedesktop.DBus.Introspectable", "Introspect") { xml = it.body.firstOrNull() as String? }
+                until { sum != null && error != null && missing != null && xml != null }
+                assertEquals(42, sum)
+                assertEquals("dev.caulis.Test.Error.No", error)
+                assertEquals("org.freedesktop.DBus.Error.UnknownMethod", missing)
+                assertTrue("<method name=\"Add\"><arg direction=\"in\" type=\"i\"/>" in xml!!, xml)
+                Thread.sleep(200) // (the match rule reaches the bus first)
+                loop.dispatch(50)
+                server.emitSignal("/dev/caulis/Test", "dev.caulis.Test", "Changed", "s", listOf("hello"))
+                until { signal != null }
+                assertEquals(listOf<Any?>("hello"), signal)
+            } }
+        }
+    }
+
     private companion object {
         const val LOGIN = "org.freedesktop.login1"
         const val MANAGER = "org.freedesktop.login1.Manager"

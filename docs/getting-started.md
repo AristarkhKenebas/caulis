@@ -517,6 +517,17 @@ compile is said once in the log and the usual background shows.
 A wallpaper program — swaybg, hyprpaper, swww, mpvpaper, waypaper's backends, anything on
 the background layer — simply draws on top: it wins, and a moving shader below it rests.
 
+**A view over the background**: show only a part of it, moving and zooming as your own view
+of a big canvas does — fractions of the whole picture, from the top left:
+
+```kotlin
+desktop.setBackgroundView(monitor, BackgroundView(x = 0.25, y = 0.1, width = 0.5, height = 0.5))
+desktop.setBackgroundView(monitor, null)   // the whole background again
+```
+
+A picture or a painted background shows that part stretched over the monitor; a shader gets
+it as `view` — `image(viewAt(at))` reads its picture through the view.
+
 ## 10. Round corners, borders, shadows, blur
 
 Off by default; the template switches on a common look:
@@ -1032,6 +1043,20 @@ workspaceSwipeFingers = 4     // 0 = off
 swipe(fingers = 3, Direction.UP) { desktop.toggleOverview() }
 ```
 
+Gestures of your own, as they come (with their fingers, movement, scale and rotation): a
+handler is asked at each gesture's start, and `true` makes the whole gesture its own — its
+updates and its end go only to it, not to the built-in gestures or programs.
+
+```kotlin
+onGesture { g ->
+    when (g) {
+        is Gesture.SwipeBegin -> g.fingers == 5                  // five fingers: mine
+        is Gesture.SwipeUpdate -> { println("moved ${g.dx}, ${g.dy}"); true }
+        else -> false
+    }
+}
+```
+
 ## 21. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
@@ -1085,6 +1110,72 @@ Kotlin works: `if (count > 4) grid() else rest()`.
 
 Need something the blocks cannot express? Implement `Layout` yourself: it gets the windows
 and the free area, and returns one rectangle per window.
+
+**Placing windows yourself, every frame** (as a wlroots compositor with its own scene does):
+a `WindowDirector` says, for each window it manages, where it is drawn right now — fractions
+allowed, stretched when that is not the window's own size (zoomed out, half way through your
+own animation) — how see-through, how round, clipped to what, in which order, and whether it
+takes the pointer. The layouts leave those windows alone; focus, menus, panels, the lock
+screen, X11 programs, effects and frame timing stay the compositor's.
+
+```kotlin
+director = object : WindowDirector {
+    var zoom = 1.0
+    override fun initialSize(window: Window) = 800 to 600
+    override fun place(window: Window, now: Long): WindowPlace {
+        val r = window.visibleRect
+        return WindowPlace(40.0, 60.0, r.width * zoom, r.height * zoom, cornerRadius = 12f)
+    }
+    override fun animating(now: Long) = false // true while your own animation runs
+}
+```
+
+The size a program draws at is yours to ask for (`window.configure(width, height)`); after a
+change of your own (a key, a gesture), `desktop.requestRedraw()`. `requested`,
+`moveRequested` and `resizeRequested` let you answer a program's fullscreen, maximize and move
+requests yourself. Where the pointer is over a stretched window, the program is told the
+point in its own size.
+
+**Your own interface in Compose** (the module `io.github.aristarkhkenebas:caulis-compose`,
+with `google()` in your repositories): a bar, a dock, a launcher, a volume pill — any Compose
+you like, drawn by the compositor itself (no extra program, no window), getting the pointer
+where it is, the wheel, and the keyboard when it asks (text fields work). About 45 MB more for
+the first one.
+
+```kotlin
+compose(place = { m -> Rect(m.area.x, m.area.y, m.area.width, 32) }, reserve = { Reserve(Edge.TOP, 32) }) { monitor ->
+    var clicks by remember { mutableIntStateOf(0) }
+    Row(Modifier.fillMaxSize().background(Color(0xE01E1E2E)), verticalAlignment = Alignment.CenterVertically) {
+        BasicText("  ${monitor.name}", style = TextStyle(color = Color.White))
+        Spacer(Modifier.weight(1f))
+        BasicText("clicked $clicks  ", Modifier.clickable { clicks++ }, style = TextStyle(color = Color.White))
+    }
+}
+```
+
+`reserve` keeps room at an edge (windows and panels make way); `takesKeyboard = true` gives
+it the keyboard when clicked (until a click elsewhere); `level` puts it below or above the
+windows. Without Compose, a `Widget` of your own does the same with any pictures.
+
+**Pictures of your own that take no input** — a bar, rounded screen corners, a glow — at one
+of three levels (below the windows, above them, on top of everything); clicks go through to
+what is below. A director can also draw with each of its windows (`decorate`: below it — a
+blur of what is behind, a shadow — or above it — a border), so windows above stay above.
+
+```kotlin
+addDrawing(DrawingLevel.ON_TOP, object : Drawing {
+    override fun draw(monitor: Monitor, canvas: OverlayCanvas) {
+        val a = monitor.area
+        canvas.border(a, 2f, Paint.solid(Color(0.4f, 0.6f, 1f)), radius = 18f)   // the screen's edge
+        canvas.roundedFill(Rect(a.x + 20, a.bottom - 60, 200, 40), 12f, Color(0f, 0f, 0f, 0.5f))
+    }
+})
+```
+
+The canvas draws pictures (`image`), colours (`fill`, `roundedFill`, `frame`), borders and
+shadows in any paint (a gradient, a shader: moving ones keep frames coming) and `blur` of what
+is below. `animating(now)` true keeps frames coming for a drawing that changes by itself; after
+a change of your own, `desktop.requestRedraw()`.
 
 ## 23. Settings as data: config.json
 

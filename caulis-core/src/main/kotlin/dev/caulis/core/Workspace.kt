@@ -58,12 +58,15 @@ class Workspace internal constructor(
 
     val isEmpty: Boolean get() = windows.isEmpty() && minimized.isEmpty()
 
+    // Windows a director places itself (Desktop.director): never in the layout.
+    internal var leftOut: (Window) -> Boolean = { false }
+
     /** Windows the layout places right now, in tiling order. */
     internal fun tiledWindows(): List<Window> =
         if (layout === Floating) {
             emptyList()
         } else {
-            tilingOrder.filter { it in windows && it !in floating && !it.maximized && !it.fullscreen }
+            tilingOrder.filter { it in windows && it !in floating && !it.maximized && !it.fullscreen && !leftOut(it) }
         }
 
     internal fun add(window: Window) {

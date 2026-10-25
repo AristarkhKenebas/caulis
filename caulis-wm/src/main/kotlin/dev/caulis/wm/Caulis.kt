@@ -84,6 +84,16 @@ class Caulis {
         }
 
     /**
+     * Your compositor places windows itself, every frame (wlroots-style: drawn rectangle,
+     * scale, opacity, order — see [dev.caulis.core.WindowDirector]); null: [layout] does.
+     */
+    var director: dev.caulis.core.WindowDirector? = null
+        set(value) {
+            field = value
+            running?.desktop?.director = value
+        }
+
+    /**
      * How long windows take to glide to new places, minimize into the dock, zoom into the
      * overview, ... in milliseconds (0 = no animations, they jump).
      */
@@ -817,6 +827,27 @@ class Caulis {
         idleWatches += IdleWatch(seconds, idle, resume)
     }
 
+    internal val gestureHandlers = ArrayList<Caulis.(dev.caulis.core.input.Gesture) -> Boolean>()
+
+    /**
+     * Touchpad gestures as they come — swipes, pinches and holds with their fingers, movement,
+     * scale and rotation — for gestures of your own. [handler] is asked at each gesture's
+     * start; true takes the gesture: every update and its end go to it alone (not to the
+     * built-in gestures, nor to programs). The last added is asked first.
+     *
+     * ```
+     * onGesture { g ->
+     *     when (g) {
+     *         is Gesture.SwipeBegin -> g.fingers == 3          // three-finger swipes are mine
+     *         is Gesture.SwipeUpdate -> { moveMyView(g.dx, g.dy); true }
+     *         else -> false                                     // (only the start's answer counts)
+     *     }
+     * }
+     * ```
+     */
+    @JvmSynthetic
+    fun onGesture(handler: Caulis.(gesture: dev.caulis.core.input.Gesture) -> Boolean): AutoCloseable = listenTo(gestureHandlers, handler)
+
     internal val lidActions = ArrayList<Caulis.(Boolean) -> Unit>()
 
     /** Runs [action] when the laptop's lid closes (true) or opens (false); on the screen only. */
@@ -1052,7 +1083,7 @@ class Caulis {
         titleBarRules, noticeListeners, bindings, startActions, floatRules, effectRules, panelEffectRules, panelRules,
         scratchpads, swipes, windowOpened, windowClosed, focusChanged, workspaceChanged, reloadActions, rules,
         windowChanged, monitorAdded, monitorRemoved, unloadActions, waitingTimers, sleepActions, wakeActions,
-        workspaceRules, lidActions, idleWatches,
+        workspaceRules, lidActions, idleWatches, gestureHandlers,
     )
 
     /** The window manager (workspaces, focus, layouts). Only while running. */
@@ -1086,6 +1117,49 @@ class Caulis {
 
     // Timers started with [after] (cancelled when this configuration is replaced by a reload).
     internal val timers = ArrayList<dev.caulis.event.EventLoop.Timer>()
+
+    // What this configuration added to the running desktop (drawings): taken away on a reload.
+    internal val added = ArrayList<AutoCloseable>()
+
+    /**
+     * Pictures of your own that take no input — a bar, a border, rounded screen corners — at
+     * [level] (see [dev.caulis.core.Drawing]); close the result to take it away. Asked for in
+     * the configuration itself, it is shown when it runs; a reload takes it away.
+     */
+    /**
+     * A part of the compositor's own interface — a bar, a dock, a launcher ([dev.caulis.core.Widget];
+     * caulis-compose's `compose { }` makes one in Compose); close the result to take it away.
+     * Asked for in the configuration itself, it is shown when it runs; a reload takes it away
+     * (and closes it).
+     */
+    fun addWidget(widget: dev.caulis.core.Widget): AutoCloseable {
+        val r = running ?: return later { addWidget(widget) }
+        val handle = r.desktop.addWidget(widget)
+        val closing = AutoCloseable {
+            handle.close()
+            (widget as? AutoCloseable)?.close()
+        }
+        added += closing
+        return AutoCloseable {
+            closing.close()
+            added -= closing
+        }
+    }
+
+    /**
+     * Pictures of your own that take no input — a bar, a border, rounded screen corners — at
+     * [level] (see [dev.caulis.core.Drawing]); close the result to take it away. Asked for in
+     * the configuration itself, it is shown when it runs; a reload takes it away.
+     */
+    fun addDrawing(level: dev.caulis.core.DrawingLevel, drawing: dev.caulis.core.Drawing): AutoCloseable {
+        val r = running ?: return later { addDrawing(level, drawing) }
+        val handle = r.desktop.addDrawing(level, drawing)
+        added += handle
+        return AutoCloseable {
+            handle.close()
+            added -= handle
+        }
+    }
 
     // A timer asked for before the compositor runs (in the configuration itself): it starts
     // when this configuration does, and ends with it.

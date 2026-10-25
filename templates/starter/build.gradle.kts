@@ -23,6 +23,9 @@ dependencies {
     // (caulis-script is big: it contains the Kotlin compiler.)
     // implementation("io.github.aristarkhkenebas:caulis-lua:0.1.0-SNAPSHOT")
     // implementation("io.github.aristarkhkenebas:caulis-script:0.1.0-SNAPSHOT")
+    // Your own bar, dock, launcher in Compose: compose { } in your configuration (needs google()
+    // in the repositories above).
+    // implementation("io.github.aristarkhkenebas:caulis-compose:0.1.0-SNAPSHOT")
     // Screenshots (Print): add it and call screenshots() in your configuration.
     // implementation("io.github.aristarkhkenebas:caulis-screenshot:0.1.0-SNAPSHOT")
 }

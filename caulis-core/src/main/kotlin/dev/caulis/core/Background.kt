@@ -171,10 +171,12 @@ class WallpaperShader private constructor(
         uniform float scale;
         uniform vec2 physicalSize;
         uniform vec2 desktopPointer;
+        uniform vec4 view;
         out vec4 caulisColor;
         vec4 image(vec2 p) { return hasPicture ? texture(picture, p) : vec4(0.0); }
         vec2 unitsAt(vec2 p) { return monitor.xy + p * monitor.zw; }
         vec2 desktopAt(vec2 p) { return (unitsAt(p) - desktop.xy) / desktop.zw; }
+        vec2 viewAt(vec2 p) { return view.xy + p * view.zw; }
         #line 1
         """ + code + """
         void main() { caulisColor = wallpaper(uv) * alpha; }"""
@@ -205,5 +207,23 @@ class WallpaperShader private constructor(
             """.trimIndent(),
             framesPerSecond = 30,
         )
+    }
+}
+
+/**
+ * The part of a monitor's background shown on it, as fractions of the whole picture: [x], [y]
+ * its top left, [width], [height] its size (all 0..1) — a view moving over a big wallpaper and
+ * zooming into it, as a canvas moves ([Desktop.setBackgroundView]). A picture or a painted
+ * background shows that part stretched over the monitor; a shader gets it as `view` (and
+ * `viewAt(at)` turns its point into the view's).
+ */
+data class BackgroundView(val x: Double, val y: Double, val width: Double, val height: Double) {
+    init {
+        require(width > 0 && height > 0) { "a background view needs a size above 0 ($width x $height)" }
+    }
+
+    companion object {
+        /** All of it (as without a view). */
+        @JvmField val ALL = BackgroundView(0.0, 0.0, 1.0, 1.0)
     }
 }

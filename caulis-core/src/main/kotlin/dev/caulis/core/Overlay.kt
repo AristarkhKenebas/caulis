@@ -1,7 +1,10 @@
 package dev.caulis.core
 
 import dev.caulis.geometry.Rect
+import dev.caulis.render.BlurTone
+import dev.caulis.render.Color
 import dev.caulis.render.GpuTexture
+import dev.caulis.render.Paint
 
 /**
  * Something of the compositor's own above everything — a screenshot chooser, a launcher or a
@@ -34,22 +37,51 @@ interface Overlay {
     fun closed() {}
 }
 
-/** Where an [Overlay] draws: pictures and plain colours, in desktop units. */
-class OverlayCanvas internal constructor(private val monitor: Monitor, private val key: Any) {
+/**
+ * Where an [Overlay], a [Drawing] or a [WindowDirector]'s decorations draw: pictures, colours,
+ * borders, shadows and blur — in desktop units, in order (each one above the ones before).
+ */
+class OverlayCanvas internal constructor(
+    /** The monitor drawn on now, or null (decorations of a window: wherever it is). */
+    val monitor: Monitor?,
+    private val key: Any,
+    /** Seconds since the compositor started (for paints that move: gradients turning, shaders). */
+    val time: Float = 0f,
+) {
 
     internal val items = ArrayList<DrawItem>()
+
+    // A paint that moves by itself was used: frames go on.
+    internal var movingPaint = false
+
+    private fun timeOf(paint: Paint): Float {
+        if (!paint.moving) return 0f
+        movingPaint = true
+        return time
+    }
+
+    private fun next(kind: String) = listOf(key, kind, items.size)
+
+    private fun <T : DrawItem> add(item: T): T = item.also { it.only = monitor; items += it }
 
     /** [texture] stretched over [rect], [alpha] as strong, its corners rounded by [radius]. */
     @JvmOverloads
     fun image(texture: GpuTexture, rect: Rect, alpha: Float = 1f, radius: Float = 0f) {
-        items += DrawItem.Image(listOf(key, "image", items.size), texture, rect, clip = if (radius > 0f) rect else null, radius = radius, alpha = alpha).also { it.only = monitor }
+        add(DrawItem.Image(next("image"), texture, rect, clip = if (radius > 0f) rect else null, radius = radius, alpha = alpha))
     }
 
     /** [rect] filled with a colour (0..1 each), [alpha] as strong. */
     @JvmOverloads
     fun fill(rect: Rect, red: Float, green: Float, blue: Float, alpha: Float = 1f) {
         if (rect.width <= 0 || rect.height <= 0) return
-        items += DrawItem.Color(listOf(key, "fill", items.size), rect, red, green, blue, alpha = alpha).also { it.only = monitor }
+        add(DrawItem.Color(next("fill"), rect, red, green, blue, alpha = alpha))
+    }
+
+    /** [rect] filled with a colour, its corners rounded by [radius]. */
+    @JvmOverloads
+    fun roundedFill(rect: Rect, radius: Float, color: Color, alpha: Float = 1f) {
+        if (rect.width <= 0 || rect.height <= 0) return
+        add(DrawItem.Tint(next("rounded"), rect, radius, color.red, color.green, color.blue, alpha * color.alpha))
     }
 
     /** A frame [width] thick just inside [rect]. */
@@ -60,4 +92,57 @@ class OverlayCanvas internal constructor(private val monitor: Monitor, private v
         fill(Rect(rect.x, rect.y + width, width, rect.height - 2 * width), red, green, blue, alpha)
         fill(Rect(rect.right - width, rect.y + width, width, rect.height - 2 * width), red, green, blue, alpha)
     }
+
+    /**
+     * A border [width] thick around the inside of [rect], round by [radius], in any [paint]
+     * (a colour, a gradient, a shader — moving ones move with [time]).
+     */
+    @JvmOverloads
+    fun border(rect: Rect, width: Float, paint: Paint, radius: Float = 0f, alpha: Float = 1f) {
+        if (rect.width <= 0 || rect.height <= 0 || width <= 0f) return
+        add(DrawItem.Border(next("border"), rect, radius, width, paint, alpha, timeOf(paint)))
+    }
+
+    /** A soft shadow around [box] (round by [radius]), [softness] wide, not drawn under [box] itself. */
+    @JvmOverloads
+    fun shadow(box: Rect, softness: Float, paint: Paint, radius: Float = 0f, alpha: Float = 1f) {
+        if (box.width <= 0 || box.height <= 0) return
+        add(DrawItem.Shadow(next("shadow"), box, radius, softness, paint, box, radius, alpha, timeOf(paint)))
+    }
+
+    /**
+     * What is below [rect] (drawn so far) blurred, round by [radius]: [size] how far each pass
+     * reaches, [passes] how many (more: softer, slower); [tone] tints it (frosted glass).
+     */
+    @JvmOverloads
+    fun blur(rect: Rect, radius: Float = 0f, size: Int = 4, passes: Int = 3, tone: BlurTone = BlurTone.NONE) {
+        if (rect.width <= 0 || rect.height <= 0) return
+        add(DrawItem.Blur(next("blur"), rect, radius, size.coerceAtLeast(1), passes.coerceIn(1, dev.caulis.render.MAX_BLUR_PASSES), tone))
+    }
+}
+
+/** Where a [Drawing] goes among everything else. */
+enum class DrawingLevel {
+    /** Above the wallpaper and the panels of the bottom layers, below every window. */
+    BELOW_WINDOWS,
+
+    /** Above the windows, below the panels of the top layer (bars). */
+    ABOVE_WINDOWS,
+
+    /** Above everything but the compositor's own notices, overlays and the cursor. */
+    ON_TOP,
+}
+
+/**
+ * Pictures of your own drawn with the desktop that take no input — a bar, rounded screen
+ * corners, a border around the focused window, a glow ([Desktop.addDrawing]). [draw] is
+ * asked again whenever the desktop draws anew (after [Desktop.requestRedraw] too) and every
+ * frame while [animating].
+ */
+interface Drawing {
+    /** What it shows on [monitor], bottom first (desktop units: [Monitor.area]). */
+    fun draw(monitor: Monitor, canvas: OverlayCanvas)
+
+    /** True while it changes by itself: frames keep coming. */
+    fun animating(now: Long): Boolean = false
 }

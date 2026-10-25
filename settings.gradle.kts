@@ -13,6 +13,8 @@ plugins {
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
+        // Compose's androidx parts (caulis-compose) are on Google's repository.
+        google()
     }
 }
 
@@ -28,6 +30,7 @@ include(
     "caulis-ipc",
     "caulis-wm",
     "caulis-screenshot",
+    "caulis-compose",
     "caulis-reload",
     "caulis-lua",
     "caulis-script",

@@ -16,6 +16,10 @@ protobuf = "4.36.2"
 # LuaJ: Lua 5.2 on the JVM, for config.lua (caulis-lua).
 luaj = "3.0.1"
 junit = "6.1.3"
+# Compose (desktop, without a window: scenes drawn into pictures) for caulis-compose.
+compose = "1.12.2"
+# Skia for Compose; the same version as Compose's own (its native part for Linux).
+skiko = "0.150.2"
 # Builds the API documentation website from the code comments.
 dokka = "2.2.0"
 
@@ -29,6 +33,12 @@ jextract-sha256 = "d0cc481abc1adb16fb9514e1c5e0bfc08d38c29228bece667fb5054ceaffa
 [libraries]
 dokka-gradle-plugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+# Compiles @Composable functions (the same version as Kotlin).
+compose-compiler-gradle-plugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime-desktop", version.ref = "compose" }
+compose-ui = { module = "org.jetbrains.compose.ui:ui-desktop", version.ref = "compose" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation-desktop", version.ref = "compose" }
+skiko-linux = { module = "org.jetbrains.skiko:skiko-awt-runtime-linux-x64", version.ref = "skiko" }
 # The Kotlin compiler, run inside the compositor for fast hot reload (caulis-reload only).
 kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlin" }
 # Kotlin's incremental compilation (Build Tools API, as the Gradle plugin uses it) — caulis-reload only.

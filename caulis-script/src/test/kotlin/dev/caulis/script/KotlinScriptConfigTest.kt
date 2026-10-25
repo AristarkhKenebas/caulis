@@ -94,6 +94,22 @@ class KotlinScriptConfigTest {
     }
 
     @Test
+    fun `the window director's Kotlin is right`() {
+        val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter("**Placing windows yourself, every frame**").substringBefore("\n## ")
+        val block = section.substringAfter("```kotlin\n").substringBefore("```")
+        assertTrue("WindowDirector" in block)
+        assertEquals(emptyList(), apply(block).second)
+    }
+
+    @Test
+    fun `the drawings' Kotlin is right`() {
+        val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter("**Pictures of your own that take no input**").substringBefore("\n## ")
+        val block = section.substringAfter("```kotlin\n").substringBefore("```")
+        assertTrue("addDrawing" in block)
+        assertEquals(emptyList(), apply("import dev.caulis.geometry.Rect\n" + block).second)
+    }
+
+    @Test
     fun `the display modes' Kotlin is right`() {
         val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter("**A laptop with a projector").substringBefore("\n## ")
         val block = section.substringAfter("```kotlin\n").substringBefore("```")

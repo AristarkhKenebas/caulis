@@ -57,6 +57,33 @@ class GestureTest {
     }
 
     @Test
+    fun `a gesture taken by onGesture is all its own, the others stay built in`() = with(harness) {
+        val seen = ArrayList<Gesture>()
+        withCaulis({
+            animationOff()
+            onGesture { g ->
+                seen += g
+                g is Gesture.SwipeBegin && g.fingers == 3
+            }
+        }) { caulis, client ->
+            client.window().draw()
+            client.waitFor { caulis.onLoop { it.desktop.windows.size } == 1 }
+            caulis.onLoop { r ->
+                r.gesture(Gesture.SwipeBegin(0, 3))
+                r.gesture(Gesture.SwipeUpdate(0, 10.0, 0.0))
+                r.gesture(Gesture.SwipeEnd(0, cancelled = false))
+                // Not taken: the built-in pinch opens the overview as always.
+                r.gesture(Gesture.PinchBegin(0, 4))
+                r.gesture(Gesture.PinchUpdate(0, 0.0, 0.0, scale = 0.6, rotation = 0.0))
+                r.gesture(Gesture.PinchEnd(0, cancelled = false))
+            }
+            assertEquals(4, seen.size, "the swipe (begin, update, end) and the pinch's start")
+            assertTrue(seen[1] is Gesture.SwipeUpdate && seen[2] is Gesture.SwipeEnd)
+            assertTrue(caulis.onLoop { it.desktop.inOverview })
+        }
+    }
+
+    @Test
     fun `gestures the compositor does not use go to the program`() = with(harness) {
         withCaulis({}) { caulis, client ->
             val received = CopyOnWriteArrayList<String>()

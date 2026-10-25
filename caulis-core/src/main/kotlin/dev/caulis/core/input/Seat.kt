@@ -199,6 +199,12 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
         }
     }
 
+    /** The character [evdevCode] types now (layout, Shift, AltGr), or null: none (for the compositor's own text fields). */
+    fun textOf(evdevCode: Int): String? = keyboardState.text(evdevCode)
+
+    /** The modifiers held or locked now (xkb bits: 1 Shift, 4 Ctrl, 8 Alt, 64 Logo). */
+    val modifierBits: Int get() = keyboardState.modifiers.let { it.depressed or it.latched or it.locked }
+
     /** Releases every key, e.g. when Caulis's own window loses the keyboard. */
     fun releaseAllKeys(timeMillis: Int) {
         for (code in pressedKeys.toList()) key(timeMillis, code, pressed = false)

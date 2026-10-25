@@ -165,6 +165,28 @@ public abstract interface class dev/caulis/core/BackgroundPainter {
 	public abstract fun paint (Ljava/awt/Graphics2D;Ldev/caulis/core/BackgroundLook;)V
 }
 
+public final class dev/caulis/core/BackgroundView {
+	public static final field ALL Ldev/caulis/core/BackgroundView;
+	public static final field Companion Ldev/caulis/core/BackgroundView$Companion;
+	public fun <init> (DDDD)V
+	public final fun component1 ()D
+	public final fun component2 ()D
+	public final fun component3 ()D
+	public final fun component4 ()D
+	public final fun copy (DDDD)Ldev/caulis/core/BackgroundView;
+	public static synthetic fun copy$default (Ldev/caulis/core/BackgroundView;DDDDILjava/lang/Object;)Ldev/caulis/core/BackgroundView;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getHeight ()D
+	public final fun getWidth ()D
+	public final fun getX ()D
+	public final fun getY ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/BackgroundView$Companion {
+}
+
 public final class dev/caulis/core/Blur {
 	public fun <init> ()V
 	public fun <init> (I)V
@@ -298,9 +320,11 @@ public final class dev/caulis/core/DefaultTitleBarPainter : dev/caulis/core/Titl
 
 public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener, dev/caulis/core/SessionLockManager$Listener, dev/caulis/core/XdgShell$Listener, java/lang/AutoCloseable {
 	public fun <init> (Ldev/caulis/render/Renderer;Ldev/caulis/core/input/Seat;Ldev/caulis/core/Compositor;II)V
+	public final fun addDrawing (Ldev/caulis/core/DrawingLevel;Ldev/caulis/core/Drawing;)Ljava/lang/AutoCloseable;
 	public final fun addMonitor (Ljava/lang/String;Ldev/caulis/core/Output;IIDLjava/lang/Integer;Ljava/lang/Integer;)Ldev/caulis/core/Monitor;
 	public static synthetic fun addMonitor$default (Ldev/caulis/core/Desktop;Ljava/lang/String;Ldev/caulis/core/Output;IIDLjava/lang/Integer;Ljava/lang/Integer;ILjava/lang/Object;)Ldev/caulis/core/Monitor;
 	public final fun addScratchpad (Ljava/lang/String;Ldev/caulis/core/Scratchpad$Style;Lkotlin/jvm/functions/Function1;)Ldev/caulis/core/Scratchpad;
+	public final fun addWidget (Ldev/caulis/core/Widget;)Ljava/lang/AutoCloseable;
 	public final fun applyPlacement (Ldev/caulis/core/Window;Ldev/caulis/core/WindowPlacement;)V
 	public final fun beginMove (Ldev/caulis/core/Window;)V
 	public final fun beginResize (Ldev/caulis/core/Window;I)V
@@ -325,6 +349,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun focusDirection (II)V
 	public final fun focusMonitor (Ldev/caulis/core/Monitor;)V
 	public final fun focusUnmanaged (Ldev/caulis/core/Surface;)V
+	public final fun focusWidget (Ldev/caulis/core/Widget;)V
 	public final fun frameShown (I)V
 	public fun fullscreenRequested (Ldev/caulis/core/Window;Z)V
 	public final fun getAbandonedLockColor ()Ldev/caulis/render/Color;
@@ -340,6 +365,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getCursorShape ()Ljava/lang/String;
 	public final fun getCursorTheme ()Ldev/caulis/core/cursor/CursorTheme;
 	public final fun getDefaultScale ()D
+	public final fun getDirector ()Ldev/caulis/core/WindowDirector;
 	public final fun getDoubleClickMillis ()J
 	public final fun getEffects ()Ldev/caulis/core/Effects;
 	public final fun getFloatRule ()Lkotlin/jvm/functions/Function1;
@@ -351,6 +377,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getHideCursorWhileTyping ()Z
 	public final fun getInOverview ()Z
 	public final fun getKeyboardFocus ()Ldev/caulis/core/Surface;
+	public final fun getKeyboardWidget ()Ldev/caulis/core/Widget;
 	public final fun getLargestScale ()D
 	public final fun getLayerBehaviorFor ()Lkotlin/jvm/functions/Function1;
 	public final fun getLayerEffects ()Lkotlin/jvm/functions/Function1;
@@ -471,9 +498,11 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun setBackground (Ldev/caulis/core/Background;)V
 	public final fun setBackgroundChangeMillis (J)V
 	public final fun setBackgroundFor (Lkotlin/jvm/functions/Function2;)V
+	public final fun setBackgroundView (Ldev/caulis/core/Monitor;Ldev/caulis/core/BackgroundView;)V
 	public final fun setBehaviorFor (Lkotlin/jvm/functions/Function1;)V
 	public final fun setCursorTheme (Ldev/caulis/core/cursor/CursorTheme;)V
 	public final fun setDefaultScale (D)V
+	public final fun setDirector (Ldev/caulis/core/WindowDirector;)V
 	public final fun setDoubleClickMillis (J)V
 	public final fun setEffects (Ldev/caulis/core/Effects;)V
 	public final fun setFloatRule (Lkotlin/jvm/functions/Function1;)V
@@ -531,6 +560,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun toggleOverview ()V
 	public final fun toggleScratchpad (Ljava/lang/String;)Z
 	public fun unlockRequested (Ldev/caulis/core/SessionLock;)V
+	public final fun updateWidgets ()V
 	public final fun windowAt (DD)Ldev/caulis/core/Window;
 	public fun windowCommitted (Ldev/caulis/core/Window;)V
 	public fun windowDestroyed (Ldev/caulis/core/Window;)V
@@ -546,9 +576,14 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 
 public final class dev/caulis/core/Desktop$Hit {
 	public fun <init> (Ldev/caulis/core/Surface;DDLdev/caulis/core/Surface;)V
+	public fun <init> (Ldev/caulis/core/Surface;DDLdev/caulis/core/Surface;D)V
+	public fun <init> (Ldev/caulis/core/Surface;DDLdev/caulis/core/Surface;DD)V
+	public synthetic fun <init> (Ldev/caulis/core/Surface;DDLdev/caulis/core/Surface;DDILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun getLocalX ()D
 	public final fun getLocalY ()D
 	public final fun getRoot ()Ldev/caulis/core/Surface;
+	public final fun getScaleX ()D
+	public final fun getScaleY ()D
 	public final fun getSurface ()Ldev/caulis/core/Surface;
 }
 
@@ -566,6 +601,34 @@ public final class dev/caulis/core/DmabufBuffer : dev/caulis/core/ClientBuffer {
 	public final fun getResource ()Ldev/caulis/protocol/wayland/WlBuffer;
 	public final fun getTexture ()Ldev/caulis/render/GpuTexture;
 	public fun getWidth ()I
+}
+
+public abstract interface class dev/caulis/core/Drawing {
+	public fun animating (J)Z
+	public abstract fun draw (Ldev/caulis/core/Monitor;Ldev/caulis/core/OverlayCanvas;)V
+}
+
+public final class dev/caulis/core/Drawing$DefaultImpls {
+	public static fun animating (Ldev/caulis/core/Drawing;J)Z
+}
+
+public final class dev/caulis/core/DrawingLevel : java/lang/Enum {
+	public static final field ABOVE_WINDOWS Ldev/caulis/core/DrawingLevel;
+	public static final field BELOW_WINDOWS Ldev/caulis/core/DrawingLevel;
+	public static final field ON_TOP Ldev/caulis/core/DrawingLevel;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/core/DrawingLevel;
+	public static fun values ()[Ldev/caulis/core/DrawingLevel;
+}
+
+public final class dev/caulis/core/Edge : java/lang/Enum {
+	public static final field BOTTOM Ldev/caulis/core/Edge;
+	public static final field LEFT Ldev/caulis/core/Edge;
+	public static final field RIGHT Ldev/caulis/core/Edge;
+	public static final field TOP Ldev/caulis/core/Edge;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/core/Edge;
+	public static fun values ()[Ldev/caulis/core/Edge;
 }
 
 public final class dev/caulis/core/Effects {
@@ -1190,16 +1253,35 @@ public final class dev/caulis/core/Overlay$DefaultImpls {
 }
 
 public final class dev/caulis/core/OverlayCanvas {
+	public final fun blur (Ldev/caulis/geometry/Rect;)V
+	public final fun blur (Ldev/caulis/geometry/Rect;F)V
+	public final fun blur (Ldev/caulis/geometry/Rect;FI)V
+	public final fun blur (Ldev/caulis/geometry/Rect;FII)V
+	public final fun blur (Ldev/caulis/geometry/Rect;FIILdev/caulis/render/BlurTone;)V
+	public static synthetic fun blur$default (Ldev/caulis/core/OverlayCanvas;Ldev/caulis/geometry/Rect;FIILdev/caulis/render/BlurTone;ILjava/lang/Object;)V
+	public final fun border (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;)V
+	public final fun border (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;F)V
+	public final fun border (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FF)V
+	public static synthetic fun border$default (Ldev/caulis/core/OverlayCanvas;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFILjava/lang/Object;)V
 	public final fun fill (Ldev/caulis/geometry/Rect;FFF)V
 	public final fun fill (Ldev/caulis/geometry/Rect;FFFF)V
 	public static synthetic fun fill$default (Ldev/caulis/core/OverlayCanvas;Ldev/caulis/geometry/Rect;FFFFILjava/lang/Object;)V
 	public final fun frame (Ldev/caulis/geometry/Rect;IFFF)V
 	public final fun frame (Ldev/caulis/geometry/Rect;IFFFF)V
 	public static synthetic fun frame$default (Ldev/caulis/core/OverlayCanvas;Ldev/caulis/geometry/Rect;IFFFFILjava/lang/Object;)V
+	public final fun getMonitor ()Ldev/caulis/core/Monitor;
+	public final fun getTime ()F
 	public final fun image (Ldev/caulis/render/GpuTexture;Ldev/caulis/geometry/Rect;)V
 	public final fun image (Ldev/caulis/render/GpuTexture;Ldev/caulis/geometry/Rect;F)V
 	public final fun image (Ldev/caulis/render/GpuTexture;Ldev/caulis/geometry/Rect;FF)V
 	public static synthetic fun image$default (Ldev/caulis/core/OverlayCanvas;Ldev/caulis/render/GpuTexture;Ldev/caulis/geometry/Rect;FFILjava/lang/Object;)V
+	public final fun roundedFill (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;)V
+	public final fun roundedFill (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;F)V
+	public static synthetic fun roundedFill$default (Ldev/caulis/core/OverlayCanvas;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;FILjava/lang/Object;)V
+	public final fun shadow (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;)V
+	public final fun shadow (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;F)V
+	public final fun shadow (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FF)V
+	public static synthetic fun shadow$default (Ldev/caulis/core/OverlayCanvas;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFILjava/lang/Object;)V
 }
 
 public final class dev/caulis/core/Paints {
@@ -1250,6 +1332,19 @@ public final class dev/caulis/core/Region$Snapshot {
 	public fun <init> (Ljava/util/List;)V
 	public final fun contains (II)Z
 	public final fun solidRects ()Ljava/util/List;
+}
+
+public final class dev/caulis/core/Reserve {
+	public fun <init> (Ldev/caulis/core/Edge;I)V
+	public final fun component1 ()Ldev/caulis/core/Edge;
+	public final fun component2 ()I
+	public final fun copy (Ldev/caulis/core/Edge;I)Ldev/caulis/core/Reserve;
+	public static synthetic fun copy$default (Ldev/caulis/core/Reserve;Ldev/caulis/core/Edge;IILjava/lang/Object;)Ldev/caulis/core/Reserve;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEdge ()Ldev/caulis/core/Edge;
+	public final fun getSize ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/caulis/core/Rotator : java/lang/AutoCloseable {
@@ -1684,6 +1779,49 @@ public final class dev/caulis/core/WallpaperShader$Companion {
 	public static synthetic fun file$default (Ldev/caulis/core/WallpaperShader$Companion;Ljava/nio/file/Path;Ljava/nio/file/Path;IILjava/lang/Object;)Ldev/caulis/core/WallpaperShader;
 }
 
+public abstract interface class dev/caulis/core/Widget {
+	public fun animating (J)Z
+	public abstract fun area (Ldev/caulis/core/Monitor;)Ldev/caulis/geometry/Rect;
+	public abstract fun draw (Ldev/caulis/core/Monitor;Ldev/caulis/core/OverlayCanvas;Ldev/caulis/geometry/Rect;)V
+	public fun getCursor ()Ljava/lang/String;
+	public fun getLevel ()Ldev/caulis/core/DrawingLevel;
+	public fun getTakesKeyboard ()Z
+	public fun key (Ldev/caulis/core/WidgetKey;)V
+	public fun keyboardFocus (Z)V
+	public fun pointerButton (IZ)V
+	public fun pointerLeft ()V
+	public fun pointerMoved (Ldev/caulis/core/Monitor;DD)V
+	public fun reserve (Ldev/caulis/core/Monitor;)Ldev/caulis/core/Reserve;
+	public fun scroll (DD)V
+}
+
+public final class dev/caulis/core/Widget$DefaultImpls {
+	public static fun animating (Ldev/caulis/core/Widget;J)Z
+	public static fun getCursor (Ldev/caulis/core/Widget;)Ljava/lang/String;
+	public static fun getLevel (Ldev/caulis/core/Widget;)Ldev/caulis/core/DrawingLevel;
+	public static fun getTakesKeyboard (Ldev/caulis/core/Widget;)Z
+	public static fun key (Ldev/caulis/core/Widget;Ldev/caulis/core/WidgetKey;)V
+	public static fun keyboardFocus (Ldev/caulis/core/Widget;Z)V
+	public static fun pointerButton (Ldev/caulis/core/Widget;IZ)V
+	public static fun pointerLeft (Ldev/caulis/core/Widget;)V
+	public static fun pointerMoved (Ldev/caulis/core/Widget;Ldev/caulis/core/Monitor;DD)V
+	public static fun reserve (Ldev/caulis/core/Widget;Ldev/caulis/core/Monitor;)Ldev/caulis/core/Reserve;
+	public static fun scroll (Ldev/caulis/core/Widget;DD)V
+}
+
+public final class dev/caulis/core/WidgetKey {
+	public fun <init> (IZLjava/lang/String;ZZZZI)V
+	public final fun getAlt ()Z
+	public final fun getCtrl ()Z
+	public final fun getEvdevCode ()I
+	public final fun getLogo ()Z
+	public final fun getPressed ()Z
+	public final fun getShift ()Z
+	public final fun getText ()Ljava/lang/String;
+	public final fun getTimeMillis ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public abstract class dev/caulis/core/Window : dev/caulis/tiling/LayoutWindow {
 	public fun <init> ()V
 	public abstract fun close ()V
@@ -1827,6 +1965,27 @@ public final class dev/caulis/core/WindowBehavior {
 public final class dev/caulis/core/WindowBehavior$Companion {
 }
 
+public abstract interface class dev/caulis/core/WindowDirector {
+	public fun animating (J)Z
+	public fun decorate (Ldev/caulis/core/Window;Ldev/caulis/core/WindowPlace;Ldev/caulis/core/OverlayCanvas;Z)V
+	public fun initialSize (Ldev/caulis/core/Window;)Lkotlin/Pair;
+	public fun manages (Ldev/caulis/core/Window;)Z
+	public fun moveRequested (Ldev/caulis/core/Window;)Z
+	public abstract fun place (Ldev/caulis/core/Window;J)Ldev/caulis/core/WindowPlace;
+	public fun requested (Ldev/caulis/core/Window;Ldev/caulis/core/WindowRequest;Z)Z
+	public fun resizeRequested (Ldev/caulis/core/Window;I)Z
+}
+
+public final class dev/caulis/core/WindowDirector$DefaultImpls {
+	public static fun animating (Ldev/caulis/core/WindowDirector;J)Z
+	public static fun decorate (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;Ldev/caulis/core/WindowPlace;Ldev/caulis/core/OverlayCanvas;Z)V
+	public static fun initialSize (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;)Lkotlin/Pair;
+	public static fun manages (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;)Z
+	public static fun moveRequested (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;)Z
+	public static fun requested (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;Ldev/caulis/core/WindowRequest;Z)Z
+	public static fun resizeRequested (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;I)Z
+}
+
 public final class dev/caulis/core/WindowFrame {
 	public fun <init> (Ldev/caulis/geometry/Rect;)V
 	public fun <init> (Ldev/caulis/geometry/Rect;F)V
@@ -1841,6 +2000,40 @@ public final class dev/caulis/core/WindowFrame {
 	public final fun getShader ()Ldev/caulis/core/WindowShader;
 	public final fun getShaderFrom ()Ldev/caulis/geometry/Rect;
 	public final fun getShaderTo ()Ldev/caulis/geometry/Rect;
+}
+
+public final class dev/caulis/core/WindowPlace {
+	public fun <init> (DDDD)V
+	public fun <init> (DDDDF)V
+	public fun <init> (DDDDFLjava/lang/Float;)V
+	public fun <init> (DDDDFLjava/lang/Float;Ldev/caulis/geometry/Rect;)V
+	public fun <init> (DDDDFLjava/lang/Float;Ldev/caulis/geometry/Rect;D)V
+	public fun <init> (DDDDFLjava/lang/Float;Ldev/caulis/geometry/Rect;DZ)V
+	public synthetic fun <init> (DDDDFLjava/lang/Float;Ldev/caulis/geometry/Rect;DZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()D
+	public final fun component2 ()D
+	public final fun component3 ()D
+	public final fun component4 ()D
+	public final fun component5 ()F
+	public final fun component6 ()Ljava/lang/Float;
+	public final fun component7 ()Ldev/caulis/geometry/Rect;
+	public final fun component8 ()D
+	public final fun component9 ()Z
+	public final fun copy (DDDDFLjava/lang/Float;Ldev/caulis/geometry/Rect;DZ)Ldev/caulis/core/WindowPlace;
+	public static synthetic fun copy$default (Ldev/caulis/core/WindowPlace;DDDDFLjava/lang/Float;Ldev/caulis/geometry/Rect;DZILjava/lang/Object;)Ldev/caulis/core/WindowPlace;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAlpha ()F
+	public final fun getClip ()Ldev/caulis/geometry/Rect;
+	public final fun getCornerRadius ()Ljava/lang/Float;
+	public final fun getHeight ()D
+	public final fun getRect ()Ldev/caulis/geometry/Rect;
+	public final fun getTakesInput ()Z
+	public final fun getWidth ()D
+	public final fun getX ()D
+	public final fun getY ()D
+	public final fun getZ ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/caulis/core/WindowPlacement {
@@ -2140,9 +2333,68 @@ public class dev/caulis/core/cursor/ZipCursorThemes : dev/caulis/core/cursor/Cur
 	public final fun getThemes ()Ljava/util/List;
 }
 
+public final class dev/caulis/core/dbus/DBusConnection : java/lang/AutoCloseable {
+	public static final field Companion Ldev/caulis/core/dbus/DBusConnection$Companion;
+	public final fun call-9JzuL0k (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;)V
+	public static synthetic fun call-9JzuL0k$default (Ldev/caulis/core/dbus/DBusConnection;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public fun close ()V
+	public final fun emitSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V
+	public static synthetic fun emitSignal$default (Ldev/caulis/core/dbus/DBusConnection;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)V
+	public final fun export (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)Ljava/lang/AutoCloseable;
+	public final fun getUniqueName ()Ljava/lang/String;
+	public final fun keep (Ldev/caulis/ffi/Fd;)V
+	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public static synthetic fun onSignal$default (Ldev/caulis/core/dbus/DBusConnection;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun requestName (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public static synthetic fun requestName$default (Ldev/caulis/core/dbus/DBusConnection;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public static final fun session (Ldev/caulis/event/EventLoop;)Ldev/caulis/core/dbus/DBusConnection;
+	public static final fun system (Ldev/caulis/event/EventLoop;)Ldev/caulis/core/dbus/DBusConnection;
+}
+
 public final class dev/caulis/core/dbus/DBusConnection$Companion {
 	public final fun session (Ldev/caulis/event/EventLoop;)Ldev/caulis/core/dbus/DBusConnection;
 	public final fun system (Ldev/caulis/event/EventLoop;)Ldev/caulis/core/dbus/DBusConnection;
+}
+
+public final class dev/caulis/core/dbus/DBusError : java/lang/Exception {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun getName ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/dbus/DBusMessage {
+	public final fun getBody ()Ljava/util/List;
+	public final fun getErrorName ()Ljava/lang/String;
+	public final fun getIface ()Ljava/lang/String;
+	public final fun getMember ()Ljava/lang/String;
+	public final fun getPath ()Ljava/lang/String;
+	public final fun getReplySerial ()I
+	public final fun getSender ()Ljava/lang/String;
+	public final fun getSerial ()I
+	public final fun getSignature ()Ljava/lang/String;
+	public final fun getType ()I
+	public final fun isError ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/dbus/DBusMethod {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public final fun getHandler ()Lkotlin/jvm/functions/Function1;
+	public final fun getInSignature ()Ljava/lang/String;
+	public final fun getOutSignature ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/dbus/ObjectPath {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Ldev/caulis/core/dbus/ObjectPath;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
 }
 
 public final class dev/caulis/core/drm/DrmBackend : java/lang/AutoCloseable {
@@ -2517,6 +2769,7 @@ public final class dev/caulis/core/input/KeyboardState : java/lang/AutoCloseable
 	public fun close ()V
 	public final fun getModifiers ()Ldev/caulis/core/input/KeyboardState$Modifiers;
 	public final fun symbol (I)I
+	public final fun text (I)Ljava/lang/String;
 	public final fun update (IZ)Z
 }
 
@@ -2605,6 +2858,7 @@ public final class dev/caulis/core/input/Seat : java/lang/AutoCloseable {
 	public final fun getCursorSurface ()Ldev/caulis/core/Surface;
 	public final fun getKeyboardFocus ()Ldev/caulis/core/Surface;
 	public final fun getMayFocus ()Lkotlin/jvm/functions/Function1;
+	public final fun getModifierBits ()I
 	public final fun getOnCursorChange ()Lkotlin/jvm/functions/Function0;
 	public final fun getPointerFocus ()Ldev/caulis/core/Surface;
 	public final fun getRepeatDelay ()I
@@ -2621,6 +2875,7 @@ public final class dev/caulis/core/input/Seat : java/lang/AutoCloseable {
 	public final fun setOnCursorChange (Lkotlin/jvm/functions/Function0;)V
 	public final fun setRepeatDelay (I)V
 	public final fun setRepeatRate (I)V
+	public final fun textOf (I)Ljava/lang/String;
 }
 
 public final class dev/caulis/core/input/Seat$Companion {

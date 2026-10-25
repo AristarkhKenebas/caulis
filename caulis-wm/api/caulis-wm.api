@@ -5,6 +5,8 @@ public final class dev/caulis/wm/CannotStartException : java/lang/RuntimeExcepti
 public final class dev/caulis/wm/Caulis {
 	public static final field Companion Ldev/caulis/wm/Caulis$Companion;
 	public fun <init> ()V
+	public final fun addDrawing (Ldev/caulis/core/DrawingLevel;Ldev/caulis/core/Drawing;)Ljava/lang/AutoCloseable;
+	public final fun addWidget (Ldev/caulis/core/Widget;)Ljava/lang/AutoCloseable;
 	public final fun after (JLkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
 	public final fun animations (Ldev/caulis/core/Animations;)Ldev/caulis/wm/Caulis;
 	public final fun background (Ldev/caulis/core/Background;)Ldev/caulis/wm/Caulis;
@@ -42,6 +44,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getDesktop ()Ldev/caulis/core/Desktop;
 	public final fun getDesktopName ()Ljava/lang/String;
 	public final fun getDirectScanout ()Z
+	public final fun getDirector ()Ldev/caulis/core/WindowDirector;
 	public final fun getDisplayChooserOnPlug ()Z
 	public final fun getDoubleClickMillis ()J
 	public final fun getDragViewFingers ()I
@@ -130,6 +133,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun notify (Ljava/lang/String;Ldev/caulis/core/NoticeLevel;Ljava/lang/String;)Ldev/caulis/core/Notice;
 	public static synthetic fun notify$default (Ldev/caulis/wm/Caulis;Ljava/lang/String;Ldev/caulis/core/NoticeLevel;Ljava/lang/String;ILjava/lang/Object;)Ldev/caulis/core/Notice;
 	public final synthetic fun onFocusChanged (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onGesture (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
 	public final fun onIdle (JLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)V
 	public static synthetic fun onIdle$default (Ldev/caulis/wm/Caulis;JLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 	public final fun onLid (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
@@ -176,6 +180,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setCursorTheme (Ljava/lang/String;)V
 	public final fun setDesktopName (Ljava/lang/String;)V
 	public final fun setDirectScanout (Z)V
+	public final fun setDirector (Ldev/caulis/core/WindowDirector;)V
 	public final fun setDisplayChooserOnPlug (Z)V
 	public final fun setDoubleClickMillis (J)V
 	public final fun setDragViewFingers (I)V

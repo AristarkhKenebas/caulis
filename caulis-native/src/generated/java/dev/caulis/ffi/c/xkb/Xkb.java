@@ -785,6 +785,67 @@ public class Xkb extends Xkb$shared {
         }
     }
 
+    private static class xkb_state_key_get_utf32 {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Xkb.C_INT,
+            Xkb.C_POINTER,
+            Xkb.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("xkb_state_key_get_utf32");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint32_t xkb_state_key_get_utf32(struct xkb_state *state, xkb_keycode_t key)
+     * }
+     */
+    public static FunctionDescriptor xkb_state_key_get_utf32$descriptor() {
+        return xkb_state_key_get_utf32.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint32_t xkb_state_key_get_utf32(struct xkb_state *state, xkb_keycode_t key)
+     * }
+     */
+    public static MethodHandle xkb_state_key_get_utf32$handle() {
+        return xkb_state_key_get_utf32.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint32_t xkb_state_key_get_utf32(struct xkb_state *state, xkb_keycode_t key)
+     * }
+     */
+    public static MemorySegment xkb_state_key_get_utf32$address() {
+        return xkb_state_key_get_utf32.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint32_t xkb_state_key_get_utf32(struct xkb_state *state, xkb_keycode_t key)
+     * }
+     */
+    public static int xkb_state_key_get_utf32(MemorySegment state, int key) {
+        var mh$ = xkb_state_key_get_utf32.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("xkb_state_key_get_utf32", state, key);
+            }
+            return (int)mh$.invokeExact(state, key);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
     private static class xkb_state_key_get_one_sym {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             Xkb.C_INT,

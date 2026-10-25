@@ -409,6 +409,7 @@ internal class Running(
     private fun applyConfig() {
         val config = config
         desktop.effects = config.effects
+        if (desktop.director !== config.director) desktop.director = config.director
         display.privileged = { client -> safely("privilegedClients", false) { this.config.privilegedClients(client) } }
         desktop.screenShader = config.screenShader
         desktop.titleBars = config.titleBars
@@ -668,6 +669,8 @@ internal class Running(
             before.unloadActions.forEach { action -> safely("onUnload") { action(before) } }
             before.timers.forEach { it.cancel() }
             before.timers.clear()
+            before.added.toList().forEach { it.close() }
+            before.added.clear()
             before.waitingTimers.forEach { it.close() }
         }
         next.startWaitingTimers()
@@ -924,7 +927,10 @@ internal class Running(
 
     // What the gesture going on does: drag the view, open the overview, a swipe action, or
     // nothing of ours (then it goes to the program under the pointer).
-    private enum class GestureUse { NONE, DRAG, SWIPE, PINCH, PROGRAM }
+    private enum class GestureUse { NONE, DRAG, SWIPE, PINCH, PROGRAM, CLAIMED }
+
+    // The configuration's handler that took the gesture going on (onGesture).
+    private var gestureClaimedBy: (Caulis.(Gesture) -> Boolean)? = null
 
     private var gestureUse = GestureUse.NONE
     private var gestureFingers = 0
@@ -946,6 +952,25 @@ internal class Running(
     fun gesture(gesture: Gesture) = safely("gesture") {
         userActive()
         gesturesLog.trace { "$gesture (fingers ${gestureFingers}, use $gestureUse)" }
+        val begins = gesture is Gesture.SwipeBegin || gesture is Gesture.PinchBegin || gesture is Gesture.HoldBegin
+        val ends = gesture is Gesture.SwipeEnd || gesture is Gesture.PinchEnd || gesture is Gesture.HoldEnd
+        // A gesture of the configuration's own: asked at its start, then it has all of it.
+        if (begins && !desktop.locked) {
+            gestureClaimedBy = config.gestureHandlers.asReversed().firstOrNull { handler -> safely("onGesture", false) { handler(config, gesture) } }
+            if (gestureClaimedBy != null) {
+                gesturesLog.info { "$gesture: taken by onGesture" }
+                gestureUse = GestureUse.CLAIMED
+                return@safely
+            }
+        }
+        if (gestureUse == GestureUse.CLAIMED) {
+            gestureClaimedBy?.let { handler -> safely("onGesture", false) { handler(config, gesture) } }
+            if (ends) {
+                gestureUse = GestureUse.NONE
+                gestureClaimedBy = null
+            }
+            return@safely
+        }
         when (gesture) {
             is Gesture.SwipeBegin -> {
                 gestureFingers = gesture.fingers
