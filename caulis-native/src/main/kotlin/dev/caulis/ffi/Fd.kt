@@ -43,7 +43,6 @@ class Fd private constructor(private var number: Int, private val owned: Boolean
         null
     }
 
-    /** A second, independent descriptor for the same file (closed separately). */
     /** Reads into [buffer]: the number of bytes read, 0 at the end; throws [NativeException] (EAGAIN: nothing yet). */
     fun read(buffer: java.lang.foreign.MemorySegment): Long = Libc.read(value, buffer)
 
@@ -55,6 +54,7 @@ class Fd private constructor(private var number: Int, private val owned: Boolean
         Libc.fcntl(value, LibC.F_SETFL(), Libc.fcntl(value, LibC.F_GETFL()) or LibC.O_NONBLOCK())
     }
 
+    /** A second, independent descriptor for the same file (closed separately). */
     fun duplicate(): Fd = adopt(Libc.fcntl(value, LibC.F_DUPFD_CLOEXEC(), 0))
 
     override fun close() {

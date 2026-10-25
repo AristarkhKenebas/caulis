@@ -3,6 +3,7 @@ package dev.caulis.core.dbus
 import dev.caulis.event.EventLoop
 import dev.caulis.ffi.Fd
 import dev.caulis.ffi.UnixSocket
+import dev.caulis.core.rethrowIfFatal
 import dev.caulis.log.Logger
 import java.io.ByteArrayOutputStream
 import java.lang.foreign.Arena
@@ -69,6 +70,11 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
     private val signals = ArrayList<Pair<(DBusMessage) -> Boolean, (DBusMessage) -> Unit>>()
     private val incoming = ByteArrayOutputStream()
     private val incomingFds = ArrayDeque<Fd>()
+
+    // Messages (or what is left of one) the bus has not taken yet, and their descriptors.
+    private class Outgoing(var bytes: ByteArray, var fds: List<Fd>)
+
+    private val outgoing = ArrayDeque<Outgoing>()
     private val buffer = Arena.ofShared().allocate(READ_SIZE)
     private var closed = false
 
@@ -83,7 +89,8 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
                 close()
                 return@add
             }
-            readAll()
+            if (ready.writable) flush()
+            if (ready.readable) readAll()
         }
         call("org.freedesktop.DBus", ObjectPath("/org/freedesktop/DBus"), "org.freedesktop.DBus", "Hello") { reply ->
             uniqueName = reply.body.firstOrNull() as? String
@@ -187,7 +194,8 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
             reply(method.outSignature, method.handler(call))
         } catch (e: DBusError) {
             error(e.name, e.message.orEmpty())
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            e.rethrowIfFatal()
             log.error("Answering $call failed", e)
             error(FAILED, e.toString())
         }
@@ -234,11 +242,36 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
         header.write("a(yv)", fields.map { (code, value) -> listOf(code, value) })
         header.pad(8)
         val bytes = header.bytes() + body.bytes()
-        Arena.ofConfined().use { arena ->
-            val data = arena.allocate(bytes.size.toLong())
-            MemorySegment.copy(bytes, 0, data, JAVA_BYTE, 0, bytes.size)
-            if (socket.send(data, fds) < 0) log.warn("The bus is not reading: a message was lost")
+        // (Sent in order: after what is still waiting; its descriptors copied, the caller keeps theirs.)
+        outgoing.addLast(Outgoing(bytes, fds.map { it.duplicate() }))
+        flush()
+    }
+
+    // Sends what waits, as far as the bus takes it now; the rest when it can take more.
+    private fun flush() {
+        while (!closed) {
+            val next = outgoing.firstOrNull() ?: break
+            val sent = Arena.ofConfined().use { arena ->
+                val data = arena.allocate(next.bytes.size.toLong())
+                MemorySegment.copy(next.bytes, 0, data, JAVA_BYTE, 0, next.bytes.size)
+                try {
+                    socket.send(data, next.fds)
+                } catch (e: Exception) {
+                    log.warn("Writing to the bus failed: $e")
+                    close()
+                    return
+                }
+            }
+            if (sent < 0) break // full for now
+            next.fds.forEach { it.close() } // (they went with the first byte)
+            next.fds = emptyList()
+            if (sent < next.bytes.size) {
+                next.bytes = next.bytes.copyOfRange(sent.toInt(), next.bytes.size)
+                break
+            }
+            outgoing.removeFirst()
         }
+        if (!closed) loop.update(socket.fd, read = true, write = outgoing.isNotEmpty())
     }
 
     private fun readAll() {
@@ -265,10 +298,18 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
             if (all.size < length) break
             incoming.reset()
             incoming.write(all, length, all.size - length)
+            // The descriptors that came with this message (its header says how many).
+            val fds = ArrayList<Fd>()
             try {
-                dispatch(parse(all.copyOf(length)))
-            } catch (e: Exception) {
+                repeat(fdCount(all)) { incomingFds.removeFirstOrNull()?.let(fds::add) }
+                dispatch(parse(all.copyOf(length), fds))
+            } catch (e: Throwable) {
+                e.rethrowIfFatal()
                 log.warn("A message from the bus could not be read: $e")
+            } finally {
+                // Descriptors nobody took (a reply's that was not asked for) are not kept.
+                for (fd in fds) if (fd !in taken) fd.close()
+                taken.clear()
             }
         }
     }
@@ -278,7 +319,8 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
             DBusMessage.REPLY, DBusMessage.ERROR -> replies.remove(message.replySerial)?.let { handler ->
                 try {
                     handler(message)
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
+                    e.rethrowIfFatal()
                     log.error("Handling $message failed", e)
                 }
             }
@@ -287,14 +329,12 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
                 if (!fits(message)) continue
                 try {
                     handler(message)
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
+                    e.rethrowIfFatal()
                     log.error("Handling $message failed", e)
                 }
             }
         }
-        // Descriptors nobody took (a reply's that was not asked for) are not kept.
-        for (value in message.body) if (value is Fd && value !in taken) value.close()
-        taken.clear()
     }
 
     // Descriptors a handler keeps (see keep).
@@ -316,9 +356,19 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
         return ((headerLength + 7) and 7.inv()) + bodyLength
     }
 
-    private fun parse(data: ByteArray): DBusMessage {
+    // How many descriptors came with the message at the start of [data] (its UNIX_FDS field).
+    private fun fdCount(data: ByteArray): Int {
         val order = if (data[0] == 'l'.code.toByte()) ByteOrder.LITTLE_ENDIAN else ByteOrder.BIG_ENDIAN
-        val reader = Reader(ByteBuffer.wrap(data).order(order), incomingFds)
+        val reader = Reader(ByteBuffer.wrap(data).order(order), emptyList())
+        reader.position(12)
+        @Suppress("UNCHECKED_CAST")
+        val fields = reader.read("a(yv)") as List<List<Any?>>
+        return fields.firstOrNull { it[0] == 9 }?.let { ((it[1] as Variant).value as Int).coerceIn(0, 253) } ?: 0
+    }
+
+    private fun parse(data: ByteArray, fds: List<Fd>): DBusMessage {
+        val order = if (data[0] == 'l'.code.toByte()) ByteOrder.LITTLE_ENDIAN else ByteOrder.BIG_ENDIAN
+        val reader = Reader(ByteBuffer.wrap(data).order(order), fds)
         reader.byte()
         val type = reader.byte()
         reader.byte()
@@ -343,6 +393,8 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
         loop.remove(socket.fd)
         socket.close()
         incomingFds.forEach { it.close() }
+        outgoing.forEach { message -> message.fds.forEach { it.close() } }
+        outgoing.clear()
         incomingFds.clear()
     }
 
@@ -430,8 +482,10 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
     }
 }
 
-// A value inside a variant ("v"): its signature and itself.
-internal class Variant(val signature: String, val value: Any?)
+/** A value inside a variant ("v"): its [signature] and itself (`Variant("i", 40)` in an `a{sv}`). */
+class Variant(val signature: String, val value: Any?) {
+    override fun toString() = "Variant($signature, $value)"
+}
 
 // Writes values by their D-Bus signature (little-endian), aligned as D-Bus wants.
 private class Writer {
@@ -457,6 +511,7 @@ private class Writer {
     }
 
     private fun string(value: String) {
+        require('\u0000' !in value) { "a D-Bus string cannot hold a zero character" }
         val bytes = value.toByteArray()
         u32(bytes.size)
         out.write(bytes)
@@ -505,7 +560,9 @@ private class Writer {
                 u32(0)
                 pad(alignment(element[0]))
                 val start = out.size()
-                for (item in value as List<*>) write(element, item)
+                // A dict ("a{sv}") from a Map too.
+                val items = if (element[0] == '{' && value is Map<*, *>) value.entries.toList() else value as List<*>
+                for (item in items) write(element, item)
                 val length = out.size() - start
                 val all = out.toByteArray()
                 for (i in 0 until 4) all[lengthAt + i] = ((length ushr (8 * i)) and 0xff).toByte()
@@ -515,7 +572,21 @@ private class Writer {
             '(' -> {
                 pad(8)
                 val inner = splitSignature(type.substring(1, type.length - 1))
-                (value as List<*>).zip(inner).forEach { (item, t) -> write(t, item) }
+                val items = value as List<*>
+                require(items.size == inner.size) { "the struct $type has ${inner.size} values, not ${items.size}" }
+                items.zip(inner).forEach { (item, t) -> write(t, item) }
+            }
+            '{' -> {
+                pad(8)
+                val (keyType, valueType) = splitSignature(type.substring(1, type.length - 1))
+                val (k, v) = when (value) {
+                    is Map.Entry<*, *> -> value.key to value.value
+                    is Pair<*, *> -> value.first to value.second
+                    is List<*> -> value[0] to value[1]
+                    else -> error("a dict entry is a Map entry, a Pair or a list of two, not $value")
+                }
+                write(keyType, k)
+                write(valueType, v)
             }
             else -> error("D-Bus type $type is not supported here")
         }
@@ -523,10 +594,11 @@ private class Writer {
 }
 
 // Reads values by their D-Bus signature.
-private class Reader(private val data: ByteBuffer, private val fds: ArrayDeque<Fd>) {
+private class Reader(private val data: ByteBuffer, private val messageFds: List<Fd>) {
 
-    // The message's descriptors, in order (h is an index into them).
-    private val messageFds = ArrayList<Fd>()
+    fun position(at: Int) {
+        data.position(at)
+    }
 
     fun align(to: Int) {
         val at = data.position()
@@ -549,11 +621,7 @@ private class Reader(private val data: ByteBuffer, private val fds: ArrayDeque<F
         'n' -> { align(2); data.getShort().toInt() }
         'q' -> { align(2); data.getShort().toInt() and 0xffff }
         'i', 'u' -> u32()
-        'h' -> {
-            val index = u32()
-            while (messageFds.size <= index && fds.isNotEmpty()) messageFds += fds.removeFirst()
-            messageFds.getOrNull(index)
-        }
+        'h' -> messageFds.getOrNull(u32()) // (an index into the message's descriptors)
         'x', 't' -> { align(8); data.getLong() }
         'd' -> { align(8); data.getDouble() }
         's' -> string()

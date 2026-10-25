@@ -191,7 +191,10 @@ internal sealed class DrawItem {
     class Image(
         override val key: Any, val texture: GpuTexture, override val rect: Rect, val clip: Rect? = null, val radius: Float = 0f,
         val alpha: Float = 1f,
-    ) : DrawItem()
+    ) : DrawItem() {
+        // (New pixels in the same texture: drawn again.)
+        val uploads = texture.uploads
+    }
 
     /**
      * A picture drawn through a shader (an animation such as the genie): [from] and [to] are
@@ -285,7 +288,7 @@ internal sealed class DrawItem {
     /** True if [other] (the same thing last frame) looks different apart from its content. */
     fun differsFrom(other: DrawItem): Boolean = when {
         rect != other.rect -> true
-        this is Image && other is Image -> texture !== other.texture || alpha != other.alpha
+        this is Image && other is Image -> texture !== other.texture || uploads != other.uploads || alpha != other.alpha
         this is Custom && other is Custom -> look != other.look
         this is Effect && other is Effect -> texture !== other.texture || alpha != other.alpha || progress != other.progress || shader != other.shader
         this is Picture && other is Picture -> opaque != other.opaque || alpha != other.alpha || clip != other.clip || radius != other.radius ||

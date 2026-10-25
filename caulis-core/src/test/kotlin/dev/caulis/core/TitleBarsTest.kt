@@ -133,6 +133,8 @@ class TitleBarsTest {
             d.pointerMoved(0, rect.x + 90.0, rect.y + 25.0)
             d.pointerButton(0, 0x110, false)
         }
+        // (Where it is drawn: after the next frame.)
+        client.waitFor { server.onServer { d -> d.screenRect(d.windows.first())!! } != rect }
         val moved = server.onServer { d -> d.screenRect(d.windows.first())!! }
         assertEquals(rect.x + 40 to rect.y + 40, moved.x to moved.y, "moved with the pointer")
 
@@ -140,6 +142,7 @@ class TitleBarsTest {
         click(moved.x + 50, moved.y - 15)
         click(moved.x + 50, moved.y - 15)
         client.waitFor { XdgToplevel.State.MAXIMIZED in decorated.window.states }
+        client.waitFor { server.onServer { d -> d.screenRect(d.windows.first())!! } != moved }
 
         // The close button is the last one on the right of the bar; it turns red under the pointer.
         val now = server.onServer { d -> d.screenRect(d.windows.first())!! }

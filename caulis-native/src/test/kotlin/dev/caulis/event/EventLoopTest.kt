@@ -41,6 +41,19 @@ class EventLoopTest {
     }
 
     @Test
+    fun `a task posted from another thread wakes the loop at once`() {
+        EventLoop().use { loop ->
+            var ran = false
+            loop.dispatch(0)
+            Thread { Thread.sleep(50); loop.post { ran = true } }.start()
+            val start = System.nanoTime()
+            while (!ran) loop.dispatch(5_000)
+            val millis = (System.nanoTime() - start) / 1_000_000
+            kotlin.test.assertTrue(millis < 1_000, "woke after $millis ms")
+        }
+    }
+
+    @Test
     fun `the watchdog notices a stuck loop`() {
         EventLoop().use { loop ->
             val stuck = CountDownLatch(1)

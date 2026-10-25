@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.caulis.core.ScreenTestServer
@@ -33,12 +34,12 @@ class ComposeWidgetTest {
         assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
         ScreenTestServer().use { server ->
             var clicks by mutableIntStateOf(0)
-            var text by mutableStateOf("")
+            var field by mutableStateOf(TextFieldValue(""))
             server.onServer { d ->
                 d.addWidget(ComposeWidget(d, post = { server.loop.post(it::run) }, place = { m -> Rect(m.area.x, m.area.y, 300, 80) }, takesKeyboard = true) {
                     Column {
                         Box(Modifier.fillMaxWidth().height(40.dp).background(if (clicks == 0) Color.Red else Color.Blue).clickable { clicks++ })
-                        BasicTextField(text, { text = it }, Modifier.fillMaxWidth().height(40.dp).background(Color.White))
+                        BasicTextField(field, { field = it }, Modifier.fillMaxWidth().height(40.dp).background(Color.White))
                     }
                 })
             }
@@ -60,9 +61,45 @@ class ComposeWidgetTest {
             Thread.sleep(200)
             server.onServer { d -> for (code in listOf(35, 23)) { d.key(0, code, true); d.key(0, code, false) } } // h, i
             val deadline = System.nanoTime() + 3_000_000_000L
-            while (text != "hi" && System.nanoTime() < deadline) Thread.sleep(30)
-            assertEquals("hi", text)
+            while (field.text != "hi" && System.nanoTime() < deadline) Thread.sleep(30)
+            assertEquals("hi", field.text)
+            waitFrames(server)
+            // Ctrl+A selects all of it (the key by its place, though Ctrl types nothing), "x" replaces it.
+            server.onServer { d ->
+                d.key(0, 29, true); d.key(0, 30, true); d.key(0, 30, false); d.key(0, 29, false)
+            }
+            val selected = System.nanoTime() + 3_000_000_000L
+            while (field.selection.length != 2 && System.nanoTime() < selected) Thread.sleep(10)
+            assertEquals(2, field.selection.length, "all selected")
+            waitFrames(server)
+            server.onServer { d -> d.key(0, 45, true); d.key(0, 45, false) }
+            val again = System.nanoTime() + 3_000_000_000L
+            while (field.text != "x" && System.nanoTime() < again) Thread.sleep(30)
+            assertEquals("x", field.text)
+            waitFrames(server)
+            // Backspace (a key that types nothing) works too.
+            server.onServer { d -> d.key(0, 14, true); d.key(0, 14, false) }
+            val erased = System.nanoTime() + 3_000_000_000L
+            while (field.text != "" && System.nanoTime() < erased) Thread.sleep(30)
+            assertEquals("", field.text)
+            waitFrames(server)
+            server.onServer { d -> d.key(0, 45, true); d.key(0, 45, false) }
+            while (field.text != "x" && System.nanoTime() < erased) Thread.sleep(30)
+            // The keyboard taken away: the field lets go of it, typing goes nowhere.
+            server.onServer { d -> d.focusWidget(null) }
+            Thread.sleep(100)
+            server.onServer { d -> d.key(0, 35, true); d.key(0, 35, false) }
+            Thread.sleep(200)
+            assertEquals("x", field.text)
         }
+    }
+
+    // The field sees what it was changed to once it is composed again: a frame or two later.
+    // (Faster than any hand types: keys sent at once would find it as it was.)
+    private fun waitFrames(server: ScreenTestServer) {
+        val frames = server.framesDrawn
+        val deadline = System.nanoTime() + 3_000_000_000L
+        while (server.framesDrawn < frames + 2 && System.nanoTime() < deadline) Thread.sleep(10)
     }
 
     private fun waitFor(server: ScreenTestServer, x: Int, y: Int, color: Int) {

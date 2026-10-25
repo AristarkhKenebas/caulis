@@ -2397,6 +2397,13 @@ public final class dev/caulis/core/dbus/ObjectPath {
 	public final synthetic fun unbox-impl ()Ljava/lang/String;
 }
 
+public final class dev/caulis/core/dbus/Variant {
+	public fun <init> (Ljava/lang/String;Ljava/lang/Object;)V
+	public final fun getSignature ()Ljava/lang/String;
+	public final fun getValue ()Ljava/lang/Object;
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/caulis/core/drm/DrmBackend : java/lang/AutoCloseable {
 	public static final field Companion Ldev/caulis/core/drm/DrmBackend$Companion;
 	public fun close ()V
@@ -2865,6 +2872,7 @@ public final class dev/caulis/core/input/Seat : java/lang/AutoCloseable {
 	public final fun getRepeatRate ()I
 	public final fun inUse (Ldev/caulis/protocol/Client;)Z
 	public final fun key (IIZ)V
+	public final fun keysymName (I)Ljava/lang/String;
 	public final fun onKeyboardFocus (Lkotlin/jvm/functions/Function1;)V
 	public final fun pointerAxis (IZDI)V
 	public final fun pointerButton (IIZ)V

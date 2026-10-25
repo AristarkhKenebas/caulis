@@ -1,12 +1,17 @@
 package dev.caulis.compose
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.Density
 import dev.caulis.core.Desktop
 import dev.caulis.core.DrawingLevel
@@ -41,7 +46,10 @@ import kotlin.coroutines.CoroutineContext
  * })
  * ```
  *
- * In a Caulis configuration `composeWidget(...)` does this for you. Everything Compose runs
+ * Close the widget (or the handle [Desktop.addWidget] gave: that closes it too) when it is
+ * not needed any more. A new size in pixels (its area grown, another scale) makes its scene
+ * anew: state kept in it with `remember` starts over then — keep it outside for a widget that
+ * changes its size. In a Caulis configuration `compose(...)` does this for you. Everything Compose runs
  * (recomposition, animations, `LaunchedEffect`) runs on the compositor's thread through [post].
  */
 class ComposeWidget @JvmOverloads constructor(
@@ -71,6 +79,8 @@ class ComposeWidget @JvmOverloads constructor(
     }
 
     private val parts = HashMap<String, Part>()
+    private var keyboardLost by mutableIntStateOf(0)
+    private val heldKeys = LinkedHashMap<Int, WidgetKey>()
     private var hoverOn: String? = null
     private var keysOn: String? = null
     private var closed = false
@@ -95,7 +105,13 @@ class ComposeWidget @JvmOverloads constructor(
         part.texture?.let { canvas.image(it, area) }
     }
 
-    override fun animating(now: Long): Boolean = parts.values.any { it.scene.hasInvalidations() }
+    // Only scenes still shown keep frames coming (not one of a monitor gone, or not there now).
+    override fun animating(now: Long): Boolean {
+        if (desktop.locked) return false
+        val shown = desktop.monitors.associateBy { it.name }
+        for (name in parts.keys.filter { it !in shown }) drop(name)
+        return parts.any { (name, part) -> part.scene.hasInvalidations() && place(shown.getValue(name)) != null }
+    }
 
     // The scene for [monitor] in [area]'s size (made anew when the size or scale changes).
     private fun partFor(monitor: Monitor, area: Rect): Part? {
@@ -104,8 +120,15 @@ class ComposeWidget @JvmOverloads constructor(
         val height = Math.round(area.height * scale).toInt()
         if (width <= 0 || height <= 0) return null
         parts[monitor.name]?.let { if (it.width == width && it.height == height && it.scale == scale) return it else drop(monitor.name) }
-        val scene = ImageComposeScene(width, height, Density(scale.toFloat()), dispatcher) { content(monitor) }
+        val scene = ImageComposeScene(width, height, Density(scale.toFloat()), dispatcher) {
+            // The keyboard gone elsewhere: no text field keeps it (or its caret blinking).
+            val focus = LocalFocusManager.current
+            val lost = keyboardLost
+            LaunchedEffect(lost) { if (lost > 0) focus.clearFocus(force = true) }
+            content(monitor)
+        }
         log.info { "Compose scene on ${monitor.name}: ${width}x$height px at scale $scale" }
+        windowFocused(scene, hasKeyboard)
         return Part(scene, width, height, scale).also { parts[monitor.name] = it }
     }
 
@@ -161,9 +184,12 @@ class ComposeWidget @JvmOverloads constructor(
         val part = sceneOf(hoverOn) ?: return
         if (pressed) keysOn = hoverOn
         val which = when (button) {
+            BTN_LEFT -> PointerButton.Primary
             BTN_RIGHT -> PointerButton.Secondary
             BTN_MIDDLE -> PointerButton.Tertiary
-            else -> PointerButton.Primary
+            BTN_SIDE -> PointerButton.Back
+            BTN_EXTRA -> PointerButton.Forward
+            else -> return
         }
         part.scene.sendPointerEvent(if (pressed) PointerEventType.Press else PointerEventType.Release, offset(part, last.first, last.second), button = which)
     }
@@ -177,7 +203,36 @@ class ComposeWidget @JvmOverloads constructor(
 
     override fun key(key: WidgetKey) {
         val part = sceneOf(keysOn ?: hoverOn) ?: parts.values.firstOrNull() ?: return
+        if (key.pressed) heldKeys[key.evdevCode] = key else heldKeys.remove(key.evdevCode)
         for (event in AwtKeys.events(key)) part.scene.sendKeyEvent(event)
+    }
+
+    private var hasKeyboard = false
+
+    override fun keyboardFocus(has: Boolean) {
+        hasKeyboard = has
+        for (part in parts.values) windowFocused(part.scene, has)
+        if (has) return
+        // Keys held now are let go (else Compose thinks they still are).
+        val part = sceneOf(keysOn ?: hoverOn) ?: parts.values.firstOrNull()
+        for (held in heldKeys.values.toList()) {
+            val up = WidgetKey(held.evdevCode, false, null, held.shift, held.ctrl, held.alt, held.logo, (System.nanoTime() / 1_000_000).toInt())
+            part?.let { for (event in AwtKeys.events(up)) it.scene.sendKeyEvent(event) }
+        }
+        heldKeys.clear()
+        keyboardLost++
+    }
+
+    // The scene's window counts as focused while the widget has the keyboard: Compose's text
+    // fields act on keys (arrows, Home, Ctrl+A) only in a focused window. (Not public in
+    // ImageComposeScene: reached by reflection, with the exact Compose version this module is built against.)
+    private fun windowFocused(scene: ImageComposeScene, focused: Boolean) {
+        try {
+            val info = ImageComposeScene::class.java.getDeclaredField("_windowInfo").apply { isAccessible = true }.get(scene)
+            info.javaClass.getMethod("setWindowFocused", Boolean::class.javaPrimitiveType).invoke(info, focused)
+        } catch (e: ReflectiveOperationException) {
+            log.warn("Compose's window focus cannot be set (keys like arrows may not work in text fields): $e")
+        }
     }
 
     override fun close() {
@@ -194,7 +249,10 @@ class ComposeWidget @JvmOverloads constructor(
     }
 
     private companion object {
+        const val BTN_LEFT = 272
         const val BTN_RIGHT = 273
         const val BTN_MIDDLE = 274
+        const val BTN_SIDE = 275
+        const val BTN_EXTRA = 276
     }
 }

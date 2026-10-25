@@ -127,8 +127,13 @@ public final class dev/caulis/render/GpuTarget$DefaultImpls {
 
 public abstract interface class dev/caulis/render/GpuTexture : java/lang/AutoCloseable {
 	public abstract fun getHeight ()I
+	public fun getUploads ()J
 	public abstract fun getWidth ()I
 	public abstract fun upload (Ljava/lang/foreign/MemorySegment;II)V
+}
+
+public final class dev/caulis/render/GpuTexture$DefaultImpls {
+	public static fun getUploads (Ldev/caulis/render/GpuTexture;)J
 }
 
 public abstract class dev/caulis/render/Paint {

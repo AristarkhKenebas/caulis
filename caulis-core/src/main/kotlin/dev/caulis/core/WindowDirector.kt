@@ -60,7 +60,11 @@ interface WindowDirector {
     /** The size [window] is asked to draw at first, before it shows anything (0, 0: its own choice). */
     fun initialSize(window: Window): Pair<Int, Int> = 0 to 0
 
-    /** Where [window] is shown now ([now]: `System.nanoTime()`), or null: not at all (hidden, and no input). */
+    /**
+     * Where [window] is shown now ([now]: `System.nanoTime()`), or null: not at all (hidden, and
+     * no input). Asked for every open window it manages — minimized ones and those of
+     * workspaces not shown too: return null for those it does not show.
+     */
     fun place(window: Window, now: Long): WindowPlace?
 
     /**
@@ -79,9 +83,16 @@ interface WindowDirector {
      */
     fun requested(window: Window, request: WindowRequest, on: Boolean): Boolean = false
 
-    /** [window] asks to be moved with the pointer (its title bar dragged). True: handled here. */
+    /**
+     * [window] asks to be moved with the pointer (its title bar dragged). True: handled here;
+     * false: the desktop moves [Window.x] and [Window.y] with the pointer — seen only if [place]
+     * follows them.
+     */
     fun moveRequested(window: Window): Boolean = false
 
-    /** [window] asks to be resized with the pointer by [edges] (XdgToplevel.ResizeEdge). True: handled here. */
+    /**
+     * [window] asks to be resized with the pointer by [edges] (XdgToplevel.ResizeEdge). True:
+     * handled here; false: the desktop resizes it as it would its own.
+     */
     fun resizeRequested(window: Window, edges: Int): Boolean = false
 }

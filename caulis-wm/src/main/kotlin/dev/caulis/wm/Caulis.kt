@@ -827,6 +827,33 @@ class Caulis {
         idleWatches += IdleWatch(seconds, idle, resume)
     }
 
+    internal val keyHandlers = ArrayList<Caulis.(KeyInput) -> Boolean>()
+    internal val motionHandlers = ArrayList<Caulis.(dx: Double, dy: Double) -> Boolean>()
+    internal val buttonHandlers = ArrayList<Caulis.(button: Int, pressed: Boolean) -> Boolean>()
+    internal val scrollHandlers = ArrayList<Caulis.(vertical: Boolean, value: Double, steps: Double) -> Boolean>()
+
+    /**
+     * Every key, before the compositor's keys and programs see it (wlroots style): true takes
+     * it — no binding and no program gets it. Take a key's release when you took its press
+     * (a program would keep a key it saw going down). On a locked screen only the laptop's
+     * special keys (XF86…) are told: never what is typed into the locker. The last added is
+     * asked first.
+     */
+    @JvmSynthetic
+    fun onKey(handler: Caulis.(key: KeyInput) -> Boolean): AutoCloseable = listenTo(keyHandlers, handler)
+
+    /** The pointer moved by [dx], [dy] (units): true takes the movement (the pointer stays where it is). Not on a locked screen. */
+    @JvmSynthetic
+    fun onPointerMotion(handler: Caulis.(dx: Double, dy: Double) -> Boolean): AutoCloseable = listenTo(motionHandlers, handler)
+
+    /** A mouse button (272 left, 273 right, 274 middle): true takes it. Not on a locked screen. */
+    @JvmSynthetic
+    fun onPointerButton(handler: Caulis.(button: Int, pressed: Boolean) -> Boolean): AutoCloseable = listenTo(buttonHandlers, handler)
+
+    /** The wheel or two-finger scrolling: [value] in units, [steps] in notches (0 when smooth). True takes it. Not on a locked screen. */
+    @JvmSynthetic
+    fun onScroll(handler: Caulis.(vertical: Boolean, value: Double, steps: Double) -> Boolean): AutoCloseable = listenTo(scrollHandlers, handler)
+
     internal val gestureHandlers = ArrayList<Caulis.(dev.caulis.core.input.Gesture) -> Boolean>()
 
     /**
@@ -1083,7 +1110,7 @@ class Caulis {
         titleBarRules, noticeListeners, bindings, startActions, floatRules, effectRules, panelEffectRules, panelRules,
         scratchpads, swipes, windowOpened, windowClosed, focusChanged, workspaceChanged, reloadActions, rules,
         windowChanged, monitorAdded, monitorRemoved, unloadActions, waitingTimers, sleepActions, wakeActions,
-        workspaceRules, lidActions, idleWatches, gestureHandlers,
+        workspaceRules, lidActions, idleWatches, gestureHandlers, keyHandlers, motionHandlers, buttonHandlers, scrollHandlers,
     )
 
     /** The window manager (workspaces, focus, layouts). Only while running. */

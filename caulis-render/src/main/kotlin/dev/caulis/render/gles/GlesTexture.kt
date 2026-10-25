@@ -36,7 +36,11 @@ internal class GlesTexture(override val width: Int, override val height: Int) : 
             Gles.GL_BGRA_EXT(), Gles.GL_UNSIGNED_BYTE(), pixels,
         )
         Gl.check("uploading a texture")
+        uploads++
     }
+
+    override var uploads = 0L
+        private set
 
     override fun close() = Gl.delete(id, Gles::glDeleteTextures)
 }

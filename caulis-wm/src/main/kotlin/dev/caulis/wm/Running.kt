@@ -822,8 +822,49 @@ internal class Running(
     internal fun safely(what: String, action: () -> Unit) = safely(what, Unit, action)
 
     /** A key from the keyboard: the compositor's combination, or passed to the focused program. */
+    /** The pointer moved by [dx], [dy] (units; raw: the mouse's own movement) — onPointerMotion first. */
+    fun pointerMovedBy(timeMillis: Int, dx: Double, dy: Double, rawDx: Double = dx, rawDy: Double = dy) {
+        if (motionTaken(dx, dy)) return desktop.onUserActivity()
+        desktop.pointerMovedBy(timeMillis, dx, dy, rawDx, rawDy)
+    }
+
+    /** The pointer is at [x], [y] (units: nested, tablets) — onPointerMotion first, with the movement. */
+    fun pointerMovedTo(timeMillis: Int, x: Double, y: Double) {
+        if (motionTaken(x - desktop.pointerX, y - desktop.pointerY)) return desktop.onUserActivity()
+        desktop.pointerMoved(timeMillis, x, y)
+    }
+
+    private fun motionTaken(dx: Double, dy: Double): Boolean =
+        !desktop.locked && config.motionHandlers.isNotEmpty() && (dx != 0.0 || dy != 0.0) &&
+            config.motionHandlers.asReversed().any { h -> safely("onPointerMotion", false) { h(config, dx, dy) } }
+
+    // Modifiers held now (KeyInput.Modifiers bits), for onKey.
+    private var modifiersHeld = 0
+    private val modifierKeysDown = HashSet<Int>()
+
+    // Asks the configuration's onKey handlers (last added first); true if one took the key.
+    private fun keyTaken(timeMillis: Int, evdevCode: Int, pressed: Boolean): Boolean {
+        val before = modifiersHeld
+        val bit = KeyInput.Modifiers.of(evdevCode)
+        if (bit != 0) {
+            if (pressed) modifierKeysDown += evdevCode else modifierKeysDown -= evdevCode
+            modifiersHeld = modifierKeysDown.fold(0) { m, code -> m or KeyInput.Modifiers.of(code) }
+        }
+        if (config.keyHandlers.isEmpty()) return false
+        val keysym = seat.keysymName(evdevCode)
+        val locked = desktop.locked
+        if (locked && !keysym.startsWith("XF86")) return false // (never what is typed into the locker)
+        val input = KeyInput(evdevCode, pressed, keysym, modifiersHeld, before, locked, timeMillis)
+        return config.keyHandlers.asReversed().any { handler -> safely("onKey", false) { handler(config, input) } }
+    }
+
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
         userActive()
+        if (keyTaken(timeMillis, evdevCode, pressed)) {
+            // (The seat's own keyboard state still follows modifiers, or they would stick.)
+            if (KeyInput.Modifiers.of(evdevCode) != 0) seat.key(timeMillis, evdevCode, pressed)
+            return
+        }
         val active = activeKeys()
         // A key pressed before locking may be released after it (Super+L): all must see the release.
         if (!pressed) for (other in allKeys()) if (other !== active) other.key(evdevCode, false)
@@ -874,6 +915,7 @@ internal class Running(
     /** The mouse wheel or a touchpad scrolled: a combination with the wheel, or the program under the pointer. */
     fun pointerAxis(timeMillis: Int, vertical: Boolean, value: Double, value120: Int) {
         userActive()
+        if (!desktop.locked && config.scrollHandlers.asReversed().any { h -> safely("onScroll", false) { h(config, vertical, value, value120 / 120.0) } }) return
         val active = activeKeys()
         if (value120 != 0 && !desktop.locked) {
             val (back, forth) = if (vertical) KeyBindings.WHEEL_UP to KeyBindings.WHEEL_DOWN else KeyBindings.WHEEL_LEFT to KeyBindings.WHEEL_RIGHT
@@ -898,6 +940,7 @@ internal class Running(
      */
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean) {
         userActive()
+        if (!desktop.locked && config.buttonHandlers.asReversed().any { h -> safely("onPointerButton", false) { h(config, button, pressed) } }) return
         // A combination with a mouse button ("Super+MouseSide", "MouseBack").
         val active = activeKeys()
         if (!pressed) for (other in allKeys()) if (other !== active) other.key(button, false)

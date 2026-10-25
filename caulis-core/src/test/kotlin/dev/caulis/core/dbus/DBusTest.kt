@@ -42,6 +42,51 @@ class DBusTest {
     }
 
     @Test
+    fun `dicts are written, descriptors belong to their own message`() {
+        EventLoop().use { loop ->
+            val server = DBusConnection.session(loop)
+            assumeTrue(server != null, "no session bus")
+            val client = DBusConnection.session(loop)!!
+            server!!.use { client.use {
+                fun until(done: () -> Boolean) {
+                    val end = System.nanoTime() + 5_000_000_000
+                    while (!done() && System.nanoTime() < end) loop.dispatch(20)
+                    check(done()) { "timed out" }
+                }
+                until { server.uniqueName != null && client.uniqueName != null }
+                server.export("/dev/caulis/Test", "dev.caulis.Test", mapOf(
+                    "Props" to DBusMethod("", "a{sv}") { listOf(mapOf("Volume" to Variant("i", 40), "Name" to Variant("s", "x"))) },
+                    "Ignore" to DBusMethod("", "") { emptyList() },
+                    "Write" to DBusMethod("h", "") { call ->
+                        java.lang.foreign.Arena.ofConfined().use { arena -> (call.body[0] as Fd).write(arena.allocate(1)) }
+                        emptyList()
+                    },
+                ))
+                val name = server.uniqueName!!
+                var props: Map<Any?, Any?>? = null
+                @Suppress("UNCHECKED_CAST")
+                client.call(name, ObjectPath("/dev/caulis/Test"), "dev.caulis.Test", "Props") { reply ->
+                    props = (reply.body.firstOrNull() as List<List<Any?>>?)?.associate { it[0] to (it[1] as Variant).value }
+                }
+                // A descriptor sent along with no "h" for it is not handed to the next call.
+                val (stray, strayWrite) = Fd.pipe()
+                val (read, write) = Fd.pipe()
+                var done = 0
+                client.call(name, ObjectPath("/dev/caulis/Test"), "dev.caulis.Test", "Ignore", fds = listOf(strayWrite)) { done++ }
+                client.call(name, ObjectPath("/dev/caulis/Test"), "dev.caulis.Test", "Write", "h", listOf(0), fds = listOf(write)) { done++ }
+                strayWrite.close()
+                write.close()
+                until { props != null && done == 2 }
+                assertEquals(mapOf<Any?, Any?>("Volume" to 40, "Name" to "x"), props)
+                read.use { stray.use {
+                    read.setNonBlocking()
+                    java.lang.foreign.Arena.ofConfined().use { arena -> assertEquals(1L, read.read(arena.allocate(8)), "written into its own descriptor") }
+                } }
+            } }
+        }
+    }
+
+    @Test
     fun `an exported object answers calls, says what it has, and sends signals`() {
         EventLoop().use { loop ->
             val server = DBusConnection.session(loop)

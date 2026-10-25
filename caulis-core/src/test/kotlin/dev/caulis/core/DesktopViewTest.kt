@@ -91,6 +91,24 @@ class CullHiddenTest {
         val edge = item("edge", Rect(95, 95, 10, 10))
         assertEquals(listOf("edge"), cullHidden(listOf(outside, edge), screen).map { it.key })
     }
+
+    @Test
+    fun `new pixels in the same texture count as a change`() {
+        val texture = object : dev.caulis.render.GpuTexture {
+            override val width = 4
+            override val height = 4
+            override var uploads = 0L
+            override fun upload(pixels: java.lang.foreign.MemorySegment, firstRow: Int, rowCount: Int) {
+                uploads++
+            }
+            override fun close() {}
+        }
+        val rect = dev.caulis.geometry.Rect(0, 0, 4, 4)
+        val before = DrawItem.Image("image", texture, rect)
+        kotlin.test.assertFalse(DrawItem.Image("image", texture, rect).differsFrom(before), "the same")
+        texture.upload(java.lang.foreign.MemorySegment.NULL, 0, 4)
+        kotlin.test.assertTrue(DrawItem.Image("image", texture, rect).differsFrom(before), "uploaded again")
+    }
 }
 
 // Damage bookkeeping does not depend on the monitor; any will do.

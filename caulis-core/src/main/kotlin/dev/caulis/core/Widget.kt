@@ -21,7 +21,11 @@ class WidgetKey(
 /** An edge of a monitor. */
 enum class Edge { TOP, BOTTOM, LEFT, RIGHT }
 
-/** Room a [Widget] keeps free at an [edge] of its monitor, [size] units deep: windows and panels make way. */
+/**
+ * Room a [Widget] keeps free at an [edge] of its monitor, [size] units deep: windows and panels
+ * make way. The room is right at the edge (after the desktop's own banners), the widgets'
+ * strips side by side in the order they were added, panels after them.
+ */
 data class Reserve(val edge: Edge, val size: Int) {
     init {
         require(size >= 0) { "a reserve cannot be negative ($size)" }

@@ -54,7 +54,7 @@ private fun connect(window: NestedWindow, monitor: Monitor, view: DesktopView, r
     val desktop = running.desktop
     // Input from the outer session goes to the window manager; the window's pixels are this
     // monitor's, so they are desktop units from its corner.
-    window.onPointerMotion = { time, x, y -> desktop.pointerMoved(time, monitor.area.x + x / monitor.scale, monitor.area.y + y / monitor.scale) }
+    window.onPointerMotion = { time, x, y -> running.pointerMovedTo(time, monitor.area.x + x / monitor.scale, monitor.area.y + y / monitor.scale) }
     window.onPointerButton = running::pointerButton
     window.onPointerAxis = running::pointerAxis
     window.onGesture = running::gesture

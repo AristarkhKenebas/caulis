@@ -85,12 +85,42 @@ class EventLoop : AutoCloseable {
     // Tasks handed over from other threads (see post).
     private val posted = java.util.concurrent.ConcurrentLinkedQueue<() -> Unit>()
 
+    // A pipe that wakes the loop when a task is posted (one byte until the loop read it).
+    private val wakeRead: Fd
+    private val wakeWrite: Fd
+    private val wakePending = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val wakeByte = java.lang.foreign.Arena.global().allocate(1)
+    private val wakeBuffer = java.lang.foreign.Arena.ofAuto().allocate(64)
+
+    init {
+        val (read, write) = Fd.pipe()
+        wakeRead = read
+        wakeWrite = write
+        read.setNonBlocking()
+        write.setNonBlocking()
+        add(read) {
+            wakePending.set(false)
+            try {
+                while (wakeRead.read(wakeBuffer) > 0) Unit
+            } catch (_: dev.caulis.ffi.NativeException) {
+                // EAGAIN: all read
+            }
+        }
+    }
+
     /**
-     * Runs [task] on this loop's thread, soon. The only method that may be called from
-     * another thread (besides [stop]); it is picked up within 100 ms at the latest.
+     * Runs [task] on this loop's thread, soon (the loop wakes up for it). The only method that
+     * may be called from another thread (besides [stop]).
      */
     fun post(task: () -> Unit) {
         posted += task
+        if (wakePending.compareAndSet(false, true)) {
+            try {
+                wakeWrite.write(wakeByte)
+            } catch (_: Exception) {
+                // Full (the loop wakes anyway) or closed (nothing runs any more).
+            }
+        }
     }
 
     /** Runs [task] once on this loop, [delayMillis] from now. */
@@ -157,6 +187,9 @@ class EventLoop : AutoCloseable {
     }
 
     override fun close() {
+        remove(wakeRead)
+        wakeRead.close()
+        wakeWrite.close()
         epoll.close()
     }
 }

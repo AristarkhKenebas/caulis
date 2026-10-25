@@ -177,6 +177,9 @@ interface GpuTexture : AutoCloseable {
      * memory would crash the compositor.
      */
     fun upload(pixels: MemorySegment, firstRow: Int, rowCount: Int)
+
+    /** How many times [upload] was called: new pixels in the same texture make it count up. */
+    val uploads: Long get() = 0
 }
 
 /** A picture that can be drawn into. */

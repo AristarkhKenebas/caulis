@@ -70,7 +70,7 @@ kotlin {
 tasks.withType<JavaCompile>().configureEach { options.release = 26 }
 
 dependencies {
-    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.0-SNAPSHOT")
+    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.1")
 }
 
 application {
@@ -1057,6 +1057,17 @@ onGesture { g ->
 }
 ```
 
+All input can be seen first, wlroots style — `onKey` (the key's code, its symbol's name, the
+modifiers before and after), `onPointerMotion`, `onPointerButton`, `onScroll`: `true` takes
+it from the compositor's keys and the programs. Take a key's release when you took its
+press. On a locked screen only the laptop's special keys (XF86…) are told to `onKey`, never
+what is typed into the locker.
+
+```kotlin
+onKey { key -> key.pressed && key.keysym == "F12" && key.modifiers == 0 && run { launch("foot"); true } }
+onPointerMotion { dx, dy -> false }   // (true: the pointer stays where it is)
+```
+
 ## 21. On the real screen
 
 Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
@@ -1349,7 +1360,7 @@ can also say *when* and *how* — functions on keys, on events, on timers. Add t
 your compositor:
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-lua:0.1.0-SNAPSHOT")
+implementation("io.github.aristarkhkenebas:caulis-lua:0.1.1")
 ```
 
 Then it reads `~/.config/<configName>/config.lua` by itself (after `config.json`, on top of
@@ -1433,7 +1444,7 @@ no project: the compositor compiles it itself. Add the module (it contains the K
 compiler, so it makes your compositor bigger):
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-script:0.1.0-SNAPSHOT")
+implementation("io.github.aristarkhkenebas:caulis-script:0.1.1")
 ```
 
 `~/.config/<configName>/config.kts` is then read after `config.json` and `config.lua`, as if

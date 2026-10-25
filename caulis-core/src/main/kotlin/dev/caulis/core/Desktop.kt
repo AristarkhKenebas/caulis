@@ -570,6 +570,7 @@ class Desktop(
     private val widgets = ArrayList<Widget>()
     private var hoveredWidget: Widget? = null
     private var pressedWidget: PressedWidget? = null
+    private var hoveredArea: Rect? = null
 
     private class PressedWidget(val widget: Widget, val area: Rect, val monitor: Monitor)
 
@@ -579,17 +580,21 @@ class Desktop(
 
     /**
      * Shows [widget] from now on (the last added is on top); close the result to take it
-     * away. Its reserved room is kept free at once.
+     * away (and to close the widget, if it can be). Its reserved room is kept free at once.
      */
     fun addWidget(widget: Widget): AutoCloseable {
         widgets += widget
         updateWidgets()
         return AutoCloseable {
             if (!widgets.remove(widget)) return@AutoCloseable
-            if (hoveredWidget === widget) hoveredWidget = null
+            if (hoveredWidget === widget) {
+                hoveredWidget = null
+                hoveredArea = null
+            }
             if (pressedWidget?.widget === widget) pressedWidget = null
             if (keyboardWidget === widget) focusWidget(null)
             updateWidgets()
+            (widget as? AutoCloseable)?.let { userCode("Your widget (close)", Unit) { it.close() } }
         }
     }
 
@@ -606,6 +611,7 @@ class Desktop(
     fun focusWidget(widget: Widget?) {
         val old = keyboardWidget
         if (old === widget) return
+        if (widget != null && locked) return // the locker keeps it
         keyboardWidget = widget
         if (old != null) userCode("Your widget (keyboardFocus)", Unit) { old.keyboardFocus(false) }
         if (widget != null) {
@@ -613,17 +619,61 @@ class Desktop(
             seat.focusKeyboard(null)
             userCode("Your widget (keyboardFocus)", Unit) { widget.keyboardFocus(true) }
         } else if (!locked) {
-            seat.focusKeyboard(focusedWindow?.surface ?: layerFocus?.surface)
+            seat.focusKeyboard(exclusiveLayer()?.surface ?: layerFocus?.surface ?: focusedWindow?.surface)
         }
         changed()
     }
 
-    // The widget under ([x], [y]) at one of [levels], topmost first, and its area there.
-    private fun widgetAt(x: Double, y: Double, levels: Set<DrawingLevel>): Pair<Widget, Rect>? {
+    // [surface] gets the keyboard (or nobody does): a widget that had it loses it then.
+    private fun keyboardTo(surface: Surface?) {
+        val old = keyboardWidget
+        if (old != null && surface != null) {
+            keyboardWidget = null
+            inputLog.info { "The widget $old loses the keyboard" }
+            userCode("Your widget (keyboardFocus)", Unit) { old.keyboardFocus(false) }
+            changed()
+        }
+        seat.focusKeyboard(surface)
+    }
+
+    // The pointer leaves our widgets (the overview opens, the screen locks): the hovered one is told.
+    private fun leaveWidgets() {
+        val left = hoveredWidget ?: pressedWidget?.widget
+        hoveredWidget = null
+        hoveredArea = null
+        pressedWidget = null
+        if (left != null) {
+            userCode("Your widget (pointerLeft)", Unit) { left.pointerLeft() }
+            cursorChanged()
+        }
+    }
+
+    // The widget the pointer is over now (and where it is there): it gets the pointer, the
+    // program below loses it. With [moved] false the pointer stood still (the widget came to it).
+    private fun hoverWidget(timeMillis: Int, at: Pointed.AtWidget?, moved: Boolean): Boolean {
+        val old = hoveredWidget
+        if (old != null && old !== at?.widget) {
+            hoveredWidget = null
+            hoveredArea = null
+            userCode("Your widget (pointerLeft)", Unit) { old.pointerLeft() }
+            cursorChanged()
+        }
+        if (at == null) return false
+        val came = hoveredWidget !== at.widget
+        hoveredWidget = at.widget
+        hoveredArea = at.area
+        if (came) cursorChanged()
+        if (seat.pointerFocus != null) seat.pointerMotion(timeMillis, null, 0.0, 0.0)
+        if (moved || came) userCode("Your widget (pointerMoved)", Unit) { at.widget.pointerMoved(monitorAt(pointerX, pointerY), pointerX - at.area.x, pointerY - at.area.y) }
+        return true
+    }
+
+    // The widget under ([x], [y]) at [level], topmost first, and its area there.
+    private fun widgetAt(x: Double, y: Double, level: DrawingLevel): Pair<Widget, Rect>? {
         if (widgets.isEmpty() || locked) return null
         val monitor = monitorAt(x, y)
         for (widget in widgets.asReversed()) {
-            if (widget.level !in levels) continue
+            if (userCode("Your widget (level)", null) { widget.level } != level) continue
             val area = userCode("Your widget (area)", null) { widget.area(monitor) } ?: continue
             if (x >= area.x && y >= area.y && x < area.right && y < area.bottom) return widget to area
         }
@@ -636,7 +686,7 @@ class Desktop(
         val seconds = ((System.nanoTime() - paintStart) / 1e9).toFloat()
         for (monitor in monitorList) {
             for (widget in widgets.toList()) {
-                if (widget.level != level) continue
+                if (userCode("Your widget (level)", null) { widget.level } != level) continue
                 val area = userCode("Your widget (area)", null) { widget.area(monitor) } ?: continue
                 val canvas = OverlayCanvas(monitor, listOf("widget", widget, monitor.name), seconds)
                 try {
@@ -1481,7 +1531,7 @@ class Desktop(
         if (layerFocus === layer) {
             // It had the keyboard: back to the window (or the next launcher that wants it).
             layerFocus = null
-            seat.focusKeyboard(focusedWindow?.surface)
+            keyboardTo(focusedWindow?.surface)
         }
         arrangeLayers(monitor)
         updateLayerKeyboard()
@@ -1498,10 +1548,23 @@ class Desktop(
         val pushWindows = room(NoticePlacement.Banner.Room.PUSH_WINDOWS)
         val bottom = banner?.bottom == true
         val full = withoutBanners(monitor.area, monitor, pushAll, bottom)
-        var usable = full
+        // Widgets keeping room at an edge (a bar of our own), nearest it in the order added:
+        // panels and windows make way.
+        var free = full
+        for (widget in widgets) {
+            val reserve = userCode("Your widget (reserve)", null) { widget.reserve(monitor) } ?: continue
+            if (reserve.size <= 0) continue
+            free = when (reserve.edge) {
+                Edge.TOP -> Rect(free.x, free.y + reserve.size, free.width, (free.height - reserve.size).coerceAtLeast(1))
+                Edge.BOTTOM -> Rect(free.x, free.y, free.width, (free.height - reserve.size).coerceAtLeast(1))
+                Edge.LEFT -> Rect(free.x + reserve.size, free.y, (free.width - reserve.size).coerceAtLeast(1), free.height)
+                Edge.RIGHT -> Rect(free.x, free.y, (free.width - reserve.size).coerceAtLeast(1), free.height)
+            }
+        }
+        var usable = free
         val ordered = layerSurfaces.filter { monitorOf(it) === monitor }.sortedByDescending { it.current.layer } // overlay first
         for (layer in ordered.filter { it.current.exclusiveZone > 0 }) {
-            placeLayer(layer, full)
+            placeLayer(layer, free)
             usable = reserve(usable, layer)
         }
         for (layer in ordered.filter { it.current.exclusiveZone <= 0 }) {
@@ -1509,17 +1572,6 @@ class Desktop(
         }
         // (Below the ones that push everything: those are nearest the edge.)
         if (pushWindows > 0) usable = withoutBanners(usable, monitor, pushAll + pushWindows, bottom)
-        // Widgets keeping room at an edge (a bar of our own).
-        for (widget in widgets) {
-            val reserve = userCode("Your widget (reserve)", null) { widget.reserve(monitor) } ?: continue
-            if (reserve.size <= 0) continue
-            usable = when (reserve.edge) {
-                Edge.TOP -> Rect(usable.x, usable.y + reserve.size, usable.width, (usable.height - reserve.size).coerceAtLeast(1))
-                Edge.BOTTOM -> Rect(usable.x, usable.y, usable.width, (usable.height - reserve.size).coerceAtLeast(1))
-                Edge.LEFT -> Rect(usable.x + reserve.size, usable.y, (usable.width - reserve.size).coerceAtLeast(1), usable.height)
-                Edge.RIGHT -> Rect(usable.x, usable.y, (usable.width - reserve.size).coerceAtLeast(1), usable.height)
-            }
-        }
         if (usable != monitor.usableArea) {
             monitor.usableArea = usable
             if (refit) refitWindows(monitor)
@@ -1577,12 +1629,12 @@ class Desktop(
         when {
             exclusive != null -> if (layerFocus !== exclusive) {
                 layerFocus = exclusive
-                seat.focusKeyboard(exclusive.surface)
+                keyboardTo(exclusive.surface)
             }
             layerFocus?.let { !it.mapped || it.current.keyboard == KEYBOARD_NONE } == true -> {
                 // The panel that had the keyboard is gone or does not want it: back to the window.
                 layerFocus = null
-                seat.focusKeyboard(focusedWindow?.surface)
+                keyboardTo(focusedWindow?.surface)
             }
         }
     }
@@ -1647,6 +1699,12 @@ class Desktop(
             cameraTo = Camera.NONE
         }
         closeOverlay()
+        // Our widgets lose the pointer and the keyboard (keys are the locker's now).
+        leaveWidgets()
+        keyboardWidget?.let { old ->
+            keyboardWidget = null
+            userCode("Your widget (keyboardFocus)", Unit) { old.keyboardFocus(false) }
+        }
         seat.mayFocus = ::belongsToLocker
         lockPending = true
         lockShownOn.clear()
@@ -1670,7 +1728,7 @@ class Desktop(
 
     override fun lockSurfaceCommitted(surface: LockSurface) {
         if (surface.lock !== lock) return // an earlier locker's leftovers
-        if (surface.mapped && seat.keyboardFocus == null) seat.focusKeyboard(surface.surface)
+        if (surface.mapped && seat.keyboardFocus == null) keyboardTo(surface.surface)
         changed()
         // The pointer may be over it now.
         val hit = surfaceAt(pointerX, pointerY)
@@ -1687,7 +1745,7 @@ class Desktop(
         locked = false
         lockPending = false
         seat.mayFocus = { true }
-        seat.focusKeyboard(exclusiveLayer()?.surface ?: focusedWindow?.surface)
+        keyboardTo(exclusiveLayer()?.surface ?: focusedWindow?.surface)
         changed()
         pointerMoved((System.nanoTime() / 1_000_000).toInt(), pointerX, pointerY)
         notify(lockListeners, false, "unlock")
@@ -1980,7 +2038,10 @@ class Desktop(
         cameraStart = now
         inOverview = on
         // Programs do not see the pointer while the overview is open.
-        if (on) seat.pointerMotion((now / 1_000_000).toInt(), null, 0.0, 0.0)
+        if (on) {
+            seat.pointerMotion((now / 1_000_000).toInt(), null, 0.0, 0.0)
+            leaveWidgets()
+        }
         changed()
     }
 
@@ -2135,7 +2196,7 @@ class Desktop(
     fun focusUnmanaged(surface: Surface?) {
         if (surface != null && surface !in unmanaged) return
         focusLog.trace { "Keyboard to ${surface?.roleObject ?: "the focused window"} (places itself)" }
-        seat.focusKeyboard(surface ?: exclusiveLayer()?.surface ?: focusedWindow?.surface)
+        keyboardTo(surface ?: exclusiveLayer()?.surface ?: focusedWindow?.surface)
     }
 
     // --- title bars (server-side decorations) ---------------------------------------------
@@ -2479,8 +2540,11 @@ class Desktop(
     private fun decorationAt(x: Double, y: Double): Decoration? {
         if (locked || inOverview) return null
         val (fullscreen, normal) = stackingOrder().partition { it.fullscreen }
-        if (fullscreen.any { windowHit(it, x, y) != null }) return null
+        if (fullscreen.any { !directed(it) && windowHit(it, x, y) != null }) return null
+        // A director's windows are where it draws them, with no bars or edges of ours.
+        for ((window, place) in places.entries.reversed()) if (place.takesInput && place.alpha > 0f && directedHit(window, place, x, y) != null) return null
         for (window in normal.asReversed()) {
+            if (directed(window)) continue
             if (windowHit(window, x, y) != null) return null // the window's own picture is on top
             barAt(window, x, y)?.let { return it }
         }
@@ -3524,7 +3588,7 @@ class Desktop(
         grabs -= popup
         changed()
         if (seat.keyboardFocus === popup.surface) {
-            seat.focusKeyboard(grabs.lastOrNull()?.surface ?: windows.lastOrNull()?.surface)
+            keyboardTo(grabs.lastOrNull()?.surface ?: windows.lastOrNull()?.surface)
         }
     }
 
@@ -3539,7 +3603,7 @@ class Desktop(
             return
         }
         grabs += popup
-        seat.focusKeyboard(popup.surface)
+        keyboardTo(popup.surface)
     }
 
     /** Marks [window] as wanting attention (or not); bars and the IPC socket show it, the focus clears it. */
@@ -3580,7 +3644,7 @@ class Desktop(
             padFocus = window
             if (exclusiveLayer() == null) {
                 layerFocus = null
-                seat.focusKeyboard(window.surface)
+                keyboardTo(window.surface)
             }
             if (window !== lastFocused) {
                 lastFocused = window
@@ -3634,7 +3698,7 @@ class Desktop(
         }
         if (exclusiveLayer() == null) {
             layerFocus = null
-            seat.focusKeyboard(window?.surface)
+            keyboardTo(window?.surface)
         }
         if (window !== lastFocused) {
             lastFocused = window
@@ -3832,28 +3896,16 @@ class Desktop(
             }
             pressedWidget = null
         }
-        // Over one of our widgets: it has the pointer (the program below loses it).
-        val overWidget = widgetAt(pointerX, pointerY, ABOVE_LEVELS)
-            ?: if (widgets.any { it.level == DrawingLevel.BELOW_WINDOWS } && surfaceAt(pointerX, pointerY) == null) widgetAt(pointerX, pointerY, BELOW_LEVEL) else null
-        if (hoveredWidget != null && hoveredWidget !== overWidget?.first) {
-            val left = hoveredWidget!!
-            hoveredWidget = null
-            userCode("Your widget (pointerLeft)", Unit) { left.pointerLeft() }
-            cursorChanged()
-        }
-        if (overWidget != null) {
-            val (widget, area) = overWidget
-            if (hoveredWidget !== widget) {
-                hoveredWidget = widget
-                cursorChanged()
-            }
-            seat.pointerMotion(timeMillis, null, 0.0, 0.0)
-            userCode("Your widget (pointerMoved)", Unit) { widget.pointerMoved(monitorAt(pointerX, pointerY), pointerX - area.x, pointerY - area.y) }
+        // Over one of our widgets: it has the pointer (the program below loses it). Title bars
+        // are above the widgets below the windows.
+        val under = pointedAt(pointerX, pointerY, widgetsToo = true)
+        val overWidget = under as? Pointed.AtWidget
+        val decoration = if (overWidget != null && overWidget.level != DrawingLevel.BELOW_WINDOWS) null else decorationAt(pointerX, pointerY)
+        if (hoverWidget(timeMillis, overWidget.takeIf { decoration == null }, moved = true)) {
             onChange()
             return
         }
         // Over one of our title bars: the program does not see the pointer, the bar may light up.
-        val decoration = decorationAt(pointerX, pointerY)
         val hover = (decoration as? Decoration.Bar)?.let { it.window to it.button }
         decorationCursor = (decoration as? Decoration.Edge)?.let { resizeCursor(it.edges) }
         if (hover != titleHover) {
@@ -3874,7 +3926,7 @@ class Desktop(
             onChange()
             return
         }
-        val hit = surfaceAt(pointerX, pointerY)
+        val hit = (under as? Pointed.AtSurface)?.hit
         seat.pointerMotion(timeMillis, hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
         onChange() // only the cursor moved: the rest of the scene stays as it is
     }
@@ -3889,11 +3941,15 @@ class Desktop(
         if (pointerCheckedVersion == version) return
         pointerCheckedVersion = version
         if (locked || overlay != null || grab != null || inOverview || buttonsHeld > 0) return
-        if (decorationAt(pointerX, pointerY) != null) return
-        val hit = surfaceAt(pointerX, pointerY)
+        val time = (System.nanoTime() / 1_000_000).toInt()
+        val under = pointedAt(pointerX, pointerY, widgetsToo = true)
+        val overWidget = under as? Pointed.AtWidget
+        val onBar = (overWidget == null || overWidget.level == DrawingLevel.BELOW_WINDOWS) && decorationAt(pointerX, pointerY) != null
+        if (hoverWidget(time, overWidget.takeIf { !onBar }, moved = false) || onBar) return
+        val hit = (under as? Pointed.AtSurface)?.hit
         if (hit?.surface === seat.pointerFocus) return
         inputLog.trace { "The pointer is over ${hit?.root?.roleObject ?: "nothing"} now (the windows moved)" }
-        seat.pointerMotion((System.nanoTime() / 1_000_000).toInt(), hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
+        seat.pointerMotion(time, hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
     }
 
     // Our own cursor over a window's edge (resize arrows), or null.
@@ -3925,13 +3981,12 @@ class Desktop(
         }
         if (withOverlay { it.pointerButton(button, pressed) }) return
         // A widget's (the one pressed in keeps it until the last button is let go).
-        val widgetTarget = if (locked) null else pressedWidget?.widget ?: hoveredWidget
+        val widgetTarget = if (locked || inOverview) null else pressedWidget?.widget ?: hoveredWidget
         if (widgetTarget != null) {
             if (pressed && buttonsHeld == 1) {
-                val area = widgetAt(pointerX, pointerY, ALL_LEVELS)?.takeIf { it.first === widgetTarget }?.second
-                if (area != null) pressedWidget = PressedWidget(widgetTarget, area, monitorAt(pointerX, pointerY))
+                hoveredArea?.takeIf { widgetTarget === hoveredWidget }?.let { area -> pressedWidget = PressedWidget(widgetTarget, area, monitorAt(pointerX, pointerY)) }
             }
-            if (pressed && widgetTarget.takesKeyboard) focusWidget(widgetTarget)
+            if (pressed && userCode("Your widget (takesKeyboard)", false) { widgetTarget.takesKeyboard }) focusWidget(widgetTarget)
             userCode("Your widget (pointerButton)", Unit) { widgetTarget.pointerButton(button, pressed) }
             if (!pressed && buttonsHeld == 0 && pressedWidget != null) {
                 pressedWidget = null
@@ -3984,7 +4039,7 @@ class Desktop(
             (hit?.root?.roleObject as? LayerSurface)?.let { layer ->
                 if (layer.current.keyboard != KEYBOARD_NONE && exclusiveLayer() == null) {
                     layerFocus = layer
-                    seat.focusKeyboard(layer.surface)
+                    keyboardTo(layer.surface)
                 }
             }
             val window = hit?.root?.roleObject as? Window
@@ -4021,7 +4076,7 @@ class Desktop(
         inputLog.trace { "Scroll ${if (vertical) "vertical" else "horizontal"} $value ($value120/120)" }
         cursorActive()
         if (!locked && withOverlay { it.scroll(vertical, if (value120 != 0) value120 / 120.0 else value / 15.0) }) return
-        hoveredWidget?.takeIf { !locked }?.let { widget ->
+        hoveredWidget?.takeIf { !locked && !inOverview }?.let { widget ->
             userCode("Your widget (scroll)", Unit) { if (vertical) widget.scroll(0.0, value) else widget.scroll(value, 0.0) }
             return
         }
@@ -4033,11 +4088,15 @@ class Desktop(
         inputLog.trace { if (locked) "A key (not logged while locked)" else "Key $evdevCode ${if (pressed) "pressed" else "released"} → ${seat.keyboardFocus}" }
         // Typing (not just holding Ctrl or Super): the cursor makes way.
         if (pressed && hideCursorWhileTyping && evdevCode !in MODIFIER_KEYS && seat.keyboardFocus != null) hideCursor()
+        if (pressed || evdevCode == widgetRepeatKey) stopWidgetRepeat()
         keyboardWidget?.takeIf { !locked && overlay == null }?.let { widget ->
             val text = if (pressed) seat.textOf(evdevCode) else null
             seat.key(timeMillis, evdevCode, pressed) // (no program has the keyboard: only its state moves on)
             val m = seat.modifierBits
-            userCode("Your widget (key)", Unit) { widget.key(WidgetKey(evdevCode, pressed, text, m and 1 != 0, m and 4 != 0, m and 8 != 0, m and 64 != 0, timeMillis)) }
+            val key = WidgetKey(evdevCode, pressed, text, m and 1 != 0, m and 4 != 0, m and 8 != 0, m and 64 != 0, timeMillis)
+            userCode("Your widget (key)", Unit) { widget.key(key) }
+            // Held, it comes again as programs would repeat it themselves.
+            if (pressed && evdevCode !in MODIFIER_KEYS && seat.repeatRate > 0) repeatForWidget(widget, key, seat.repeatDelay.toLong())
             return
         }
         if (!locked && overlay != null) {
@@ -4051,6 +4110,30 @@ class Desktop(
         seat.key(timeMillis, evdevCode, pressed) // ...but releases are, or keys would stick
     }
 
+    // The key a widget gets again and again while it is held (programs repeat keys themselves).
+    private var widgetRepeat: EventLoop.Timer? = null
+    private var widgetRepeatKey = -1
+
+    private fun stopWidgetRepeat() {
+        widgetRepeat?.cancel()
+        widgetRepeat = null
+        widgetRepeatKey = -1
+    }
+
+    private fun repeatForWidget(widget: Widget, key: WidgetKey, delayMillis: Long) {
+        widgetRepeatKey = key.evdevCode
+        widgetRepeat = compositor.display.loop.after(delayMillis) {
+            widgetRepeat = null
+            if (keyboardWidget !== widget || locked || overlay != null) {
+                widgetRepeatKey = -1
+                return@after
+            }
+            val again = WidgetKey(key.evdevCode, true, key.text, key.shift, key.ctrl, key.alt, key.logo, (System.nanoTime() / 1_000_000).toInt())
+            userCode("Your widget (key)", Unit) { widget.key(again) }
+            repeatForWidget(widget, key, (1000L / seat.repeatRate.coerceAtLeast(1)).coerceAtLeast(1))
+        }
+    }
+
     /** What is under a point: the surface, the point inside it, and the window/popup surface it belongs to. */
     class Hit @JvmOverloads constructor(
         val surface: Surface,
@@ -4062,35 +4145,50 @@ class Desktop(
         val scaleY: Double = 1.0,
     )
 
-    private fun surfaceAt(x: Double, y: Double): Hit? {
+    private fun surfaceAt(x: Double, y: Double): Hit? = (pointedAt(x, y, widgetsToo = false) as? Pointed.AtSurface)?.hit
+
+    // What the pointer at ([x], [y]) is over: a program's surface or (with [widgetsToo]) one of
+    // our widgets — topmost first, in the order they are drawn.
+    private sealed interface Pointed {
+        class AtSurface(val hit: Hit) : Pointed
+        class AtWidget(val widget: Widget, val area: Rect, val level: DrawingLevel) : Pointed
+    }
+
+    private fun pointedAt(x: Double, y: Double, widgetsToo: Boolean): Pointed? {
+        fun Hit?.at(): Pointed? = this?.let(Pointed::AtSurface)
+        fun widget(level: DrawingLevel): Pointed? =
+            if (widgetsToo && widgets.isNotEmpty()) widgetAt(x, y, level)?.let { (widget, area) -> Pointed.AtWidget(widget, area, level) } else null
         if (locked) {
             // Only the locker is there.
-            for (lockSurface in lockSurfaces()) hitTree(lockSurface.surface, x, y, lockSurface.surface)?.let { return it }
+            for (lockSurface in lockSurfaces()) hitTree(lockSurface.surface, x, y, lockSurface.surface)?.let { return it.at() }
             return null
         }
-        for ((surface, place) in unmanaged.entries.reversed().map { it.key to it.value }) {
-            hitTree(surface, x - place.first, y - place.second, surface)?.let { return it }
+        widget(DrawingLevel.ON_TOP)?.let { return it }
+        for ((surface, place) in unmanaged.entries.reversed()) {
+            hitTree(surface, x - place.first, y - place.second, surface)?.let { return it.at() }
         }
         for (popup in popups.asReversed()) {
             val (px, py) = popupOrigin(popup)
-            hitTree(popup.surface, x - px, y - py, popup.surface)?.let { return it }
+            hitTree(popup.surface, x - px, y - py, popup.surface)?.let { return it.at() }
         }
-        layerAt(LayerShell.Layer.OVERLAY, x, y)?.let { return it }
+        layerAt(LayerShell.Layer.OVERLAY, x, y)?.let { return it.at() }
         for (pad in shownPads.asReversed()) {
             if (pad.leaving) continue
             for (window in pad.windows.asReversed()) {
                 val visible = window.visibleRect
-                hitTree(window.surface, x - (window.x - visible.x), y - (window.y - visible.y), window.surface)?.let { return it }
+                hitTree(window.surface, x - (window.x - visible.x), y - (window.y - visible.y), window.surface)?.let { return it.at() }
             }
         }
         val (fullscreen, normal) = stackingOrder().partition { it.fullscreen }
-        for (window in fullscreen.asReversed()) if (window !in places) windowHit(window, x, y)?.let { return it }
-        layerAt(LayerShell.Layer.TOP, x, y)?.let { return it }
+        for (window in fullscreen.asReversed()) if (window !in places && !directed(window)) windowHit(window, x, y)?.let { return it.at() }
+        layerAt(LayerShell.Layer.TOP, x, y)?.let { return it.at() }
+        widget(DrawingLevel.ABOVE_WINDOWS)?.let { return it }
         // The director's windows, topmost first, where they are drawn (stretched maybe).
-        for ((window, place) in places.entries.reversed()) if (place.takesInput) directedHit(window, place, x, y)?.let { return it }
-        for (window in normal.asReversed()) if (window !in places && !directed(window)) windowHit(window, x, y)?.let { return it }
-        layerAt(LayerShell.Layer.BOTTOM, x, y)?.let { return it }
-        return layerAt(LayerShell.Layer.BACKGROUND, x, y)
+        for ((window, place) in places.entries.reversed()) if (place.takesInput && place.alpha > 0f) directedHit(window, place, x, y)?.let { return it.at() }
+        for (window in normal.asReversed()) if (window !in places && !directed(window)) windowHit(window, x, y)?.let { return it.at() }
+        widget(DrawingLevel.BELOW_WINDOWS)?.let { return it }
+        layerAt(LayerShell.Layer.BOTTOM, x, y)?.let { return it.at() }
+        return layerAt(LayerShell.Layer.BACKGROUND, x, y).at()
     }
 
     // [place] is where the picture is; the program is told the point in its own size.
@@ -4915,7 +5013,7 @@ class Desktop(
             current is Grab.Move -> "grabbing"
             current is Grab.Resize -> resizeCursor(current.edges)
             overlay != null && !locked -> overlay?.cursor ?: "default"
-            (pressedWidget != null || hoveredWidget != null) && !locked -> userCode("Your widget (cursor)", "default") { (pressedWidget?.widget ?: hoveredWidget)!!.cursor }
+            (pressedWidget != null || hoveredWidget != null) && !locked && !inOverview -> userCode("Your widget (cursor)", "default") { (pressedWidget?.widget ?: hoveredWidget)!!.cursor }
             inOverview -> "default"
             noticeBoard.hovering -> "default" // our notice, not the program below it
             decorationCursor != null -> decorationCursor
@@ -5044,9 +5142,6 @@ class Desktop(
 
     private companion object {
         // The widget levels found before windows and panels, and the one below them.
-        val ABOVE_LEVELS = setOf(DrawingLevel.ON_TOP, DrawingLevel.ABOVE_WINDOWS)
-        val BELOW_LEVEL = setOf(DrawingLevel.BELOW_WINDOWS)
-        val ALL_LEVELS = DrawingLevel.entries.toSet()
         val BACKGROUND = floatArrayOf(0.16f, 0.18f, 0.22f)
         const val FADE_KEY = "the frame before the scale change"
         const val CURSOR_BORDER = "cursor border"
