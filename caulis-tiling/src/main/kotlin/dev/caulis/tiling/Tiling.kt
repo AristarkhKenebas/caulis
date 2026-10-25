@@ -114,7 +114,7 @@ private class DescribedLayout(override val name: String, private val gaps: Gaps,
         TilingScope(root, windows.size, focused).describe()
         val groups = groupsOf(root)
         assign(groups, windows.size)
-        val inner = inset(area, gaps.outer)
+        val inner = gaps.inset(area)
         val result = arrayOfNulls<Rect>(windows.size)
         place(root, inner, focused, result)
         // Windows the description had no room for share the whole area (none are lost).

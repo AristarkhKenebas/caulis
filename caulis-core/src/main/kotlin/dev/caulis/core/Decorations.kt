@@ -150,7 +150,10 @@ object DefaultTitleBarPainter : TitleBarPainter {
         }
         val textWidth = metrics.stringWidth(text)
         val x = when {
-            style.centerTitle -> ((bar.width - textWidth) / 2).coerceAtLeast(if (style.buttonsLeft) buttonsWidth + (12 * unit).toInt() else (12 * unit).toInt())
+            // In the middle, but never under the buttons: moved aside when it is long.
+            style.centerTitle -> ((bar.width - textWidth) / 2)
+                .coerceAtMost(if (style.buttonsLeft) bar.width - textWidth - (12 * unit).toInt() else bar.width - buttonsWidth - textWidth - (12 * unit).toInt())
+                .coerceAtLeast(if (style.buttonsLeft) buttonsWidth + (12 * unit).toInt() else (12 * unit).toInt())
             style.buttonsLeft -> buttonsWidth + (12 * unit).toInt()
             else -> (12 * unit).toInt()
         }

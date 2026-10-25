@@ -31,8 +31,10 @@ sealed class Background {
     /**
      * A picture from a file (PNG, JPEG, BMP or GIF), fitted as [fit] says; [behind] shows
      * where it does not cover the monitor. Read in the background: until it is, [behind].
+     * With [span], one picture over all monitors together, each showing its part (in desktop
+     * units: it goes on seamlessly from one to the next, whatever their scales).
      */
-    data class Image(val path: Path, val fit: Fit = Fit.FILL, val behind: Color = Color(0f, 0f, 0f)) : Background()
+    data class Image(val path: Path, val fit: Fit = Fit.FILL, val behind: Color = Color(0f, 0f, 0f), val span: Boolean = false) : Background()
 
     /** Drawn by your own code into a picture of the monitor's size (again when its size or scale changes). */
     class Painted(val painter: BackgroundPainter) : Background()
@@ -65,7 +67,7 @@ sealed class Background {
         fun gradient(from: Color, to: Color, degrees: Double = 90.0): Background = Gradient(from, to, degrees)
 
         @JvmStatic @JvmOverloads
-        fun image(path: Path, fit: Fit = Fit.FILL, behind: Color = Color(0f, 0f, 0f)): Background = Image(path, fit, behind)
+        fun image(path: Path, fit: Fit = Fit.FILL, behind: Color = Color(0f, 0f, 0f), span: Boolean = false): Background = Image(path, fit, behind, span)
 
         @JvmStatic fun painted(painter: BackgroundPainter): Background = Painted(painter)
 
@@ -93,6 +95,10 @@ fun interface BackgroundPainter {
  *     // time: seconds since the start; size: the monitor in pixels; pointer: where the
  *     // pointer is (0..1, or -1 when it is on another monitor); workspace: its number;
  *     // image(uv): the picture of [image], if one is given.
+ *     // Over several monitors: desktopAt(at) is the place on all of them together (0..1),
+ *     // unitsAt(at) in desktop units (seamless whatever the scales), desktopPointer the
+ *     // pointer on all of them; monitor and desktop are (x, y, width, height) in units,
+ *     // scale its pixels per unit, physicalSize its size in millimetres (0 if unknown).
  *     float wave = 0.5 + 0.5 * sin(at.x * 10.0 + time);
  *     return vec4(0.1, 0.2 * wave, 0.4, 1.0);
  * }
@@ -130,13 +136,13 @@ class WallpaperShader private constructor(
     /** What to call it in messages: its file's name, or "a wallpaper shader". */
     val name: String get() = file?.path?.fileName?.toString() ?: "a wallpaper shader"
 
-    /** True if it changes by itself (it uses `time` or `pointer`). */
+    /** True if it changes by itself (it uses `time`, `pointer` or `desktopPointer`). */
     val moving: Boolean
         get() {
             val now = code
             if (now !== movingOf) {
                 movingOf = now
-                movingNow = Regex("""\b(time|pointer)\b""").containsMatchIn(now)
+                movingNow = Regex("""\b(time|pointer|desktopPointer)\b""").containsMatchIn(now)
             }
             return movingNow
         }
@@ -160,8 +166,15 @@ class WallpaperShader private constructor(
         uniform float alpha;
         uniform sampler2D picture;
         uniform bool hasPicture;
+        uniform vec4 monitor;
+        uniform vec4 desktop;
+        uniform float scale;
+        uniform vec2 physicalSize;
+        uniform vec2 desktopPointer;
         out vec4 caulisColor;
         vec4 image(vec2 p) { return hasPicture ? texture(picture, p) : vec4(0.0); }
+        vec2 unitsAt(vec2 p) { return monitor.xy + p * monitor.zw; }
+        vec2 desktopAt(vec2 p) { return (unitsAt(p) - desktop.xy) / desktop.zw; }
         #line 1
         """ + code + """
         void main() { caulisColor = wallpaper(uv) * alpha; }"""

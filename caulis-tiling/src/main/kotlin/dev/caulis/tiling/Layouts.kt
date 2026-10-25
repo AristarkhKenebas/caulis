@@ -89,6 +89,3 @@ fun builtInLayouts(gaps: Gaps = Gaps()): List<Layout> = listOf(
     BinaryTree(gaps), BspSpiral(gaps), ManualTiling(gaps), ScrollingColumns(gaps), Canvas(gaps),
 )
 
-// [area] made smaller by [margin] on every side (never below 1 pixel).
-internal fun inset(area: Rect, margin: Int): Rect =
-    Rect(area.x + margin, area.y + margin, (area.width - 2 * margin).coerceAtLeast(1), (area.height - 2 * margin).coerceAtLeast(1))

@@ -82,9 +82,32 @@ class WindowRuleTest {
     }
 
     @Test
+    fun `margins around one program's windows, each side on its own, negative into the gaps`() = with(harness) {
+        withCaulis({
+            layout = dev.caulis.tiling.Columns(dev.caulis.tiling.Gaps(inner = 10, outer = 10))
+            rule { appId("roomy"); margin(20, 0, 0, 30) }
+            rule { appId("video"); margin(-50) }
+        }) { caulis, client ->
+            client.window { it.setAppId("roomy") }.draw()
+            client.window { it.setAppId("video") }.draw()
+            client.waitFor { caulis.onLoop { it.desktop.windows.size } == 2 }
+            caulis.onLoop { r ->
+                val area = r.desktop.monitors[0].usableArea
+                val roomy = r.desktop.windows.single { it.appId == "roomy" }
+                val video = r.desktop.windows.single { it.appId == "video" }
+                assertEquals(area.x + 10 + 30, roomy.x, "10 of the gap and 30 of its own on the left")
+                assertEquals(area.y + 10 + 20, roomy.y, "and 20 at the top")
+                assertEquals(area.right, video.x + video.visibleRect.width, "into the gap up to the edge, not past it")
+                assertEquals(area.y, video.y)
+            }
+        }
+    }
+
+    @Test
     fun `rules say plainly what is wrong`() {
         val wrong = runCatching { Caulis().rule { workspace = 0 } }.exceptionOrNull()
         assertEquals("workspace numbers start at 1, not 0", wrong?.message)
         assertNull(runCatching { Caulis().rule { appId("a"); size(10, 10) } }.exceptionOrNull())
+        assertEquals("the left margin is -500 to 500, not 900", runCatching { Caulis().rule { margin(0, 0, 0, 900) } }.exceptionOrNull()?.message)
     }
 }

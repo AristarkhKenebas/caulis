@@ -170,6 +170,70 @@ class MonitorsTest {
         }
     }
 
+    @Test
+    fun `the mouse between monitors of different sizes, as Windows or edge to edge`() = withServer { server, _ ->
+        server.onServer { d ->
+            d.resizeMonitor(d.monitors[1], width, height / 2) // the right one is half as high, tops level
+            val small = d.monitors[1].area
+            assertEquals(Rect(width, 0, width, height / 2), small)
+
+            // As Windows: low on the left monitor, the right one is not there — it stops.
+            d.pointerMoved(0, width - 5.0, height - 20.0)
+            d.pointerMovedBy(0, 50.0, 0.0)
+            assertEquals(width - 1.0 to height - 20.0, d.pointerX to d.pointerY, "stopped at the edge")
+            // Where they touch, it goes across.
+            d.pointerMoved(0, width - 5.0, 20.0)
+            d.pointerMovedBy(0, 50.0, 0.0)
+            assertEquals("TEST-2", d.monitorAt(d.pointerX, d.pointerY).name)
+
+            // Edge to edge: the bottom of the left leads to the bottom of the right.
+            d.monitorEdges = MonitorEdges.PROPORTIONAL
+            d.pointerMoved(0, width - 5.0, height - 1.0)
+            d.pointerMovedBy(0, 50.0, 0.0)
+            assertEquals("TEST-2", d.monitorAt(d.pointerX, d.pointerY).name)
+            assertEquals(small.bottom - 1.0, d.pointerY, 1.0, "its bottom")
+            // And back: the middle of the right leads to the middle of the left.
+            d.pointerMoved(0, width + 5.0, small.height / 2.0)
+            d.pointerMovedBy(0, -50.0, 0.0)
+            assertEquals("TEST-1", d.monitorAt(d.pointerX, d.pointerY).name)
+            assertEquals(height / 2.0, d.pointerY, 2.0, "the middle")
+        }
+    }
+
+    @Test
+    fun `a wallpaper over both monitors goes on from one to the other`() = withServer { server, _ ->
+        server.onServer { d ->
+            d.backgroundChangeMillis = 0
+            d.background = Background.shader(WallpaperShader("vec4 wallpaper(vec2 at) { return vec4(desktopAt(at).x, 0.0, 0.0, 1.0); }"))
+        }
+        val left = server.screenshot(0)
+        val right = server.screenshot(1)
+        fun red(p: Int) = p shr 16 and 0xff
+        val leftEnd = red(left[100 * width + width - 1])
+        val rightStart = red(right[100 * width])
+        assertTrue(red(left[100 * width]) < 10, "black at the far left")
+        assertTrue(Math.abs(leftEnd - 128) < 6 && Math.abs(rightStart - 128) < 6, "half red where they meet: $leftEnd, $rightStart")
+        assertTrue(red(right[100 * width + width - 1]) > 245, "red at the far right")
+
+        // A picture over both: red on the left half of it, blue on the right.
+        val file = Files.createTempFile("caulis-span", ".png")
+        try {
+            val image = java.awt.image.BufferedImage(200, 100, java.awt.image.BufferedImage.TYPE_INT_RGB)
+            for (x in 0 until 200) for (y in 0 until 100) image.setRGB(x, y, if (x < 100) 0xFF0000 else 0x0000FF)
+            javax.imageio.ImageIO.write(image, "png", file.toFile())
+            server.onServer { d -> d.background = Background.image(file, Background.Fit.STRETCH, span = true) }
+            val deadline = System.nanoTime() + 5_000_000_000L
+            while (server.screenshot(0)[200 * width + 50] != RED) {
+                check(System.nanoTime() < deadline) { "the picture did not come" }
+                Thread.sleep(50)
+            }
+            assertEquals(RED, server.screenshot(0)[200 * width + width - 50], "the left monitor: the red half")
+            assertEquals(BLUE, server.screenshot(1)[200 * width + 50], "the right monitor: the blue half")
+        } finally {
+            Files.deleteIfExists(file)
+        }
+    }
+
     private fun withServer(mode: WorkspaceMode = WorkspaceMode.PER_MONITOR, test: (ScreenTestServer, TestClient) -> Unit) {
         assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
         ScreenTestServer(monitorCount = 2, workspaceMode = mode).use { server ->
@@ -179,6 +243,8 @@ class MonitorsTest {
 
     private companion object {
         const val BLACK = 0xFF000000.toInt()
+        const val RED = 0xFFFF0000.toInt()
+        const val BLUE = 0xFF0000FF.toInt()
         const val TOP = 1
         const val LEFT = 4
         const val RIGHT = 8

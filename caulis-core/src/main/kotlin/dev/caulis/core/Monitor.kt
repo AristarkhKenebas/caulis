@@ -82,3 +82,22 @@ enum class WorkspaceMode {
      */
     SPANNING,
 }
+
+/**
+ * How the mouse goes from one monitor to the next when they are not the same size
+ * (see [Desktop.monitorEdges]).
+ */
+enum class MonitorEdges {
+    /**
+     * Where monitors touch, the pointer goes across; past the rest of an edge it stops (as
+     * Windows and GNOME): next to a taller monitor, a shorter one is reached only along the
+     * part they share.
+     */
+    TOUCHING,
+
+    /**
+     * Every edge leads to the whole edge beside it, whatever their sizes: the top corner to
+     * the top corner, the middle to the middle, the bottom corner to the bottom corner.
+     */
+    PROPORTIONAL,
+}

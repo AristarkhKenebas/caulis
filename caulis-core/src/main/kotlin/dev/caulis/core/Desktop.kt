@@ -1245,7 +1245,7 @@ class Desktop(
         val top = workspace.windows.lastOrNull { it in tiled } ?: extra
         val area = (workspace.monitor?.takeIf { it in monitorList } ?: focusedMonitor).usableArea
         val rects = workspace.model.arrange(tiled, area, top)
-        val targets = tiled.zip(rects).associate { (window, rect) -> window to fit(window, rect) }
+        val targets = tiled.zip(rects).associate { (window, rect) -> window to fit(window, withMargins(window, rect, area)) }
         layoutLog.trace { "Arrange workspace ${workspace.number} (${workspace.layout.name}) in $area: " + targets.entries.joinToString { (w, r) -> "${w.title.take(24)}=$r" } }
         if (extra == null) place(targets)
         return targets
@@ -1264,6 +1264,33 @@ class Desktop(
         arrange(activeWorkspace)
         changed()
         return true
+    }
+
+    /**
+     * Extra space around some windows inside their places in the layout (null: none), e.g.
+     * from window rules. Asked whenever windows are arranged; after a change of its answer
+     * for a window, call [marginsChanged].
+     */
+    var marginsFor: (Window) -> Margins? = { null }
+
+    /** [window]'s margins may be different now: its workspace is arranged again. */
+    fun marginsChanged(window: Window) {
+        workspaceOf(window)?.let { arrange(it); changed() }
+    }
+
+    // [place] with [window]'s margins: smaller, or (negative) bigger — but inside [area] and at least 1 x 1.
+    private fun withMargins(window: Window, place: Rect, area: Rect): Rect {
+        val m = try {
+            marginsFor(window)
+        } catch (e: Exception) {
+            log.error("Your margins rule failed for $window (ignored): $e", e)
+            null
+        } ?: return place
+        val left = maxOf(place.x + m.left, area.x)
+        val top = maxOf(place.y + m.top, area.y)
+        val right = minOf(place.right - m.right, area.right)
+        val bottom = minOf(place.bottom - m.bottom, area.bottom)
+        return Rect(left, top, (right - left).coerceAtLeast(1), (bottom - top).coerceAtLeast(1))
     }
 
     // Respects the program's own size limits: a window that cannot be as big (or small) as
@@ -1816,16 +1843,43 @@ class Desktop(
         }
     }
 
+    // Whether each window (or panel) had the focus, and since when (for the change of its look).
+    private val focusLooks = java.util.WeakHashMap<Any, Pair<Boolean, Long>>()
+
+    // Set while building the scene: a border or shadow changes by itself (a turning gradient,
+    // a shader using time) or after a focus change — frames go on.
+    private var paintsMoving = false
+    private var focusChanging = false
+    private val paintStart = System.nanoTime()
+
+    // The time a moving paint is drawn at (0 for one that does not move).
+    private fun paintTime(paint: dev.caulis.render.Paint): Float {
+        if (!paint.moving) return 0f
+        paintsMoving = true
+        return ((System.nanoTime() - paintStart) / 1e9).toFloat()
+    }
+
     // Adds the effects that go below [owner]'s picture at [rect] (on screen, zoomed by [scale]),
     // and returns how the picture itself is drawn.
     private fun addEffects(all: MutableList<DrawItem>, owner: Any, surface: Surface, local: Rect, rect: Rect, scale: Double, fx: Effects, focused: Boolean): Look {
         if (fx == Effects.NONE || rect.isEmpty) return Look.PLAIN
         val radius = (fx.cornerRadius * scale).toFloat()
         val alpha = if (focused) fx.opacity else fx.inactiveOpacity
-        fx.shadow?.let { shadow ->
-            val box = rect.translate((shadow.offsetX * scale).roundToInt(), (shadow.offsetY * scale).roundToInt())
-            all += DrawItem.Shadow(EffectKey("shadow", owner), box, radius, (shadow.softness * scale).toFloat().coerceAtLeast(1f), shadow.color, rect, radius)
+        // When the focus moves, the look before fades into the new one.
+        val now = System.nanoTime()
+        val change = focusLooks[owner]
+        if (change == null || change.first != focused) focusLooks[owner] = focused to if (change == null) 0L else now
+        val e = animationProgress(focusLooks.getValue(owner).second, fx.focusChangeMillis, now)?.let { animations.curve.at(it).toFloat().coerceIn(0f, 1f) }
+        if (e != null) focusChanging = true
+        fun shadowOf(focus: Boolean) = (if (focus) fx.shadow else fx.inactiveShadow ?: fx.shadow)?.takeIf { it != Shadow.NONE }
+        fun addShadow(shadow: Shadow, alpha: Float, key: String) {
+            val spread = (shadow.spread * scale).roundToInt()
+            val box = Rect(rect.x - spread, rect.y - spread, rect.width + 2 * spread, rect.height + 2 * spread)
+                .translate((shadow.offsetX * scale).roundToInt(), (shadow.offsetY * scale).roundToInt())
+            all += DrawItem.Shadow(EffectKey(key, owner), box, radius + spread, (shadow.softness * scale).toFloat().coerceAtLeast(1f), shadow.color, rect, radius, alpha, paintTime(shadow.color))
         }
+        if (e != null) shadowOf(!focused)?.let { addShadow(it, 1 - e, "shadow before") }
+        shadowOf(focused)?.let { addShadow(it, e ?: 1f, "shadow") }
         fx.blur?.let { blur ->
             // Only worth it where one can see through the window.
             val seeThrough = alpha < 1f || surface.opaqueRects().none { it.contains(local) }
@@ -1834,9 +1888,12 @@ class Desktop(
         fx.border?.let { border ->
             val width = (border.width * scale).roundToInt().coerceAtLeast(1)
             val outer = Rect(rect.x - width, rect.y - width, rect.width + 2 * width, rect.height + 2 * width)
-            val color = if (focused) border.focused else border.unfocused
+            fun paintOf(focus: Boolean) = if (focus) border.focused else border.unfocused
             // One pixel more, under the window's edge: its soft edge then blends into the border, not the background.
-            all += DrawItem.Border(EffectKey("border", owner), outer, if (radius > 0f) radius + width else 0f, width + 1f, color)
+            val round = if (radius > 0f) radius + width else 0f
+            // The border before stays below until the new one is all there.
+            if (e != null) all += DrawItem.Border(EffectKey("border before", owner), outer, round, width + 1f, paintOf(!focused), 1f, paintTime(paintOf(!focused)))
+            all += DrawItem.Border(EffectKey("border", owner), outer, round, width + 1f, paintOf(focused), e ?: 1f, paintTime(paintOf(focused)))
         }
         return Look(if (radius > 0f) rect else null, radius, alpha)
     }
@@ -1978,6 +2035,13 @@ class Desktop(
         )
     }
 
+    // A paint was drawn (or its shader did not compile): said like other shaders.
+    private fun paintWorks(paint: dev.caulis.render.Paint, drawn: Boolean) {
+        if (paint !is dev.caulis.render.Paint.Shader) return
+        val code = paint.code
+        shaderWorks(paint.name, code, if (drawn) null else renderer.effectProblem(code) ?: "it does not compile")
+    }
+
     // Shaders that do not compile now, by name: their code then, and the notice that says so.
     private val shaderNotices = HashMap<String, Pair<String, Notice>>()
 
@@ -2012,8 +2076,9 @@ class Desktop(
         return fx.copy(
             opacity = fx.opacity * alpha,
             inactiveOpacity = fx.inactiveOpacity * alpha,
-            shadow = fx.shadow?.let { it.copy(color = it.color.copy(alpha = it.color.alpha * alpha)) },
-            border = fx.border?.let { it.copy(focused = it.focused.copy(alpha = it.focused.alpha * alpha), unfocused = it.unfocused.copy(alpha = it.unfocused.alpha * alpha)) },
+            shadow = fx.shadow?.let { it.copy(color = it.color.faded(alpha)) },
+            inactiveShadow = fx.inactiveShadow?.takeIf { it != Shadow.NONE }?.let { it.copy(color = it.color.faded(alpha)) } ?: fx.inactiveShadow,
+            border = fx.border?.let { it.copy(focused = it.focused.faded(alpha), unfocused = it.unfocused.faded(alpha)) },
             blur = null,
         )
     }
@@ -2700,6 +2765,87 @@ class Desktop(
 
     // --- input ------------------------------------------------------------------------
 
+    /**
+     * How the mouse crosses between monitors of different sizes: only where they touch
+     * ([MonitorEdges.TOUCHING], as Windows), or edge to whole edge ([MonitorEdges.PROPORTIONAL]).
+     */
+    var monitorEdges = MonitorEdges.TOUCHING
+
+    /**
+     * The mouse or touchpad moved by ([dx], [dy]) desktop units: across monitors as
+     * [monitorEdges] says. (A tablet or a nested window gives places instead: [pointerMoved].)
+     */
+    fun pointerMovedBy(timeMillis: Int, dx: Double, dy: Double) {
+        val from = monitorAt(pointerX, pointerY)
+        val x = pointerX + dx
+        val y = pointerY + dy
+        if (from.contains(x, y)) return pointerMoved(timeMillis, x, y)
+        when (monitorEdges) {
+            MonitorEdges.TOUCHING -> {
+                // Onto the monitor there, if there is one; else it stays at this one's edge.
+                val onto = monitorList.firstOrNull { it.contains(x, y) }
+                if (onto != null) {
+                    pointerMoved(timeMillis, x, y)
+                } else {
+                    // Along the edge it can still go (sliding along it, not stuck).
+                    val alongX = x.coerceIn(from.area.x.toDouble(), from.area.right - 1.0)
+                    val alongY = y.coerceIn(from.area.y.toDouble(), from.area.bottom - 1.0)
+                    val sideways = monitorList.firstOrNull { it !== from && it.contains(x, alongY) }?.let { x to alongY }
+                        ?: monitorList.firstOrNull { it !== from && it.contains(alongX, y) }?.let { alongX to y }
+                    val (nx, ny) = sideways ?: (alongX to alongY)
+                    pointerMoved(timeMillis, nx, ny)
+                }
+            }
+            MonitorEdges.PROPORTIONAL -> {
+                val area = from.area
+                // Which edge it went past (the one it went further past, at a corner).
+                val overRight = x - (area.right - 1)
+                val overLeft = area.x - x
+                val overDown = y - (area.bottom - 1)
+                val overUp = area.y - y
+                val horizontal = maxOf(overRight, overLeft) >= maxOf(overDown, overUp)
+                val next = if (horizontal) monitorPast(from, if (overRight > 0) 1 else -1, 0) else monitorPast(from, 0, if (overDown > 0) 1 else -1)
+                if (next == null) {
+                    pointerMoved(timeMillis, x.coerceIn(area.x.toDouble(), area.right - 1.0), y.coerceIn(area.y.toDouble(), area.bottom - 1.0))
+                    return
+                }
+                val to = next.area
+                if (horizontal) {
+                    // The same share of the height; just inside the new monitor's near edge.
+                    val share = ((y - area.y) / area.height).coerceIn(0.0, 1.0)
+                    val nx = if (overRight > 0) to.x + overRight.coerceAtMost(to.width - 1.0) else to.right - 1 - overLeft.coerceAtMost(to.width - 1.0)
+                    pointerMoved(timeMillis, nx, to.y + share * (to.height - 1))
+                } else {
+                    val share = ((x - area.x) / area.width).coerceIn(0.0, 1.0)
+                    val ny = if (overDown > 0) to.y + overDown.coerceAtMost(to.height - 1.0) else to.bottom - 1 - overUp.coerceAtMost(to.height - 1.0)
+                    pointerMoved(timeMillis, to.x + share * (to.width - 1), ny)
+                }
+            }
+        }
+    }
+
+    // The monitor past [from]'s edge in a direction ([dx] or [dy] = ±1): wholly on that side,
+    // the nearest (then the one most beside it).
+    private fun monitorPast(from: Monitor, dx: Int, dy: Int): Monitor? {
+        val a = from.area
+        return monitorList.filter { it !== from }.filter { o ->
+            val b = o.area
+            (dx > 0 && b.x >= a.right - 1) || (dx < 0 && b.right <= a.x + 1) || (dy > 0 && b.y >= a.bottom - 1) || (dy < 0 && b.bottom <= a.y + 1)
+        }.minWithOrNull(compareBy<Monitor>({ o ->
+            val b = o.area
+            when {
+                dx > 0 -> b.x - a.right
+                dx < 0 -> a.x - b.right
+                dy > 0 -> b.y - a.bottom
+                else -> a.y - b.bottom
+            }
+        }, { o ->
+            val b = o.area
+            // How far apart they are across: overlapping ones first.
+            if (dx != 0) Math.abs((b.y + b.height / 2) - (a.y + a.height / 2)) else Math.abs((b.x + b.width / 2) - (a.x + a.width / 2))
+        }))
+    }
+
     fun pointerMoved(timeMillis: Int, x: Double, y: Double) {
         inputLog.trace { "Pointer at ${String.format("%.1f, %.1f", x, y)}" }
         cursorActive()
@@ -2939,7 +3085,7 @@ class Desktop(
         presentDirect: ((DmabufBuffer) -> Boolean)? = null,
     ): Boolean {
         val noticesMoving = noticeBoard.animating() // (also lets go of those that faded away)
-        if (glides.isNotEmpty() || cameraMoving(System.nanoTime()) || fading() || noticesMoving || animating() || backdrops.changing()) {
+        if (glides.isNotEmpty() || cameraMoving(System.nanoTime()) || fading() || noticesMoving || animating() || backdrops.changing() || paintsMoving || focusChanging) {
             // Windows are gliding (or the overview zooms): the scene changes every frame until done.
             version++
             onChange()
@@ -2995,14 +3141,35 @@ class Desktop(
         val monitor = view.monitor
         val bounds = monitor.area
         view.showsLock = locked
-        val repaint = withBlurReach(items, view.takeRepaint(age, bounds) ?: return, bounds)
-        // In pixels, one more around it: a fractional scale must not leave a half-drawn edge.
-        val pixels = monitor.toPixels(repaint)
-        val clip = Rect(pixels.x - 1, pixels.y - 1, pixels.width + 2, pixels.height + 2)
-            .intersect(Rect(0, 0, target.width, target.height)) ?: return
-        renderLog.trace { "Frame of ${monitor.name}: redraw $repaint ($clip in pixels) of ${target.width}x${target.height} (buffer age $age), ${items.size} things to draw" }
-        renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], clip = clip)
-        draw(items, repaint, monitor::toPixels, monitor.scale, monitor)
+        var parts = view.takeRepaintParts(age, bounds) ?: return
+        // Blur reads around its area: near blur, one part with all it needs.
+        if (items.any { it is DrawItem.Blur && parts.any { part -> it.rect.intersect(part) != null } }) {
+            parts = listOf(withBlurReach(items, parts.reduce(Rect::union), bounds))
+        }
+        // In pixels, one more around each: a fractional scale must not leave a half-drawn edge.
+        // Where those overlap, each pixel belongs to one part only (nothing is drawn twice).
+        val whole = Rect(0, 0, target.width, target.height)
+        val clips = ArrayList<Pair<Rect, Rect>>() // pixels, and the part in units it shows
+        for (part in parts) {
+            val px = monitor.toPixels(part)
+            var pieces = listOfNotNull(Rect(px.x - 1, px.y - 1, px.width + 2, px.height + 2).intersect(whole))
+            for ((taken, _) in clips) pieces = pieces.flatMap { it.minus(taken) }
+            pieces.forEach { clips += it to part }
+        }
+        if (clips.isEmpty()) return
+        renderLog.trace { "Frame of ${monitor.name}: redraw ${parts.joinToString()} (${clips.size} parts in pixels) of ${target.width}x${target.height} (buffer age $age), ${items.size} things to draw" }
+        for ((i, clip) in clips.withIndex()) {
+            val (pixels, part) = clip
+            // (One unit more around the part: what touches its pixels.)
+            val near = Rect(part.x - 1, part.y - 1, part.width + 2, part.height + 2)
+            if (i == 0) {
+                renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], clip = pixels)
+            } else {
+                renderer.setClip(pixels)
+                renderer.drawColor(pixels.x, pixels.y, pixels.width, pixels.height, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2])
+            }
+            draw(items, near, monitor::toPixels, monitor.scale, monitor)
+        }
         renderer.end()
     }
 
@@ -3017,8 +3184,16 @@ class Desktop(
             when (item) {
                 is DrawItem.Picture -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, item.opaque, item.alpha, item.clip?.let(p), item.radius * s, item.source)
                 is DrawItem.Color -> renderer.drawColor(r.x, r.y, r.width, r.height, item.red, item.green, item.blue, item.alpha)
-                is DrawItem.Shadow -> renderer.drawShadow(p(item.box), item.radius * s, item.softness * s, item.color, p(item.cutOut), item.cutOutRadius * s)
-                is DrawItem.Border -> renderer.drawRoundedRect(r, item.radius * s, item.color, item.width * s)
+                is DrawItem.Shadow -> {
+                    val drawn = renderer.drawShadow(p(item.box), item.radius * s, item.softness * s, item.paint, p(item.cutOut), item.cutOutRadius * s, item.alpha, item.time)
+                    paintWorks(item.paint, drawn)
+                    if (!drawn) renderer.drawShadow(p(item.box), item.radius * s, item.softness * s, dev.caulis.render.Paint.solid(dev.caulis.render.Color(0f, 0f, 0f, 0.45f * item.alpha)), p(item.cutOut), item.cutOutRadius * s)
+                }
+                is DrawItem.Border -> {
+                    val drawn = renderer.drawRoundedRect(r, item.radius * s, item.paint, item.width * s, item.alpha, item.time)
+                    paintWorks(item.paint, drawn)
+                    if (!drawn) renderer.drawRoundedRect(r, item.radius * s, item.paint.firstColor().let { it.copy(alpha = it.alpha * item.alpha) }, item.width * s)
+                }
                 is DrawItem.Blur -> renderer.drawBlur(r, item.radius * s, Math.round(item.size * s).coerceAtLeast(1), item.passes)
                 is DrawItem.Image -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, opaque = false, alpha = item.alpha, clip = item.clip?.let(p), cornerRadius = item.radius * s)
                 is DrawItem.Custom -> item.paint(r)
@@ -3089,13 +3264,13 @@ class Desktop(
         for ((key, old) in before) {
             val new = now[key]
             if (new == null) {
-                view.damage(old.value.rect)
+                old.value.areas.forEach(view::damage)
             } else if (new.index != old.index || new.value.differsFrom(old.value)) {
-                view.damage(old.value.rect)
-                view.damage(new.value.rect)
+                old.value.areas.forEach(view::damage)
+                new.value.areas.forEach(view::damage)
             }
         }
-        for ((key, new) in now) if (key !in before) view.damage(new.value.rect)
+        for ((key, new) in now) if (key !in before) new.value.areas.forEach(view::damage)
         view.shown = items
     }
 
@@ -3139,6 +3314,8 @@ class Desktop(
      */
     private fun scene(): List<DrawItem> {
         if (sceneVersion == version) return scene
+        paintsMoving = false
+        focusChanging = false
         val all = ArrayList<DrawItem>()
         if (locked) {
             // Nothing of the desktop: a plain colour and the locker's pictures, on every monitor.
@@ -3157,7 +3334,8 @@ class Desktop(
         val camera = cameraAt(now)
         val (fullscreen, normal) = stackingOrder().partition { it.fullscreen }
         // Our background on each monitor, below a wallpaper program's (which wins).
-        for (monitor in monitorList) all += backdrops.items(monitor, monitor.workspace.number, pointerX, pointerY, now)
+        val allMonitors = desktopBounds()
+        for (monitor in monitorList) all += backdrops.items(monitor, monitor.workspace.number, pointerX, pointerY, now, allMonitors, largestScale)
         addLayers(all, LayerShell.Layer.BACKGROUND)
         addLayers(all, LayerShell.Layer.BOTTOM)
         // A monitor changing its workspace: how the old and the new one are drawn now. The new

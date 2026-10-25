@@ -72,7 +72,7 @@ internal fun runOnScreen(config: Caulis) {
 
                 val input = backend.input
                 input.onKey = running::key
-                input.onPointerMotion = { time, dx, dy -> desktop.pointerMoved(time, desktop.pointerX + dx, desktop.pointerY + dy) }
+                input.onPointerMotion = { time, dx, dy -> desktop.pointerMovedBy(time, dx, dy) }
                 // Touchscreens and tablets: across the first monitor.
                 input.onPointerMotionAbsolute = { time, x, y ->
                     val area = desktop.monitors.first().area

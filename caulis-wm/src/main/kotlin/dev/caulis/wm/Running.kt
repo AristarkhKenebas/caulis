@@ -105,6 +105,13 @@ internal class Running(
     // applied once, when the window opens or first fits it.
     private val rulesApplied = java.util.WeakHashMap<dev.caulis.core.Window, MutableSet<String>>()
 
+    // The margins each window was arranged with last (a rule may change them with its title).
+    private val shownMargins = java.util.WeakHashMap<dev.caulis.core.Window, dev.caulis.core.Margins?>()
+
+    // A window's margins: the last rule that fits and says.
+    private fun marginsOf(window: dev.caulis.core.Window): dev.caulis.core.Margins? =
+        config.rules.lastOrNull { it.margins != null && fits(it, window) }?.margins
+
     // The title bars each window was last told (a rule may change them with its title).
     private val shownTitleBars = java.util.WeakHashMap<dev.caulis.core.Window, dev.caulis.core.TitleBars?>()
 
@@ -190,11 +197,18 @@ internal class Running(
                 rulesLog.info { "$window fits $rule now" }
                 safely("$rule") { desktop.applyPlacement(window, rule.placement()) }
             }
+            // Its margins too.
+            val margins = marginsOf(window)
+            if (shownMargins.put(window, margins) != margins) desktop.marginsChanged(window)
             // Its title bar may follow a rule that fits it now (or no longer).
             val bars = titleBarsOf(window)
             if (shownTitleBars.put(window, bars) != bars) desktop.titleBarsChanged()
         }
-        desktop.onWindowOpened { window -> shownTitleBars[window] = titleBarsOf(window) }
+        desktop.onWindowOpened { window ->
+            shownTitleBars[window] = titleBarsOf(window)
+            shownMargins[window] = marginsOf(window)
+        }
+        desktop.marginsFor = { window -> marginsOf(window) }
         desktop.layerEffects = { layer ->
             config.panelEffectRules.firstNotNullOfOrNull { rule -> safely("panelEffects", null) { rule(layer) } } ?: Effects.NONE
         }
@@ -223,6 +237,7 @@ internal class Running(
         applyLooks()
         desktop.backgroundChangeMillis = config.backgroundChangeMillis
         desktop.overviewFill = config.overviewFill
+        desktop.monitorEdges = config.monitorEdges
         desktop.resizeBorder = config.resizeBorder
         desktop.doubleClickMillis = config.doubleClickMillis
         desktop.lockColor = config.lockColor
@@ -329,6 +344,11 @@ internal class Running(
         if (before.scale != next.scale || before.monitorSettings.values.map { it.scale } != next.monitorSettings.values.map { it.scale }) applyScale()
         applyMonitorSettings()
         applyCursor()
+        // Margins of the new rules: windows take them at once.
+        for (window in desktop.allWindows) {
+            val margins = marginsOf(window)
+            if (shownMargins.put(window, margins) != margins) desktop.marginsChanged(window)
+        }
         next.reloadActions.forEach { action -> safely("onReload") { action(next) } }
         return restartOnly to notes
     }

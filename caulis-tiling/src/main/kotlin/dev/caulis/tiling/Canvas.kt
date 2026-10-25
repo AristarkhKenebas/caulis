@@ -81,7 +81,7 @@ private class CanvasModel(
             if (cells.y + cells.height > viewY + rows) viewY = cells.y + cells.height - rows
         }
 
-        val inner = inset(area, gaps.outer)
+        val inner = gaps.inset(area)
         cellWidth = (inner.width + gaps.inner).toDouble() / columns
         cellHeight = (inner.height + gaps.inner).toDouble() / rows
         // Where cell edges are on screen; works for cells far off screen too, and the cells

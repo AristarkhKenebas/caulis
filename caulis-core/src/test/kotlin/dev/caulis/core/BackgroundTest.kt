@@ -84,7 +84,16 @@ class BackgroundTest {
                 """,
                 framesPerSecond = 30,
             )
-            for (shader in listOf(guide, WallpaperShader.AURORA)) {
+            val spanning = WallpaperShader(
+                """
+                vec4 wallpaper(vec2 at) {
+                    vec2 p = desktopAt(at);
+                    float rings = 0.5 + 0.5 * sin(length(unitsAt(at) - desktop.xy - desktop.zw * 0.5) / 40.0 - time);
+                    return vec4(0.1 + 0.3 * p.x, 0.15 * rings, 0.3 + 0.2 * p.y, 1.0);
+                }
+                """,
+            )
+            for (shader in listOf(guide, spanning, WallpaperShader.AURORA)) {
                 server.onServer {
                     it.backgroundChangeMillis = 0
                     it.background = Background.shader(shader)

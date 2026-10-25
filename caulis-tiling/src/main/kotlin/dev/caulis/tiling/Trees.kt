@@ -70,9 +70,9 @@ private class ContainerModel(private val gaps: Gaps) : TilingModel {
             near = window
         }
         val rects = HashMap<LayoutWindow, Rect>()
-        place(root, inset(area, gaps.outer), rects)
+        place(root, gaps.inset(area), rects)
         lastRects = rects
-        return windows.map { rects[it] ?: inset(area, gaps.outer) }
+        return windows.map { rects[it] ?: gaps.inset(area) }
     }
 
     private fun place(node: Node, rect: Rect, out: MutableMap<LayoutWindow, Rect>) {
@@ -242,11 +242,11 @@ private class TreeModel(private val gaps: Gaps, private val insertion: Insertion
         }
         val rects = placeAll(area)
         lastRects = rects
-        return windows.map { rects[it] ?: inset(area, gaps.outer) }
+        return windows.map { rects[it] ?: gaps.inset(area) }
     }
 
     private fun placeAll(area: Rect): Map<LayoutWindow, Rect> =
-        HashMap<LayoutWindow, Rect>().also { rects -> root?.let { place(it, inset(area, gaps.outer), rects) } }
+        HashMap<LayoutWindow, Rect>().also { rects -> root?.let { place(it, gaps.inset(area), rects) } }
 
     private fun place(node: Node, rect: Rect, out: MutableMap<LayoutWindow, Rect>) {
         when (node) {
@@ -269,7 +269,7 @@ private class TreeModel(private val gaps: Gaps, private val insertion: Insertion
         }
         // The window to split: the focused one, else the newest one.
         val target = leaves[near]?.takeIf { it !== leaf } ?: leaves.values.lastOrNull { it !== leaf } ?: return
-        val targetRect = lastRects[target.window] ?: inset(area, gaps.outer)
+        val targetRect = lastRects[target.window] ?: gaps.inset(area)
         val chosen = preselected
         preselected = null
         val (sideBySide, newFirst) = when {

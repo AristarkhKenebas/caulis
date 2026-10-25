@@ -29,5 +29,16 @@ data class Rect(val x: Int, val y: Int, val width: Int, val height: Int) {
         return Rect(left, top, maxOf(right, other.right) - left, maxOf(bottom, other.bottom) - top)
     }
 
+    /** What is left of this rectangle without [other]: up to four rectangles, apart from each other. */
+    fun minus(other: Rect): List<Rect> {
+        val common = intersect(other) ?: return listOf(this)
+        return listOf(
+            Rect(x, y, width, common.y - y),                                     // above
+            Rect(x, common.bottom, width, bottom - common.bottom),               // below
+            Rect(x, common.y, common.x - x, common.height),                      // left
+            Rect(common.right, common.y, right - common.right, common.height),   // right
+        ).filter { !it.isEmpty }
+    }
+
     fun translate(dx: Int, dy: Int) = Rect(x + dx, y + dy, width, height)
 }

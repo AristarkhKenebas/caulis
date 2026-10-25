@@ -47,8 +47,41 @@ interface LayoutWindow {
     val maxHeight: Int
 }
 
-/** Space around and between tiled windows, in pixels. */
-data class Gaps(val inner: Int = 8, val outer: Int = 8)
+/**
+ * Space between tiled windows ([inner]) and between them and the edges of the screen
+ * ([outer] — or each edge on its own: [top], [right], [bottom], [left]), in desktop units:
+ *
+ * ```
+ * Gaps(inner = 8, outer = 12)
+ * Gaps(inner = 8, outer = 12, top = 4)          // less at the top (under a bar)
+ * Gaps(inner = 0, outer = 0)                     // windows touch, and touch the edges
+ * ```
+ *
+ * Each is 0 to [MAX]: no gap is negative (windows would overlap) or wider than a screen.
+ */
+data class Gaps @JvmOverloads constructor(
+    val inner: Int = 8,
+    val outer: Int = 8,
+    val top: Int = outer,
+    val right: Int = outer,
+    val bottom: Int = outer,
+    val left: Int = outer,
+) {
+    init {
+        for ((name, value) in listOf("inner" to inner, "outer" to outer, "top" to top, "right" to right, "bottom" to bottom, "left" to left)) {
+            require(value in 0..MAX) { "the $name gap is 0 to $MAX, not $value" }
+        }
+    }
+
+    /** [area] less the outer gaps. */
+    fun inset(area: Rect): Rect =
+        Rect(area.x + left, area.y + top, (area.width - left - right).coerceAtLeast(1), (area.height - top - bottom).coerceAtLeast(1))
+
+    companion object {
+        /** The widest a gap can be. */
+        const val MAX = 500
+    }
+}
 
 /** Integer splitting without lost pixels: the parts and gaps always add up exactly. */
 object Split {

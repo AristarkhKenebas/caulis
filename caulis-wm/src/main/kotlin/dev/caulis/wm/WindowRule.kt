@@ -20,13 +20,15 @@ import java.nio.file.Path
  *     center()
  * }
  * rule { title(Regex("Picture.in.Picture")); floating = true; size(480, 270); position(20, 20) }
- * rule { appId("mpv"); titleBars = TitleBars.NONE; opacity = 1f }
+ * rule { appId("mpv"); titleBars = TitleBars.NONE; opacity = 1f; margin(-8) }   // a video into the gaps
+ * rule { appId("org.gnome.Calculator"); margin(40) }                         // with room around it
  * ```
  *
  * Where and how a window starts ([workspace], [monitor], [floating], [size], [position],
  * [center], [maximized], [fullscreen], [focus]) is decided before its first frame; a window
  * that fits only later (programs like Spotify set their title after opening) gets it then,
- * once. Its looks ([titleBars], [effects], [opacity]) follow the rule as long as it fits.
+ * once. Its looks ([titleBars], [effects], [opacity]) and its [margin] follow the rule as
+ * long as it fits.
  * Later rules win over earlier ones where both say something.
  */
 class WindowRule internal constructor() {
@@ -117,6 +119,26 @@ class WindowRule internal constructor() {
     }
 
     // --- how they look, as long as they fit ---------------------------------------------
+
+    internal var margins: dev.caulis.core.Margins? = null
+
+    /**
+     * Extra space around the window inside its place in the layout, the same on every side
+     * (desktop units, -500 to 500). Negative: it reaches into the gaps (never past its monitor).
+     */
+    fun margin(all: Int) {
+        margins = dev.caulis.core.Margins.all(all)
+    }
+
+    /** Extra space above and below ([vertical]) and left and right ([horizontal]). */
+    fun margin(vertical: Int, horizontal: Int) {
+        margins = dev.caulis.core.Margins(vertical, horizontal, vertical, horizontal)
+    }
+
+    /** Extra space on each side on its own. */
+    fun margin(top: Int, right: Int, bottom: Int, left: Int) {
+        margins = dev.caulis.core.Margins(top, right, bottom, left)
+    }
 
     /** Who draws its title bar: [TitleBars.PROGRAM], [TitleBars.COMPOSITOR] or [TitleBars.NONE]. */
     var titleBars: TitleBars? = null

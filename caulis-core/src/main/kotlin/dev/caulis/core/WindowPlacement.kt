@@ -48,3 +48,24 @@ data class WindowPlacement @JvmOverloads constructor(
         @JvmField val USUAL = WindowPlacement()
     }
 }
+
+/**
+ * Extra space around one window inside its place in the layout, each side on its own, in
+ * desktop units (see [Desktop.marginsFor]). Negative: the window reaches into the gap
+ * beside it (e.g. a video touching the screen's edges) — never past its monitor's free area.
+ */
+data class Margins @JvmOverloads constructor(val top: Int = 0, val right: Int = 0, val bottom: Int = 0, val left: Int = 0) {
+    init {
+        for ((name, value) in listOf("top" to top, "right" to right, "bottom" to bottom, "left" to left)) {
+            require(value in -MAX..MAX) { "the $name margin is -$MAX to $MAX, not $value" }
+        }
+    }
+
+    companion object {
+        /** The widest a margin can be. */
+        const val MAX = 500
+
+        /** The same on every side. */
+        @JvmStatic fun all(size: Int) = Margins(size, size, size, size)
+    }
+}

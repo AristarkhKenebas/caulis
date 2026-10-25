@@ -9,6 +9,7 @@ import dev.caulis.render.DmabufFormat
 import dev.caulis.render.GpuBuffer
 import dev.caulis.render.GpuTarget
 import dev.caulis.render.GpuTexture
+import dev.caulis.render.Paint
 import dev.caulis.render.Renderer
 import java.lang.foreign.Arena
 import java.lang.foreign.ValueLayout.JAVA_FLOAT
@@ -26,8 +27,47 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
 
     private val textured = Program(Shaders.VERTEX, Shaders.TEXTURE)
     private val solid = Program(Shaders.VERTEX, Shaders.COLOR)
-    private val rounded = Program(Shaders.VERTEX, Shaders.ROUNDED)
-    private val shadow = Program(Shaders.VERTEX, Shaders.SHADOW)
+    private val rounded = Program(Shaders.VERTEX, Shaders.rounded(Shaders.PAINT_SOLID))
+    private val shadow = Program(Shaders.VERTEX, Shaders.shadow(Shaders.PAINT_SOLID))
+
+    // Rounded boxes and shadows filled with gradients or users' paints, compiled when first
+    // needed (null: did not compile, see effectProblems).
+    private val painted = HashMap<String, Program?>()
+
+    private fun paintedProgram(shadowOf: Boolean, paint: Paint): Program? {
+        val fill = when (paint) {
+            is Paint.Solid -> return if (shadowOf) shadow else rounded
+            is Paint.Gradient -> Shaders.PAINT_GRADIENT
+            is Paint.Shader -> Shaders.paintCustom(paint.code)
+        }
+        val source = if (shadowOf) Shaders.shadow(fill) else Shaders.rounded(fill)
+        return painted.getOrPut(source) {
+            try {
+                Program(Shaders.VERTEX, source)
+            } catch (e: IllegalStateException) {
+                if (paint is Paint.Shader) effectProblems[paint.code] = e.message ?: "$e"
+                null
+            }
+        }
+    }
+
+    // The paint's own values: a colour, a gradient's colours and angle, a shader's time and size.
+    private fun setPaint(program: Program, paint: Paint, box: Rect, time: Float) {
+        when (paint) {
+            is Paint.Solid -> setColor(program, paint.color)
+            is Paint.Gradient -> {
+                for ((i, c) in paint.colors.withIndex()) Gles.glUniform4f(program.uniform("colors[$i]"), c.red, c.green, c.blue, c.alpha)
+                Gles.glUniform1i(program.uniform("count"), paint.colors.size)
+                val degrees = paint.degrees + paint.turnsPerSecond * 360.0 * time
+                Gles.glUniform1f(program.uniform("angle"), Math.toRadians(degrees % 360.0).toFloat())
+                Gles.glUniform1i(program.uniform("conic"), if (paint.conic) 1 else 0)
+            }
+            is Paint.Shader -> {
+                Gles.glUniform1f(program.uniform("time"), time)
+                Gles.glUniform2f(program.uniform("size"), box.width.toFloat(), box.height.toFloat())
+            }
+        }
+    }
     private val vertexArray = Gl.generate(Gles::glGenVertexArrays)
     private val vertexBuffer = Gl.generate(Gles::glGenBuffers)
 
@@ -110,6 +150,17 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         bindTarget(target, clip)
         Gles.glClearColor(red * alpha, green * alpha, blue * alpha, alpha)
         Gles.glClear(Gles.GL_COLOR_BUFFER_BIT())
+    }
+
+    override fun setClip(clip: Rect?) {
+        this.clip = clip
+        // Pixel row y is framebuffer row y (see Shaders.VERTEX), so the clip needs no flipping.
+        if (clip != null) {
+            Gles.glEnable(Gles.GL_SCISSOR_TEST())
+            Gles.glScissor(clip.x, clip.y, clip.width, clip.height)
+        } else {
+            Gles.glDisable(Gles.GL_SCISSOR_TEST())
+        }
     }
 
     private fun bindTarget(target: GlesFramebuffer, clip: Rect?) {
@@ -233,32 +284,46 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
     }
 
     override fun drawRoundedRect(box: Rect, cornerRadius: Float, color: Color, borderWidth: Float) {
-        if (box.isEmpty) return
-        rounded.use()
-        setRect(rounded, box.x, box.y, box.width, box.height)
-        setColor(rounded, color)
-        setBox(rounded, "outer", box)
-        Gles.glUniform1f(rounded.uniform("radius"), radiusFor(box, cornerRadius))
-        Gles.glUniform1f(rounded.uniform("border"), borderWidth)
+        drawRoundedRect(box, cornerRadius, Paint.Solid(color), borderWidth)
+    }
+
+    override fun drawRoundedRect(box: Rect, cornerRadius: Float, paint: Paint, borderWidth: Float, alpha: Float, time: Float): Boolean {
+        if (box.isEmpty) return true
+        val program = paintedProgram(shadowOf = false, paint) ?: return false
+        program.use()
+        setRect(program, box.x, box.y, box.width, box.height)
+        setPaint(program, paint, box, time)
+        setBox(program, "outer", box)
+        Gles.glUniform1f(program.uniform("radius"), radiusFor(box, cornerRadius))
+        Gles.glUniform1f(program.uniform("border"), borderWidth)
+        Gles.glUniform1f(program.uniform("alpha"), alpha)
         Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
+        return true
     }
 
     override fun drawShadow(box: Rect, cornerRadius: Float, softness: Float, color: Color, cutOut: Rect?, cutOutRadius: Float) {
-        if (box.isEmpty) return
+        drawShadow(box, cornerRadius, softness, Paint.Solid(color), cutOut, cutOutRadius)
+    }
+
+    override fun drawShadow(box: Rect, cornerRadius: Float, softness: Float, paint: Paint, cutOut: Rect?, cutOutRadius: Float, alpha: Float, time: Float): Boolean {
+        if (box.isEmpty) return true
+        val program = paintedProgram(shadowOf = true, paint) ?: return false
         val reach = Math.ceil(softness.toDouble()).toInt().coerceAtLeast(1)
-        shadow.use()
-        setRect(shadow, box.x - reach, box.y - reach, box.width + 2 * reach, box.height + 2 * reach)
-        setColor(shadow, color)
-        setBox(shadow, "shape", box)
-        Gles.glUniform1f(shadow.uniform("radius"), radiusFor(box, cornerRadius))
+        program.use()
+        setRect(program, box.x - reach, box.y - reach, box.width + 2 * reach, box.height + 2 * reach)
+        setPaint(program, paint, box, time)
+        setBox(program, "shape", box)
+        Gles.glUniform1f(program.uniform("radius"), radiusFor(box, cornerRadius))
         // The blur fades out at about three sigmas.
-        Gles.glUniform1f(shadow.uniform("sigma"), (softness / 3f).coerceAtLeast(0.5f))
-        Gles.glUniform1i(shadow.uniform("cut"), if (cutOut != null) 1 else 0)
+        Gles.glUniform1f(program.uniform("sigma"), (softness / 3f).coerceAtLeast(0.5f))
+        Gles.glUniform1i(program.uniform("cut"), if (cutOut != null) 1 else 0)
         if (cutOut != null) {
-            setBox(shadow, "cutOut", cutOut)
-            Gles.glUniform1f(shadow.uniform("cutRadius"), radiusFor(cutOut, cutOutRadius))
+            setBox(program, "cutOut", cutOut)
+            Gles.glUniform1f(program.uniform("cutRadius"), radiusFor(cutOut, cutOutRadius))
         }
+        Gles.glUniform1f(program.uniform("alpha"), alpha)
         Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
+        return true
     }
 
     override fun drawBlur(area: Rect, cornerRadius: Float, size: Int, passes: Int) {
@@ -289,6 +354,7 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
 
     override fun close() {
         effects.values.forEach { it?.close() }
+        painted.values.forEach { it?.close() }
         shaded.values.forEach { it?.close() }
         textured.close()
         solid.close()

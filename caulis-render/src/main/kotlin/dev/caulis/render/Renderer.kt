@@ -101,6 +101,9 @@ interface Renderer : AutoCloseable {
         floats: Map<String, FloatArray>, ints: Map<String, Int> = emptyMap(), texture: GpuTexture? = null,
     ): Boolean = false
 
+    /** From now on, draws only inside [clip] (pixels; null: everywhere) — for a frame redrawn in parts. */
+    fun setClip(clip: Rect?) {}
+
     /** Fills the rectangle with a colour. */
     fun drawColor(x: Int, y: Int, width: Int, height: Int, red: Float, green: Float, blue: Float, alpha: Float = 1f)
 
@@ -116,6 +119,22 @@ interface Renderer : AutoCloseable {
      * so the shadow does not show through a see-through window).
      */
     fun drawShadow(box: Rect, cornerRadius: Float, softness: Float, color: Color, cutOut: Rect? = null, cutOutRadius: Float = cornerRadius)
+
+    /**
+     * [drawRoundedRect] filled with [paint] (a gradient, a shader, ...) at [alpha]; [time] in
+     * seconds moves a turning gradient or a shader. False if [paint]'s shader does not
+     * compile (nothing drawn; [effectProblem] with its code says why).
+     */
+    fun drawRoundedRect(box: Rect, cornerRadius: Float, paint: Paint, borderWidth: Float = 0f, alpha: Float = 1f, time: Float = 0f): Boolean {
+        drawRoundedRect(box, cornerRadius, paint.firstColor().let { it.copy(alpha = it.alpha * alpha) }, borderWidth)
+        return true
+    }
+
+    /** [drawShadow] filled with [paint] at [alpha] (see the [drawRoundedRect] with a paint). */
+    fun drawShadow(box: Rect, cornerRadius: Float, softness: Float, paint: Paint, cutOut: Rect?, cutOutRadius: Float, alpha: Float = 1f, time: Float = 0f): Boolean {
+        drawShadow(box, cornerRadius, softness, paint.firstColor().let { it.copy(alpha = it.alpha * alpha) }, cutOut, cutOutRadius)
+        return true
+    }
 
     /**
      * Blurs what was drawn so far under [area] (frosted glass behind a see-through window),

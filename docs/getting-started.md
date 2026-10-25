@@ -243,6 +243,25 @@ bind("Super+T") { layout = if (layout === Floating) Dwindle() else Floating }
 Windows glide to their new places instead of jumping (`animationMillis` sets how long; 0
 turns it off; see *Animations* for more).
 
+
+Gaps are the space between tiled windows (`inner`) and between them and the screen's edges
+(`outer`, or each edge on its own), in desktop units from 0 to 500:
+
+```kotlin
+layout = Dwindle(Gaps(inner = 8, outer = 12))
+layout = Dwindle(Gaps(inner = 8, outer = 12, top = 4))   // less at the top, under a bar
+layout = Columns(Gaps(0, 0))                             // windows touch each other and the edges
+```
+
+For one program, a rule adds room around its windows (each side on its own), or with a
+negative margin lets them reach into the gaps — never past the monitor:
+
+```kotlin
+rule { appId("org.gnome.Calculator"); margin(40) }
+rule { appId("mpv"); margin(-8) }                        // a video up to the edges
+rule { appId("spotify"); margin(top = 20, right = 0, bottom = 0, left = 0) }
+```
+
 ## 6. Rules and events
 
 Rules say where windows open and how they look — one `rule { }` per kind of window:
@@ -370,6 +389,23 @@ background = Background.shader(WallpaperShader("""
 """, framesPerSecond = 30))
 ```
 
+Over several monitors a wallpaper can go on from one to the next instead of repeating:
+a picture with `span = true`, and in a shader `desktopAt(at)` (the place on all monitors
+together, 0 to 1) or `unitsAt(at)` (in desktop units — seamless even when the monitors have
+different scales). `monitor` and `desktop` (x, y, width, height in units), `scale` and
+`physicalSize` (millimetres) let a shader fit itself to each monitor:
+
+```kotlin
+background = Background.image(file("panorama.jpg"), span = true)
+background = Background.shader(WallpaperShader("""
+    vec4 wallpaper(vec2 at) {
+        vec2 p = desktopAt(at);                                  // one picture over all monitors
+        float rings = 0.5 + 0.5 * sin(length(unitsAt(at) - desktop.xy - desktop.zw * 0.5) / 40.0 - time);
+        return vec4(0.1 + 0.3 * p.x, 0.15 * rings, 0.3 + 0.2 * p.y, 1.0);
+    }
+"""))
+```
+
 Shaders are easier to write in files of their own, next to your configuration — saved,
 they are used at once (no restart, nothing else reloads), and a mistake shows up as a red
 notice with its line in your file (`line 7: 'glow' undeclared`), gone as soon as it works:
@@ -421,6 +457,36 @@ below 1. Some windows look better without some effects — a video should stay s
 ```kotlin
 effectsFor { window, fx -> if (window.appId == "mpv") fx.copy(blur = null, inactiveOpacity = 1f) else fx }
 ```
+
+Borders and shadows can be more than one colour — a gradient, one that turns around the
+window, a rainbow, or a shader of your own (`Paint`, from `dev.caulis.render`):
+
+```kotlin
+effects = Effects(
+    cornerRadius = 14,
+    border = Border(
+        width = 3,
+        focused = Paint.gradient(Color.hex("#33ccff"), Color.hex("#00ff99"), degrees = 45.0),   // as Hyprland's
+        unfocused = Paint.solid(Color.hex("#45475a")),
+    ),
+    shadow = Shadow(softness = 28, offsetX = 0, offsetY = 0, color = Color.hex("#b46cffaa"), spread = 4), // a purple glow
+    inactiveShadow = Shadow(softness = 12, offsetX = 0, offsetY = 4, color = Color.hex("#00000066")),   // Shadow.NONE: none
+    focusChangeMillis = 250,   // border and shadow change smoothly when the focus moves
+)
+```
+
+| Paint | What it is |
+| --- | --- |
+| `Paint.solid(color)` | one colour |
+| `Paint.gradient(a, b, ..., degrees = 45.0)` | up to 8 colours across the window (0°: left to right, 90°: top to bottom) |
+| `Paint.conic(a, b, ..., turnsPerSecond = 0.25)` | colours around the window's middle — turning, if you like |
+| `Paint.rainbow(seconds = 6.0)` | a rainbow going round |
+| `Paint.shader("vec4 paint(vec2 at) { ... }")` | your own: `at` is 0..1 in the window, `time` and `size` are there |
+| `Paints.file(file("border.glsl"))` | your own from a file next to your configuration, used again when saved |
+
+A shadow's `spread` makes it bigger than the window (a glow around all sides when the
+offsets are 0). Moving paints are drawn every frame while seen, but only the thin frame
+around the window is redrawn — a few percent of one core.
 
 Panels get no effects unless you ask, by the name they give themselves:
 
@@ -565,6 +631,15 @@ Without `position`, monitors stand side by side in the order they were found. Sc
 position can be changed while running. When a monitor goes away, nothing is closed: its
 workspace waits on another monitor (Super+N shows it there), and comes back by itself when
 the monitor is plugged in again — unless you showed it somewhere else meanwhile.
+
+Monitors of different sizes: by default the mouse crosses only where they touch, as on
+Windows (next to a taller monitor, a shorter one is reached along the part they share).
+Or every edge leads to the whole edge beside it — top corner to top corner, bottom to
+bottom, whatever the sizes:
+
+```kotlin
+monitorEdges = MonitorEdges.PROPORTIONAL   // MonitorEdges.TOUCHING is the default
+```
 
 To try it without a second monitor, run nested in several windows — each one a monitor
 (`NESTED-1`, `NESTED-2`, ...):

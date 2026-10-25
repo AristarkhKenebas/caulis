@@ -138,6 +138,17 @@ class Caulis {
             running?.desktop?.backgroundChangeMillis = value
         }
 
+    /**
+     * How the mouse goes between monitors of different sizes: [MonitorEdges.TOUCHING] (only
+     * where they touch, as Windows — the default) or [MonitorEdges.PROPORTIONAL] (each edge
+     * leads to the whole edge beside it: top corner to top corner, bottom to bottom).
+     */
+    var monitorEdges = dev.caulis.core.MonitorEdges.TOUCHING
+        set(value) {
+            field = value
+            running?.desktop?.monitorEdges = value
+        }
+
     /** How much of the monitor the overview's windows take (0.3 to 1). */
     var overviewFill = 0.9
         set(value) {

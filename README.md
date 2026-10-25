@@ -54,7 +54,8 @@ a corner, or however you draw them.
 
 The background is a colour, a gradient, a picture, your own drawing or a moving shader —
 per monitor and workspace if you like; wallpaper programs (swaybg, hyprpaper, ...) work as
-well and draw on top. Round corners, borders, shadows and blur behind see-through windows are one line:
+well and draw on top. Borders and shadows can be gradients, turning gradients, rainbows, glows or shaders of your
+own, and change smoothly when the focus moves. Round corners, borders, shadows and blur behind see-through windows are one line:
 `effects = Effects.MODERN.copy(blur = Blur())`. Caulis comes with sharp cursors of its own;
 any installed cursor theme works too.
 

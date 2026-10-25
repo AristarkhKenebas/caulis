@@ -61,8 +61,13 @@ internal class Backdrops(
     private val shown = HashMap<String, Background>()
     private val leaving = HashMap<String, Pair<Background, Long>>()
 
-    /** The items that draw [monitor]'s background now (below everything). */
-    fun items(monitor: Monitor, workspace: Int, pointerX: Double, pointerY: Double, now: Long): List<DrawItem> {
+    /**
+     * The items that draw [monitor]'s background now (below everything); [desktop] is all
+     * monitors together (for backgrounds spanning them), [largestScale] the finest monitor's.
+     */
+    fun items(monitor: Monitor, workspace: Int, pointerX: Double, pointerY: Double, now: Long, desktop: Rect, largestScale: Double): List<DrawItem> {
+        this.desktop = desktop
+        this.largestScale = largestScale
         val wanted = backgroundOf(monitor, workspace)
         val before = shown.put(monitor.name, wanted)
         if (before != null && before != wanted && changeMillis > 0) leaving[monitor.name] = before to now
@@ -78,6 +83,10 @@ internal class Backdrops(
         }
         return items
     }
+
+    // All monitors together, and the finest scale (for pictures and shaders spanning them).
+    private var desktop = Rect(0, 0, 1, 1)
+    private var largestScale = 1.0
 
     /** True while a background melts into the next one: each frame is different. */
     fun changing(): Boolean = leaving.isNotEmpty()
@@ -95,7 +104,9 @@ internal class Backdrops(
             }
             is Background.Image -> {
                 val picture = picture(background.path)
-                DrawItem.Custom(key, area, listOf(background, picture, alpha, pixels)) { r -> drawImage(r, background, picture, alpha) }
+                val over = if (background.span) desktop else area
+                val unitScale = if (background.span) largestScale else monitor.scale
+                DrawItem.Custom(key, area, listOf(background, picture, alpha, pixels, over, unitScale)) { r -> drawImage(r, area, over, unitScale, background, picture, alpha) }
             }
             is Background.Shader -> {
                 val shader = background.shader
@@ -104,18 +115,24 @@ internal class Backdrops(
                 val frame = if (shader.moving) Math.floor(seconds * shader.framesPerSecond).toLong() else 0L
                 val inside = pointerX >= area.x && pointerX < area.right && pointerY >= area.y && pointerY < area.bottom
                 val pointer = if (inside) floatArrayOf(((pointerX - area.x) / area.width).toFloat(), ((pointerY - area.y) / area.height).toFloat()) else floatArrayOf(-1f, -1f)
+                val onDesktop = floatArrayOf(((pointerX - desktop.x) / desktop.width).toFloat(), ((pointerY - desktop.y) / desktop.height).toFloat())
+                val all = desktop
+                val physical = monitor.output?.let { floatArrayOf(it.physicalWidthMm.toFloat(), it.physicalHeightMm.toFloat()) } ?: floatArrayOf(0f, 0f)
                 val picture = shader.image?.let(::picture)
                 if (shader.moving) movingOn += monitor.name to shader.framesPerSecond
                 // One version of its code for drawing and for what is said about it (a file may change meanwhile).
                 val code = shader.code
                 val fileProblem = shader.fileProblem
                 val source = shader.source(code)
-                DrawItem.Custom(key, area, listOf(background, source, frame, alpha, pixels, picture, if (shader.moving) pointer.toList() else null)) { r ->
+                DrawItem.Custom(key, area, listOf(background, source, frame, alpha, pixels, picture, all, if (shader.moving) pointer.toList() + onDesktop.toList() else null)) { r ->
                     val drawn = renderer.drawShaded(
                         r.x, r.y, r.width, r.height, source,
                         floats = mapOf(
                             "time" to floatArrayOf(seconds.toFloat()), "size" to floatArrayOf(r.width.toFloat(), r.height.toFloat()),
                             "pointer" to pointer, "workspace" to floatArrayOf(workspace.toFloat()), "alpha" to floatArrayOf(alpha),
+                            "monitor" to floatArrayOf(area.x.toFloat(), area.y.toFloat(), area.width.toFloat(), area.height.toFloat()),
+                            "desktop" to floatArrayOf(all.x.toFloat(), all.y.toFloat(), all.width.toFloat(), all.height.toFloat()),
+                            "scale" to floatArrayOf(monitor.scale.toFloat()), "physicalSize" to physical, "desktopPointer" to onDesktop,
                         ),
                         ints = mapOf("hasPicture" to if (picture != null) 1 else 0),
                         texture = picture?.texture,
@@ -169,40 +186,58 @@ internal class Backdrops(
         return null
     }
 
-    private fun drawImage(r: Rect, background: Background.Image, picture: Picture?, alpha: Float) {
+    // Draws [picture] placed over [over] (desktop units: the monitor's [area], or all monitors
+    // together) as [Background.Image.fit] says: the part on this monitor, into its pixels [r].
+    // [unitScale]: picture pixels per unit at its own size (CENTER, TILE).
+    private fun drawImage(r: Rect, area: Rect, over: Rect, unitScale: Double, background: Background.Image, picture: Picture?, alpha: Float) {
         if (picture == null) return fill(r, background.behind, alpha)
-        val (iw, ih) = picture.width.toDouble() to picture.height.toDouble()
-        when (background.fit) {
-            Background.Fit.STRETCH -> renderer.drawTexture(picture.texture, r.x, r.y, r.width, r.height, opaque = true, alpha = alpha)
-            Background.Fit.FILL -> {
-                val scale = max(r.width / iw, r.height / ih)
-                val w = r.width / scale / iw
-                val h = r.height / scale / ih
-                renderer.drawTexture(picture.texture, r.x, r.y, r.width, r.height, opaque = true, alpha = alpha, source = floatArrayOf(((1 - w) / 2).toFloat(), ((1 - h) / 2).toFloat(), w.toFloat(), h.toFloat()))
-            }
-            Background.Fit.FIT -> {
-                fill(r, background.behind, alpha)
-                val scale = min(r.width / iw, r.height / ih)
-                val w = (iw * scale).roundToInt()
-                val h = (ih * scale).roundToInt()
-                renderer.drawTexture(picture.texture, r.x + (r.width - w) / 2, r.y + (r.height - h) / 2, w, h, opaque = false, alpha = alpha)
-            }
-            Background.Fit.CENTER -> {
-                fill(r, background.behind, alpha)
-                renderer.drawTexture(picture.texture, r.x + (r.width - picture.width) / 2, r.y + (r.height - picture.height) / 2, picture.width, picture.height, opaque = false, alpha = alpha)
-            }
+        val iw = picture.width.toDouble()
+        val ih = picture.height.toDouble()
+        val ow = over.width.toDouble()
+        val oh = over.height.toDouble()
+        // Where the whole picture is, in desktop units (x, y, width, height).
+        fun centered(w: Double, h: Double) = doubleArrayOf(over.x + (ow - w) / 2, over.y + (oh - h) / 2, w, h)
+        val fit = background.fit
+        if (fit != Background.Fit.FILL && fit != Background.Fit.STRETCH) fill(r, background.behind, alpha)
+        when (fit) {
+            Background.Fit.FILL -> max(ow / iw, oh / ih).let { s -> part(r, area, picture, centered(iw * s, ih * s), alpha) }
+            Background.Fit.FIT -> min(ow / iw, oh / ih).let { s -> part(r, area, picture, centered(iw * s, ih * s), alpha) }
+            Background.Fit.STRETCH -> part(r, area, picture, doubleArrayOf(over.x.toDouble(), over.y.toDouble(), ow, oh), alpha)
+            Background.Fit.CENTER -> part(r, area, picture, centered(iw / unitScale, ih / unitScale), alpha)
             Background.Fit.TILE -> {
-                var y = r.y
-                while (y < r.bottom) {
-                    var x = r.x
-                    while (x < r.right) {
-                        renderer.drawTexture(picture.texture, x, y, picture.width, picture.height, opaque = false, alpha = alpha)
-                        x += picture.width
+                val tw = iw / unitScale
+                val th = ih / unitScale
+                // Only the tiles touching this monitor.
+                var ty = over.y + Math.floor((area.y - over.y) / th) * th
+                while (ty < area.bottom) {
+                    var tx = over.x + Math.floor((area.x - over.x) / tw) * tw
+                    while (tx < area.right) {
+                        part(r, area, picture, doubleArrayOf(tx, ty, tw, th), alpha)
+                        tx += tw
                     }
-                    y += picture.height
+                    ty += th
                 }
             }
         }
+    }
+
+    // The part of [picture] placed at [place] (desktop units) that is on the monitor [area], into its pixels [r].
+    private fun part(r: Rect, area: Rect, picture: Picture, place: DoubleArray, alpha: Float) {
+        val (px, py, pw, ph) = place.toList()
+        val left = max(px, area.x.toDouble())
+        val top = max(py, area.y.toDouble())
+        val right = min(px + pw, area.right.toDouble())
+        val bottom = min(py + ph, area.bottom.toDouble())
+        if (right <= left || bottom <= top) return
+        val sx = r.width.toDouble() / area.width
+        val sy = r.height.toDouble() / area.height
+        val x0 = (r.x + (left - area.x) * sx).roundToInt()
+        val y0 = (r.y + (top - area.y) * sy).roundToInt()
+        val x1 = (r.x + (right - area.x) * sx).roundToInt()
+        val y1 = (r.y + (bottom - area.y) * sy).roundToInt()
+        if (x1 <= x0 || y1 <= y0) return
+        val source = floatArrayOf(((left - px) / pw).toFloat(), ((top - py) / ph).toFloat(), ((right - left) / pw).toFloat(), ((bottom - top) / ph).toFloat())
+        renderer.drawTexture(picture.texture, x0, y0, x1 - x0, y1 - y0, opaque = false, alpha = alpha, source = source)
     }
 
     // --- painted and gradients: once per size ----------------------------------------------------

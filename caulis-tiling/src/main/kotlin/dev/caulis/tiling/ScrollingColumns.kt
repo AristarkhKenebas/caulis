@@ -48,7 +48,7 @@ private class ColumnsModel(private val gaps: Gaps, private val widths: List<Doub
             after = window
         }
 
-        val inner = inset(area, gaps.outer)
+        val inner = gaps.inset(area)
         val pixelWidths = columns.map { ((inner.width + gaps.inner) * it.width).toInt() - gaps.inner }
         val starts = pixelWidths.runningFold(0) { x, w -> x + w + gaps.inner }
         val stripWidth = (starts.last() - gaps.inner).coerceAtLeast(0)
