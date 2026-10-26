@@ -34,8 +34,8 @@ class GestureTest {
                 r.gesture(Gesture.SwipeBegin(0, 3))
                 repeat(10) { r.gesture(Gesture.SwipeUpdate(0, -width / 10.0, 0.0)) }
             }
-            val during = caulis.onLoop { r -> r.desktop.windows.first { it.title == "w1" }.let { r.desktop.shownRect(it)!!.x } }
-            assertTrue(during < 0, "w1 moved with the fingers: $during")
+            // (Where it is drawn follows a frame later: waited for, not read at once.)
+            client.waitFor { caulis.onLoop { r -> r.desktop.windows.first { it.title == "w1" }.let { r.desktop.shownRect(it)?.x ?: 0 } } < 0 }
             caulis.onLoop { r -> r.gesture(Gesture.SwipeEnd(0, cancelled = false)) }
             client.waitFor { caulis.onLoop { r -> r.desktop.windows.first { it.title == "w3" }.x } == 0 } // two cells: w3 at the left edge
             assertEquals("w3", caulis.onLoop { it.desktop.focusedWindow?.title }, "w1 left the screen, so the window in view got the focus")

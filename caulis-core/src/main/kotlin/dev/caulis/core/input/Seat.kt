@@ -246,14 +246,14 @@ class Seat(private val display: Display, keymap: Keymap) : AutoCloseable {
         keyboardFocus?.let { focus -> for (keyboard in keyboardsOf(focus.resource.client)) sendModifiers(keyboard) }
     }
 
+    /** True if programs were told [evdevCode] is pressed (and not yet that it was let go). */
+    fun holds(evdevCode: Int): Boolean = evdevCode in pressedKeys
+
     /**
      * A key the compositor kept for itself (a binding): the keyboard's state follows it all
      * the same — a layout switch on it ("grp:win_space_toggle"), Caps Lock — but no program
      * gets the key.
      */
-    /** True if programs were told [evdevCode] is pressed (and not yet that it was let go). */
-    fun holds(evdevCode: Int): Boolean = evdevCode in pressedKeys
-
     fun trackKey(evdevCode: Int, pressed: Boolean) {
         if (!keyboardState.update(evdevCode, pressed)) return
         keyboardFocus?.let { focus -> for (keyboard in keyboardsOf(focus.resource.client)) sendModifiers(keyboard) }

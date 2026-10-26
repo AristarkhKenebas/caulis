@@ -38,9 +38,21 @@ class DailyProtocolsTest {
             redirectErrorStream(true)
         }.start()
         input?.let { process.outputStream.use { out -> out.write(it.toByteArray()) } } ?: process.outputStream.close()
-        // wl-copy stays to serve what it copied: only paste is waited for.
+        // wl-copy stays to serve what it copied: only paste is waited for — until what it copies
+        // is there (a busy machine starts it slowly).
         if (command[0] == "wl-copy") {
-            Thread.sleep(500)
+            val primary = "--primary" in command
+            val deadline = System.nanoTime() + 10_000_000_000
+            while (System.nanoTime() < deadline) {
+                val paste = ProcessBuilder(listOfNotNull("wl-paste", "--no-newline", "--primary".takeIf { primary })).apply {
+                    environment()["WAYLAND_DISPLAY"] = socket.toString()
+                    environment()["XDG_RUNTIME_DIR"] = socket.parent.toString()
+                    redirectErrorStream(true)
+                }.start()
+                paste.outputStream.close()
+                if (paste.waitFor(5, TimeUnit.SECONDS) && paste.inputStream.readAllBytes().decodeToString() == input) break
+                Thread.sleep(100)
+            }
             return ""
         }
         assertTrue(process.waitFor(5, TimeUnit.SECONDS), "${command.joinToString(" ")} finished")

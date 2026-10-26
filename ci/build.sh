@@ -11,13 +11,15 @@ cd "$(dirname "$0")/.."
 gradle_options=(--console=plain --stacktrace)
 # On CI machines, a daemon that outlives the job only costs memory.
 [[ -n "${CI:-}" ]] && gradle_options+=(--no-daemon)
+# A release (CAULIS_VERSION=0.2.0): the jars carry that version, not the catalog's.
+[[ -n "${CAULIS_VERSION:-}" ]] && gradle_options+=(-Pcaulis.version="$CAULIS_VERSION")
 
 echo "== Caulis: build and test"
 ./gradlew "${gradle_options[@]}" build
 
 echo "== The project template still builds"
 template_dir="$(mktemp -d)"
-templates/new-compositor.sh "$template_dir/template-check" > /dev/null
+templates/new-compositor.sh --sources "$template_dir/template-check" > /dev/null
 (cd "$template_dir/template-check" && ./gradlew "${gradle_options[@]}" build)
 rm -rf "$template_dir"
 

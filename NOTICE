@@ -1,6 +1,5 @@
 Caulis
-Licensed under the Mozilla Public License 2.0 (see LICENSE), except caulis-cursor-bibata
-(GPL-3.0, as the Bibata cursor themes; see caulis-cursor-bibata/LICENSE).
+Licensed under the Mozilla Public License 2.0 (see LICENSE).
 
 The Kotlin classes in caulis-protocol/src/generated are made from the Wayland protocol
 descriptions in caulis-protocol/src/main/protocols and carry their documentation. Those files
@@ -47,6 +46,7 @@ org_kde_kwin_server_decoration), the LGPL-2.1-or-later:
   Copyright © 2022 Kenny Levinsen
   Copyright © 2022 Simon Ser
   Copyright © 2022 wb9688
+  Copyright © 2023 Carlos Garnacho
   Copyright © 2023 i509VCB
   Copyright 2023 Simon Ser
   Copyright © 2024 Neal Gompa

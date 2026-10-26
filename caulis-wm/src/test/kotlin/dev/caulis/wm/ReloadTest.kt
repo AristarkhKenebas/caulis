@@ -33,7 +33,8 @@ class ReloadTest {
                 layout = Dwindle(Gaps(0, 0))
             }
             val (restartOnly, _) = caulis.onLoop { it.reconfigure(next) }
-            assertEquals(listOf("keyboardLayouts"), restartOnly)
+            // (Keyboard layouts change live now: nothing waits for a restart.)
+            assertEquals(emptyList(), restartOnly)
             assertSame(next, next.onLoop { it.config })
             assertEquals(1, next.onLoop { it.desktop.windows.size }, "the window is still there")
 

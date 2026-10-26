@@ -29,7 +29,14 @@ Caulis.create()
 **New here? Start with [Your first compositor](docs/getting-started.md)**, or create a
 ready project right away: `templates/new-compositor.sh ~/my-compositor`.
 
-See `examples/` (`minimal`, `minimal-java`, `custom-layout`, `window-rules`).
+Caulis is on Maven Central:
+
+```kotlin
+repositories { mavenCentral(); google() } // (google(): only for caulis-compose's Compose)
+dependencies { implementation("io.github.aristarkhkenebas:caulis-wm:0.2.0") }
+```
+
+See `examples/` (`minimal`, `minimal-java`, `custom-layout`, `window-rules`, `desktop`, `ipc`).
 
 Many layouts are built in (master/stack on any side, centred master, i3-like strips,
 dwindle, bspwm-like spiral, grid, columns, rows, monocle, scrolling) — and describing your

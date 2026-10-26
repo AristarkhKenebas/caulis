@@ -408,7 +408,7 @@ internal class Running(
         logind?.let { l ->
             l.onSleep = { ready -> goingToSleep(ready) }
             l.onWake = ::wokeUp
-            l.onLock = { lock -> if (lock && !desktop.locked) safely("lock") { config.lock() } }
+            l.onLock = { lock -> if (lock && !lockedNow()) safely("lock") { config.lock() } }
         }
         idle = dev.caulis.core.Idle(display, loop, desktop)
         desktop.onUserActivity = ::userActive
@@ -489,17 +489,28 @@ internal class Running(
         applyConfig()
     }
 
+    // True while the screen is locked: by a locker program, or by the compositor's own (lockerShows).
+    private fun lockedNow(): Boolean =
+        desktop.locked || config.lockerShows?.let { shows -> safely("lockerShows", false) { shows(config) } } == true
+
     // The computer is about to sleep: your onSleep, the screen locked (when asked for), then [ready].
     private fun goingToSleep(ready: () -> Unit) {
         config.sleepActions.toList().forEach { action -> safely("onSleep") { action(config) } }
-        if (!config.lockBeforeSleep || desktop.locked) return ready()
+        if (!config.lockBeforeSleep || lockedNow()) return ready()
         safely("the lock before sleep") { config.lock() }
-        // A lock screen of the compositor's own is up at once.
-        if (config.locker != null) return ready()
-        // Sleep once the locker shows (or after a while: logind does not wait for ever anyway).
+        // A lock screen of the compositor's own that cannot say when it shows: taken as up at once.
+        if (config.locker != null && config.lockerShows == null) return ready()
+        // Sleep once the lock screen shows (or after a while: logind does not wait for ever anyway).
         val since = System.nanoTime()
         fun check() {
-            if (desktop.locked || System.nanoTime() - since > 3_000_000_000) ready() else loop.after(50) { check() }
+            when {
+                lockedNow() -> ready()
+                System.nanoTime() - since > 3_000_000_000 -> {
+                    log.warn("The screen did not lock in 3 s before sleep")
+                    ready()
+                }
+                else -> loop.after(50) { check() }
+            }
         }
         check()
     }
@@ -749,8 +760,6 @@ internal class Running(
             check("sharpJavaScaling", before.sharpJavaScaling, next.sharpJavaScaling)
             check("workspaceMode", before.workspaceMode, next.workspaceMode)
             check("nestedMonitors", before.nestedMonitors, next.nestedMonitors)
-            check("keyboardLayouts", before.keyboardLayouts, next.keyboardLayouts)
-            check("keyboardOptions", before.keyboardOptions, next.keyboardOptions)
             check("title", before.title, next.title)
             check("appId", before.appId, next.appId)
             check("socketDirectory", before.socketDirectory, next.socketDirectory)
@@ -984,6 +993,9 @@ internal class Running(
         val keysym = seat.shortcutName(evdevCode)
         val locked = desktop.locked
         if (locked && !keysym.startsWith("XF86")) return false // (never what is typed into the locker)
+        // An overlay (a screenshot chooser) has the keys to itself, as it has the mouse; its
+        // releases too (else a Ctrl taken here stayed held for it). The laptop's keys go on.
+        if (desktop.overlay != null && !keysym.startsWith("XF86")) return false
         val input = KeyInput(evdevCode, pressed, keysym, modifiersHeld, before, locked, timeMillis)
         return config.keyHandlers.asReversed().any { handler -> safely("onKey", false) { handler(config, input) } }
     }

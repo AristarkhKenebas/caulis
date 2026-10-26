@@ -11,7 +11,8 @@ dependencyResolutionManagement {
     }
 }
 
-// Caulis is used from its source folder (set in gradle.properties) until it is published.
+// Caulis comes from Maven Central — or from its source folder, when gradle.properties names one
+// (templates/new-compositor.sh --sources): changes to Caulis then show at once.
 providers.gradleProperty("caulis.sources").orNull?.let { path ->
     val sources = file(path)
     check(sources.resolve("caulis-wm").isDirectory) { "caulis.sources in gradle.properties does not point to Caulis: $sources" }

@@ -69,7 +69,7 @@ class ComposeWidget @JvmOverloads constructor(
      */
     private val sceneSize: ((Monitor) -> Pair<Int, Int>?)? = null,
     /** How the picture is shown (see-through, bigger or smaller, moved): done by the compositor, nothing drawn anew. */
-    private val appearance: (Monitor) -> Appearance = { Appearance.SHOWN },
+    private val appearance: (Monitor) -> WidgetLook = { WidgetLook.SHOWN },
     /** True while [appearance] changes by itself: frames keep coming. */
     private val moving: () -> Boolean = { false },
     private val content: @Composable (monitor: Monitor) -> Unit,
@@ -116,7 +116,7 @@ class ComposeWidget @JvmOverloads constructor(
         val look = appearance(monitor)
         if (look.alpha <= 0.002f) return
         val sceneRect = Rect(area.x, area.y, Math.round(part.width / part.scale).toInt(), Math.round(part.height / part.scale).toInt())
-        if (look == Appearance.SHOWN && sceneRect == area) return canvas.image(texture, area)
+        if (look == WidgetLook.SHOWN && sceneRect == area) return canvas.image(texture, area)
         // Bigger or smaller about the area's middle, then moved.
         val cx = area.x + area.width / 2.0
         val cy = area.y + area.height / 2.0
@@ -208,7 +208,6 @@ class ComposeWidget @JvmOverloads constructor(
         hoverOn = null
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     /**
      * A press somewhere not on it ([Widget.pressedOutside]: x, y, on another widget): true if it
      * was for this (a menu that closed), then nothing else gets it. Null: it does not care.
@@ -218,6 +217,7 @@ class ComposeWidget @JvmOverloads constructor(
     override fun pressedOutside(button: Int, x: Double, y: Double, onAnother: Boolean): Boolean =
         onPressOutside?.invoke(x, y, onAnother) ?: false
 
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun pointerButton(button: Int, pressed: Boolean) {
         val part = sceneOf(hoverOn) ?: return
         if (pressed) keysOn = hoverOn
@@ -283,9 +283,12 @@ class ComposeWidget @JvmOverloads constructor(
     /**
      * Draws its scene once now, off screen, [width] x [height] units on [monitor]. The first
      * time something is drawn is slow (classes loaded, fonts, pictures): done ahead, its first
-     * showing is as quick as the next ones. Its own scene is kept when that is its size.
+     * showing is as quick as the next ones. Its own scene is kept when that is its size
+     * (with a sceneSize, the scene is that size and [width], [height] do not matter). Nothing
+     * once it is closed.
      */
     fun prewarm(monitor: Monitor, width: Int, height: Int) {
+        if (closed) return
         val part = partFor(monitor, Rect(0, 0, width, height)) ?: return
         render(part)
     }

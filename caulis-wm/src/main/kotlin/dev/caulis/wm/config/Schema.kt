@@ -81,16 +81,16 @@ object FlagType : SettingType() {
     override fun jsonSchema() = """{"type":"boolean"}"""
 }
 
-/** Any text (not empty). */
+/** A time of day, "HH:MM" or "H:MM" (24 hours). */
 @InternalCaulisApi
-/** A time of day, "HH:MM" (24 hours). */
 object TimeType : SettingType() {
     override val words get() = "a time of day (\"20:00\")"
 
     override fun read(json: JsonValue, path: String, problems: Problems): Any? {
         val text = (json as? JsonValue.Str)?.value ?: return problems.add(path, json, "$words, not ${json.kind}").let { null }
         return try {
-            java.time.LocalTime.parse(text.trim())
+            // ("7:00" too, as the schema lets an editor write it.)
+            java.time.LocalTime.parse(text.trim(), java.time.format.DateTimeFormatter.ofPattern("H:mm"))
         } catch (_: java.time.format.DateTimeParseException) {
             problems.add(path, json, "$words, not \"$text\"").let { null }
         }
@@ -100,6 +100,8 @@ object TimeType : SettingType() {
     override fun jsonSchema() = """{"type":"string","pattern":"^[0-2]?[0-9]:[0-5][0-9]$"}"""
 }
 
+/** Any text (not empty). */
+@InternalCaulisApi
 class TextType(private val description: String = "text") : SettingType() {
     override val words get() = description
 

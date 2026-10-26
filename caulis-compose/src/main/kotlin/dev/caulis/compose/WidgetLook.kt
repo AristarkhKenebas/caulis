@@ -5,7 +5,7 @@ package dev.caulis.compose
  * area's middle, moved by [dx], [dy] (desktop units), [reveal] of it shown from the top. The compositor does it with the picture
  * as it is, so appearing and going away cost no drawing.
  */
-data class Appearance(
+data class WidgetLook(
     val alpha: Float = 1f,
     val scale: Float = 1f,
     val dx: Float = 0f,
@@ -16,6 +16,6 @@ data class Appearance(
     companion object {
         /** As it is. */
         @JvmField
-        val SHOWN = Appearance()
+        val SHOWN = WidgetLook()
     }
 }

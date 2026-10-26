@@ -480,21 +480,21 @@ internal class ScreenshotOverlay(
                 val picture = if (sharp == null && delay == 0) frozen[monitor]?.read(part, pointer) else null
                 desktop.closeOverlay()
                 when {
-                    sharp != null -> shots.deliver(sharp::draw, "a part of ${monitor.name}", copyOnly)
-                    picture != null -> shots.deliver(picture, "a part of ${monitor.name}", copyOnly)
-                    else -> shots.later { Frozen.capture(desktop, monitor, pointer).use { shots.deliver(it.read(part), "a part of ${monitor.name}", copyOnly) } }
+                    sharp != null -> shots.deliver(sharp::draw, "a part of ${monitor.name}", ShotKind.REGION, copyOnly)
+                    picture != null -> shots.deliver(picture, "a part of ${monitor.name}", ShotKind.REGION, copyOnly)
+                    else -> shots.later { Frozen.capture(desktop, monitor, pointer).use { shots.deliver(it.read(part), "a part of ${monitor.name}", ShotKind.REGION, copyOnly) } }
                 }
             }
             ShotKind.WINDOW -> {
                 val chosen = window ?: return desktop.showLevel(shots.style.word("Point at a window first"))
                 desktop.closeOverlay()
-                shots.later { if (chosen in desktop.allWindows) shots.takeWindow(chosen) }
+                shots.later { shots.takeWindow(chosen, copyOnly) }
             }
             ShotKind.SCREEN -> {
                 val monitor = screen
                 val picture = if (delay == 0) frozen[monitor]?.read(null, pointer) else null
                 desktop.closeOverlay()
-                if (picture != null) shots.deliver(picture, "screen ${monitor.name}", copyOnly) else shots.later { shots.takeScreen(monitor) }
+                if (picture != null) shots.deliver(picture, "screen ${monitor.name}", ShotKind.SCREEN, copyOnly) else shots.later { shots.takeScreen(monitor, copyOnly) }
             }
             ShotKind.WINDOWS -> {
                 val monitor = regionOn
@@ -505,13 +505,13 @@ internal class ScreenshotOverlay(
                     // (Before closing: the screen behind them is read from the picture it shows.)
                     val picture = shots.windowsPicture(monitor, chosen, frozen[monitor])
                     desktop.closeOverlay()
-                    picture?.let { shots.deliver(it::draw, what, copyOnly) }
+                    picture?.let { shots.deliver(it::draw, what, ShotKind.WINDOWS, copyOnly) }
                 } else {
                     desktop.closeOverlay()
                     // Later: where they are then.
                     shots.later {
                         val now = chosen.mapNotNull { (w, _) -> if (w in desktop.allWindows) desktop.shownRect(w)?.let { w to it } else null }
-                        Frozen.capture(desktop, monitor, false).use { screen -> shots.windowsPicture(monitor, now, screen)?.let { shots.deliver(it::draw, what, copyOnly) } }
+                        Frozen.capture(desktop, monitor, false).use { screen -> shots.windowsPicture(monitor, now, screen)?.let { shots.deliver(it::draw, what, ShotKind.WINDOWS, copyOnly) } }
                     }
                 }
             }

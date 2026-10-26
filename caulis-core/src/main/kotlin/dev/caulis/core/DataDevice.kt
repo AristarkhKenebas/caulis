@@ -218,22 +218,7 @@ interface ClipboardData {
 class TextOnClipboard(private val text: String) : ClipboardData {
     override val mimeTypes = listOf("text/plain;charset=utf-8", "text/plain", "UTF8_STRING", "STRING", "TEXT")
 
-    override fun send(mimeType: String, fd: Fd) {
-        val bytes = text.toByteArray(Charsets.UTF_8)
-        Thread({
-            fd.use {
-                java.lang.foreign.Arena.ofConfined().use { arena ->
-                    val all = arena.allocateFrom(java.lang.foreign.ValueLayout.JAVA_BYTE, *bytes)
-                    var done = 0L
-                    while (done < bytes.size) {
-                        val written = it.write(all.asSlice(done))
-                        if (written <= 0) break
-                        done += written
-                    }
-                }
-            }
-        }, "caulis-copy").apply { isDaemon = true }.start()
-    }
+    override fun send(mimeType: String, fd: Fd) = writeClipboard(fd, text.toByteArray(Charsets.UTF_8))
 
     override fun toString() = "text (${text.length} characters)"
 }
@@ -243,7 +228,10 @@ class TextOnClipboard(private val text: String) : ClipboardData {
  * first the main one; a picture's PNG: "image/png"; files: "text/uri-list" and its kin),
  * written on a thread of its own.
  */
-class BytesOnClipboard(private val formats: Map<String, ByteArray>) : ClipboardData {
+class BytesOnClipboard(formats: Map<String, ByteArray>) : ClipboardData {
+    // (Its own copy of the map; the bytes themselves are not copied: do not change them after.)
+    private val formats: Map<String, ByteArray> = LinkedHashMap(formats)
+
     /** One format alone. */
     constructor(mimeType: String, bytes: ByteArray) : this(mapOf(mimeType to bytes))
 
@@ -251,22 +239,66 @@ class BytesOnClipboard(private val formats: Map<String, ByteArray>) : ClipboardD
 
     override fun send(mimeType: String, fd: Fd) {
         val bytes = formats[mimeType] ?: return fd.close()
-        Thread({
-            fd.use {
-                java.lang.foreign.Arena.ofConfined().use { arena ->
-                    val all = arena.allocateFrom(java.lang.foreign.ValueLayout.JAVA_BYTE, *bytes)
-                    var done = 0L
-                    while (done < bytes.size) {
-                        val written = it.write(all.asSlice(done))
-                        if (written <= 0) break
-                        done += written
-                    }
-                }
-            }
-        }, "caulis-copy").apply { isDaemon = true }.start()
+        writeClipboard(fd, bytes)
     }
 
     override fun toString() = formats.entries.joinToString { (type, bytes) -> "$type (${bytes.size} bytes)" }
+}
+
+/**
+ * Writes [bytes] to [fd] (a program reading a paste) and closes it — on one of a few threads of
+ * the compositor's, not the caller's. A program that stops reading has 10 seconds, then the
+ * rest is dropped: none can keep threads or descriptors waiting for ever, nor make a thread for
+ * each paste it asks for. For [ClipboardData.send] of your own.
+ */
+fun writeClipboard(fd: Fd, bytes: ByteArray) {
+    try {
+        ClipboardWriters.pool.execute { ClipboardWriters.write(fd, bytes) }
+    } catch (_: java.util.concurrent.RejectedExecutionException) {
+        // (Too many pastes waiting at once: this one gets nothing.)
+        clipboardLog.warn("Too many pastes at once: one is dropped")
+        fd.close()
+    }
+}
+
+private val clipboardLog = dev.caulis.log.Logger("clipboard")
+
+private object ClipboardWriters {
+    // A few threads, a short queue of pastes waiting.
+    val pool = java.util.concurrent.ThreadPoolExecutor(
+        1, 4, 30, java.util.concurrent.TimeUnit.SECONDS, java.util.concurrent.ArrayBlockingQueue(32),
+        { r -> Thread(r, "caulis-copy").apply { isDaemon = true } },
+    )
+
+    fun write(fd: Fd, bytes: ByteArray) {
+        fd.use {
+            try {
+                it.setNonBlocking()
+                java.lang.foreign.Arena.ofConfined().use { arena ->
+                    val all = arena.allocateFrom(java.lang.foreign.ValueLayout.JAVA_BYTE, *bytes)
+                    val deadline = System.nanoTime() + 10_000_000_000L
+                    var done = 0L
+                    while (done < bytes.size) {
+                        val written = try {
+                            it.write(all.asSlice(done))
+                        } catch (e: dev.caulis.ffi.NativeException) {
+                            if (e.errno != dev.caulis.ffi.Errno.EAGAIN) return // (the program went away)
+                            0L
+                        }
+                        if (written > 0) {
+                            done += written
+                        } else {
+                            // Full for now: a moment, then again — until the program has waited too long.
+                            if (System.nanoTime() > deadline) return clipboardLog.trace { "A paste was not read in 10 s: the rest dropped" }
+                            Thread.sleep(5)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                clipboardLog.trace { "A paste could not be written: $e" }
+            }
+        }
+    }
 }
 
 /**
@@ -284,7 +316,9 @@ fun readClipboard(data: ClipboardData, mimeType: String, maxBytes: Int = 32 shl 
     } catch (e: Exception) {
         readEnd.close()
         runCatching { writeEnd.close() }
-        return done(null)
+        // (On a thread too, as when it is read: [done] is never run on the caller's thread.)
+        Thread({ done(null) }, "caulis-paste").apply { isDaemon = true }.start()
+        return
     }
     val reader = Thread({
         val out = java.io.ByteArrayOutputStream()

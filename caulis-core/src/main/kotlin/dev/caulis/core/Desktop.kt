@@ -1693,6 +1693,8 @@ class Desktop(
         grabs.toList().asReversed().forEach { it.dismiss() }
         grabs.clear()
         endGrab()
+        // Fingers on a program's window: the program forgets them (else they went on under the lock).
+        if (touchPoints.values.any { it.surface != null }) touchCancel((System.nanoTime() / 1_000_000).toInt())
         if (inOverview) {
             inOverview = false
             cameraFrom = Camera.NONE
@@ -2399,11 +2401,6 @@ class Desktop(
             if (notice.level == NoticeLevel.INFO || noticeBoard.style.painter !is CardNoticePainter) dismiss(notice)
             return true
         }
-        noticeBoard.at(pointerX, pointerY)?.let { notice ->
-            dismiss(notice)
-            noticeButton = button
-            return true
-        }
         return false
     }
 
@@ -2587,7 +2584,7 @@ class Desktop(
         val (fullscreen, normal) = stackingOrder().partition { it.fullscreen }
         if (fullscreen.any { !directed(it) && windowHit(it, x, y) != null }) return null
         // A director's windows are where it draws them, with no bars or edges of ours.
-        for ((window, place) in places.entries.reversed()) if (place.takesInput && place.alpha > 0f && directedHit(window, place, x, y) != null) return null
+        for ((window, place) in places.entries.reversed()) if (window.mapped && place.takesInput && place.alpha > 0f && directedHit(window, place, x, y) != null) return null
         for (window in normal.asReversed()) {
             if (directed(window)) continue
             if (windowHit(window, x, y) != null) return null // the window's own picture is on top
@@ -3220,6 +3217,8 @@ class Desktop(
         placements -= window
         appearing -= window
         pinned -= window
+        // Where the director drew it last: gone too (the pointer looked there before the next frame).
+        if (window in places) places = places - window
         // Its last look goes away smoothly (taken just before its picture went, or now).
         stopFlights(window)
         appearingPictures.remove(window)?.close()
@@ -3667,20 +3666,26 @@ class Desktop(
     /** The windows that want attention, oldest first. */
     val urgentWindows: List<Window> get() = allWindows.filter { it.urgent }
 
+    /** The modal dialog [window] waits for (the newest, a dialog's own dialog first), or null. */
+    fun modalDialogOf(window: Window): Window? {
+        var dialog = allWindows.lastOrNull { it.modal && it.parent === window && it !== window } ?: return null
+        // (A dialog's own dialog, and so on — a few levels; parents that point at each other end it.)
+        repeat(8) {
+            val next = allWindows.lastOrNull { it.modal && it.parent === dialog && it !== dialog && it !== window } ?: return dialog
+            dialog = next
+        }
+        return dialog
+    }
+
     /**
      * Raises [window], marks it active and gives it the keyboard (null = nothing focused).
      * A minimized window comes back; a window on another workspace brings that workspace.
      */
-    /** The modal dialog [window] waits for (the newest, a dialog's own dialog first), or null. */
-    fun modalDialogOf(window: Window): Window? {
-        val dialog = allWindows.lastOrNull { it.modal && it.parent === window && it !== window } ?: return null
-        return modalDialogOf(dialog) ?: dialog
-    }
-
     fun focus(window: Window?) {
         // A window waiting for a modal dialog of its own: the dialog gets the focus (an IDE's
-        // settings; else keys seemed to do nothing).
-        if (window != null) modalDialogOf(window)?.let { return focus(it) }
+        // settings; else keys seemed to do nothing) — unless a rule says it never takes it (then
+        // the focus went back to the window, and round again).
+        if (window != null) modalDialogOf(window)?.takeIf { behaviorOf(it).takesFocus }?.let { return focus(it) }
         // A window getting the focus takes the keyboard back from a widget.
         if (window != null && keyboardWidget != null) focusWidget(null)
         // One that never takes the keyboard: the top one of its workspace that does, instead.
@@ -4112,6 +4117,12 @@ class Desktop(
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean, passToApps: Boolean = true) {
         inputLog.trace { "Button $button ${if (pressed) "pressed" else "released"} at ${pointerX.toInt()},${pointerY.toInt()}${if (passToApps) "" else " (for the window manager)"}" }
         buttonsHeld = (buttonsHeld + if (pressed) 1 else -1).coerceAtLeast(0)
+        // A first button pressed: no release is owed to a notice or a menu any more (one taken
+        // elsewhere — by the lock, by an overlay — left these set).
+        if (pressed && buttonsHeld == 1) {
+            noticeButton = null
+            outsideButton = null
+        }
         // The last button let go: the program the press was in lets go of the pointer.
         val releasedFrom = if (!pressed && buttonsHeld == 0) pressedIn.also { pressedIn = null } else null
         cursorActive()
@@ -4334,7 +4345,7 @@ class Desktop(
         layerAt(LayerShell.Layer.TOP, x, y)?.let { return it.at() }
         widget(DrawingLevel.ABOVE_WINDOWS)?.let { return it }
         // The director's windows, topmost first, where they are drawn (stretched maybe).
-        for ((window, place) in places.entries.reversed()) if (place.takesInput && place.alpha > 0f) directedHit(window, place, x, y)?.let { return it.at() }
+        for ((window, place) in places.entries.reversed()) if (window.mapped && place.takesInput && place.alpha > 0f) directedHit(window, place, x, y)?.let { return it.at() }
         for (window in normal.asReversed()) if (window !in places && !directed(window)) windowHit(window, x, y)?.let { return it.at() }
         widget(DrawingLevel.BELOW_WINDOWS)?.let { return it }
         layerAt(LayerShell.Layer.BOTTOM, x, y)?.let { return it.at() }
@@ -4464,7 +4475,12 @@ class Desktop(
             version++
             onChange()
         }
-        pointerOntoWhatIsThere()
+        // (What is under the pointer may fail on a window going away: the frame is drawn all the same.)
+        try {
+            pointerOntoWhatIsThere()
+        } catch (e: Exception) {
+            log.error("Finding what is under the pointer failed (the frame is drawn anyway)", e)
+        }
         placeHardwareCursor(view)
         // A moving screen shader: every frame anew (and the next one asked for).
         val shaderMoves = screenShader?.moving == true

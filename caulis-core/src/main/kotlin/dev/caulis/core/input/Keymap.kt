@@ -142,15 +142,19 @@ class KeyboardState internal constructor(
     }
 
     /**
-     * The symbol a key means for shortcuts: for a printing key what it gives in the first layout
-     * where it is Latin, whatever layout is in use — so Super+D is Super+D on the Russian layout
-     * too (where the key types "в"), and Super+/ is Super+/ (where it types "."). Keys like F1,
-     * Return and the arrows are as they are.
+     * The symbol a key means for shortcuts: a Latin letter of the layout in use as it is; else for
+     * a printing key what it gives in the first layout where it is Latin — so Super+D is Super+D
+     * on the Russian layout too (where the key types "в"), and Super+/ is Super+/ (where it types
+     * "."). Keys like F1, Return and the arrows are as they are.
      */
     fun shortcutSymbol(evdevCode: Int, layoutCount: Int): Int {
         val now = symbol(evdevCode)
         // Keys that are the same in every layout (Return, F1, the arrows, XF86...) and a single layout: as they are.
-        if (layoutCount <= 1 || now >= 0xfe00 || now in 0..0x1f) return now
+        // (Not a Unicode symbol, 0x01000100 on: Armenian, Georgian letters are looked up as the others.)
+        val unicode = now in 0x01000100..0x0110ffff
+        if (layoutCount <= 1 || (now >= 0xfe00 && !unicode) || now in 0..0x1f) return now
+        // A Latin letter in the layout in use (French, German): that one — on AZERTY the key of "a" is Super+A.
+        if (now in 0x41..0x5a || now in 0x61..0x7a || now in 0xc0..0xff && now != 0xd7 && now != 0xf7) return now
         // A printing key: what it gives in the first layout where it is Latin (on "us,ru" the us
         // one, also for punctuation: the key of "." on the Russian layout is "/" for shortcuts).
         val m = modifiers

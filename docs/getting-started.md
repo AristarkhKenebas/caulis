@@ -15,7 +15,8 @@ can write a bit of Kotlin (or Java), you can follow along.
 
 ## 1. Get Caulis
 
-Caulis is not on Maven Central yet, so you build against a copy of its sources:
+Caulis is on Maven Central (`io.github.aristarkhkenebas:caulis-wm`), so your project needs no
+copy of it. The template and the examples come with its sources, though:
 
 ```sh
 git clone <caulis repository> ~/caulis
@@ -30,6 +31,9 @@ The quickest way — a ready project from the template:
 cd ~/my-compositor
 ./gradlew run
 ```
+
+(It uses Caulis from Maven Central; `new-compositor.sh --sources ~/my-compositor` builds it from
+your Caulis folder instead.)
 
 Then skip to step 3. If you prefer to see every piece, make a folder with three files:
 
@@ -47,8 +51,8 @@ dependencyResolutionManagement {
     repositories { mavenCentral() }
 }
 
-// Use the Caulis sources from step 1 (change the path if you put them elsewhere).
-includeBuild("../caulis")
+// (Caulis comes from Maven Central. To build it from the sources of step 1 instead — your
+// changes to Caulis at once — add: includeBuild("../caulis").)
 ```
 
 `build.gradle.kts`:
@@ -70,7 +74,7 @@ kotlin {
 tasks.withType<JavaCompile>().configureEach { options.release = 26 }
 
 dependencies {
-    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.1")
+    implementation("io.github.aristarkhkenebas:caulis-wm:0.2.0")
 }
 
 application {
@@ -1461,7 +1465,7 @@ can also say *when* and *how* — functions on keys, on events, on timers. Add t
 your compositor:
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-lua:0.1.1")
+implementation("io.github.aristarkhkenebas:caulis-lua:0.2.0")
 ```
 
 Then it reads `~/.config/<configName>/config.lua` by itself (after `config.json`, on top of
@@ -1545,7 +1549,7 @@ no project: the compositor compiles it itself. Add the module (it contains the K
 compiler, so it makes your compositor bigger):
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-script:0.1.1")
+implementation("io.github.aristarkhkenebas:caulis-script:0.2.0")
 ```
 
 `~/.config/<configName>/config.kts` is then read after `config.json` and `config.lua`, as if
@@ -1758,7 +1762,7 @@ what you type — do not share one in which you typed a password.
 
 | Message | What it means |
 | --- | --- |
-| `... compiled by a more recent version of the Java Runtime` | Your `java` is older than 27. Run with `JAVA_HOME` pointing to a JDK 27. |
+| `... compiled by a more recent version of the Java Runtime` | Your `java` is older than 26 (Caulis is Java 26 bytecode). Run with `JAVA_HOME` pointing to a JDK 26 or newer (27 builds it). |
 | `Could not open the seat` | Running on the screen needs a text console (Ctrl+Alt+F3) of a logged-in user. |
 | `"xyz" could not be started: the program was not found` | `launch("xyz")`: that program is not installed. |
 | `Do not run ... as root` | Start it as your normal user — a compositor never needs root. |

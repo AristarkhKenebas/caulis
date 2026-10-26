@@ -111,7 +111,7 @@ class Screenshots internal constructor(private val caulis: Caulis) {
      */
     var sharpWallpaper = true
 
-    /** The file's name: {date} (2026-10-26), {time} (14-03-22), {kind} (region, window, screen). */
+    /** The file's name: {date} (2026-10-26), {time} (14-03-22), {kind} (region, window, screen, windows). */
     var fileName = "Screenshot from {date} {time}"
 
     /** "png" or "jpg" (smaller, no see-through; [jpegQuality] 0..1). */
@@ -174,17 +174,19 @@ class Screenshots internal constructor(private val caulis: Caulis) {
 
     // --- taking -----------------------------------------------------------------------------
 
-    internal fun takeScreen(monitor: Monitor) {
-        Frozen.capture(caulis.desktop, monitor, pointer).use { frozen -> deliver(frozen.read(null), "screen ${monitor.name}") }
+    internal fun takeScreen(monitor: Monitor, copyOnly: Boolean = false) {
+        Frozen.capture(caulis.desktop, monitor, pointer).use { frozen -> deliver(frozen.read(null), "screen ${monitor.name}", ShotKind.SCREEN, copyOnly) }
     }
 
-    internal fun takeWindow(window: Window) {
+    internal fun takeWindow(window: Window, copyOnly: Boolean = false) {
+        // (Gone meanwhile — closed during a countdown: nothing, not an empty picture.)
+        if (window !in caulis.desktop.allWindows) return log.info { "The window to take is gone" }
         val desktop = caulis.desktop
         val (width, height) = desktop.windowPixelSize(window)
         val target = desktop.renderer.createTarget(width, height)
         try {
             desktop.captureWindow(window, target)
-            deliver(Pixels.read(target, null, transparent = true), "window ${window.appId}")
+            deliver(Pixels.read(target, null, transparent = true), "window ${window.appId}", ShotKind.WINDOW, copyOnly)
         } finally {
             target.close()
         }
@@ -195,17 +197,21 @@ class Screenshots internal constructor(private val caulis: Caulis) {
         val seconds = delaySeconds
         if (seconds <= 0) return take()
         for (left in seconds downTo 1) caulis.after((seconds - left) * 1000L) { desktop.showLevel(style.word("Screenshot in %s").replace("%s", left.toString())) }
-        caulis.after(seconds * 1000L + 150) { take() } // (the countdown gone from the screen first)
+        caulis.after(seconds * 1000L + 150) {
+            // (Locked meanwhile: nothing is taken — the windows are not to be seen now.)
+            if (desktop.locked) return@after log.info { "Locked during the countdown: no screenshot" }
+            take()
+        } // (the countdown gone from the screen first)
     }
 
-    internal fun deliver(picture: Pixels, what: String, copyOnly: Boolean = false) = deliver({ picture }, what, copyOnly)
+    internal fun deliver(picture: Pixels, what: String, kind: ShotKind, copyOnly: Boolean = false) = deliver({ picture }, what, kind, copyOnly)
 
     // Makes the picture ([make]: putting windows together), saves and copies it on a thread of
     // its own (PNG takes a moment), then says so.
-    internal fun deliver(make: () -> Pixels, what: String, copyOnly: Boolean = false) {
+    internal fun deliver(make: () -> Pixels, what: String, kind: ShotKind, copyOnly: Boolean = false) {
         val now = LocalDateTime.now()
         val jpeg = format.lowercase().let { it == "jpg" || it == "jpeg" }
-        val name = fileName.replace("{date}", now.format(DATE)).replace("{time}", now.format(TIME)).replace("{kind}", what.substringBefore(' '))
+        val name = fileName.replace("{date}", now.format(DATE)).replace("{time}", now.format(TIME)).replace("{kind}", kind.name.lowercase())
             .replace('/', '-').ifBlank { "Screenshot from ${now.format(FILE_TIME)}" }
         val file = if (save && !copyOnly) folder.resolve("$name.${if (jpeg) "jpg" else "png"}") else null
         val copying = copy || copyOnly
@@ -215,12 +221,12 @@ class Screenshots internal constructor(private val caulis: Caulis) {
                 val png = picture.png()
                 val saved = file?.let {
                     Files.createDirectories(it.parent)
-                    uniqueName(it).also { path -> Files.write(path, if (jpeg) picture.jpeg(jpegQuality) else png) }
+                    writeNew(it, if (jpeg) picture.jpeg(jpegQuality) else png)
                 }
                 caulis.post {
                     if (copying) clipboard.setClipboard(PngOnClipboard(png))
-                    log.info { "Took $what (${picture.width}x${picture.height})${file?.let { " → $it" } ?: ""}${if (copying) ", copied" else ""}" }
-                    if (notify) notify(listOfNotNull(file?.let { "Saved to ${shortPath(it)}" }, if (copying) "Copied" else null).joinToString(" · "), title = "Screenshot")
+                    log.info { "Took $what (${picture.width}x${picture.height})${saved?.let { " → $it" } ?: ""}${if (copying) ", copied" else ""}" }
+                    if (notify) notify(listOfNotNull(saved?.let { "Saved to ${shortPath(it)}" }, if (copying) "Copied" else null).joinToString(" · "), title = "Screenshot")
                     onTaken(saved)
                     // Then: the configured command with it (an editor).
                     val command = then?.takeIf { it.isNotBlank() }
@@ -229,18 +235,29 @@ class Screenshots internal constructor(private val caulis: Caulis) {
                         caulis.launch(if ("{file}" in command) command.replace("{file}", quoted) else "$command $quoted")
                     }
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // (Out of memory too — a huge picture: said, not a thread gone without a word.)
                 log.error("The screenshot could not be saved", e)
-                caulis.post { notify("The screenshot could not be saved: ${e.message}", title = "Screenshot") }
+                caulis.post { notify("The screenshot could not be saved: ${e.message ?: e.javaClass.simpleName}", title = "Screenshot") }
+                if (e is VirtualMachineError && e !is OutOfMemoryError) throw e
             }
         }, "caulis-screenshot").apply { isDaemon = true }.start()
     }
 
-    private fun uniqueName(file: Path): Path {
-        if (!Files.exists(file)) return file
+    // Writes [bytes] as [file], or "name (2).png", "name (3).png"... — never over a file there
+    // (two screenshots in the same second keep both): the path written.
+    private fun writeNew(file: Path, bytes: ByteArray): Path {
         val ext = file.fileName.toString().substringAfterLast('.', "png")
         val base = file.fileName.toString().removeSuffix(".$ext")
-        return (2..999).asSequence().map { file.resolveSibling("$base ($it).$ext") }.firstOrNull { !Files.exists(it) } ?: file
+        for (n in 1..9999) {
+            val path = if (n == 1) file else file.resolveSibling("$base ($n).$ext")
+            try {
+                Files.write(path, bytes, java.nio.file.StandardOpenOption.CREATE_NEW, java.nio.file.StandardOpenOption.WRITE)
+                return path
+            } catch (_: java.nio.file.FileAlreadyExistsException) {
+            }
+        }
+        throw java.io.IOException("no free name for $file")
     }
 
     // The windows on [monitor] as drawn now, bottom to top, and where.
@@ -266,6 +283,8 @@ class Screenshots internal constructor(private val caulis: Caulis) {
         val desktop = caulis.desktop
         val factor = shown.maxOf { (w, r) -> desktop.windowPixelSize(w).first.toDouble() / r.width.coerceAtLeast(1) }
             .coerceAtLeast(monitor.scale).coerceAtMost(8.0).coerceAtMost(16384.0 / maxOf(part.width, part.height))
+            // (At most 64 million pixels in all: one picture of that is 256 MB already.)
+            .coerceAtMost(Math.sqrt(64e6 / (part.width.toDouble() * part.height).coerceAtLeast(1.0)))
         return part to factor
     }
 
@@ -334,11 +353,14 @@ class Screenshots internal constructor(private val caulis: Caulis) {
         private val FILE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm-ss")
         private val DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         private val TIME = DateTimeFormatter.ofPattern("HH-mm-ss")
-        private val installed = WeakHashMap<Caulis, Screenshots>()
+        // (Held weakly both ways: the screenshots refer to their Caulis, which must still go away.)
+        private val installed = WeakHashMap<Caulis, java.lang.ref.WeakReference<Screenshots>>()
 
         /** The screenshots of [caulis] (made the first time, without keys). */
         @JvmStatic
-        fun of(caulis: Caulis): Screenshots = synchronized(installed) { installed.getOrPut(caulis) { Screenshots(caulis) } }
+        fun of(caulis: Caulis): Screenshots = synchronized(installed) {
+            installed[caulis]?.get() ?: Screenshots(caulis).also { installed[caulis] = java.lang.ref.WeakReference(it) }
+        }
 
         // ~/Pictures, or what user-dirs.dirs says (XDG_PICTURES_DIR="$HOME/Bilder").
         internal fun picturesFolder(): Path {

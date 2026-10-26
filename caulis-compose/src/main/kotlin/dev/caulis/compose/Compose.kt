@@ -27,7 +27,7 @@ fun Caulis.compose(
     reserve: (Monitor) -> Reserve? = { null },
     takesKeyboard: Boolean = false,
     sceneSize: ((Monitor) -> Pair<Int, Int>?)? = null,
-    appearance: (Monitor) -> Appearance = { Appearance.SHOWN },
+    appearance: (Monitor) -> WidgetLook = { WidgetLook.SHOWN },
     moving: () -> Boolean = { false },
     content: @Composable (monitor: Monitor) -> Unit,
 ): AutoCloseable {

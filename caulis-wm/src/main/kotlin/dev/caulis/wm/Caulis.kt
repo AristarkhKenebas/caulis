@@ -977,12 +977,13 @@ class Caulis {
      * For tests (headless, CAULIS_MODE=headless): input as if it came from a mouse — the
      * pointer to ([x], [y]) on the desktop, then a click of [button] (272 left, 273 right, 274
      * middle; 0: none) — through everything real input goes through: the hooks
-     * ([onPointerButton]), the bindings, the windows and widgets.
+     * ([onPointerMotion], [onPointerButton]), the bindings, the windows and widgets. Call it on the
+     * compositor's thread (from a key, a command, [post]), as the other simulate functions.
      */
     fun simulatePointer(x: Double, y: Double, button: Int = 0) {
         val running = checkNotNull(running) { "Caulis is not running yet" }
         val time = (System.nanoTime() / 1_000_000).toInt()
-        running.desktop.pointerMoved(time, x, y)
+        running.pointerMovedTo(time, x, y)
         if (button != 0) {
             running.pointerButton(time, button, true)
             running.pointerButton(time + 20, button, false)
@@ -1490,8 +1491,19 @@ class Caulis {
      */
     var locker: (Caulis.() -> Unit)? = null
 
-    /** Sets [locker]. */
-    fun locker(lock: Caulis.() -> Unit): Caulis = apply { locker = lock }
+    /**
+     * True while your [locker]'s lock screen shows (null: not known — taken as shown as soon as
+     * it was asked for). With it, sleep waits until it shows (a few seconds at most) and a
+     * lock asked for again (logind's Lock, the lock before sleep) is not asked of it twice.
+     */
+    var lockerShows: (Caulis.() -> Boolean)? = null
+
+    /** Sets [locker] and, if known, how to tell it shows ([lockerShows]). */
+    @JvmOverloads
+    fun locker(shows: (Caulis.() -> Boolean)? = null, lock: Caulis.() -> Unit): Caulis = apply {
+        locker = lock
+        lockerShows = shows
+    }
 
     /**
      * Lock the screen before the computer sleeps (suspend, hibernate), so it wakes up locked
