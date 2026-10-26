@@ -433,6 +433,9 @@ class Caulis {
     var keyboardLayouts = "us"
     var keyboardOptions = ""
 
+    /** Num Lock on (true) or off (false) from the start; null leaves it to the keyboard. Changing it switches it at once. */
+    var numLock: Boolean? = null
+
     /** Keyboard layout variants, one per layout as for setxkbmap: "", "dvorak", ",phonetic". Restart to change. */
     var keyboardVariants = ""
 

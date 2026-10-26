@@ -199,6 +199,13 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
         }
     }
 
+    /** Turns Num Lock on or off, as if its key was pressed (the program with the keyboard is told). */
+    fun setNumLock(on: Boolean) {
+        if (!keyboardState.setNumLock(on)) return
+        val focus = keyboardFocus ?: return
+        for (keyboard in keyboardsOf(focus.resource.client)) sendModifiers(keyboard)
+    }
+
     /** The character [evdevCode] types now (layout, Shift, AltGr), or null: none (for the compositor's own text fields). */
     fun textOf(evdevCode: Int): String? = keyboardState.text(evdevCode)
 

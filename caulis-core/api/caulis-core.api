@@ -226,6 +226,15 @@ public final class dev/caulis/core/Border {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/caulis/core/CardNoticePainter : dev/caulis/core/NoticePainter {
+	public fun <init> ()V
+	public fun <init> (Ldev/caulis/render/Color;)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;)V
+	public synthetic fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun height (Ljava/awt/Graphics2D;Ldev/caulis/core/NoticeLook;)I
+	public fun paint (Ljava/awt/Graphics2D;Ldev/caulis/core/NoticeLook;)V
+}
+
 public abstract interface class dev/caulis/core/ClientBuffer {
 	public abstract fun getHeight ()I
 	public abstract fun getWidth ()I
@@ -616,6 +625,7 @@ public final class dev/caulis/core/DrawingLevel : java/lang/Enum {
 	public static final field ABOVE_WINDOWS Ldev/caulis/core/DrawingLevel;
 	public static final field BELOW_WINDOWS Ldev/caulis/core/DrawingLevel;
 	public static final field ON_TOP Ldev/caulis/core/DrawingLevel;
+	public static final field WALLPAPER Ldev/caulis/core/DrawingLevel;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/core/DrawingLevel;
 	public static fun values ()[Ldev/caulis/core/DrawingLevel;
@@ -1122,6 +1132,7 @@ public final class dev/caulis/core/NoticePlacement$Toast$Corner : java/lang/Enum
 }
 
 public final class dev/caulis/core/NoticeStyle {
+	public static final field Companion Ldev/caulis/core/NoticeStyle$Companion;
 	public fun <init> ()V
 	public fun <init> (Ldev/caulis/core/NoticePlacement;)V
 	public fun <init> (Ldev/caulis/core/NoticePlacement;Ljava/lang/String;)V
@@ -1140,6 +1151,9 @@ public final class dev/caulis/core/NoticeStyle {
 	public fun <init> (Ldev/caulis/core/NoticePlacement;Ljava/lang/String;IIIILdev/caulis/core/NoticeColors;Ldev/caulis/core/NoticeColors;Ldev/caulis/core/NoticeColors;DDDIJZ)V
 	public fun <init> (Ldev/caulis/core/NoticePlacement;Ljava/lang/String;IIIILdev/caulis/core/NoticeColors;Ldev/caulis/core/NoticeColors;Ldev/caulis/core/NoticeColors;DDDIJZLdev/caulis/core/NoticePainter;)V
 	public synthetic fun <init> (Ldev/caulis/core/NoticePlacement;Ljava/lang/String;IIIILdev/caulis/core/NoticeColors;Ldev/caulis/core/NoticeColors;Ldev/caulis/core/NoticeColors;DDDIJZLdev/caulis/core/NoticePainter;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static final fun cards ()Ldev/caulis/core/NoticeStyle;
+	public static final fun cards (I)Ldev/caulis/core/NoticeStyle;
+	public static final fun cards (ILdev/caulis/core/NoticePlacement$Toast$Corner;)Ldev/caulis/core/NoticeStyle;
 	public final fun colorsOf (Ldev/caulis/core/NoticeLevel;)Ldev/caulis/core/NoticeColors;
 	public final fun component1 ()Ldev/caulis/core/NoticePlacement;
 	public final fun component10 ()D
@@ -1179,6 +1193,13 @@ public final class dev/caulis/core/NoticeStyle {
 	public fun hashCode ()I
 	public final fun secondsOf (Ldev/caulis/core/NoticeLevel;)D
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/NoticeStyle$Companion {
+	public final fun cards ()Ldev/caulis/core/NoticeStyle;
+	public final fun cards (I)Ldev/caulis/core/NoticeStyle;
+	public final fun cards (ILdev/caulis/core/NoticePlacement$Toast$Corner;)Ldev/caulis/core/NoticeStyle;
+	public static synthetic fun cards$default (Ldev/caulis/core/NoticeStyle$Companion;ILdev/caulis/core/NoticePlacement$Toast$Corner;ILjava/lang/Object;)Ldev/caulis/core/NoticeStyle;
 }
 
 public final class dev/caulis/core/Output {
@@ -2887,6 +2908,7 @@ public final class dev/caulis/core/input/KeyBindings$Options {
 public final class dev/caulis/core/input/KeyboardState : java/lang/AutoCloseable {
 	public fun close ()V
 	public final fun getModifiers ()Ldev/caulis/core/input/KeyboardState$Modifiers;
+	public final fun setNumLock (Z)Z
 	public final fun symbol (I)I
 	public final fun text (I)Ljava/lang/String;
 	public final fun update (IZ)Z
@@ -2992,6 +3014,7 @@ public final class dev/caulis/core/input/Seat : java/lang/AutoCloseable {
 	public final fun pointerMotion (ILdev/caulis/core/Surface;DD)V
 	public final fun releaseAllKeys (I)V
 	public final fun setMayFocus (Lkotlin/jvm/functions/Function1;)V
+	public final fun setNumLock (Z)V
 	public final fun setOnCursorChange (Lkotlin/jvm/functions/Function0;)V
 	public final fun setRepeatDelay (I)V
 	public final fun setRepeatRate (I)V

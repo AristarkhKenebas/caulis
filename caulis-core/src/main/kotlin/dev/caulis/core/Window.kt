@@ -104,6 +104,17 @@ abstract class Window : LayoutWindow {
     /** The size last asked for with [configure] (0 = the program's choice). */
     abstract val configuredSize: Pair<Int, Int>
 
+    // When a new size was last asked for (System.nanoTime), so a hidden window can draw it at once.
+    internal var resizeAskedAt = 0L
+
+    /** True for a short while after [configure] asked for a size the window does not have yet. */
+    internal val awaitsSize: Boolean
+        get() {
+            val (w, h) = configuredSize
+            if (w <= 0 || h <= 0 || System.nanoTime() - resizeAskedAt > 1_000_000_000L) return false
+            return visibleRect.width != w || visibleRect.height != h
+        }
+
     /** Asks the program to use this size (0 = its own choice) and tells it its states. */
     abstract fun configure(width: Int = configuredSize.first, height: Int = configuredSize.second)
 

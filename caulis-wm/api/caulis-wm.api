@@ -88,6 +88,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getNestedMonitors ()I
 	public final fun getNoticeStyle ()Ldev/caulis/core/NoticeStyle;
 	public final fun getNoticesFromLog ()Lkotlin/jvm/functions/Function1;
+	public final fun getNumLock ()Ljava/lang/Boolean;
 	public final fun getOverviewFill ()D
 	public final fun getOverviewPinchFingers ()I
 	public final fun getPrimaryMonitor ()Ljava/lang/String;
@@ -232,6 +233,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setNestedMonitors (I)V
 	public final fun setNoticeStyle (Ldev/caulis/core/NoticeStyle;)V
 	public final synthetic fun setNoticesFromLog (Lkotlin/jvm/functions/Function1;)V
+	public final fun setNumLock (Ljava/lang/Boolean;)V
 	public final fun setOverviewFill (D)V
 	public final fun setOverviewPinchFingers (I)V
 	public final fun setPrimaryMonitor (Ljava/lang/String;)V

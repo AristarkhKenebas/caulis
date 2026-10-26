@@ -143,6 +143,26 @@ data class NoticeStyle @JvmOverloads constructor(
         require(fadeMillis in 0..5000) { "fadeMillis must be 0 to 5000" }
     }
 
+    companion object {
+        /**
+         * Notices as neat cards at the top of the screen, as Hyprland shows its messages: dark
+         * and rounded, the level's colour as a stripe and on the title ([CardNoticePainter]).
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun cards(width: Int = 720, corner: NoticePlacement.Toast.Corner = NoticePlacement.Toast.Corner.TOP) = NoticeStyle(
+            placement = NoticePlacement.Toast(corner, width = width, margin = 14),
+            fontSize = 13,
+            padding = 12,
+            gap = 10,
+            radius = 12,
+            info = NoticeColors(Color.hex("#88c0d0"), Color.hex("#e5e9f0")),
+            warning = NoticeColors(Color.hex("#ebcb8b"), Color.hex("#e5e9f0")),
+            error = NoticeColors(Color.hex("#e06c75"), Color.hex("#e5e9f0")),
+            painter = CardNoticePainter(),
+        )
+    }
+
     fun colorsOf(level: NoticeLevel): NoticeColors = when (level) {
         NoticeLevel.INFO -> info
         NoticeLevel.WARNING -> warning
@@ -224,14 +244,15 @@ object DefaultNoticePainter : NoticePainter {
         }
     }
 
-    private fun plain(look: NoticeLook) = Font(look.style.font, Font.PLAIN, 1).deriveFont((look.style.fontSize * look.scale).toFloat())
-    private fun bold(look: NoticeLook) = Font(look.style.font, Font.BOLD, 1).deriveFont((look.style.fontSize * look.scale).toFloat())
+    internal fun plain(look: NoticeLook) = Font(look.style.font, Font.PLAIN, 1).deriveFont((look.style.fontSize * look.scale).toFloat())
+    internal fun bold(look: NoticeLook) = Font(look.style.font, Font.BOLD, 1).deriveFont((look.style.fontSize * look.scale).toFloat())
 
-    // The lines it shows: the title, then the text wrapped at word ends (and its own line ends).
-    private fun lines(g: Graphics2D, look: NoticeLook): Pair<List<String>, FontMetrics> {
+    // The lines it shows: the title, then the text wrapped at word ends (and its own line ends),
+    // in [inset] pixels less than the picture's width beyond the padding.
+    internal fun lines(g: Graphics2D, look: NoticeLook, inset: Int = 0): Pair<List<String>, FontMetrics> {
         val metrics = g.getFontMetrics(plain(look))
         val padding = (look.style.padding * look.scale).toInt()
-        val room = (look.width - 2 * padding - (16 * look.scale).toInt()).coerceAtLeast(1) // (room for the ×)
+        val room = (look.width - 2 * padding - inset - (16 * look.scale).toInt()).coerceAtLeast(1) // (room for the ×)
         val count = if (look.notice.count > 1) " (×${look.notice.count})" else ""
         val lines = ArrayList<String>()
         look.notice.title?.let { lines += it + count }
@@ -256,6 +277,75 @@ object DefaultNoticePainter : NoticePainter {
             lines += line
         }
         return lines to metrics
+    }
+}
+
+/**
+ * Notices as cards: dark, rounded, a thin line around them and a stripe on the left in the
+ * level's colour, the title in that colour too ([NoticeStyle.cards] sets it up). The level's
+ * colours of the style ([NoticeStyle.info], ...) are the accents here; [background] and
+ * [text] are the card's own.
+ */
+class CardNoticePainter @JvmOverloads constructor(
+    private val background: Color = Color.hex("#1f2229f0"),
+    private val text: Color = Color.hex("#e5e9f0"),
+) : NoticePainter {
+
+    // The stripe on the left and the room it takes (desktop units).
+    private val stripe = 4.0
+    private val stripeRoom = 10.0
+
+    override fun height(g: Graphics2D, look: NoticeLook): Int {
+        val (lines, metrics) = DefaultNoticePainter.lines(g, look, (stripeRoom * look.scale).toInt())
+        val padding = (look.style.padding * look.scale).toInt()
+        return lines.size * metrics.height + 2 * padding + (if (look.notice.title != null && lines.size > 1) (3 * look.scale).toInt() else 0)
+    }
+
+    override fun paint(g: Graphics2D, look: NoticeLook) {
+        fun awt(c: Color) = java.awt.Color(c.red, c.green, c.blue, c.alpha)
+        val style = look.style
+        val accent = style.colorsOf(look.notice.level).background
+        val unit = look.scale
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+        g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
+        g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE)
+        val w = look.width.toDouble()
+        val h = look.height.toDouble()
+        val r = if (look.banner) 0.0 else style.radius * unit * 2
+        val card = RoundRectangle2D.Double(0.5 * unit, 0.5 * unit, w - unit, h - unit, r, r)
+        g.color = awt(background)
+        g.fill(card)
+        // The stripe, inside the card's rounded left edge.
+        val clip = g.clip
+        g.clip(card)
+        g.color = awt(accent)
+        g.fill(java.awt.geom.Rectangle2D.Double(0.0, 0.0, stripe * unit, h))
+        g.clip = clip
+        g.color = awt(accent.withAlpha(accent.alpha * 0.55f))
+        g.stroke = BasicStroke(unit.toFloat())
+        g.draw(card)
+
+        val (lines, metrics) = DefaultNoticePainter.lines(g, look, (stripeRoom * unit).toInt())
+        val padding = (style.padding * unit).toInt()
+        val left = padding + (stripeRoom * unit).toInt()
+        var y = padding + metrics.ascent
+        for ((index, line) in lines.withIndex()) {
+            val title = index == 0 && look.notice.title != null
+            g.font = if (title) DefaultNoticePainter.bold(look) else DefaultNoticePainter.plain(look)
+            g.color = awt(if (title) accent else text)
+            g.drawString(line, left, y)
+            y += metrics.height + if (title) (3 * unit).toInt() else 0
+        }
+        if (look.hovered) {
+            val cx = w - padding - 6 * unit
+            val cy = padding + metrics.height / 2.0
+            val cr = 4.5 * unit
+            g.color = awt(text.withAlpha(0.7f))
+            g.stroke = BasicStroke((1.4 * unit).toFloat(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+            g.draw(Line2D.Double(cx - cr, cy - cr, cx + cr, cy + cr))
+            g.draw(Line2D.Double(cx - cr, cy + cr, cx + cr, cy - cr))
+        }
     }
 }
 

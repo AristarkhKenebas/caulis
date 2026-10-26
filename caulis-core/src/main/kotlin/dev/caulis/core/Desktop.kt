@@ -4188,7 +4188,8 @@ class Desktop(
         for (window in normal.asReversed()) if (window !in places && !directed(window)) windowHit(window, x, y)?.let { return it.at() }
         widget(DrawingLevel.BELOW_WINDOWS)?.let { return it }
         layerAt(LayerShell.Layer.BOTTOM, x, y)?.let { return it.at() }
-        return layerAt(LayerShell.Layer.BACKGROUND, x, y).at()
+        layerAt(LayerShell.Layer.BACKGROUND, x, y)?.let { return it.at() }
+        return widget(DrawingLevel.WALLPAPER)
     }
 
     // [place] is where the picture is; the program is told the point in its own size.
@@ -4626,6 +4627,7 @@ class Desktop(
         // Our background on each monitor, below a wallpaper program's (which wins).
         val allMonitors = desktopBounds()
         for (monitor in monitorList) all += backdrops.items(monitor, monitor.workspace.number, pointerX, pointerY, now, allMonitors, largestScale)
+        addDrawings(all, DrawingLevel.WALLPAPER)
         addLayers(all, LayerShell.Layer.BACKGROUND)
         addLayers(all, LayerShell.Layer.BOTTOM)
         addDrawings(all, DrawingLevel.BELOW_WINDOWS)
@@ -5108,12 +5110,18 @@ class Desktop(
      * Tells every program on screen (and those kept updating) that its last frame was
      * shown, so it can draw the next one. Called at every refresh, also when nothing had
      * to be redrawn. Hidden programs get a slow heartbeat instead: they do not freeze, but
-     * they do not burn the computer's power on pictures nobody sees either.
+     * they do not burn the computer's power on pictures nobody sees either. A hidden window
+     * just asked for a new size is the exception: it draws that at once (a window manager
+     * waits for it before showing the window, as newm does).
      */
     fun frameShown(timeMillis: Int) {
         for (surface in visible) if (surface.resource.isAlive) surface.sendFrameDone(timeMillis)
         for (surface in compositor.surfaces) {
             if (surface !in visible && isKeptUpdating(surface)) surface.sendFrameDone(timeMillis)
+        }
+        for (window in allWindows) {
+            if (!window.awaitsSize) continue
+            for (surface in window.surface.stack) if (surface !in visible && surface.resource.isAlive) surface.sendFrameDone(timeMillis)
         }
         scheduleHiddenRefresh()
     }

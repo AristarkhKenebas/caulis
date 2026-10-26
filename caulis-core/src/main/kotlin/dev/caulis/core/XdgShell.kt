@@ -359,6 +359,7 @@ class XdgWindow internal constructor(val resource: XdgToplevel, val shell: Shell
     }
 
     override fun configure(width: Int, height: Int) {
+        if (width != configuredWidth || height != configuredHeight) resizeAskedAt = System.nanoTime()
         configuredWidth = width
         configuredHeight = height
         // Before the first configure: which window features we support, and the screen size.

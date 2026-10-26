@@ -181,6 +181,7 @@ internal class Running(
 
     // The configuration's own idle timers (replaced on a reload).
     private val idleWatches = ArrayList<AutoCloseable>()
+    private var appliedNumLock: Boolean? = null
 
     // --- light and dark ---
 
@@ -533,6 +534,13 @@ internal class Running(
             idleWatches += idle.watch(watch.seconds * 1000L, onIdle = { safely("onIdle") { watch.idle(config) } }, onResume = { safely("onIdle resume") { watch.resume(config) } })
         }
         seat.repeatRate = config.repeatRate
+        // Num Lock as configured, when that changes (not again on each reload: the key may have switched it since).
+        config.numLock?.let { on ->
+            if (on != appliedNumLock) {
+                seat.setNumLock(on)
+                appliedNumLock = on
+            }
+        }
         seat.repeatDelay = config.repeatDelay
         applyAppearance()
         inputDevices?.settings = config.input

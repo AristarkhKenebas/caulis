@@ -123,6 +123,12 @@ class OverlayCanvas internal constructor(
 
 /** Where a [Drawing] goes among everything else. */
 enum class DrawingLevel {
+    /**
+     * A wallpaper of your own: above the desktop's background, below every panel — a wallpaper
+     * program's (swaybg), bars on the bottom layer — and every window.
+     */
+    WALLPAPER,
+
     /** Above the wallpaper and the panels of the bottom layers, below every window. */
     BELOW_WINDOWS,
 

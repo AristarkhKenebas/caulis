@@ -89,6 +89,19 @@ class KeyboardState internal constructor(private val state: MemorySegment) : Aut
     fun update(evdevCode: Int, pressed: Boolean): Boolean {
         val direction = if (pressed) Xkb.XKB_KEY_DOWN() else Xkb.XKB_KEY_UP()
         Xkb.xkb_state_update_key(state, evdevCode + 8, direction)
+        return readModifiers()
+    }
+
+    /** Turns Num Lock on or off (Mod2, where keymaps put it). Returns true if the modifiers changed. */
+    fun setNumLock(on: Boolean): Boolean {
+        val m = modifiers
+        val locked = if (on) m.locked or NUM_LOCK else m.locked and NUM_LOCK.inv()
+        Xkb.xkb_state_update_mask(state, m.depressed, m.latched, locked, 0, 0, m.group)
+        return readModifiers()
+    }
+
+    // The modifiers from xkbcommon's state; true if they changed.
+    private fun readModifiers(): Boolean {
         val now = Modifiers(
             depressed = Xkb.xkb_state_serialize_mods(state, Xkb.XKB_STATE_MODS_DEPRESSED()),
             latched = Xkb.xkb_state_serialize_mods(state, Xkb.XKB_STATE_MODS_LATCHED()),
@@ -98,6 +111,10 @@ class KeyboardState internal constructor(private val state: MemorySegment) : Aut
         val changed = now != modifiers
         modifiers = now
         return changed
+    }
+
+    private companion object {
+        const val NUM_LOCK = 1 shl 4 // Mod2
     }
 
     /** The symbol a key produces now, e.g. XKB_KEY_q (for compositor shortcuts). */
