@@ -3119,6 +3119,34 @@ public final class dev/caulis/protocol/client/xdgdecorationunstablev1/ZxdgToplev
 	public static final field SERVER_SIDE I
 }
 
+public final class dev/caulis/protocol/client/xdgdialogv1/XdgDialogV1 : dev/caulis/protocol/client/Proxy {
+	public static final field Companion Ldev/caulis/protocol/client/xdgdialogv1/XdgDialogV1$Companion;
+	public final fun destroy ()V
+	public fun getType ()Ldev/caulis/protocol/client/ProxyType;
+	public final fun setModal ()V
+	public final fun unsetModal ()V
+}
+
+public final class dev/caulis/protocol/client/xdgdialogv1/XdgDialogV1$Companion : dev/caulis/protocol/client/ProxyType {
+	public synthetic fun create$io_github_aristarkhkenebas_caulis_protocol (Ldev/caulis/protocol/client/Connection;II)Ldev/caulis/protocol/client/Proxy;
+}
+
+public final class dev/caulis/protocol/client/xdgdialogv1/XdgWmDialogV1 : dev/caulis/protocol/client/Proxy {
+	public static final field Companion Ldev/caulis/protocol/client/xdgdialogv1/XdgWmDialogV1$Companion;
+	public final fun destroy ()V
+	public fun getType ()Ldev/caulis/protocol/client/ProxyType;
+	public final fun getXdgDialog (Ldev/caulis/protocol/client/xdgshell/XdgToplevel;)Ldev/caulis/protocol/client/xdgdialogv1/XdgDialogV1;
+}
+
+public final class dev/caulis/protocol/client/xdgdialogv1/XdgWmDialogV1$Companion : dev/caulis/protocol/client/ProxyType {
+	public synthetic fun create$io_github_aristarkhkenebas_caulis_protocol (Ldev/caulis/protocol/client/Connection;II)Ldev/caulis/protocol/client/Proxy;
+}
+
+public final class dev/caulis/protocol/client/xdgdialogv1/XdgWmDialogV1$Error {
+	public static final field ALREADY_USED I
+	public static final field INSTANCE Ldev/caulis/protocol/client/xdgdialogv1/XdgWmDialogV1$Error;
+}
+
 public final class dev/caulis/protocol/client/xdgoutputunstablev1/ZxdgOutputManagerV1 : dev/caulis/protocol/client/Proxy {
 	public static final field Companion Ldev/caulis/protocol/client/xdgoutputunstablev1/ZxdgOutputManagerV1$Companion;
 	public final fun destroy ()V
@@ -6096,6 +6124,44 @@ public abstract interface class dev/caulis/protocol/xdgdecorationunstablev1/Zxdg
 	public abstract fun destroy (Ldev/caulis/protocol/xdgdecorationunstablev1/ZxdgToplevelDecorationV1;)V
 	public abstract fun setMode (Ldev/caulis/protocol/xdgdecorationunstablev1/ZxdgToplevelDecorationV1;I)V
 	public abstract fun unsetMode (Ldev/caulis/protocol/xdgdecorationunstablev1/ZxdgToplevelDecorationV1;)V
+}
+
+public final class dev/caulis/protocol/xdgdialogv1/XdgDialogV1 : dev/caulis/protocol/Resource {
+	public static final field Companion Ldev/caulis/protocol/xdgdialogv1/XdgDialogV1$Companion;
+	public final fun getRequests ()Ldev/caulis/protocol/xdgdialogv1/XdgDialogV1$Requests;
+	public fun getType ()Ldev/caulis/protocol/ResourceType;
+	public final fun setRequests (Ldev/caulis/protocol/xdgdialogv1/XdgDialogV1$Requests;)V
+}
+
+public final class dev/caulis/protocol/xdgdialogv1/XdgDialogV1$Companion : dev/caulis/protocol/ResourceType {
+	public synthetic fun create$io_github_aristarkhkenebas_caulis_protocol (Ldev/caulis/protocol/Client;II)Ldev/caulis/protocol/Resource;
+}
+
+public abstract interface class dev/caulis/protocol/xdgdialogv1/XdgDialogV1$Requests {
+	public abstract fun destroy (Ldev/caulis/protocol/xdgdialogv1/XdgDialogV1;)V
+	public abstract fun setModal (Ldev/caulis/protocol/xdgdialogv1/XdgDialogV1;)V
+	public abstract fun unsetModal (Ldev/caulis/protocol/xdgdialogv1/XdgDialogV1;)V
+}
+
+public final class dev/caulis/protocol/xdgdialogv1/XdgWmDialogV1 : dev/caulis/protocol/Resource {
+	public static final field Companion Ldev/caulis/protocol/xdgdialogv1/XdgWmDialogV1$Companion;
+	public final fun getRequests ()Ldev/caulis/protocol/xdgdialogv1/XdgWmDialogV1$Requests;
+	public fun getType ()Ldev/caulis/protocol/ResourceType;
+	public final fun setRequests (Ldev/caulis/protocol/xdgdialogv1/XdgWmDialogV1$Requests;)V
+}
+
+public final class dev/caulis/protocol/xdgdialogv1/XdgWmDialogV1$Companion : dev/caulis/protocol/ResourceType {
+	public synthetic fun create$io_github_aristarkhkenebas_caulis_protocol (Ldev/caulis/protocol/Client;II)Ldev/caulis/protocol/Resource;
+}
+
+public final class dev/caulis/protocol/xdgdialogv1/XdgWmDialogV1$Error {
+	public static final field ALREADY_USED I
+	public static final field INSTANCE Ldev/caulis/protocol/xdgdialogv1/XdgWmDialogV1$Error;
+}
+
+public abstract interface class dev/caulis/protocol/xdgdialogv1/XdgWmDialogV1$Requests {
+	public abstract fun destroy (Ldev/caulis/protocol/xdgdialogv1/XdgWmDialogV1;)V
+	public abstract fun getXdgDialog (Ldev/caulis/protocol/xdgdialogv1/XdgWmDialogV1;Ldev/caulis/protocol/xdgdialogv1/XdgDialogV1;Ldev/caulis/protocol/xdgshell/XdgToplevel;)V
 }
 
 public final class dev/caulis/protocol/xdgoutputunstablev1/ZxdgOutputManagerV1 : dev/caulis/protocol/Resource {

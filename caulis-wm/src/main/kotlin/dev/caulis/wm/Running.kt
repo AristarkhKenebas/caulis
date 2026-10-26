@@ -424,6 +424,7 @@ internal class Running(
         shortcutsInhibit = dev.caulis.core.input.ShortcutsInhibit(display, seat)
         XdgOutputManager(display)
         ServerDecorations(display, desktop)
+        dev.caulis.core.Dialogs(display, desktop)
         xwayland = if (config.xwayland) safely("Xwayland", null) { Xwayland(display, desktop, loop, clipboard, wholeScaleWorlds = config.sharpJavaScaling) } else null
         ScreenCapture(display, desktop, renderer, ForeignToplevels(display, desktop))
         applyCursor()

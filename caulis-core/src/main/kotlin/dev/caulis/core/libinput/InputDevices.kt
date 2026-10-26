@@ -36,6 +36,13 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
     var onPointerButton: (timeMillis: Int, button: Int, pressed: Boolean) -> Unit = { _, _, _ -> }
     var onPointerAxis: (timeMillis: Int, vertical: Boolean, value: Double, value120: Int) -> Unit = { _, _, _, _ -> }
 
+    /** Touch screens: finger [id] down or moving at (x, y) as 0..1 of the screen, lifted, a group's end, all cancelled. */
+    var onTouchDown: (timeMillis: Int, id: Int, x: Double, y: Double) -> Unit = { _, _, _, _ -> }
+    var onTouchMotion: (timeMillis: Int, id: Int, x: Double, y: Double) -> Unit = { _, _, _, _ -> }
+    var onTouchUp: (timeMillis: Int, id: Int) -> Unit = { _, _ -> }
+    var onTouchFrame: () -> Unit = {}
+    var onTouchCancel: (timeMillis: Int) -> Unit = {}
+
     /** Touchpad gestures with several fingers (swipe, pinch, hold). */
     var onGesture: (Gesture) -> Unit = {}
 
@@ -66,6 +73,9 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
 
     /** True if there is a touchpad at all. */
     val hasTouchpad: Boolean get() = devices.values.any { InputDevice.Kind.TOUCHPAD in it.kinds }
+
+    /** A touch screen is plugged in. */
+    val hasTouchScreen: Boolean get() = devices.values.any { InputDevice.Kind.TOUCHSCREEN in it.kinds }
 
     /** The devices there are now. */
     val list: List<InputDevice> get() = devices.values.toList()
@@ -144,7 +154,7 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
 
     private fun handle(event: MemorySegment) {
         val device = Input.libinput_event_get_device(event)
-        when (Input.libinput_event_get_type(event)) {
+        when (val type = Input.libinput_event_get_type(event)) {
             Input.LIBINPUT_EVENT_DEVICE_ADDED() -> added(device)
             Input.LIBINPUT_EVENT_DEVICE_REMOVED() -> {
                 releaseHeld(device)
@@ -188,6 +198,25 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
                     Input.libinput_event_pointer_get_absolute_y_transformed(pointer, ABSOLUTE_RANGE) / ABSOLUTE_RANGE,
                 )
             }
+
+            Input.LIBINPUT_EVENT_TOUCH_DOWN(), Input.LIBINPUT_EVENT_TOUCH_MOTION() -> {
+                val touch = Input.libinput_event_get_touch_event(event)
+                val time = Input.libinput_event_touch_get_time(touch)
+                // (A screen of one touch at a time says -1.)
+                val id = Input.libinput_event_touch_get_seat_slot(touch).coerceAtLeast(0)
+                val x = Input.libinput_event_touch_get_x_transformed(touch, ABSOLUTE_RANGE) / ABSOLUTE_RANGE
+                val y = Input.libinput_event_touch_get_y_transformed(touch, ABSOLUTE_RANGE) / ABSOLUTE_RANGE
+                if (type == Input.LIBINPUT_EVENT_TOUCH_DOWN()) onTouchDown(time, id, x, y) else onTouchMotion(time, id, x, y)
+            }
+
+            Input.LIBINPUT_EVENT_TOUCH_UP() -> {
+                val touch = Input.libinput_event_get_touch_event(event)
+                onTouchUp(Input.libinput_event_touch_get_time(touch), Input.libinput_event_touch_get_seat_slot(touch).coerceAtLeast(0))
+            }
+
+            Input.LIBINPUT_EVENT_TOUCH_FRAME() -> onTouchFrame()
+
+            Input.LIBINPUT_EVENT_TOUCH_CANCEL() -> onTouchCancel(Input.libinput_event_touch_get_time(Input.libinput_event_get_touch_event(event)))
 
             Input.LIBINPUT_EVENT_POINTER_BUTTON() -> {
                 val pointer = Input.libinput_event_get_pointer_event(event)

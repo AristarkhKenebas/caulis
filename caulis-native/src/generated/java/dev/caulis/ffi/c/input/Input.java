@@ -945,6 +945,51 @@ public class Input extends Input$shared {
     public static int LIBINPUT_EVENT_POINTER_SCROLL_CONTINUOUS() {
         return LIBINPUT_EVENT_POINTER_SCROLL_CONTINUOUS;
     }
+    private static final int LIBINPUT_EVENT_TOUCH_DOWN = (int)500L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_TOUCH_DOWN = 500
+     * }
+     */
+    public static int LIBINPUT_EVENT_TOUCH_DOWN() {
+        return LIBINPUT_EVENT_TOUCH_DOWN;
+    }
+    private static final int LIBINPUT_EVENT_TOUCH_UP = (int)501L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_TOUCH_UP = 501
+     * }
+     */
+    public static int LIBINPUT_EVENT_TOUCH_UP() {
+        return LIBINPUT_EVENT_TOUCH_UP;
+    }
+    private static final int LIBINPUT_EVENT_TOUCH_MOTION = (int)502L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_TOUCH_MOTION = 502
+     * }
+     */
+    public static int LIBINPUT_EVENT_TOUCH_MOTION() {
+        return LIBINPUT_EVENT_TOUCH_MOTION;
+    }
+    private static final int LIBINPUT_EVENT_TOUCH_CANCEL = (int)503L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_TOUCH_CANCEL = 503
+     * }
+     */
+    public static int LIBINPUT_EVENT_TOUCH_CANCEL() {
+        return LIBINPUT_EVENT_TOUCH_CANCEL;
+    }
+    private static final int LIBINPUT_EVENT_TOUCH_FRAME = (int)504L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_TOUCH_FRAME = 504
+     * }
+     */
+    public static int LIBINPUT_EVENT_TOUCH_FRAME() {
+        return LIBINPUT_EVENT_TOUCH_FRAME;
+    }
     private static final int LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN = (int)800L;
     /**
      * {@snippet lang=c :
@@ -1317,6 +1362,66 @@ public class Input extends Input$shared {
         try {
             if (TRACE_DOWNCALLS) {
                 traceDowncall("libinput_event_get_keyboard_event", event);
+            }
+            return (MemorySegment)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_get_touch_event {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_get_touch_event");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * struct libinput_event_touch *libinput_event_get_touch_event(struct libinput_event *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_get_touch_event$descriptor() {
+        return libinput_event_get_touch_event.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * struct libinput_event_touch *libinput_event_get_touch_event(struct libinput_event *event)
+     * }
+     */
+    public static MethodHandle libinput_event_get_touch_event$handle() {
+        return libinput_event_get_touch_event.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * struct libinput_event_touch *libinput_event_get_touch_event(struct libinput_event *event)
+     * }
+     */
+    public static MemorySegment libinput_event_get_touch_event$address() {
+        return libinput_event_get_touch_event.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * struct libinput_event_touch *libinput_event_get_touch_event(struct libinput_event *event)
+     * }
+     */
+    public static MemorySegment libinput_event_get_touch_event(MemorySegment event) {
+        var mh$ = libinput_event_get_touch_event.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_get_touch_event", event);
             }
             return (MemorySegment)mh$.invokeExact(event);
         } catch (Error | RuntimeException ex) {
@@ -2344,6 +2449,248 @@ public class Input extends Input$shared {
                 traceDowncall("libinput_event_pointer_get_scroll_value_v120", event, axis);
             }
             return (double)mh$.invokeExact(event, axis);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_touch_get_time {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_touch_get_time");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_touch_get_time(struct libinput_event_touch *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_touch_get_time$descriptor() {
+        return libinput_event_touch_get_time.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_touch_get_time(struct libinput_event_touch *event)
+     * }
+     */
+    public static MethodHandle libinput_event_touch_get_time$handle() {
+        return libinput_event_touch_get_time.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_touch_get_time(struct libinput_event_touch *event)
+     * }
+     */
+    public static MemorySegment libinput_event_touch_get_time$address() {
+        return libinput_event_touch_get_time.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint32_t libinput_event_touch_get_time(struct libinput_event_touch *event)
+     * }
+     */
+    public static int libinput_event_touch_get_time(MemorySegment event) {
+        var mh$ = libinput_event_touch_get_time.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_touch_get_time", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_touch_get_seat_slot {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_touch_get_seat_slot");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int32_t libinput_event_touch_get_seat_slot(struct libinput_event_touch *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_touch_get_seat_slot$descriptor() {
+        return libinput_event_touch_get_seat_slot.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int32_t libinput_event_touch_get_seat_slot(struct libinput_event_touch *event)
+     * }
+     */
+    public static MethodHandle libinput_event_touch_get_seat_slot$handle() {
+        return libinput_event_touch_get_seat_slot.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int32_t libinput_event_touch_get_seat_slot(struct libinput_event_touch *event)
+     * }
+     */
+    public static MemorySegment libinput_event_touch_get_seat_slot$address() {
+        return libinput_event_touch_get_seat_slot.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int32_t libinput_event_touch_get_seat_slot(struct libinput_event_touch *event)
+     * }
+     */
+    public static int libinput_event_touch_get_seat_slot(MemorySegment event) {
+        var mh$ = libinput_event_touch_get_seat_slot.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_touch_get_seat_slot", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_touch_get_x_transformed {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_touch_get_x_transformed");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_touch_get_x_transformed(struct libinput_event_touch *event, uint32_t width)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_touch_get_x_transformed$descriptor() {
+        return libinput_event_touch_get_x_transformed.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_touch_get_x_transformed(struct libinput_event_touch *event, uint32_t width)
+     * }
+     */
+    public static MethodHandle libinput_event_touch_get_x_transformed$handle() {
+        return libinput_event_touch_get_x_transformed.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_touch_get_x_transformed(struct libinput_event_touch *event, uint32_t width)
+     * }
+     */
+    public static MemorySegment libinput_event_touch_get_x_transformed$address() {
+        return libinput_event_touch_get_x_transformed.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_touch_get_x_transformed(struct libinput_event_touch *event, uint32_t width)
+     * }
+     */
+    public static double libinput_event_touch_get_x_transformed(MemorySegment event, int width) {
+        var mh$ = libinput_event_touch_get_x_transformed.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_touch_get_x_transformed", event, width);
+            }
+            return (double)mh$.invokeExact(event, width);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_touch_get_y_transformed {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_touch_get_y_transformed");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_touch_get_y_transformed(struct libinput_event_touch *event, uint32_t height)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_touch_get_y_transformed$descriptor() {
+        return libinput_event_touch_get_y_transformed.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_touch_get_y_transformed(struct libinput_event_touch *event, uint32_t height)
+     * }
+     */
+    public static MethodHandle libinput_event_touch_get_y_transformed$handle() {
+        return libinput_event_touch_get_y_transformed.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_touch_get_y_transformed(struct libinput_event_touch *event, uint32_t height)
+     * }
+     */
+    public static MemorySegment libinput_event_touch_get_y_transformed$address() {
+        return libinput_event_touch_get_y_transformed.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_touch_get_y_transformed(struct libinput_event_touch *event, uint32_t height)
+     * }
+     */
+    public static double libinput_event_touch_get_y_transformed(MemorySegment event, int height) {
+        var mh$ = libinput_event_touch_get_y_transformed.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_touch_get_y_transformed", event, height);
+            }
+            return (double)mh$.invokeExact(event, height);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {

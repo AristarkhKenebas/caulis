@@ -296,6 +296,12 @@ val jextractInput = tasks.register<JextractTask>("jextractInput") {
         "constant LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL", "constant LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL",
         "constant LIBINPUT_CONFIG_TAP_ENABLED",
         "function libinput_device_has_capability",
+        // Touch screens: fingers down, moving and up, each by its slot.
+        "function libinput_event_get_touch_event", "function libinput_event_touch_get_time",
+        "function libinput_event_touch_get_seat_slot", "function libinput_event_touch_get_x_transformed",
+        "function libinput_event_touch_get_y_transformed",
+        "constant LIBINPUT_EVENT_TOUCH_DOWN", "constant LIBINPUT_EVENT_TOUCH_UP", "constant LIBINPUT_EVENT_TOUCH_MOTION",
+        "constant LIBINPUT_EVENT_TOUCH_CANCEL", "constant LIBINPUT_EVENT_TOUCH_FRAME",
         // Touchpad gestures (swipe, pinch, hold with several fingers).
         "function libinput_event_get_gesture_event", "function libinput_event_gesture_get_time",
         "function libinput_event_gesture_get_finger_count", "function libinput_event_gesture_get_cancelled",

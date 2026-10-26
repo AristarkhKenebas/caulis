@@ -22,6 +22,17 @@ abstract class Window : LayoutWindow {
     var parent: Window? = null
         protected set
 
+    /**
+     * True for a dialog its [parent] waits for (a modal one: xdg-dialog's set_modal, X11's
+     * _NET_WM_STATE_MODAL): giving the parent the focus gives it to this dialog instead.
+     */
+    var modal = false
+        protected set
+
+    internal fun modalAsked(on: Boolean) {
+        modal = on
+    }
+
     /** Size limits the program asked for (0 = no limit). */
     override var minWidth = 0
         protected set

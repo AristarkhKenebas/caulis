@@ -3668,7 +3668,16 @@ class Desktop(
      * Raises [window], marks it active and gives it the keyboard (null = nothing focused).
      * A minimized window comes back; a window on another workspace brings that workspace.
      */
+    /** The modal dialog [window] waits for (the newest, a dialog's own dialog first), or null. */
+    fun modalDialogOf(window: Window): Window? {
+        val dialog = allWindows.lastOrNull { it.modal && it.parent === window && it !== window } ?: return null
+        return modalDialogOf(dialog) ?: dialog
+    }
+
     fun focus(window: Window?) {
+        // A window waiting for a modal dialog of its own: the dialog gets the focus (an IDE's
+        // settings; else keys seemed to do nothing).
+        if (window != null) modalDialogOf(window)?.let { return focus(it) }
         // A window getting the focus takes the keyboard back from a widget.
         if (window != null && keyboardWidget != null) focusWidget(null)
         // One that never takes the keyboard: the top one of its workspace that does, instead.
@@ -3882,6 +3891,85 @@ class Desktop(
         val py = pointerY - oy
         val rect = rects.firstOrNull { px >= it.x && py >= it.y && px < it.right && py < it.bottom } ?: return x to y
         return (x - ox).coerceIn(rect.x.toDouble(), rect.right - 1.0) + ox to (y - oy).coerceIn(rect.y.toDouble(), rect.bottom - 1.0) + oy
+    }
+
+    // --- touch screens -----------------------------------------------------------------------------
+
+    // Each finger down: the surface it touches and where that surface is (desktop units), or
+    // null: the finger is the pointer (on our widgets, a menu, programs without touch).
+    private class TouchPoint(val surface: Surface?, val x: Double, val y: Double, val scaleX: Double, val scaleY: Double)
+
+    private val touchPoints = HashMap<Int, TouchPoint>()
+
+    /** A touch screen is there (programs are told they may get touches). */
+    var touchScreen: Boolean
+        get() = seat.touchScreen
+        set(value) {
+            if (value != seat.touchScreen) inputLog.info { if (value) "A touch screen is there" else "No touch screen any more" }
+            seat.touchScreen = value
+        }
+
+    // The finger that is the pointer now, if any (only one at a time).
+    private var pointerFinger: Int? = null
+
+    /**
+     * A finger [id] touches the screen at ([x], [y]) (desktop units). On a program's window
+     * that listens to touches it is a touch (the window gets the focus); elsewhere — the
+     * compositor's bars and menus, programs without touch, the lock screen — it is the pointer
+     * pressing the left button.
+     */
+    fun touchDown(timeMillis: Int, id: Int, x: Double, y: Double) {
+        onUserActivity()
+        val plain = !locked && overlay == null && !inOverview && grab == null && grabs.isEmpty()
+        val hit = if (plain) (pointedAt(x, y, widgetsToo = true) as? Pointed.AtSurface)?.hit else null
+        if (hit != null && seat.takesTouch(hit.surface)) {
+            (hit.root.roleObject as? Window)?.let { if (it !== focusedWindow) focus(it) }
+            touchPoints[id] = TouchPoint(hit.surface, x - hit.localX * hit.scaleX, y - hit.localY * hit.scaleY, hit.scaleX, hit.scaleY)
+            inputLog.trace { "Touch $id on ${hit.root.roleObject ?: hit.surface}" }
+            seat.touchDown(timeMillis, hit.surface, id, hit.localX, hit.localY)
+            return
+        }
+        if (pointerFinger != null) return
+        pointerFinger = id
+        touchPoints[id] = TouchPoint(null, 0.0, 0.0, 1.0, 1.0)
+        inputLog.trace { "Touch $id as the pointer" }
+        pointerMoved(timeMillis, x, y)
+        pointerButton(timeMillis, BTN_LEFT, true)
+    }
+
+    /** Finger [id] moved to ([x], [y]). */
+    fun touchMotion(timeMillis: Int, id: Int, x: Double, y: Double) {
+        val point = touchPoints[id] ?: return
+        onUserActivity()
+        if (point.surface == null) {
+            if (pointerFinger == id) pointerMoved(timeMillis, x, y)
+            return
+        }
+        seat.touchMotion(timeMillis, id, (x - point.x) / point.scaleX, (y - point.y) / point.scaleY)
+    }
+
+    /** Finger [id] lifted. */
+    fun touchUp(timeMillis: Int, id: Int) {
+        val point = touchPoints.remove(id) ?: return
+        if (point.surface == null) {
+            if (pointerFinger == id) {
+                pointerFinger = null
+                pointerButton(timeMillis, BTN_LEFT, false)
+            }
+            return
+        }
+        seat.touchUp(timeMillis, id)
+    }
+
+    /** The end of a group of touch events (fingers that moved together). */
+    fun touchFrame() = seat.touchFrame()
+
+    /** The touches are cancelled (the device went away): programs forget them, the pointer's button is let go. */
+    fun touchCancel(timeMillis: Int) {
+        seat.touchCancel()
+        if (pointerFinger != null) pointerButton(timeMillis, BTN_LEFT, false)
+        pointerFinger = null
+        touchPoints.clear()
     }
 
     fun pointerMoved(timeMillis: Int, x: Double, y: Double) {

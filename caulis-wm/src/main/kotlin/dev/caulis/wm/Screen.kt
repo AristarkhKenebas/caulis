@@ -164,6 +164,18 @@ internal fun runOnScreen(config: Caulis) {
                 }
                 input.onPointerButton = running::pointerButton
                 input.onPointerAxis = running::pointerAxis
+                // Touch screens: on the laptop's own screen (else the first), fingers as touches.
+                fun touchArea() = (desktop.monitors.firstOrNull { Displays.builtIn(it.name) } ?: desktop.monitors.first()).area
+                input.onTouchDown = { time, id, x, y -> touchArea().let { a -> desktop.touchDown(time, id, a.x + x * a.width, a.y + y * a.height) } }
+                input.onTouchMotion = { time, id, x, y -> touchArea().let { a -> desktop.touchMotion(time, id, a.x + x * a.width, a.y + y * a.height) } }
+                input.onTouchUp = desktop::touchUp
+                input.onTouchFrame = desktop::touchFrame
+                input.onTouchCancel = desktop::touchCancel
+                val devicesChanged = input.onDevicesChanged
+                input.onDevicesChanged = {
+                    devicesChanged()
+                    desktop.touchScreen = input.hasTouchScreen
+                }
                 running.inputDevices = input
                 input.onGesture = running::gesture
 

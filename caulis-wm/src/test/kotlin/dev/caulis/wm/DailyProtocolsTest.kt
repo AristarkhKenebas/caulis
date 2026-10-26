@@ -15,6 +15,7 @@ import dev.caulis.protocol.client.wlroutputpowermanagementunstablev1.ZwlrOutputP
 import dev.caulis.protocol.client.wlroutputpowermanagementunstablev1.ZwlrOutputPowerV1
 import dev.caulis.protocol.client.xdgactivationv1.XdgActivationTokenV1
 import dev.caulis.protocol.client.xdgactivationv1.XdgActivationV1
+import dev.caulis.protocol.client.xdgdialogv1.XdgWmDialogV1
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.nio.file.Files
 import java.nio.file.Path
@@ -56,6 +57,59 @@ class DailyProtocolsTest {
             tool(socket, "wl-copy", "--primary", input = "selected")
             assertEquals("selected", tool(socket, "wl-paste", "--primary", "--no-newline"))
             assertEquals("from the clipboard", tool(socket, "wl-paste", "--no-newline"), "two separate things")
+        }
+    }
+
+    @Test
+    fun `a finger on a window is a touch for it, elsewhere the pointer`() = with(harness) {
+        withCaulis({}) { caulis, client ->
+            val window = client.window { it.setAppId("touched") }.also { it.draw() }
+            client.waitFor { caulis.onLoop { r -> r.desktop.focusedWindow?.appId } == "touched" }
+            val events = java.util.Collections.synchronizedList(ArrayList<String>())
+            client.seat.getTouch().events = object : dev.caulis.protocol.client.wayland.WlTouch.Events {
+                override fun down(proxy: dev.caulis.protocol.client.wayland.WlTouch, serial: Int, time: Int, surface: dev.caulis.protocol.client.wayland.WlSurface, id: Int, x: Double, y: Double) {
+                    events += "down $id ${x.toInt()} ${y.toInt()}"
+                }
+                override fun motion(proxy: dev.caulis.protocol.client.wayland.WlTouch, time: Int, id: Int, x: Double, y: Double) {
+                    events += "motion $id ${x.toInt()} ${y.toInt()}"
+                }
+                override fun up(proxy: dev.caulis.protocol.client.wayland.WlTouch, serial: Int, time: Int, id: Int) {
+                    events += "up $id"
+                }
+            }
+            var looks = 0
+            client.waitFor { ++looks > 3 } // (the touch object reaches the compositor)
+            val rect = caulis.onLoop { r -> r.desktop.touchScreen = true; r.desktop.shownRect(r.desktop.allWindows.first { it.appId == "touched" })!! }
+            caulis.onLoop { r ->
+                r.desktop.touchDown(1, 0, rect.x + 10.0, rect.y + 20.0)
+                r.desktop.touchFrame()
+                r.desktop.touchMotion(2, 0, rect.x + 15.0, rect.y + 30.0)
+                r.desktop.touchFrame()
+                r.desktop.touchUp(3, 0)
+                r.desktop.touchFrame()
+            }
+            client.waitFor { events.size >= 3 }
+            assertEquals(listOf("down 0 10 20", "motion 0 15 30", "up 0"), events.toList())
+            window.toString()
+        }
+    }
+
+    @Test
+    fun `focusing a window whose modal dialog is open focuses the dialog`() = with(harness) {
+        withCaulis({}) { caulis, client ->
+            val main = client.window { it.setAppId("main") }.also { it.draw() }
+            client.waitFor { caulis.onLoop { r -> r.desktop.focusedWindow?.appId } == "main" }
+            val dialog = client.window { it.setAppId("dialog"); it.setParent(main.toplevel) }.also { it.draw(200, 100) }
+            client.waitFor { caulis.onLoop { r -> r.desktop.focusedWindow?.appId } == "dialog" }
+            // Not modal yet: the main window can have the focus.
+            caulis.onLoop { r -> r.desktop.focus(r.desktop.allWindows.first { it.appId == "main" }) }
+            assertEquals("main", caulis.onLoop { r -> r.desktop.focusedWindow?.appId })
+
+            val dialogs = client.bind("xdg_wm_dialog_v1", XdgWmDialogV1, 1)
+            dialogs.getXdgDialog(dialog.toplevel).setModal()
+            client.waitFor { caulis.onLoop { r -> r.desktop.allWindows.first { it.appId == "dialog" }.modal } }
+            caulis.onLoop { r -> r.desktop.focus(r.desktop.allWindows.first { it.appId == "main" }) }
+            assertEquals("dialog", caulis.onLoop { r -> r.desktop.focusedWindow?.appId }, "the dialog it waits for")
         }
     }
 

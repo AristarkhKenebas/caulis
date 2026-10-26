@@ -455,6 +455,8 @@ class Xwm internal constructor(
         val states = prop(window, atom("_NET_WM_STATE"))?.ints()?.toSet() ?: return
         if (atom("_NET_WM_STATE_FULLSCREEN") in states) window.fullscreen = true
         if (atom("_NET_WM_STATE_MAXIMIZED_VERT") in states && atom("_NET_WM_STATE_MAXIMIZED_HORZ") in states) window.maximized = true
+        // A dialog its window waits for (modal).
+        if (atom("_NET_WM_STATE_MODAL") in states) window.describeModal(true)
     }
 
     // Xwayland tells which surface shows a window: the serial it also gave the surface
@@ -557,6 +559,7 @@ class Xwm internal constructor(
         if (atom("_NET_WM_STATE_MAXIMIZED_VERT") in properties || atom("_NET_WM_STATE_MAXIMIZED_HORZ") in properties) {
             if (window.inDesktop) desktop.maximizeRequested(window, wanted(window.maximized)) else window.maximized = wanted(window.maximized)
         }
+        if (atom("_NET_WM_STATE_MODAL") in properties) window.describeModal(wanted(window.modal))
         if (atom("_NET_WM_STATE_HIDDEN") in properties && window.inDesktop) {
             val minimized = desktop.isMinimized(window)
             if (wanted(minimized) && !minimized) desktop.minimizeRequested(window) else if (!wanted(minimized) && minimized) desktop.focus(window)
@@ -650,6 +653,7 @@ class Xwm internal constructor(
                 add(atom("_NET_WM_STATE_MAXIMIZED_HORZ"))
             }
             if (window.activated) add(atom("_NET_WM_STATE_FOCUSED"))
+            if (window.modal) add(atom("_NET_WM_STATE_MODAL"))
             if (window.inDesktop && desktop.isMinimized(window)) add(atom("_NET_WM_STATE_HIDDEN"))
         }
         x.setProperty(window.id, atom("_NET_WM_STATE"), Xcb.XCB_ATOM_ATOM(), states.toIntArray())
@@ -820,7 +824,7 @@ class Xwm internal constructor(
             "_NET_SUPPORTED", "_NET_SUPPORTING_WM_CHECK", "_NET_WM_NAME", "_NET_ACTIVE_WINDOW", "_NET_CLIENT_LIST",
             "_NET_CLIENT_LIST_STACKING", "_NET_WM_STATE", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE_MAXIMIZED_VERT",
             "_NET_WM_STATE_MAXIMIZED_HORZ", "_NET_WM_STATE_HIDDEN", "_NET_WM_STATE_FOCUSED", "_NET_WM_MOVERESIZE",
-            "_NET_CLOSE_WINDOW", "_NET_WM_WINDOW_TYPE",
+            "_NET_CLOSE_WINDOW", "_NET_WM_WINDOW_TYPE", "_NET_WM_STATE_MODAL",
         )
 
         val ATOMS = SUPPORTED + listOf(

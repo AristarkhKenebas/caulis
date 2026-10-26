@@ -103,6 +103,10 @@ class XWindow internal constructor(private val xwm: Xwm, val id: Int, overrideRe
         this.parent = parent
     }
 
+    internal fun describeModal(modal: Boolean) {
+        this.modal = modal
+    }
+
     /** The program changed its size on its own (floating windows may): the desktop keeps it. */
     internal fun resizedItself(width: Int, height: Int) {
         sizeAsked = width to height
