@@ -62,6 +62,16 @@ class ComposeWidget @JvmOverloads constructor(
     /** Room it keeps at an edge of a monitor (a bar), or null. */
     private val reserve: (Monitor) -> Reserve? = { null },
     override val takesKeyboard: Boolean = false,
+    /**
+     * The scene's size on a monitor (desktop units), or null: its area's. A scene bigger than
+     * its area shows its top left part: the area may then grow and shrink (a menu with more
+     * rows) without the scene being made anew.
+     */
+    private val sceneSize: ((Monitor) -> Pair<Int, Int>?)? = null,
+    /** How the picture is shown (see-through, bigger or smaller, moved): done by the compositor, nothing drawn anew. */
+    private val appearance: (Monitor) -> Appearance = { Appearance.SHOWN },
+    /** True while [appearance] changes by itself: frames keep coming. */
+    private val moving: () -> Boolean = { false },
     private val content: @Composable (monitor: Monitor) -> Unit,
 ) : Widget, AutoCloseable {
 
@@ -102,7 +112,20 @@ class ComposeWidget @JvmOverloads constructor(
     override fun draw(monitor: Monitor, canvas: OverlayCanvas, area: Rect) {
         val part = partFor(monitor, area) ?: return
         if (!part.drawnOnce || part.scene.hasInvalidations()) render(part)
-        part.texture?.let { canvas.image(it, area) }
+        val texture = part.texture ?: return
+        val look = appearance(monitor)
+        if (look.alpha <= 0.002f) return
+        val sceneRect = Rect(area.x, area.y, Math.round(part.width / part.scale).toInt(), Math.round(part.height / part.scale).toInt())
+        if (look == Appearance.SHOWN && sceneRect == area) return canvas.image(texture, area)
+        // Bigger or smaller about the area's middle, then moved.
+        val cx = area.x + area.width / 2.0
+        val cy = area.y + area.height / 2.0
+        fun moved(r: Rect): Rect {
+            val left = cx + (r.x - cx) * look.scale + look.dx
+            val top = cy + (r.y - cy) * look.scale + look.dy
+            return Rect(Math.round(left).toInt(), Math.round(top).toInt(), Math.round(r.width * look.scale).toInt(), Math.round(r.height * look.scale).toInt())
+        }
+        canvas.imagePart(texture, moved(sceneRect), moved(area), look.alpha)
     }
 
     // Only scenes still shown keep frames coming (not one of a monitor gone, or not there now).
@@ -110,14 +133,15 @@ class ComposeWidget @JvmOverloads constructor(
         if (desktop.locked) return false
         val shown = desktop.monitors.associateBy { it.name }
         for (name in parts.keys.filter { it !in shown }) drop(name)
-        return parts.any { (name, part) -> part.scene.hasInvalidations() && place(shown.getValue(name)) != null }
+        return parts.any { (name, part) -> part.scene.hasInvalidations() && place(shown.getValue(name)) != null } || moving()
     }
 
     // The scene for [monitor] in [area]'s size (made anew when the size or scale changes).
     private fun partFor(monitor: Monitor, area: Rect): Part? {
         val scale = monitor.scale
-        val width = Math.round(area.width * scale).toInt()
-        val height = Math.round(area.height * scale).toInt()
+        val (unitsWide, unitsHigh) = sceneSize?.invoke(monitor) ?: (area.width to area.height)
+        val width = Math.round(unitsWide * scale).toInt()
+        val height = Math.round(unitsHigh * scale).toInt()
         if (width <= 0 || height <= 0) return null
         parts[monitor.name]?.let { if (it.width == width && it.height == height && it.scale == scale) return it else drop(monitor.name) }
         val scene = ImageComposeScene(width, height, Density(scale.toFloat()), dispatcher) {
@@ -136,6 +160,7 @@ class ComposeWidget @JvmOverloads constructor(
     private fun render(part: Part) {
         val started = System.nanoTime()
         val image = part.scene.render(started)
+        val rendered = System.nanoTime()
         part.drawnOnce = true
         val bitmap = Bitmap()
         try {
@@ -153,7 +178,7 @@ class ComposeWidget @JvmOverloads constructor(
             image.close()
         }
         val ms = (System.nanoTime() - started) / 1_000_000.0
-        if (ms > 8) log.trace { "Compose frame of ${part.width}x${part.height} px took %.1f ms".format(ms) }
+        if (ms > 8) log.trace { "Compose frame of ${part.width}x${part.height} px took %.1f ms (drawing %.1f)".format(ms, (rendered - started) / 1e6) }
     }
 
     // --- input ------------------------------------------------------------------------------
@@ -243,6 +268,15 @@ class ComposeWidget @JvmOverloads constructor(
         closed = true
         writes.dispose()
         for (name in parts.keys.toList()) drop(name)
+    }
+
+    /**
+     * Starts its scenes over (made anew at the next frame): for content that is something else
+     * now (another menu), state kept with `remember` starts over too.
+     */
+    fun restart() {
+        for (name in parts.keys.toList()) drop(name)
+        desktop.requestRedraw()
     }
 
     private fun drop(name: String) {

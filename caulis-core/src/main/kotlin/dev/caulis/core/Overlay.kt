@@ -70,6 +70,12 @@ class OverlayCanvas internal constructor(
         add(DrawItem.Image(next("image"), texture, rect, clip = if (radius > 0f) rect else null, radius = radius, alpha = alpha))
     }
 
+    /** [texture] stretched over [rect], [alpha] as strong, only what is inside [clip] shown. */
+    @JvmOverloads
+    fun imagePart(texture: GpuTexture, rect: Rect, clip: Rect, alpha: Float = 1f) {
+        add(DrawItem.Image(next("image"), texture, rect, clip = clip, alpha = alpha))
+    }
+
     /** [rect] filled with a colour (0..1 each), [alpha] as strong. */
     @JvmOverloads
     fun fill(rect: Rect, red: Float, green: Float, blue: Float, alpha: Float = 1f) {

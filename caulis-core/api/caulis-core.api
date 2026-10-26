@@ -1341,6 +1341,9 @@ public final class dev/caulis/core/OverlayCanvas {
 	public final fun image (Ldev/caulis/render/GpuTexture;Ldev/caulis/geometry/Rect;F)V
 	public final fun image (Ldev/caulis/render/GpuTexture;Ldev/caulis/geometry/Rect;FF)V
 	public static synthetic fun image$default (Ldev/caulis/core/OverlayCanvas;Ldev/caulis/render/GpuTexture;Ldev/caulis/geometry/Rect;FFILjava/lang/Object;)V
+	public final fun imagePart (Ldev/caulis/render/GpuTexture;Ldev/caulis/geometry/Rect;Ldev/caulis/geometry/Rect;)V
+	public final fun imagePart (Ldev/caulis/render/GpuTexture;Ldev/caulis/geometry/Rect;Ldev/caulis/geometry/Rect;F)V
+	public static synthetic fun imagePart$default (Ldev/caulis/core/OverlayCanvas;Ldev/caulis/render/GpuTexture;Ldev/caulis/geometry/Rect;Ldev/caulis/geometry/Rect;FILjava/lang/Object;)V
 	public final fun roundedFill (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;)V
 	public final fun roundedFill (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;F)V
 	public static synthetic fun roundedFill$default (Ldev/caulis/core/OverlayCanvas;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;FILjava/lang/Object;)V

@@ -4427,6 +4427,14 @@ class Desktop(
             widgets.any { w -> userCode("Your widget (animating)", false) { w.animating(System.nanoTime()) } }
         if (glides.isNotEmpty() || cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsMoving || focusChanging || directorMoving) {
             // Windows are gliding (or the overview zooms): the scene changes every frame until done.
+            renderLog.trace {
+                val why = listOfNotNull("glides".takeIf { glides.isNotEmpty() }, "camera".takeIf { cameraMoving(System.nanoTime()) }, "fading".takeIf { fadingNow },
+                    "notices".takeIf { noticesMoving }, "animating".takeIf { animatingNow }, "backdrops".takeIf { backdropsChanging }, "paints".takeIf { paintsMoving },
+                    "focus".takeIf { focusChanging }, "director".takeIf { director?.animating(System.nanoTime()) == true },
+                    "drawings".takeIf { drawings.values.any { l -> l.any { it.animating(System.nanoTime()) } } },
+                    widgets.filter { it.animating(System.nanoTime()) }.takeIf { it.isNotEmpty() }?.joinToString(prefix = "widgets ") { it.javaClass.simpleName })
+                "Moving: ${why.joinToString()}"
+            }
             version++
             onChange()
         }

@@ -26,13 +26,16 @@ fun Caulis.compose(
     level: DrawingLevel = DrawingLevel.ON_TOP,
     reserve: (Monitor) -> Reserve? = { null },
     takesKeyboard: Boolean = false,
+    sceneSize: ((Monitor) -> Pair<Int, Int>?)? = null,
+    appearance: (Monitor) -> Appearance = { Appearance.SHOWN },
+    moving: () -> Boolean = { false },
     content: @Composable (monitor: Monitor) -> Unit,
 ): AutoCloseable {
     val caulis = this
     var handle: AutoCloseable? = null
     // Made when the compositor runs (it needs the desktop's renderer).
     val start = after(0) {
-        handle = addWidget(ComposeWidget(desktop, post = { task -> caulis.post { task.run() } }, place, level, reserve, takesKeyboard, content))
+        handle = addWidget(ComposeWidget(desktop, post = { task -> caulis.post { task.run() } }, place, level, reserve, takesKeyboard, sceneSize, appearance, moving, content))
     }
     return AutoCloseable {
         start.close()
