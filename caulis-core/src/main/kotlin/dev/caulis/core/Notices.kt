@@ -43,6 +43,13 @@ class Notice internal constructor(
     /** False once it was closed (clicked, timed out, or by [Desktop.dismiss]). */
     val open: Boolean get() = leavingSince == null
 
+    /** Its text was copied (its copy button shows a check). */
+    var copied = false
+        internal set
+
+    /** What its copy button copies: the title and the text. */
+    val fullText: String get() = listOfNotNull(title, text).joinToString("\n")
+
     override fun toString() = "Notice($level, ${title?.let { "$it: " } ?: ""}$text${if (count > 1) " ×$count" else ""})"
 }
 
@@ -188,7 +195,7 @@ class NoticeLook(
     /** Pixels per desktop unit (to scale fonts and lines). */
     val scale: Double,
     val notice: Notice,
-    /** The pointer is on it (a click closes it). */
+    /** The pointer is on it (a click closes it; its copy button copies it). */
     val hovered: Boolean,
     val style: NoticeStyle,
 ) {
@@ -245,8 +252,30 @@ object DefaultNoticePainter : NoticePainter {
             g.stroke = BasicStroke((1.4 * unit).toFloat())
             g.draw(Line2D.Double(cx - r, cy - r, cx + r, cy + r))
             g.draw(Line2D.Double(cx - r, cy + r, cx + r, cy - r))
+            copyButton(g, look, cy)
         }
     }
+
+    /**
+     * The copy button left of the ×, at height [cy] (pixels): two sheets, or a check once
+     * copied. A click there copies the notice instead of closing it (see [NoticeBoard.copyAt]).
+     */
+    internal fun copyButton(g: Graphics2D, look: NoticeLook, cy: Double) {
+        val unit = look.scale
+        val cx = look.width - look.style.padding * unit - COPY_FROM_RIGHT * unit
+        g.stroke = BasicStroke((1.3 * unit).toFloat(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+        if (look.notice.copied) {
+            g.draw(Line2D.Double(cx - 4.5 * unit, cy, cx - 1.2 * unit, cy + 3.5 * unit))
+            g.draw(Line2D.Double(cx - 1.2 * unit, cy + 3.5 * unit, cx + 5 * unit, cy - 4 * unit))
+        } else {
+            val s = 7.0 * unit
+            g.draw(RoundRectangle2D.Double(cx - s / 2 - 1.5 * unit, cy - s / 2 - 1.5 * unit, s, s, 2.5 * unit, 2.5 * unit))
+            g.draw(RoundRectangle2D.Double(cx - s / 2 + 1.5 * unit, cy - s / 2 + 1.5 * unit, s, s, 2.5 * unit, 2.5 * unit))
+        }
+    }
+
+    /** Where the copy button's middle is: this far left of the right edge's padding (desktop units). */
+    internal const val COPY_FROM_RIGHT = 24.0
 
     internal fun plain(look: NoticeLook) = Font(look.style.font, Font.PLAIN, 1).deriveFont((look.style.fontSize * look.scale).toFloat())
     internal fun bold(look: NoticeLook) = Font(look.style.font, Font.BOLD, 1).deriveFont((look.style.fontSize * look.scale).toFloat())
@@ -369,6 +398,8 @@ class CardNoticePainter @JvmOverloads constructor(
             g.stroke = BasicStroke((1.4 * unit).toFloat(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
             g.draw(Line2D.Double(cx - cr, cy - cr, cx + cr, cy + cr))
             g.draw(Line2D.Double(cx - cr, cy + cr, cx + cr, cy - cr))
+            if (look.notice.copied) g.color = awt(accent)
+            DefaultNoticePainter.copyButton(g, look, cy)
         }
     }
 }
@@ -586,7 +617,7 @@ internal class NoticeBoard(
         val scale = monitor.scale
         val width = Math.round(rect.width * scale).toInt().coerceAtLeast(1)
         val height = Math.round(rect.height * scale).toInt().coerceAtLeast(1)
-        val shows = listOf(notice.count, notice === hovered, width, height, scale, style)
+        val shows = listOf(notice.count, notice === hovered, notice.copied, width, height, scale, style)
         val key = notice to monitor.name
         textures[key]?.let { (shown, texture) -> if (shown == shows) return texture else texture.close() }
         val image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB_PRE)
@@ -610,6 +641,22 @@ internal class NoticeBoard(
     /** The open notice at the desktop point ([x], [y]), if one is drawn there. */
     fun at(x: Double, y: Double): Notice? = places.values.asSequence().flatten()
         .lastOrNull { (notice, rect) -> notice.open && x >= rect.x && x < rect.right && y >= rect.y && y < rect.bottom }?.first
+
+    /** The notice whose copy button is at the desktop point ([x], [y]), if one is. */
+    fun copyAt(x: Double, y: Double): Notice? {
+        val (notice, rect) = places.values.asSequence().flatten()
+            .lastOrNull { (n, r) -> n.open && x >= r.x && x < r.right && y >= r.y && y < r.bottom } ?: return null
+        val cx = rect.right - style.padding - DefaultNoticePainter.COPY_FROM_RIGHT
+        val top = rect.y + style.padding
+        return notice.takeIf { Math.abs(x - cx) <= 10 && y >= rect.y && y <= top + 18 }
+    }
+
+    /** [notice] was copied: its button shows a check (and it stays a while longer). */
+    fun copied(notice: Notice) {
+        notice.copied = true
+        if (hovered !== notice) startTimer(notice)
+        changed()
+    }
 
     /** The pointer moved: the notice under it shows its ×. */
     fun pointerAt(x: Double, y: Double) {

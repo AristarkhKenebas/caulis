@@ -399,6 +399,8 @@ internal class Running(
         Shm(display)
         if (renderer.renderNode != null) LinuxDmabuf(display, renderer)
         clipboard = DataDeviceManager(display, seat)
+        // A notice's copy button puts its text here.
+        desktop.copyText = { text -> clipboard.setClipboard(dev.caulis.core.TextOnClipboard(text)) }
         dev.caulis.core.PrimarySelection(display, seat, clipboard)
         dev.caulis.core.DataControl(display, clipboard)
         activation = dev.caulis.core.Activation(display, seat, desktop)

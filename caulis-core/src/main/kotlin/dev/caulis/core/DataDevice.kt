@@ -209,3 +209,27 @@ interface ClipboardData {
     /** Something else was put on the clipboard. */
     fun cancelled() {}
 }
+
+/** Text on the clipboard, as programs ask for it (UTF-8 text in its usual names). */
+class TextOnClipboard(private val text: String) : ClipboardData {
+    override val mimeTypes = listOf("text/plain;charset=utf-8", "text/plain", "UTF8_STRING", "STRING", "TEXT")
+
+    override fun send(mimeType: String, fd: Fd) {
+        val bytes = text.toByteArray(Charsets.UTF_8)
+        Thread({
+            fd.use {
+                java.lang.foreign.Arena.ofConfined().use { arena ->
+                    val all = arena.allocateFrom(java.lang.foreign.ValueLayout.JAVA_BYTE, *bytes)
+                    var done = 0L
+                    while (done < bytes.size) {
+                        val written = it.write(all.asSlice(done))
+                        if (written <= 0) break
+                        done += written
+                    }
+                }
+            }
+        }, "caulis-copy").apply { isDaemon = true }.start()
+    }
+
+    override fun toString() = "text (${text.length} characters)"
+}

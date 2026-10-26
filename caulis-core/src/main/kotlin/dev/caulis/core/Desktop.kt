@@ -2365,6 +2365,35 @@ class Desktop(
     /** Closes [notice] (it fades away). */
     fun dismiss(notice: Notice) = noticeBoard.dismiss(notice)
 
+    // A click on a notice of ours closes it, or copies it on its copy button (nothing below sees
+    // the press or the release). True if it was one.
+    private fun noticeClick(button: Int, pressed: Boolean): Boolean {
+        if (!pressed) {
+            if (button != noticeButton) return false
+            noticeButton = null
+            return true
+        }
+        if (pressedWidget != null) return false // (a drag in a widget goes on)
+        noticeBoard.copyAt(pointerX, pointerY)?.let { notice ->
+            val copy = copyText
+            if (copy != null) {
+                userCode("copyText", Unit) { copy(notice.fullText) }
+                noticeBoard.copied(notice)
+                noticeButton = button
+                return true
+            }
+        }
+        noticeBoard.at(pointerX, pointerY)?.let { notice ->
+            dismiss(notice)
+            noticeButton = button
+            return true
+        }
+        return false
+    }
+
+    /** Puts text on the clipboard (a notice's copy button uses it); set by whoever owns the clipboard. */
+    var copyText: ((String) -> Unit)? = null
+
     /** The notices open now, oldest first. */
     val notices: List<Notice> get() = noticeBoard.all.filter { it.open }
 
@@ -3980,6 +4009,8 @@ class Desktop(
             return
         }
         if (withOverlay { it.pointerButton(button, pressed) }) return
+        // Notices are above everything (a bar too): a click on one is theirs.
+        if (noticeClick(button, pressed)) return
         // A widget's (the one pressed in keeps it until the last button is let go).
         val widgetTarget = if (locked || inOverview) null else pressedWidget?.widget ?: hoveredWidget
         if (widgetTarget != null) {
@@ -4006,17 +4037,6 @@ class Desktop(
                 endGrab()
                 movePointer(timeMillis, pointerX, pointerY) // the app under the pointer gets it back
             }
-            return
-        }
-        // A click on a notice of ours closes it (the program below sees neither press nor release).
-        if (pressed) {
-            noticeBoard.at(pointerX, pointerY)?.let { notice ->
-                dismiss(notice)
-                noticeButton = button
-                return
-            }
-        } else if (button == noticeButton) {
-            noticeButton = null
             return
         }
         // Title bars and edges of our own (no program sees these clicks).

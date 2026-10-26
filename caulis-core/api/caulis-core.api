@@ -371,6 +371,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getBackgroundChangeMillis ()J
 	public final fun getBackgroundFor ()Lkotlin/jvm/functions/Function2;
 	public final fun getBehaviorFor ()Lkotlin/jvm/functions/Function1;
+	public final fun getCopyText ()Lkotlin/jvm/functions/Function1;
 	public final fun getCursorShape ()Ljava/lang/String;
 	public final fun getCursorTheme ()Ldev/caulis/core/cursor/CursorTheme;
 	public final fun getDefaultScale ()D
@@ -509,6 +510,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun setBackgroundFor (Lkotlin/jvm/functions/Function2;)V
 	public final fun setBackgroundView (Ldev/caulis/core/Monitor;Ldev/caulis/core/BackgroundView;)V
 	public final fun setBehaviorFor (Lkotlin/jvm/functions/Function1;)V
+	public final fun setCopyText (Lkotlin/jvm/functions/Function1;)V
 	public final fun setCursorTheme (Ldev/caulis/core/cursor/CursorTheme;)V
 	public final fun setDefaultScale (D)V
 	public final fun setDirector (Ldev/caulis/core/WindowDirector;)V
@@ -1010,7 +1012,9 @@ public final class dev/caulis/core/Motion$Companion {
 }
 
 public final class dev/caulis/core/Notice {
+	public final fun getCopied ()Z
 	public final fun getCount ()I
+	public final fun getFullText ()Ljava/lang/String;
 	public final fun getLevel ()Ldev/caulis/core/NoticeLevel;
 	public final fun getMonitorName ()Ljava/lang/String;
 	public final fun getOpen ()Z
@@ -1659,6 +1663,14 @@ public final class dev/caulis/core/SurfaceState {
 	public final fun setViewportHeight (I)V
 	public final fun setViewportSource ([D)V
 	public final fun setViewportWidth (I)V
+}
+
+public final class dev/caulis/core/TextOnClipboard : dev/caulis/core/ClipboardData {
+	public fun <init> (Ljava/lang/String;)V
+	public fun cancelled ()V
+	public fun getMimeTypes ()Ljava/util/List;
+	public fun send (Ljava/lang/String;Ldev/caulis/ffi/Fd;)V
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/caulis/core/TitleBarLook {
