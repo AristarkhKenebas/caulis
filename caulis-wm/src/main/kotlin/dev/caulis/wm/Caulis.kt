@@ -21,6 +21,7 @@ import dev.caulis.core.input.KeyBindings
 import dev.caulis.core.input.InputSettings
 import dev.caulis.core.input.Seat
 import dev.caulis.log.Log
+import dev.caulis.log.Logger
 import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Direction
 import dev.caulis.tiling.Layout
@@ -429,17 +430,42 @@ class Caulis {
     /** Programs always started through X11, by name: `x11Programs += "steam"`. */
     val x11Programs: MutableSet<String> = LinkedHashSet()
 
-    /** Keyboard layouts as for `setxkbmap`, e.g. "us,ru", and options, e.g. "grp:win_space_toggle". */
+    /**
+     * Keyboard layouts as for `setxkbmap`, e.g. "us,ru", and options, e.g. "grp:win_space_toggle"
+     * (Super+Space switches) or "grp:alt_shift_toggle". A change applies at once.
+     */
     var keyboardLayouts = "us"
     var keyboardOptions = ""
+
+    /**
+     * Applies settings your code changed while the compositor runs — the keyboard's layouts,
+     * the cursor, the touchpad, focus, idle timers, ... — as a reload of a configuration file
+     * does (a compositor with a configuration of its own calls it after reading that).
+     */
+    fun applySettings() {
+        running?.applySettingsNow()
+    }
+
+    /** The keyboard layout in use: its number in [keyboardLayouts] ("us,ru": 0 is us, 1 ru). */
+    val keyboardLayoutNow: Int get() = running?.seat?.layoutIndex ?: 0
+
+    /** The names of the keyboard layouts ([keyboardLayouts] split: "us,ru" gives us and ru). */
+    val keyboardLayoutNames: List<String> get() = keyboardLayouts.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+
+    /** Switches the keyboard layout to number [index] of [keyboardLayouts] (counting around: one past the last is the first). */
+    fun switchKeyboardLayout(index: Int) {
+        val seat = running?.seat ?: return
+        seat.setLayout(index)
+        keyboardLog.info { "Keyboard layout: ${keyboardLayoutNames.getOrNull(seat.layoutIndex) ?: seat.layoutIndex}" }
+    }
 
     /** Num Lock on (true) or off (false) from the start; null leaves it to the keyboard. Changing it switches it at once. */
     var numLock: Boolean? = null
 
-    /** Keyboard layout variants, one per layout as for setxkbmap: "", "dvorak", ",phonetic". Restart to change. */
+    /** Keyboard layout variants, one per layout as for setxkbmap: "", "dvorak", ",phonetic". */
     var keyboardVariants = ""
 
-    /** The keyboard model as for setxkbmap ("pc105"). Restart to change. */
+    /** The keyboard model as for setxkbmap ("pc105"). */
     var keyboardModel = "pc105"
 
     /**
@@ -949,6 +975,12 @@ class Caulis {
             running.pointerButton(time, button, true)
             running.pointerButton(time + 20, button, false)
         }
+    }
+
+    /** For tests: a key ([evdevCode], e.g. 56 left Alt, 42 left Shift, 30 A) pressed or let go, as from a keyboard (see [simulatePointer]). */
+    fun simulateKey(evdevCode: Int, pressed: Boolean) {
+        val running = checkNotNull(running) { "Caulis is not running yet" }
+        running.key((System.nanoTime() / 1_000_000).toInt(), evdevCode, pressed)
     }
 
     /** For tests: the wheel turned [notches] (positive: down), as from a mouse (see [simulatePointer]). */
@@ -1549,3 +1581,5 @@ fun caulis(configure: Caulis.() -> Unit) {
 
 /** The compositor cannot start because something it needs is missing (explained on stderr). */
 class CannotStartException(message: String) : RuntimeException(message)
+
+private val keyboardLog = Logger("keyboard")

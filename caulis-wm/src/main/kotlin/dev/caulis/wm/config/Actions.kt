@@ -68,6 +68,7 @@ object Actions {
         Triple("focus-urgent", "", "focuses the window that wants attention"),
         Triple("dpms", "on|off|toggle [monitor]", "switches the screens (or one) off or on"),
         Triple("keep-awake", "on|off|toggle", "no idle timers while on"),
+        Triple("keyboard-layout", "next|prev|number", "the next keyboard layout (of keyboardLayouts), the one before, or one by its number (0: the first)"),
         Triple("mode", "name|reset", "turns a key mode on (\"mode resize\"), or back to the usual keys"),
         Triple("volume", "+5|-5|mute", "louder, quieter, or sound off and on (wpctl), shown on screen"),
         Triple("mic-mute", "", "the microphone off or on"),
@@ -188,6 +189,15 @@ object Actions {
             "scale" -> (needs("a number").toDoubleOrNull()?.takeIf { it in 0.5..4.0 } ?: throw IllegalArgumentException("\"$argument\" is not a scale (0.5 to 4)"))
                 .let { s -> { _ -> scale = s } }
             "notify" -> needs("a text").let { message -> { _ -> notify(message, NoticeLevel.INFO) } }
+            "keyboard-layout" -> {
+                val which = needs("next, prev or a number").lowercase()
+                when {
+                    which == "next" -> { _ -> switchKeyboardLayout(keyboardLayoutNow + 1) }
+                    which == "prev" -> { _ -> switchKeyboardLayout(keyboardLayoutNow - 1) }
+                    which.toIntOrNull() != null -> { _ -> switchKeyboardLayout(which.toInt()) }
+                    else -> throw IllegalArgumentException("\"$which\" is not next, prev or a number")
+                }
+            }
             "dpms" -> {
                 val words = needs("on, off or toggle").split(Regex("\\s+"))
                 val name = words.getOrNull(1)

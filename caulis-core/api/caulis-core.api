@@ -2908,6 +2908,7 @@ public final class dev/caulis/core/input/KeyBindings$Options {
 public final class dev/caulis/core/input/KeyboardState : java/lang/AutoCloseable {
 	public fun close ()V
 	public final fun getModifiers ()Ldev/caulis/core/input/KeyboardState$Modifiers;
+	public final fun setLocks (II)Z
 	public final fun setNumLock (Z)Z
 	public final fun symbol (I)I
 	public final fun text (I)Ljava/lang/String;
@@ -2934,6 +2935,7 @@ public final class dev/caulis/core/input/KeyboardState$Modifiers {
 public final class dev/caulis/core/input/Keymap : java/lang/AutoCloseable {
 	public static final field Companion Ldev/caulis/core/input/Keymap$Companion;
 	public fun close ()V
+	public final fun getLayoutCount ()I
 	public final fun getShared ()Ldev/caulis/ffi/SharedMemory;
 	public final fun getSharedSize ()I
 	public final fun newState ()Ldev/caulis/core/input/KeyboardState;
@@ -2998,6 +3000,9 @@ public final class dev/caulis/core/input/Seat : java/lang/AutoCloseable {
 	public final fun getCursorShape ()Ljava/lang/String;
 	public final fun getCursorSurface ()Ldev/caulis/core/Surface;
 	public final fun getKeyboardFocus ()Ldev/caulis/core/Surface;
+	public final fun getKeymap ()Ldev/caulis/core/input/Keymap;
+	public final fun getLayoutCount ()I
+	public final fun getLayoutIndex ()I
 	public final fun getMayFocus ()Lkotlin/jvm/functions/Function1;
 	public final fun getModifierBits ()I
 	public final fun getOnCursorChange ()Lkotlin/jvm/functions/Function0;
@@ -3013,12 +3018,15 @@ public final class dev/caulis/core/input/Seat : java/lang/AutoCloseable {
 	public final fun pointerFrame ()V
 	public final fun pointerMotion (ILdev/caulis/core/Surface;DD)V
 	public final fun releaseAllKeys (I)V
+	public final fun setKeymap (Ldev/caulis/core/input/Keymap;)V
+	public final fun setLayout (I)V
 	public final fun setMayFocus (Lkotlin/jvm/functions/Function1;)V
 	public final fun setNumLock (Z)V
 	public final fun setOnCursorChange (Lkotlin/jvm/functions/Function0;)V
 	public final fun setRepeatDelay (I)V
 	public final fun setRepeatRate (I)V
 	public final fun textOf (I)Ljava/lang/String;
+	public final fun trackKey (IZ)V
 }
 
 public final class dev/caulis/core/input/Seat$Companion {

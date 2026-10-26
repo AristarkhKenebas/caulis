@@ -36,6 +36,9 @@ class Keymap private constructor(
     /** Tracks pressed keys and modifiers for this keymap. */
     fun newState(): KeyboardState = KeyboardState(Xkb.xkb_state_new(keymap))
 
+    /** How many layouts it has ("us,ru": two). */
+    val layoutCount: Int get() = Xkb.xkb_keymap_num_layouts(keymap)
+
     override fun close() {
         shared.close()
         Xkb.xkb_keymap_unref(keymap)
@@ -97,6 +100,13 @@ class KeyboardState internal constructor(private val state: MemorySegment) : Aut
         val m = modifiers
         val locked = if (on) m.locked or NUM_LOCK else m.locked and NUM_LOCK.inv()
         Xkb.xkb_state_update_mask(state, m.depressed, m.latched, locked, 0, 0, m.group)
+        return readModifiers()
+    }
+
+    /** Sets the locked modifiers (Num Lock, Caps Lock) and the layout in use ([layout]). Returns true if anything changed. */
+    fun setLocks(locked: Int, layout: Int): Boolean {
+        val m = modifiers
+        Xkb.xkb_state_update_mask(state, m.depressed, m.latched, locked, 0, 0, layout)
         return readModifiers()
     }
 

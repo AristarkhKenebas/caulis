@@ -23,3 +23,27 @@ class NumLockTest {
         }
     }
 }
+
+/** Keyboard layouts: a switch on keys (Super+Space) and by the compositor, Num Lock kept. */
+class KeyboardLayoutTest {
+
+    @Test
+    fun `super space switches the layout, and so does setLocks`() {
+        Keymap.fromNames(layouts = "us,ru", options = "grp:win_space_toggle").use { keymap ->
+            assertEquals(2, keymap.layoutCount)
+            keymap.newState().use { state ->
+                assertEquals(0, state.modifiers.group)
+                state.update(125, true) // Super
+                state.update(57, true) // Space
+                state.update(57, false)
+                state.update(125, false)
+                assertEquals(1, state.modifiers.group)
+                assertEquals("ф", state.text(30)) // A on the Russian layout
+                state.setNumLock(true)
+                assertTrue(state.setLocks(state.modifiers.locked, 0))
+                assertEquals(0, state.modifiers.group)
+                assertEquals(16, state.modifiers.locked and 16, "Num Lock stays on")
+            }
+        }
+    }
+}

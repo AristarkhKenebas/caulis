@@ -60,6 +60,7 @@ internal class Running(
     private val disabledByConfig = config.monitorSettings.values.filter { !it.enabled }.mapTo(HashSet()) { it.name }
 
     private val log = Logger("config")
+    private val keyboardLog = Logger("keyboard")
     private val clientsLog = Logger("clients")
     private val cursorLog = Logger("cursor")
     private val gesturesLog = Logger("gestures")
@@ -93,7 +94,9 @@ internal class Running(
     private val configNotices = ArrayList<dev.caulis.core.Notice>()
 
     val display = Display(loop)
-    private val keymap = Keymap.fromNames(layouts = config.keyboardLayouts, variants = config.keyboardVariants, options = config.keyboardOptions, model = config.keyboardModel)
+    // The keymap and the settings it was made of (made anew when they change: a reload).
+    private var keymapOf = listOf(config.keyboardLayouts, config.keyboardVariants, config.keyboardOptions, config.keyboardModel)
+    private var keymap = Keymap.fromNames(layouts = config.keyboardLayouts, variants = config.keyboardVariants, options = config.keyboardOptions, model = config.keyboardModel)
     val seat = Seat(display, keymap)
     private val compositor = Compositor(display, renderer)
     val desktop = Desktop(renderer, seat, compositor, width, height)
@@ -505,6 +508,9 @@ internal class Running(
 
     // What of the configuration is handed over to the desktop, keys and events — at the
     // start and again after each reload.
+    /** Settings changed by code while running (Caulis.applySettings). */
+    internal fun applySettingsNow() = applyConfig()
+
     private fun applyConfig() {
         val config = config
         desktop.effects = config.effects
@@ -534,6 +540,7 @@ internal class Running(
             idleWatches += idle.watch(watch.seconds * 1000L, onIdle = { safely("onIdle") { watch.idle(config) } }, onResume = { safely("onIdle resume") { watch.resume(config) } })
         }
         seat.repeatRate = config.repeatRate
+        applyKeymap()
         // Num Lock as configured, when that changes (not again on each reload: the key may have switched it since).
         config.numLock?.let { on ->
             if (on != appliedNumLock) {
@@ -971,8 +978,9 @@ internal class Running(
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
         userActive()
         if (keyTaken(timeMillis, evdevCode, pressed)) {
-            // (The seat's own keyboard state still follows modifiers, or they would stick.)
-            if (KeyInput.Modifiers.of(evdevCode) != 0) seat.key(timeMillis, evdevCode, pressed)
+            // The keyboard's state still follows the key: modifiers would stick, and a layout
+            // switch or Caps Lock on a key the configuration took would do nothing.
+            if (KeyInput.Modifiers.of(evdevCode) != 0) seat.key(timeMillis, evdevCode, pressed) else seat.trackKey(evdevCode, pressed)
             return
         }
         val active = activeKeys()
@@ -987,6 +995,26 @@ internal class Running(
             }
             desktop.key(timeMillis, evdevCode, pressed)
         }
+    }
+
+    // Other layouts, variants, options or model in the settings: the keymap made anew, given
+    // to every program (a mistake in them keeps the keymap there was).
+    private fun applyKeymap() {
+        val wanted = listOf(config.keyboardLayouts, config.keyboardVariants, config.keyboardOptions, config.keyboardModel)
+        if (wanted == keymapOf) return
+        val next = try {
+            Keymap.fromNames(layouts = wanted[0], variants = wanted[1], options = wanted[2], model = wanted[3])
+        } catch (e: Exception) {
+            keyboardLog.warn("The keyboard layouts \"${wanted[0]}\" (options \"${wanted[2]}\") cannot be used: ${e.message}")
+            keymapOf = wanted
+            return
+        }
+        val old = keymap
+        seat.setKeymap(next)
+        keymap = next
+        keymapOf = wanted
+        old.close()
+        keyboardLog.info { "Keyboard layouts: ${wanted[0]}${if (wanted[2].isNotEmpty()) " (${wanted[2]})" else ""}" }
     }
 
     // Special keys said once already (see key).

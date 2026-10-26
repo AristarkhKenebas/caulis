@@ -9,6 +9,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun addWidget (Ldev/caulis/core/Widget;)Ljava/lang/AutoCloseable;
 	public final fun after (JLkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
 	public final fun animations (Ldev/caulis/core/Animations;)Ldev/caulis/wm/Caulis;
+	public final fun applySettings ()V
 	public final fun background (Ldev/caulis/core/Background;)Ldev/caulis/wm/Caulis;
 	public final fun backgroundFor (Ljava/util/function/BiFunction;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun backgroundFor (Lkotlin/jvm/functions/Function2;)V
@@ -70,6 +71,8 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getInput ()Ldev/caulis/core/input/InputSettings;
 	public final fun getIpc ()Z
 	public final fun getKeyMode ()Ljava/lang/String;
+	public final fun getKeyboardLayoutNames ()Ljava/util/List;
+	public final fun getKeyboardLayoutNow ()I
 	public final fun getKeyboardLayouts ()Ljava/lang/String;
 	public final fun getKeyboardModel ()Ljava/lang/String;
 	public final fun getKeyboardOptions ()Ljava/lang/String;
@@ -259,6 +262,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setWorkspaceSwipeFingers (I)V
 	public final fun setXwayland (Z)V
 	public final fun sharpJavaScaling (Z)Ldev/caulis/wm/Caulis;
+	public final fun simulateKey (IZ)V
 	public final fun simulatePointer (DDI)V
 	public static synthetic fun simulatePointer$default (Ldev/caulis/wm/Caulis;DDIILjava/lang/Object;)V
 	public final fun simulateScroll (I)V
@@ -267,6 +271,7 @@ public final class dev/caulis/wm/Caulis {
 	public static synthetic fun spawn$default (Ldev/caulis/wm/Caulis;Ljava/util/List;Ljava/nio/file/Path;ILjava/lang/Object;)Ljava/lang/Process;
 	public final synthetic fun swipe (ILdev/caulis/tiling/Direction;Lkotlin/jvm/functions/Function1;)V
 	public final fun switchColorScheme (Ldev/caulis/core/appearance/ColorScheme;)V
+	public final fun switchKeyboardLayout (I)V
 	public final fun terminal (Ljava/lang/String;)Ldev/caulis/wm/Caulis;
 	public final fun titleBars (Ldev/caulis/core/TitleBars;)Ldev/caulis/wm/Caulis;
 	public final fun titleBarsFor (Ljava/util/function/Function;)Ldev/caulis/wm/Caulis;

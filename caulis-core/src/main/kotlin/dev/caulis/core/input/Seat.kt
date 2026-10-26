@@ -18,11 +18,15 @@ import java.nio.ByteOrder
  * turns that into the right events for the right client: enter/leave when focus moves,
  * keys and modifiers, motion, buttons and scrolling.
  */
-class Seat(private val display: Display, private val keymap: Keymap) : AutoCloseable {
+class Seat(private val display: Display, keymap: Keymap) : AutoCloseable {
+
+    /** The keymap programs are given (see [setKeymap]). */
+    var keymap: Keymap = keymap
+        private set
 
     private val keyboards = ArrayList<WlKeyboard>()
     private val pointers = ArrayList<WlPointer>()
-    private val keyboardState = keymap.newState()
+    private var keyboardState = keymap.newState()
     private val pressedKeys = LinkedHashSet<Int>()
 
     /** The surface that receives key presses (a window or popup), or null. */
@@ -197,6 +201,44 @@ class Seat(private val display: Display, private val keymap: Keymap) : AutoClose
             keyboard.sendKey(serial, timeMillis, evdevCode, state)
             if (modifiersChanged) sendModifiers(keyboard)
         }
+    }
+
+    /**
+     * Gives programs another keymap (other layouts, options): every keyboard gets it at once.
+     * Num Lock and the layout in use stay as they were (the layout if the new keymap has it).
+     * The old keymap is the caller's to close.
+     */
+    fun setKeymap(next: Keymap) {
+        val before = keyboardState.modifiers
+        val state = next.newState()
+        state.setLocks(before.locked, if (before.group < next.layoutCount) before.group else 0)
+        keyboardState.close()
+        keyboardState = state
+        keymap = next
+        for (keyboard in keyboards) keyboard.sendKeymap(WlKeyboard.KeymapFormat.XKB_V1, next.shared.fd, next.sharedSize)
+        keyboardFocus?.let { focus -> for (keyboard in keyboardsOf(focus.resource.client)) sendModifiers(keyboard) }
+    }
+
+    /** The keyboard layout in use: 0 for the keymap's first ("us" of "us,ru"). */
+    val layoutIndex: Int get() = keyboardState.modifiers.group
+
+    /** How many layouts the keymap has. */
+    val layoutCount: Int get() = keymap.layoutCount
+
+    /** Switches to the layout [index] (counting around: one past the last is the first). */
+    fun setLayout(index: Int) {
+        if (!keyboardState.setLocks(keyboardState.modifiers.locked, Math.floorMod(index, layoutCount.coerceAtLeast(1)))) return
+        keyboardFocus?.let { focus -> for (keyboard in keyboardsOf(focus.resource.client)) sendModifiers(keyboard) }
+    }
+
+    /**
+     * A key the compositor kept for itself (a binding): the keyboard's state follows it all
+     * the same — a layout switch on it ("grp:win_space_toggle"), Caps Lock — but no program
+     * gets the key.
+     */
+    fun trackKey(evdevCode: Int, pressed: Boolean) {
+        if (!keyboardState.update(evdevCode, pressed)) return
+        keyboardFocus?.let { focus -> for (keyboard in keyboardsOf(focus.resource.client)) sendModifiers(keyboard) }
     }
 
     /** Turns Num Lock on or off, as if its key was pressed (the program with the keyboard is told). */
