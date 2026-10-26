@@ -1876,6 +1876,7 @@ public abstract interface class dev/caulis/core/Widget {
 	public fun pointerButton (IZ)V
 	public fun pointerLeft ()V
 	public fun pointerMoved (Ldev/caulis/core/Monitor;DD)V
+	public fun pressedOutside (IDDZ)Z
 	public fun reserve (Ldev/caulis/core/Monitor;)Ldev/caulis/core/Reserve;
 	public fun scroll (DD)V
 }
@@ -1890,6 +1891,7 @@ public final class dev/caulis/core/Widget$DefaultImpls {
 	public static fun pointerButton (Ldev/caulis/core/Widget;IZ)V
 	public static fun pointerLeft (Ldev/caulis/core/Widget;)V
 	public static fun pointerMoved (Ldev/caulis/core/Widget;Ldev/caulis/core/Monitor;DD)V
+	public static fun pressedOutside (Ldev/caulis/core/Widget;IDDZ)Z
 	public static fun reserve (Ldev/caulis/core/Widget;Ldev/caulis/core/Monitor;)Ldev/caulis/core/Reserve;
 	public static fun scroll (Ldev/caulis/core/Widget;DD)V
 }

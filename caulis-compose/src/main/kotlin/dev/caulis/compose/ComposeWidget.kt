@@ -209,6 +209,15 @@ class ComposeWidget @JvmOverloads constructor(
     }
 
     @OptIn(ExperimentalComposeUiApi::class)
+    /**
+     * A press somewhere not on it ([Widget.pressedOutside]: x, y, on another widget): true if it
+     * was for this (a menu that closed), then nothing else gets it. Null: it does not care.
+     */
+    var onPressOutside: ((x: Double, y: Double, onAnother: Boolean) -> Boolean)? = null
+
+    override fun pressedOutside(button: Int, x: Double, y: Double, onAnother: Boolean): Boolean =
+        onPressOutside?.invoke(x, y, onAnother) ?: false
+
     override fun pointerButton(button: Int, pressed: Boolean) {
         val part = sceneOf(hoverOn) ?: return
         if (pressed) keysOn = hoverOn

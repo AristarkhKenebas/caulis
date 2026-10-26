@@ -46,15 +46,18 @@ public final class dev/caulis/compose/ComposeWidget : dev/caulis/core/Widget, ja
 	public fun draw (Ldev/caulis/core/Monitor;Ldev/caulis/core/OverlayCanvas;Ldev/caulis/geometry/Rect;)V
 	public fun getCursor ()Ljava/lang/String;
 	public fun getLevel ()Ldev/caulis/core/DrawingLevel;
+	public final fun getOnPressOutside ()Lkotlin/jvm/functions/Function3;
 	public fun getTakesKeyboard ()Z
 	public fun key (Ldev/caulis/core/WidgetKey;)V
 	public fun keyboardFocus (Z)V
 	public fun pointerButton (IZ)V
 	public fun pointerLeft ()V
 	public fun pointerMoved (Ldev/caulis/core/Monitor;DD)V
+	public fun pressedOutside (IDDZ)Z
 	public final fun prewarm (Ldev/caulis/core/Monitor;II)V
 	public fun reserve (Ldev/caulis/core/Monitor;)Ldev/caulis/core/Reserve;
 	public final fun restart ()V
 	public fun scroll (DD)V
+	public final fun setOnPressOutside (Lkotlin/jvm/functions/Function3;)V
 }
 

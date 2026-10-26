@@ -67,6 +67,13 @@ interface Widget {
     /** A mouse button (272 left, 273 right, 274 middle) pressed or let go over it (or after a press in it, anywhere). */
     fun pointerButton(button: Int, pressed: Boolean) {}
 
+    /**
+     * A mouse button pressed somewhere not on it (at [x], [y], desktop units; [onAnother]: on
+     * another widget, e.g. a bar): a menu closes. True: the press was for this and goes no further
+     * (not to the window below).
+     */
+    fun pressedOutside(button: Int, x: Double, y: Double, onAnother: Boolean): Boolean = false
+
     /** The wheel or two fingers: [dx], [dy] in units (positive: right, down). */
     fun scroll(dx: Double, dy: Double) {}
 

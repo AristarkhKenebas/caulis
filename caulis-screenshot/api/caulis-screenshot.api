@@ -55,10 +55,13 @@ public final class dev/caulis/screenshot/Screenshots {
 	public final fun getKind ()Ldev/caulis/screenshot/ShotKind;
 	public final fun getNotify ()Z
 	public final fun getOnTaken ()Lkotlin/jvm/functions/Function1;
+	public final fun getOverviewKind ()Ldev/caulis/screenshot/ShotKind;
 	public final fun getPointer ()Z
 	public final fun getSave ()Z
+	public final fun getSelection ()Ldev/caulis/screenshot/Screenshots$Selection;
 	public final fun getSharpBackground ()Ldev/caulis/render/Color;
 	public final fun getSharpCornerRadius ()F
+	public final fun getSharpWallpaper ()Z
 	public final fun getSharpWindows ()Z
 	public final fun getStyle ()Ldev/caulis/screenshot/ScreenshotStyle;
 	public final fun getThen ()Ljava/lang/String;
@@ -74,10 +77,13 @@ public final class dev/caulis/screenshot/Screenshots {
 	public final fun setKind (Ldev/caulis/screenshot/ShotKind;)V
 	public final fun setNotify (Z)V
 	public final fun setOnTaken (Lkotlin/jvm/functions/Function1;)V
+	public final fun setOverviewKind (Ldev/caulis/screenshot/ShotKind;)V
 	public final fun setPointer (Z)V
 	public final fun setSave (Z)V
+	public final fun setSelection (Ldev/caulis/screenshot/Screenshots$Selection;)V
 	public final fun setSharpBackground (Ldev/caulis/render/Color;)V
 	public final fun setSharpCornerRadius (F)V
+	public final fun setSharpWallpaper (Z)V
 	public final fun setSharpWindows (Z)V
 	public final fun setStyle (Ldev/caulis/screenshot/ScreenshotStyle;)V
 	public final fun setThen (Ljava/lang/String;)V
@@ -89,6 +95,14 @@ public final class dev/caulis/screenshot/Screenshots$Companion {
 	public final fun of (Ldev/caulis/wm/Caulis;)Ldev/caulis/screenshot/Screenshots;
 }
 
+public final class dev/caulis/screenshot/Screenshots$Selection : java/lang/Enum {
+	public static final field ADJUST Ldev/caulis/screenshot/Screenshots$Selection;
+	public static final field NEW Ldev/caulis/screenshot/Screenshots$Selection;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/screenshot/Screenshots$Selection;
+	public static fun values ()[Ldev/caulis/screenshot/Screenshots$Selection;
+}
+
 public final class dev/caulis/screenshot/ScreenshotsKt {
 	public static final fun screenshots (Ldev/caulis/wm/Caulis;Lkotlin/jvm/functions/Function1;)Ldev/caulis/screenshot/Screenshots;
 	public static synthetic fun screenshots$default (Ldev/caulis/wm/Caulis;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ldev/caulis/screenshot/Screenshots;
@@ -98,6 +112,7 @@ public final class dev/caulis/screenshot/ShotKind : java/lang/Enum {
 	public static final field REGION Ldev/caulis/screenshot/ShotKind;
 	public static final field SCREEN Ldev/caulis/screenshot/ShotKind;
 	public static final field WINDOW Ldev/caulis/screenshot/ShotKind;
+	public static final field WINDOWS Ldev/caulis/screenshot/ShotKind;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/screenshot/ShotKind;
 	public static fun values ()[Ldev/caulis/screenshot/ShotKind;

@@ -4102,6 +4102,9 @@ class Desktop(
     // The button that closed a notice: its release is ours too.
     private var noticeButton: Int? = null
 
+    // The button whose press only closed a menu (pressedOutside): its release is ours too.
+    private var outsideButton: Int? = null
+
     /**
      * A mouse button changed. With [passToApps] false it only counts as held (for a move or
      * resize the window manager starts itself, e.g. Super+drag) and no program sees it.
@@ -4120,8 +4123,26 @@ class Desktop(
         if (withOverlay { it.pointerButton(button, pressed) }) return
         // Notices are above everything (a bar too): a click on one is theirs.
         if (noticeClick(button, pressed)) return
+        // A release of a press that only closed a menu: nobody's.
+        if (!pressed && button == outsideButton) {
+            outsideButton = null
+            return
+        }
         // A widget's (the one pressed in keeps it until the last button is let go).
         val widgetTarget = if (locked || inOverview) null else pressedWidget?.widget ?: hoveredWidget
+        // A press anywhere else: the widgets it is not on hear of it (an open menu closes).
+        if (pressed && buttonsHeld == 1 && !inOverview && widgets.isNotEmpty()) {
+            var taken = false
+            for (other in widgets.toList().asReversed()) {
+                if (other === widgetTarget) continue
+                if (userCode("Your widget (pressedOutside)", false) { other.pressedOutside(button, pointerX, pointerY, widgetTarget != null) }) taken = true
+            }
+            if (taken && widgetTarget == null) {
+                inputLog.trace { "Button $button: a press outside a menu, which closed (not passed on)" }
+                outsideButton = button
+                return
+            }
+        }
         if (widgetTarget != null) {
             if (pressed && buttonsHeld == 1) {
                 hoveredArea?.takeIf { widgetTarget === hoveredWidget }?.let { area -> pressedWidget = PressedWidget(widgetTarget, area, monitorAt(pointerX, pointerY)) }
