@@ -503,6 +503,14 @@ class Caulis {
         }
 
     /**
+     * Whether the compositor's environment (WAYLAND_DISPLAY, DISPLAY, XDG_CURRENT_DESKTOP,
+     * XDG_SESSION_TYPE) is handed to the session's services at the start — systemd's user
+     * manager and D-Bus activation — so portals, notifications and screen sharing started
+     * by them reach this compositor. Null (the default): on a real screen only.
+     */
+    var exportEnvironment: Boolean? = null
+
+    /**
      * Whether programs are told the scheme (the portal and gsettings, which are your whole
      * session's). Null (the default): on a real screen only — a nested or headless compositor
      * (a test) does not change your desktop's look.
@@ -825,8 +833,12 @@ class Caulis {
      */
     fun mode(name: String, configure: KeyMode.() -> Unit) {
         require(name.isNotBlank() && name != "reset" && name != "default") { "a mode needs a name of its own, not \"$name\"" }
+        modeNames += name
         KeyMode(name).configure()
     }
+
+    // Every mode named (one without keys too: none of the usual keys while it is on).
+    internal val modeNames = LinkedHashSet<String>()
 
     /** What [mode] binds keys with. */
     inner class KeyMode internal constructor(val name: String) {

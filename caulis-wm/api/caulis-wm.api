@@ -56,6 +56,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getEffects ()Ldev/caulis/core/Effects;
 	public final fun getEnvironment ()Ljava/util/LinkedHashMap;
 	public final fun getExitAfterSeconds ()Ljava/lang/Long;
+	public final fun getExportEnvironment ()Ljava/lang/Boolean;
 	public final fun getFocusFollowsMouse ()Z
 	public final fun getFocusOnActivate ()Z
 	public final fun getFocusedWindow ()Ldev/caulis/core/Window;
@@ -203,6 +204,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setDragViewFingers (I)V
 	public final fun setEffects (Ldev/caulis/core/Effects;)V
 	public final fun setExitAfterSeconds (Ljava/lang/Long;)V
+	public final fun setExportEnvironment (Ljava/lang/Boolean;)V
 	public final fun setFocusFollowsMouse (Z)V
 	public final fun setFocusOnActivate (Z)V
 	public final fun setFullscreenKeepsAwake (Z)V

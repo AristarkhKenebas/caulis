@@ -1173,7 +1173,11 @@ Switch to a text console (Ctrl+Alt+F3), log in, go to your project and run:
 ./gradlew run
 ```
 
-Now your compositor is the whole desktop. To be safe while trying things out, let it quit
+Now your compositor is the whole desktop. On the real screen it hands its environment
+(`WAYLAND_DISPLAY`, `DISPLAY`, `XDG_CURRENT_DESKTOP`, `XDG_SESSION_TYPE`) to systemd's user
+services and to D-Bus by itself, so portals (screen sharing, file pickers) and notification
+daemons started by them find it — no `systemctl --user import-environment` of your own
+(`exportEnvironment = false` turns it off). To be safe while trying things out, let it quit
 by itself after a while:
 
 ```kotlin
@@ -1617,7 +1621,8 @@ mode("resize") {
 ```
 
 While a mode is on, the usual keys are off (keys not named in it go to programs); quitting and
-the text consoles always work. Bars show the mode: the IPC socket tells `key-mode-changed`.
+the text consoles always work. A mode with no keys at all (`mode("quiet") {}`) turns every key of
+yours off while it is on. Bars show the mode: the IPC socket tells `key-mode-changed`.
 
 The laptop's lid: `onLid { closed -> if (closed) lock() }`.
 

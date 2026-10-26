@@ -343,6 +343,9 @@ internal class Running(
         env["XDG_ACTIVATION_TOKEN"] = activation.issue()
         ipc?.let { env[dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE] = it.path.toString() } ?: env.remove(dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE)
         env["XDG_CURRENT_DESKTOP"] = config.desktopName
+        // (Started from a text console the compositor itself was "tty": its programs are Wayland's.)
+        env["XDG_SESSION_TYPE"] = "wayland"
+        env["XDG_SESSION_DESKTOP"] = config.desktopName
         // X11 programs (started now or later by these) reach Xwayland here.
         xwayland?.let { env["DISPLAY"] = it.displayName } ?: env.remove("DISPLAY")
         // Programs that draw their own cursor use the same theme and size.
@@ -353,6 +356,23 @@ internal class Running(
         // X resources, Wayland ones from the compositor (cursor-shape) or their own default.
         if (desktop.scale == 1.0) env["XCURSOR_SIZE"] = theme.size.toString() else env.remove("XCURSOR_SIZE")
         cursorFolder?.let { folder -> env["XCURSOR_PATH"] = (listOf(folder) + CursorTheme.searchPath()).joinToString(":") }
+    }
+
+    // systemd's user manager and D-Bus activation get the compositor's environment (the services
+    // they start then reach it); both quietly do nothing where they are not.
+    private fun exportEnvironment() {
+        val env = programEnvironment()
+        val names = listOf("WAYLAND_DISPLAY", "DISPLAY", "XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE", "XDG_SESSION_DESKTOP").filter { env[it] != null }
+        val pairs = names.map { "$it=${env[it]}" }
+        for (command in listOf(listOf("systemctl", "--user", "import-environment") + names, listOf("dbus-update-activation-environment", "--systemd") + pairs)) {
+            try {
+                ProcessBuilder(command).also { it.environment().putAll(env) }
+                    .redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD).start()
+            } catch (_: java.io.IOException) {
+                log.trace { "${command.first()} is not there" }
+            }
+        }
+        log.info { "The session's services know this compositor: ${pairs.joinToString()}" }
     }
 
     /** The environment programs started inside get (WAYLAND_DISPLAY, DISPLAY, the cursor, ...). */
@@ -593,6 +613,7 @@ internal class Running(
             if (config.keys.whileLocked(name)) lockedKeys.bind(combination, options, run)
         }
         modeKeys.clear()
+        for (name in config.modeNames) modeKeys[name] = KeyBindings()
         for (binding in config.bindings) {
             if (!binding.enabled) continue
             val combination = binding.combination
@@ -1175,6 +1196,7 @@ internal class Running(
             for (problem in config.startWarnings) desktop.notify("${problem.message} ${problem.fix}", NoticeLevel.WARNING)
             for (problem in config.configProblems) configNotices += desktop.notify(problem, NoticeLevel.WARNING)
             if (config.useConfigFile) followConfigFile()
+            if (config.exportEnvironment ?: (switchConsole != null)) safely("handing the environment to the session") { exportEnvironment() }
             config.startActions.forEach { action -> safely("onStart") { action(config) } }
             config.startWaitingTimers()
             if (config.hotReload) reloader = safely("hot reload", null) { Reloader.start(this) }
