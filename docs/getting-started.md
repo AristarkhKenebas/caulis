@@ -311,6 +311,18 @@ bind("Super+Return") { run("layout-message swap-with-master") }
 In config.json the same are fields of `layout`: `"masters"`, `"newWindow"` (`stack-end`,
 `stack-top`, `master`), `"splitRatio"`, `"columnWidths"`, `"newColumnWidth"`, `"centerFocused"`.
 
+A program you need to keep an eye on — to know its windows by its process, to write to it,
+to stop it later — is started with `spawn`: inside the compositor like `launch`, giving back
+its `Process` (its words, no shell):
+
+```kotlin
+val wob = spawn(listOf("wob"))                            // its input is wob.outputStream
+wob?.outputStream?.write("50\n".toByteArray())
+```
+
+`sessionBus` is the session's D-Bus, shared and on the compositor's thread — to offer objects
+of your own to other programs (`export`, `requestName`, `emitSignal`) or to call theirs.
+
 ## 6. Rules and events
 
 Rules say where windows open and how they look — one `rule { }` per kind of window:

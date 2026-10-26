@@ -1206,7 +1206,25 @@ class Caulis {
         checkNotNull(running) { "Caulis is not running yet" }.launch(command, x11)
     }
 
+    /**
+     * Starts the program [command] (its words: no shell) inside the compositor, as [launch]
+     * does, in [directory] (null: the compositor's own), and gives back its process — to know
+     * its windows by their pid, to write to it (its `outputStream` is its input), or to stop
+     * it. Its output goes where the compositor's does.
+     * Null if it cannot be started (the log says why).
+     */
+    @JvmOverloads
+    fun spawn(command: List<String>, directory: java.nio.file.Path? = null): Process? =
+        checkNotNull(running) { "Caulis is not running yet" }.spawn(command, directory?.toFile())
+
     fun openTerminal() = launch(terminal)
+
+    /**
+     * The session bus (D-Bus), on the compositor's thread: offer objects of your own to other
+     * programs (`export`, `requestName`, `emitSignal`) or call theirs. Connected when first
+     * asked for, shared, closed when the compositor ends; null if there is none.
+     */
+    val sessionBus: dev.caulis.core.dbus.DBusConnection? get() = checkNotNull(running) { "Caulis is not running yet" }.sessionBus
 
     /**
      * Runs [action] written as text, as in config.json's "bind" and on the IPC socket:

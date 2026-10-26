@@ -188,8 +188,13 @@ internal class Running(
     val appearance = dev.caulis.core.appearance.Appearance()
     private val colorSchemes = ColorSchemes()
     private var colorSchemeTimer: EventLoop.Timer? = null
+    /** The session bus, connected when first asked for and shared (null: there is none). */
+    val sessionBus: dev.caulis.core.dbus.DBusConnection? by lazy {
+        dev.caulis.core.dbus.DBusConnection.session(loop).also { sessionBusConnected = true }
+    }
+    private var sessionBusConnected = false
+
     // Telling programs: the portal backend (on the session bus) and gsettings. Only while wanted.
-    private var sessionBus: dev.caulis.core.dbus.DBusConnection? = null
     private var portalSettings: dev.caulis.core.appearance.PortalSettings? = null
     private var gsettings: dev.caulis.core.appearance.GSettingsAppearance? = null
     private val appearanceLog = Logger("appearance")
@@ -201,7 +206,6 @@ internal class Running(
         if (toPrograms && gsettings == null) {
             appearanceLog.info { "Programs are told the colour scheme (gsettings and the portal)" }
             gsettings = dev.caulis.core.appearance.GSettingsAppearance(appearance).also { if (appearance.colorScheme != dev.caulis.core.appearance.ColorScheme.DEFAULT) it.write() }
-            sessionBus = dev.caulis.core.dbus.DBusConnection.session(loop)
             portalSettings = sessionBus?.let { dev.caulis.core.appearance.PortalSettings(it, appearance) }
         } else if (!toPrograms && gsettings != null) {
             stopTellingPrograms()
@@ -245,8 +249,6 @@ internal class Running(
     private fun stopTellingPrograms() {
         portalSettings?.close()
         portalSettings = null
-        sessionBus?.close()
-        sessionBus = null
         gsettings?.close()
         gsettings = null
     }
@@ -881,6 +883,8 @@ internal class Running(
      */
     fun launch(command: String, x11: Boolean = false) = launcher.launch(command, x11)
 
+    fun spawn(command: List<String>, directory: java.io.File?): Process? = launcher.spawn(command, directory)
+
     // Runs the user's code; a mistake in it is reported and the compositor keeps running.
     internal fun <T> safely(what: String, fallback: T, action: () -> T): T = try {
         action()
@@ -1176,8 +1180,10 @@ internal class Running(
     }
 
     override fun close() {
+        if (config.running === this) config.running = null
         colorSchemeTimer?.cancel()
         stopTellingPrograms()
+        if (sessionBusConnected) sessionBus?.close()
         logind?.close()
         displays?.close()
         configWatches.forEach(AutoCloseable::close)
@@ -1206,6 +1212,12 @@ internal class Running(
         // Keys that always exist when a configuration has none at all.
         const val EMERGENCY_QUIT = "Super+Shift+Escape"
         const val EMERGENCY_TERMINAL = "Super+Return"
+    }
+
+    // Last of all (after every property above): from here on the configuration's code may use
+    // the desktop — onMonitorAdded runs for the first monitors before the loop does.
+    init {
+        config.running = this
     }
 }
 

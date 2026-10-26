@@ -45,6 +45,31 @@ internal class Launcher(
         start(command, throughX, watch = !throughX && settings.waylandFirst && x11Available())
     }
 
+    /**
+     * Starts [command] (its words, no shell) the Wayland way, in [directory] (null: the
+     * compositor's), its output with the compositor's and its input from the process's
+     * outputStream: the process, or null if it cannot start.
+     */
+    fun spawn(command: List<String>, directory: java.io.File?): Process? {
+        log.info { "Starting: ${command.joinToString(" ")}" }
+        return try {
+            val builder = ProcessBuilder(command)
+                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                .redirectError(ProcessBuilder.Redirect.INHERIT)
+            directory?.let(builder::directory)
+            builder.environment().apply {
+                environment(this)
+                put("_JAVA_AWT_WM_NONREPARENTING", "1")
+                javaScale(this)
+                if (settings().waylandFirst) for ((name, value) in WAYLAND_FIRST) if (System.getenv(name) == null) put(name, value)
+            }
+            builder.start()
+        } catch (e: Exception) {
+            log.warn("\"${command.joinToString(" ")}\" could not be started: ${e.message}")
+            null
+        }
+    }
+
     /** A window was opened by process [pid] (or one of its children): its program started fine. */
     fun windowOpened(pid: Int) {
         if (pid <= 0 || watched.isEmpty()) return
