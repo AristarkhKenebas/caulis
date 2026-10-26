@@ -109,6 +109,12 @@ class Output(
         val entry = xdg to output
         xdgOutputs += entry
         xdg.onDestroy { xdgOutputs -= entry }
+        // Its name once, from version 2 on (Qt waits for it: without it, it never takes the
+        // monitor for one and its windows get no cursor of their own, no scale, ...).
+        if (xdg.version >= 2) {
+            xdg.sendName(name)
+            xdg.sendDescription(description)
+        }
         sendLogical(xdg, output)
         // Since version 3 the monitor's own "done" ends the description.
         if (xdg.version >= 3) output.sendDone()
@@ -126,10 +132,6 @@ class Output(
         } else {
             xdg.sendLogicalPosition(x, y)
             xdg.sendLogicalSize(Math.round(units.first).toInt(), Math.round(units.second).toInt())
-        }
-        if (xdg.version == 2) {
-            xdg.sendName(name)
-            xdg.sendDescription(description)
         }
         if (xdg.version < 3) xdg.sendDone()
     }

@@ -402,6 +402,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getFocusFollowsMouse ()Z
 	public final fun getFocusedMonitor ()Ldev/caulis/core/Monitor;
 	public final fun getFocusedWindow ()Ldev/caulis/core/Window;
+	public final fun getFullRedraw ()Z
 	public final fun getHeight ()I
 	public final fun getHideCursorAfterMillis ()J
 	public final fun getHideCursorWhileTyping ()Z
@@ -542,6 +543,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun setFloatRule (Lkotlin/jvm/functions/Function1;)V
 	public final fun setFloating (Ldev/caulis/core/Window;Z)V
 	public final fun setFocusFollowsMouse (Z)V
+	public final fun setFullRedraw (Z)V
 	public final fun setFullscreen (Ldev/caulis/core/Window;Z)V
 	public final fun setHideCursorAfterMillis (J)V
 	public final fun setHideCursorWhileTyping (Z)V

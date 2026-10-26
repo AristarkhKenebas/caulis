@@ -4561,9 +4561,11 @@ class Desktop(
         val monitor = view.monitor
         val bounds = monitor.area
         view.showsLock = locked
-        var parts = view.takeRepaintParts(age, bounds) ?: return
-        // Blur reads around its area: near blur, one part with all it needs.
-        if (items.any { it is DrawItem.Blur && parts.any { part -> it.rect.intersect(part) != null } }) {
+        var parts = view.takeRepaintParts(if (fullRedraw) 0 else age, bounds) ?: return
+        // Blur reads around its area: a change near it (within its reach, not only under it)
+        // changes it too — one part with all it needs (else a bar's blur stayed stale while a
+        // program drew next to it, and flashed when it caught up).
+        if (items.any { it is DrawItem.Blur && parts.any { part -> it.reachRect().intersect(part) != null } }) {
             parts = listOf(withBlurReach(items, parts.reduce(Rect::union), bounds))
         }
         // In pixels, one more around each: a fractional scale must not leave a half-drawn edge.
@@ -4635,6 +4637,19 @@ class Desktop(
      * Blur reads the pixels around its area, so they must be fresh in this frame: if anything
      * near a blurred area is redrawn, the whole area and its surroundings are redrawn.
      */
+    private fun DrawItem.Blur.reachRect() = Rect(rect.x - reach, rect.y - reach, rect.width + 2 * reach, rect.height + 2 * reach)
+
+    /**
+     * Every frame drawn whole (not only what changed): slower, for finding out whether
+     * something flickers because of the partial redraws (CAULIS_FULL_REDRAW=1 sets it too).
+     */
+    var fullRedraw = System.getenv("CAULIS_FULL_REDRAW") == "1"
+        set(value) {
+            field = value
+            renderLog.info { if (value) "Every frame drawn whole" else "Only what changed drawn" }
+            changed()
+        }
+
     private fun withBlurReach(items: List<DrawItem>, repaint: Rect, bounds: Rect): Rect {
         var result = repaint
         var grew = true
