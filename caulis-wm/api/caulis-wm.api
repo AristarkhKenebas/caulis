@@ -106,6 +106,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getSocketDirectory ()Ljava/nio/file/Path;
 	public final fun getStats ()Z
 	public final fun getSwipeDistance ()D
+	public final fun getSystemBus ()Ldev/caulis/core/dbus/DBusConnection;
 	public final fun getTerminal ()Ljava/lang/String;
 	public final fun getTitle ()Ljava/lang/String;
 	public final fun getTitleBarStyle ()Ldev/caulis/core/TitleBarStyle;

@@ -198,6 +198,12 @@ internal class Running(
     }
     private var sessionBusConnected = false
 
+    /** The system bus (NetworkManager, BlueZ, UPower, ...) for the configuration's code, opened when first asked for. */
+    val systemBus: dev.caulis.core.dbus.DBusConnection? by lazy {
+        dev.caulis.core.dbus.DBusConnection.system(loop).also { systemBusConnected = true }
+    }
+    private var systemBusConnected = false
+
     // Telling programs: the portal backend (on the session bus) and gsettings. Only while wanted.
     private var portalSettings: dev.caulis.core.appearance.PortalSettings? = null
     private var gsettings: dev.caulis.core.appearance.GSettingsAppearance? = null
@@ -968,7 +974,8 @@ internal class Running(
             modifiersHeld = modifierKeysDown.fold(0) { m, code -> m or KeyInput.Modifiers.of(code) }
         }
         if (config.keyHandlers.isEmpty()) return false
-        val keysym = seat.keysymName(evdevCode)
+        // (Latin whatever the layout: Super+D on the Russian layout is Super+D, not Super+в.)
+        val keysym = seat.shortcutName(evdevCode)
         val locked = desktop.locked
         if (locked && !keysym.startsWith("XF86")) return false // (never what is typed into the locker)
         val input = KeyInput(evdevCode, pressed, keysym, modifiersHeld, before, locked, timeMillis)
@@ -1248,6 +1255,7 @@ internal class Running(
         colorSchemeTimer?.cancel()
         stopTellingPrograms()
         if (sessionBusConnected) sessionBus?.close()
+        if (systemBusConnected) systemBus?.close()
         logind?.close()
         displays?.close()
         configWatches.forEach(AutoCloseable::close)

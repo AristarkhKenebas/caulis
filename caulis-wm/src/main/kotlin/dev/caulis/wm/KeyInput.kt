@@ -2,8 +2,9 @@ package dev.caulis.wm
 
 /**
  * A key as [Caulis.onKey] gets it, before anything else does: its Linux code, its symbol's
- * name as xkb gives it now ("h", "H", "Return", "Super_L", "XF86AudioMute"), and the
- * modifiers held before and after it ([Modifiers] bits).
+ * name for shortcuts ("h", "H", "Return", "Super_L", "XF86AudioMute" — Latin whatever the
+ * layout: the key of "в" on the Russian layout is "d"), and the modifiers held before and
+ * after it ([Modifiers] bits).
  */
 class KeyInput(
     val evdevCode: Int,

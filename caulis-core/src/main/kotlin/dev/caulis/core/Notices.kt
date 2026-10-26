@@ -145,21 +145,25 @@ data class NoticeStyle @JvmOverloads constructor(
 
     companion object {
         /**
-         * Notices as neat cards at the top of the screen, as Hyprland shows its messages: dark
-         * and rounded, the level's colour as a stripe and on the title ([CardNoticePainter]).
+         * Notices as calm cards at the top right of the screen: rounded, [dark] or light, a
+         * round mark of the level and the title in bold ([CardNoticePainter]).
          */
         @JvmStatic
         @JvmOverloads
-        fun cards(width: Int = 720, corner: NoticePlacement.Toast.Corner = NoticePlacement.Toast.Corner.TOP) = NoticeStyle(
+        fun cards(
+            width: Int = 400,
+            corner: NoticePlacement.Toast.Corner = NoticePlacement.Toast.Corner.TOP_RIGHT,
+            dark: Boolean = true,
+        ) = NoticeStyle(
             placement = NoticePlacement.Toast(corner, width = width, margin = 14),
             fontSize = 13,
             padding = 12,
             gap = 10,
-            radius = 12,
-            info = NoticeColors(Color.hex("#88c0d0"), Color.hex("#e5e9f0")),
-            warning = NoticeColors(Color.hex("#ebcb8b"), Color.hex("#e5e9f0")),
-            error = NoticeColors(Color.hex("#e06c75"), Color.hex("#e5e9f0")),
-            painter = CardNoticePainter(),
+            radius = 14,
+            info = NoticeColors(Color.hex(if (dark) "#88c0d0" else "#5e81ac"), Color.hex("#e5e9f0")),
+            warning = NoticeColors(Color.hex(if (dark) "#ebcb8b" else "#c48a2c"), Color.hex("#e5e9f0")),
+            error = NoticeColors(Color.hex(if (dark) "#e06c75" else "#bf616a"), Color.hex("#e5e9f0")),
+            painter = if (dark) CardNoticePainter() else CardNoticePainter(Color.hex("#f4f6f9f7"), Color.hex("#2e3440")),
         )
     }
 
@@ -281,24 +285,24 @@ object DefaultNoticePainter : NoticePainter {
 }
 
 /**
- * Notices as cards: dark, rounded, a thin line around them and a stripe on the left in the
- * level's colour, the title in that colour too ([NoticeStyle.cards] sets it up). The level's
- * colours of the style ([NoticeStyle.info], ...) are the accents here; [background] and
- * [text] are the card's own.
+ * Notices as cards: calm, rounded, light or dark ([background], [text]), a round mark of the
+ * level on the left (i, !, ×) in the level's colour, the title in bold and the rest a little
+ * fainter ([NoticeStyle.cards] sets it up). The level's colours of the style
+ * ([NoticeStyle.info], ...) are the marks' here.
  */
 class CardNoticePainter @JvmOverloads constructor(
-    private val background: Color = Color.hex("#1f2229f0"),
-    private val text: Color = Color.hex("#e5e9f0"),
+    private val background: Color = Color.hex("#2a2e37f5"),
+    private val text: Color = Color.hex("#eceff4"),
 ) : NoticePainter {
 
-    // The stripe on the left and the room it takes (desktop units).
-    private val stripe = 4.0
-    private val stripeRoom = 10.0
+    // The mark's room on the left (desktop units).
+    private val markRoom = 34.0
 
     override fun height(g: Graphics2D, look: NoticeLook): Int {
-        val (lines, metrics) = DefaultNoticePainter.lines(g, look, (stripeRoom * look.scale).toInt())
+        val (lines, metrics) = DefaultNoticePainter.lines(g, look, (markRoom * look.scale).toInt())
         val padding = (look.style.padding * look.scale).toInt()
-        return lines.size * metrics.height + 2 * padding + (if (look.notice.title != null && lines.size > 1) (3 * look.scale).toInt() else 0)
+        val textHeight = lines.size * metrics.height + (if (look.notice.title != null && lines.size > 1) (3 * look.scale).toInt() else 0)
+        return maxOf(textHeight, (24 * look.scale).toInt()) + 2 * padding
     }
 
     override fun paint(g: Graphics2D, look: NoticeLook) {
@@ -316,32 +320,52 @@ class CardNoticePainter @JvmOverloads constructor(
         val card = RoundRectangle2D.Double(0.5 * unit, 0.5 * unit, w - unit, h - unit, r, r)
         g.color = awt(background)
         g.fill(card)
-        // The stripe, inside the card's rounded left edge.
-        val clip = g.clip
-        g.clip(card)
-        g.color = awt(accent)
-        g.fill(java.awt.geom.Rectangle2D.Double(0.0, 0.0, stripe * unit, h))
-        g.clip = clip
-        g.color = awt(accent.withAlpha(accent.alpha * 0.55f))
+        // A hairline around it, of the text's colour (light on dark, dark on light).
+        g.color = awt(text.withAlpha(0.09f))
         g.stroke = BasicStroke(unit.toFloat())
         g.draw(card)
 
-        val (lines, metrics) = DefaultNoticePainter.lines(g, look, (stripeRoom * unit).toInt())
         val padding = (style.padding * unit).toInt()
-        val left = padding + (stripeRoom * unit).toInt()
-        var y = padding + metrics.ascent
+        // The mark: a soft circle of the level's colour with its sign.
+        val mr = 11.0 * unit
+        val mx = padding + mr
+        val my = padding + 12.0 * unit
+        g.color = awt(accent.withAlpha(0.22f))
+        g.fill(java.awt.geom.Ellipse2D.Double(mx - mr, my - mr, 2 * mr, 2 * mr))
+        g.color = awt(accent)
+        g.stroke = BasicStroke((1.8 * unit).toFloat(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+        when (look.notice.level) {
+            NoticeLevel.INFO -> {
+                g.draw(Line2D.Double(mx, my - 1 * unit, mx, my + 5 * unit))
+                g.fill(java.awt.geom.Ellipse2D.Double(mx - 1.3 * unit, my - 5.6 * unit, 2.6 * unit, 2.6 * unit))
+            }
+            NoticeLevel.WARNING -> {
+                g.draw(Line2D.Double(mx, my - 5 * unit, mx, my + 1 * unit))
+                g.fill(java.awt.geom.Ellipse2D.Double(mx - 1.3 * unit, my + 3.2 * unit, 2.6 * unit, 2.6 * unit))
+            }
+            NoticeLevel.ERROR -> {
+                val c = 4.2 * unit
+                g.draw(Line2D.Double(mx - c, my - c, mx + c, my + c))
+                g.draw(Line2D.Double(mx - c, my + c, mx + c, my - c))
+            }
+        }
+
+        val (lines, metrics) = DefaultNoticePainter.lines(g, look, (markRoom * unit).toInt())
+        val left = padding + (markRoom * unit).toInt()
+        // One line: in the middle of the mark; more: from the top.
+        var y = if (lines.size == 1) (my + metrics.ascent / 2.0 - metrics.descent / 2.0).toInt() else padding + metrics.ascent
         for ((index, line) in lines.withIndex()) {
             val title = index == 0 && look.notice.title != null
             g.font = if (title) DefaultNoticePainter.bold(look) else DefaultNoticePainter.plain(look)
-            g.color = awt(if (title) accent else text)
+            g.color = awt(if (title) text else text.withAlpha(text.alpha * 0.78f))
             g.drawString(line, left, y)
             y += metrics.height + if (title) (3 * unit).toInt() else 0
         }
         if (look.hovered) {
             val cx = w - padding - 6 * unit
-            val cy = padding + metrics.height / 2.0
-            val cr = 4.5 * unit
-            g.color = awt(text.withAlpha(0.7f))
+            val cy = padding + 7.0 * unit
+            val cr = 4.0 * unit
+            g.color = awt(text.withAlpha(0.6f))
             g.stroke = BasicStroke((1.4 * unit).toFloat(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
             g.draw(Line2D.Double(cx - cr, cy - cr, cx + cr, cy + cr))
             g.draw(Line2D.Double(cx - cr, cy + cr, cx + cr, cy - cr))

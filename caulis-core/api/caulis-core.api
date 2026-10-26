@@ -1154,6 +1154,7 @@ public final class dev/caulis/core/NoticeStyle {
 	public static final fun cards ()Ldev/caulis/core/NoticeStyle;
 	public static final fun cards (I)Ldev/caulis/core/NoticeStyle;
 	public static final fun cards (ILdev/caulis/core/NoticePlacement$Toast$Corner;)Ldev/caulis/core/NoticeStyle;
+	public static final fun cards (ILdev/caulis/core/NoticePlacement$Toast$Corner;Z)Ldev/caulis/core/NoticeStyle;
 	public final fun colorsOf (Ldev/caulis/core/NoticeLevel;)Ldev/caulis/core/NoticeColors;
 	public final fun component1 ()Ldev/caulis/core/NoticePlacement;
 	public final fun component10 ()D
@@ -1199,7 +1200,8 @@ public final class dev/caulis/core/NoticeStyle$Companion {
 	public final fun cards ()Ldev/caulis/core/NoticeStyle;
 	public final fun cards (I)Ldev/caulis/core/NoticeStyle;
 	public final fun cards (ILdev/caulis/core/NoticePlacement$Toast$Corner;)Ldev/caulis/core/NoticeStyle;
-	public static synthetic fun cards$default (Ldev/caulis/core/NoticeStyle$Companion;ILdev/caulis/core/NoticePlacement$Toast$Corner;ILjava/lang/Object;)Ldev/caulis/core/NoticeStyle;
+	public final fun cards (ILdev/caulis/core/NoticePlacement$Toast$Corner;Z)Ldev/caulis/core/NoticeStyle;
+	public static synthetic fun cards$default (Ldev/caulis/core/NoticeStyle$Companion;ILdev/caulis/core/NoticePlacement$Toast$Corner;ZILjava/lang/Object;)Ldev/caulis/core/NoticeStyle;
 }
 
 public final class dev/caulis/core/Output {
@@ -2910,6 +2912,7 @@ public final class dev/caulis/core/input/KeyboardState : java/lang/AutoCloseable
 	public final fun getModifiers ()Ldev/caulis/core/input/KeyboardState$Modifiers;
 	public final fun setLocks (II)Z
 	public final fun setNumLock (Z)Z
+	public final fun shortcutSymbol (II)I
 	public final fun symbol (I)I
 	public final fun text (I)Ljava/lang/String;
 	public final fun update (IZ)Z
@@ -3025,6 +3028,7 @@ public final class dev/caulis/core/input/Seat : java/lang/AutoCloseable {
 	public final fun setOnCursorChange (Lkotlin/jvm/functions/Function0;)V
 	public final fun setRepeatDelay (I)V
 	public final fun setRepeatRate (I)V
+	public final fun shortcutName (I)Ljava/lang/String;
 	public final fun textOf (I)Ljava/lang/String;
 	public final fun trackKey (IZ)V
 }

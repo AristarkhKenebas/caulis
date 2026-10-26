@@ -47,3 +47,21 @@ class KeyboardLayoutTest {
         }
     }
 }
+
+/** Shortcuts are Latin whatever the layout: the key of "в" is "d" for them. */
+class ShortcutSymbolTest {
+
+    @Test
+    fun `the Russian layout's keys are Latin for shortcuts`() {
+        Keymap.fromNames(layouts = "us,ru", options = "").use { keymap ->
+            keymap.newState().use { state ->
+                state.setLocks(0, 1) // Russian
+                assertEquals("в", state.text(32))
+                assertEquals("d", keySymbolName(state.shortcutSymbol(32, keymap.layoutCount)))
+                assertEquals("Return", keySymbolName(state.shortcutSymbol(28, keymap.layoutCount)))
+                state.setLocks(0, 0)
+                assertEquals("d", keySymbolName(state.shortcutSymbol(32, keymap.layoutCount)))
+            }
+        }
+    }
+}

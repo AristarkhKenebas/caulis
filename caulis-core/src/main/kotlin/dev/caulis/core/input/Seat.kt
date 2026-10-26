@@ -251,6 +251,9 @@ class Seat(private val display: Display, keymap: Keymap) : AutoCloseable {
     /** The character [evdevCode] types now (layout, Shift, AltGr), or null: none (for the compositor's own text fields). */
     fun textOf(evdevCode: Int): String? = keyboardState.text(evdevCode)
 
+    /** The name of the symbol [evdevCode] means for shortcuts: Latin whatever the layout ("d" for the key of "в"; see [KeyboardState.shortcutSymbol]). */
+    fun shortcutName(evdevCode: Int): String = keySymbolName(keyboardState.shortcutSymbol(evdevCode, layoutCount))
+
     /** The name of the symbol [evdevCode] gives now ("h", "H", "Return", "XF86AudioMute"). */
     fun keysymName(evdevCode: Int): String = keySymbolName(keyboardState.symbol(evdevCode))
 

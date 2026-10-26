@@ -1302,6 +1302,12 @@ class Caulis {
     val sessionBus: dev.caulis.core.dbus.DBusConnection? get() = checkNotNull(running) { "Caulis is not running yet" }.sessionBus
 
     /**
+     * The system bus — NetworkManager, BlueZ, UPower, power profiles — for your code (null when
+     * there is none), on the compositor's thread like the session bus. Only while running.
+     */
+    val systemBus: dev.caulis.core.dbus.DBusConnection? get() = checkNotNull(running) { "Caulis is not running yet" }.systemBus
+
+    /**
      * Runs [action] written as text, as in config.json's "bind" and on the IPC socket:
      * `run("workspace 3")`, `run("exec firefox")`, `run("close", window)` — on [window], or the
      * focused one (null). Throws IllegalArgumentException when it is not an action.

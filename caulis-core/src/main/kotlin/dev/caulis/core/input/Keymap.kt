@@ -34,7 +34,7 @@ class Keymap private constructor(
     }
 
     /** Tracks pressed keys and modifiers for this keymap. */
-    fun newState(): KeyboardState = KeyboardState(Xkb.xkb_state_new(keymap))
+    fun newState(): KeyboardState = KeyboardState(Xkb.xkb_state_new(keymap), Xkb.xkb_state_new(keymap))
 
     /** How many layouts it has ("us,ru": two). */
     val layoutCount: Int get() = Xkb.xkb_keymap_num_layouts(keymap)
@@ -82,7 +82,11 @@ class Keymap private constructor(
  * Key codes here are Linux input codes (evdev), as libinput and Wayland use them;
  * xkbcommon wants them plus 8, which this class adds.
  */
-class KeyboardState internal constructor(private val state: MemorySegment) : AutoCloseable {
+class KeyboardState internal constructor(
+    private val state: MemorySegment,
+    // A second state to ask what a key gives in another layout (see shortcutSymbol).
+    private val probe: MemorySegment,
+) : AutoCloseable {
 
     /** Modifier bits as clients need them (see [Modifiers]). */
     var modifiers = Modifiers(0, 0, 0, 0)
@@ -137,7 +141,31 @@ class KeyboardState internal constructor(private val state: MemorySegment) : Aut
         return String(Character.toChars(code))
     }
 
-    override fun close() = Xkb.xkb_state_unref(state)
+    /**
+     * The symbol a key means for shortcuts: what it gives now if that is Latin (or a key like
+     * F1, Return, the arrows), else what it gives in the first layout where it is Latin — so
+     * Super+D is Super+D on the Russian layout too (where the key types "в").
+     */
+    fun shortcutSymbol(evdevCode: Int, layoutCount: Int): Int {
+        val now = symbol(evdevCode)
+        if (isShortcutSymbol(now) || layoutCount <= 1) return now
+        val m = modifiers
+        for (layout in 0 until layoutCount) {
+            if (layout == m.group) continue
+            Xkb.xkb_state_update_mask(probe, m.depressed, m.latched, m.locked, 0, 0, layout)
+            val sym = Xkb.xkb_state_key_get_one_sym(probe, evdevCode + 8)
+            if (isShortcutSymbol(sym)) return sym
+        }
+        return now
+    }
+
+    // Latin-1 (letters, digits, punctuation) or a function key (0xfe00 and up: Return, F1, arrows, XF86...).
+    private fun isShortcutSymbol(sym: Int): Boolean = sym in 0x20..0xff || sym >= 0xfe00
+
+    override fun close() {
+        Xkb.xkb_state_unref(state)
+        Xkb.xkb_state_unref(probe)
+    }
 
     /** Modifier state in the form of wl_keyboard.modifiers. */
     data class Modifiers(val depressed: Int, val latched: Int, val locked: Int, val group: Int)
