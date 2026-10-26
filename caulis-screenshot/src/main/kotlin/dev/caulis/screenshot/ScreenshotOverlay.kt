@@ -184,7 +184,7 @@ internal class ScreenshotOverlay(
         val (w, h) = tip.size(text, key, shots.style)
         val cx = at.x + (range.first + range.last + 1) / 2
         val tx = (cx - w / 2).coerceIn(home.area.x + 4, home.area.right - w - 4)
-        canvas.image(tip.texture(text, key, monitor.scale, shots.style), Rect(tx, at.y - h - 8, w, h), alpha = appear, radius = h / 2f)
+        canvas.image(tip.texture(text, key, monitor.scale, shots.style), Rect(tx, at.y - h - 8, w, h), alpha = appear, radius = 8f)
     }
 
     private fun tipOf(button: Button): Pair<String, String> {
@@ -208,7 +208,7 @@ internal class ScreenshotOverlay(
         val below = part.bottom + 8
         val labelY = if (below + h <= area.bottom && (monitor !== home || below + h <= toolbarRect().y - 8)) below else (part.y - h - 8).coerceAtLeast(area.y + 4)
         val labelX = part.x.coerceIn(area.x + 4, (area.right - w - 4).coerceAtLeast(area.x + 4))
-        canvas.image(label.texture(text, "", monitor.scale, shots.style), Rect(labelX, labelY, w, h), radius = h / 2f)
+        canvas.image(label.texture(text, "", monitor.scale, shots.style), Rect(labelX, labelY, w, h), radius = 8f)
     }
 
     private fun dimAround(canvas: OverlayCanvas, area: Rect, hole: Rect, dim: Float) {
@@ -476,7 +476,7 @@ internal class ScreenshotOverlay(
                 val part = region ?: return desktop.showLevel(shots.style.word("Drag to choose a part first"))
                 val monitor = regionOn
                 // Windows drawn smaller than they are (an overview): put together from them, sharp.
-                val sharp = if (delay == 0 && shots.sharpWindows) shots.sharpRegion(monitor, part, windows[monitor].orEmpty()) else null
+                val sharp = if (delay == 0 && shots.sharpWindows) shots.sharpRegion(monitor, part, windows[monitor].orEmpty(), frozen[monitor]) else null
                 val picture = if (sharp == null && delay == 0) frozen[monitor]?.read(part, pointer) else null
                 desktop.closeOverlay()
                 when {
@@ -500,15 +500,18 @@ internal class ScreenshotOverlay(
                 val monitor = regionOn
                 val chosen = windows[monitor].orEmpty().filter { it.first in picked }
                 if (chosen.isEmpty()) return desktop.showLevel(shots.style.word("Drag over windows or click them first"))
-                desktop.closeOverlay()
                 val what = "${chosen.size} windows of ${monitor.name}"
                 if (delay == 0) {
-                    shots.windowsPicture(monitor, chosen)?.let { shots.deliver(it::draw, what, copyOnly) }
+                    // (Before closing: the screen behind them is read from the picture it shows.)
+                    val picture = shots.windowsPicture(monitor, chosen, frozen[monitor])
+                    desktop.closeOverlay()
+                    picture?.let { shots.deliver(it::draw, what, copyOnly) }
                 } else {
+                    desktop.closeOverlay()
                     // Later: where they are then.
                     shots.later {
                         val now = chosen.mapNotNull { (w, _) -> if (w in desktop.allWindows) desktop.shownRect(w)?.let { w to it } else null }
-                        shots.windowsPicture(monitor, now)?.let { shots.deliver(it::draw, what, copyOnly) }
+                        Frozen.capture(desktop, monitor, false).use { screen -> shots.windowsPicture(monitor, now, screen)?.let { shots.deliver(it::draw, what, copyOnly) } }
                     }
                 }
             }

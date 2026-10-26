@@ -105,6 +105,12 @@ class Screenshots internal constructor(private val caulis: Caulis) {
     var sharpCornerRadius = 0f
     var sharpBackground: dev.caulis.render.Color? = null
 
+    /**
+     * Without a [sharpBackground]: the screen as it was behind the windows (the wallpaper,
+     * made as big as the picture) instead of see-through gaps (which viewers show white).
+     */
+    var sharpWallpaper = true
+
     /** The file's name: {date} (2026-10-26), {time} (14-03-22), {kind} (region, window, screen). */
     var fileName = "Screenshot from {date} {time}"
 
@@ -272,29 +278,36 @@ class Screenshots internal constructor(private val caulis: Caulis) {
      * [ShotKind.WINDOWS]). The windows are drawn now; putting them together is left to [Composite.draw]
      * (on another thread).
      */
-    internal fun windowsPicture(monitor: Monitor, shown: List<Pair<Window, Rect>>): Composite? {
+    internal fun windowsPicture(monitor: Monitor, shown: List<Pair<Window, Rect>>, screen: Frozen?): Composite? {
         val (part, factor) = plan(monitor, shown, null) ?: return null
-        return composite(monitor, shown, part, factor, sharpBackground)
+        return composite(monitor, shown, part, factor, sharpBackground, screen.takeIf { sharpBackground == null && sharpWallpaper })
     }
 
     /**
      * [chosen] of [monitor] put together from the windows in it at their own size (see
      * [sharpWindows]), or null when none is drawn smaller there (the screen is as sharp).
      */
-    internal fun sharpRegion(monitor: Monitor, chosen: Rect, windows: List<Pair<Window, Rect>>): Composite? {
+    internal fun sharpRegion(monitor: Monitor, chosen: Rect, windows: List<Pair<Window, Rect>>, screen: Frozen?): Composite? {
         val shown = windows.filter { it.second.intersect(chosen) != null }
         if (shown.none { (w, r) -> shrunk(w, r, monitor) }) return null
+        val behind = screen.takeIf { sharpBackground == null && sharpWallpaper }
         // See-through behind them: only as big as the windows in the part (no empty margins).
-        val region = if (sharpBackground != null) chosen else shown.mapNotNull { it.second.intersect(chosen) }.reduce(Rect::union)
+        val region = if (sharpBackground != null || behind != null) chosen else shown.mapNotNull { it.second.intersect(chosen) }.reduce(Rect::union)
         val (part, factor) = plan(monitor, shown, region) ?: return null
-        return composite(monitor, shown, part, factor, sharpBackground)
+        return composite(monitor, shown, part, factor, sharpBackground, behind)
     }
 
-    private fun composite(monitor: Monitor, shown: List<Pair<Window, Rect>>, part: Rect, factor: Double, background: dev.caulis.render.Color?): Composite {
+    private fun composite(monitor: Monitor, shown: List<Pair<Window, Rect>>, part: Rect, factor: Double, background: dev.caulis.render.Color?, behind: Frozen?): Composite {
         val desktop = caulis.desktop
         val width = Math.round(part.width * factor).toInt().coerceAtLeast(1)
         val height = Math.round(part.height * factor).toInt().coerceAtLeast(1)
-        val pieces = shown.map { (window, rect) ->
+        // The screen behind them first (the wallpaper in the gaps), made as big as the rest.
+        val backdrop = behind?.let { frozen ->
+            part.intersect(frozen.area)?.let { seen ->
+                Composite.Piece(frozen.read(seen, pointer = false), (seen.x - part.x) * factor, (seen.y - part.y) * factor, seen.width * factor, seen.height * factor, 0.0)
+            }
+        }
+        val pieces = listOfNotNull(backdrop) + shown.map { (window, rect) ->
             val (pw, ph) = desktop.windowPixelSize(window)
             val target = desktop.renderer.createTarget(pw, ph)
             val pixels = try {

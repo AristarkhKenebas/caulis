@@ -16,7 +16,7 @@ data class ScreenshotStyle @JvmOverloads constructor(
     val border: Color = Color(1f, 1f, 1f, 0.11f),
     val accent: Color = Color(0.24f, 0.55f, 0.99f),
     val onAccent: Color = Color(1f, 1f, 1f),
-    val cornerRadius: Float = 20f,
+    val cornerRadius: Float = 18f,
     val font: String = java.awt.Font.SANS_SERIF,
     val labels: Map<String, String> = emptyMap(),
 ) {

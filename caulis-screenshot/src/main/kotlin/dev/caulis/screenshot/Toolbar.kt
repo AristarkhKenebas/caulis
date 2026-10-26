@@ -17,7 +17,7 @@ import java.lang.foreign.ValueLayout
 
 /** The chooser's buttons. */
 internal enum class Button(val width: Int) {
-    REGION(46), WINDOW(46), SCREEN(46), WINDOWS(46), SELECTION(46), POINTER(46), TIMER(46), TAKE(112), CLOSE(44);
+    REGION(50), WINDOW(50), SCREEN(50), WINDOWS(50), SELECTION(50), POINTER(50), TIMER(50), TAKE(112), CLOSE(50);
 
     /** One of the kinds (the group on the left). */
     val isKind: Boolean get() = this == REGION || this == WINDOW || this == SCREEN || this == WINDOWS
@@ -56,7 +56,7 @@ internal class Toolbar(private val renderer: Renderer, val buttons: List<Button>
         var x = PAD
         var last: Button? = null
         for (button in buttons) {
-            // A line between the groups: the kinds | the options | Capture.
+            // A gap between the groups: the kinds, the options, Capture.
             if (last != null && (last.isKind != button.isKind || button == Button.TAKE)) x += GAP
             put(button, x until x + button.width)
             x += button.width
@@ -86,39 +86,27 @@ internal class Toolbar(private val renderer: Renderer, val buttons: List<Button>
 
     private fun paint(g: Graphics2D, look: Look) {
         val st = look.style
+        // A panel with soft corners and square-ish tiles on it (as a phone's quick settings).
         val r = (2.0 * st.cornerRadius).coerceAtMost(height.toDouble())
         g.color = st.background.awt()
         g.fill(RoundRectangle2D.Double(0.0, 0.0, width.toDouble(), height.toDouble(), r, r))
         g.color = st.border.awt()
         g.stroke = BasicStroke(1f)
         g.draw(RoundRectangle2D.Double(0.5, 0.5, width - 1.0, height - 1.0, r, r))
-        val inner = (r - 2.0 * INSET).coerceAtLeast(12.0)
-        // The kinds in a track of their own.
-        val kinds = places.filterKeys { it.isKind }.values
-        if (kinds.isNotEmpty()) {
-            val x0 = kinds.minOf { it.first }.toDouble()
-            val x1 = kinds.maxOf { it.last + 1 }.toDouble()
-            g.color = st.text.awt(0.06f)
-            g.fill(RoundRectangle2D.Double(x0, INSET, x1 - x0, height - 2 * INSET, inner, inner))
-        }
-        var previous: Button? = null
+        val tile = 2.0 * TILE_RADIUS
         for ((button, range) in places) {
             val x = range.first.toDouble()
             val w = button.width.toDouble()
             val cx = x + w / 2
             val cy = height / 2.0
-            if (previous != null && (previous.isKind != button.isKind || button == Button.TAKE)) {
-                g.color = st.text.awt(0.14f)
-                g.fill(Rectangle2D.Double(x - GAP / 2.0 - 0.5, 18.0, 1.0, height - 36.0))
-            }
-            previous = button
+            val box = RoundRectangle2D.Double(x + 3, INSET, w - 6, height - 2 * INSET, tile, tile)
             val hovered = look.hovered == button
             if (button == Button.TAKE) {
                 g.color = st.accent.awt()
-                g.fill(RoundRectangle2D.Double(x + 4, INSET + 1, w - 8, height - 2 * INSET - 2, inner, inner))
+                g.fill(box)
                 if (hovered) {
                     g.color = java.awt.Color(1f, 1f, 1f, 0.14f)
-                    g.fill(RoundRectangle2D.Double(x + 4, INSET + 1, w - 8, height - 2 * INSET - 2, inner, inner))
+                    g.fill(box)
                 }
                 g.color = st.onAccent.awt()
                 g.font = Font(st.font, Font.BOLD, 13)
@@ -136,16 +124,20 @@ internal class Toolbar(private val renderer: Renderer, val buttons: List<Button>
             }
             // How a part is chosen means something for a part only.
             val idle = button == Button.SELECTION && look.kind != ShotKind.REGION
-            if (on) {
-                g.color = st.accent.awt(if (button.isKind) 0.26f else 0.18f)
-                g.fill(RoundRectangle2D.Double(x + 3, INSET + 3, w - 6, height - 2 * INSET - 6, inner - 6, inner - 6))
-            } else if (hovered && !idle) {
-                g.color = st.text.awt(0.09f)
-                g.fill(RoundRectangle2D.Double(x + 3, INSET + 3, w - 6, height - 2 * INSET - 6, inner - 6, inner - 6))
-            }
             g.color = when {
                 on -> st.accent.awt()
-                idle -> st.text.awt(0.32f)
+                idle -> st.text.awt(0.04f)
+                hovered -> st.text.awt(0.15f)
+                else -> st.text.awt(0.08f)
+            }
+            g.fill(box)
+            if (on && hovered) {
+                g.color = java.awt.Color(1f, 1f, 1f, 0.12f)
+                g.fill(box)
+            }
+            g.color = when {
+                on -> st.onAccent.awt()
+                idle -> st.text.awt(0.3f)
                 else -> st.text.awt()
             }
             g.stroke = BasicStroke(1.7f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
@@ -155,11 +147,11 @@ internal class Toolbar(private val renderer: Renderer, val buttons: List<Button>
                 g.font = Font(st.font, Font.BOLD, 10)
                 val text = look.delay.toString()
                 val tw = g.fontMetrics.stringWidth(text).toDouble()
-                val bw = maxOf(15.0, tw + 7)
-                g.color = st.accent.awt()
-                g.fill(RoundRectangle2D.Double(cx + 3, cy - 15, bw, 14.0, 14.0, 14.0))
+                val bw = maxOf(14.0, tw + 6)
                 g.color = st.onAccent.awt()
-                g.drawString(text, (cx + 3 + (bw - tw) / 2).toFloat(), (cy - 4.5).toFloat())
+                g.fill(RoundRectangle2D.Double(x + w - 3 - bw - 2, INSET + 2, bw, 13.0, 8.0, 8.0))
+                g.color = st.accent.awt()
+                g.drawString(text, (x + w - 5 - bw + (bw - tw) / 2).toFloat(), (INSET + 12.5).toFloat())
             }
         }
     }
@@ -242,9 +234,10 @@ internal class Toolbar(private val renderer: Renderer, val buttons: List<Button>
 
     private companion object {
         const val HEIGHT = 58
-        const val PAD = 8
-        const val GAP = 15
+        const val PAD = 7
+        const val GAP = 12
         const val INSET = 7.0
+        const val TILE_RADIUS = 11.0
     }
 }
 
@@ -274,9 +267,9 @@ internal class Label(private val renderer: Renderer) : AutoCloseable {
         picture(Math.round(width * scale).toInt(), Math.round(height * scale).toInt(), renderer) { g ->
             g.scale(scale, scale)
             g.color = style.background.awt()
-            g.fill(RoundRectangle2D.Double(0.0, 0.0, width.toDouble(), height.toDouble(), height.toDouble(), height.toDouble()))
+            g.fill(RoundRectangle2D.Double(0.0, 0.0, width.toDouble(), height.toDouble(), 2.0 * RADIUS, 2.0 * RADIUS))
             g.color = style.border.awt()
-            g.draw(RoundRectangle2D.Double(0.5, 0.5, width - 1.0, height - 1.0, height - 1.0, height - 1.0))
+            g.draw(RoundRectangle2D.Double(0.5, 0.5, width - 1.0, height - 1.0, 2.0 * RADIUS, 2.0 * RADIUS))
             g.font = Font(style.font, Font.PLAIN, FONT)
             g.color = style.text.awt()
             g.drawString(text, PAD_X.toFloat(), 17.5f)
@@ -294,6 +287,7 @@ internal class Label(private val renderer: Renderer) : AutoCloseable {
 
     private companion object {
         const val HEIGHT = 26
+        const val RADIUS = 8.0
         const val PAD_X = 11
         const val HINT_GAP = 8
         const val FONT = 12
