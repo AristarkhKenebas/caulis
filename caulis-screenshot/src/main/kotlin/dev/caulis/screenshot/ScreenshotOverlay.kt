@@ -275,7 +275,9 @@ internal class ScreenshotOverlay(
                 val part = region ?: return desktop.showLevel("Drag to choose a part first")
                 val monitor = regionOn
                 shots.lastRegion[monitor.name] = part
-                val picture = if (delay == 0) frozen[monitor]?.read(part, pointer) else null
+                // Windows drawn smaller than they are (an overview): put together from them, sharp.
+                val sharp = if (delay == 0 && shots.sharpWindows) shots.sharpRegion(monitor, part) else null
+                val picture = sharp ?: if (delay == 0) frozen[monitor]?.read(part, pointer) else null
                 desktop.closeOverlay()
                 if (picture != null) {
                     shots.deliver(picture, "a part of ${monitor.name}", copyOnly)

@@ -990,16 +990,21 @@ internal class Running(
 
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
         userActive()
+        // A key a program saw go down is let go for it too, whoever takes the release (1 pressed
+        // in a terminal, then Super: Super+1 took the release, and the terminal typed 1 for ever).
+        val programHolds = !pressed && seat.holds(evdevCode)
         if (keyTaken(timeMillis, evdevCode, pressed)) {
             // The keyboard's state still follows the key: modifiers would stick, and a layout
             // switch or Caps Lock on a key the configuration took would do nothing.
-            if (KeyInput.Modifiers.of(evdevCode) != 0) seat.key(timeMillis, evdevCode, pressed) else seat.trackKey(evdevCode, pressed)
+            if (KeyInput.Modifiers.of(evdevCode) != 0 || programHolds) seat.key(timeMillis, evdevCode, pressed) else seat.trackKey(evdevCode, pressed)
             return
         }
         val active = activeKeys()
         // A key pressed before locking may be released after it (Super+L): all must see the release.
         if (!pressed) for (other in allKeys()) if (other !== active) other.key(evdevCode, false)
-        if (!active.key(evdevCode, pressed)) {
+        val bound = active.key(evdevCode, pressed)
+        if (bound && programHolds) seat.key(timeMillis, evdevCode, false)
+        if (!bound) {
             // A special key (a laptop's Fn keys, media keys) nobody binds: said once, with its
             // name, so it can be bound. Never a typing key, never while the screen is locked.
             if (pressed && evdevCode >= FIRST_SPECIAL_KEY && evdevCode !in 0x100..0x15f && !desktop.locked && unboundSeen.add(evdevCode)) {

@@ -989,6 +989,12 @@ class Caulis {
         }
     }
 
+    /** For tests: a mouse [button] (272 left) pressed or let go where the pointer is (see [simulatePointer]). */
+    fun simulateButton(button: Int, pressed: Boolean) {
+        val running = checkNotNull(running) { "Caulis is not running yet" }
+        running.pointerButton((System.nanoTime() / 1_000_000).toInt(), button, pressed)
+    }
+
     /** For tests: a key ([evdevCode], e.g. 56 left Alt, 42 left Shift, 30 A) pressed or let go, as from a keyboard (see [simulatePointer]). */
     fun simulateKey(evdevCode: Int, pressed: Boolean) {
         val running = checkNotNull(running) { "Caulis is not running yet" }

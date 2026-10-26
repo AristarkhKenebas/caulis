@@ -228,8 +228,10 @@ public final class dev/caulis/core/Border {
 
 public final class dev/caulis/core/BytesOnClipboard : dev/caulis/core/ClipboardData {
 	public fun <init> (Ljava/lang/String;[B)V
+	public fun <init> (Ljava/util/Map;)V
 	public fun cancelled ()V
 	public fun getMimeTypes ()Ljava/util/List;
+	public fun getPid ()I
 	public fun send (Ljava/lang/String;Ldev/caulis/ffi/Fd;)V
 	public fun toString ()Ljava/lang/String;
 }
@@ -252,11 +254,13 @@ public abstract interface class dev/caulis/core/ClientBuffer {
 public abstract interface class dev/caulis/core/ClipboardData {
 	public fun cancelled ()V
 	public abstract fun getMimeTypes ()Ljava/util/List;
+	public fun getPid ()I
 	public abstract fun send (Ljava/lang/String;Ldev/caulis/ffi/Fd;)V
 }
 
 public final class dev/caulis/core/ClipboardData$DefaultImpls {
 	public static fun cancelled (Ldev/caulis/core/ClipboardData;)V
+	public static fun getPid (Ldev/caulis/core/ClipboardData;)I
 }
 
 public final class dev/caulis/core/Compositor {
@@ -366,6 +370,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun describe ()Ljava/lang/String;
 	public final fun dismiss (Ldev/caulis/core/Notice;)V
 	public final fun dragView (DD)V
+	public final fun drawnNow (Ldev/caulis/core/Window;)Z
 	public final fun endOverviewGesture (Z)V
 	public final fun endViewDrag ()V
 	public final fun firstEmptyWorkspace ()Ljava/lang/Integer;
@@ -1711,6 +1716,7 @@ public final class dev/caulis/core/TextOnClipboard : dev/caulis/core/ClipboardDa
 	public fun <init> (Ljava/lang/String;)V
 	public fun cancelled ()V
 	public fun getMimeTypes ()Ljava/util/List;
+	public fun getPid ()I
 	public fun send (Ljava/lang/String;Ldev/caulis/ffi/Fd;)V
 	public fun toString ()Ljava/lang/String;
 }
@@ -3160,6 +3166,7 @@ public final class dev/caulis/core/input/Seat : java/lang/AutoCloseable {
 	public final fun getRepeatDelay ()I
 	public final fun getRepeatRate ()I
 	public final fun getTouchScreen ()Z
+	public final fun holds (I)Z
 	public final fun inUse (Ldev/caulis/protocol/Client;)Z
 	public final fun key (IIZ)V
 	public final fun keysymName (I)Ljava/lang/String;

@@ -63,6 +63,7 @@ class DataDeviceManager(display: Display, private val seat: Seat) {
     // A program's wl_data_source.
     private class Source(val resource: WlDataSource) : ClipboardData {
         override val mimeTypes = ArrayList<String>()
+        override val pid: Int get() = resource.client.pid
 
         override fun send(mimeType: String, fd: Fd) {
             fd.use { if (resource.isAlive && mimeType in mimeTypes) resource.sendSend(mimeType, it) }
@@ -208,6 +209,9 @@ interface ClipboardData {
 
     /** Something else was put on the clipboard. */
     fun cancelled() {}
+
+    /** The process of the program that put it there (0: not known, or the compositor itself). */
+    val pid: Int get() = 0
 }
 
 /** Text on the clipboard, as programs ask for it (UTF-8 text in its usual names). */
@@ -234,11 +238,19 @@ class TextOnClipboard(private val text: String) : ClipboardData {
     override fun toString() = "text (${text.length} characters)"
 }
 
-/** Any data on the clipboard as [mimeType] (a picture's PNG: "image/png"), written on a thread of its own. */
-class BytesOnClipboard(private val mimeType: String, private val bytes: ByteArray) : ClipboardData {
-    override val mimeTypes = listOf(mimeType)
+/**
+ * Any data on the clipboard, in one or more formats ([formats]: MIME type → its bytes, the
+ * first the main one; a picture's PNG: "image/png"; files: "text/uri-list" and its kin),
+ * written on a thread of its own.
+ */
+class BytesOnClipboard(private val formats: Map<String, ByteArray>) : ClipboardData {
+    /** One format alone. */
+    constructor(mimeType: String, bytes: ByteArray) : this(mapOf(mimeType to bytes))
+
+    override val mimeTypes = formats.keys.toList()
 
     override fun send(mimeType: String, fd: Fd) {
+        val bytes = formats[mimeType] ?: return fd.close()
         Thread({
             fd.use {
                 java.lang.foreign.Arena.ofConfined().use { arena ->
@@ -254,7 +266,7 @@ class BytesOnClipboard(private val mimeType: String, private val bytes: ByteArra
         }, "caulis-copy").apply { isDaemon = true }.start()
     }
 
-    override fun toString() = "$mimeType (${bytes.size} bytes)"
+    override fun toString() = formats.entries.joinToString { (type, bytes) -> "$type (${bytes.size} bytes)" }
 }
 
 /**

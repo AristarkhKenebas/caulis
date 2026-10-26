@@ -32,7 +32,7 @@ class DataControl(display: Display, private val clipboard: DataDeviceManager) {
     private val devices = ArrayList<Device>()
 
     // A source of either protocol.
-    private class Source(private val write: (String, Fd) -> Unit, private val cancel: () -> Unit, private val owner: String) : ClipboardData {
+    private class Source(private val write: (String, Fd) -> Unit, private val cancel: () -> Unit, private val owner: String, override val pid: Int) : ClipboardData {
         override val mimeTypes = ArrayList<String>()
         override fun send(mimeType: String, fd: Fd) {
             fd.use { if (mimeType in mimeTypes) write(mimeType, it) }
@@ -72,7 +72,7 @@ class DataControl(display: Display, private val clipboard: DataDeviceManager) {
         display.addPrivilegedGlobal(ExtDataControlManagerV1, 1) { manager ->
             manager.requests = object : ExtDataControlManagerV1.Requests {
                 override fun createDataSource(resource: ExtDataControlManagerV1, id: ExtDataControlSourceV1) {
-                    val source = Source({ m, fd -> if (id.isAlive) id.sendSend(m, fd) }, { if (id.isAlive) id.sendCancelled() }, id.client.name)
+                    val source = Source({ m, fd -> if (id.isAlive) id.sendSend(m, fd) }, { if (id.isAlive) id.sendCancelled() }, id.client.name, id.client.pid)
                     id.data = source
                     id.requests = object : ExtDataControlSourceV1.Requests {
                         override fun offer(resource: ExtDataControlSourceV1, mimeType: String) {
@@ -119,7 +119,7 @@ class DataControl(display: Display, private val clipboard: DataDeviceManager) {
         display.addPrivilegedGlobal(ZwlrDataControlManagerV1, 2) { manager ->
             manager.requests = object : ZwlrDataControlManagerV1.Requests {
                 override fun createDataSource(resource: ZwlrDataControlManagerV1, id: ZwlrDataControlSourceV1) {
-                    val source = Source({ m, fd -> if (id.isAlive) id.sendSend(m, fd) }, { if (id.isAlive) id.sendCancelled() }, id.client.name)
+                    val source = Source({ m, fd -> if (id.isAlive) id.sendSend(m, fd) }, { if (id.isAlive) id.sendCancelled() }, id.client.name, id.client.pid)
                     id.data = source
                     id.requests = object : ZwlrDataControlSourceV1.Requests {
                         override fun offer(resource: ZwlrDataControlSourceV1, mimeType: String) {

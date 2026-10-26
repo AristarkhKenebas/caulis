@@ -26,6 +26,34 @@ internal class Pixels(val width: Int, val height: Int, val argb: IntArray, val t
         return bytes.toByteArray()
     }
 
+    /** As a JPEG file's bytes ([quality] 0..1; see-through parts on white). */
+    fun jpeg(quality: Float): ByteArray {
+        val image = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+        image.raster.setDataElements(0, 0, width, height, IntArray(argb.size) { i ->
+            val p = argb[i]
+            val a = (p ushr 24) and 0xFF
+            if (!transparent || a == 0xFF) p and 0xFFFFFF else {
+                // (Premultiplied: over white.)
+                val r = ((p shr 16) and 0xFF) + (255 - a)
+                val g = ((p shr 8) and 0xFF) + (255 - a)
+                val b = (p and 0xFF) + (255 - a)
+                (r.coerceAtMost(255) shl 16) or (g.coerceAtMost(255) shl 8) or b.coerceAtMost(255)
+            }
+        })
+        val writer = ImageIO.getImageWritersByFormatName("jpeg").next()
+        val params = writer.defaultWriteParam.apply {
+            compressionMode = javax.imageio.ImageWriteParam.MODE_EXPLICIT
+            compressionQuality = quality.coerceIn(0.1f, 1f)
+        }
+        val bytes = ByteArrayOutputStream(width * height / 4)
+        javax.imageio.ImageIO.createImageOutputStream(bytes).use { out ->
+            writer.output = out
+            writer.write(null, javax.imageio.IIOImage(image, null, null), params)
+        }
+        writer.dispose()
+        return bytes.toByteArray()
+    }
+
     companion object {
         /** [region] of [target] (pixels; null: all of it). */
         fun read(target: GpuTarget, region: Rect?, transparent: Boolean): Pixels {

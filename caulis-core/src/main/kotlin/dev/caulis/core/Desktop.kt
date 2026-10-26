@@ -2934,6 +2934,9 @@ class Desktop(
      */
     fun shownRect(window: Window): Rect? = shownRects[window]
 
+    /** True if [window] is in the picture on screen now (not hidden, not on a workspace not shown). */
+    fun drawnNow(window: Window): Boolean = window.surface in visible
+
     // Moves [window] to ([x], [y]); if it was on screen, it glides there instead of jumping.
     private fun moveSmoothly(window: Window, x: Int, y: Int) {
         val shown = shownRects[window]
