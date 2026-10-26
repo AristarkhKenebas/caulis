@@ -124,6 +124,9 @@ class ShellSurface internal constructor(
     }
 
     private val sentSerials = ArrayList<Int>()
+
+    // True when every configure sent was acknowledged.
+    internal val answeredAll: Boolean get() = sentSerials.isEmpty()
     private var acknowledged = false
     private var initialConfigureSent = false
 
@@ -388,6 +391,8 @@ class XdgWindow internal constructor(val resource: XdgToplevel, val shell: Shell
     }
 
     override val configuredSize: Pair<Int, Int> get() = configuredWidth to configuredHeight
+
+    override val caughtUp: Boolean get() = shell.answeredAll
 
     override fun close() = resource.sendClose()
 

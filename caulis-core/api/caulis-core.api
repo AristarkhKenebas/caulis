@@ -1916,6 +1916,7 @@ public abstract class dev/caulis/core/Window : dev/caulis/tiling/LayoutWindow {
 	public static synthetic fun configure$default (Ldev/caulis/core/Window;IIILjava/lang/Object;)V
 	public final fun getActivated ()Z
 	public fun getAppId ()Ljava/lang/String;
+	public fun getCaughtUp ()Z
 	public abstract fun getConfigured ()Z
 	public abstract fun getConfiguredSize ()Lkotlin/Pair;
 	public final fun getFixedSize ()Z
@@ -2341,6 +2342,7 @@ public final class dev/caulis/core/XdgShell$Listener$DefaultImpls {
 public final class dev/caulis/core/XdgWindow : dev/caulis/core/Window {
 	public fun close ()V
 	public fun configure (II)V
+	public fun getCaughtUp ()Z
 	public fun getConfigured ()Z
 	public fun getConfiguredSize ()Lkotlin/Pair;
 	public fun getMapped ()Z

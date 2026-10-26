@@ -126,6 +126,12 @@ abstract class Window : LayoutWindow {
             return visibleRect.width != w || visibleRect.height != h
         }
 
+    /**
+     * True when the program has answered every size asked of it (its picture is its answer to
+     * the last [configure]); false while it still has to (a picture of an older size then).
+     */
+    open val caughtUp: Boolean get() = true
+
     /** Asks the program to use this size (0 = its own choice) and tells it its states. */
     abstract fun configure(width: Int = configuredSize.first, height: Int = configuredSize.second)
 
