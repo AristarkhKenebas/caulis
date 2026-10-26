@@ -4050,7 +4050,9 @@ class Desktop(
         }
         // The keyboard follows the pointer: onto another window, it gets the focus (once, so
         // keys can still move the focus while the pointer rests).
-        if (focusFollowsMouse && !locked) {
+        // (Not while one of our widgets has the keyboard — a launcher, a menu: the pointer
+        // passing over a window took the keys from it.)
+        if (focusFollowsMouse && !locked && keyboardWidget == null) {
             val under = windowAt(pointerX, pointerY) ?: (decoration as? Decoration.Bar)?.window ?: (decoration as? Decoration.Edge)?.window
             if (under !== hovered) {
                 hovered = under
