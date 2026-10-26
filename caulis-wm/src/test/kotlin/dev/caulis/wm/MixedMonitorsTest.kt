@@ -37,15 +37,16 @@ class MixedMonitorsTest {
             val logical = HashMap<String, List<Int>>()
             client.outputs.forEach { output ->
                 val seen = intArrayOf(0, 0, 0, 0)
+                var named: String? = null
                 xdg.getXdgOutput(output).events = object : ZxdgOutputV1.Events {
                     override fun logicalPosition(proxy: ZxdgOutputV1, x: Int, y: Int) { seen[0] = x; seen[1] = y }
                     override fun logicalSize(proxy: ZxdgOutputV1, width: Int, height: Int) { seen[2] = width; seen[3] = height }
-                    override fun name(proxy: ZxdgOutputV1, name: String) { logical[name] = seen.toList() }
-                    override fun done(proxy: ZxdgOutputV1) {}
+                    override fun name(proxy: ZxdgOutputV1, name: String) { named = name }
+                    override fun done(proxy: ZxdgOutputV1) { named?.let { logical[it] = seen.toList() } }
                 }
             }
             client.waitFor { logical.size == 2 }
-            // (The name comes after the size and place: they are complete by then.)
+            // (Kept at "done": the name, the size and the place are complete by then, in any order.)
             assertEquals(listOf(0, 0, 2048, 1152), logical["HEADLESS-1"])
             assertEquals(listOf(2048, 0, 1080, 1920), logical["HEADLESS-2"])
         }

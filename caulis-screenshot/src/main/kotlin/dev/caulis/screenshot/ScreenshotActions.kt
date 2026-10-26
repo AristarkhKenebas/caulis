@@ -8,7 +8,7 @@ import dev.caulis.wm.config.ActionProvider
 class ScreenshotActions : ActionProvider {
 
     override val actions = listOf(
-        Triple("screenshot", "[region|window|screen|focused|monitor]", "a screenshot: the chooser, or the focused window / the monitor with the pointer at once"),
+        Triple("screenshot", "[region|window|screen|windows|focused|monitor]", "a screenshot: the chooser, or the focused window / the monitor with the pointer at once"),
     )
 
     override fun parse(name: String, argument: String): (Caulis.(Window?) -> Unit)? {
@@ -18,9 +18,10 @@ class ScreenshotActions : ActionProvider {
             "region", "area" -> { _ -> Screenshots.of(this).choose(ShotKind.REGION) }
             "window" -> { _ -> Screenshots.of(this).choose(ShotKind.WINDOW) }
             "screen" -> { _ -> Screenshots.of(this).choose(ShotKind.SCREEN) }
+            "windows" -> { _ -> Screenshots.of(this).choose(ShotKind.WINDOWS) }
             "focused" -> { window -> Screenshots.of(this).let { shots -> if (window != null) shots.later { shots.takeWindow(window) } else shots.takeFocused() } }
             "monitor" -> { _ -> Screenshots.of(this).takeMonitor() }
-            else -> throw IllegalArgumentException("\"$argument\" is not region, window, screen, focused or monitor")
+            else -> throw IllegalArgumentException("\"$argument\" is not region, window, screen, windows, focused or monitor")
         }
     }
 }

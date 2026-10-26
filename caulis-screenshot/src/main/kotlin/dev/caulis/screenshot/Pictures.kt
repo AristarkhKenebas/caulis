@@ -151,3 +151,52 @@ internal class PngOnClipboard(private val png: ByteArray) : ClipboardData {
 
     override fun toString() = "a screenshot"
 }
+
+/** Windows' pictures put together into one (on any thread: the GPU's part is done). */
+internal class Composite(val width: Int, val height: Int, private val pieces: List<Piece>, private val background: dev.caulis.render.Color?) {
+
+    /** A window's [pixels], drawn at [x], [y], [w] x [h] (pixels of the whole), its corners round by [radius]. */
+    class Piece(val pixels: Pixels, val x: Double, val y: Double, val w: Double, val h: Double, val radius: Double)
+
+    fun draw(): Pixels {
+        val canvas = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB_PRE)
+        val g = canvas.createGraphics()
+        g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+        g.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY)
+        g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON)
+        background?.let { c ->
+            g.color = java.awt.Color(c.red, c.green, c.blue, c.alpha)
+            g.fillRect(0, 0, width, height)
+        }
+        for (piece in pieces) {
+            val image = BufferedImage(piece.pixels.width, piece.pixels.height, BufferedImage.TYPE_INT_ARGB_PRE)
+            image.raster.setDataElements(0, 0, piece.pixels.width, piece.pixels.height, piece.pixels.argb)
+            val x = Math.round(piece.x).toInt()
+            val y = Math.round(piece.y).toInt()
+            val w = Math.round(piece.x + piece.w).toInt() - x
+            val h = Math.round(piece.y + piece.h).toInt() - y
+            // At its own size: copied as it is (no blur from scaling by a hair).
+            val own = Math.abs(w - image.width) <= 1 && Math.abs(h - image.height) <= 1
+            if (piece.radius <= 0.5) {
+                if (own) g.drawImage(image, x, y, null) else g.drawImage(image, x, y, w, h, null)
+                continue
+            }
+            // Round corners, smooth: the window on its own, its corners cut away, then put in.
+            val cut = BufferedImage(w.coerceAtLeast(1), h.coerceAtLeast(1), BufferedImage.TYPE_INT_ARGB_PRE)
+            val cg = cut.createGraphics()
+            cg.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+            cg.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON)
+            if (own) cg.drawImage(image, 0, 0, null) else cg.drawImage(image, 0, 0, w, h, null)
+            val corners = java.awt.geom.Area(java.awt.Rectangle(0, 0, w, h))
+            corners.subtract(java.awt.geom.Area(java.awt.geom.RoundRectangle2D.Double(0.0, 0.0, w.toDouble(), h.toDouble(), 2 * piece.radius, 2 * piece.radius)))
+            cg.composite = java.awt.AlphaComposite.DstOut
+            cg.fill(corners)
+            cg.dispose()
+            g.drawImage(cut, x, y, null)
+        }
+        g.dispose()
+        val argb = IntArray(width * height)
+        canvas.raster.getDataElements(0, 0, width, height, argb)
+        return Pixels(width, height, argb, transparent = background == null || background.alpha < 1f)
+    }
+}

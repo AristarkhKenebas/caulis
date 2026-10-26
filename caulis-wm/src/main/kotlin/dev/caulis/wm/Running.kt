@@ -964,7 +964,7 @@ internal class Running(
     }
 
     private fun motionTaken(dx: Double, dy: Double): Boolean =
-        !desktop.locked && config.motionHandlers.isNotEmpty() && (dx != 0.0 || dy != 0.0) &&
+        !desktop.locked && desktop.overlay == null && config.motionHandlers.isNotEmpty() && (dx != 0.0 || dy != 0.0) &&
             config.motionHandlers.asReversed().any { h -> safely("onPointerMotion", false) { h(config, dx, dy) } }
 
     // Modifiers held now (KeyInput.Modifiers bits), for onKey.
@@ -1071,7 +1071,8 @@ internal class Running(
     /** The mouse wheel or a touchpad scrolled: a combination with the wheel, or the program under the pointer. */
     fun pointerAxis(timeMillis: Int, vertical: Boolean, value: Double, value120: Int) {
         userActive()
-        if (!desktop.locked && config.scrollHandlers.asReversed().any { h -> safely("onScroll", false) { h(config, vertical, value, value120 / 120.0) } }) return
+        // (An overlay — a screenshot chooser — has the mouse to itself: no handler takes it first.)
+        if (!desktop.locked && desktop.overlay == null && config.scrollHandlers.asReversed().any { h -> safely("onScroll", false) { h(config, vertical, value, value120 / 120.0) } }) return
         val active = activeKeys()
         if (value120 != 0 && !desktop.locked) {
             val (back, forth) = if (vertical) KeyBindings.WHEEL_UP to KeyBindings.WHEEL_DOWN else KeyBindings.WHEEL_LEFT to KeyBindings.WHEEL_RIGHT
@@ -1096,7 +1097,8 @@ internal class Running(
      */
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean) {
         userActive()
-        if (!desktop.locked && config.buttonHandlers.asReversed().any { h -> safely("onPointerButton", false) { h(config, button, pressed) } }) return
+        // (An overlay — a screenshot chooser — has the mouse to itself: no handler takes it first.)
+        if (!desktop.locked && desktop.overlay == null && config.buttonHandlers.asReversed().any { h -> safely("onPointerButton", false) { h(config, button, pressed) } }) return
         // A combination with a mouse button ("Super+MouseSide", "MouseBack").
         val active = activeKeys()
         if (!pressed) for (other in allKeys()) if (other !== active) other.key(button, false)
