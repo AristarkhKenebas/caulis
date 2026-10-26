@@ -166,7 +166,7 @@ class Screenshots internal constructor(private val caulis: Caulis) {
     }
 
     private fun shortPath(file: Path): String {
-        val home = Path.of(System.getProperty("user.home"))
+        val home = Path.of(System.getenv("HOME")?.takeIf { it.startsWith("/") } ?: System.getProperty("user.home"))
         return if (file.startsWith(home)) "~/" + home.relativize(file) else file.toString()
     }
 
@@ -180,7 +180,7 @@ class Screenshots internal constructor(private val caulis: Caulis) {
 
         // ~/Pictures, or what user-dirs.dirs says (XDG_PICTURES_DIR="$HOME/Bilder").
         internal fun picturesFolder(): Path {
-            val home = System.getProperty("user.home")
+            val home = System.getenv("HOME")?.takeIf { it.startsWith("/") } ?: System.getProperty("user.home")
             val config = System.getenv("XDG_CONFIG_HOME")?.takeIf { it.startsWith("/") } ?: "$home/.config"
             val named = try {
                 Files.readAllLines(Path.of(config, "user-dirs.dirs")).firstNotNullOfOrNull { line ->

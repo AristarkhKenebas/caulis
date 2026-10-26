@@ -134,7 +134,8 @@ class ComposeWidget @JvmOverloads constructor(
 
     // Compose draws the scene (Skia, on the processor); its pixels become our picture.
     private fun render(part: Part) {
-        val image = part.scene.render(System.nanoTime())
+        val started = System.nanoTime()
+        val image = part.scene.render(started)
         part.drawnOnce = true
         val bitmap = Bitmap()
         try {
@@ -151,6 +152,8 @@ class ComposeWidget @JvmOverloads constructor(
             bitmap.close()
             image.close()
         }
+        val ms = (System.nanoTime() - started) / 1_000_000.0
+        if (ms > 8) log.trace { "Compose frame of ${part.width}x${part.height} px took %.1f ms".format(ms) }
     }
 
     // --- input ------------------------------------------------------------------------------

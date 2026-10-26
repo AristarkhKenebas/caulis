@@ -233,3 +233,67 @@ class TextOnClipboard(private val text: String) : ClipboardData {
 
     override fun toString() = "text (${text.length} characters)"
 }
+
+/** Any data on the clipboard as [mimeType] (a picture's PNG: "image/png"), written on a thread of its own. */
+class BytesOnClipboard(private val mimeType: String, private val bytes: ByteArray) : ClipboardData {
+    override val mimeTypes = listOf(mimeType)
+
+    override fun send(mimeType: String, fd: Fd) {
+        Thread({
+            fd.use {
+                java.lang.foreign.Arena.ofConfined().use { arena ->
+                    val all = arena.allocateFrom(java.lang.foreign.ValueLayout.JAVA_BYTE, *bytes)
+                    var done = 0L
+                    while (done < bytes.size) {
+                        val written = it.write(all.asSlice(done))
+                        if (written <= 0) break
+                        done += written
+                    }
+                }
+            }
+        }, "caulis-copy").apply { isDaemon = true }.start()
+    }
+
+    override fun toString() = "$mimeType (${bytes.size} bytes)"
+}
+
+/**
+ * Reads [data] as [mimeType] (the program that put it there writes it), on a thread of its
+ * own (a program that never finishes keeps only that thread waiting); [done] gets the bytes,
+ * on that thread, or null when there were more than [maxBytes]. Call it on the compositor's
+ * thread (the request goes to the program from there).
+ */
+fun readClipboard(data: ClipboardData, mimeType: String, maxBytes: Int = 32 shl 20, done: (ByteArray?) -> Unit) {
+    val (readEnd, writeEnd) = Fd.pipe()
+    try {
+        data.send(mimeType, writeEnd)
+    } catch (e: Exception) {
+        readEnd.close()
+        writeEnd.close()
+        return done(null)
+    }
+    // (The program has its own copy of the end to write: ours closes, so the read ends with it.)
+    writeEnd.close()
+    val reader = Thread({
+        val out = java.io.ByteArrayOutputStream()
+        var tooBig = false
+        try {
+            java.lang.foreign.Arena.ofConfined().use { arena ->
+                val buffer = arena.allocate(64 * 1024)
+                while (true) {
+                    val n = try { readEnd.read(buffer) } catch (_: Exception) { -1L }
+                    if (n <= 0) break
+                    out.write(buffer.asSlice(0, n).toArray(java.lang.foreign.ValueLayout.JAVA_BYTE))
+                    if (out.size() > maxBytes) {
+                        tooBig = true
+                        break
+                    }
+                }
+            }
+        } finally {
+            readEnd.close()
+        }
+        done(if (tooBig) null else out.toByteArray())
+    }, "caulis-paste").apply { isDaemon = true }
+    reader.start()
+}

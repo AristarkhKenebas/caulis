@@ -1,5 +1,6 @@
 package dev.caulis.core.drm
 
+import dev.caulis.log.Logger
 import dev.caulis.core.libinput.InputDevices
 import dev.caulis.core.session.Session
 import dev.caulis.event.EventLoop
@@ -452,6 +453,13 @@ class DrmBackend private constructor(
                         } catch (e: Exception) {
                             own?.close()
                             throw e
+                        }
+                        // Said once: on the processor everything is slow (the pointer lags, animations stutter).
+                        val about = renderer.description
+                        if (Regex("llvmpipe|softpipe|swrast|software", RegexOption.IGNORE_CASE).containsMatchIn(about)) {
+                            Logger("render").warn("Drawing on the processor ($about): the GPU's driver did not start, everything will be slow")
+                        } else {
+                            Logger("render").info { "Drawing with $about" }
                         }
                         return try {
                             DrmBackend(loop, session, device, renderer)

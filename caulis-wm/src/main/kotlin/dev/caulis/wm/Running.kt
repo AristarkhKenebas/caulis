@@ -401,6 +401,7 @@ internal class Running(
         clipboard = DataDeviceManager(display, seat)
         // A notice's copy button puts its text here.
         desktop.copyText = { text -> clipboard.setClipboard(dev.caulis.core.TextOnClipboard(text)) }
+        desktop.osdHandler = config.osdHandler
         dev.caulis.core.PrimarySelection(display, seat, clipboard)
         dev.caulis.core.DataControl(display, clipboard)
         activation = dev.caulis.core.Activation(display, seat, desktop)
@@ -492,6 +493,8 @@ internal class Running(
         config.sleepActions.toList().forEach { action -> safely("onSleep") { action(config) } }
         if (!config.lockBeforeSleep || desktop.locked) return ready()
         safely("the lock before sleep") { config.lock() }
+        // A lock screen of the compositor's own is up at once.
+        if (config.locker != null) return ready()
         // Sleep once the locker shows (or after a while: logind does not wait for ever anyway).
         val since = System.nanoTime()
         fun check() {

@@ -446,6 +446,18 @@ class Caulis {
         running?.applySettingsNow()
     }
 
+    /**
+     * Your own on-screen display for what the laptop's keys change (volume, brightness, the
+     * microphone, the touchpad): [handler] gets the title ("Volume 45 %"), the level (0..1 or
+     * null) and whether it is off (muted); true takes it — Caulis's own pill is not shown.
+     */
+    fun onScreenDisplay(handler: (title: String, level: Double?, off: Boolean) -> Boolean) {
+        osdHandler = handler
+        running?.desktop?.osdHandler = handler
+    }
+
+    internal var osdHandler: ((String, Double?, Boolean) -> Boolean)? = null
+
     /** The keyboard layout in use: its number in [keyboardLayouts] ("us,ru": 0 is us, 1 ru). */
     val keyboardLayoutNow: Int get() = running?.seat?.layoutIndex ?: 0
 
@@ -1453,8 +1465,21 @@ class Caulis {
         return true
     }
 
-    /** Locks the screen with [lockCommand]. */
-    fun lock() = launch(lockCommand)
+    /** Locks the screen: with your [locker], else with [lockCommand]. */
+    fun lock() {
+        val own = locker
+        if (own != null) own(this) else launch(lockCommand)
+    }
+
+    /**
+     * A lock screen of your own instead of [lockCommand] (a compositor that draws its own):
+     * used by [lock], the default Super+L, logind's Lock and the lock before sleep, so only one
+     * lock screen asks for the password. It should lock at once (sleep follows right after).
+     */
+    var locker: (Caulis.() -> Unit)? = null
+
+    /** Sets [locker]. */
+    fun locker(lock: Caulis.() -> Unit): Caulis = apply { locker = lock }
 
     /**
      * Lock the screen before the computer sleeps (suspend, hibernate), so it wakes up locked

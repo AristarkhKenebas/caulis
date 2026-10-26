@@ -209,10 +209,29 @@ interface NoticePainter {
     fun height(g: Graphics2D, look: NoticeLook): Int = DefaultNoticePainter.height(g, look)
 
     fun paint(g: Graphics2D, look: NoticeLook)
+
+    /** The button of [look] at ([x], [y]) (pixels in it), if it draws one there; null: a click closes the notice. */
+    fun actionAt(look: NoticeLook, x: Double, y: Double): NoticeAction? = null
+}
+
+/** What a notice's button does. */
+enum class NoticeAction {
+    /** Its text goes to the clipboard (to send it to someone). */
+    COPY,
+
+    /** It closes. */
+    CLOSE,
 }
 
 /** The usual notice: its colour, the title in bold, the text wrapped to fit, × on hover. */
 object DefaultNoticePainter : NoticePainter {
+
+    // Its copy button: left of the ×, in the top row (see copyButton).
+    override fun actionAt(look: NoticeLook, x: Double, y: Double): NoticeAction? {
+        val unit = look.scale
+        val cx = look.width - look.style.padding * unit - COPY_FROM_RIGHT * unit
+        return if (Math.abs(x - cx) <= 10 * unit && y <= (look.style.padding + 18) * unit) NoticeAction.COPY else null
+    }
 
     override fun height(g: Graphics2D, look: NoticeLook): Int {
         val (lines, metrics) = lines(g, look)
@@ -324,14 +343,49 @@ class CardNoticePainter @JvmOverloads constructor(
     private val text: Color = Color.hex("#eceff4"),
 ) : NoticePainter {
 
-    // The mark's room on the left (desktop units).
+    // The mark's room on the left, the most lines shown, the buttons' row (desktop units).
     private val markRoom = 34.0
+    private val maxLines = 8
+    private val buttonRow = 30.0
+
+    // Warnings and errors have buttons (Copy, Close) in a row of their own below the text.
+    private fun hasButtons(look: NoticeLook) = look.notice.level != NoticeLevel.INFO && !look.banner
+
+    // The text's lines: at most [maxLines], the last cut with "…" when there are more.
+    private fun shownLines(g: Graphics2D, look: NoticeLook): Pair<List<String>, java.awt.FontMetrics> {
+        val (lines, metrics) = DefaultNoticePainter.lines(g, look, (markRoom * look.scale).toInt())
+        if (lines.size <= maxLines) return lines to metrics
+        return (lines.take(maxLines - 1) + (lines[maxLines - 1].trimEnd() + " …")) to metrics
+    }
 
     override fun height(g: Graphics2D, look: NoticeLook): Int {
-        val (lines, metrics) = DefaultNoticePainter.lines(g, look, (markRoom * look.scale).toInt())
+        val (lines, metrics) = shownLines(g, look)
         val padding = (look.style.padding * look.scale).toInt()
         val textHeight = lines.size * metrics.height + (if (look.notice.title != null && lines.size > 1) (3 * look.scale).toInt() else 0)
-        return maxOf(textHeight, (24 * look.scale).toInt()) + 2 * padding
+        return maxOf(textHeight, (24 * look.scale).toInt()) + 2 * padding + if (hasButtons(look)) (buttonRow * look.scale).toInt() else 0
+    }
+
+    // The buttons (pixels): Close at the right, Copy left of it, in the bottom row.
+    private fun buttons(look: NoticeLook): List<Pair<NoticeAction, java.awt.geom.Rectangle2D.Double>> {
+        if (!hasButtons(look)) return emptyList()
+        val u = look.scale
+        val padding = look.style.padding * u
+        val h = 22 * u
+        val y = look.height - padding - h
+        val closeW = 58 * u
+        val copyW = (if (look.notice.copied) 74 else 58) * u
+        val close = java.awt.geom.Rectangle2D.Double(look.width - padding - closeW, y, closeW, h)
+        val copy = java.awt.geom.Rectangle2D.Double(close.x - 6 * u - copyW, y, copyW, h)
+        return listOf(NoticeAction.COPY to copy, NoticeAction.CLOSE to close)
+    }
+
+    override fun actionAt(look: NoticeLook, x: Double, y: Double): NoticeAction? {
+        buttons(look).firstOrNull { (_, r) -> r.contains(x, y) }?.let { return it.first }
+        // The × at the top right (on hover) closes; a click anywhere else on a warning keeps it.
+        val u = look.scale
+        val padding = look.style.padding * u
+        if (x >= look.width - padding - 16 * u && y <= padding + 16 * u) return NoticeAction.CLOSE
+        return null
     }
 
     override fun paint(g: Graphics2D, look: NoticeLook) {
@@ -349,7 +403,6 @@ class CardNoticePainter @JvmOverloads constructor(
         val card = RoundRectangle2D.Double(0.5 * unit, 0.5 * unit, w - unit, h - unit, r, r)
         g.color = awt(background)
         g.fill(card)
-        // A hairline around it, of the text's colour (light on dark, dark on light).
         g.color = awt(text.withAlpha(0.09f))
         g.stroke = BasicStroke(unit.toFloat())
         g.draw(card)
@@ -379,9 +432,8 @@ class CardNoticePainter @JvmOverloads constructor(
             }
         }
 
-        val (lines, metrics) = DefaultNoticePainter.lines(g, look, (markRoom * unit).toInt())
+        val (lines, metrics) = shownLines(g, look)
         val left = padding + (markRoom * unit).toInt()
-        // One line: in the middle of the mark; more: from the top.
         var y = if (lines.size == 1) (my + metrics.ascent / 2.0 - metrics.descent / 2.0).toInt() else padding + metrics.ascent
         for ((index, line) in lines.withIndex()) {
             val title = index == 0 && look.notice.title != null
@@ -390,6 +442,21 @@ class CardNoticePainter @JvmOverloads constructor(
             g.drawString(line, left, y)
             y += metrics.height + if (title) (3 * unit).toInt() else 0
         }
+
+        // The buttons, below the text.
+        g.font = DefaultNoticePainter.plain(look).deriveFont((DefaultNoticePainter.plain(look).size2D * 0.92f))
+        val fm = g.fontMetrics
+        for ((action, b) in buttons(look)) {
+            val label = when (action) {
+                NoticeAction.COPY -> if (look.notice.copied) "Copied ✓" else "Copy"
+                NoticeAction.CLOSE -> "Close"
+            }
+            g.color = awt(if (action == NoticeAction.COPY && look.notice.copied) accent.withAlpha(0.22f) else text.withAlpha(0.09f))
+            g.fill(RoundRectangle2D.Double(b.x, b.y, b.width, b.height, 12 * unit, 12 * unit))
+            g.color = awt(if (action == NoticeAction.COPY && look.notice.copied) accent else text.withAlpha(0.85f))
+            g.drawString(label, (b.x + (b.width - fm.stringWidth(label)) / 2).toFloat(), (b.y + (b.height + fm.ascent - fm.descent) / 2).toFloat())
+        }
+
         if (look.hovered) {
             val cx = w - padding - 6 * unit
             val cy = padding + 7.0 * unit
@@ -398,8 +465,6 @@ class CardNoticePainter @JvmOverloads constructor(
             g.stroke = BasicStroke((1.4 * unit).toFloat(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
             g.draw(Line2D.Double(cx - cr, cy - cr, cx + cr, cy + cr))
             g.draw(Line2D.Double(cx - cr, cy + cr, cx + cr, cy - cr))
-            if (look.notice.copied) g.color = awt(accent)
-            DefaultNoticePainter.copyButton(g, look, cy)
         }
     }
 }
@@ -444,6 +509,7 @@ internal class NoticeBoard(
 
     // Where each was drawn last, per monitor, in desktop units (for clicks).
     private val places = HashMap<String, List<Pair<Notice, Rect>>>()
+    private val scales = HashMap<String, Double>()
 
     fun add(level: NoticeLevel, text: String, title: String?, monitorName: String?): Notice {
         // The same message again: counted, its time starts anew.
@@ -561,6 +627,7 @@ internal class NoticeBoard(
         }
         val placed = place(shown, monitor)
         places[monitor.name] = placed
+        scales[monitor.name] = monitor.scale
         val now = System.nanoTime()
         return placed.map { (notice, rect) ->
             val appearing = ((now - notice.shownSince).toDouble() / fadeNanos).coerceIn(0.0, 1.0)
@@ -642,13 +709,16 @@ internal class NoticeBoard(
     fun at(x: Double, y: Double): Notice? = places.values.asSequence().flatten()
         .lastOrNull { (notice, rect) -> notice.open && x >= rect.x && x < rect.right && y >= rect.y && y < rect.bottom }?.first
 
-    /** The notice whose copy button is at the desktop point ([x], [y]), if one is. */
-    fun copyAt(x: Double, y: Double): Notice? {
-        val (notice, rect) = places.values.asSequence().flatten()
-            .lastOrNull { (n, r) -> n.open && x >= r.x && x < r.right && y >= r.y && y < r.bottom } ?: return null
-        val cx = rect.right - style.padding - DefaultNoticePainter.COPY_FROM_RIGHT
-        val top = rect.y + style.padding
-        return notice.takeIf { Math.abs(x - cx) <= 10 && y >= rect.y && y <= top + 18 }
+    /** The button (and its notice) at the desktop point ([x], [y]), if a notice draws one there. */
+    fun actionAt(x: Double, y: Double): Pair<Notice, NoticeAction>? {
+        for ((monitor, placed) in places) {
+            val (notice, rect) = placed.lastOrNull { (n, r) -> n.open && x >= r.x && x < r.right && y >= r.y && y < r.bottom } ?: continue
+            val scale = scales[monitor] ?: 1.0
+            val look = NoticeLook(Math.round(rect.width * scale).toInt(), Math.round(rect.height * scale).toInt(), scale, notice, notice === hovered, style)
+            val action = runCatching { style.painter.actionAt(look, (x - rect.x) * scale, (y - rect.y) * scale) }.getOrNull() ?: return null
+            return notice to action
+        }
+        return null
     }
 
     /** [notice] was copied: its button shows a check (and it stays a while longer). */

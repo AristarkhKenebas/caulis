@@ -83,6 +83,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getLockBeforeSleep ()Z
 	public final fun getLockColor ()Ldev/caulis/render/Color;
 	public final fun getLockCommand ()Ljava/lang/String;
+	public final fun getLocker ()Lkotlin/jvm/functions/Function1;
 	public final fun getLogFile ()Ljava/nio/file/Path;
 	public final fun getLogLevel ()I
 	public final fun getMode ()Ldev/caulis/wm/Caulis$Mode;
@@ -130,6 +131,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun layout (Ldev/caulis/tiling/Layout;)Ldev/caulis/wm/Caulis;
 	public final fun lock ()V
 	public final fun lockCommand (Ljava/lang/String;)Ldev/caulis/wm/Caulis;
+	public final fun locker (Lkotlin/jvm/functions/Function1;)Ldev/caulis/wm/Caulis;
 	public final fun log (Ljava/lang/String;I)V
 	public final fun logArea (Ljava/lang/String;I)Ldev/caulis/wm/Caulis;
 	public final fun logLevel (I)Ldev/caulis/wm/Caulis;
@@ -159,6 +161,7 @@ public final class dev/caulis/wm/Caulis {
 	public final synthetic fun onPointerButton (Lkotlin/jvm/functions/Function3;)Ljava/lang/AutoCloseable;
 	public final synthetic fun onPointerMotion (Lkotlin/jvm/functions/Function3;)Ljava/lang/AutoCloseable;
 	public final synthetic fun onReload (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun onScreenDisplay (Lkotlin/jvm/functions/Function3;)V
 	public final synthetic fun onScroll (Lkotlin/jvm/functions/Function4;)Ljava/lang/AutoCloseable;
 	public final synthetic fun onSleep (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
 	public final fun onStart (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
@@ -229,6 +232,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setLockBeforeSleep (Z)V
 	public final fun setLockColor (Ldev/caulis/render/Color;)V
 	public final fun setLockCommand (Ljava/lang/String;)V
+	public final fun setLocker (Lkotlin/jvm/functions/Function1;)V
 	public final fun setLogFile (Ljava/nio/file/Path;)V
 	public final fun setLogLevel (I)V
 	public final fun setMode (Ldev/caulis/wm/Caulis$Mode;)V

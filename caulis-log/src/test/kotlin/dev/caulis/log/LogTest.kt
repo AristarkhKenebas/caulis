@@ -66,4 +66,15 @@ class LogTest {
         assertTrue(lines.none { "not shown" in it })
         assertTrue(Log.recent().last().endsWith("a window opened, not shown at level 1"))
     }
+
+    @Test
+    fun `a problem said every frame is said once`() {
+        val seen = ArrayList<String>()
+        Log.watch { seen += it.message }.use {
+            val log = Logger("test")
+            repeat(500) { n -> log.error("Your thing failed on Window(\"title $n\", app)", IllegalArgumentException("\"auto\" is not a colour")) }
+        }
+        // A few let through, then held back (a count follows after a while).
+        assertTrue(seen.count { it.startsWith("Your thing failed") } <= 5, "${seen.size}")
+    }
 }

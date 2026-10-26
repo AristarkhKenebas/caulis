@@ -189,6 +189,12 @@ object Log {
     /** Writes one line now, whatever the levels (for [Logger] and for reports the user asked for). */
     @JvmStatic
     fun write(area: String, level: Int, mark: String, message: String, error: Throwable?) {
+        // A problem said again and again (every frame): once, then a count every so often —
+        // not thousands of lines and notices.
+        if (level <= PROBLEMS && mark != "F") {
+            val count = repeats(area, message, error) ?: return
+            if (count > 1) return write(area, level, mark, "$message (and ${count - 1} times more in the last ${REPEAT_SECONDS} s)", error)
+        }
         val seconds = (System.nanoTime() - start) / 1_000_000_000.0
         val line = buildString {
             append(LocalTime.now().format(clock))
@@ -221,6 +227,36 @@ object Log {
             }
         }
         listener?.let { runCatching { it(line) } }
+    }
+
+    // Problems said lately, by their gist: when last let through, and how often since.
+    private class Repeat(var since: Long, var count: Int)
+
+    private val lately = LinkedHashMap<String, Repeat>()
+    private const val REPEAT_SECONDS = 10
+    private const val REPEAT_BURST = 5
+
+    // Null: the same problem was said less than REPEAT_SECONDS ago (left out, counted); else how
+    // many times it came since it was last let through (1: the first).
+    private fun repeats(area: String, message: String, error: Throwable?): Int? = synchronized(lately) {
+        // (Its gist: without what changes from one time to the next, such as a window's title.)
+        val gist = area + "|" + message.replace(Regex("\"[^\"]*\"|\\([^)]*\\)|\\d+"), "") + "|" + error?.javaClass?.name + error?.message?.replace(Regex("\\d+"), "")
+        val now = System.nanoTime()
+        val seen = lately[gist]
+        if (seen == null) {
+            if (lately.size > 200) lately.remove(lately.keys.first())
+            lately[gist] = Repeat(now, 1)
+            return 1
+        }
+        if (now - seen.since < REPEAT_SECONDS * 1_000_000_000L) {
+            seen.count++
+            // (A few in a row are let through: only a flood is held back.)
+            return if (seen.count <= REPEAT_BURST) 1 else null
+        }
+        val count = (seen.count - REPEAT_BURST + 1).coerceAtLeast(1)
+        seen.since = now
+        seen.count = 1
+        return count
     }
 
     init {

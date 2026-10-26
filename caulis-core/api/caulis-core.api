@@ -226,11 +226,20 @@ public final class dev/caulis/core/Border {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/caulis/core/BytesOnClipboard : dev/caulis/core/ClipboardData {
+	public fun <init> (Ljava/lang/String;[B)V
+	public fun cancelled ()V
+	public fun getMimeTypes ()Ljava/util/List;
+	public fun send (Ljava/lang/String;Ldev/caulis/ffi/Fd;)V
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/caulis/core/CardNoticePainter : dev/caulis/core/NoticePainter {
 	public fun <init> ()V
 	public fun <init> (Ldev/caulis/render/Color;)V
 	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;)V
 	public synthetic fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun actionAt (Ldev/caulis/core/NoticeLook;DD)Ldev/caulis/core/NoticeAction;
 	public fun height (Ljava/awt/Graphics2D;Ldev/caulis/core/NoticeLook;)I
 	public fun paint (Ljava/awt/Graphics2D;Ldev/caulis/core/NoticeLook;)V
 }
@@ -301,6 +310,11 @@ public final class dev/caulis/core/DataControl {
 	public fun <init> (Ldev/caulis/protocol/Display;Ldev/caulis/core/DataDeviceManager;)V
 }
 
+public final class dev/caulis/core/DataDeviceKt {
+	public static final fun readClipboard (Ldev/caulis/core/ClipboardData;Ljava/lang/String;ILkotlin/jvm/functions/Function1;)V
+	public static synthetic fun readClipboard$default (Ldev/caulis/core/ClipboardData;Ljava/lang/String;ILkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+}
+
 public final class dev/caulis/core/DataDeviceManager {
 	public static final field Companion Ldev/caulis/core/DataDeviceManager$Companion;
 	public static final field VERSION I
@@ -318,6 +332,7 @@ public final class dev/caulis/core/DataDeviceManager$Companion {
 
 public final class dev/caulis/core/DefaultNoticePainter : dev/caulis/core/NoticePainter {
 	public static final field INSTANCE Ldev/caulis/core/DefaultNoticePainter;
+	public fun actionAt (Ldev/caulis/core/NoticeLook;DD)Ldev/caulis/core/NoticeAction;
 	public fun height (Ljava/awt/Graphics2D;Ldev/caulis/core/NoticeLook;)I
 	public fun paint (Ljava/awt/Graphics2D;Ldev/caulis/core/NoticeLook;)V
 }
@@ -405,6 +420,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getOnScreenDisplay ()Ljava/lang/String;
 	public final fun getOnUserActivity ()Lkotlin/jvm/functions/Function0;
 	public final fun getOpenPopups ()Ljava/util/List;
+	public final fun getOsdHandler ()Lkotlin/jvm/functions/Function3;
 	public final fun getOverlay ()Ldev/caulis/core/Overlay;
 	public final fun getOverviewFill ()D
 	public final fun getPixelHeight ()I
@@ -534,6 +550,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun setNoticeStyle (Ldev/caulis/core/NoticeStyle;)V
 	public final fun setOnChange (Lkotlin/jvm/functions/Function0;)V
 	public final fun setOnUserActivity (Lkotlin/jvm/functions/Function0;)V
+	public final fun setOsdHandler (Lkotlin/jvm/functions/Function3;)V
 	public final fun setOverview (Z)V
 	public final fun setOverviewFill (D)V
 	public final fun setOverviewProgress (D)V
@@ -1023,6 +1040,14 @@ public final class dev/caulis/core/Notice {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/caulis/core/NoticeAction : java/lang/Enum {
+	public static final field CLOSE Ldev/caulis/core/NoticeAction;
+	public static final field COPY Ldev/caulis/core/NoticeAction;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/core/NoticeAction;
+	public static fun values ()[Ldev/caulis/core/NoticeAction;
+}
+
 public final class dev/caulis/core/NoticeColors {
 	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;)V
 	public final fun component1 ()Ldev/caulis/render/Color;
@@ -1057,11 +1082,13 @@ public final class dev/caulis/core/NoticeLook {
 }
 
 public abstract interface class dev/caulis/core/NoticePainter {
+	public fun actionAt (Ldev/caulis/core/NoticeLook;DD)Ldev/caulis/core/NoticeAction;
 	public fun height (Ljava/awt/Graphics2D;Ldev/caulis/core/NoticeLook;)I
 	public abstract fun paint (Ljava/awt/Graphics2D;Ldev/caulis/core/NoticeLook;)V
 }
 
 public final class dev/caulis/core/NoticePainter$DefaultImpls {
+	public static fun actionAt (Ldev/caulis/core/NoticePainter;Ldev/caulis/core/NoticeLook;DD)Ldev/caulis/core/NoticeAction;
 	public static fun height (Ldev/caulis/core/NoticePainter;Ljava/awt/Graphics2D;Ldev/caulis/core/NoticeLook;)I
 }
 
@@ -2356,6 +2383,97 @@ public final class dev/caulis/core/appearance/GSettingsAppearance : java/lang/Au
 	public final fun getGtkThemes ()Lkotlin/Pair;
 	public final fun setGtkThemes (Lkotlin/Pair;)V
 	public final fun write ()V
+}
+
+public final class dev/caulis/core/appearance/Palette {
+	public static final field Companion Ldev/caulis/core/appearance/Palette$Companion;
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/core/appearance/PaletteStyle;)V
+	public synthetic fun <init> (Ldev/caulis/render/Color;Ldev/caulis/core/appearance/PaletteStyle;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCode ()Ljava/lang/String;
+	public final fun getSeed ()Ldev/caulis/render/Color;
+	public final fun getStyle ()Ldev/caulis/core/appearance/PaletteStyle;
+	public fun hashCode ()I
+	public static final fun hexOf (Ldev/caulis/render/Color;)Ljava/lang/String;
+	public static final fun parse (Ljava/lang/String;)Ldev/caulis/core/appearance/Palette;
+	public final fun scheme (Z)Ldev/caulis/core/appearance/PaletteScheme;
+	public static final fun seedOf (Ljava/awt/image/BufferedImage;)Ldev/caulis/render/Color;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/appearance/Palette$Companion {
+	public final fun hexOf (Ldev/caulis/render/Color;)Ljava/lang/String;
+	public final fun parse (Ljava/lang/String;)Ldev/caulis/core/appearance/Palette;
+	public final fun seedOf (Ljava/awt/image/BufferedImage;)Ldev/caulis/render/Color;
+}
+
+public final class dev/caulis/core/appearance/PaletteScheme {
+	public fun <init> (ZLdev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;)V
+	public final fun component1 ()Z
+	public final fun component10 ()Ldev/caulis/render/Color;
+	public final fun component11 ()Ldev/caulis/render/Color;
+	public final fun component12 ()Ldev/caulis/render/Color;
+	public final fun component13 ()Ldev/caulis/render/Color;
+	public final fun component14 ()Ldev/caulis/render/Color;
+	public final fun component15 ()Ldev/caulis/render/Color;
+	public final fun component16 ()Ldev/caulis/render/Color;
+	public final fun component17 ()Ldev/caulis/render/Color;
+	public final fun component18 ()Ldev/caulis/render/Color;
+	public final fun component19 ()Ldev/caulis/render/Color;
+	public final fun component2 ()Ldev/caulis/render/Color;
+	public final fun component20 ()Ldev/caulis/render/Color;
+	public final fun component3 ()Ldev/caulis/render/Color;
+	public final fun component4 ()Ldev/caulis/render/Color;
+	public final fun component5 ()Ldev/caulis/render/Color;
+	public final fun component6 ()Ldev/caulis/render/Color;
+	public final fun component7 ()Ldev/caulis/render/Color;
+	public final fun component8 ()Ldev/caulis/render/Color;
+	public final fun component9 ()Ldev/caulis/render/Color;
+	public final fun copy (ZLdev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;)Ldev/caulis/core/appearance/PaletteScheme;
+	public static synthetic fun copy$default (Ldev/caulis/core/appearance/PaletteScheme;ZLdev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;ILjava/lang/Object;)Ldev/caulis/core/appearance/PaletteScheme;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDark ()Z
+	public final fun getError ()Ldev/caulis/render/Color;
+	public final fun getOnError ()Ldev/caulis/render/Color;
+	public final fun getOnPrimary ()Ldev/caulis/render/Color;
+	public final fun getOnPrimaryContainer ()Ldev/caulis/render/Color;
+	public final fun getOnSecondary ()Ldev/caulis/render/Color;
+	public final fun getOnSecondaryContainer ()Ldev/caulis/render/Color;
+	public final fun getOnSurface ()Ldev/caulis/render/Color;
+	public final fun getOnSurfaceVariant ()Ldev/caulis/render/Color;
+	public final fun getOnTertiary ()Ldev/caulis/render/Color;
+	public final fun getOutline ()Ldev/caulis/render/Color;
+	public final fun getOutlineVariant ()Ldev/caulis/render/Color;
+	public final fun getPrimary ()Ldev/caulis/render/Color;
+	public final fun getPrimaryContainer ()Ldev/caulis/render/Color;
+	public final fun getSecondary ()Ldev/caulis/render/Color;
+	public final fun getSecondaryContainer ()Ldev/caulis/render/Color;
+	public final fun getSurface ()Ldev/caulis/render/Color;
+	public final fun getSurfaceBright ()Ldev/caulis/render/Color;
+	public final fun getSurfaceContainer ()Ldev/caulis/render/Color;
+	public final fun getTertiary ()Ldev/caulis/render/Color;
+	public fun hashCode ()I
+	public final fun roles ()Ljava/util/Map;
+	public final fun toCss ()Ljava/lang/String;
+	public final fun toJson ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/appearance/PaletteStyle : java/lang/Enum {
+	public static final field Companion Ldev/caulis/core/appearance/PaletteStyle$Companion;
+	public static final field EXPRESSIVE Ldev/caulis/core/appearance/PaletteStyle;
+	public static final field MONOCHROME Ldev/caulis/core/appearance/PaletteStyle;
+	public static final field NEUTRAL Ldev/caulis/core/appearance/PaletteStyle;
+	public static final field TONAL_SPOT Ldev/caulis/core/appearance/PaletteStyle;
+	public static final field VIBRANT Ldev/caulis/core/appearance/PaletteStyle;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static final fun named (Ljava/lang/String;)Ldev/caulis/core/appearance/PaletteStyle;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/core/appearance/PaletteStyle;
+	public static fun values ()[Ldev/caulis/core/appearance/PaletteStyle;
+}
+
+public final class dev/caulis/core/appearance/PaletteStyle$Companion {
+	public final fun named (Ljava/lang/String;)Ldev/caulis/core/appearance/PaletteStyle;
 }
 
 public final class dev/caulis/core/appearance/PortalSettings : java/lang/AutoCloseable {

@@ -59,6 +59,7 @@ class ShortcutSymbolTest {
                 assertEquals("в", state.text(32))
                 assertEquals("d", keySymbolName(state.shortcutSymbol(32, keymap.layoutCount)))
                 assertEquals("Return", keySymbolName(state.shortcutSymbol(28, keymap.layoutCount)))
+                assertEquals("slash", keySymbolName(state.shortcutSymbol(53, keymap.layoutCount))) // "." on the Russian layout
                 state.setLocks(0, 0)
                 assertEquals("d", keySymbolName(state.shortcutSymbol(32, keymap.layoutCount)))
             }

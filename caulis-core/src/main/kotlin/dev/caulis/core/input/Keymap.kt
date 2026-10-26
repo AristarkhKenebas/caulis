@@ -142,25 +142,25 @@ class KeyboardState internal constructor(
     }
 
     /**
-     * The symbol a key means for shortcuts: what it gives now if that is Latin (or a key like
-     * F1, Return, the arrows), else what it gives in the first layout where it is Latin — so
-     * Super+D is Super+D on the Russian layout too (where the key types "в").
+     * The symbol a key means for shortcuts: for a printing key what it gives in the first layout
+     * where it is Latin, whatever layout is in use — so Super+D is Super+D on the Russian layout
+     * too (where the key types "в"), and Super+/ is Super+/ (where it types "."). Keys like F1,
+     * Return and the arrows are as they are.
      */
     fun shortcutSymbol(evdevCode: Int, layoutCount: Int): Int {
         val now = symbol(evdevCode)
-        if (isShortcutSymbol(now) || layoutCount <= 1) return now
+        // Keys that are the same in every layout (Return, F1, the arrows, XF86...) and a single layout: as they are.
+        if (layoutCount <= 1 || now >= 0xfe00 || now in 0..0x1f) return now
+        // A printing key: what it gives in the first layout where it is Latin (on "us,ru" the us
+        // one, also for punctuation: the key of "." on the Russian layout is "/" for shortcuts).
         val m = modifiers
         for (layout in 0 until layoutCount) {
-            if (layout == m.group) continue
             Xkb.xkb_state_update_mask(probe, m.depressed, m.latched, m.locked, 0, 0, layout)
             val sym = Xkb.xkb_state_key_get_one_sym(probe, evdevCode + 8)
-            if (isShortcutSymbol(sym)) return sym
+            if (sym in 0x20..0xff) return sym
         }
         return now
     }
-
-    // Latin-1 (letters, digits, punctuation) or a function key (0xfe00 and up: Return, F1, arrows, XF86...).
-    private fun isShortcutSymbol(sym: Int): Boolean = sym in 0x20..0xff || sym >= 0xfe00
 
     override fun close() {
         Xkb.xkb_state_unref(state)

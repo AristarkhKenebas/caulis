@@ -2294,9 +2294,17 @@ class Desktop(
      */
     @JvmOverloads
     fun showLevel(title: String, level: Double? = null, off: Boolean = false) {
+        val own = osdHandler
+        if (own != null && userCode("Your on-screen display", false) { own(title, level, off) }) return
         osd.show(Osd.Look(title, level, off))
         changed()
     }
+
+    /**
+     * An on-screen display of your own: told what [showLevel] would show ("Volume 45 %", the
+     * level 0..1 or null, muted); true takes it (the desktop's own pill is not shown).
+     */
+    var osdHandler: ((title: String, level: Double?, off: Boolean) -> Boolean)? = null
 
     /**
      * The on-screen display with a short list: [title] and [choices], the one at [chosen]
@@ -2374,14 +2382,22 @@ class Desktop(
             return true
         }
         if (pressedWidget != null) return false // (a drag in a widget goes on)
-        noticeBoard.copyAt(pointerX, pointerY)?.let { notice ->
-            val copy = copyText
-            if (copy != null) {
-                userCode("copyText", Unit) { copy(notice.fullText) }
-                noticeBoard.copied(notice)
-                noticeButton = button
-                return true
+        noticeBoard.actionAt(pointerX, pointerY)?.let { (notice, action) ->
+            noticeButton = button
+            when (action) {
+                NoticeAction.COPY -> copyText?.let { copy ->
+                    userCode("copyText", Unit) { copy(notice.fullText) }
+                    noticeBoard.copied(notice)
+                }
+                NoticeAction.CLOSE -> dismiss(notice)
             }
+            return true
+        }
+        // A warning or an error with buttons: a click elsewhere on it does nothing (it is not lost by chance).
+        noticeBoard.at(pointerX, pointerY)?.let { notice ->
+            noticeButton = button
+            if (notice.level == NoticeLevel.INFO || noticeBoard.style.painter !is CardNoticePainter) dismiss(notice)
+            return true
         }
         noticeBoard.at(pointerX, pointerY)?.let { notice ->
             dismiss(notice)
