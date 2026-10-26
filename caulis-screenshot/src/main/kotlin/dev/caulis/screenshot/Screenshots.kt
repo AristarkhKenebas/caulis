@@ -67,6 +67,9 @@ class Screenshots internal constructor(private val caulis: Caulis) {
     /** Called with each one taken: where it was saved (null: not saved). */
     var onTaken: (Path?) -> Unit = {}
 
+    /** How the chooser looks (its toolbar's colours, corners, font, words). */
+    var style = ScreenshotStyle()
+
     /** The kind the chooser starts with (the one used last). */
     var kind = ShotKind.REGION
 
@@ -127,7 +130,7 @@ class Screenshots internal constructor(private val caulis: Caulis) {
     /** Takes the focused window now (after [delaySeconds]); nothing if none has the focus. */
     fun takeFocused() = later {
         val window = caulis.focusedWindow
-        if (window == null) caulis.desktop.showLevel("No window has the focus") else takeWindow(window)
+        if (window == null) caulis.desktop.showLevel(style.word("No window has the focus")) else takeWindow(window)
     }
 
     // --- taking -----------------------------------------------------------------------------
@@ -152,7 +155,7 @@ class Screenshots internal constructor(private val caulis: Caulis) {
     internal fun later(take: () -> Unit) {
         val seconds = delaySeconds
         if (seconds <= 0) return take()
-        for (left in seconds downTo 1) caulis.after((seconds - left) * 1000L) { desktop.showLevel("Screenshot in $left") }
+        for (left in seconds downTo 1) caulis.after((seconds - left) * 1000L) { desktop.showLevel(style.word("Screenshot in %s").replace("%s", left.toString())) }
         caulis.after(seconds * 1000L + 150) { take() } // (the countdown gone from the screen first)
     }
 

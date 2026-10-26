@@ -125,7 +125,8 @@ class ComposeWidget @JvmOverloads constructor(
             val top = cy + (r.y - cy) * look.scale + look.dy
             return Rect(Math.round(left).toInt(), Math.round(top).toInt(), Math.round(r.width * look.scale).toInt(), Math.round(r.height * look.scale).toInt())
         }
-        canvas.imagePart(texture, moved(sceneRect), moved(area), look.alpha)
+        val shownPart = if (look.reveal >= 1f) area else Rect(area.x, area.y, area.width, Math.round(area.height * look.reveal.coerceIn(0f, 1f)).toInt().coerceAtLeast(1))
+        canvas.imagePart(texture, moved(sceneRect), moved(shownPart), look.alpha)
     }
 
     // Only scenes still shown keep frames coming (not one of a monitor gone, or not there now).
@@ -268,6 +269,16 @@ class ComposeWidget @JvmOverloads constructor(
         closed = true
         writes.dispose()
         for (name in parts.keys.toList()) drop(name)
+    }
+
+    /**
+     * Draws its scene once now, off screen, [width] x [height] units on [monitor]. The first
+     * time something is drawn is slow (classes loaded, fonts, pictures): done ahead, its first
+     * showing is as quick as the next ones. Its own scene is kept when that is its size.
+     */
+    fun prewarm(monitor: Monitor, width: Int, height: Int) {
+        val part = partFor(monitor, Rect(0, 0, width, height)) ?: return
+        render(part)
     }
 
     /**

@@ -4,6 +4,43 @@ public final class dev/caulis/screenshot/ScreenshotActions : dev/caulis/wm/confi
 	public fun parse (Ljava/lang/String;Ljava/lang/String;)Lkotlin/jvm/functions/Function2;
 }
 
+public final class dev/caulis/screenshot/ScreenshotStyle {
+	public fun <init> ()V
+	public fun <init> (Ldev/caulis/render/Color;)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;F)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;Ljava/util/Map;)V
+	public synthetic fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ldev/caulis/render/Color;
+	public final fun component2 ()Ldev/caulis/render/Color;
+	public final fun component3 ()Ldev/caulis/render/Color;
+	public final fun component4 ()Ldev/caulis/render/Color;
+	public final fun component5 ()Ldev/caulis/render/Color;
+	public final fun component6 ()Ldev/caulis/render/Color;
+	public final fun component7 ()F
+	public final fun component8 ()Ljava/lang/String;
+	public final fun component9 ()Ljava/util/Map;
+	public final fun copy (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;Ljava/util/Map;)Ldev/caulis/screenshot/ScreenshotStyle;
+	public static synthetic fun copy$default (Ldev/caulis/screenshot/ScreenshotStyle;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Ldev/caulis/screenshot/ScreenshotStyle;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAccent ()Ldev/caulis/render/Color;
+	public final fun getBackground ()Ldev/caulis/render/Color;
+	public final fun getBorder ()Ldev/caulis/render/Color;
+	public final fun getCornerRadius ()F
+	public final fun getDim ()Ldev/caulis/render/Color;
+	public final fun getFont ()Ljava/lang/String;
+	public final fun getLabels ()Ljava/util/Map;
+	public final fun getOnAccent ()Ldev/caulis/render/Color;
+	public final fun getText ()Ldev/caulis/render/Color;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/caulis/screenshot/Screenshots {
 	public static final field Companion Ldev/caulis/screenshot/Screenshots$Companion;
 	public final fun choose ()V
@@ -23,6 +60,7 @@ public final class dev/caulis/screenshot/Screenshots {
 	public final fun getSharpBackground ()Ldev/caulis/render/Color;
 	public final fun getSharpCornerRadius ()F
 	public final fun getSharpWindows ()Z
+	public final fun getStyle ()Ldev/caulis/screenshot/ScreenshotStyle;
 	public final fun getThen ()Ljava/lang/String;
 	public final fun keys (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
 	public static synthetic fun keys$default (Ldev/caulis/screenshot/Screenshots;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
@@ -41,6 +79,7 @@ public final class dev/caulis/screenshot/Screenshots {
 	public final fun setSharpBackground (Ldev/caulis/render/Color;)V
 	public final fun setSharpCornerRadius (F)V
 	public final fun setSharpWindows (Z)V
+	public final fun setStyle (Ldev/caulis/screenshot/ScreenshotStyle;)V
 	public final fun setThen (Ljava/lang/String;)V
 	public final fun takeFocused ()V
 	public final fun takeMonitor ()V

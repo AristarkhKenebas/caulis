@@ -76,13 +76,13 @@ internal class ScreenshotOverlay(
                     canvas.fill(area, 0f, 0f, 0f, DIM)
                 } else {
                     dimAround(canvas, area, part)
-                    canvas.frame(grow(part, 1), 1, 1f, 1f, 1f, 0.95f)
+                    shots.style.accent.let { a -> canvas.frame(grow(part, 2), 2, a.red, a.green, a.blue, 0.95f) }
                     if (drag == Drag.NONE || drag == Drag.RESIZE) handles(canvas, part)
                     val text = picture.toPixels(part).let { "${it.width} × ${it.height}" }
                     val (w, h) = sizeLabel.size(text)
                     val below = part.bottom + 8
                     val labelY = if (below + h <= area.bottom) below else (part.y - h - 8).coerceAtLeast(area.y)
-                    canvas.image(sizeLabel.texture(text, monitor.scale), Rect(part.x, labelY, w, h))
+                    canvas.image(sizeLabel.texture(text, monitor.scale, shots.style), Rect(part.x, labelY, w, h))
                 }
             }
             ShotKind.WINDOW -> {
@@ -91,15 +91,15 @@ internal class ScreenshotOverlay(
                     canvas.fill(area, 0f, 0f, 0f, DIM)
                 } else {
                     dimAround(canvas, area, shown)
-                    canvas.frame(shown, 3, ACCENT[0], ACCENT[1], ACCENT[2], 0.9f)
+                    shots.style.accent.let { a -> canvas.frame(shown, 3, a.red, a.green, a.blue, 0.9f) }
                 }
             }
             ShotKind.SCREEN -> {
-                if (monitor === screen) canvas.frame(area, 4, ACCENT[0], ACCENT[1], ACCENT[2], 0.9f) else canvas.fill(area, 0f, 0f, 0f, DIM)
+                if (monitor === screen) shots.style.accent.let { a -> canvas.frame(area, 4, a.red, a.green, a.blue, 0.9f) } else canvas.fill(area, 0f, 0f, 0f, DIM)
             }
         }
         if (monitor === home) {
-            canvas.image(toolbar.texture(Toolbar.Look(kind, pointer, delay, hovered, monitor.scale)), toolbarRect(), radius = 20f)
+            canvas.image(toolbar.texture(Toolbar.Look(kind, pointer, delay, hovered, monitor.scale, shots.style)), toolbarRect(), radius = shots.style.cornerRadius.coerceAtMost(toolbar.height / 2f))
         }
     }
 
@@ -272,7 +272,7 @@ internal class ScreenshotOverlay(
         shots.delaySeconds = delay
         when (what) {
             ShotKind.REGION -> {
-                val part = region ?: return desktop.showLevel("Drag to choose a part first")
+                val part = region ?: return desktop.showLevel(shots.style.word("Drag to choose a part first"))
                 val monitor = regionOn
                 shots.lastRegion[monitor.name] = part
                 // Windows drawn smaller than they are (an overview): put together from them, sharp.
@@ -286,7 +286,7 @@ internal class ScreenshotOverlay(
                 }
             }
             ShotKind.WINDOW -> {
-                val chosen = window ?: return desktop.showLevel("Point at a window first")
+                val chosen = window ?: return desktop.showLevel(shots.style.word("Point at a window first"))
                 desktop.closeOverlay()
                 shots.later { if (chosen in desktop.allWindows) shots.takeWindow(chosen) }
             }

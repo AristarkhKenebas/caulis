@@ -204,7 +204,7 @@ class DataDeviceManager(display: Display, private val seat: Seat) {
 interface ClipboardData {
     val mimeTypes: List<String>
 
-    /** Writes the data as [mimeType] to [fd], then closes it (it may finish later). */
+    /** Writes the data as [mimeType] to [fd], then closes it (it may finish later, on a thread): [fd] is its own from then on. */
     fun send(mimeType: String, fd: Fd)
 
     /** Something else was put on the clipboard. */
@@ -278,14 +278,14 @@ class BytesOnClipboard(private val formats: Map<String, ByteArray>) : ClipboardD
 fun readClipboard(data: ClipboardData, mimeType: String, maxBytes: Int = 32 shl 20, done: (ByteArray?) -> Unit) {
     val (readEnd, writeEnd) = Fd.pipe()
     try {
+        // (send takes the end to write: it closes it when written — a program's copy went to the
+        // program, ours the compositor's own data writes on a thread of its own.)
         data.send(mimeType, writeEnd)
     } catch (e: Exception) {
         readEnd.close()
-        writeEnd.close()
+        runCatching { writeEnd.close() }
         return done(null)
     }
-    // (The program has its own copy of the end to write: ours closes, so the read ends with it.)
-    writeEnd.close()
     val reader = Thread({
         val out = java.io.ByteArrayOutputStream()
         var tooBig = false

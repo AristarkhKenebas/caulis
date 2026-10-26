@@ -31,7 +31,7 @@ internal enum class Button(val width: Int) {
 internal class Toolbar(private val renderer: Renderer) : AutoCloseable {
 
     /** What it shows. */
-    data class Look(val kind: ShotKind, val pointer: Boolean, val delay: Int, val hovered: Button?, val scale: Double)
+    data class Look(val kind: ShotKind, val pointer: Boolean, val delay: Int, val hovered: Button?, val scale: Double, val style: ScreenshotStyle)
 
     private var made: Pair<Look, GpuTexture>? = null
 
@@ -83,17 +83,20 @@ internal class Toolbar(private val renderer: Renderer) : AutoCloseable {
     }
 
     private fun paint(g: Graphics2D, look: Look) {
-        g.color = Color(28, 30, 36, 236)
-        g.fill(RoundRectangle2D.Double(0.0, 0.0, width.toDouble(), height.toDouble(), 20.0, 20.0))
-        g.color = Color(255, 255, 255, 28)
+        val st = look.style
+        val r = (2.0 * st.cornerRadius).coerceAtMost(height.toDouble())
+        g.color = st.background.awt()
+        g.fill(RoundRectangle2D.Double(0.0, 0.0, width.toDouble(), height.toDouble(), r, r))
+        g.color = st.border.awt()
         g.stroke = BasicStroke(1f)
-        g.draw(RoundRectangle2D.Double(0.5, 0.5, width - 1.0, height - 1.0, 20.0, 20.0))
+        g.draw(RoundRectangle2D.Double(0.5, 0.5, width - 1.0, height - 1.0, r, r))
+        val inner = (r - 8).coerceAtLeast(10.0)
         for ((button, range) in places) {
             val x = range.first.toDouble()
             val w = button.width.toDouble()
             if (button.gapBefore) {
-                g.color = Color(255, 255, 255, 40)
-                g.fill(java.awt.geom.Rectangle2D.Double(x - GAP / 2.0 - 0.5, 14.0, 1.0, height - 28.0))
+                g.color = st.text.awt(0.16f)
+                g.fill(java.awt.geom.Rectangle2D.Double(x - GAP / 2.0 - 0.5, 16.0, 1.0, height - 32.0))
             }
             val on = when (button) {
                 Button.REGION -> look.kind == ShotKind.REGION
@@ -104,28 +107,28 @@ internal class Toolbar(private val renderer: Renderer) : AutoCloseable {
                 else -> false
             }
             if (button == Button.TAKE) {
-                g.color = if (look.hovered == button) Color(88, 156, 255) else Color(61, 139, 253)
-                g.fill(RoundRectangle2D.Double(x + 4, 14.0, w - 8, height - 28.0, 12.0, 12.0))
-                g.color = Color.WHITE
-                g.font = Font(Font.SANS_SERIF, Font.BOLD, 13)
-                centred(g, "Capture", x + w / 2, height / 2.0 + 5)
+                g.color = if (look.hovered == button) st.accent.awt(0.85f) else st.accent.awt()
+                g.fill(RoundRectangle2D.Double(x + 4, 13.0, w - 8, height - 26.0, inner, inner))
+                g.color = st.onAccent.awt()
+                g.font = Font(st.font, Font.BOLD, 13)
+                centred(g, st.word("Capture"), x + w / 2, height / 2.0 + 5)
                 continue
             }
             if (on || look.hovered == button) {
-                g.color = Color(255, 255, 255, if (on) 44 else 20)
-                g.fill(RoundRectangle2D.Double(x + 3, 7.0, w - 6, height - 14.0, 12.0, 12.0))
+                g.color = if (on) st.accent.awt(0.22f) else st.text.awt(0.08f)
+                g.fill(RoundRectangle2D.Double(x + 3, 7.0, w - 6, height - 14.0, inner, inner))
             }
-            g.color = Color(240, 242, 246)
-            g.stroke = BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+            g.color = if (on) st.accent.awt() else st.text.awt()
+            g.stroke = BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
             icon(g, button, x + w / 2, if (button == Button.CLOSE) height / 2.0 else 25.0, look)
-            g.font = Font(Font.SANS_SERIF, Font.PLAIN, 11)
-            g.color = Color(220, 224, 230)
+            g.font = Font(st.font, Font.PLAIN, 11)
+            g.color = if (on) st.accent.awt() else st.dim.awt()
             val label = when (button) {
-                Button.REGION -> "Area"
-                Button.WINDOW -> "Window"
-                Button.SCREEN -> "Screen"
-                Button.POINTER -> "Pointer"
-                Button.TIMER -> if (look.delay > 0) "${look.delay} s" else "Timer"
+                Button.REGION -> st.word("Area")
+                Button.WINDOW -> st.word("Window")
+                Button.SCREEN -> st.word("Screen")
+                Button.POINTER -> st.word("Pointer")
+                Button.TIMER -> if (look.delay > 0) st.word("%s s").replace("%s", look.delay.toString()) else st.word("Timer")
                 else -> null
             }
             label?.let { centred(g, it, x + w / 2, 50.0) }
@@ -195,7 +198,7 @@ internal class Label(private val renderer: Renderer) : AutoCloseable {
     /** Its size in units for [text]. */
     fun size(text: String): Pair<Int, Int> = (text.length * 7 + 20) to 24
 
-    fun texture(text: String, scale: Double): GpuTexture {
+    fun texture(text: String, scale: Double, style: ScreenshotStyle): GpuTexture {
         made?.let { (shown, s, texture) -> if (shown == text && s == scale) return texture else texture.close() }
         val (width, height) = size(text)
         val w = Math.round(width * scale).toInt()
@@ -206,10 +209,10 @@ internal class Label(private val renderer: Renderer) : AutoCloseable {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
             g.scale(scale, scale)
-            g.color = Color(28, 30, 36, 220)
-            g.fill(RoundRectangle2D.Double(0.0, 0.0, width.toDouble(), height.toDouble(), 12.0, 12.0))
-            g.color = Color(240, 242, 246)
-            g.font = Font(Font.SANS_SERIF, Font.PLAIN, 12)
+            g.color = style.background.awt()
+            g.fill(RoundRectangle2D.Double(0.0, 0.0, width.toDouble(), height.toDouble(), height.toDouble(), height.toDouble()))
+            g.color = style.text.awt()
+            g.font = Font(style.font, Font.PLAIN, 12)
             g.drawString(text, ((width - g.fontMetrics.stringWidth(text)) / 2.0).toFloat(), 16.5f)
         } finally {
             g.dispose()
