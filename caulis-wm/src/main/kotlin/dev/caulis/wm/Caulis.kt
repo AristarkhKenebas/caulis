@@ -935,6 +935,28 @@ class Caulis {
     @JvmSynthetic
     fun onPointerMotion(handler: Caulis.(dx: Double, dy: Double) -> Boolean): AutoCloseable = listenTo(motionHandlers, handler)
 
+    /**
+     * For tests (headless, CAULIS_MODE=headless): input as if it came from a mouse — the
+     * pointer to ([x], [y]) on the desktop, then a click of [button] (272 left, 273 right, 274
+     * middle; 0: none) — through everything real input goes through: the hooks
+     * ([onPointerButton]), the bindings, the windows and widgets.
+     */
+    fun simulatePointer(x: Double, y: Double, button: Int = 0) {
+        val running = checkNotNull(running) { "Caulis is not running yet" }
+        val time = (System.nanoTime() / 1_000_000).toInt()
+        running.desktop.pointerMoved(time, x, y)
+        if (button != 0) {
+            running.pointerButton(time, button, true)
+            running.pointerButton(time + 20, button, false)
+        }
+    }
+
+    /** For tests: the wheel turned [notches] (positive: down), as from a mouse (see [simulatePointer]). */
+    fun simulateScroll(notches: Int) {
+        val running = checkNotNull(running) { "Caulis is not running yet" }
+        running.pointerAxis((System.nanoTime() / 1_000_000).toInt(), true, 15.0 * notches, 120 * notches)
+    }
+
     /** A mouse button (272 left, 273 right, 274 middle): true takes it. Not on a locked screen. */
     @JvmSynthetic
     fun onPointerButton(handler: Caulis.(button: Int, pressed: Boolean) -> Boolean): AutoCloseable = listenTo(buttonHandlers, handler)

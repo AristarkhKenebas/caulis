@@ -259,6 +259,9 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setWorkspaceSwipeFingers (I)V
 	public final fun setXwayland (Z)V
 	public final fun sharpJavaScaling (Z)Ldev/caulis/wm/Caulis;
+	public final fun simulatePointer (DDI)V
+	public static synthetic fun simulatePointer$default (Ldev/caulis/wm/Caulis;DDIILjava/lang/Object;)V
+	public final fun simulateScroll (I)V
 	public final fun spawn (Ljava/util/List;)Ljava/lang/Process;
 	public final fun spawn (Ljava/util/List;Ljava/nio/file/Path;)Ljava/lang/Process;
 	public static synthetic fun spawn$default (Ldev/caulis/wm/Caulis;Ljava/util/List;Ljava/nio/file/Path;ILjava/lang/Object;)Ljava/lang/Process;
