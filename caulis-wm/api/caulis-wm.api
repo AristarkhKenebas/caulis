@@ -171,6 +171,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun panelRule (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun panelRule (Lkotlin/jvm/functions/Function1;)V
 	public final fun post (Lkotlin/jvm/functions/Function1;)V
+	public final fun programEnvironment ()Ljava/util/Map;
 	public final fun quit ()V
 	public final fun rule (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun rule (Lkotlin/jvm/functions/Function1;)V

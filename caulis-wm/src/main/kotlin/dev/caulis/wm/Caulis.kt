@@ -1220,6 +1220,12 @@ class Caulis {
     fun openTerminal() = launch(terminal)
 
     /**
+     * The environment programs started inside get — WAYLAND_DISPLAY, DISPLAY, XDG_CURRENT_DESKTOP,
+     * the cursor and your [environment] — for programs you start some other way.
+     */
+    fun programEnvironment(): Map<String, String> = checkNotNull(running) { "Caulis is not running yet" }.programEnvironment()
+
+    /**
      * The session bus (D-Bus), on the compositor's thread: offer objects of your own to other
      * programs (`export`, `requestName`, `emitSignal`) or call theirs. Connected when first
      * asked for, shared, closed when the compositor ends; null if there is none.

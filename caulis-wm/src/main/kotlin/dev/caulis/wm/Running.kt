@@ -335,25 +335,31 @@ internal class Running(
     private var ipc: IpcServer? = null
 
     // Starts programs: Wayland first, X11 when that fails.
+    // What every program started inside gets in its environment (on top of the compositor's own).
+    private fun fillEnvironment(env: MutableMap<String, String>) {
+        for ((name, value) in config.environment) if (value == null) env.remove(name) else env[name] = value
+        env["WAYLAND_DISPLAY"] = socket
+        // A good activation token: its first window may take the focus.
+        env["XDG_ACTIVATION_TOKEN"] = activation.issue()
+        ipc?.let { env[dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE] = it.path.toString() } ?: env.remove(dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE)
+        env["XDG_CURRENT_DESKTOP"] = config.desktopName
+        // X11 programs (started now or later by these) reach Xwayland here.
+        xwayland?.let { env["DISPLAY"] = it.displayName } ?: env.remove("DISPLAY")
+        // Programs that draw their own cursor use the same theme and size.
+        val theme = desktop.cursorTheme
+        env["XCURSOR_THEME"] = theme.name
+        // On a scaled screen X11 programs need the cursor size in pixels and Wayland ones in
+        // units: no XCURSOR_SIZE then (it would win over both); X11 programs get it from the
+        // X resources, Wayland ones from the compositor (cursor-shape) or their own default.
+        if (desktop.scale == 1.0) env["XCURSOR_SIZE"] = theme.size.toString() else env.remove("XCURSOR_SIZE")
+        cursorFolder?.let { folder -> env["XCURSOR_PATH"] = (listOf(folder) + CursorTheme.searchPath()).joinToString(":") }
+    }
+
+    /** The environment programs started inside get (WAYLAND_DISPLAY, DISPLAY, the cursor, ...). */
+    fun programEnvironment(): Map<String, String> = HashMap(System.getenv()).also(::fillEnvironment)
+
     private val launcher = Launcher(
-        environment = { env ->
-            for ((name, value) in config.environment) if (value == null) env.remove(name) else env[name] = value
-            env["WAYLAND_DISPLAY"] = socket
-            // A good activation token: its first window may take the focus.
-            env["XDG_ACTIVATION_TOKEN"] = activation.issue()
-            ipc?.let { env[dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE] = it.path.toString() } ?: env.remove(dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE)
-            env["XDG_CURRENT_DESKTOP"] = config.desktopName
-            // X11 programs (started now or later by these) reach Xwayland here.
-            xwayland?.let { env["DISPLAY"] = it.displayName } ?: env.remove("DISPLAY")
-            // Programs that draw their own cursor use the same theme and size.
-            val theme = desktop.cursorTheme
-            env["XCURSOR_THEME"] = theme.name
-            // On a scaled screen X11 programs need the cursor size in pixels and Wayland ones in
-            // units: no XCURSOR_SIZE then (it would win over both); X11 programs get it from the
-            // X resources, Wayland ones from the compositor (cursor-shape) or their own default.
-            if (desktop.scale == 1.0) env["XCURSOR_SIZE"] = theme.size.toString() else env.remove("XCURSOR_SIZE")
-            cursorFolder?.let { folder -> env["XCURSOR_PATH"] = (listOf(folder) + CursorTheme.searchPath()).joinToString(":") }
-        },
+        environment = ::fillEnvironment,
         x11Available = { xwayland != null },
         post = loop::post,
         settings = { Launcher.Settings(config.waylandFirst, config.x11Programs.toSet(), desktop.largestScale, config.xwayland && config.sharpJavaScaling) },
