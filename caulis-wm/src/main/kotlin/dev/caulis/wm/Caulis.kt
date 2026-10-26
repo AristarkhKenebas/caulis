@@ -989,6 +989,12 @@ class Caulis {
         }
     }
 
+    /** For tests: the mouse moved by [dx], [dy] (as a mouse moves it: the configuration's onPointerMotion sees it). */
+    fun simulateMotion(dx: Double, dy: Double) {
+        val running = checkNotNull(running) { "Caulis is not running yet" }
+        running.pointerMovedBy((System.nanoTime() / 1_000_000).toInt(), dx, dy, dx, dy)
+    }
+
     /** For tests: a mouse [button] (272 left) pressed or let go where the pointer is (see [simulatePointer]). */
     fun simulateButton(button: Int, pressed: Boolean) {
         val running = checkNotNull(running) { "Caulis is not running yet" }
