@@ -499,7 +499,10 @@ internal class NoticeBoard(
 
     private var hovered: Notice? = null
 
-    private val fadeNanos: Long get() = (style.fadeMillis * 1_000_000).coerceAtLeast(1)
+    /** The fade's settings, given its usual time ([NoticeStyle.fadeMillis]); the desktop's "fadeNotices" animation. */
+    var fade: (Long) -> ResolvedAnimation = { ResolvedAnimation("fadeNotices", true, it, Curve.SMOOTH, null) }
+
+    private val fadeNanos: Long get() = (fade(style.fadeMillis).effectiveMillis * 1_000_000).coerceAtLeast(1)
 
     /** True while the pointer is on a notice. */
     val hovering: Boolean get() = hovered != null
@@ -629,10 +632,11 @@ internal class NoticeBoard(
         places[monitor.name] = placed
         scales[monitor.name] = monitor.scale
         val now = System.nanoTime()
+        val curve = fade(style.fadeMillis).curve
         return placed.map { (notice, rect) ->
             val appearing = ((now - notice.shownSince).toDouble() / fadeNanos).coerceIn(0.0, 1.0)
             val leaving = notice.leavingSince?.let { 1 - ((now - it).toDouble() / fadeNanos).coerceIn(0.0, 1.0) } ?: 1.0
-            val alpha = minOf(appearing, leaving).let { t -> t * t * (3 - 2 * t) }.toFloat()
+            val alpha = minOf(appearing, leaving).let { t -> if (t >= 1.0) 1.0 else curveAt(curve, t) }.toFloat().coerceIn(0f, 1f)
             DrawItem.Image(NoticeKey(notice, monitor.name), texture(notice, monitor, rect), rect, alpha = alpha)
         }
     }
@@ -752,4 +756,11 @@ internal class NoticeBoard(
     private companion object {
         const val MAX_KEPT = 50
     }
+}
+
+// [curve] at [t]; a curve that fails (the user's own) is a straight line.
+private fun curveAt(curve: Curve, t: Double): Double = try {
+    curve.at(t)
+} catch (e: Exception) {
+    t
 }

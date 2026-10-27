@@ -21,9 +21,10 @@ internal class GlesBlur(private val draw: (program: Program, rect: Rect, targetW
 
     /**
      * Blurs what [target] shows around [area] and draws the result over [area] in it,
-     * clipped to [area] with rounded corners. Leaves [target] bound, without scissor.
+     * clipped to [area] with rounded corners — and to [clip], if given (nothing is written
+     * outside it). Leaves [target] bound, without scissor.
      */
-    fun blur(target: GlesFramebuffer, area: Rect, cornerRadius: Float, size: Int, passes: Int, tone: BlurTone = BlurTone.NONE) {
+    fun blur(target: GlesFramebuffer, area: Rect, cornerRadius: Float, size: Int, passes: Int, tone: BlurTone = BlurTone.NONE, clip: Rect? = null) {
         val count = passes.coerceIn(1, MAX_BLUR_PASSES)
         val reach = blurReach(size, count)
         val bounds = Rect(0, 0, target.width, target.height)
@@ -61,8 +62,12 @@ internal class GlesBlur(private val draw: (program: Program, rect: Rect, targetW
             sourceHeight = level.height
             sourcePart = part
         }
-        // Last step up, straight into the target, only over the area.
+        // Last step up, straight into the target, only over the area (and inside the clip).
         target.bind()
+        if (clip != null) {
+            Gles.glEnable(Gles.GL_SCISSOR_TEST())
+            Gles.glScissor(clip.x, clip.y, clip.width, clip.height)
+        }
         Gles.glEnable(Gles.GL_BLEND())
         pass(up, sourceTexture, sourceWidth, sourceHeight, sourcePart, size)
         // Which part of the level-0 picture the area is.
@@ -78,6 +83,7 @@ internal class GlesBlur(private val draw: (program: Program, rect: Rect, targetW
         Gles.glUniform1f(up.uniform("radius"), cornerRadius)
         Gles.glUniform4f(up.uniform("tone"), tone.noise, tone.contrast, tone.brightness, tone.vibrancy)
         draw(up, area, target.width, target.height)
+        Gles.glDisable(Gles.GL_SCISSOR_TEST())
     }
 
     // Sets up [program] to read [part] of a texture of the given size.
@@ -99,7 +105,10 @@ internal class GlesBlur(private val draw: (program: Program, rect: Rect, targetW
         Gles.glUniform1f(program.uniform("offset"), size.toFloat())
     }
 
-    // Enough levels, each big enough for the target shrunk that many times.
+    // Enough levels, each big enough for the target shrunk that many times. A level only
+    // grows (to the larger of what it was and what is needed, across and down): targets of
+    // other shapes in turn — a monitor turned sideways next to a wide one — made it anew
+    // every frame.
     private fun prepareLevels(target: GlesFramebuffer, count: Int) {
         for (i in 0 until count) {
             val width = ceilDiv(target.width, 1 shl (i + 1)) + 1
@@ -107,7 +116,7 @@ internal class GlesBlur(private val draw: (program: Program, rect: Rect, targetW
             val existing = levels.getOrNull(i)
             if (existing != null && existing.width >= width && existing.height >= height) continue
             existing?.close()
-            val level = GlesTarget(width, height)
+            val level = GlesTarget(maxOf(width, existing?.width ?: 0), maxOf(height, existing?.height ?: 0))
             if (i < levels.size) levels[i] = level else levels += level
         }
     }

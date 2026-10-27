@@ -74,13 +74,23 @@ kotlin {
 tasks.withType<JavaCompile>().configureEach { options.release = 26 }
 
 dependencies {
-    implementation("io.github.aristarkhkenebas:caulis-wm:0.2.0")
+    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.2")
 }
 
 application {
     mainClass = "MainKt"
     // Caulis talks to C libraries (graphics, input) and needs this permission.
     applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED", "-XX:+UseZGC", "--sun-misc-unsafe-memory-access=allow")
+}
+
+// Only while developing with ./gradlew run: a change to Main.kt is compiled right inside the
+// running compositor, taken on in about a second (step "Change it while it runs").
+val development by configurations.creating
+dependencies {
+    development("io.github.aristarkhkenebas:caulis-reload:0.1.2")
+}
+tasks.named<JavaExec>("run") {
+    classpath += development
 }
 ```
 
@@ -130,11 +140,14 @@ old configuration simply keeps running and a red notice says what is wrong and o
 line, e.g. `Main.kt:15: Unresolved reference 'lyaout'`. Fix it and save again; the notice
 goes by itself.
 
-- A few settings only change after a restart (the notice names them): `mode`, `xwayland`,
-  `workspaceMode`, `nestedMonitors`, `keyboardLayouts`, `keyboardOptions`, `title`, ...
+- A few settings only change after a restart (the notice names them): `backend`, `xwayland`,
+  `workspaceMode`, `nestedMonitors`, `hardwareCursor`, `directScanout`, `ipc`, `configName`,
+  `title`, ... Keyboard layouts and options, Num Lock and key repeat change at once.
 - A layout that remembers your arrangement (`BinaryTree`, `ManualTiling`, `ScrollingColumns`,
   `Canvas`) keeps it; a new kind of layout replaces it.
-- `onStart` runs only once; `onReload { }` runs after each reload.
+- `onStart` runs only once; `onReload { }` runs after each reload. Start programs (a bar,
+  a wallpaper, `swayidle`) in `onStart`: the rest of `main` runs again on every save, and for
+  `--check-config` too.
 - Threads your own code started keep running; `exitProcess` in `main` would end everything.
 - Your code is compiled right inside the running compositor (the module `caulis-reload`,
   which the starter project adds to `./gradlew run` only), and only what changed: well under
@@ -196,7 +209,7 @@ Without writing anything, you already have the usual keys. Each has a name (left
 | `rotate` / `balance` / `columnWidth` | Super+R / Super+B / Super+W | tiling: rotate, even out, next column width |
 | `splitBeside` / `splitBelow` | Super+S / Super+Shift+S | manual tiling: the next window beside / below |
 | `windowDrag` | Super + drag | move (left button) or resize (right button) a window |
-| `quit` | Ctrl+Alt+Backspace | quit — also on a locked screen, so a broken locker never shuts you out |
+| `quit` | Ctrl+Alt+Backspace | quit — not on a locked screen, unless `quitWhileLocked = true` |
 | `consoles` | Ctrl+Alt + F1 … F12 | text consoles (on the real screen) — also on a locked screen |
 
 Change any of them, or turn it off with `null`, in `keys { }`:
@@ -207,8 +220,13 @@ keys {
     dumpState = null          // off
     workspace = "Alt"         // Alt+1 … 9; for groups you give only the modifiers
     quit = "Ctrl+Alt+Delete"  // or null: no key quits
+    quitWhileLocked = false   // the default: on a locked screen the quit key does nothing
 }
 ```
+
+On a locked screen the quit key does nothing by default: anyone at the keyboard could quit
+the compositor (and with a compositor started from a text console, land in your logged-in
+shell). `quitWhileLocked = true` lets it work there too.
 
 Write keys however you like — case, spaces and order do not matter: `"Super+Shift+Q"`,
 `"super shift q"`, `"wIn+Q"`, `"Mod4+Q"`, or in parts: `combo("super", "shift", "q")`. Media
@@ -273,8 +291,8 @@ You can change it while running, e.g. on a key:
 bind("Super+T") { layout = if (layout === Floating) Dwindle() else Floating }
 ```
 
-Windows glide to their new places instead of jumping (`animationMillis` sets how long; 0
-turns it off; see *Animations* for more).
+Windows jump to their new places; with animations on (`animations { enabled = true }`)
+they glide there instead (see *Animations*).
 
 
 Gaps are the space between tiled windows (`inner`) and between them and the screen's edges
@@ -432,6 +450,47 @@ The key shows or hides it; the first press starts the program. By default a wind
 to a scratchpad when its app id is the scratchpad's name — that is why the terminal above is
 started with `--app-id terminal`.
 
+### Special workspaces (Hyprland's `special`)
+
+A scratchpad is one app summoned by its key. A *special workspace* is a whole workspace
+layer: any window can be moved in and out, its windows are tiled with your usual layout,
+and it appears over the workspace on the focused monitor — what is behind it dimmed (and
+blurred, if you like). It is made the first time it is named; "special" is the one without
+a name. It stays independent of the normal workspaces: switching them leaves it where it is.
+
+```kotlin
+bind("Super+S") { toggleSpecialWorkspace() }                      // Hyprland: togglespecialworkspace
+bind("Super+Shift+S") { moveToSpecialWorkspace() }                // movetoworkspace special
+bind("Super+M") { toggleSpecialWorkspace("music") }
+bind("Super+Ctrl+S") { moveOutOfSpecialWorkspace() }
+rule { appId("spotify"); specialWorkspace = "music" }             // opens there, unseen until shown
+specialWorkspaces = SpecialWorkspaces(dim = 0.5f, blur = Blur(6, 3), gap = 60)
+```
+
+The same as actions (keys in config.json/Lua, `caulisctl`): `special-workspace toggle|show|hide [name]`,
+`move-to-special [name] [silent]`, `move-out-of-special`, and Hyprland's
+`move-to-workspace special:music [silent]`. In config.json: `"specialWorkspaces": { "dim": 0.5,
+"blur": { "size": 6 }, "gap": 60 }` and a rule's `"specialWorkspace": "music"`.
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `dim` | 0.4 | how much darker everything behind a shown one is |
+| `blur` | null | what is behind it blurred (a `Blur`) |
+| `gap` | 40 | space between it and the monitor's edges (on top of the layout's gaps) |
+| `size` | 1.0 | how much of the monitor it takes (0.2 to 1), in the middle |
+| `animation` | `scratchpads` | the animation (by name) its windows come and go with — off unless animations are on |
+| `hideWhenEmpty` | true | it hides when its last window closes or leaves |
+| `newWindowsJoin` | true | windows opening while it is shown go into it |
+| `hideOnLock` | true | shown ones hide when the screen locks (they are behind the lock either way) |
+| `clickOutsideHides` | true | a click on the dimmed area hides it |
+| `layout` | null | its own layout; null: the usual one (`layout`) |
+
+Showing one gives it the keyboard (its newest window); hiding it gives the keyboard back to
+the window that had it. One special workspace shows on a monitor at a time (showing another
+hides it), on the monitor with the focus. A window of a hidden one that gets the focus (from
+a task bar) shows it. Windows waiting in a hidden one are counted in `allWindows`, not on any
+workspace.
+
 ## 8. Panels, docks, wallpapers, launchers
 
 Programs made for that (they use the *layer shell*) work as they are — Waybar, eww, swaybg,
@@ -445,10 +504,12 @@ onStart {
 bind("Super+D") { launch("fuzzel") }
 ```
 
+(Or with `autostart { app("waybar") }`: one after another, restarted after a crash if you
+like — see step 31.)
+
 Docks and taskbars (Waybar's taskbar, nwg-dock, sfwbar, or your own) see every window and
-can activate, minimize, maximize and close it; a window minimized from a dock flies into
-its icon there and comes back out of it. How fast windows move, minimize and zoom is
-`animationMillis = 220` (0 turns the animations off).
+can activate, minimize, maximize and close it; with animations on, a window minimized from
+a dock flies into its icon there and comes back out of it (see *Animations*).
 
 A bar that reserves space (as Waybar does) keeps it free: tiled and maximized windows stay
 next to it, never under it. `desktop.usableArea` is what is left for windows. A launcher gets
@@ -516,7 +577,7 @@ notice with its line in your file (`line 7: 'glow' undeclared`), gone as soon as
 ```kotlin
 configName = "my-compositor"     // your folder: ~/.config/my-compositor (or $XDG_CONFIG_HOME/...)
 background = Background.shader(WallpaperShader.file(file("aurora.glsl")))
-animations = Animations(minimize = WindowAnimation { m ->
+animations = Animations(enabled = true, minimize = WindowAnimation { m ->
     WindowFrame(m.from.union(m.to), shader = WindowShader.file(file("melt.glsl")), shaderFrom = m.from, shaderTo = m.to, progress = m.progress)
 })
 background = Background.image(file("walls/sea.jpg"))   // pictures too: saved again, shown anew
@@ -597,6 +658,77 @@ effects = Effects(
 | `Paint.rainbow(seconds = 6.0)` | a rainbow going round |
 | `Paint.shader("vec4 paint(vec2 at) { ... }")` | your own: `at` is 0..1 in the window, `time` and `size` are there |
 | `Paints.file(file("border.glsl"))` | your own from a file next to your configuration, used again when saved |
+| `Paint.parse("rgba(33ccffee) rgba(00ff99ee) 45deg")` | Hyprland's way of writing it (also `rgb(…)`, `0xaarrggbb`, `#rrggbb`) |
+
+Like Hyprland's `col.active_border`, `col.inactive_border`, `col.urgent` and its group
+borders, a border has a paint for each state:
+
+```kotlin
+border = Border(
+    width = 3,
+    focused = Paint.parse("rgba(33ccffee) rgba(00ff99ee) 45deg"),
+    unfocused = Paint.parse("rgba(595959aa)"),
+    urgent = Paint.parse("rgb(ff5555)"),            // a window that wants attention (null: as the others)
+    groupedFocused = null, groupedUnfocused = null, // windows in a group (desktop.windowGrouped says which)
+    animate = true,                                 // false: turning gradients and time-using shaders stand still
+)
+rule { appId("firefox"); borderPaint(Paint.parse("rgba(ff8800ff) rgba(ff0088ff) 90deg")) }   // per window
+```
+
+In config.json each of `focused`, `unfocused`, `urgent`, `groupedFocused`, `groupedUnfocused`
+is a colour, Hyprland's text, or `{ "gradient": [...], "degrees": 45 }`, `{ "conic": [...] }`,
+`{ "rainbow": 6 }`, `{ "shader": "glow.glsl" }`; `"animate": false` stops moving ones; a
+rule's `"borderPaint": { "focused": ..., "unfocused": ..., "urgent": ... }`.
+
+#### Border shaders
+
+A shader paint is GLSL (OpenGL ES 3) with `vec4 paint(vec2 at)` returning a plain colour.
+It can read:
+
+| Name | What it is |
+| --- | --- |
+| `vec2 at` | 0..1 in the box (the window and its border), from the top left |
+| `float time` | seconds, going on while it is seen (stands at 0 with `animate = false`) |
+| `vec2 size`, `vec2 pixel` | the box in pixels, this pixel in it |
+| `float borderWidth`, `float cornerRadius` | in pixels |
+| `float progress` | how far along the border this pixel is: 0..1 clockwise from the top left corner |
+| `float focused`, `float urgent`, `float grouped` | 1.0 or 0.0: the window's state |
+| `vec4 colors[8]`, `int colorCount` | colours handed to it: `Paint.Shader(...).withColors(a, b)` |
+
+A file (`Paints.file(...)`, or `{ "shader": "glow.glsl" }`) is read again when you save it.
+A shader that does not compile is said in a notice with its line ("line 2: ..."), and the
+border is drawn in its first colour meanwhile — never black, never frozen. A moving shader
+keeps frames coming only while its window is seen.
+
+A rainbow turning around the window:
+
+```glsl
+vec4 paint(vec2 at) {
+    float hue = fract(progress + time * 0.2);
+    vec3 c = clamp(abs(mod(hue * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+    return vec4(c, 1.0);
+}
+```
+
+A glow that pulses on the focused window (and blinks red on an urgent one):
+
+```glsl
+vec4 paint(vec2 at) {
+    float pulse = 0.55 + 0.45 * sin(time * 3.0);
+    vec3 base = urgent > 0.5 ? vec3(1.0, 0.3, 0.3) : vec3(0.35, 0.75, 1.0);
+    return vec4(base * (focused > 0.5 ? pulse : 0.4), 1.0);
+}
+```
+
+Marching ants: dashes walking around the border:
+
+```glsl
+vec4 paint(vec2 at) {
+    float along = progress * 2.0 * (size.x + size.y);   // pixels along the border
+    float dash = step(0.5, fract((along - time * 40.0) / 16.0));
+    return mix(vec4(0.1, 0.1, 0.1, 1.0), vec4(1.0, 0.85, 0.2, 1.0), dash);
+}
+```
 
 A shadow's `spread` makes it bigger than the window (a glow around all sides when the
 offsets are 0). Moving paints are drawn every frame while seen, but only the thin frame
@@ -638,45 +770,106 @@ press Alt+Enter on a red name.
 
 ## 11. Animations
 
-Windows fade in growing a little, go away shrinking, glide to new places, flow into the
-dock like a genie when minimized, and workspaces slide side by side. Each of these is one
-setting of `animations`, made of building blocks:
+Animations are **off by default**: windows, workspaces and the overview change at once.
+Following fingers is not an animation — a swipe or a pinch still moves with them, only what
+comes after they lift (the snap) is at once. Turn them on as in Hyprland: everything with one
+line, or each animation by name, with its time, curve and look:
+
+```kotlin
+animations {
+    enabled = true                                   // all of them (the usual looks and times)
+    millis = 220                                     // the global time, for those without their own
+    curve = Curve.bezier(0.05, 0.9, 0.1, 1.05)       // the global curve
+    animation("windows", millis = 300)               // windowsIn, windowsOut, windowsMove, … too
+    animation("windowsIn", style = "popin 80%")
+    animation("workspaces", speed = 3.0, style = "slidevert")   // Hyprland's speed: tenths of a second
+    animation("minimize", curve = Curve.spring(stiffness = 300.0, damping = 14.0))
+    off("fade")                                      // and everything under it
+}
+animations { on("workspaces") }                      // only this one, the rest stays off
+```
+
+A setting for a name is for everything under it, unless something lower down says
+otherwise; what no one says comes from the animation's usual (its own time, as below), then
+the global `millis` and `curve`. In Java: `caulis.animations(a -> { a.setEnabled(true); a.animation("windowsIn", null, null, null, "popin 80%"); })`.
+
+| Name | Under | What it animates | Usual time, curve | Looks (`style`) |
+| --- | --- | --- | --- | --- |
+| `windows` | | every animation of windows below | | as `windowsIn` |
+| `windowsIn` | windows | a window appearing | global (220 ms), ease-out | `popin [80%]`, `pop [90%]`, `fade`, `scale [90%]`, `slide [left\|right\|up\|down] [40]`, `slide-up`, `none` |
+| `windowsOut` | windows | a window going away | global, ease-out | as `windowsIn` |
+| `windowsMove` | windows | windows gliding to a new place or size: a layout change, maximize, a neighbour closing, the view settling after a swipe | global, ease-out | `move`, `none` |
+| `scratchpads` | windows | a scratchpad sliding in and out | global, ease-out | `move`, `none` |
+| `minimize` | windows | a window going into the dock (its icon, or down out of sight) | global, ease-out | `genie` (usual), `fly`, and those of `windowsIn` |
+| `restore` | windows | a minimized window coming back | global, ease-out | as `minimize` |
+| `workspaces` | | another workspace shown on a monitor (also after a swipe) | global, ease-out | `slide` (usual), `slidevert`, `fade`, `none` |
+| `overview` | | the overview zooming out and in, also finishing a pinch | 1.5 × global (330 ms), ease-out | |
+| `border` | | border, shadow, opacity and dimming changing when the focus moves | 150 ms (`Effects.focusChangeMillis`) | |
+| `screenshot` | | the screenshot chooser coming in: the screen darkening, its toolbar rising | 170 ms (`ChooserBehaviour.appearMillis`), ease-out | |
+| `fade` | | every fade below | | |
+| `fadeScale` | fade | the picture melting into the new one when a monitor's scale changes | 250 ms (`Animations.scaleChangeMillis`), smooth | |
+| `fadeBackground` | fade | one background melting into the next | 400 ms (`backgroundChangeMillis`), smooth | |
+| `fadeNotices` | fade | the compositor's notices fading in and out | 180 ms (`NoticeStyle.fadeMillis`), smooth | |
+| `fadeOsd` | fade | the volume and brightness display fading in and out | 150 ms, linear | |
+
+Curves: `Curve.EASE_OUT` (the global one by default), `EASE_IN_OUT`, `LINEAR`, `SMOOTH`,
+`OVERSHOOT`, a Bézier curve with the numbers Hyprland and CSS use —
+`Curve.bezier(0.05, 0.9, 0.1, 1.05)` — a spring, or your own: `Curve { t -> t * t }`. A spring
+(`Curve.spring(stiffness = 300.0, damping = 14.0)`; less damping bounces more) takes as long
+as it needs to come to rest, unless the animation's time says otherwise.
+
+In config.json and Lua the same, with curves by name — an animation is `true`/`false`, its
+look alone, or `{ enabled, millis (or speed), curve, style }`:
+
+```jsonc
+"animations": {
+  "enabled": true,
+  "millis": 220,
+  "curves": { "snappy": { "bezier": [0.05, 0.9, 0.1, 1.05] }, "bouncy": { "spring": { "stiffness": 300, "damping": 14 } } },
+  "curve": "snappy",                              // the global one; ready: ease-out, ease-in-out, linear, smooth, overshoot
+  "windows": { "millis": 300 },
+  "windowsIn": "popin 80%",
+  "minimize": { "style": "genie", "curve": "bouncy" },
+  "workspaces": { "speed": 3, "style": "slidevert" },
+  "fade": false
+}
+```
+
+**Coming from Hyprland.** `animations { enabled = yes }` is `"enabled": true`;
+`bezier = snappy, 0.05, 0.9, 0.1, 1.05` is `"curves": { "snappy": { "bezier": [0.05, 0.9, 0.1, 1.05] } }`;
+`animation = windowsIn, 1, 3, snappy, popin 80%` is `"windowsIn": { "enabled": true, "speed": 3, "curve": "snappy", "style": "popin 80%" }`
+(`speed` is Hyprland's tenths of a second; `millis` says it in milliseconds). The names
+`windows`, `windowsIn`, `windowsOut`, `windowsMove`, `workspaces`, `border` and `fade` mean
+what they mean there; Hyprland's `layers*` and `borderangle` have no counterpart (Caulis does
+not animate panels or turn gradients), and Caulis has its own `minimize`, `restore`,
+`scratchpads` (Hyprland's `specialWorkspace`), `overview` and the `fade*` above. A compositor
+built on Caulis can name its own animations the same way (`AnimationTree`, `AnimationSettings`).
+
+The looks can also be code — building blocks or your own (they run when their animation is
+on, with its time and curve unless they say `lasting(…)`/`curved(…)`):
 
 ```kotlin
 animations = Animations(
+    enabled = true,
     windowOpen = WindowAnimation.fade() + WindowAnimation.slide(dy = 80),   // fades in rising
     windowClose = WindowAnimation.fade(),
     minimize = WindowAnimation.pop(),                                      // no genie
     workspaceSwitch = WorkspaceAnimation.SLIDE_VERTICAL.lasting(300),
     curve = Curve.OVERSHOOT,                                               // a little past, and back
 )
-animationMillis = 220   // how long, unless an animation says otherwise (0 = nothing moves)
+animationMillis = 220   // the global time (0 = nothing moves, whatever else says)
 ```
 
-| Setting | When | Ready ones |
+| Setting | When (name) | Ready ones |
 | --- | --- | --- |
-| `windowOpen` / `windowClose` | a window appears / goes away | `fade()`, `scale(0.9)`, `slide(dx, dy)`, `pop()` (= fade + scale) |
-| `windowMove` | a window glides to a new place or size | `move()` |
+| `windowOpen` / `windowClose` | a window appears / goes away (`windowsIn` / `windowsOut`) | `fade()`, `scale(0.9)`, `slide(dx, dy)`, `pop()` (= fade + scale) |
+| `windowMove` | a window glides to a new place or size (`windowsMove`, `scratchpads`) | `move()` |
 | `minimize` / `restore` | into the dock icon / back | `genie()`, `flyTo()`, `pop()` |
-| `workspaceSwitch` | another workspace | `SLIDE`, `SLIDE_VERTICAL`, `FADE`, `NONE` |
+| `workspaceSwitch` | another workspace (`workspaces`) | `SLIDE`, `SLIDE_VERTICAL`, `FADE`, `NONE` |
 
 Building blocks go together with `+` (`fade() + scale(0.5)`), and each can have its own
-time and curve: `pop().lasting(400).curved(Curve.EASE_IN_OUT)`. Curves: `EASE_OUT` (the
-default), `EASE_IN_OUT`, `LINEAR`, `OVERSHOOT`, a Bézier curve with the numbers Hyprland
-and CSS use — `Curve.bezier(0.05, 0.9, 0.1, 1.05)` — a spring, or your own: `Curve { t -> t * t }`.
-A spring (`Curve.spring(stiffness = 300.0, damping = 14.0)`; less damping bounces more)
-takes as long as it needs to come to rest, unless the animation says `lasting(…)`.
-
-In config.json and Lua, curves have names and every animation can have its own:
-
-```jsonc
-"animations": {
-  "curves": { "snappy": { "bezier": [0.05, 0.9, 0.1, 1.05] }, "bouncy": { "spring": { "stiffness": 300, "damping": 14 } } },
-  "curve": "snappy",
-  "windowOpen": { "style": "pop", "curve": "bouncy" },
-  "workspaceSwitch": { "style": "slide", "millis": 300 }
-}
-```
+time and curve: `pop().lasting(400).curved(Curve.EASE_IN_OUT)`. A `style` set by name wins
+over the code's look.
 
 Your own animation is one function: it gets where the window is going and how far along it
 is (0 to 1), and says where to draw it and how strongly:
@@ -686,7 +879,7 @@ val spin = WindowAnimation { m ->
     // m.from, m.to: start and end; m.progress: 0 → 1; m.window: the window
     WindowFrame(WindowAnimation.scaled(m.to, m.progress), alpha = m.progress.toFloat())
 }
-animations = Animations(windowOpen = spin.lasting(250))
+animations = Animations(enabled = true, windowOpen = spin.lasting(250))
 ```
 
 For effects beyond moving and fading — bending, colouring, dissolving — give a shader:
@@ -701,7 +894,7 @@ val dissolve = WindowShader("""
         return noise(floor(at * size / 4.0)) < progress ? window(at) : vec4(0.0);
     }
 """)
-animations = Animations(windowOpen = WindowAnimation { m -> WindowFrame(m.to, shader = dissolve, progress = m.progress) })
+animations = Animations(enabled = true, windowOpen = WindowAnimation { m -> WindowFrame(m.to, shader = dissolve, progress = m.progress) })
 ```
 
 The genie itself is such a shader (`WindowShader.GENIE`) — read it as an example. A shader
@@ -711,7 +904,8 @@ More to tune, each one line: `overviewFill = 0.9` (how much of the monitor the o
 windows take), `resizeBorder = 6` (the edge to grab floating windows by), `doubleClickMillis
 = 400` (a double click on a title bar maximizes), `swipeDistance = 80.0` (how far fingers
 move for a swipe), `lockColor` (behind the screen locker), `Animations(scaleChangeMillis =
-250)` (the picture melting when the scale changes), `NoticeStyle(fadeMillis = 180)`.
+250)` (the picture melting when the scale changes, `fadeScale`), `NoticeStyle(fadeMillis = 180)`
+(`fadeNotices`).
 
 ## 12. Title bars
 
@@ -914,8 +1108,10 @@ started after the change draw at the new scale exactly.
 **Wayland first.** Programs the compositor starts (`launch`, keys, `onStart`, and what you
 start from its terminals) are asked to use Wayland when they can do both — GTK, Qt,
 Electron and Firefox then choose it themselves and fall back to X11 if they must. A program
-that still fails — it quits with an error right away, before showing a window — is started
-again through X11, and from then on that way at once; the log says so:
+that still fails — it connected to the compositor, then quit with an error right away, before
+showing a window — is started again through X11, and from then on that way at once; the log
+says so (a command-line tool that never connected is never started twice; `x11Fallback = false`
+turns this off, `x11FallbackMillis` says how soon it must fail):
 
 ```
 I clients  "oldapp" quit at once on Wayland (status 1): starting it through X11. To start it that way right away: x11Programs += "oldapp"
@@ -939,6 +1135,10 @@ Don't want X11 at all:
 ```kotlin
 xwayland = false
 ```
+
+Programs started inside read nothing (their input is empty) and, when the compositor quits,
+are asked to end (`stopProgramsOnQuit = false` leaves them running). Code of your own that
+must stop then — threads, programs from `spawn` — goes in `onQuit { }`.
 
 ## 17. The cursor
 
@@ -1058,8 +1258,49 @@ keyboard and the mouse; it unlocks when you type your password. If the locker cr
 screen turns dark red and *stays locked*: switch to a text console (Ctrl+Alt+F2), log in and
 start a new locker for that session — e.g. `WAYLAND_DISPLAY=wayland-1 swaylock`, with the
 socket name the compositor printed when it started — then come back (Ctrl+Alt+F1 or
-whichever console the session is on). Ctrl+Alt+Backspace still quits the compositor, as
-always.
+whichever console the session is on). Ctrl+Alt+Backspace does not quit on a locked screen
+(unless `keys { quitWhileLocked = true }`): it would get round the lock. After unlocking, the
+keyboard goes back to the window that had it (`unlockFocus = UnlockFocus.FOCUSED_BEFORE`, the
+default; `NEWEST_BEFORE`: the newest window; JSON `"unlockFocus": "newest-before"`) — never to
+a window that opened while the screen was locked.
+
+If the locker does not show within `lockShowMillis` (3 s) — it is not installed, or it fails
+at once — a red notice says the screen is *not* locked (the start already warns when
+`lockCommand` is not installed), and by default the compositor locks with its own plain lock
+screen instead (`lockColor`, nothing of the desktop). It checks no password: press Enter to
+start the locker again; when that locker unlocks, the plain lock screen goes too. Only the
+locker the compositor started ends it — any other program could lock and unlock without a
+password — so if the locker cannot start at all, fix `lockCommand` from a text console
+(save the configuration: it is read again at once), come back and press Enter. The same happens before sleep when the lock did not show in
+`sleepLockWaitMillis`, so the computer never wakes up unlocked. `lockFailure =
+LockFailure.NOTICE` only says so (and sleeps unlocked).
+
+A lock screen of your own drawn by the compositor (no locker program):
+`locker { desktop.lockInternally(myLockWidget) }` — your widget checks the password and calls
+`desktop.unlockInternally()`.
+
+Idle inhibitors (a video playing) count for nothing while the screen is locked, so a locked
+screen still goes dark; `idleInhibitorsWhileLocked = true` lets them keep it on.
+
+### A few more settings
+
+```kotlin
+backgroundColor = Color(0.1f, 0.1f, 0.12f)    // under everything, where no window or wallpaper is
+focusStealing = FocusStealing.SAME_PROGRAM    // or ALWAYS, NEVER: who may take the keyboard by itself
+focusStealingRule = { window, why -> window.appId == "mpv" }   // or decide yourself
+bindingModifiers = BindingModifiers.XKB       // caps:super and the like count in bindings; PHYSICAL: the printed keys
+windowListPrograms = mutableSetOf("waybar")   // only these see the window list (default: privileged programs)
+maxForwardedStringBytes = 1024                // titles and app ids passed on to other programs are cut here
+maxRegionParts = 256                          // rectangles a program's input/opaque region keeps exactly
+xwaylandRestartMillis = 1000                  // after a failed Xwayland start (doubled each time) ...
+xwaylandRestartMaxMillis = 60_000             // ... up to this ...
+xwaylandMaxFailedStarts = 5                   // ... and given up after this many (the action "xwayland-retry")
+monitor("DP-2") { maxBpc = 10; adaptiveSync = true }   // the link: bits per colour, FreeSync
+```
+
+In config.json the same names (`"focusStealing": "never"`, `"bindingModifiers": "physical"`,
+`"xwaylandRestart": { "millis": 1000, "maxMillis": 60000, "maxFailedStarts": 5 }`,
+`"monitors": { "DP-2": { "maxBpc": 10, "adaptiveSync": true } }`).
 
 ## 20. Screenshots and screen sharing
 
@@ -1074,14 +1315,37 @@ screenshots { folder = Path.of("/tmp/shots"); copy = false; keys(choose = "Super
 Print freezes the screen and shows a toolbar: *Area* (drag a part; drag it or its edges to
 change it, a click without dragging takes the window there as the part), *Window* (click
 one: it is taken whole, even where others cover it, with its round corners see-through),
-*Screen* (click a monitor), *Pointer* (in the picture or not), *Timer* (3, 5 or 10 seconds).
-Enter, Space, a double click or *Capture* takes it; Ctrl+C only copies it; Tab and R/W/S
-choose the kind; the arrow keys move the part (Shift: by ten, Ctrl: resize it); Escape or
-the right button cancels. Shift+Print takes the monitor with the pointer at once, Alt+Print
-the focused window. Each one is saved as PNG in `~/Pictures/Screenshots` (your
-`XDG_PICTURES_DIR`) and put on the clipboard; the part chosen last is offered again. With the
-module in the compositor, config.json and Lua have the action too: `"Print": "screenshot"`,
-`screenshot window`, `screenshot focused`, `screenshot monitor`.
+*Screen* (click a monitor), *Pointer* (in the picture or not), *Timer* (3, 5 or 10 seconds;
+the countdown is never in the picture). Over an overview (windows drawn smaller) there is
+one kind more, *Windows, whole*: drag a frame over windows (Shift adds to them), click one
+to add or drop it, Ctrl+A takes all of them — each is put in the picture whole and at its own
+size, sharp, in the place it has on screen. Enter, Space, a double click or *Capture* takes
+it; Ctrl+C only copies it; Tab, A (or R), W, S and G choose the kind, M how a part is
+chosen, P the pointer, T the timer; the arrow keys move the part (Shift: by ten, Ctrl:
+resize it); Escape or the right button cancels. The letters are where your keyboard layout
+has them (AZERTY, Dvorak), and the tips name them. Shift+Print takes the monitor with the
+pointer at once, Alt+Print the focused window; a laptop's own screenshot key opens the
+chooser (`keys(selective = null)` leaves it alone). Each one is saved in
+`~/Pictures/Screenshots` (your `XDG_PICTURES_DIR`) and put on the clipboard; the part chosen
+last is offered again. Windows with `hiddenFromCapture = true` in a rule are black boxes in
+every picture and are not taken alone.
+
+The settings: `folder`, `fileName` (`{date}`, `{time}`, `{kind}`; a name already there gets
+" (2)"), `format` (`ShotFormat.PNG` or `JPEG` with `jpegQuality`), `save`, `copy`, `notify`,
+`pointer`, `delaySeconds`, `then` (a command run with each file: an editor), `onTaken`,
+`onCountdown` (your own countdown), `kind` and `overviewKind` (the kind it starts with),
+`selection` (`ADJUST`: a part is changed by dragging it, `NEW`: each drag a new one),
+`sharpWindows`, `sharpCornerRadius`, `sharpBackground`, `sharpWallpaper` and `maxPixels` (for
+pictures put together from windows). The look — colours, font, sizes, how dark the screen
+gets — is `style = ScreenshotStyle(...)`, its words in your language
+`ScreenshotStyle(words = ScreenshotWords(capture = "Aufnehmen", ...))`; the buttons and
+their order, the timer's steps, the keys and the timings are `chooser = ChooserBehaviour(...)`
+(`keys = ChooserKeys(capture = listOf("Return"), ...)`).
+
+With the module in the compositor, config.json and Lua have the action too: `"Print":
+"screenshot"` (the chooser), `screenshot region`, `screenshot window`, `screenshot screen`,
+`screenshot windows` (the chooser starting with that kind), `screenshot focused` (the
+focused window at once), `screenshot monitor` (the monitor with the pointer at once).
 
 Your own tools inside the compositor work the same way: `desktop.openOverlay(overlay)`
 shows something of yours above everything, with the keyboard and the mouse, until
@@ -1113,13 +1377,9 @@ org.freedesktop.impl.portal.Screenshot=wlr
 org.freedesktop.impl.portal.ScreenCast=wlr
 ```
 
-and start the compositor's programs knowing about it:
-
-```kotlin
-onStart {
-    launch("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
-}
-```
+The portals must know the compositor's `WAYLAND_DISPLAY`: on the real screen it hands its
+environment to systemd and D-Bus activation by itself at the start, and restarts portals that
+were started before with another one (`exportEnvironment`, `portalsToRestart`); nothing to do.
 
 (`desktopName = "caulis"` is the name the portal looks for: `caulis-portals.conf`.) Single
 windows can be shared too; a shared window keeps drawing at full speed even while it is
@@ -1188,8 +1448,8 @@ by itself after a while:
 exitAfterSeconds = 60
 ```
 
-Ctrl+Alt+Backspace quits at any time, Ctrl+Alt+F1…F12 switch consoles (unless you changed
-`keys.quit` and `keys.consoles`).
+Ctrl+Alt+Backspace quits (not on a locked screen, see `keys.quitWhileLocked`), Ctrl+Alt+F1…F12
+switch consoles (unless you changed `keys.quit` and `keys.consoles`).
 
 ## 23. Your own layout
 
@@ -1271,7 +1531,41 @@ compose(place = { m -> Rect(m.area.x, m.area.y, m.area.width, 32) }, reserve = {
 
 `reserve` keeps room at an edge (windows and panels make way); `takesKeyboard = true` gives
 it the keyboard when clicked (until a click elsewhere); `level` puts it below or above the
-windows. Without Compose, a `Widget` of your own does the same with any pictures.
+windows. Its text fields copy and paste with the compositor's clipboard, and the pointer
+takes the shape Compose asks for (a text cursor over a field, a hand over a link).
+
+- `sceneSize = { m -> SceneSize(400, 600) }`: the scene's own size, when it is not its area's
+  — a popup whose area grows and shrinks shows more or less of one scene, nothing made anew
+  (a new size in pixels otherwise starts its scene over, and `remember`ed state with it).
+- `appearance = { m -> WidgetLook(alpha = 0.5f, scale = 0.95f, dy = -8f, reveal = 0.6f, revealFrom = Edge.TOP) }`:
+  how its picture is shown — see-through, smaller, moved, unfolding from an edge — done by
+  the compositor without drawing it again; `moving = { true }` while that changes by itself
+  (frames keep coming). Clicks land where it is seen.
+- `onPressOutside = { x, y, onAnother -> ... }`: a press elsewhere; true takes it (a menu that
+  closes, and the window below gets nothing).
+- `recovery = ComposeRecovery(delayMillis = 500, notice = null, onError = { e -> ... })`: when
+  its content throws (a composable, a `LaunchedEffect`, a click's handler), the error is
+  logged (area `compose`), a notice says so the first time, and its scene starts over a
+  moment later — sooner or later each time it fails again, never on every frame.
+- `showsWhileLocked = true`: shown and used while the screen is locked too (an on-screen
+  keyboard). A lock screen of your own in Compose is a widget like any other:
+  `desktop.lockInternally(handle.widget!!)` (see Locking the screen).
+
+While its `appearance` is fully see-through (`alpha = 0f`) it is laid out but not drawn, and
+keeps no frames coming: a hidden menu with a spinner in it costs nothing. State that must
+outlive a new size or scale (the `clicks` above, if the bar's width changes) belongs outside
+the content, in your own `mutableStateOf`. Typing in its text fields uses your keyboard
+layout; dead keys, the Compose key and input methods (fcitx5, ibus) do not reach them yet.
+
+`compose(...)` gives back a handle: `close()` takes it away, `focus()` gives it the keyboard,
+`prewarm(monitor, width, height)` draws it once ahead (the first drawing is slow: fonts,
+classes), `restart()` starts its scenes over (content that is something else now), `widget`
+is the `ComposeWidget` itself. Everything Compose runs — recomposition, animations,
+`LaunchedEffect` — runs on the compositor's thread; call these there too (from a key binding
+or `post { }`). On a plain `Desktop`, `ComposeWidget(desktop, post, place, ...)` with
+`desktop.addWidget(...)` does the same. caulis-compose needs exactly the Compose version it
+was built with (it uses Compose's own scene parts): a build that would take another fails
+at once. Without Compose, a `Widget` of your own does the same with any pictures.
 
 **Pictures of your own that take no input** — a bar, rounded screen corners, a glow — at one
 of three levels (below the windows, above them, on top of everything); clicks go through to
@@ -1404,7 +1698,9 @@ mean `settings.effects.cornerRadius'?*); then the compositor itself checks the w
 (`--check-config`) while building. After a switch the running compositor takes the new
 settings on, without restarting. For NixOS there is `nixosModules.default`: it installs the
 compositor, offers its session at login, and puts the settings in
-`/etc/xdg/<configName>/config.json` for everyone (a user's own `~/.config` file comes first).
+`/etc/xdg/<configName>/config.json` for everyone. The folder counts as a whole: a user with
+any configuration file of their own in `~/.config/<configName>/` (`config.json`, `config.lua`,
+`config.kts`) gets only theirs, and nothing of `/etc/xdg` is read for them.
 
 Not on NixOS? GPU drivers come from the system there; to run a compositor built with Nix
 on another distribution, start it through [nixGL](https://github.com/nix-community/nixGL).
@@ -1465,7 +1761,7 @@ can also say *when* and *how* — functions on keys, on events, on timers. Add t
 your compositor:
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-lua:0.2.0")
+implementation("io.github.aristarkhkenebas:caulis-lua:0.1.2")
 ```
 
 Then it reads `~/.config/<configName>/config.lua` by itself (after `config.json`, on top of
@@ -1491,13 +1787,17 @@ end)
 caulis.rule { appId = "pavucontrol", floating = true, center = true }
 
 -- Events: start, reload, unload, window-opened, window-closed, window-changed, focus-changed,
--- workspace-changed, monitor-added, monitor-removed, notice, lid.
+-- workspace-changed, monitor-added, monitor-removed, notice, lid, color-scheme, quit.
 caulis.on("window-opened", function(w)
   if w.appId == "music" then caulis.run("move-to-workspace 9", w.id) end
 end)
 caulis.on("start", function()
   caulis.after(2000, function() caulis.notify("Welcome back") end)
 end)
+
+-- Programs: started without waiting for them. At the top of the file only once, when the
+-- compositor starts (not again on each save, not for --check-config).
+caulis.launch("waybar")
 
 -- Your own files next to it: require("theme") is theme.lua there.
 ```
@@ -1513,15 +1813,26 @@ end)
 | `windows()` · `window(id)` · `focusedWindow()` · `monitors()` · `workspace()` | the same, one part at a time |
 | `after(ms, fn)` · `every(ms, fn)` | runs `fn` once later, or again and again; returns a handle with `cancel()` (a reload ends them all) |
 | `layout(name, fn)` | a layout of your own: `fn(windows, area, focused)` returns a rectangle `{ x, y, width, height }` per window |
+| `mode(name)` | a key mode on (`nil` or `"reset"`: the usual keys) |
+| `colorScheme()` | what programs are told now: `"dark"`, `"light"` or `"default"` |
+| `launch(command)` | starts a program (run by `/bin/sh`) without waiting for it; `os.execute` does the same |
 | `notify(text [, level])` · `log(text)` · `file(name)` | a notice, a line in the log, a path in the folder |
 
 A window is a table: `id`, `appId`, `title`, `pid`, `workspace`, `monitor`, `focused`,
-`floating`, `maximized`, `fullscreen`, `minimized`, `x11`, `x`, `y`, `width`, `height`.
+`floating`, `maximized`, `fullscreen`, `minimized`, `x11`, `urgent`, `x`, `y`, `width`, `height`.
 
 Mistakes are reported with their line, and the rest still applies:
 `config.lua:12: terminl: there is no such setting (did you mean "terminal"?)`. A mistake in a
 function (a key, an event) shows a notice when it happens; the desktop goes on. Code that runs
-too long — a loop that never ends — is stopped (half a second for a key or an event). Saving
+too long — a loop that never ends, or a string pattern that backtracks without end — is
+stopped (half a second for a key or an event: `scriptCallLimitMillis`). Code that needs more
+memory than there is (`string.rep("x", 2^30) .. ...`) is stopped too, with a notice, and
+then nothing of config.lua runs until the file is read again. A Java call that blocks is
+not stopped, so what surely waits is taken out of `os` and `io`: `os.execute` starts the
+program and goes on, `io.popen` and `os.exit` are not there (quit with
+`caulis.run("quit")`), the standard input is empty. (Reading a pipe or a terminal you open
+yourself, `io.open("/some/fifo"):read()`, still waits: don't.) `require` finds only Lua
+files next to config.lua. Saving
 the file takes it on at once; `my-compositor --check-config config.lua` checks it without
 starting. `unload` comes just before a saved file replaces the running one, to stop what the
 old one started.
@@ -1549,7 +1860,7 @@ no project: the compositor compiles it itself. Add the module (it contains the K
 compiler, so it makes your compositor bigger):
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-script:0.2.0")
+implementation("io.github.aristarkhkenebas:caulis-script:0.1.2")
 ```
 
 `~/.config/<configName>/config.kts` is then read after `config.json` and `config.lua`, as if
@@ -1576,7 +1887,7 @@ everything. With Nix (step 25) all of them can be written in the same place:
 `programs.caulis.settings`, `programs.caulis.lua`, `programs.caulis.kotlinScript` — each
 checked by the compositor itself while building.
 
-## 29. Mice, touchpads, and keys that do more
+## 29. Mice, touchpads, tablets, and keys that do more
 
 **Pointers and touchpads** — every setting is optional (the device's own default otherwise):
 
@@ -1598,6 +1909,33 @@ Also: `tap`, `tapDrag`, `dragLock`, `leftHanded`, `middleEmulation`, `scrollMeth
 while a mouse is plugged in). Device names — for `input.devices` — are listed by
 `my-compositor --devices`; `*` matches anything. Changes are taken on at once. The keyboard
 itself: `keyboardLayouts`, `keyboardVariants`, `keyboardOptions`, `keyboardModel`.
+
+**Graphics tablets** (Wacom, Huion, XP-Pen, a laptop's pen screen) work out of the box. The pen
+is the pointer everywhere — its tip the left button, its lower button the right one, its upper
+button the middle one — so every program and the compositor's own bars and menus work with it.
+Programs that understand pens (Krita, GIMP, Inkscape, Xournal++, and X11 programs through
+Xwayland) get it as a pen instead: pressure, tilt, distance, rotation, the eraser end, its
+buttons. A tablet covers all monitors as one; a pen screen covers the laptop's own screen. The
+pad's buttons go to the program with the keyboard, or to a binding of yours:
+`bind("Pad1") { run("workspace next") }` (Pad1 is the first button). The settings — for
+`input.tablets`, or one tablet by name in `input.devices` — all optional:
+
+```kotlin
+input.tablets.monitor = "DP-1"                        // the monitor the tablet covers
+input.tablets.keepAspect = false                      // stretch to the monitor (default: keep its shape)
+input.tablets.area = TabletArea(0.0, 0.0, 0.5, 0.5)   // only the top left quarter of the tablet
+input.tablets.leftHanded = true                       // the tablet turned around, buttons on the right
+input.tablets.pointerOnly = true                      // the pen is only ever the pointer (no pressure for programs)
+input.tablets.tipPressure = 0.2                       // press this hard (of the full pressure) to click or draw
+input.tablets.lowerButton = 0x112                     // the pen's lower button is the middle one (0: none)
+input.tablets.upperButton = 0x111                     // and its upper one the right one
+input.devices["Wacom One*"] = DeviceSettings().apply { monitor = "HDMI-A-1" }
+```
+
+`thirdButton` is a third button on the pen (the side button by default). With `keepAspect` a
+circle drawn is a circle: a strip at the tablet's right or bottom edge goes unused. In
+config.json the buttons are names: `"tablets": { "monitor": "DP-1", "lowerButton": "MouseMiddle",
+"area": { "width": 0.5, "height": 0.5 } }`. Pad rings and strips go to programs as they are.
 
 **Keys that do more:**
 
@@ -1696,6 +2034,7 @@ These work by themselves — the programs that use them just do:
 | Middle-click paste | what is selected is pasted with the middle button | GTK, Qt, terminals |
 | Focus requests | a link opens the browser and brings it forward; anything else asking only marks its window urgent | xdg-activation: Firefox, Telegram, ... |
 | Games, 3D | the pointer held in place or inside the window, and the mouse's own movement | pointer-constraints, relative-pointer: games, Blender, Wine |
+| Drawing tablets | the pen as a pen: pressure, tilt, distance, the eraser, the pad (else as the pointer; see step 29) | tablet-v2: Krita, GIMP, Inkscape, Xwayland |
 
 Your own say:
 
@@ -1720,6 +2059,89 @@ Windows that want attention are `urgent` on the IPC socket (bars show them). In 
   "monitors": { "DP-2": { "transform": "90" } }
 }
 ```
+
+## 31. The start: autostart, a smooth reveal, a sound
+
+**Programs with the session.** `autostart` starts them one after another (`stagger` apart, so
+the start does not stutter), once the desktop is shown — once per session: a reload starts
+only the entries it adds, and stops watching the ones it takes away (they keep running). An
+entry is the same as before when it runs the same command: changing its `name`, `dir`, `env`
+or `after` does not start a second copy (the change applies when it next starts), and an
+entry taken away and put back later takes over its program if that still runs.
+
+```kotlin
+autostart {
+    stagger = 400.milliseconds        // the default
+    afterReveal = true                // after the desktop faded in (the default)
+    app("waybar")
+    app("nm-applet", "--indicator") {
+        delay = 2.seconds                                      // waits this long more
+        ifNotRunning = true                                    // not if one runs already (/proc)
+        restart = OnCrash(maxTimes = 3, within = 1.minutes)    // or Always(...), Never
+        after("waybar")                                        // once waybar has started (10 s at most)
+        env("X", "y"); dir = "~"
+    }
+    script("~/.config/foo/start.sh")
+    shell("sleep 1; notify-send hi")
+    desktopEntries = false            // true: also the .desktop files of ~/.config/autostart
+}
+```
+
+They start as `launch` starts programs (the session's environment, Wayland first, no input,
+ended with the compositor while `stopProgramsOnQuit`). The action `autostart` (or
+`autostartStatus()`) lists each and how it is; the log area `autostart` tells when each
+started. `startLater(listOf("firefox"), dir)` puts a program of yours in the same queue
+(session restore). In config.json:
+
+```json
+"autostart": { "staggerMillis": 400, "entries": [ { "app": ["waybar"] }, { "shell": "sleep 1; notify-send hi", "restart": "on-crash" } ] }
+```
+
+**A smooth start.** With `reveal` on, the screens stay black from the very first frame (no
+text console, no half-drawn bar) until the compositor is warm — a few frames drawn, and what
+you asked it to wait for done — then the desktop fades in. Off by default.
+
+```kotlin
+reveal {
+    enabled = true
+    fadeMillis = 600; maxWaitMillis = 4000; color = Color(0f, 0f, 0f)
+}
+whenWarm("my bar") { done -> drawMyBarOnce(); done() }   // dark until done() (or maxWait)
+onReveal { notify("Welcome") }
+```
+
+**A startup sound** (off by default): presets Caulis synthesizes itself — "airy", "classic",
+"glass", "soft" — or a file of yours, played by `pw-play`, `paplay` or `aplay` (or your
+`player`), never on the compositor's thread — not in the headless backend (tests) unless
+`whenHeadless = true`. A player still playing after `playerTimeoutMillis` (30 s) is stopped
+(the next player does not start the sound over). The action `play-startup-sound` (or
+`play-startup-sound glass`) plays it now, to try.
+
+```kotlin
+startupSound {
+    enabled = true
+    preset = "airy"                  // or file = "~/sounds/hello.ogg"
+    volume = 0.8; delayMillis = 0; at = SoundMoment.REVEAL
+}
+```
+
+**Faster to the first frame: a JDK AOT cache** (opt-in; JDK 25 or newer). The JVM can keep the
+classes it loaded and linked in a cache file and start from it next time. A small wrapper
+around your start script makes the cache on the first run (written when the compositor quits)
+and uses it from then on, one per build; a cache that does not fit is only warned about:
+
+```sh
+#!/bin/sh
+app=build/install/mywm
+key=$({ java -version 2>&1; ls -lL --time-style=+%s "$app"/lib/*.jar; } | cksum | cut -d' ' -f1)
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/mywm/aot/mywm-$key.aot"
+mkdir -p "${cache%/*}"
+if [ -s "$cache" ]; then aot="-XX:AOTCache=$cache"; else aot="-XX:AOTCacheOutput=$cache"; fi
+JAVA_OPTS="$aot $JAVA_OPTS" exec "$app/bin/mywm" "$@"
+```
+
+The log area `reveal` says when the first frame was drawn (and how long after Java started),
+to compare.
 
 ## When something goes wrong
 

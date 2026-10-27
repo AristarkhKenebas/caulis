@@ -224,7 +224,9 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
                     } else if (evaluate == null) {
                         reply.setError("no ${language.uppercase()} configuration is loaded (config.$language)")
                     } else {
-                        log.info { "Code typed in ($language): ${request.eval.code.take(200)}" }
+                        // (What it says only at trace: it may hold a password or a token.)
+                        log.info { "Code typed in ($language)" }
+                        log.trace { "The code: ${request.eval.code.take(200)}" }
                         evaluate(request.eval.code).fold({ reply.setOutput(it) }, { reply.setError(it.message ?: "$it") })
                     }
                 }

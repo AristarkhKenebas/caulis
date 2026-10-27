@@ -29,6 +29,12 @@ abstract class Window : LayoutWindow {
     var modal = false
         protected set
 
+    // [gone] (its parent) closed: the parent's parent takes its place, as xdg-shell says (a
+    // dialog of a dialog stays with the main window), or none.
+    internal fun parentGone(gone: Window) {
+        if (parent === gone) parent = gone.parent?.takeIf { it !== this }
+    }
+
     internal fun modalAsked(on: Boolean) {
         modal = on
     }
@@ -48,6 +54,12 @@ abstract class Window : LayoutWindow {
 
     /** The process of the program (0 if not known — X11 programs that do not say). */
     open val pid: Int get() = 0
+
+    /**
+     * True if [other] belongs to the same program as this one: the same Wayland connection
+     * (for X11 windows: the same X client).
+     */
+    open fun sameProgramAs(other: Window): Boolean = surface.resource.client === other.surface.resource.client
 
     /** True if the program says it is a dialog, a tool palette or a splash screen (X11 window types): these float. */
     open val prefersFloating: Boolean get() = false

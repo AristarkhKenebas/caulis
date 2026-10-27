@@ -15,10 +15,12 @@ import dev.caulis.render.gles.GlesRenderer
 // Modes a headless monitor offers besides its own.
 private val COMMON_MODES = listOf(3840 to 2160, 2560 to 1440, 1920 to 1080, 1680 to 1050, 1280 to 720)
 
+private val headlessLog = dev.caulis.log.Logger("drm")
+
 internal fun runHeadless(config: Caulis) {
     EventLoop().use { loop ->
         GlesRenderer.create().use { renderer ->
-            val count = config.headlessMonitors.coerceIn(1, 8)
+            val count = config.headlessMonitors
             val sizes = (1..count).map { n ->
                 val settings = config.monitorSettings["HEADLESS-$n"]
                 (settings?.width ?: 1920) to (settings?.height ?: 1080)
@@ -31,7 +33,8 @@ internal fun runHeadless(config: Caulis) {
                     val name = "HEADLESS-${index + 1}"
                     val settings = config.monitorSettings[name]
                     val hz = settings?.refreshHz ?: 60.0
-                    val refreshNanos = (1_000_000_000 / hz).toLong()
+                    // (Changed with the mode: a frame per refresh of the mode in use.)
+                    var refreshNanos = (1_000_000_000 / hz).toLong()
                     val output = Output(running.display, name, "${config.title} (headless)", width, height, (hz * 1000).toInt(), scale = settings?.scale ?: config.scale)
                     val monitor = running.addMonitor(name, output, width, height)
                     val view = desktop.createView(monitor)
@@ -56,6 +59,8 @@ internal fun runHeadless(config: Caulis) {
                         target.close()
                         target = renderer.createTarget(wanted.width, wanted.height)
                         mode = wanted
+                        if (wanted.refreshMillihertz > 0) refreshNanos = 1_000_000_000_000L / wanted.refreshMillihertz
+                        headlessLog.info { "$name: ${wanted.width}x${wanted.height} at ${wanted.refreshMillihertz / 1000.0} Hz" }
                         val turned = monitor.transform.sideways
                         desktop.resizeMonitor(monitor, if (turned) wanted.height else wanted.width, if (turned) wanted.width else wanted.height)
                         return true

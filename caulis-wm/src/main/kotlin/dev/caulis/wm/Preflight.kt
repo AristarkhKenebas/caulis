@@ -75,6 +75,16 @@ internal object Preflight {
                 ),
             )
         }
+        // No locker: Super+L, idle locks and the lock before sleep would leave the screen open.
+        if (config.locker == null && (config.keys.lock != null || config.lockBeforeSleep) && !commandExists(config.lockCommand)) {
+            add(
+                Problem(
+                    fatal = false,
+                    message = "The screen locker \"${config.lockCommand}\" is not installed, so the screen will NOT lock (${config.keys.lock ?: "no key"}, before sleep).",
+                    fix = "Install it, or choose another one: lockCommand = \"gtklock\" (or hyprlock, ...).",
+                ),
+            )
+        }
     }
 
     /** Prints [problems]; returns false if any of them is fatal. */

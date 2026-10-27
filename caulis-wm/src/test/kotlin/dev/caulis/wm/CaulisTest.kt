@@ -138,7 +138,9 @@ class CaulisTest {
     // Runs [action] on the compositor's own thread and returns its result.
     internal fun <T> Caulis.onLoop(action: (Running) -> T): T {
         val result = CompletableFuture<T>()
-        val running = checkNotNull(running)
+        // (After a reload that applied config.json onto a copy, this configuration is no longer
+        // the running one, but still knows the compositor it ran in.)
+        val running = checkNotNull(running ?: session?.takeIf { it.isOpen })
         // (A failed check inside is the test's failure, with its message.)
         running.loop.post { runCatching { action(running) }.fold(result::complete, result::completeExceptionally) }
         return try {

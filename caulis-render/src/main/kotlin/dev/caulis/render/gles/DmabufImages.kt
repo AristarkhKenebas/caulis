@@ -48,6 +48,7 @@ internal class DmabufImages(private val egl: EglContext) {
 
     /** A texture showing [image] (no copy: it reads the buffer itself). */
     fun texture(image: MemorySegment, width: Int, height: Int): ImageTexture {
+        Gl.drain("something drawn before a dma-buf texture")
         val id = Gl.generate(Gles::glGenTextures)
         Gles.glBindTexture(Gles.GL_TEXTURE_2D(), id)
         Gles.glTexParameteri(Gles.GL_TEXTURE_2D(), Gles.GL_TEXTURE_MIN_FILTER(), Gles.GL_LINEAR())
@@ -98,6 +99,7 @@ internal class ImageTexture(
 }
 
 /** Any texture the GLES renderer can draw. */
+@OptIn(dev.caulis.log.InternalCaulisApi::class)
 internal interface GlTexture : GpuTexture {
     val id: Int
 }

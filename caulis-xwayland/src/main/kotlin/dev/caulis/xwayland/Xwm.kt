@@ -4,6 +4,7 @@ import dev.caulis.core.DataDeviceManager
 import dev.caulis.core.Desktop
 import dev.caulis.core.Surface
 import dev.caulis.core.Window
+import dev.caulis.core.WindowRequest
 import dev.caulis.event.EventLoop
 import dev.caulis.ffi.c.xcb.Xcb
 import dev.caulis.ffi.c.xcb.xcb_client_message_event_t
@@ -35,6 +36,8 @@ class Xwm internal constructor(
     clipboard: DataDeviceManager? = null,
     /** How many of X's pixels one desktop unit is: the screen's scale, or a whole number (a world of its own). */
     private val pixelScale: () -> Double = { desktop.largestScale },
+    /** Cuts a title or class to what other programs can take (Display.capForwarded). */
+    private val capText: (String) -> String = { it },
 ) : AutoCloseable {
 
     private val log = Logger("xwayland")
@@ -304,7 +307,7 @@ class Xwm internal constructor(
     private fun associate(window: XWindow, surface: Surface) {
         if (window.xSurface === surface) return
         window.xSurface = surface
-        surface.roleObject = window
+        surface.claimXwaylandRole(window)
         surface.nativeScale = pixelScale() // its pictures are in X's pixels
         surface.onCommit {
             if (window.xSurface !== surface) return@onCommit
@@ -382,14 +385,14 @@ class Xwm internal constructor(
         val value = prop(window, atom("_NET_WM_NAME")) ?: prop(window, Xcb.XCB_ATOM_WM_NAME()) ?: return
         // Old programs give WM_NAME as STRING: Latin-1, not UTF-8.
         val title = if (value.type == Xcb.XCB_ATOM_STRING()) String(value.bytes, Charsets.ISO_8859_1).trimEnd('\u0000') else value.text()
-        window.describe(title)
+        window.describe(capText(title))
     }
 
     private fun readClass(window: XWindow) {
         // WM_CLASS is "instance\0class\0": the class names the program (as app ids do).
         val wmClass = prop(window, Xcb.XCB_ATOM_WM_CLASS())?.text()?.split('\u0000')?.filter { it.isNotEmpty() }
         window.wmClass = wmClass?.lastOrNull() ?: ""
-        if (window.wmClass.isNotEmpty()) window.describeClass(window.wmClass.lowercase())
+        if (window.wmClass.isNotEmpty()) window.describeClass(capText(window.wmClass.lowercase()))
     }
 
     // WM_TRANSIENT_FOR: the window a dialog belongs to (none once removed; never itself through others).
@@ -525,12 +528,13 @@ class Xwm internal constructor(
                 log.warn("This Xwayland is too old (before 23.1): its windows cannot be shown; please update it")
             }
             atom("_NET_WM_STATE") -> if (format == 32) window?.let { stateRequest(it, data) }
-            atom("_NET_ACTIVE_WINDOW") -> window?.takeIf { it.inDesktop && !it.unmanaged && !desktop.locked }?.let(desktop::focus)
+            // (Only as the rule against focus stealing says: any X program may send this for any window.)
+            atom("_NET_ACTIVE_WINDOW") -> window?.takeIf { it.inDesktop && !it.unmanaged }?.let { desktop.focusRequested(it, WindowRequest.ACTIVATE) }
             atom("_NET_CLOSE_WINDOW") -> window?.let(::close)
             atom("WM_CHANGE_STATE") -> window?.takeIf { it.inDesktop && !it.unmanaged }?.let { w ->
                 when (data[0]) {
                     ICONIC_STATE -> desktop.minimizeRequested(w)
-                    NORMAL_STATE -> if (desktop.isMinimized(w)) desktop.focus(w)
+                    NORMAL_STATE -> if (desktop.isMinimized(w)) desktop.focusRequested(w, WindowRequest.RESTORE)
                 }
             }
             atom("_NET_WM_MOVERESIZE") -> window?.takeIf { it.inDesktop && !it.unmanaged }?.let { w ->
@@ -562,7 +566,7 @@ class Xwm internal constructor(
         if (atom("_NET_WM_STATE_MODAL") in properties) window.describeModal(wanted(window.modal))
         if (atom("_NET_WM_STATE_HIDDEN") in properties && window.inDesktop) {
             val minimized = desktop.isMinimized(window)
-            if (wanted(minimized) && !minimized) desktop.minimizeRequested(window) else if (!wanted(minimized) && minimized) desktop.focus(window)
+            if (wanted(minimized) && !minimized) desktop.minimizeRequested(window) else if (!wanted(minimized) && minimized) desktop.focusRequested(window, WindowRequest.RESTORE)
         }
     }
 
@@ -613,7 +617,7 @@ class Xwm internal constructor(
     }
 
     // Windows of one X connection share the high bits of their ids.
-    private fun sameProgram(a: XWindow, b: XWindow) = (a.id xor b.id) and x.resourceIdMask.inv() == 0
+    internal fun sameProgram(a: XWindow, b: XWindow) = (a.id xor b.id) and x.resourceIdMask.inv() == 0
 
     // --- what the window manager tells X ---------------------------------------------------
 

@@ -148,6 +148,7 @@ public abstract class dev/caulis/render/Paint {
 	public static final fun gradient ([Ldev/caulis/render/Color;)Ldev/caulis/render/Paint;
 	public static final fun gradient ([Ldev/caulis/render/Color;D)Ldev/caulis/render/Paint;
 	public static final fun gradient ([Ldev/caulis/render/Color;DD)Ldev/caulis/render/Paint;
+	public static final fun parse (Ljava/lang/String;)Ldev/caulis/render/Paint;
 	public static final fun rainbow ()Ldev/caulis/render/Paint;
 	public static final fun rainbow (D)Ldev/caulis/render/Paint;
 	public static final fun shader (Ljava/lang/String;)Ldev/caulis/render/Paint;
@@ -163,6 +164,7 @@ public final class dev/caulis/render/Paint$Companion {
 	public final fun gradient ([Ldev/caulis/render/Color;D)Ldev/caulis/render/Paint;
 	public final fun gradient ([Ldev/caulis/render/Color;DD)Ldev/caulis/render/Paint;
 	public static synthetic fun gradient$default (Ldev/caulis/render/Paint$Companion;[Ldev/caulis/render/Color;DDILjava/lang/Object;)Ldev/caulis/render/Paint;
+	public final fun parse (Ljava/lang/String;)Ldev/caulis/render/Paint;
 	public final fun rainbow ()Ldev/caulis/render/Paint;
 	public final fun rainbow (D)Ldev/caulis/render/Paint;
 	public static synthetic fun rainbow$default (Ldev/caulis/render/Paint$Companion;DILjava/lang/Object;)Ldev/caulis/render/Paint;
@@ -173,6 +175,9 @@ public final class dev/caulis/render/Paint$Companion {
 public final class dev/caulis/render/Paint$Gradient : dev/caulis/render/Paint {
 	public fun <init> (Ljava/util/List;DZD)V
 	public synthetic fun <init> (Ljava/util/List;DZDILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun colorAt (DD)Ldev/caulis/render/Color;
+	public final fun colorAt (DDD)Ldev/caulis/render/Color;
+	public static synthetic fun colorAt$default (Ldev/caulis/render/Paint$Gradient;DDDILjava/lang/Object;)Ldev/caulis/render/Color;
 	public final fun component1 ()Ljava/util/List;
 	public final fun component2 ()D
 	public final fun component3 ()Z
@@ -193,17 +198,22 @@ public final class dev/caulis/render/Paint$Gradient : dev/caulis/render/Paint {
 
 public final class dev/caulis/render/Paint$Shader : dev/caulis/render/Paint {
 	public fun <init> (Ljava/lang/String;)V
+	public fun <init> (Lkotlin/jvm/functions/Function0;)V
+	public fun <init> (Lkotlin/jvm/functions/Function0;Ljava/lang/String;)V
 	public fun <init> (Lkotlin/jvm/functions/Function0;Ljava/lang/String;F)V
 	public synthetic fun <init> (Lkotlin/jvm/functions/Function0;Ljava/lang/String;FILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Lkotlin/jvm/functions/Function0;Ljava/lang/String;FLjava/util/List;)V
 	public fun equals (Ljava/lang/Object;)Z
 	public fun faded (F)Ldev/caulis/render/Paint$Shader;
 	public synthetic fun faded (F)Ldev/caulis/render/Paint;
 	public final fun getAlpha ()F
 	public final fun getCode ()Ljava/lang/String;
+	public final fun getColors ()Ljava/util/List;
 	public fun getMoving ()Z
 	public final fun getName ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+	public final fun withColors ([Ldev/caulis/render/Color;)Ldev/caulis/render/Paint$Shader;
 }
 
 public final class dev/caulis/render/Paint$Solid : dev/caulis/render/Paint {
@@ -220,6 +230,30 @@ public final class dev/caulis/render/Paint$Solid : dev/caulis/render/Paint {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/caulis/render/PaintState {
+	public static final field Companion Ldev/caulis/render/PaintState$Companion;
+	public static final field NONE Ldev/caulis/render/PaintState;
+	public fun <init> ()V
+	public fun <init> (Z)V
+	public fun <init> (ZZ)V
+	public fun <init> (ZZZ)V
+	public synthetic fun <init> (ZZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Z
+	public final fun component3 ()Z
+	public final fun copy (ZZZ)Ldev/caulis/render/PaintState;
+	public static synthetic fun copy$default (Ldev/caulis/render/PaintState;ZZZILjava/lang/Object;)Ldev/caulis/render/PaintState;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFocused ()Z
+	public final fun getGrouped ()Z
+	public final fun getUrgent ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/render/PaintState$Companion {
+}
+
 public abstract interface class dev/caulis/render/Renderer : java/lang/AutoCloseable {
 	public abstract fun begin (Ldev/caulis/render/GpuTarget;FFFLdev/caulis/geometry/Rect;F)V
 	public static synthetic fun begin$default (Ldev/caulis/render/Renderer;Ldev/caulis/render/GpuTarget;FFFLdev/caulis/geometry/Rect;FILjava/lang/Object;)V
@@ -233,6 +267,7 @@ public abstract interface class dev/caulis/render/Renderer : java/lang/AutoClose
 	public static synthetic fun drawColor$default (Ldev/caulis/render/Renderer;IIIIFFFFILjava/lang/Object;)V
 	public abstract fun drawRoundedRect (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;F)V
 	public fun drawRoundedRect (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFF)Z
+	public fun drawRoundedRect (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFFLdev/caulis/render/PaintState;)Z
 	public static synthetic fun drawRoundedRect$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;FILjava/lang/Object;)V
 	public static synthetic fun drawRoundedRect$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFFILjava/lang/Object;)Z
 	public fun drawShaded (IIIILjava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;)Z
@@ -260,6 +295,7 @@ public final class dev/caulis/render/Renderer$DefaultImpls {
 	public static synthetic fun drawBlur$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FIILdev/caulis/render/BlurTone;ILjava/lang/Object;)V
 	public static synthetic fun drawColor$default (Ldev/caulis/render/Renderer;IIIIFFFFILjava/lang/Object;)V
 	public static fun drawRoundedRect (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFF)Z
+	public static fun drawRoundedRect (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFFLdev/caulis/render/PaintState;)Z
 	public static synthetic fun drawRoundedRect$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;FILjava/lang/Object;)V
 	public static synthetic fun drawRoundedRect$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFFILjava/lang/Object;)Z
 	public static fun drawShaded (Ldev/caulis/render/Renderer;IIIILjava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;)Z
@@ -290,6 +326,7 @@ public final class dev/caulis/render/gles/GlesRenderer : dev/caulis/render/Rende
 	public fun drawColor (IIIIFFFF)V
 	public fun drawRoundedRect (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;F)V
 	public fun drawRoundedRect (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFF)Z
+	public fun drawRoundedRect (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFFLdev/caulis/render/PaintState;)Z
 	public fun drawShaded (IIIILjava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;)Z
 	public fun drawShadow (Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Color;Ldev/caulis/geometry/Rect;F)V
 	public fun drawShadow (Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Paint;Ldev/caulis/geometry/Rect;FFF)Z

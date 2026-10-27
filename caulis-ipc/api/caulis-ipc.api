@@ -3,12 +3,19 @@ public final class dev/caulis/ipc/CaulisIpc : java/lang/AutoCloseable {
 	public static final field SOCKET_VARIABLE Ljava/lang/String;
 	public final fun checkConfig (Ljava/lang/String;)Ljava/util/List;
 	public fun close ()V
+	public static final fun connect ()Ldev/caulis/ipc/CaulisIpc;
+	public static final fun connect (Ljava/nio/file/Path;)Ldev/caulis/ipc/CaulisIpc;
 	public final fun devices ()Ljava/util/List;
+	public final fun eval (Ljava/lang/String;)Ljava/lang/String;
 	public final fun eval (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 	public static synthetic fun eval$default (Ldev/caulis/ipc/CaulisIpc;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ljava/lang/String;
+	public static final fun findSocket ()Ljava/nio/file/Path;
+	public static final fun findSocket (Ljava/util/Map;)Ljava/nio/file/Path;
+	public static final fun findSocket (Ljava/util/Map;Ljava/lang/String;)Ljava/nio/file/Path;
 	public final fun hello ()Ldev/caulis/ipc/v1/ServerInfo;
 	public final fun nextEvent ()Ldev/caulis/ipc/v1/Event;
 	public final fun request (Ldev/caulis/ipc/v1/Request$Builder;)Ldev/caulis/ipc/v1/Reply;
+	public final fun run (Ljava/lang/String;)V
 	public final fun run (Ljava/lang/String;J)V
 	public static synthetic fun run$default (Ldev/caulis/ipc/CaulisIpc;Ljava/lang/String;JILjava/lang/Object;)V
 	public final fun state ()Ldev/caulis/ipc/v1/State;
@@ -16,8 +23,11 @@ public final class dev/caulis/ipc/CaulisIpc : java/lang/AutoCloseable {
 }
 
 public final class dev/caulis/ipc/CaulisIpc$Companion {
+	public final fun connect ()Ldev/caulis/ipc/CaulisIpc;
 	public final fun connect (Ljava/nio/file/Path;)Ldev/caulis/ipc/CaulisIpc;
 	public static synthetic fun connect$default (Ldev/caulis/ipc/CaulisIpc$Companion;Ljava/nio/file/Path;ILjava/lang/Object;)Ldev/caulis/ipc/CaulisIpc;
+	public final fun findSocket ()Ljava/nio/file/Path;
+	public final fun findSocket (Ljava/util/Map;)Ljava/nio/file/Path;
 	public final fun findSocket (Ljava/util/Map;Ljava/lang/String;)Ljava/nio/file/Path;
 	public static synthetic fun findSocket$default (Ldev/caulis/ipc/CaulisIpc$Companion;Ljava/util/Map;Ljava/lang/String;ILjava/lang/Object;)Ljava/nio/file/Path;
 }

@@ -61,6 +61,24 @@ class ConfigFileTest {
     }
 
     @Test
+    fun `a special workspace's name with a space is a problem with its line, not a broken window later`() {
+        val problem = problems("{\n  \"rules\": [\n    { \"appId\": \"x\", \"specialWorkspace\": \"my music\" }\n  ]\n}").single()
+        assertTrue(problem.startsWith("line 3:") && "one word" in problem, problem)
+        assertEquals(emptyList(), problems("{ \"rules\": [ { \"appId\": \"x\", \"specialWorkspace\": \"special:music\" } ] }"))
+        assertTrue("one word" in kotlin.runCatching { dev.caulis.wm.WindowRule().specialWorkspace = "my music" }.exceptionOrNull()?.message.orEmpty())
+    }
+
+    @Test
+    fun `the focus after unlocking is a setting`() {
+        val caulis = Caulis()
+        val read = ConfigFile.read("{ \"unlockFocus\": \"newest-before\" }")
+        assertEquals(emptyList(), read.problems)
+        Settings.apply(caulis, read.values)
+        assertEquals(dev.caulis.core.UnlockFocus.NEWEST_BEFORE, caulis.unlockFocus)
+        assertTrue("is not one of" in problems("{ \"unlockFocus\": \"newest\" }").single())
+    }
+
+    @Test
     fun `choices forgive case and dashes`() {
         val read = ConfigFile.read("{ \"layout\": { \"name\": \"Master_Stack\" }, \"monitorEdges\": \"PROPORTIONAL\" }")
         assertEquals(emptyList(), read.problems)

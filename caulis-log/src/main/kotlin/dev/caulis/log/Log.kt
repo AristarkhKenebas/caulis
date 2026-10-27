@@ -62,6 +62,9 @@ object Log {
         "reload" to "taking on changed code while running (hot reload): compiling, what changed",
         "config" to "your own code (key bindings, rules, events): its mistakes",
         "native" to "C libraries Caulis uses, the event loop and its watchdog",
+        "autostart" to "programs started with the session: when each started, ended, was started again",
+        "reveal" to "the start: the first frame, waiting until warm, the desktop fading in",
+        "sound" to "the startup sound: made, played (by which player), or why not",
     )
 
     /** The level of every area that has none of its own. */
@@ -136,6 +139,10 @@ object Log {
             fileStream?.close()
             fileStream = value?.let {
                 it.parent?.let(Files::createDirectories)
+                // Readable by you alone (it may name programs, windows and commands), made so before the first line.
+                if (!Files.exists(it)) {
+                    runCatching { Files.createFile(it, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))) }
+                }
                 PrintStream(Files.newOutputStream(it, StandardOpenOption.CREATE, StandardOpenOption.APPEND), true)
             }
             field = value

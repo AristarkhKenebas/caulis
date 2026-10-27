@@ -28,11 +28,19 @@ data class WindowPlacement @JvmOverloads constructor(
     val focus: Boolean = true,
     /** True: pinned — it floats on whichever workspace its monitor shows (see [Desktop.setPinned]). */
     val pinned: Boolean? = null,
+    /**
+     * The special workspace it opens in ("special", "music", see [Desktop.toggleSpecialWorkspace]),
+     * hidden there until that is shown — unless [goToWorkspace]: then it is shown at once.
+     */
+    val specialWorkspace: String? = null,
 ) {
     init {
         require(workspace == null || workspace in 1..99) { "a workspace is 1 to 99, not $workspace" }
         require(width == null || width > 0) { "a width is more than 0, not $width" }
         require(height == null || height > 0) { "a height is more than 0, not $height" }
+        require(specialWorkspace == null || specialWorkspace.trim().removePrefix("special:").trim().none { it.isWhitespace() }) {
+            "a special workspace's name is one word, not \"$specialWorkspace\""
+        }
     }
 
     /** This placement with [other]'s settings on top (where [other] says something). */
@@ -50,7 +58,17 @@ data class WindowPlacement @JvmOverloads constructor(
         goToWorkspace = other.goToWorkspace || goToWorkspace,
         focus = other.focus && focus,
         pinned = other.pinned ?: pinned,
+        specialWorkspace = other.specialWorkspace ?: specialWorkspace,
     )
+
+    // Caulis 0.1's copy (code built against it calls it).
+    @Deprecated("Kept for code built against Caulis 0.1", level = DeprecationLevel.HIDDEN)
+    fun copy(
+        workspace: Int? = this.workspace, monitor: String? = this.monitor, floating: Boolean? = this.floating,
+        width: Int? = this.width, height: Int? = this.height, x: Int? = this.x, y: Int? = this.y, center: Boolean = this.center,
+        maximized: Boolean? = this.maximized, fullscreen: Boolean? = this.fullscreen, goToWorkspace: Boolean = this.goToWorkspace,
+        focus: Boolean = this.focus, pinned: Boolean? = this.pinned,
+    ): WindowPlacement = WindowPlacement(workspace, monitor, floating, width, height, x, y, center, maximized, fullscreen, goToWorkspace, focus, pinned, specialWorkspace)
 
     companion object {
         /** Everything as usual. */

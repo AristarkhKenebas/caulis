@@ -17,6 +17,17 @@ import dev.caulis.protocol.wayland.WlShmPool
  */
 class Shm(display: Display) {
 
+    /**
+     * The widest and tallest picture a program may share, in pixels (16384 by default, what
+     * GPUs show at most). A bigger one is refused when the program makes it (it would cost
+     * gigabytes to copy, and no GPU could show it); set it to your GPU's limit if it is lower.
+     */
+    var maxBufferSide: Int = MAX_BUFFER_SIDE
+        set(value) {
+            require(value in 1..MAX_BUFFER_SIDE) { "maxBufferSide is 1 to $MAX_BUFFER_SIDE, not $value" }
+            field = value
+        }
+
     init {
         display.addGlobal(WlShm, VERSION) { shm ->
             shm.requests = requests
@@ -37,7 +48,7 @@ class Shm(display: Display) {
                 resource.postError(WlShm.Error.INVALID_FD, "cannot use the shared memory: ${e.message}")
                 return
             }
-            ShmPool(id, memory)
+            ShmPool(id, memory, this@Shm)
         }
 
         override fun release(resource: WlShm) {}
@@ -50,6 +61,9 @@ class Shm(display: Display) {
         val FORMATS = listOf(WlShm.Format.ARGB8888, WlShm.Format.XRGB8888)
 
         const val BYTES_PER_PIXEL = 4
+
+        /** The default (and largest) [maxBufferSide]. */
+        const val MAX_BUFFER_SIDE = 16384
     }
 }
 
@@ -57,7 +71,7 @@ class Shm(display: Display) {
  * A piece of shared memory a client gave us; buffers are rectangles inside it.
  * The memory is released when the pool and all its buffers are gone.
  */
-class ShmPool internal constructor(resource: WlShmPool, private var memory: SharedMemory) {
+class ShmPool internal constructor(resource: WlShmPool, private var memory: SharedMemory, private val shm: Shm) {
 
     private var users = 1 // the pool itself + every buffer made from it
 
@@ -72,6 +86,10 @@ class ShmPool internal constructor(resource: WlShmPool, private var memory: Shar
                 }
                 if (width <= 0 || height <= 0 || offset < 0 || stride < width.toLong() * Shm.BYTES_PER_PIXEL) {
                     resource.postError(WlShm.Error.INVALID_STRIDE, "invalid buffer ${width}x$height stride $stride offset $offset")
+                    return
+                }
+                if (width > shm.maxBufferSide || height > shm.maxBufferSide) {
+                    resource.postError(WlShm.Error.INVALID_STRIDE, "buffer ${width}x$height is bigger than ${shm.maxBufferSide} pixels on a side")
                     return
                 }
                 val end = offset.toLong() + stride.toLong() * height

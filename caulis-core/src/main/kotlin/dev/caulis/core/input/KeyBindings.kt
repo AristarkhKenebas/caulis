@@ -16,8 +16,9 @@ package dev.caulis.core.input
  *
  * Keys are physical (Linux key codes), so combinations work the same with every
  * keyboard layout (Super+Q stays on the same key with a Russian layout). Mouse buttons
- * ("Super+MouseSide", "mouse:276") and the wheel ("Super+WheelUp") are keys too, and a
- * modifier alone ("Super") is a tap of it: pressed and let go with nothing else in between.
+ * ("Super+MouseSide", "mouse:276"), the wheel ("Super+WheelUp") and a drawing tablet's pad
+ * buttons ("Pad1", the first) are keys too, and a modifier alone ("Super") is a tap of it:
+ * pressed and let go with nothing else in between.
  */
 class KeyBindings {
 
@@ -42,6 +43,19 @@ class KeyBindings {
         companion object {
             fun of(code: Int): Modifier? = entries.firstOrNull { code in it.codes }
         }
+    }
+
+    /**
+     * Which modifier a key is, if any. By default the keys' physical places (left and right
+     * Ctrl, Alt, Shift, Super); give `seat::modifierOfKey` to follow the user's keyboard
+     * options instead (Caps Lock made Super by `caps:super`, Alt and Super swapped).
+     */
+    var modifierOf: (evdevCode: Int) -> Modifier? = { Modifier.of(it) }
+
+    private fun modifier(code: Int): Modifier? = try {
+        modifierOf(code)
+    } catch (e: Exception) {
+        Modifier.of(code)
     }
 
     private val bindings = ArrayList<Binding>()
@@ -87,10 +101,10 @@ class KeyBindings {
     }
 
     /** True while [modifier] is held down (e.g. for Super+drag to move windows). */
-    fun isHeld(modifier: Modifier): Boolean = held.any { it in modifier.codes }
+    fun isHeld(modifier: Modifier): Boolean = held.any { modifier(it) == modifier }
 
     /** The modifiers held down now. */
-    fun heldModifiers(): Set<Modifier> = held.mapNotNull(Modifier::of).toSet()
+    fun heldModifiers(): Set<Modifier> = held.mapNotNull(::modifier).toSet()
 
     /**
      * Handles a key or mouse button (Linux codes); returns true if it belonged to a
@@ -104,7 +118,7 @@ class KeyBindings {
             // A modifier alone pressed and let go: its tap.
             val tap = tapCandidate
             tapCandidate = null
-            if (tap != null && Modifier.of(evdevCode) != null) {
+            if (tap != null && modifier(evdevCode) != null) {
                 bindings.lastOrNull { it.key == null && it.modifiers == wasModifiers }?.let { it.action(); return false }
             }
             onRelease.remove(evdevCode)?.let { it.action(); swallowed.remove(evdevCode); return true }
@@ -112,8 +126,8 @@ class KeyBindings {
         }
         held += evdevCode
         val active = heldModifiers()
-        tapCandidate = if (Modifier.of(evdevCode) != null && held.all { Modifier.of(it) != null }) active else null
-        if (Modifier.of(evdevCode) != null) return false
+        tapCandidate = if (modifier(evdevCode) != null && held.all { modifier(it) != null }) active else null
+        if (modifier(evdevCode) != null) return false
         // Exact match: Super+Q does not also fire for Super+Shift+Q.
         val binding = bindings.lastOrNull { it.key == evdevCode && it.modifiers == active } ?: return false
         swallowed += evdevCode
@@ -299,7 +313,16 @@ class KeyBindings {
             names(WHEEL_DOWN, "WheelDown", "ScrollDown", "MouseDown")
             names(WHEEL_LEFT, "WheelLeft", "ScrollLeft")
             names(WHEEL_RIGHT, "WheelRight", "ScrollRight")
+            // A tablet pad's buttons, from 1 (as printed on tablets).
+            for (n in 1..PAD_BUTTONS) names(padButton(n - 1), "Pad$n", "PadButton$n", "TabletPad$n")
         }
+
+        /** How many pad buttons have names ("Pad1" to "Pad32"). */
+        const val PAD_BUTTONS = 32
+
+        /** The pretend key code of a tablet pad's button [index] (0 the first: "Pad1"), for [key]. */
+        @JvmStatic
+        fun padButton(index: Int): Int = 0x10100 + index
 
         /** Pretend key codes for one step of the wheel. */
         const val WHEEL_UP = 0x10001

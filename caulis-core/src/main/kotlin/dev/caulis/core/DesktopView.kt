@@ -15,13 +15,25 @@ class DesktopView internal constructor(monitor: Monitor) {
 
     /** The monitor this view shows. */
     var monitor: Monitor = monitor
-        internal set
+        internal set(value) {
+            if (value !== field) everything = true // (another part of the desktop now)
+            field = value
+        }
 
     // What the last frame on this screen showed, in drawing order.
     internal var shown: List<DrawItem> = emptyList()
 
     /** The monitor's cursor plane, if the backend has one for it (the cursor then needs no frames). */
     var hardwareCursor: HardwareCursor? = null
+        set(value) {
+            if (value === field) return
+            // The plane given up shows nothing any more (else its cursor stayed on screen).
+            field?.takeIf { planeCursorKey != null }?.hide()
+            field = value
+            planeCursorKey = null
+            cursorOnPlane = false
+            everything = true
+        }
 
     // The cursor is on the plane now (so the frames leave it out).
     internal var cursorOnPlane = false
@@ -49,9 +61,11 @@ class DesktopView internal constructor(monitor: Monitor) {
     /** True if something on this screen changed since the last frame. */
     val hasChanges: Boolean get() = everything || pending.isNotEmpty()
 
+    // Only what is on this view's monitor counts (a change on another one is no reason to
+    // draw a frame here: each monitor has its own picture, blur reads only its own).
     internal fun damage(rect: Rect) {
         if (rect.isEmpty) return
-        add(pending, rect)
+        add(pending, rect.intersect(monitor.area) ?: return)
     }
 
     /**
@@ -242,6 +256,8 @@ internal sealed class DrawItem {
         val paint: dev.caulis.render.Paint,
         val alpha: Float = 1f,
         val time: Float = 0f,
+        /** The window's state, for a shader paint. */
+        val state: dev.caulis.render.PaintState = dev.caulis.render.PaintState.NONE,
     ) : DrawItem() {
         // A frame along the inside of [rect]: its width plus the round corners.
         override val areas: List<Rect> get() {

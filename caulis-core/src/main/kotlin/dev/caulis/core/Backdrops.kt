@@ -50,6 +50,9 @@ internal class Backdrops(
     /** How long one background takes to melt into the next. */
     var changeMillis = 400L
 
+    /** The melting's settings, given its usual time ([changeMillis]); the desktop's "fadeBackground" animation. */
+    var fade: (Long) -> ResolvedAnimation = { ResolvedAnimation("fadeBackground", true, it, Curve.SMOOTH, null) }
+
     private fun backgroundOf(monitor: Monitor, workspace: Int): Background = try {
         backgroundFor?.invoke(monitor, workspace) ?: background
     } catch (e: Throwable) {
@@ -71,15 +74,17 @@ internal class Backdrops(
         this.largestScale = largestScale
         val wanted = backgroundOf(monitor, workspace)
         val before = shown.put(monitor.name, wanted)
-        if (before != null && before != wanted && changeMillis > 0) leaving[monitor.name] = before to now
+        val melt = fade(changeMillis)
+        if (before != null && before != wanted && melt.on) leaving[monitor.name] = before to now
         val items = ArrayList<DrawItem>(2)
         items += item(monitor, workspace, wanted, 1f, pointerX, pointerY, now, "background ${monitor.name}")
         leaving[monitor.name]?.let { (old, since) ->
-            val t = (now - since) / (changeMillis * 1_000_000.0)
-            if (t >= 1.0) {
+            val t = (now - since) / (melt.effectiveMillis.coerceAtLeast(1) * 1_000_000.0)
+            if (t >= 1.0 || !melt.on) {
                 leaving -= monitor.name
             } else {
-                items += item(monitor, workspace, old, (1 - t * t * (3 - 2 * t)).toFloat(), pointerX, pointerY, now, "background before ${monitor.name}")
+                val alpha = try { 1 - melt.curve.at(t) } catch (e: Exception) { 1 - t }
+                items += item(monitor, workspace, old, alpha.toFloat().coerceIn(0f, 1f), pointerX, pointerY, now, "background before ${monitor.name}")
             }
         }
         return items

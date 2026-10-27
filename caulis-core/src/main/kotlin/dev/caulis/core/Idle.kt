@@ -125,9 +125,17 @@ class Idle(display: Display, private val loop: EventLoop, private val desktop: D
         }
     }
 
+    /**
+     * Idle inhibitors and windows whose rules say [WindowBehavior.keepsAwake] keep the computer awake
+     * while the session is locked too (false by default: once locked, a paused video does not
+     * keep the screen on). [inhibitedByUser] counts either way.
+     */
+    var inhibitorsWorkWhileLocked = false
+
     /** True while something keeps the computer from counting as idle. */
     fun inhibited(): Boolean {
         if (inhibitedByUser) return true
+        if (desktop.locked && !inhibitorsWorkWhileLocked) return false
         val shown = desktop.monitors.flatMap { it.workspace.windows }.toSet()
         if (inhibitors.values.any { surface -> isShown(surface, shown) }) return true
         // Windows whose rules keep the screen on (videos without idle-inhibit of their own).
@@ -135,13 +143,14 @@ class Idle(display: Display, private val loop: EventLoop, private val desktop: D
         return fullscreenInhibits && shown.any { it.fullscreen && it.mapped }
     }
 
-    // A window's surface on a workspace a monitor shows (a panel's always counts).
+    // A window's surface on a workspace a monitor shows, or a panel's on a monitor that is on
+    // (one never shown, or on a monitor gone or off, keeps nothing awake).
     private fun isShown(surface: Surface, shown: Set<Window>): Boolean {
         var root = surface
         while (true) root = root.subsurface?.parent ?: break
         return when (val role = root.roleObject) {
             is Window -> role in shown && !desktop.isMinimized(role)
-            is LayerSurface -> true
+            is LayerSurface -> role.mapped && desktop.monitorOfLayer(role)?.powered == true
             else -> false
         }
     }

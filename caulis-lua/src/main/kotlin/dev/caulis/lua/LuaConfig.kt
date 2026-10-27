@@ -42,10 +42,22 @@ import java.nio.file.Path
  * ```
  *
  * A mistake is reported with its line and the rest still applies. Lua code that runs too
- * long (a loop that never ends, also inside pcall or a coroutine) is stopped, so the desktop
- * does not freeze. It is your own code, as trusted as config.kts: os and io are there
- * (os.execute starts programs), only the debug hooks and Java itself (luajava) are not. Code typed at
- * `--repl` (or sent with `--lua`) runs in this same state, with its variables.
+ * long (a loop that never ends, also inside pcall, a coroutine or a string pattern that
+ * backtracks without end) is stopped, so the desktop does not freeze. Code that needs more
+ * memory than there is is stopped too, and then nothing of config.lua runs any more until
+ * it is read again (a save, a reload). It is your own code, as trusted as config.kts: os
+ * and io are there, and what would surely stop the desktop is taken out of them (reading a
+ * pipe or a terminal you open yourself still waits). `os.execute` and `caulis.launch` start a program
+ * inside the compositor without waiting for it (at the top of the file: once, when the
+ * compositor starts — not on each save, not for `--check-config`); `io.popen` and `os.exit`
+ * are not there (`caulis.run("quit")` quits), the standard input is empty. The debug hooks,
+ * Java itself (luajava) and Java classes through `require` are not there either: `require`
+ * finds only Lua files next to config.lua. Code typed at `--repl` (or sent with `--lua`) runs
+ * in this same state, with its variables. One call into it (a key, an event, a layout) may
+ * run [Caulis.scriptCallLimitMillis].
+ *
+ * A [ConfigLanguage]: Caulis finds it by itself when caulis-lua is on the class path — there
+ * is nothing to call.
  */
 class LuaConfig : ConfigLanguage {
 
@@ -60,6 +72,8 @@ class LuaConfig : ConfigLanguage {
 
     // One run of config.lua: its Lua state, and what it reports.
     private class Script(val caulis: Caulis, val file: Path) {
+        // How long one call (a key, an event, a layout) may run: the configuration's setting.
+        fun callLimit(): Long = caulis.scriptCallLimitMillis * 1_000_000L
         val log = Logger("lua")
         val name = file.fileName.toString()
         val problems = ArrayList<String>()
@@ -79,26 +93,56 @@ class LuaConfig : ConfigLanguage {
         // does not catch.
         val hook = object : VarArgFunction() {
             override fun invoke(args: Varargs): Varargs {
-                if (System.nanoTime() > deadline) throw TooLong()
+                checkTime()
                 return NONE
             }
         }
+
+        fun checkTime() {
+            if (System.nanoTime() > deadline) throw TooLong()
+        }
+
+        // Its Lua state needed more memory than there is (string.rep('x', 2^30) .. ...): it
+        // may be half-changed, so nothing of it runs any more until config.lua is read again.
+        @Volatile
+        var dropped = false
 
         init {
             globals.load(org.luaj.vm2.lib.DebugLib())
             val debug = globals.get("debug")
             sethook = debug.get("sethook")
             getinfo = debug.get("getinfo")
-            // What is left of debug: a traceback for your own messages.
-            globals.set("debug", LuaTable().also { it.set("traceback", debug.get("traceback")) })
+            // What is left of debug: a traceback for your own messages (require("debug") too).
+            val ownDebug = LuaTable().also { it.set("traceback", debug.get("traceback")) }
+            globals.set("debug", ownDebug)
             // Java from Lua could reach into the compositor's insides.
             globals.set("luajava", LuaValue.NIL)
+            val pkg = globals.get("package")
+            pkg.get("loaded").set("debug", ownDebug)
+            pkg.get("loaded").set("luajava", LuaValue.NIL)
+            // require finds what is loaded already and Lua files; not Java classes (LuaJ's third
+            // searcher: require("org.luaj.vm2.lib.DebugLib") would bring the hooks back).
+            val searchers = pkg.get("searchers")
+            pkg.set("searchers", LuaTable().also { it.set(1, searchers.get(1)); it.set(2, searchers.get(2)) })
+            pkg.set("loadlib", LuaValue.NIL)
+            pkg.set("cpath", LuaValue.valueOf(""))
+            makeSafe()
+            // Lua's pattern matching runs in Java, where the hook never comes: our own copy
+            // of it looks at the clock as it goes (whichever script runs on this thread).
+            LuaPatterns { RUNNING.get()?.checkTime() }.install(globals.get("string").checktable())
             // A coroutine runs on a thread of its own: it gets the time limit too.
             val coroutine = globals.get("coroutine")
             val create = coroutine.get("create")
             coroutine.set("create", object : VarArgFunction() {
                 override fun invoke(args: Varargs): Varargs {
-                    val thread = create.call(args.arg1())
+                    val fn = args.checkfunction(1)
+                    val body = object : VarArgFunction() {
+                        override fun invoke(args: Varargs): Varargs {
+                            RUNNING.set(this@Script)
+                            return fn.invoke(args)
+                        }
+                    }
+                    val thread = create.call(body)
                     sethook.invoke(LuaValue.varargsOf(arrayOf(thread, hook, LuaValue.valueOf(""), LuaValue.valueOf(HOOK_EVERY))))
                     return thread
                 }
@@ -122,22 +166,69 @@ class LuaConfig : ConfigLanguage {
             )
         }
 
+        // os and io as far as nothing in them can stop the desktop: programs start without being
+        // waited for, the compositor does not quit, nothing waits for the standard input.
+        fun makeSafe() {
+            val os = globals.get("os")
+            os.set("execute", object : VarArgFunction() {
+                override fun invoke(args: Varargs): Varargs {
+                    // (No command: "is there a shell?" — yes.)
+                    if (args.isnoneornil(1)) return LuaValue.TRUE
+                    launch(args.checkjstring(1), "os.execute")
+                    return LuaValue.varargsOf(arrayOf(LuaValue.TRUE, LuaValue.valueOf("exit"), LuaValue.valueOf(0)))
+                }
+            })
+            os.set("exit", object : VarArgFunction() {
+                override fun invoke(args: Varargs): Varargs =
+                    throw LuaError("os.exit would end the compositor at once: caulis.run(\"quit\") quits it")
+            })
+            val io = globals.get("io")
+            io.set("popen", object : VarArgFunction() {
+                override fun invoke(args: Varargs): Varargs =
+                    throw LuaError("io.popen waits for the program, and the desktop with it: os.execute or caulis.launch start one without waiting")
+            })
+            // The standard input is empty: io.read() and io.lines() never wait for a terminal.
+            io.get("input").call(LuaValue.valueOf("/dev/null"))
+            io.set("stdin", io.get("input").call())
+        }
+
+        // Starts [command] inside the compositor without waiting for it. In the file itself
+        // (the compositor is not running yet) once it starts — once only: not again when the
+        // file is read again (a save, a reload) or only checked (--check-config).
+        fun launch(command: String, what: String) {
+            if (caulis.runningOrNull() != null) {
+                caulis.launch(command)
+                return
+            }
+            log.info { "$what at the top of $name: started once the compositor runs (not on each save)" }
+            caulis.onStart { launch(command) }
+        }
+
         // Runs [body] with [limit] nanoseconds at most (or less, when called from Lua code
         // that has less time left).
         inline fun <T> limited(limit: Long, body: () -> T): T {
             val outer = deadline
+            val outerScript = RUNNING.get()
             deadline = minOf(outer, System.nanoTime() + limit)
+            RUNNING.set(this)
             try {
                 return body()
             } finally {
                 deadline = outer
+                RUNNING.set(outerScript)
             }
         }
 
         // What went wrong in Lua code, in words (also errors Java throws for it: a stack
         // overflow, a string too big).
         fun problem(e: Throwable): String {
-            if (e is OutOfMemoryError) throw e
+            if (e is OutOfMemoryError) {
+                // (Lua's garbage is unreachable by now; an array "beyond the VM limit" took
+                // nothing at all.) The desktop goes on; this Lua state does not.
+                dropped = true
+                log.error("$name needed too much memory (${e.message}): its keys, events, timers and layout are off until it is read again")
+                return "it needs too much memory ($name is off until it is read again)"
+            }
             return when (e) {
                 is TooLong -> "it runs too long (an endless loop?)"
                 is LuaError -> if (e.cause is TooLong) "it runs too long (an endless loop?)" else message(e)
@@ -168,8 +259,10 @@ class LuaConfig : ConfigLanguage {
         }
 
         // Code typed at --repl: run in this state; what it returns, as text.
-        fun eval(code: String): Result<String> = try {
-            val results = limited(CALL_LIMIT) { globals.load(code, "=repl").invoke() }
+        fun eval(code: String): Result<String> = if (dropped) {
+            Result.failure(IllegalStateException("$name needed too much memory: it is off until it is read again"))
+        } else try {
+            val results = limited(callLimit()) { globals.load(code, "=repl").invoke() }
             Result.success((1..results.narg()).joinToString("\t") { show(results.arg(it)) })
         } catch (e: Throwable) {
             Result.failure(IllegalArgumentException(problem(e)))
@@ -252,7 +345,7 @@ class LuaConfig : ConfigLanguage {
                 val binding = try {
                     if (mode != null) {
                         var made: Caulis.Binding? = null
-                        caulis.mode(mode) { made = bind(combination, options, run) }
+                        caulis.keyMode(mode) { made = bind(combination, options, run) }
                         made!!
                     } else {
                         caulis.bind(combination, options, run)
@@ -263,7 +356,7 @@ class LuaConfig : ConfigLanguage {
                 handle("unbind" to { _ -> binding.unbind() }, "setEnabled" to { a -> binding.enabled = a.arg1().toboolean() })
             }
             function("mode") { args ->
-                running("mode") { enterMode(args.optjstring(1, null)?.takeIf { it != "reset" }) }
+                running("mode") { enterKeyMode(args.optjstring(1, null)?.takeIf { it != "reset" }) }
                 LuaValue.NONE
             }
             function("on") { args ->
@@ -286,6 +379,7 @@ class LuaConfig : ConfigLanguage {
                     "monitor-added" -> caulis.onMonitorAdded { name -> call("on monitor-added", fn, LuaValue.valueOf(name)) }
                     "monitor-removed" -> caulis.onMonitorRemoved { name -> call("on monitor-removed", fn, LuaValue.valueOf(name)) }
                     "lid" -> caulis.onLid { closed -> call("on lid", fn, LuaValue.valueOf(closed)) }
+                    "quit" -> caulis.onQuit { call("on quit", fn) }
                     "color-scheme" -> caulis.onColorSchemeChanged { scheme -> call("on color-scheme", fn, LuaValue.valueOf(scheme.name.lowercase())) }
                     "notice" -> caulis.onNotice { n: Notice -> call("on notice", fn, LuaValue.valueOf(n.text), LuaValue.valueOf(n.level.name.lowercase())) }
                     else -> throw LuaError("there is no event \"$event\" (there are: ${EVENTS.joinToString()})")
@@ -345,6 +439,10 @@ class LuaConfig : ConfigLanguage {
                 LuaValue.NONE
             }
             function("file") { args -> LuaValue.valueOf(caulis.file(args.checkjstring(1)).toString()) }
+            function("launch") { args ->
+                launch(args.checkjstring(1), "caulis.launch")
+                LuaValue.NONE
+            }
             return api
         }
 
@@ -402,8 +500,9 @@ class LuaConfig : ConfigLanguage {
 
         // Calls [fn] (a key, an event, a timer); a mistake is shown, never thrown at the desktop.
         fun call(what: String, fn: LuaValue, vararg args: LuaValue) {
+            if (dropped) return
             try {
-                limited(CALL_LIMIT) { fn.invoke(LuaValue.varargsOf(args)) }
+                limited(callLimit()) { fn.invoke(LuaValue.varargsOf(args)) }
             } catch (e: Throwable) {
                 val message = "$what: ${problem(e)}"
                 log.warn(message)
@@ -475,8 +574,8 @@ class LuaConfig : ConfigLanguage {
                     set("width", area.width)
                     set("height", area.height)
                 }
-                val problem = try {
-                    val result = limited(CALL_LIMIT) { fn.call(list, box, LuaValue.valueOf(focused + 1)) }
+                val problem = if (dropped) "$name needed too much memory" else try {
+                    val result = limited(callLimit()) { fn.call(list, box, LuaValue.valueOf(focused + 1)) }
                     if (!result.istable()) "it returned ${result.typename()}, not a table of rectangles" else {
                         val rects = (1..windows.size).map { i ->
                             val r = result.get(i)
@@ -534,13 +633,15 @@ class LuaConfig : ConfigLanguage {
     internal companion object {
         val EVENTS = listOf(
             "start", "reload", "unload", "window-opened", "window-closed", "window-changed", "focus-changed",
-            "workspace-changed", "monitor-added", "monitor-removed", "notice", "lid", "color-scheme",
+            "workspace-changed", "monitor-added", "monitor-removed", "notice", "lid", "color-scheme", "quit",
         )
 
-        // How long Lua code may run: the whole file, and one key, event or timer.
+        // How long Lua code may run: the whole file (one key, event or timer: Caulis.scriptCallLimitMillis).
         @Volatile
         var LOAD_LIMIT = 5_000_000_000L // (tests shorten it)
-        const val CALL_LIMIT = 500_000_000L
+
+        // The script whose Lua code runs on a thread now (for the pattern matcher's clock).
+        private val RUNNING = ThreadLocal<Script?>()
 
         // How many Lua instructions between two looks at the clock.
         const val HOOK_EVERY = 10_000

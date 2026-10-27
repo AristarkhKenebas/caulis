@@ -141,7 +141,44 @@ class Xwayland(
     }
 
     private fun server(name: String, listener: UnixListener, pixelScale: () -> Double, onStopped: (XServer) -> Unit) =
-        XServer(name, displayName, display, desktop, loop, clipboard, listener, pixelScale, { terminateArguments }, onStopped)
+        XServer(name, displayName, display, desktop, loop, clipboard, listener, pixelScale, { terminateArguments }, restarts, onStopped)
+
+    /**
+     * After Xwayland failed to start (not installed, quitting before it was ready, or crashing
+     * sooner than [restartDelayMaxMillis] after it was ready) it is tried again with the next
+     * X11 program after this many milliseconds (1 s by default), twice as long after each
+     * failure in a row, up to [restartDelayMaxMillis].
+     */
+    var restartDelayMillis: Long = 1000
+        set(value) {
+            require(value >= 0) { "restartDelayMillis cannot be negative, not $value" }
+            field = value
+        }
+
+    /** The longest wait between tries to start a failing Xwayland (60 s by default). */
+    var restartDelayMaxMillis: Long = 60_000
+        set(value) {
+            require(value >= 0) { "restartDelayMaxMillis cannot be negative, not $value" }
+            field = value
+        }
+
+    /**
+     * After this many failed starts in a row Xwayland is not tried any more: X11 programs are
+     * turned away at once (instead of waiting forever) until [retry] (5 by default).
+     */
+    var maxFailedStarts: Int = 5
+        set(value) {
+            require(value >= 1) { "maxFailedStarts must be at least 1, not $value" }
+            field = value
+        }
+
+    /** Tries Xwayland again after it failed to start (e.g. once it was installed): the next X11 program starts it. */
+    fun retry() {
+        for (server in servers) server.retry()
+    }
+
+    // (Read by each Xwayland when it fails: the settings as they are then.)
+    private val restarts get() = XServer.Restarts({ restartDelayMillis }, { restartDelayMaxMillis }, { maxFailedStarts })
 
     // The Xwayland at [scale] (made if there is none: it starts with its first program).
     private fun world(scale: Double): XServer = worlds.getOrPut(scale) {

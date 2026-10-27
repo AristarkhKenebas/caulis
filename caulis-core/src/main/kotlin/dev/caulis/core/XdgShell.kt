@@ -58,6 +58,17 @@ class XdgShell(private val display: Display) {
 
         fun popupMapped(popup: Popup) {}
         fun popupUnmapped(popup: Popup) {}
+        /**
+         * [popup] wants the keyboard while it is open (a menu). [serial] is the input event the
+         * program answers (see [dev.caulis.core.input.Seat.isInputSerial]); refuse by
+         * dismissing the popup. By default it calls the old [popupGrab] without the serial (a
+         * listener written for Caulis 0.1.1 still hears it).
+         */
+        @Suppress("DEPRECATION")
+        fun popupGrab(popup: Popup, serial: Int) = popupGrab(popup)
+
+        /** Caulis 0.1.1's popupGrab, without the serial (called by the new one unless that is overridden). */
+        @Deprecated("Override popupGrab(popup, serial) and check the serial")
         fun popupGrab(popup: Popup) {}
     }
 
@@ -82,6 +93,11 @@ class XdgShell(private val display: Display) {
             }
             if (target.current.buffer != null) {
                 resource.postError(XdgWmBase.Error.INVALID_SURFACE_STATE, "surface already has a buffer")
+                return
+            }
+            // One xdg_surface at a time (two would make two windows of one surface).
+            if (target.shellSurface?.resource?.isAlive == true) {
+                resource.postError(XdgWmBase.Error.ROLE, "the surface already has an xdg_surface")
                 return
             }
             ShellSurface(id, target, this@XdgShell)
@@ -211,8 +227,12 @@ class ShellSurface internal constructor(
                 acknowledged = true
             }
         }
+        surface.shellSurface = this
         surface.onCommit { committed() }
-        resource.onDestroy { roleDestroyed() }
+        resource.onDestroy {
+            roleDestroyed()
+            if (surface.shellSurface === this) surface.shellSurface = null
+        }
     }
 
     private fun committed() {
@@ -267,9 +287,14 @@ class ShellSurface internal constructor(
     internal fun sendConfigure() {
         val serial = shell.nextSerial()
         sentSerials += serial
+        // (A program that never answers keeps only the newest ones: the list does not grow for ever.)
+        while (sentSerials.size > MAX_UNANSWERED_CONFIGURES) sentSerials.removeFirst()
         resource.sendConfigure(serial)
     }
 }
+
+// Configures kept waiting for the program's answer.
+private const val MAX_UNANSWERED_CONFIGURES = 128
 
 /** A Wayland program's window (xdg_toplevel). */
 class XdgWindow internal constructor(val resource: XdgToplevel, val shell: ShellSurface) : Window() {
@@ -304,13 +329,16 @@ class XdgWindow internal constructor(val resource: XdgToplevel, val shell: Shell
                 this@XdgWindow.parent = wanted
             }
 
-            override fun setTitle(resource: XdgToplevel, title: String) {
+            override fun setTitle(resource: XdgToplevel, wanted: String) {
+                // (Passed on to panels and docks: cut to what any program can take.)
+                val title = resource.client.server.capForwarded(wanted)
                 if (title == this@XdgWindow.title) return
                 this@XdgWindow.title = title
                 shell.shell.listener.windowInfoChanged(this@XdgWindow)
             }
 
-            override fun setAppId(resource: XdgToplevel, appId: String) {
+            override fun setAppId(resource: XdgToplevel, wanted: String) {
+                val appId = resource.client.server.capForwarded(wanted)
                 if (appId == this@XdgWindow.appId) return
                 this@XdgWindow.appId = appId
                 shell.shell.listener.windowInfoChanged(this@XdgWindow)
@@ -435,7 +463,7 @@ class Popup internal constructor(
                     resource.postError(XdgPopup.Error.INVALID_GRAB, "a grab after the popup was mapped")
                     return
                 }
-                shell.shell.listener.popupGrab(this@Popup)
+                shell.shell.listener.popupGrab(this@Popup, serial)
             }
 
             override fun reposition(resource: XdgPopup, positioner: XdgPositioner, token: Int) {

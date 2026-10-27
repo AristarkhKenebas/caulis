@@ -62,7 +62,8 @@ private class ColumnsModel(private val gaps: Gaps, private val widths: List<Doub
         }
 
         val inner = gaps.inset(area)
-        val pixelWidths = columns.map { ((inner.width + gaps.inner) * it.width).toInt() - gaps.inner }
+        // (A column is never narrower than its widest window's minimum: the strip just scrolls further.)
+        val pixelWidths = columns.map { c -> maxOf(((inner.width + gaps.inner) * c.width).toInt() - gaps.inner, c.windows.maxOfOrNull { it.minWidth } ?: 0) }
         val starts = pixelWidths.runningFold(0) { x, w -> x + w + gaps.inner }
         val stripWidth = (starts.last() - gaps.inner).coerceAtLeast(0)
 
@@ -85,7 +86,7 @@ private class ColumnsModel(private val gaps: Gaps, private val widths: List<Doub
         val rects = HashMap<LayoutWindow, Rect>()
         for ((i, column) in columns.withIndex()) {
             val columnRect = Rect(inner.x + starts[i] - scroll, inner.y, pixelWidths[i].coerceAtLeast(1), inner.height)
-            Split.evenly(columnRect, column.windows.size, gaps.inner, vertical = true)
+            Split.evenly(columnRect, column.windows.size, gaps.inner, true, column.windows.map { it.minHeight.coerceAtLeast(0) })
                 .forEachIndexed { j, r -> rects[column.windows[j]] = r }
         }
         return windows.map { rects.getValue(it) }

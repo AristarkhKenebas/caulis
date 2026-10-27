@@ -19,9 +19,33 @@ internal object Gl {
         delete(1, arena.allocateFrom(JAVA_INT, id))
     }
 
-    /** Throws if OpenGL reported an error since the last check. */
+    private val log = dev.caulis.log.Logger("render")
+
+    /**
+     * Throws if OpenGL reported an error since the last check. Call [drain] before the
+     * operation, so an error left by something else is not blamed on it.
+     */
     fun check(what: String) {
         val error = Gles.glGetError()
         if (error != Gles.GL_NO_ERROR()) error("OpenGL error 0x${Integer.toHexString(error)} in $what")
     }
+
+    /**
+     * Reads and forgets OpenGL's errors so far (it keeps them until asked), logging them as
+     * [whose]: a later checked call (a program's texture) must not fail for them. Returns
+     * true if there were any.
+     */
+    fun drain(whose: String): Boolean {
+        var any = false
+        repeat(MAX_ERRORS) {
+            val error = Gles.glGetError()
+            if (error == Gles.GL_NO_ERROR()) return any
+            any = true
+            log.warn("OpenGL error 0x${Integer.toHexString(error)} in $whose (ignored)")
+        }
+        return any
+    }
+
+    // OpenGL keeps one error per kind: this many reads empty the list.
+    private const val MAX_ERRORS = 16
 }

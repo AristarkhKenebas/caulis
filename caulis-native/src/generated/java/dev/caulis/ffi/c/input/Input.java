@@ -204,6 +204,66 @@ public class Input extends Input$shared {
         }
     }
 
+    private static class udev_device_get_devnode {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("udev_device_get_devnode");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * const char *udev_device_get_devnode(struct udev_device *udev_device)
+     * }
+     */
+    public static FunctionDescriptor udev_device_get_devnode$descriptor() {
+        return udev_device_get_devnode.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * const char *udev_device_get_devnode(struct udev_device *udev_device)
+     * }
+     */
+    public static MethodHandle udev_device_get_devnode$handle() {
+        return udev_device_get_devnode.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * const char *udev_device_get_devnode(struct udev_device *udev_device)
+     * }
+     */
+    public static MemorySegment udev_device_get_devnode$address() {
+        return udev_device_get_devnode.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * const char *udev_device_get_devnode(struct udev_device *udev_device)
+     * }
+     */
+    public static MemorySegment udev_device_get_devnode(MemorySegment udev_device) {
+        var mh$ = udev_device_get_devnode.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("udev_device_get_devnode", udev_device);
+            }
+            return (MemorySegment)mh$.invokeExact(udev_device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
     private static class udev_device_get_property_value {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             Input.C_POINTER,
@@ -783,6 +843,15 @@ public class Input extends Input$shared {
     public static int LIBINPUT_DEVICE_CAP_TABLET_TOOL() {
         return LIBINPUT_DEVICE_CAP_TABLET_TOOL;
     }
+    private static final int LIBINPUT_DEVICE_CAP_TABLET_PAD = (int)4L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_device_capability.LIBINPUT_DEVICE_CAP_TABLET_PAD = 4
+     * }
+     */
+    public static int LIBINPUT_DEVICE_CAP_TABLET_PAD() {
+        return LIBINPUT_DEVICE_CAP_TABLET_PAD;
+    }
     private static final int LIBINPUT_DEVICE_CAP_GESTURE = (int)5L;
     /**
      * {@snippet lang=c :
@@ -836,6 +905,589 @@ public class Input extends Input$shared {
      */
     public static int LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL() {
         return LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL;
+    }
+    private static final int LIBINPUT_TABLET_PAD_RING_SOURCE_FINGER = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_pad_ring_axis_source.LIBINPUT_TABLET_PAD_RING_SOURCE_FINGER = 2
+     * }
+     */
+    public static int LIBINPUT_TABLET_PAD_RING_SOURCE_FINGER() {
+        return LIBINPUT_TABLET_PAD_RING_SOURCE_FINGER;
+    }
+    private static final int LIBINPUT_TABLET_PAD_STRIP_SOURCE_FINGER = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_pad_strip_axis_source.LIBINPUT_TABLET_PAD_STRIP_SOURCE_FINGER = 2
+     * }
+     */
+    public static int LIBINPUT_TABLET_PAD_STRIP_SOURCE_FINGER() {
+        return LIBINPUT_TABLET_PAD_STRIP_SOURCE_FINGER;
+    }
+    private static final int LIBINPUT_TABLET_TOOL_TYPE_PEN = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_type.LIBINPUT_TABLET_TOOL_TYPE_PEN = 1
+     * }
+     */
+    public static int LIBINPUT_TABLET_TOOL_TYPE_PEN() {
+        return LIBINPUT_TABLET_TOOL_TYPE_PEN;
+    }
+    private static final int LIBINPUT_TABLET_TOOL_TYPE_ERASER = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_type.LIBINPUT_TABLET_TOOL_TYPE_ERASER = 2
+     * }
+     */
+    public static int LIBINPUT_TABLET_TOOL_TYPE_ERASER() {
+        return LIBINPUT_TABLET_TOOL_TYPE_ERASER;
+    }
+    private static final int LIBINPUT_TABLET_TOOL_TYPE_BRUSH = (int)3L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_type.LIBINPUT_TABLET_TOOL_TYPE_BRUSH = 3
+     * }
+     */
+    public static int LIBINPUT_TABLET_TOOL_TYPE_BRUSH() {
+        return LIBINPUT_TABLET_TOOL_TYPE_BRUSH;
+    }
+    private static final int LIBINPUT_TABLET_TOOL_TYPE_PENCIL = (int)4L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_type.LIBINPUT_TABLET_TOOL_TYPE_PENCIL = 4
+     * }
+     */
+    public static int LIBINPUT_TABLET_TOOL_TYPE_PENCIL() {
+        return LIBINPUT_TABLET_TOOL_TYPE_PENCIL;
+    }
+    private static final int LIBINPUT_TABLET_TOOL_TYPE_AIRBRUSH = (int)5L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_type.LIBINPUT_TABLET_TOOL_TYPE_AIRBRUSH = 5
+     * }
+     */
+    public static int LIBINPUT_TABLET_TOOL_TYPE_AIRBRUSH() {
+        return LIBINPUT_TABLET_TOOL_TYPE_AIRBRUSH;
+    }
+    private static final int LIBINPUT_TABLET_TOOL_TYPE_MOUSE = (int)6L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_type.LIBINPUT_TABLET_TOOL_TYPE_MOUSE = 6
+     * }
+     */
+    public static int LIBINPUT_TABLET_TOOL_TYPE_MOUSE() {
+        return LIBINPUT_TABLET_TOOL_TYPE_MOUSE;
+    }
+    private static final int LIBINPUT_TABLET_TOOL_TYPE_LENS = (int)7L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_type.LIBINPUT_TABLET_TOOL_TYPE_LENS = 7
+     * }
+     */
+    public static int LIBINPUT_TABLET_TOOL_TYPE_LENS() {
+        return LIBINPUT_TABLET_TOOL_TYPE_LENS;
+    }
+    private static final int LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_IN = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_proximity_state.LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_IN = 1
+     * }
+     */
+    public static int LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_IN() {
+        return LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_IN;
+    }
+    private static final int LIBINPUT_TABLET_TOOL_TIP_DOWN = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_tip_state.LIBINPUT_TABLET_TOOL_TIP_DOWN = 1
+     * }
+     */
+    public static int LIBINPUT_TABLET_TOOL_TIP_DOWN() {
+        return LIBINPUT_TABLET_TOOL_TIP_DOWN;
+    }
+
+    private static class libinput_device_tablet_pad_get_num_mode_groups {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_tablet_pad_get_num_mode_groups");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_mode_groups(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_tablet_pad_get_num_mode_groups$descriptor() {
+        return libinput_device_tablet_pad_get_num_mode_groups.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_mode_groups(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_tablet_pad_get_num_mode_groups$handle() {
+        return libinput_device_tablet_pad_get_num_mode_groups.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_mode_groups(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_tablet_pad_get_num_mode_groups$address() {
+        return libinput_device_tablet_pad_get_num_mode_groups.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_mode_groups(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_tablet_pad_get_num_mode_groups(MemorySegment device) {
+        var mh$ = libinput_device_tablet_pad_get_num_mode_groups.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_tablet_pad_get_num_mode_groups", device);
+            }
+            return (int)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_tablet_pad_get_mode_group {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_tablet_pad_get_mode_group");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * struct libinput_tablet_pad_mode_group *libinput_device_tablet_pad_get_mode_group(struct libinput_device *device, unsigned int index)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_tablet_pad_get_mode_group$descriptor() {
+        return libinput_device_tablet_pad_get_mode_group.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * struct libinput_tablet_pad_mode_group *libinput_device_tablet_pad_get_mode_group(struct libinput_device *device, unsigned int index)
+     * }
+     */
+    public static MethodHandle libinput_device_tablet_pad_get_mode_group$handle() {
+        return libinput_device_tablet_pad_get_mode_group.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * struct libinput_tablet_pad_mode_group *libinput_device_tablet_pad_get_mode_group(struct libinput_device *device, unsigned int index)
+     * }
+     */
+    public static MemorySegment libinput_device_tablet_pad_get_mode_group$address() {
+        return libinput_device_tablet_pad_get_mode_group.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * struct libinput_tablet_pad_mode_group *libinput_device_tablet_pad_get_mode_group(struct libinput_device *device, unsigned int index)
+     * }
+     */
+    public static MemorySegment libinput_device_tablet_pad_get_mode_group(MemorySegment device, int index) {
+        var mh$ = libinput_device_tablet_pad_get_mode_group.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_tablet_pad_get_mode_group", device, index);
+            }
+            return (MemorySegment)mh$.invokeExact(device, index);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_pad_mode_group_get_index {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_pad_mode_group_get_index");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * unsigned int libinput_tablet_pad_mode_group_get_index(struct libinput_tablet_pad_mode_group *group)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_pad_mode_group_get_index$descriptor() {
+        return libinput_tablet_pad_mode_group_get_index.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * unsigned int libinput_tablet_pad_mode_group_get_index(struct libinput_tablet_pad_mode_group *group)
+     * }
+     */
+    public static MethodHandle libinput_tablet_pad_mode_group_get_index$handle() {
+        return libinput_tablet_pad_mode_group_get_index.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * unsigned int libinput_tablet_pad_mode_group_get_index(struct libinput_tablet_pad_mode_group *group)
+     * }
+     */
+    public static MemorySegment libinput_tablet_pad_mode_group_get_index$address() {
+        return libinput_tablet_pad_mode_group_get_index.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * unsigned int libinput_tablet_pad_mode_group_get_index(struct libinput_tablet_pad_mode_group *group)
+     * }
+     */
+    public static int libinput_tablet_pad_mode_group_get_index(MemorySegment group) {
+        var mh$ = libinput_tablet_pad_mode_group_get_index.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_pad_mode_group_get_index", group);
+            }
+            return (int)mh$.invokeExact(group);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_pad_mode_group_get_num_modes {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_pad_mode_group_get_num_modes");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * unsigned int libinput_tablet_pad_mode_group_get_num_modes(struct libinput_tablet_pad_mode_group *group)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_pad_mode_group_get_num_modes$descriptor() {
+        return libinput_tablet_pad_mode_group_get_num_modes.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * unsigned int libinput_tablet_pad_mode_group_get_num_modes(struct libinput_tablet_pad_mode_group *group)
+     * }
+     */
+    public static MethodHandle libinput_tablet_pad_mode_group_get_num_modes$handle() {
+        return libinput_tablet_pad_mode_group_get_num_modes.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * unsigned int libinput_tablet_pad_mode_group_get_num_modes(struct libinput_tablet_pad_mode_group *group)
+     * }
+     */
+    public static MemorySegment libinput_tablet_pad_mode_group_get_num_modes$address() {
+        return libinput_tablet_pad_mode_group_get_num_modes.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * unsigned int libinput_tablet_pad_mode_group_get_num_modes(struct libinput_tablet_pad_mode_group *group)
+     * }
+     */
+    public static int libinput_tablet_pad_mode_group_get_num_modes(MemorySegment group) {
+        var mh$ = libinput_tablet_pad_mode_group_get_num_modes.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_pad_mode_group_get_num_modes", group);
+            }
+            return (int)mh$.invokeExact(group);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_pad_mode_group_get_mode {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_pad_mode_group_get_mode");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * unsigned int libinput_tablet_pad_mode_group_get_mode(struct libinput_tablet_pad_mode_group *group)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_pad_mode_group_get_mode$descriptor() {
+        return libinput_tablet_pad_mode_group_get_mode.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * unsigned int libinput_tablet_pad_mode_group_get_mode(struct libinput_tablet_pad_mode_group *group)
+     * }
+     */
+    public static MethodHandle libinput_tablet_pad_mode_group_get_mode$handle() {
+        return libinput_tablet_pad_mode_group_get_mode.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * unsigned int libinput_tablet_pad_mode_group_get_mode(struct libinput_tablet_pad_mode_group *group)
+     * }
+     */
+    public static MemorySegment libinput_tablet_pad_mode_group_get_mode$address() {
+        return libinput_tablet_pad_mode_group_get_mode.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * unsigned int libinput_tablet_pad_mode_group_get_mode(struct libinput_tablet_pad_mode_group *group)
+     * }
+     */
+    public static int libinput_tablet_pad_mode_group_get_mode(MemorySegment group) {
+        var mh$ = libinput_tablet_pad_mode_group_get_mode.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_pad_mode_group_get_mode", group);
+            }
+            return (int)mh$.invokeExact(group);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_pad_mode_group_has_button {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_pad_mode_group_has_button");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_tablet_pad_mode_group_has_button(struct libinput_tablet_pad_mode_group *group, unsigned int button)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_pad_mode_group_has_button$descriptor() {
+        return libinput_tablet_pad_mode_group_has_button.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_tablet_pad_mode_group_has_button(struct libinput_tablet_pad_mode_group *group, unsigned int button)
+     * }
+     */
+    public static MethodHandle libinput_tablet_pad_mode_group_has_button$handle() {
+        return libinput_tablet_pad_mode_group_has_button.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_tablet_pad_mode_group_has_button(struct libinput_tablet_pad_mode_group *group, unsigned int button)
+     * }
+     */
+    public static MemorySegment libinput_tablet_pad_mode_group_has_button$address() {
+        return libinput_tablet_pad_mode_group_has_button.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_tablet_pad_mode_group_has_button(struct libinput_tablet_pad_mode_group *group, unsigned int button)
+     * }
+     */
+    public static int libinput_tablet_pad_mode_group_has_button(MemorySegment group, int button) {
+        var mh$ = libinput_tablet_pad_mode_group_has_button.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_pad_mode_group_has_button", group, button);
+            }
+            return (int)mh$.invokeExact(group, button);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_pad_mode_group_has_ring {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_pad_mode_group_has_ring");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_tablet_pad_mode_group_has_ring(struct libinput_tablet_pad_mode_group *group, unsigned int ring)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_pad_mode_group_has_ring$descriptor() {
+        return libinput_tablet_pad_mode_group_has_ring.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_tablet_pad_mode_group_has_ring(struct libinput_tablet_pad_mode_group *group, unsigned int ring)
+     * }
+     */
+    public static MethodHandle libinput_tablet_pad_mode_group_has_ring$handle() {
+        return libinput_tablet_pad_mode_group_has_ring.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_tablet_pad_mode_group_has_ring(struct libinput_tablet_pad_mode_group *group, unsigned int ring)
+     * }
+     */
+    public static MemorySegment libinput_tablet_pad_mode_group_has_ring$address() {
+        return libinput_tablet_pad_mode_group_has_ring.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_tablet_pad_mode_group_has_ring(struct libinput_tablet_pad_mode_group *group, unsigned int ring)
+     * }
+     */
+    public static int libinput_tablet_pad_mode_group_has_ring(MemorySegment group, int ring) {
+        var mh$ = libinput_tablet_pad_mode_group_has_ring.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_pad_mode_group_has_ring", group, ring);
+            }
+            return (int)mh$.invokeExact(group, ring);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_pad_mode_group_has_strip {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_pad_mode_group_has_strip");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_tablet_pad_mode_group_has_strip(struct libinput_tablet_pad_mode_group *group, unsigned int strip)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_pad_mode_group_has_strip$descriptor() {
+        return libinput_tablet_pad_mode_group_has_strip.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_tablet_pad_mode_group_has_strip(struct libinput_tablet_pad_mode_group *group, unsigned int strip)
+     * }
+     */
+    public static MethodHandle libinput_tablet_pad_mode_group_has_strip$handle() {
+        return libinput_tablet_pad_mode_group_has_strip.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_tablet_pad_mode_group_has_strip(struct libinput_tablet_pad_mode_group *group, unsigned int strip)
+     * }
+     */
+    public static MemorySegment libinput_tablet_pad_mode_group_has_strip$address() {
+        return libinput_tablet_pad_mode_group_has_strip.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_tablet_pad_mode_group_has_strip(struct libinput_tablet_pad_mode_group *group, unsigned int strip)
+     * }
+     */
+    public static int libinput_tablet_pad_mode_group_has_strip(MemorySegment group, int strip) {
+        var mh$ = libinput_tablet_pad_mode_group_has_strip.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_pad_mode_group_has_strip", group, strip);
+            }
+            return (int)mh$.invokeExact(group, strip);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
     private static final int LIBINPUT_SWITCH_STATE_ON = (int)1L;
     /**
@@ -989,6 +1641,69 @@ public class Input extends Input$shared {
      */
     public static int LIBINPUT_EVENT_TOUCH_FRAME() {
         return LIBINPUT_EVENT_TOUCH_FRAME;
+    }
+    private static final int LIBINPUT_EVENT_TABLET_TOOL_AXIS = (int)600L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_TABLET_TOOL_AXIS = 600
+     * }
+     */
+    public static int LIBINPUT_EVENT_TABLET_TOOL_AXIS() {
+        return LIBINPUT_EVENT_TABLET_TOOL_AXIS;
+    }
+    private static final int LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY = (int)601L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY = 601
+     * }
+     */
+    public static int LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY() {
+        return LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY;
+    }
+    private static final int LIBINPUT_EVENT_TABLET_TOOL_TIP = (int)602L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_TABLET_TOOL_TIP = 602
+     * }
+     */
+    public static int LIBINPUT_EVENT_TABLET_TOOL_TIP() {
+        return LIBINPUT_EVENT_TABLET_TOOL_TIP;
+    }
+    private static final int LIBINPUT_EVENT_TABLET_TOOL_BUTTON = (int)603L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_TABLET_TOOL_BUTTON = 603
+     * }
+     */
+    public static int LIBINPUT_EVENT_TABLET_TOOL_BUTTON() {
+        return LIBINPUT_EVENT_TABLET_TOOL_BUTTON;
+    }
+    private static final int LIBINPUT_EVENT_TABLET_PAD_BUTTON = (int)700L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_TABLET_PAD_BUTTON = 700
+     * }
+     */
+    public static int LIBINPUT_EVENT_TABLET_PAD_BUTTON() {
+        return LIBINPUT_EVENT_TABLET_PAD_BUTTON;
+    }
+    private static final int LIBINPUT_EVENT_TABLET_PAD_RING = (int)701L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_TABLET_PAD_RING = 701
+     * }
+     */
+    public static int LIBINPUT_EVENT_TABLET_PAD_RING() {
+        return LIBINPUT_EVENT_TABLET_PAD_RING;
+    }
+    private static final int LIBINPUT_EVENT_TABLET_PAD_STRIP = (int)702L;
+    /**
+     * {@snippet lang=c :
+     * enum libinput_event_type.LIBINPUT_EVENT_TABLET_PAD_STRIP = 702
+     * }
+     */
+    public static int LIBINPUT_EVENT_TABLET_PAD_STRIP() {
+        return LIBINPUT_EVENT_TABLET_PAD_STRIP;
     }
     private static final int LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN = (int)800L;
     /**
@@ -1482,6 +2197,126 @@ public class Input extends Input$shared {
         try {
             if (TRACE_DOWNCALLS) {
                 traceDowncall("libinput_event_get_gesture_event", event);
+            }
+            return (MemorySegment)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_get_tablet_tool_event {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_get_tablet_tool_event");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * struct libinput_event_tablet_tool *libinput_event_get_tablet_tool_event(struct libinput_event *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_get_tablet_tool_event$descriptor() {
+        return libinput_event_get_tablet_tool_event.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * struct libinput_event_tablet_tool *libinput_event_get_tablet_tool_event(struct libinput_event *event)
+     * }
+     */
+    public static MethodHandle libinput_event_get_tablet_tool_event$handle() {
+        return libinput_event_get_tablet_tool_event.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * struct libinput_event_tablet_tool *libinput_event_get_tablet_tool_event(struct libinput_event *event)
+     * }
+     */
+    public static MemorySegment libinput_event_get_tablet_tool_event$address() {
+        return libinput_event_get_tablet_tool_event.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * struct libinput_event_tablet_tool *libinput_event_get_tablet_tool_event(struct libinput_event *event)
+     * }
+     */
+    public static MemorySegment libinput_event_get_tablet_tool_event(MemorySegment event) {
+        var mh$ = libinput_event_get_tablet_tool_event.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_get_tablet_tool_event", event);
+            }
+            return (MemorySegment)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_get_tablet_pad_event {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_get_tablet_pad_event");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * struct libinput_event_tablet_pad *libinput_event_get_tablet_pad_event(struct libinput_event *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_get_tablet_pad_event$descriptor() {
+        return libinput_event_get_tablet_pad_event.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * struct libinput_event_tablet_pad *libinput_event_get_tablet_pad_event(struct libinput_event *event)
+     * }
+     */
+    public static MethodHandle libinput_event_get_tablet_pad_event$handle() {
+        return libinput_event_get_tablet_pad_event.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * struct libinput_event_tablet_pad *libinput_event_get_tablet_pad_event(struct libinput_event *event)
+     * }
+     */
+    public static MemorySegment libinput_event_get_tablet_pad_event$address() {
+        return libinput_event_get_tablet_pad_event.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * struct libinput_event_tablet_pad *libinput_event_get_tablet_pad_event(struct libinput_event *event)
+     * }
+     */
+    public static MemorySegment libinput_event_get_tablet_pad_event(MemorySegment event) {
+        var mh$ = libinput_event_get_tablet_pad_event.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_get_tablet_pad_event", event);
             }
             return (MemorySegment)mh$.invokeExact(event);
         } catch (Error | RuntimeException ex) {
@@ -3238,6 +4073,2708 @@ public class Input extends Input$shared {
         }
     }
 
+    private static class libinput_event_tablet_tool_x_has_changed {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_x_has_changed");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_x_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_x_has_changed$descriptor() {
+        return libinput_event_tablet_tool_x_has_changed.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_x_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_x_has_changed$handle() {
+        return libinput_event_tablet_tool_x_has_changed.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_x_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_x_has_changed$address() {
+        return libinput_event_tablet_tool_x_has_changed.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_x_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_x_has_changed(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_x_has_changed.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_x_has_changed", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_y_has_changed {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_y_has_changed");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_y_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_y_has_changed$descriptor() {
+        return libinput_event_tablet_tool_y_has_changed.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_y_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_y_has_changed$handle() {
+        return libinput_event_tablet_tool_y_has_changed.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_y_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_y_has_changed$address() {
+        return libinput_event_tablet_tool_y_has_changed.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_y_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_y_has_changed(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_y_has_changed.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_y_has_changed", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_pressure_has_changed {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_pressure_has_changed");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_pressure_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_pressure_has_changed$descriptor() {
+        return libinput_event_tablet_tool_pressure_has_changed.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_pressure_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_pressure_has_changed$handle() {
+        return libinput_event_tablet_tool_pressure_has_changed.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_pressure_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_pressure_has_changed$address() {
+        return libinput_event_tablet_tool_pressure_has_changed.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_pressure_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_pressure_has_changed(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_pressure_has_changed.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_pressure_has_changed", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_distance_has_changed {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_distance_has_changed");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_distance_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_distance_has_changed$descriptor() {
+        return libinput_event_tablet_tool_distance_has_changed.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_distance_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_distance_has_changed$handle() {
+        return libinput_event_tablet_tool_distance_has_changed.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_distance_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_distance_has_changed$address() {
+        return libinput_event_tablet_tool_distance_has_changed.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_distance_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_distance_has_changed(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_distance_has_changed.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_distance_has_changed", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_tilt_x_has_changed {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_tilt_x_has_changed");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_tilt_x_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_tilt_x_has_changed$descriptor() {
+        return libinput_event_tablet_tool_tilt_x_has_changed.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_tilt_x_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_tilt_x_has_changed$handle() {
+        return libinput_event_tablet_tool_tilt_x_has_changed.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_tilt_x_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_tilt_x_has_changed$address() {
+        return libinput_event_tablet_tool_tilt_x_has_changed.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_tilt_x_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_tilt_x_has_changed(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_tilt_x_has_changed.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_tilt_x_has_changed", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_tilt_y_has_changed {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_tilt_y_has_changed");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_tilt_y_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_tilt_y_has_changed$descriptor() {
+        return libinput_event_tablet_tool_tilt_y_has_changed.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_tilt_y_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_tilt_y_has_changed$handle() {
+        return libinput_event_tablet_tool_tilt_y_has_changed.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_tilt_y_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_tilt_y_has_changed$address() {
+        return libinput_event_tablet_tool_tilt_y_has_changed.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_tilt_y_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_tilt_y_has_changed(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_tilt_y_has_changed.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_tilt_y_has_changed", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_rotation_has_changed {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_rotation_has_changed");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_rotation_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_rotation_has_changed$descriptor() {
+        return libinput_event_tablet_tool_rotation_has_changed.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_rotation_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_rotation_has_changed$handle() {
+        return libinput_event_tablet_tool_rotation_has_changed.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_rotation_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_rotation_has_changed$address() {
+        return libinput_event_tablet_tool_rotation_has_changed.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_rotation_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_rotation_has_changed(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_rotation_has_changed.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_rotation_has_changed", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_slider_has_changed {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_slider_has_changed");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_slider_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_slider_has_changed$descriptor() {
+        return libinput_event_tablet_tool_slider_has_changed.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_slider_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_slider_has_changed$handle() {
+        return libinput_event_tablet_tool_slider_has_changed.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_slider_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_slider_has_changed$address() {
+        return libinput_event_tablet_tool_slider_has_changed.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_slider_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_slider_has_changed(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_slider_has_changed.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_slider_has_changed", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_wheel_has_changed {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_wheel_has_changed");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_wheel_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_wheel_has_changed$descriptor() {
+        return libinput_event_tablet_tool_wheel_has_changed.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_wheel_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_wheel_has_changed$handle() {
+        return libinput_event_tablet_tool_wheel_has_changed.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_wheel_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_wheel_has_changed$address() {
+        return libinput_event_tablet_tool_wheel_has_changed.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_wheel_has_changed(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_wheel_has_changed(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_wheel_has_changed.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_wheel_has_changed", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_pressure {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_pressure");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_pressure(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_pressure$descriptor() {
+        return libinput_event_tablet_tool_get_pressure.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_pressure(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_pressure$handle() {
+        return libinput_event_tablet_tool_get_pressure.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_pressure(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_pressure$address() {
+        return libinput_event_tablet_tool_get_pressure.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_pressure(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static double libinput_event_tablet_tool_get_pressure(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_get_pressure.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_pressure", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_distance {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_distance");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_distance(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_distance$descriptor() {
+        return libinput_event_tablet_tool_get_distance.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_distance(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_distance$handle() {
+        return libinput_event_tablet_tool_get_distance.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_distance(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_distance$address() {
+        return libinput_event_tablet_tool_get_distance.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_distance(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static double libinput_event_tablet_tool_get_distance(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_get_distance.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_distance", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_tilt_x {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_tilt_x");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_tilt_x(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_tilt_x$descriptor() {
+        return libinput_event_tablet_tool_get_tilt_x.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_tilt_x(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_tilt_x$handle() {
+        return libinput_event_tablet_tool_get_tilt_x.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_tilt_x(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_tilt_x$address() {
+        return libinput_event_tablet_tool_get_tilt_x.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_tilt_x(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static double libinput_event_tablet_tool_get_tilt_x(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_get_tilt_x.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_tilt_x", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_tilt_y {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_tilt_y");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_tilt_y(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_tilt_y$descriptor() {
+        return libinput_event_tablet_tool_get_tilt_y.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_tilt_y(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_tilt_y$handle() {
+        return libinput_event_tablet_tool_get_tilt_y.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_tilt_y(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_tilt_y$address() {
+        return libinput_event_tablet_tool_get_tilt_y.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_tilt_y(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static double libinput_event_tablet_tool_get_tilt_y(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_get_tilt_y.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_tilt_y", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_rotation {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_rotation");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_rotation(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_rotation$descriptor() {
+        return libinput_event_tablet_tool_get_rotation.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_rotation(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_rotation$handle() {
+        return libinput_event_tablet_tool_get_rotation.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_rotation(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_rotation$address() {
+        return libinput_event_tablet_tool_get_rotation.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_rotation(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static double libinput_event_tablet_tool_get_rotation(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_get_rotation.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_rotation", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_slider_position {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_slider_position");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_slider_position(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_slider_position$descriptor() {
+        return libinput_event_tablet_tool_get_slider_position.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_slider_position(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_slider_position$handle() {
+        return libinput_event_tablet_tool_get_slider_position.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_slider_position(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_slider_position$address() {
+        return libinput_event_tablet_tool_get_slider_position.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_slider_position(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static double libinput_event_tablet_tool_get_slider_position(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_get_slider_position.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_slider_position", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_wheel_delta {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_wheel_delta");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_wheel_delta(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_wheel_delta$descriptor() {
+        return libinput_event_tablet_tool_get_wheel_delta.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_wheel_delta(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_wheel_delta$handle() {
+        return libinput_event_tablet_tool_get_wheel_delta.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_wheel_delta(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_wheel_delta$address() {
+        return libinput_event_tablet_tool_get_wheel_delta.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_wheel_delta(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static double libinput_event_tablet_tool_get_wheel_delta(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_get_wheel_delta.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_wheel_delta", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_wheel_delta_discrete {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_wheel_delta_discrete");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_get_wheel_delta_discrete(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_wheel_delta_discrete$descriptor() {
+        return libinput_event_tablet_tool_get_wheel_delta_discrete.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_get_wheel_delta_discrete(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_wheel_delta_discrete$handle() {
+        return libinput_event_tablet_tool_get_wheel_delta_discrete.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_get_wheel_delta_discrete(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_wheel_delta_discrete$address() {
+        return libinput_event_tablet_tool_get_wheel_delta_discrete.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_event_tablet_tool_get_wheel_delta_discrete(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_get_wheel_delta_discrete(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_get_wheel_delta_discrete.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_wheel_delta_discrete", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_x_transformed {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_x_transformed");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_x_transformed(struct libinput_event_tablet_tool *event, uint32_t width)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_x_transformed$descriptor() {
+        return libinput_event_tablet_tool_get_x_transformed.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_x_transformed(struct libinput_event_tablet_tool *event, uint32_t width)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_x_transformed$handle() {
+        return libinput_event_tablet_tool_get_x_transformed.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_x_transformed(struct libinput_event_tablet_tool *event, uint32_t width)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_x_transformed$address() {
+        return libinput_event_tablet_tool_get_x_transformed.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_x_transformed(struct libinput_event_tablet_tool *event, uint32_t width)
+     * }
+     */
+    public static double libinput_event_tablet_tool_get_x_transformed(MemorySegment event, int width) {
+        var mh$ = libinput_event_tablet_tool_get_x_transformed.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_x_transformed", event, width);
+            }
+            return (double)mh$.invokeExact(event, width);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_y_transformed {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER,
+            Input.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_y_transformed");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_y_transformed(struct libinput_event_tablet_tool *event, uint32_t height)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_y_transformed$descriptor() {
+        return libinput_event_tablet_tool_get_y_transformed.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_y_transformed(struct libinput_event_tablet_tool *event, uint32_t height)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_y_transformed$handle() {
+        return libinput_event_tablet_tool_get_y_transformed.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_y_transformed(struct libinput_event_tablet_tool *event, uint32_t height)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_y_transformed$address() {
+        return libinput_event_tablet_tool_get_y_transformed.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_tablet_tool_get_y_transformed(struct libinput_event_tablet_tool *event, uint32_t height)
+     * }
+     */
+    public static double libinput_event_tablet_tool_get_y_transformed(MemorySegment event, int height) {
+        var mh$ = libinput_event_tablet_tool_get_y_transformed.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_y_transformed", event, height);
+            }
+            return (double)mh$.invokeExact(event, height);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_tool {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_tool");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * struct libinput_tablet_tool *libinput_event_tablet_tool_get_tool(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_tool$descriptor() {
+        return libinput_event_tablet_tool_get_tool.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * struct libinput_tablet_tool *libinput_event_tablet_tool_get_tool(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_tool$handle() {
+        return libinput_event_tablet_tool_get_tool.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * struct libinput_tablet_tool *libinput_event_tablet_tool_get_tool(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_tool$address() {
+        return libinput_event_tablet_tool_get_tool.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * struct libinput_tablet_tool *libinput_event_tablet_tool_get_tool(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_tool(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_get_tool.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_tool", event);
+            }
+            return (MemorySegment)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_proximity_state {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_proximity_state");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_proximity_state libinput_event_tablet_tool_get_proximity_state(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_proximity_state$descriptor() {
+        return libinput_event_tablet_tool_get_proximity_state.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_proximity_state libinput_event_tablet_tool_get_proximity_state(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_proximity_state$handle() {
+        return libinput_event_tablet_tool_get_proximity_state.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_proximity_state libinput_event_tablet_tool_get_proximity_state(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_proximity_state$address() {
+        return libinput_event_tablet_tool_get_proximity_state.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_proximity_state libinput_event_tablet_tool_get_proximity_state(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_get_proximity_state(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_get_proximity_state.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_proximity_state", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_tip_state {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_tip_state");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_tip_state libinput_event_tablet_tool_get_tip_state(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_tip_state$descriptor() {
+        return libinput_event_tablet_tool_get_tip_state.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_tip_state libinput_event_tablet_tool_get_tip_state(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_tip_state$handle() {
+        return libinput_event_tablet_tool_get_tip_state.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_tip_state libinput_event_tablet_tool_get_tip_state(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_tip_state$address() {
+        return libinput_event_tablet_tool_get_tip_state.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_tip_state libinput_event_tablet_tool_get_tip_state(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_get_tip_state(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_get_tip_state.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_tip_state", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_button {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_button");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_tool_get_button(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_button$descriptor() {
+        return libinput_event_tablet_tool_get_button.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_tool_get_button(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_button$handle() {
+        return libinput_event_tablet_tool_get_button.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_tool_get_button(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_button$address() {
+        return libinput_event_tablet_tool_get_button.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_tool_get_button(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_get_button(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_get_button.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_button", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_button_state {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_button_state");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_button_state libinput_event_tablet_tool_get_button_state(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_button_state$descriptor() {
+        return libinput_event_tablet_tool_get_button_state.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_button_state libinput_event_tablet_tool_get_button_state(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_button_state$handle() {
+        return libinput_event_tablet_tool_get_button_state.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_button_state libinput_event_tablet_tool_get_button_state(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_button_state$address() {
+        return libinput_event_tablet_tool_get_button_state.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_button_state libinput_event_tablet_tool_get_button_state(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_get_button_state(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_get_button_state.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_button_state", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_tool_get_time {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_tool_get_time");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_tool_get_time(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_tool_get_time$descriptor() {
+        return libinput_event_tablet_tool_get_time.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_tool_get_time(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_tool_get_time$handle() {
+        return libinput_event_tablet_tool_get_time.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_tool_get_time(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_tool_get_time$address() {
+        return libinput_event_tablet_tool_get_time.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_tool_get_time(struct libinput_event_tablet_tool *event)
+     * }
+     */
+    public static int libinput_event_tablet_tool_get_time(MemorySegment event) {
+        var mh$ = libinput_event_tablet_tool_get_time.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_tool_get_time", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_tool_get_type {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_tool_get_type");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_type libinput_tablet_tool_get_type(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_tool_get_type$descriptor() {
+        return libinput_tablet_tool_get_type.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_type libinput_tablet_tool_get_type(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MethodHandle libinput_tablet_tool_get_type$handle() {
+        return libinput_tablet_tool_get_type.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_type libinput_tablet_tool_get_type(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MemorySegment libinput_tablet_tool_get_type$address() {
+        return libinput_tablet_tool_get_type.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_tool_type libinput_tablet_tool_get_type(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static int libinput_tablet_tool_get_type(MemorySegment tool) {
+        var mh$ = libinput_tablet_tool_get_type.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_tool_get_type", tool);
+            }
+            return (int)mh$.invokeExact(tool);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_tool_get_tool_id {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_LONG,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_tool_get_tool_id");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint64_t libinput_tablet_tool_get_tool_id(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_tool_get_tool_id$descriptor() {
+        return libinput_tablet_tool_get_tool_id.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint64_t libinput_tablet_tool_get_tool_id(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MethodHandle libinput_tablet_tool_get_tool_id$handle() {
+        return libinput_tablet_tool_get_tool_id.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint64_t libinput_tablet_tool_get_tool_id(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MemorySegment libinput_tablet_tool_get_tool_id$address() {
+        return libinput_tablet_tool_get_tool_id.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint64_t libinput_tablet_tool_get_tool_id(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static long libinput_tablet_tool_get_tool_id(MemorySegment tool) {
+        var mh$ = libinput_tablet_tool_get_tool_id.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_tool_get_tool_id", tool);
+            }
+            return (long)mh$.invokeExact(tool);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_tool_has_pressure {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_tool_has_pressure");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_pressure(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_tool_has_pressure$descriptor() {
+        return libinput_tablet_tool_has_pressure.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_pressure(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MethodHandle libinput_tablet_tool_has_pressure$handle() {
+        return libinput_tablet_tool_has_pressure.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_pressure(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MemorySegment libinput_tablet_tool_has_pressure$address() {
+        return libinput_tablet_tool_has_pressure.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_pressure(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static int libinput_tablet_tool_has_pressure(MemorySegment tool) {
+        var mh$ = libinput_tablet_tool_has_pressure.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_tool_has_pressure", tool);
+            }
+            return (int)mh$.invokeExact(tool);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_tool_has_distance {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_tool_has_distance");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_distance(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_tool_has_distance$descriptor() {
+        return libinput_tablet_tool_has_distance.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_distance(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MethodHandle libinput_tablet_tool_has_distance$handle() {
+        return libinput_tablet_tool_has_distance.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_distance(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MemorySegment libinput_tablet_tool_has_distance$address() {
+        return libinput_tablet_tool_has_distance.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_distance(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static int libinput_tablet_tool_has_distance(MemorySegment tool) {
+        var mh$ = libinput_tablet_tool_has_distance.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_tool_has_distance", tool);
+            }
+            return (int)mh$.invokeExact(tool);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_tool_has_tilt {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_tool_has_tilt");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_tilt(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_tool_has_tilt$descriptor() {
+        return libinput_tablet_tool_has_tilt.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_tilt(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MethodHandle libinput_tablet_tool_has_tilt$handle() {
+        return libinput_tablet_tool_has_tilt.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_tilt(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MemorySegment libinput_tablet_tool_has_tilt$address() {
+        return libinput_tablet_tool_has_tilt.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_tilt(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static int libinput_tablet_tool_has_tilt(MemorySegment tool) {
+        var mh$ = libinput_tablet_tool_has_tilt.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_tool_has_tilt", tool);
+            }
+            return (int)mh$.invokeExact(tool);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_tool_has_rotation {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_tool_has_rotation");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_rotation(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_tool_has_rotation$descriptor() {
+        return libinput_tablet_tool_has_rotation.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_rotation(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MethodHandle libinput_tablet_tool_has_rotation$handle() {
+        return libinput_tablet_tool_has_rotation.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_rotation(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MemorySegment libinput_tablet_tool_has_rotation$address() {
+        return libinput_tablet_tool_has_rotation.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_rotation(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static int libinput_tablet_tool_has_rotation(MemorySegment tool) {
+        var mh$ = libinput_tablet_tool_has_rotation.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_tool_has_rotation", tool);
+            }
+            return (int)mh$.invokeExact(tool);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_tool_has_slider {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_tool_has_slider");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_slider(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_tool_has_slider$descriptor() {
+        return libinput_tablet_tool_has_slider.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_slider(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MethodHandle libinput_tablet_tool_has_slider$handle() {
+        return libinput_tablet_tool_has_slider.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_slider(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MemorySegment libinput_tablet_tool_has_slider$address() {
+        return libinput_tablet_tool_has_slider.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_slider(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static int libinput_tablet_tool_has_slider(MemorySegment tool) {
+        var mh$ = libinput_tablet_tool_has_slider.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_tool_has_slider", tool);
+            }
+            return (int)mh$.invokeExact(tool);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_tool_has_wheel {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_tool_has_wheel");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_wheel(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_tool_has_wheel$descriptor() {
+        return libinput_tablet_tool_has_wheel.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_wheel(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MethodHandle libinput_tablet_tool_has_wheel$handle() {
+        return libinput_tablet_tool_has_wheel.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_wheel(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MemorySegment libinput_tablet_tool_has_wheel$address() {
+        return libinput_tablet_tool_has_wheel.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_tablet_tool_has_wheel(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static int libinput_tablet_tool_has_wheel(MemorySegment tool) {
+        var mh$ = libinput_tablet_tool_has_wheel.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_tool_has_wheel", tool);
+            }
+            return (int)mh$.invokeExact(tool);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_tablet_tool_get_serial {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_LONG,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_tablet_tool_get_serial");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint64_t libinput_tablet_tool_get_serial(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static FunctionDescriptor libinput_tablet_tool_get_serial$descriptor() {
+        return libinput_tablet_tool_get_serial.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint64_t libinput_tablet_tool_get_serial(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MethodHandle libinput_tablet_tool_get_serial$handle() {
+        return libinput_tablet_tool_get_serial.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint64_t libinput_tablet_tool_get_serial(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static MemorySegment libinput_tablet_tool_get_serial$address() {
+        return libinput_tablet_tool_get_serial.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint64_t libinput_tablet_tool_get_serial(struct libinput_tablet_tool *tool)
+     * }
+     */
+    public static long libinput_tablet_tool_get_serial(MemorySegment tool) {
+        var mh$ = libinput_tablet_tool_get_serial.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_tablet_tool_get_serial", tool);
+            }
+            return (long)mh$.invokeExact(tool);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_pad_get_ring_position {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_pad_get_ring_position");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_pad_get_ring_position(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_pad_get_ring_position$descriptor() {
+        return libinput_event_tablet_pad_get_ring_position.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_pad_get_ring_position(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_pad_get_ring_position$handle() {
+        return libinput_event_tablet_pad_get_ring_position.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_pad_get_ring_position(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_pad_get_ring_position$address() {
+        return libinput_event_tablet_pad_get_ring_position.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_tablet_pad_get_ring_position(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static double libinput_event_tablet_pad_get_ring_position(MemorySegment event) {
+        var mh$ = libinput_event_tablet_pad_get_ring_position.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_pad_get_ring_position", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_pad_get_ring_number {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_pad_get_ring_number");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * unsigned int libinput_event_tablet_pad_get_ring_number(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_pad_get_ring_number$descriptor() {
+        return libinput_event_tablet_pad_get_ring_number.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * unsigned int libinput_event_tablet_pad_get_ring_number(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_pad_get_ring_number$handle() {
+        return libinput_event_tablet_pad_get_ring_number.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * unsigned int libinput_event_tablet_pad_get_ring_number(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_pad_get_ring_number$address() {
+        return libinput_event_tablet_pad_get_ring_number.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * unsigned int libinput_event_tablet_pad_get_ring_number(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static int libinput_event_tablet_pad_get_ring_number(MemorySegment event) {
+        var mh$ = libinput_event_tablet_pad_get_ring_number.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_pad_get_ring_number", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_pad_get_ring_source {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_pad_get_ring_source");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_pad_ring_axis_source libinput_event_tablet_pad_get_ring_source(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_pad_get_ring_source$descriptor() {
+        return libinput_event_tablet_pad_get_ring_source.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_pad_ring_axis_source libinput_event_tablet_pad_get_ring_source(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_pad_get_ring_source$handle() {
+        return libinput_event_tablet_pad_get_ring_source.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_pad_ring_axis_source libinput_event_tablet_pad_get_ring_source(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_pad_get_ring_source$address() {
+        return libinput_event_tablet_pad_get_ring_source.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_pad_ring_axis_source libinput_event_tablet_pad_get_ring_source(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static int libinput_event_tablet_pad_get_ring_source(MemorySegment event) {
+        var mh$ = libinput_event_tablet_pad_get_ring_source.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_pad_get_ring_source", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_pad_get_strip_position {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_DOUBLE,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_pad_get_strip_position");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_pad_get_strip_position(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_pad_get_strip_position$descriptor() {
+        return libinput_event_tablet_pad_get_strip_position.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_pad_get_strip_position(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_pad_get_strip_position$handle() {
+        return libinput_event_tablet_pad_get_strip_position.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * double libinput_event_tablet_pad_get_strip_position(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_pad_get_strip_position$address() {
+        return libinput_event_tablet_pad_get_strip_position.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * double libinput_event_tablet_pad_get_strip_position(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static double libinput_event_tablet_pad_get_strip_position(MemorySegment event) {
+        var mh$ = libinput_event_tablet_pad_get_strip_position.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_pad_get_strip_position", event);
+            }
+            return (double)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_pad_get_strip_number {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_pad_get_strip_number");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * unsigned int libinput_event_tablet_pad_get_strip_number(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_pad_get_strip_number$descriptor() {
+        return libinput_event_tablet_pad_get_strip_number.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * unsigned int libinput_event_tablet_pad_get_strip_number(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_pad_get_strip_number$handle() {
+        return libinput_event_tablet_pad_get_strip_number.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * unsigned int libinput_event_tablet_pad_get_strip_number(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_pad_get_strip_number$address() {
+        return libinput_event_tablet_pad_get_strip_number.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * unsigned int libinput_event_tablet_pad_get_strip_number(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static int libinput_event_tablet_pad_get_strip_number(MemorySegment event) {
+        var mh$ = libinput_event_tablet_pad_get_strip_number.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_pad_get_strip_number", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_pad_get_strip_source {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_pad_get_strip_source");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_pad_strip_axis_source libinput_event_tablet_pad_get_strip_source(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_pad_get_strip_source$descriptor() {
+        return libinput_event_tablet_pad_get_strip_source.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_pad_strip_axis_source libinput_event_tablet_pad_get_strip_source(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_pad_get_strip_source$handle() {
+        return libinput_event_tablet_pad_get_strip_source.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_tablet_pad_strip_axis_source libinput_event_tablet_pad_get_strip_source(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_pad_get_strip_source$address() {
+        return libinput_event_tablet_pad_get_strip_source.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_tablet_pad_strip_axis_source libinput_event_tablet_pad_get_strip_source(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static int libinput_event_tablet_pad_get_strip_source(MemorySegment event) {
+        var mh$ = libinput_event_tablet_pad_get_strip_source.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_pad_get_strip_source", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_pad_get_button_number {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_pad_get_button_number");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_pad_get_button_number(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_pad_get_button_number$descriptor() {
+        return libinput_event_tablet_pad_get_button_number.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_pad_get_button_number(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_pad_get_button_number$handle() {
+        return libinput_event_tablet_pad_get_button_number.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_pad_get_button_number(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_pad_get_button_number$address() {
+        return libinput_event_tablet_pad_get_button_number.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_pad_get_button_number(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static int libinput_event_tablet_pad_get_button_number(MemorySegment event) {
+        var mh$ = libinput_event_tablet_pad_get_button_number.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_pad_get_button_number", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_pad_get_button_state {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_pad_get_button_state");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * enum libinput_button_state libinput_event_tablet_pad_get_button_state(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_pad_get_button_state$descriptor() {
+        return libinput_event_tablet_pad_get_button_state.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * enum libinput_button_state libinput_event_tablet_pad_get_button_state(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_pad_get_button_state$handle() {
+        return libinput_event_tablet_pad_get_button_state.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * enum libinput_button_state libinput_event_tablet_pad_get_button_state(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_pad_get_button_state$address() {
+        return libinput_event_tablet_pad_get_button_state.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * enum libinput_button_state libinput_event_tablet_pad_get_button_state(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static int libinput_event_tablet_pad_get_button_state(MemorySegment event) {
+        var mh$ = libinput_event_tablet_pad_get_button_state.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_pad_get_button_state", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_pad_get_mode {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_pad_get_mode");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * unsigned int libinput_event_tablet_pad_get_mode(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_pad_get_mode$descriptor() {
+        return libinput_event_tablet_pad_get_mode.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * unsigned int libinput_event_tablet_pad_get_mode(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_pad_get_mode$handle() {
+        return libinput_event_tablet_pad_get_mode.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * unsigned int libinput_event_tablet_pad_get_mode(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_pad_get_mode$address() {
+        return libinput_event_tablet_pad_get_mode.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * unsigned int libinput_event_tablet_pad_get_mode(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static int libinput_event_tablet_pad_get_mode(MemorySegment event) {
+        var mh$ = libinput_event_tablet_pad_get_mode.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_pad_get_mode", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_pad_get_mode_group {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_pad_get_mode_group");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * struct libinput_tablet_pad_mode_group *libinput_event_tablet_pad_get_mode_group(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_pad_get_mode_group$descriptor() {
+        return libinput_event_tablet_pad_get_mode_group.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * struct libinput_tablet_pad_mode_group *libinput_event_tablet_pad_get_mode_group(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_pad_get_mode_group$handle() {
+        return libinput_event_tablet_pad_get_mode_group.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * struct libinput_tablet_pad_mode_group *libinput_event_tablet_pad_get_mode_group(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_pad_get_mode_group$address() {
+        return libinput_event_tablet_pad_get_mode_group.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * struct libinput_tablet_pad_mode_group *libinput_event_tablet_pad_get_mode_group(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_pad_get_mode_group(MemorySegment event) {
+        var mh$ = libinput_event_tablet_pad_get_mode_group.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_pad_get_mode_group", event);
+            }
+            return (MemorySegment)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_event_tablet_pad_get_time {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_event_tablet_pad_get_time");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_pad_get_time(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static FunctionDescriptor libinput_event_tablet_pad_get_time$descriptor() {
+        return libinput_event_tablet_pad_get_time.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_pad_get_time(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MethodHandle libinput_event_tablet_pad_get_time$handle() {
+        return libinput_event_tablet_pad_get_time.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_pad_get_time(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static MemorySegment libinput_event_tablet_pad_get_time$address() {
+        return libinput_event_tablet_pad_get_time.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint32_t libinput_event_tablet_pad_get_time(struct libinput_event_tablet_pad *event)
+     * }
+     */
+    public static int libinput_event_tablet_pad_get_time(MemorySegment event) {
+        var mh$ = libinput_event_tablet_pad_get_time.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_event_tablet_pad_get_time", event);
+            }
+            return (int)mh$.invokeExact(event);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
     private static class libinput_event_switch_get_switch {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             Input.C_INT,
@@ -3900,6 +7437,66 @@ public class Input extends Input$shared {
         }
     }
 
+    private static class libinput_device_get_device_group {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_get_device_group");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * struct libinput_device_group *libinput_device_get_device_group(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_get_device_group$descriptor() {
+        return libinput_device_get_device_group.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * struct libinput_device_group *libinput_device_get_device_group(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_get_device_group$handle() {
+        return libinput_device_get_device_group.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * struct libinput_device_group *libinput_device_get_device_group(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_get_device_group$address() {
+        return libinput_device_get_device_group.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * struct libinput_device_group *libinput_device_get_device_group(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_get_device_group(MemorySegment device) {
+        var mh$ = libinput_device_get_device_group.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_get_device_group", device);
+            }
+            return (MemorySegment)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
     private static class libinput_device_get_name {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             Input.C_POINTER,
@@ -3951,6 +7548,186 @@ public class Input extends Input$shared {
         try {
             if (TRACE_DOWNCALLS) {
                 traceDowncall("libinput_device_get_name", device);
+            }
+            return (MemorySegment)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_get_id_product {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_get_id_product");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * unsigned int libinput_device_get_id_product(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_get_id_product$descriptor() {
+        return libinput_device_get_id_product.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * unsigned int libinput_device_get_id_product(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_get_id_product$handle() {
+        return libinput_device_get_id_product.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * unsigned int libinput_device_get_id_product(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_get_id_product$address() {
+        return libinput_device_get_id_product.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * unsigned int libinput_device_get_id_product(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_get_id_product(MemorySegment device) {
+        var mh$ = libinput_device_get_id_product.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_get_id_product", device);
+            }
+            return (int)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_get_id_vendor {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_get_id_vendor");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * unsigned int libinput_device_get_id_vendor(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_get_id_vendor$descriptor() {
+        return libinput_device_get_id_vendor.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * unsigned int libinput_device_get_id_vendor(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_get_id_vendor$handle() {
+        return libinput_device_get_id_vendor.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * unsigned int libinput_device_get_id_vendor(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_get_id_vendor$address() {
+        return libinput_device_get_id_vendor.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * unsigned int libinput_device_get_id_vendor(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_get_id_vendor(MemorySegment device) {
+        var mh$ = libinput_device_get_id_vendor.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_get_id_vendor", device);
+            }
+            return (int)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_get_udev_device {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_get_udev_device");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * struct udev_device *libinput_device_get_udev_device(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_get_udev_device$descriptor() {
+        return libinput_device_get_udev_device.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * struct udev_device *libinput_device_get_udev_device(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_get_udev_device$handle() {
+        return libinput_device_get_udev_device.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * struct udev_device *libinput_device_get_udev_device(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_get_udev_device$address() {
+        return libinput_device_get_udev_device.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * struct udev_device *libinput_device_get_udev_device(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_get_udev_device(MemorySegment device) {
+        var mh$ = libinput_device_get_udev_device.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_get_udev_device", device);
             }
             return (MemorySegment)mh$.invokeExact(device);
         } catch (Error | RuntimeException ex) {
@@ -4014,6 +7791,248 @@ public class Input extends Input$shared {
                 traceDowncall("libinput_device_has_capability", device, capability);
             }
             return (int)mh$.invokeExact(device, capability);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_get_size {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER,
+            Input.C_POINTER,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_get_size");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_device_get_size(struct libinput_device *device, double *width, double *height)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_get_size$descriptor() {
+        return libinput_device_get_size.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_device_get_size(struct libinput_device *device, double *width, double *height)
+     * }
+     */
+    public static MethodHandle libinput_device_get_size$handle() {
+        return libinput_device_get_size.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_device_get_size(struct libinput_device *device, double *width, double *height)
+     * }
+     */
+    public static MemorySegment libinput_device_get_size$address() {
+        return libinput_device_get_size.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_device_get_size(struct libinput_device *device, double *width, double *height)
+     * }
+     */
+    public static int libinput_device_get_size(MemorySegment device, MemorySegment width, MemorySegment height) {
+        var mh$ = libinput_device_get_size.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_get_size", device, width, height);
+            }
+            return (int)mh$.invokeExact(device, width, height);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_tablet_pad_get_num_buttons {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_tablet_pad_get_num_buttons");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_buttons(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_tablet_pad_get_num_buttons$descriptor() {
+        return libinput_device_tablet_pad_get_num_buttons.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_buttons(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_tablet_pad_get_num_buttons$handle() {
+        return libinput_device_tablet_pad_get_num_buttons.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_buttons(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_tablet_pad_get_num_buttons$address() {
+        return libinput_device_tablet_pad_get_num_buttons.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_buttons(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_tablet_pad_get_num_buttons(MemorySegment device) {
+        var mh$ = libinput_device_tablet_pad_get_num_buttons.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_tablet_pad_get_num_buttons", device);
+            }
+            return (int)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_tablet_pad_get_num_rings {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_tablet_pad_get_num_rings");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_rings(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_tablet_pad_get_num_rings$descriptor() {
+        return libinput_device_tablet_pad_get_num_rings.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_rings(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_tablet_pad_get_num_rings$handle() {
+        return libinput_device_tablet_pad_get_num_rings.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_rings(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_tablet_pad_get_num_rings$address() {
+        return libinput_device_tablet_pad_get_num_rings.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_rings(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_tablet_pad_get_num_rings(MemorySegment device) {
+        var mh$ = libinput_device_tablet_pad_get_num_rings.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_tablet_pad_get_num_rings", device);
+            }
+            return (int)mh$.invokeExact(device);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_tablet_pad_get_num_strips {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_tablet_pad_get_num_strips");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_strips(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_tablet_pad_get_num_strips$descriptor() {
+        return libinput_device_tablet_pad_get_num_strips.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_strips(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_tablet_pad_get_num_strips$handle() {
+        return libinput_device_tablet_pad_get_num_strips.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_strips(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_tablet_pad_get_num_strips$address() {
+        return libinput_device_tablet_pad_get_num_strips.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_device_tablet_pad_get_num_strips(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_tablet_pad_get_num_strips(MemorySegment device) {
+        var mh$ = libinput_device_tablet_pad_get_num_strips.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_tablet_pad_get_num_strips", device);
+            }
+            return (int)mh$.invokeExact(device);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
@@ -4390,6 +8409,66 @@ public class Input extends Input$shared {
                 traceDowncall("libinput_device_config_tap_set_drag_lock_enabled", device, enable);
             }
             return (int)mh$.invokeExact(device, enable);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class libinput_device_config_calibration_has_matrix {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            Input.C_INT,
+            Input.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("libinput_device_config_calibration_has_matrix");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * int libinput_device_config_calibration_has_matrix(struct libinput_device *device)
+     * }
+     */
+    public static FunctionDescriptor libinput_device_config_calibration_has_matrix$descriptor() {
+        return libinput_device_config_calibration_has_matrix.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * int libinput_device_config_calibration_has_matrix(struct libinput_device *device)
+     * }
+     */
+    public static MethodHandle libinput_device_config_calibration_has_matrix$handle() {
+        return libinput_device_config_calibration_has_matrix.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * int libinput_device_config_calibration_has_matrix(struct libinput_device *device)
+     * }
+     */
+    public static MemorySegment libinput_device_config_calibration_has_matrix$address() {
+        return libinput_device_config_calibration_has_matrix.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * int libinput_device_config_calibration_has_matrix(struct libinput_device *device)
+     * }
+     */
+    public static int libinput_device_config_calibration_has_matrix(MemorySegment device) {
+        var mh$ = libinput_device_config_calibration_has_matrix.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("libinput_device_config_calibration_has_matrix", device);
+            }
+            return (int)mh$.invokeExact(device);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {

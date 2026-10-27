@@ -128,6 +128,41 @@ class DBusTest {
         }
     }
 
+    @Test
+    fun `a signal from someone else than the sender asked for is not heard`() {
+        EventLoop().use { loop ->
+            val server = DBusConnection.session(loop)
+            assumeTrue(server != null, "no session bus")
+            val client = DBusConnection.session(loop)!!
+            val forger = DBusConnection.session(loop)!!
+            server!!.use { client.use { forger.use {
+                fun until(done: () -> Boolean) {
+                    val end = System.nanoTime() + 5_000_000_000
+                    while (!done() && System.nanoTime() < end) loop.dispatch(20)
+                    check(done()) { "timed out" }
+                }
+                until { server.uniqueName != null && client.uniqueName != null && forger.uniqueName != null }
+                val name = "dev.caulis.SenderTest.p${ProcessHandle.current().pid()}"
+                var owned: Boolean? = null
+                server.requestName(name) { owned = it }
+                until { owned != null }
+                assumeTrue(owned == true, "the name $name could not be had")
+                val heard = ArrayList<Any?>()
+                val any = ArrayList<Any?>()
+                client.onSignal("dev.caulis.SenderTest", "Changed", sender = name) { heard += it.body.firstOrNull() }
+                client.onSignal("dev.caulis.SenderTest", "Changed") { any += it.body.firstOrNull() }
+                Thread.sleep(200) // (the match rules and the owner's name reach us first)
+                loop.dispatch(50)
+                forger.emitSignal("/dev/caulis/Test", "dev.caulis.SenderTest", "Changed", "s", listOf("forged"))
+                server.emitSignal("/dev/caulis/Test", "dev.caulis.SenderTest", "Changed", "s", listOf("real"))
+                until { "real" in heard && any.size == 2 }
+                Thread.sleep(100)
+                loop.dispatch(20)
+                assertEquals(listOf<Any?>("real"), heard, "only the owner of $name")
+            } } }
+        }
+    }
+
     private companion object {
         const val LOGIN = "org.freedesktop.login1"
         const val MANAGER = "org.freedesktop.login1.Manager"

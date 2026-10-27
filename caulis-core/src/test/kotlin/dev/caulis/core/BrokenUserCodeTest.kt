@@ -23,7 +23,7 @@ class BrokenUserCodeTest {
                     d.layerEffects = { throw StackOverflowError() }
                     d.titleBarsFor = { error("title bars") }
                     d.floatRule = { error("float rule") }
-                    d.animations = Animations(curve = Curve { error("curve") })
+                    d.animations = Animations(curve = Curve { error("curve") }, enabled = true)
                     d.layout = object : Layout {
                         override val name = "broken"
                         override fun arrange(windows: List<LayoutWindow>, area: dev.caulis.geometry.Rect, focused: Int): List<dev.caulis.geometry.Rect> = error("layout")

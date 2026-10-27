@@ -24,6 +24,11 @@ fi
 
 caulis="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 name="$(basename "$target")"
+# The name goes into the project's files (and names its settings folder): plain characters only.
+if [[ ! "$name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+    echo "\"$name\" cannot be a compositor's name: use letters, digits, '.', '_' and '-' (e.g. my-compositor)." >&2
+    exit 2
+fi
 
 mkdir -p "$(dirname "$target")"
 cp -r "$caulis/templates/starter" "$target"

@@ -11,8 +11,8 @@ and the Wayland features programs use (shared memory and GPU buffers, presentati
 
 # Package dev.caulis.core.input
 
-Keyboards and pointers as programs see them, keymaps, and the compositor's own key
-combinations ([dev.caulis.core.input.KeyBindings]).
+Keyboards, pointers and drawing tablets as programs see them ([dev.caulis.core.input.Tablets]
+for pens), keymaps, and the compositor's own key combinations ([dev.caulis.core.input.KeyBindings]).
 
 # Package dev.caulis.core.drm
 
@@ -20,7 +20,7 @@ Running directly on the screen: monitors (kernel mode setting), hotplug, direct 
 
 # Package dev.caulis.core.libinput
 
-Keyboards, mice and touchpads on the real hardware.
+Keyboards, mice, touchpads, touch screens and drawing tablets on the real hardware.
 
 # Package dev.caulis.core.session
 

@@ -168,6 +168,17 @@ class WindowRule internal constructor() {
             field = value
         }
 
+    /**
+     * The special workspace it opens in ("special", "music", see [Caulis.toggleSpecialWorkspace]):
+     * waiting there unseen — unless [goToWorkspace], then that is shown with it. E.g. a music
+     * player: `rule { appId("spotify"); specialWorkspace = "music" }`.
+     */
+    var specialWorkspace: String? = null
+        set(value) {
+            require(value == null || value.trim().removePrefix("special:").trim().let { it.isNotEmpty() && it.none(Char::isWhitespace) }) { "a special workspace's name is one word, not \"$value\"" }
+            field = value
+        }
+
     /** The monitor it opens on: "DP-2", "HDMI-A-1", "eDP-1" (the log lists them). */
     var monitor: String? = null
 
@@ -266,12 +277,22 @@ class WindowRule internal constructor() {
             field = value
         }
 
-    private var borderColors: Pair<Color, Color>? = null
+    private var borderColors: Triple<dev.caulis.render.Paint, dev.caulis.render.Paint, dev.caulis.render.Paint?>? = null
 
     /** Its border's colours, with and without the keyboard (it gets a border). */
     @JvmOverloads
     fun borderColor(focused: Color, unfocused: Color = focused) {
-        borderColors = focused to unfocused
+        borderColors = Triple(dev.caulis.render.Paint.solid(focused), dev.caulis.render.Paint.solid(unfocused), null)
+    }
+
+    /**
+     * Its border's paints — gradients, shaders ([dev.caulis.render.Paint]) — with and without
+     * the keyboard, and while it wants attention (null: the usual urgent paint). It gets a border.
+     * `borderPaint(Paint.parse("rgba(ff5555ee) rgba(ffb86cee) 90deg"))`
+     */
+    @JvmOverloads
+    fun borderPaint(focused: dev.caulis.render.Paint, unfocused: dev.caulis.render.Paint = focused, urgent: dev.caulis.render.Paint? = null) {
+        borderColors = Triple(focused, unfocused, urgent)
     }
 
     /** False: no shadow; true: the usual one. */
@@ -347,13 +368,13 @@ class WindowRule internal constructor() {
         conditions.all { (_, condition) -> condition(window, facts) }
 
     internal val hasPlacement: Boolean
-        get() = workspace != null || monitor != null || floating != null || maximized != null || fullscreen != null ||
+        get() = workspace != null || specialWorkspace != null || monitor != null || floating != null || maximized != null || fullscreen != null ||
             width != null || x != null || centered || goToWorkspace || !focus || pinned != null
 
     internal fun placement() = WindowPlacement(
         workspace = workspace, monitor = monitor, floating = floating, width = width, height = height, x = x, y = y,
         center = centered, maximized = maximized, fullscreen = fullscreen, goToWorkspace = goToWorkspace, focus = focus,
-        pinned = pinned,
+        pinned = pinned, specialWorkspace = specialWorkspace,
     )
 
     internal val hasLooks: Boolean
@@ -371,7 +392,7 @@ class WindowRule internal constructor() {
         if (border != false && (borderWidth != null || borderColors != null)) {
             var frame = changed.border ?: Border()
             borderWidth?.let { frame = frame.copy(width = it) }
-            borderColors?.let { (on, off) -> frame = frame.copy(focused = dev.caulis.render.Paint.solid(on), unfocused = dev.caulis.render.Paint.solid(off)) }
+            borderColors?.let { (on, off, urgent) -> frame = frame.copy(focused = on, unfocused = off, urgent = urgent ?: frame.urgent) }
             changed = changed.copy(border = frame)
         }
         when (shadow) {
@@ -423,13 +444,12 @@ class WindowRule internal constructor() {
         fun programOf(window: Window): String? {
             programs[window]?.let { return it }
             val pid = window.pid.takeIf { it > 0 } ?: return null
-            return readProgram(pid)?.also { programs[window] = it }
-        }
-
-        private fun readProgram(pid: Int): String? {
-            // The executable's name (comm is cut at 15 letters: "gnome-text-edit").
-            return runCatching { Files.readSymbolicLink(Path.of("/proc/$pid/exe")).fileName.toString() }.getOrNull()
-                ?: runCatching { Files.readString(Path.of("/proc/$pid/comm")).trim() }.getOrNull()
+            return programOfProcess(pid)?.also { programs[window] = it }
         }
     }
 }
+
+// The program process [pid] runs: the executable's name (comm, the fallback, is cut at 15 letters: "gnome-text-edit").
+internal fun programOfProcess(pid: Int): String? =
+    runCatching { Files.readSymbolicLink(Path.of("/proc/$pid/exe")).fileName.toString() }.getOrNull()
+        ?: runCatching { Files.readString(Path.of("/proc/$pid/comm")).trim() }.getOrNull()

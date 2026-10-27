@@ -109,13 +109,47 @@ internal object Shaders {
         }
         """
 
-    // A user's paint (see Paint.Shader), numbered from its first line.
+    // A user's paint (see Paint.Shader), numbered from its first line. (pixel, progress,
+    // borderWidth and cornerRadius are set by main before paint is asked, see SHAPE.)
     fun paintCustom(code: String) = """
         uniform float time;
         uniform vec2 size;
+        uniform float focused;
+        uniform float urgent;
+        uniform float grouped;
+        uniform vec4 colors[8];
+        uniform int colorCount;
         #line 1
         """ + code + """
         vec4 paintAt(vec2 at) { vec4 c = paint(at); return vec4(c.rgb * c.a, c.a); }
+        """
+
+    // What a user's paint may read about the pixel and the shape: where the pixel is in the
+    // box (pixels from its top left corner), how far along its edge (0..1 clockwise from the
+    // top left corner), the border's width and the corners' radius. Set before paint is asked.
+    private const val SHAPE = """
+        vec2 pixel;
+        float progress;
+        float borderWidth;
+        float cornerRadius;
+        // How far along the edge of a box of size s the point p (from its top left) is, 0..1.
+        float caulisAlongEdge(vec2 p, vec2 s) {
+            float perimeter = 2.0 * (s.x + s.y);
+            float top = p.y, right = s.x - p.x, bottom = s.y - p.y, left = p.x;
+            float nearest = min(min(top, right), min(bottom, left));
+            float d;
+            if (nearest == top) d = clamp(p.x, 0.0, s.x);
+            else if (nearest == right) d = s.x + clamp(p.y, 0.0, s.y);
+            else if (nearest == bottom) d = s.x + s.y + clamp(s.x - p.x, 0.0, s.x);
+            else d = 2.0 * s.x + s.y + clamp(s.y - p.y, 0.0, s.y);
+            return d / max(perimeter, 1.0);
+        }
+        void caulisShape(vec4 box, float width, float corner) {
+            pixel = gl_FragCoord.xy - box.xy;
+            progress = caulisAlongEdge(pixel, box.zw);
+            borderWidth = width;
+            cornerRadius = corner;
+        }
         """
 
     // A filled rounded box, or (border > 0) a frame along its inside.
@@ -127,8 +161,10 @@ internal object Shaders {
         uniform float alpha;
         out vec4 fragment;
         $BOX
+        $SHAPE
         """ + paint + """
         void main() {
+            caulisShape(outer, border, radius);
             float a = inside(outer, radius);
             if (border > 0.0) {
                 vec4 hole = outer + vec4(border, border, -2.0 * border, -2.0 * border);
@@ -163,8 +199,10 @@ internal object Shaders {
             vec2 integral = 0.5 + 0.5 * erf((x + vec2(-curved, curved)) * (sqrt(0.5) / s));
             return integral.y - integral.x;
         }
+        $SHAPE
         """ + paint + """
         void main() {
+            caulisShape(shape, 0.0, radius);
             vec2 hs = shape.zw * 0.5;
             vec2 p = gl_FragCoord.xy - shape.xy - hs;
             float low = p.y - hs.y;

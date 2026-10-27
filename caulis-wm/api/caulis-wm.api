@@ -1,3 +1,89 @@
+public abstract interface class dev/caulis/wm/ActionHandler {
+	public abstract fun run (Ldev/caulis/wm/Caulis;Ljava/lang/String;Ldev/caulis/core/Window;)V
+}
+
+public final class dev/caulis/wm/Autostart : dev/caulis/wm/StartupSettings {
+	public fun <init> ()V
+	public final fun add (Ldev/caulis/wm/Autostart$Entry;)Ldev/caulis/wm/Autostart$Entry;
+	public final fun afterReveal (Z)Ldev/caulis/wm/Autostart;
+	public final fun app (Ljava/util/List;)Ldev/caulis/wm/Autostart$Entry;
+	public final fun app (Ljava/util/List;Ljava/util/function/Consumer;)Ldev/caulis/wm/Autostart$Entry;
+	public final fun app ([Ljava/lang/String;)Ldev/caulis/wm/Autostart$Entry;
+	public final synthetic fun app ([Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ldev/caulis/wm/Autostart$Entry;
+	public final fun clear ()V
+	public final fun desktopEntries (Z)Ldev/caulis/wm/Autostart;
+	public final fun getAfterReveal ()Z
+	public final fun getAfterTimeoutMillis ()J
+	public final fun getDesktopEntries ()Z
+	public final fun getDesktopEntryFolders ()Ljava/util/List;
+	public final fun getEntries ()Ljava/util/List;
+	public final synthetic fun getStagger-UwyO8pc ()J
+	public final fun getStaggerMillis ()J
+	public final fun remove (Ljava/lang/String;)Z
+	public final fun script (Ljava/lang/String;[Ljava/lang/String;)Ldev/caulis/wm/Autostart$Entry;
+	public final synthetic fun script (Ljava/lang/String;[Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ldev/caulis/wm/Autostart$Entry;
+	public final fun setAfterReveal (Z)V
+	public final fun setAfterTimeoutMillis (J)V
+	public final fun setDesktopEntries (Z)V
+	public final fun setDesktopEntryFolders (Ljava/util/List;)V
+	public final synthetic fun setStagger-LRDsOJo (J)V
+	public final fun setStaggerMillis (J)V
+	public final fun shell (Ljava/lang/String;)Ldev/caulis/wm/Autostart$Entry;
+	public final fun shell (Ljava/lang/String;Ljava/util/function/Consumer;)Ldev/caulis/wm/Autostart$Entry;
+	public final synthetic fun shell (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ldev/caulis/wm/Autostart$Entry;
+	public final fun staggerMillis (J)Ldev/caulis/wm/Autostart;
+}
+
+public final class dev/caulis/wm/Autostart$Entry : dev/caulis/wm/StartupSettings {
+	public fun <init> (Ldev/caulis/wm/Autostart$Kind;Ljava/util/List;)V
+	public final synthetic fun Always-HG0u8IE (IJ)Ldev/caulis/wm/Restart;
+	public static synthetic fun Always-HG0u8IE$default (Ldev/caulis/wm/Autostart$Entry;IJILjava/lang/Object;)Ldev/caulis/wm/Restart;
+	public final synthetic fun OnCrash-HG0u8IE (IJ)Ldev/caulis/wm/Restart;
+	public static synthetic fun OnCrash-HG0u8IE$default (Ldev/caulis/wm/Autostart$Entry;IJILjava/lang/Object;)Ldev/caulis/wm/Restart;
+	public final fun after (Ljava/lang/String;)Ldev/caulis/wm/Autostart$Entry;
+	public final fun delayMillis (J)Ldev/caulis/wm/Autostart$Entry;
+	public final fun dir (Ljava/lang/String;)Ldev/caulis/wm/Autostart$Entry;
+	public final fun env (Ljava/lang/String;Ljava/lang/String;)Ldev/caulis/wm/Autostart$Entry;
+	public final fun getAfter ()Ljava/util/List;
+	public final fun getCommand ()Ljava/util/List;
+	public final synthetic fun getDelay-UwyO8pc ()J
+	public final fun getDelayMillis ()J
+	public final fun getDir ()Ljava/lang/String;
+	public final fun getEnv ()Ljava/util/Map;
+	public final fun getIfNotRunning ()Z
+	public final fun getKind ()Ldev/caulis/wm/Autostart$Kind;
+	public final fun getName ()Ljava/lang/String;
+	public final synthetic fun getNever ()Ldev/caulis/wm/Restart;
+	public final fun getRestart ()Ldev/caulis/wm/Restart;
+	public final fun ifNotRunning (Z)Ldev/caulis/wm/Autostart$Entry;
+	public final fun name (Ljava/lang/String;)Ldev/caulis/wm/Autostart$Entry;
+	public final fun restart (Ldev/caulis/wm/Restart;)Ldev/caulis/wm/Autostart$Entry;
+	public final synthetic fun setDelay-LRDsOJo (J)V
+	public final fun setDelayMillis (J)V
+	public final fun setDir (Ljava/lang/String;)V
+	public final fun setIfNotRunning (Z)V
+	public final fun setName (Ljava/lang/String;)V
+	public final fun setRestart (Ldev/caulis/wm/Restart;)V
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/wm/Autostart$Kind : java/lang/Enum {
+	public static final field APP Ldev/caulis/wm/Autostart$Kind;
+	public static final field SCRIPT Ldev/caulis/wm/Autostart$Kind;
+	public static final field SHELL Ldev/caulis/wm/Autostart$Kind;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/wm/Autostart$Kind;
+	public static fun values ()[Ldev/caulis/wm/Autostart$Kind;
+}
+
+public final class dev/caulis/wm/BindingModifiers : java/lang/Enum {
+	public static final field PHYSICAL Ldev/caulis/wm/BindingModifiers;
+	public static final field XKB Ldev/caulis/wm/BindingModifiers;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/wm/BindingModifiers;
+	public static fun values ()[Ldev/caulis/wm/BindingModifiers;
+}
+
 public final class dev/caulis/wm/CannotStartException : java/lang/RuntimeException {
 	public fun <init> (Ljava/lang/String;)V
 }
@@ -5,14 +91,25 @@ public final class dev/caulis/wm/CannotStartException : java/lang/RuntimeExcepti
 public final class dev/caulis/wm/Caulis {
 	public static final field Companion Ldev/caulis/wm/Caulis$Companion;
 	public fun <init> ()V
+	public final fun action (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/caulis/wm/ActionHandler;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun action (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function3;)V
+	public static synthetic fun action$default (Ldev/caulis/wm/Caulis;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
 	public final fun addDrawing (Ldev/caulis/core/DrawingLevel;Ldev/caulis/core/Drawing;)Ljava/lang/AutoCloseable;
 	public final fun addWidget (Ldev/caulis/core/Widget;)Ljava/lang/AutoCloseable;
-	public final fun after (JLkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun after (JLjava/util/function/Consumer;)Ljava/lang/AutoCloseable;
+	public final synthetic fun after (JLkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
 	public final fun animations (Ldev/caulis/core/Animations;)Ldev/caulis/wm/Caulis;
+	public final fun animations (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun animations (Lkotlin/jvm/functions/Function1;)V
 	public final fun applySettings ()V
+	public final fun autostart (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun autostart (Lkotlin/jvm/functions/Function1;)V
+	public final fun autostartStatus ()Ljava/util/List;
+	public final fun backend (Ldev/caulis/wm/Caulis$Backend;)Ldev/caulis/wm/Caulis;
 	public final fun background (Ldev/caulis/core/Background;)Ldev/caulis/wm/Caulis;
 	public final fun backgroundFor (Ljava/util/function/BiFunction;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun backgroundFor (Lkotlin/jvm/functions/Function2;)V
+	public final fun bind (Ljava/lang/String;Ldev/caulis/core/input/KeyBindings$Options;Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun bind (Ljava/lang/String;Ldev/caulis/core/input/KeyBindings$Options;Lkotlin/jvm/functions/Function1;)Ldev/caulis/wm/Caulis$Binding;
 	public final fun bind (Ljava/lang/String;Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final fun bind (Ljava/util/List;Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
@@ -21,27 +118,39 @@ public final class dev/caulis/wm/Caulis {
 	public final fun configName (Ljava/lang/String;)Ldev/caulis/wm/Caulis;
 	public static final fun create ()Ldev/caulis/wm/Caulis;
 	public final fun cursor (Ljava/lang/String;Ljava/lang/Integer;)Ldev/caulis/wm/Caulis;
+	public final fun cursorSize (Ljava/lang/Integer;)Ldev/caulis/wm/Caulis;
+	public final fun cursorTheme (Ljava/lang/String;)Ldev/caulis/wm/Caulis;
 	public final fun dumpState ()V
 	public final fun effects (Ldev/caulis/core/Effects;)Ldev/caulis/wm/Caulis;
 	public final fun effectsFor (Ljava/util/function/BiFunction;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun effectsFor (Lkotlin/jvm/functions/Function2;)V
+	public final fun enterKeyMode (Ljava/lang/String;)V
 	public final fun enterMode (Ljava/lang/String;)V
 	public final fun evaluator (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
-	public final fun every (JLkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun every (JLjava/util/function/Consumer;)Ljava/lang/AutoCloseable;
+	public final synthetic fun every (JLkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
 	public final fun file (Ljava/lang/String;)Ljava/nio/file/Path;
 	public final fun floatWhen (Ljava/util/function/Predicate;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun floatWhen (Lkotlin/jvm/functions/Function1;)V
+	public final fun focusStealingRule (Ljava/util/function/BiPredicate;)Ldev/caulis/wm/Caulis;
 	public final fun getAccentColor ()Ldev/caulis/render/Color;
 	public final fun getAnimationMillis ()J
 	public final fun getAnimations ()Ldev/caulis/core/Animations;
 	public final fun getAppId ()Ljava/lang/String;
 	public final fun getAppearanceToPrograms ()Ljava/lang/Boolean;
+	public final fun getAutostart ()Ldev/caulis/wm/Autostart;
+	public final fun getBackend ()Ldev/caulis/wm/Caulis$Backend;
 	public final fun getBackground ()Ldev/caulis/core/Background;
 	public final fun getBackgroundChangeMillis ()J
+	public final fun getBackgroundColor ()Ldev/caulis/render/Color;
+	public final fun getBindingModifiers ()Ldev/caulis/wm/BindingModifiers;
+	public final fun getBuiltInConnectors ()Ljava/util/List;
 	public final fun getClipboard ()Ldev/caulis/core/DataDeviceManager;
 	public final fun getColorSchedule ()Ldev/caulis/core/appearance/ColorSchedule;
 	public final fun getColorScheme ()Ldev/caulis/core/appearance/ColorScheme;
 	public final fun getColorSchemeNow ()Ldev/caulis/core/appearance/ColorScheme;
+	public final fun getCommandLine ()Z
+	public final fun getCompiledScriptsKept ()I
 	public final fun getConfigDir ()Ljava/nio/file/Path;
 	public final fun getConfigFolder ()Ljava/nio/file/Path;
 	public final fun getConfigName ()Ljava/lang/String;
@@ -60,6 +169,8 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getExportEnvironment ()Ljava/lang/Boolean;
 	public final fun getFocusFollowsMouse ()Z
 	public final fun getFocusOnActivate ()Z
+	public final fun getFocusStealing ()Ldev/caulis/wm/FocusStealing;
+	public final fun getFocusStealingRule ()Lkotlin/jvm/functions/Function2;
 	public final fun getFocusedWindow ()Ldev/caulis/core/Window;
 	public final fun getFullscreenKeepsAwake ()Z
 	public final fun getGtkThemes ()Lkotlin/Pair;
@@ -68,9 +179,11 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getHideCursorAfterSeconds ()I
 	public final fun getHideCursorWhileTyping ()Z
 	public final fun getHotReload ()Z
+	public final fun getIdleInhibitorsWhileLocked ()Z
 	public final fun getInput ()Ldev/caulis/core/input/InputSettings;
 	public final fun getIpc ()Z
 	public final fun getKeyMode ()Ljava/lang/String;
+	public final fun getKeyModeNow ()Ljava/lang/String;
 	public final fun getKeyboardLayoutNames ()Ljava/util/List;
 	public final fun getKeyboardLayoutNow ()I
 	public final fun getKeyboardLayouts ()Ljava/lang/String;
@@ -83,10 +196,14 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getLockBeforeSleep ()Z
 	public final fun getLockColor ()Ldev/caulis/render/Color;
 	public final fun getLockCommand ()Ljava/lang/String;
+	public final fun getLockFailure ()Ldev/caulis/wm/LockFailure;
+	public final fun getLockShowMillis ()J
 	public final fun getLocker ()Lkotlin/jvm/functions/Function1;
 	public final fun getLockerShows ()Lkotlin/jvm/functions/Function1;
 	public final fun getLogFile ()Ljava/nio/file/Path;
 	public final fun getLogLevel ()I
+	public final fun getMaxForwardedStringBytes ()I
+	public final fun getMaxRegionParts ()I
 	public final fun getMode ()Ldev/caulis/wm/Caulis$Mode;
 	public final fun getMonitorEdges ()Ldev/caulis/core/MonitorEdges;
 	public final fun getNestedIn ()Ljava/nio/file/Path;
@@ -96,32 +213,59 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getNumLock ()Ljava/lang/Boolean;
 	public final fun getOverviewFill ()D
 	public final fun getOverviewPinchFingers ()I
+	public final fun getPortalsToRestart ()Ljava/util/List;
 	public final fun getPrimaryMonitor ()Ljava/lang/String;
 	public final fun getPrivilegedClients ()Lkotlin/jvm/functions/Function1;
+	public final fun getProgramOutput ()Ldev/caulis/wm/ProgramOutput;
+	public final fun getProgramOutputFile ()Ljava/nio/file/Path;
 	public final fun getRepeatDelay ()I
+	public final fun getRepeatDelayMillis ()J
 	public final fun getRepeatRate ()I
 	public final fun getResizeBorder ()I
+	public final fun getReveal ()Ldev/caulis/wm/Reveal;
+	public final fun getRevealed ()Z
 	public final fun getScale ()D
+	public final fun getScratchpadStartMillis ()J
 	public final fun getScreenShader ()Ldev/caulis/core/ScreenShader;
-	public final fun getSessionBus ()Ldev/caulis/core/dbus/DBusConnection;
+	public final fun getScriptCallLimitMillis ()J
+	public final fun getSessionBus ()Ldev/caulis/core/dbus/DBusScope;
 	public final fun getSharpJavaScaling ()Z
+	public final fun getSleepLockWaitMillis ()J
+	public final fun getSleepOwnLockShowMillis ()J
 	public final fun getSocketDirectory ()Ljava/nio/file/Path;
+	public final fun getSpecialWorkspaces ()Ldev/caulis/core/SpecialWorkspaces;
+	public final fun getStartupSound ()Ldev/caulis/wm/StartupSound;
 	public final fun getStats ()Z
+	public final fun getStopProgramsOnQuit ()Z
 	public final fun getSwipeDistance ()D
-	public final fun getSystemBus ()Ldev/caulis/core/dbus/DBusConnection;
+	public final fun getSystemBus ()Ldev/caulis/core/dbus/DBusScope;
+	public final fun getSystemKeys ()Ldev/caulis/wm/SystemKeys;
 	public final fun getTerminal ()Ljava/lang/String;
 	public final fun getTitle ()Ljava/lang/String;
 	public final fun getTitleBarStyle ()Ldev/caulis/core/TitleBarStyle;
 	public final fun getTitleBars ()Ldev/caulis/core/TitleBars;
+	public final fun getTouchscreenMonitor ()Ljava/lang/String;
+	public final fun getUnlockFocus ()Ldev/caulis/core/UnlockFocus;
 	public final fun getUseConfigFile ()Z
+	public final fun getWakeScreensAfterMillis ()J
 	public final fun getWakeScreensOnInput ()Z
 	public final fun getWaylandFirst ()Z
+	public final fun getWindowListPrograms ()Ljava/util/Set;
 	public final fun getWorkspaceCount ()I
 	public final fun getWorkspaceMode ()Ldev/caulis/core/WorkspaceMode;
 	public final fun getWorkspaceSwipeFingers ()I
+	public final fun getX11Fallback ()Z
+	public final fun getX11FallbackMillis ()J
 	public final fun getX11Programs ()Ljava/util/Set;
 	public final fun getXwayland ()Z
+	public final fun getXwaylandMaxFailedStarts ()I
+	public final fun getXwaylandRestartMaxMillis ()J
+	public final fun getXwaylandRestartMillis ()J
+	public final fun holdReveal (Ljava/lang/String;)Ljava/lang/AutoCloseable;
 	public final fun idOf (Ldev/caulis/core/Window;)J
+	public final fun keyMode (Ljava/lang/String;Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun keyMode (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public final fun keyboard (Ljava/lang/String;)Ldev/caulis/wm/Caulis;
 	public final fun keyboard (Ljava/lang/String;Ljava/lang/String;)Ldev/caulis/wm/Caulis;
 	public static synthetic fun keyboard$default (Ldev/caulis/wm/Caulis;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/caulis/wm/Caulis;
 	public final fun keys (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
@@ -135,14 +279,23 @@ public final class dev/caulis/wm/Caulis {
 	public final fun locker (Lkotlin/jvm/functions/Function1;)Ldev/caulis/wm/Caulis;
 	public final fun locker (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)Ldev/caulis/wm/Caulis;
 	public static synthetic fun locker$default (Ldev/caulis/wm/Caulis;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ldev/caulis/wm/Caulis;
-	public final fun log (Ljava/lang/String;I)V
+	public final fun log (Ljava/lang/String;I)Ldev/caulis/wm/Caulis;
+	public final synthetic fun log (Ljava/lang/String;I)V
 	public final fun logArea (Ljava/lang/String;I)Ldev/caulis/wm/Caulis;
 	public final fun logLevel (I)Ldev/caulis/wm/Caulis;
 	public final fun mode (Ldev/caulis/wm/Caulis$Mode;)Ldev/caulis/wm/Caulis;
 	public final fun mode (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
 	public final fun monitor (Ljava/lang/String;Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final fun monitor (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public final fun moveOutOfSpecialWorkspace ()V
+	public final fun moveOutOfSpecialWorkspace (Ldev/caulis/core/Window;)V
+	public static synthetic fun moveOutOfSpecialWorkspace$default (Ldev/caulis/wm/Caulis;Ldev/caulis/core/Window;ILjava/lang/Object;)V
 	public final fun moveToMonitorBeside (Ldev/caulis/tiling/Direction;)Z
+	public final fun moveToSpecialWorkspace ()V
+	public final fun moveToSpecialWorkspace (Ldev/caulis/core/Window;)V
+	public final fun moveToSpecialWorkspace (Ldev/caulis/core/Window;Ljava/lang/String;)V
+	public final fun moveToSpecialWorkspace (Ldev/caulis/core/Window;Ljava/lang/String;Z)V
+	public static synthetic fun moveToSpecialWorkspace$default (Ldev/caulis/wm/Caulis;Ldev/caulis/core/Window;Ljava/lang/String;ZILjava/lang/Object;)V
 	public final fun nestedMonitors (I)Ldev/caulis/wm/Caulis;
 	public final fun noticeStyle (Ldev/caulis/core/NoticeStyle;)Ldev/caulis/wm/Caulis;
 	public final fun noticesFromLog (Ljava/util/function/Predicate;)Ldev/caulis/wm/Caulis;
@@ -150,48 +303,79 @@ public final class dev/caulis/wm/Caulis {
 	public final fun notify (Ljava/lang/String;Ldev/caulis/core/NoticeLevel;)Ldev/caulis/core/Notice;
 	public final fun notify (Ljava/lang/String;Ldev/caulis/core/NoticeLevel;Ljava/lang/String;)Ldev/caulis/core/Notice;
 	public static synthetic fun notify$default (Ldev/caulis/wm/Caulis;Ljava/lang/String;Ldev/caulis/core/NoticeLevel;Ljava/lang/String;ILjava/lang/Object;)Ldev/caulis/core/Notice;
-	public final fun onColorSchemeChanged (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public final fun onColorSchemeChanged (Ljava/util/function/BiConsumer;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun onColorSchemeChanged (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public final fun onFocusChanged (Ljava/util/function/BiConsumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onFocusChanged (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public final fun onGesture (Ljava/util/function/BiPredicate;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onGesture (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
-	public final fun onIdle (JLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)V
+	public final fun onIdle (JLjava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
+	public final fun onIdle (JLjava/util/function/Consumer;Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun onIdle (JLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)V
 	public static synthetic fun onIdle$default (Ldev/caulis/wm/Caulis;JLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun onKey (Ljava/util/function/BiPredicate;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onKey (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
-	public final fun onLid (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public final fun onLid (Ljava/util/function/BiConsumer;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun onLid (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public final fun onMonitorAdded (Ljava/util/function/BiConsumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onMonitorAdded (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public final fun onMonitorRemoved (Ljava/util/function/BiConsumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onMonitorRemoved (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
 	public final fun onNotice (Ljava/util/function/BiConsumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onNotice (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public final fun onPointerButton (Ldev/caulis/wm/PointerButtonHandler;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onPointerButton (Lkotlin/jvm/functions/Function3;)Ljava/lang/AutoCloseable;
+	public final fun onPointerMotion (Ldev/caulis/wm/PointerMotionHandler;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onPointerMotion (Lkotlin/jvm/functions/Function3;)Ljava/lang/AutoCloseable;
+	public final fun onQuit (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun onQuit (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun onReload (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onReload (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
-	public final fun onScreenDisplay (Lkotlin/jvm/functions/Function3;)V
+	public final fun onReveal (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun onReveal (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun onScreenDisplay (Ldev/caulis/wm/ScreenDisplayHandler;)V
+	public final fun onScroll (Ldev/caulis/wm/ScrollHandler;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onScroll (Lkotlin/jvm/functions/Function4;)Ljava/lang/AutoCloseable;
+	public final fun onSleep (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onSleep (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
 	public final fun onStart (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onStart (Lkotlin/jvm/functions/Function1;)V
+	public final fun onUnload (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onUnload (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun onWake (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onWake (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun onWindowChanged (Ljava/util/function/BiConsumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onWindowChanged (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
 	public final fun onWindowClosed (Ljava/util/function/BiConsumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onWindowClosed (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
 	public final fun onWindowOpened (Ljava/util/function/BiConsumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onWindowOpened (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public final fun onWorkspaceChanged (Ljava/util/function/BiConsumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun onWorkspaceChanged (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
 	public final fun openTerminal ()V
 	public final fun panelEffects (Ljava/util/function/Function;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun panelEffects (Lkotlin/jvm/functions/Function1;)V
 	public final fun panelRule (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun panelRule (Lkotlin/jvm/functions/Function1;)V
-	public final fun post (Lkotlin/jvm/functions/Function1;)V
+	public final fun playStartupSound ()V
+	public final fun playStartupSound (Ljava/lang/String;)V
+	public static synthetic fun playStartupSound$default (Ldev/caulis/wm/Caulis;Ljava/lang/String;ILjava/lang/Object;)V
+	public final fun post (Ljava/util/function/Consumer;)V
+	public final synthetic fun post (Lkotlin/jvm/functions/Function1;)V
 	public final fun programEnvironment ()Ljava/util/Map;
 	public final fun quit ()V
+	public final fun reveal (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun reveal (Lkotlin/jvm/functions/Function1;)V
 	public final fun rule (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun rule (Lkotlin/jvm/functions/Function1;)V
 	public final fun run ()V
+	public final fun run (Ljava/lang/String;)V
 	public final fun run (Ljava/lang/String;Ldev/caulis/core/Window;)V
+	public final fun run ([Ljava/lang/String;)I
 	public static synthetic fun run$default (Ldev/caulis/wm/Caulis;Ljava/lang/String;Ldev/caulis/core/Window;ILjava/lang/Object;)V
 	public final fun scale (D)Ldev/caulis/wm/Caulis;
 	public final fun scratchpad (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/caulis/core/Scratchpad$Style;)Ldev/caulis/wm/Caulis;
+	public final fun scratchpad (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/caulis/core/Scratchpad$Style;Ljava/util/function/Predicate;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun scratchpad (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/caulis/core/Scratchpad$Style;Lkotlin/jvm/functions/Function1;)V
 	public static synthetic fun scratchpad$default (Ldev/caulis/wm/Caulis;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/caulis/core/Scratchpad$Style;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 	public final fun setAccentColor (Ldev/caulis/render/Color;)V
@@ -199,10 +383,15 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setAnimations (Ldev/caulis/core/Animations;)V
 	public final fun setAppId (Ljava/lang/String;)V
 	public final fun setAppearanceToPrograms (Ljava/lang/Boolean;)V
+	public final fun setBackend (Ldev/caulis/wm/Caulis$Backend;)V
 	public final fun setBackground (Ldev/caulis/core/Background;)V
 	public final fun setBackgroundChangeMillis (J)V
+	public final fun setBackgroundColor (Ldev/caulis/render/Color;)V
+	public final fun setBindingModifiers (Ldev/caulis/wm/BindingModifiers;)V
 	public final fun setColorSchedule (Ldev/caulis/core/appearance/ColorSchedule;)V
 	public final fun setColorScheme (Ldev/caulis/core/appearance/ColorScheme;)V
+	public final fun setCommandLine (Z)V
+	public final fun setCompiledScriptsKept (I)V
 	public final fun setConfigDir (Ljava/nio/file/Path;)V
 	public final fun setConfigName (Ljava/lang/String;)V
 	public final fun setCursorSize (Ljava/lang/Integer;)V
@@ -218,6 +407,8 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setExportEnvironment (Ljava/lang/Boolean;)V
 	public final fun setFocusFollowsMouse (Z)V
 	public final fun setFocusOnActivate (Z)V
+	public final fun setFocusStealing (Ldev/caulis/wm/FocusStealing;)V
+	public final fun setFocusStealingRule (Lkotlin/jvm/functions/Function2;)V
 	public final fun setFullscreenKeepsAwake (Z)V
 	public final fun setGtkThemes (Lkotlin/Pair;)V
 	public final fun setHardwareCursor (Z)V
@@ -225,6 +416,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setHideCursorAfterSeconds (I)V
 	public final fun setHideCursorWhileTyping (Z)V
 	public final fun setHotReload (Z)V
+	public final fun setIdleInhibitorsWhileLocked (Z)V
 	public final fun setIpc (Z)V
 	public final fun setKeyboardLayouts (Ljava/lang/String;)V
 	public final fun setKeyboardModel (Ljava/lang/String;)V
@@ -235,10 +427,14 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setLockBeforeSleep (Z)V
 	public final fun setLockColor (Ldev/caulis/render/Color;)V
 	public final fun setLockCommand (Ljava/lang/String;)V
+	public final fun setLockFailure (Ldev/caulis/wm/LockFailure;)V
+	public final fun setLockShowMillis (J)V
 	public final fun setLocker (Lkotlin/jvm/functions/Function1;)V
 	public final fun setLockerShows (Lkotlin/jvm/functions/Function1;)V
 	public final fun setLogFile (Ljava/nio/file/Path;)V
 	public final fun setLogLevel (I)V
+	public final fun setMaxForwardedStringBytes (I)V
+	public final fun setMaxRegionParts (I)V
 	public final fun setMode (Ldev/caulis/wm/Caulis$Mode;)V
 	public final fun setMonitorEdges (Ldev/caulis/core/MonitorEdges;)V
 	public final fun setNestedIn (Ljava/nio/file/Path;)V
@@ -250,56 +446,110 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setOverviewPinchFingers (I)V
 	public final fun setPrimaryMonitor (Ljava/lang/String;)V
 	public final fun setPrivilegedClients (Lkotlin/jvm/functions/Function1;)V
+	public final fun setProgramOutput (Ldev/caulis/wm/ProgramOutput;)V
+	public final fun setProgramOutputFile (Ljava/nio/file/Path;)V
 	public final fun setRepeatDelay (I)V
+	public final fun setRepeatDelayMillis (J)V
 	public final fun setRepeatRate (I)V
 	public final fun setResizeBorder (I)V
 	public final fun setScale (D)V
+	public final fun setScratchpadStartMillis (J)V
 	public final fun setScreenShader (Ldev/caulis/core/ScreenShader;)V
+	public final fun setScriptCallLimitMillis (J)V
 	public final fun setSharpJavaScaling (Z)V
+	public final fun setSleepLockWaitMillis (J)V
+	public final fun setSleepOwnLockShowMillis (J)V
 	public final fun setSocketDirectory (Ljava/nio/file/Path;)V
+	public final fun setSpecialWorkspaces (Ldev/caulis/core/SpecialWorkspaces;)V
 	public final fun setStats (Z)V
+	public final fun setStopProgramsOnQuit (Z)V
 	public final fun setSwipeDistance (D)V
 	public final fun setTerminal (Ljava/lang/String;)V
 	public final fun setTitle (Ljava/lang/String;)V
 	public final fun setTitleBarStyle (Ldev/caulis/core/TitleBarStyle;)V
 	public final fun setTitleBars (Ldev/caulis/core/TitleBars;)V
+	public final fun setTouchscreenMonitor (Ljava/lang/String;)V
+	public final fun setUnlockFocus (Ldev/caulis/core/UnlockFocus;)V
 	public final fun setUseConfigFile (Z)V
+	public final fun setWakeScreensAfterMillis (J)V
 	public final fun setWakeScreensOnInput (Z)V
 	public final fun setWaylandFirst (Z)V
+	public final fun setWindowListPrograms (Ljava/util/Set;)V
 	public final fun setWorkspaceCount (I)V
 	public final fun setWorkspaceMode (Ldev/caulis/core/WorkspaceMode;)V
 	public final fun setWorkspaceSwipeFingers (I)V
+	public final fun setX11Fallback (Z)V
+	public final fun setX11FallbackMillis (J)V
 	public final fun setXwayland (Z)V
+	public final fun setXwaylandMaxFailedStarts (I)V
+	public final fun setXwaylandRestartMaxMillis (J)V
+	public final fun setXwaylandRestartMillis (J)V
 	public final fun sharpJavaScaling (Z)Ldev/caulis/wm/Caulis;
 	public final fun simulateButton (IZ)V
 	public final fun simulateKey (IZ)V
 	public final fun simulateMotion (DD)V
+	public final fun simulatePadButton (IZ)V
+	public final fun simulatePen (DD)V
+	public final fun simulatePen (DDD)V
+	public final fun simulatePen (DDDLjava/lang/Boolean;)V
+	public static synthetic fun simulatePen$default (Ldev/caulis/wm/Caulis;DDDLjava/lang/Boolean;ILjava/lang/Object;)V
+	public final fun simulatePenAway ()V
+	public final fun simulatePenButton (IZ)V
+	public final fun simulatePointer (DD)V
 	public final fun simulatePointer (DDI)V
 	public static synthetic fun simulatePointer$default (Ldev/caulis/wm/Caulis;DDIILjava/lang/Object;)V
 	public final fun simulateScroll (I)V
 	public final fun spawn (Ljava/util/List;)Ljava/lang/Process;
 	public final fun spawn (Ljava/util/List;Ljava/nio/file/Path;)Ljava/lang/Process;
 	public static synthetic fun spawn$default (Ldev/caulis/wm/Caulis;Ljava/util/List;Ljava/nio/file/Path;ILjava/lang/Object;)Ljava/lang/Process;
+	public final fun specialWorkspaces (Ldev/caulis/core/SpecialWorkspaces;)Ldev/caulis/wm/Caulis;
+	public final fun startLater (Ljava/util/List;)V
+	public final fun startLater (Ljava/util/List;Ljava/nio/file/Path;)V
+	public final fun startLater (Ljava/util/List;Ljava/nio/file/Path;Ljava/lang/Long;)V
+	public static synthetic fun startLater$default (Ldev/caulis/wm/Caulis;Ljava/util/List;Ljava/nio/file/Path;Ljava/lang/Long;ILjava/lang/Object;)V
+	public final fun startupSound (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun startupSound (Lkotlin/jvm/functions/Function1;)V
+	public final fun swipe (ILdev/caulis/tiling/Direction;Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun swipe (ILdev/caulis/tiling/Direction;Lkotlin/jvm/functions/Function1;)V
 	public final fun switchColorScheme (Ldev/caulis/core/appearance/ColorScheme;)V
 	public final fun switchKeyboardLayout (I)V
+	public final fun systemKeys (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun systemKeys (Lkotlin/jvm/functions/Function1;)V
 	public final fun terminal (Ljava/lang/String;)Ldev/caulis/wm/Caulis;
 	public final fun titleBars (Ldev/caulis/core/TitleBars;)Ldev/caulis/wm/Caulis;
 	public final fun titleBarsFor (Ljava/util/function/Function;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun titleBarsFor (Lkotlin/jvm/functions/Function1;)V
 	public final fun toggleScratchpad (Ljava/lang/String;)V
+	public final fun toggleSpecialWorkspace ()V
+	public final fun toggleSpecialWorkspace (Ljava/lang/String;)V
+	public static synthetic fun toggleSpecialWorkspace$default (Ldev/caulis/wm/Caulis;Ljava/lang/String;ILjava/lang/Object;)V
+	public final fun unlockFocus (Ldev/caulis/core/UnlockFocus;)Ldev/caulis/wm/Caulis;
 	public final fun useDisplays (Ldev/caulis/wm/DisplayMode;)V
 	public final fun waylandFirst (Z)Ldev/caulis/wm/Caulis;
+	public final fun whenWarm (Ljava/lang/String;Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun whenWarm (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
 	public final fun windowWithId (J)Ldev/caulis/core/Window;
-	public final fun workspace (ILkotlin/jvm/functions/Function1;)V
+	public final fun workspace (ILjava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun workspace (ILkotlin/jvm/functions/Function1;)V
 	public final fun workspaceMode (Ldev/caulis/core/WorkspaceMode;)Ldev/caulis/wm/Caulis;
 	public final fun x11Program (Ljava/lang/String;)Ldev/caulis/wm/Caulis;
+}
+
+public final class dev/caulis/wm/Caulis$Backend : java/lang/Enum {
+	public static final field AUTO Ldev/caulis/wm/Caulis$Backend;
+	public static final field HEADLESS Ldev/caulis/wm/Caulis$Backend;
+	public static final field NESTED Ldev/caulis/wm/Caulis$Backend;
+	public static final field SCREEN Ldev/caulis/wm/Caulis$Backend;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/wm/Caulis$Backend;
+	public static fun values ()[Ldev/caulis/wm/Caulis$Backend;
 }
 
 public final class dev/caulis/wm/Caulis$Binding {
 	public final fun getAction ()Lkotlin/jvm/functions/Function1;
 	public final fun getCombination ()Ljava/lang/String;
 	public final fun getEnabled ()Z
+	public final fun getKeyMode ()Ljava/lang/String;
 	public final fun getMode ()Ljava/lang/String;
 	public final fun getOptions ()Ldev/caulis/core/input/KeyBindings$Options;
 	public final fun setEnabled (Z)V
@@ -311,7 +561,9 @@ public final class dev/caulis/wm/Caulis$Companion {
 }
 
 public final class dev/caulis/wm/Caulis$KeyMode {
+	public final fun bind (Ljava/lang/String;Ldev/caulis/core/input/KeyBindings$Options;Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis$Binding;
 	public final synthetic fun bind (Ljava/lang/String;Ldev/caulis/core/input/KeyBindings$Options;Lkotlin/jvm/functions/Function1;)Ldev/caulis/wm/Caulis$Binding;
+	public final fun bind (Ljava/lang/String;Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis$Binding;
 	public final synthetic fun bind ([Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ldev/caulis/wm/Caulis$Binding;
 	public final fun getName ()Ljava/lang/String;
 }
@@ -327,8 +579,10 @@ public final class dev/caulis/wm/Caulis$Mode : java/lang/Enum {
 }
 
 public final class dev/caulis/wm/Caulis$MonitorSettings {
+	public final fun getAdaptiveSync ()Ljava/lang/Boolean;
 	public final fun getEnabled ()Z
 	public final fun getHeight ()Ljava/lang/Integer;
+	public final fun getMaxBpc ()Ljava/lang/Integer;
 	public final fun getName ()Ljava/lang/String;
 	public final fun getRefreshHz ()Ljava/lang/Double;
 	public final fun getScale ()Ljava/lang/Double;
@@ -336,11 +590,14 @@ public final class dev/caulis/wm/Caulis$MonitorSettings {
 	public final fun getWidth ()Ljava/lang/Integer;
 	public final fun getX ()Ljava/lang/Integer;
 	public final fun getY ()Ljava/lang/Integer;
+	public final fun mode (II)V
 	public final fun mode (IILjava/lang/Double;)V
 	public static synthetic fun mode$default (Ldev/caulis/wm/Caulis$MonitorSettings;IILjava/lang/Double;ILjava/lang/Object;)V
 	public final fun position (II)V
+	public final fun setAdaptiveSync (Ljava/lang/Boolean;)V
 	public final fun setEnabled (Z)V
 	public final fun setHeight (Ljava/lang/Integer;)V
+	public final fun setMaxBpc (Ljava/lang/Integer;)V
 	public final fun setRefreshHz (Ljava/lang/Double;)V
 	public final fun setScale (Ljava/lang/Double;)V
 	public final fun setTransform (Ldev/caulis/core/Transform;)V
@@ -367,6 +624,15 @@ public final class dev/caulis/wm/DisplayMode : java/lang/Enum {
 
 public final class dev/caulis/wm/DisplayMode$Companion {
 	public final fun of (Ljava/lang/String;)Ldev/caulis/wm/DisplayMode;
+}
+
+public final class dev/caulis/wm/FocusStealing : java/lang/Enum {
+	public static final field ALWAYS Ldev/caulis/wm/FocusStealing;
+	public static final field NEVER Ldev/caulis/wm/FocusStealing;
+	public static final field SAME_PROGRAM Ldev/caulis/wm/FocusStealing;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/wm/FocusStealing;
+	public static fun values ()[Ldev/caulis/wm/FocusStealing;
 }
 
 public final class dev/caulis/wm/KeyInput {
@@ -421,6 +687,7 @@ public final class dev/caulis/wm/Keys {
 	public final fun getOverview ()Ljava/lang/String;
 	public final fun getPreselect ()Ljava/lang/String;
 	public final fun getQuit ()Ljava/lang/String;
+	public final fun getQuitWhileLocked ()Z
 	public final fun getResize ()Ljava/lang/String;
 	public final fun getRestoreShortcuts ()Ljava/lang/String;
 	public final fun getRotate ()Ljava/lang/String;
@@ -461,6 +728,7 @@ public final class dev/caulis/wm/Keys {
 	public final fun setOverview (Ljava/lang/String;)V
 	public final fun setPreselect (Ljava/lang/String;)V
 	public final fun setQuit (Ljava/lang/String;)V
+	public final fun setQuitWhileLocked (Z)V
 	public final fun setResize (Ljava/lang/String;)V
 	public final fun setRestoreShortcuts (Ljava/lang/String;)V
 	public final fun setRotate (Ljava/lang/String;)V
@@ -473,6 +741,14 @@ public final class dev/caulis/wm/Keys {
 	public final fun setVolumeUp (Ljava/lang/String;)V
 	public final fun setWindowDrag (Ljava/lang/String;)V
 	public final fun setWorkspace (Ljava/lang/String;)V
+}
+
+public final class dev/caulis/wm/LockFailure : java/lang/Enum {
+	public static final field NOTICE Ldev/caulis/wm/LockFailure;
+	public static final field OWN_LOCK Ldev/caulis/wm/LockFailure;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/wm/LockFailure;
+	public static fun values ()[Ldev/caulis/wm/LockFailure;
 }
 
 public final class dev/caulis/wm/PanelRule {
@@ -496,6 +772,183 @@ public final class dev/caulis/wm/PanelRule {
 	public final fun where (Lkotlin/jvm/functions/Function1;)V
 }
 
+public abstract interface class dev/caulis/wm/PointerButtonHandler {
+	public abstract fun button (Ldev/caulis/wm/Caulis;IZ)Z
+}
+
+public abstract interface class dev/caulis/wm/PointerMotionHandler {
+	public abstract fun moved (Ldev/caulis/wm/Caulis;DD)Z
+}
+
+public final class dev/caulis/wm/ProgramOutput : java/lang/Enum {
+	public static final field DISCARD Ldev/caulis/wm/ProgramOutput;
+	public static final field FILE Ldev/caulis/wm/ProgramOutput;
+	public static final field LOG Ldev/caulis/wm/ProgramOutput;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/wm/ProgramOutput;
+	public static fun values ()[Ldev/caulis/wm/ProgramOutput;
+}
+
+public final class dev/caulis/wm/Restart {
+	public static final field Companion Ldev/caulis/wm/Restart$Companion;
+	public static final field NEVER Ldev/caulis/wm/Restart;
+	public static final fun always ()Ldev/caulis/wm/Restart;
+	public static final fun always (I)Ldev/caulis/wm/Restart;
+	public static final fun always (IJ)Ldev/caulis/wm/Restart;
+	public final fun getMaxTimes ()I
+	public final fun getWithinMillis ()J
+	public static final fun onCrash ()Ldev/caulis/wm/Restart;
+	public static final fun onCrash (I)Ldev/caulis/wm/Restart;
+	public static final fun onCrash (IJ)Ldev/caulis/wm/Restart;
+	public fun toString ()Ljava/lang/String;
+	public final fun wants (I)Z
+	public static final fun whenEnded (IJLjava/util/function/IntPredicate;)Ldev/caulis/wm/Restart;
+}
+
+public final class dev/caulis/wm/Restart$Companion {
+	public final fun always ()Ldev/caulis/wm/Restart;
+	public final fun always (I)Ldev/caulis/wm/Restart;
+	public final fun always (IJ)Ldev/caulis/wm/Restart;
+	public static synthetic fun always$default (Ldev/caulis/wm/Restart$Companion;IJILjava/lang/Object;)Ldev/caulis/wm/Restart;
+	public final synthetic fun always-HG0u8IE (IJ)Ldev/caulis/wm/Restart;
+	public static synthetic fun always-HG0u8IE$default (Ldev/caulis/wm/Restart$Companion;IJILjava/lang/Object;)Ldev/caulis/wm/Restart;
+	public final fun onCrash ()Ldev/caulis/wm/Restart;
+	public final fun onCrash (I)Ldev/caulis/wm/Restart;
+	public final fun onCrash (IJ)Ldev/caulis/wm/Restart;
+	public static synthetic fun onCrash$default (Ldev/caulis/wm/Restart$Companion;IJILjava/lang/Object;)Ldev/caulis/wm/Restart;
+	public final synthetic fun onCrash-HG0u8IE (IJ)Ldev/caulis/wm/Restart;
+	public static synthetic fun onCrash-HG0u8IE$default (Ldev/caulis/wm/Restart$Companion;IJILjava/lang/Object;)Ldev/caulis/wm/Restart;
+	public final fun whenEnded (IJLjava/util/function/IntPredicate;)Ldev/caulis/wm/Restart;
+}
+
+public final class dev/caulis/wm/Reveal : dev/caulis/wm/StartupSettings {
+	public fun <init> ()V
+	public final fun color (Ldev/caulis/render/Color;)Ldev/caulis/wm/Reveal;
+	public final fun enabled (Z)Ldev/caulis/wm/Reveal;
+	public final fun fadeMillis (J)Ldev/caulis/wm/Reveal;
+	public final fun getColor ()Ldev/caulis/render/Color;
+	public final fun getCurve ()Ldev/caulis/core/Curve;
+	public final fun getEnabled ()Z
+	public final synthetic fun getFade-UwyO8pc ()J
+	public final fun getFadeMillis ()J
+	public final fun getHideCursor ()Z
+	public final synthetic fun getMaxWait-UwyO8pc ()J
+	public final fun getMaxWaitMillis ()J
+	public final fun getWarmFrames ()I
+	public final fun hold (Ljava/lang/String;)Ljava/lang/AutoCloseable;
+	public final fun maxWaitMillis (J)Ldev/caulis/wm/Reveal;
+	public final fun setColor (Ldev/caulis/render/Color;)V
+	public final fun setCurve (Ldev/caulis/core/Curve;)V
+	public final fun setEnabled (Z)V
+	public final synthetic fun setFade-LRDsOJo (J)V
+	public final fun setFadeMillis (J)V
+	public final fun setHideCursor (Z)V
+	public final synthetic fun setMaxWait-LRDsOJo (J)V
+	public final fun setMaxWaitMillis (J)V
+	public final fun setWarmFrames (I)V
+	public final fun whenWarm (Ljava/lang/String;Ljava/util/function/Consumer;)V
+	public final synthetic fun whenWarm (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+}
+
+public final class dev/caulis/wm/Reveal$Hold : java/lang/AutoCloseable {
+	public fun close ()V
+	public final fun getClosed ()Z
+	public final fun getName ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/caulis/wm/ScreenDisplayHandler {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/Double;Z)Z
+}
+
+public abstract interface class dev/caulis/wm/ScrollHandler {
+	public abstract fun scrolled (Ldev/caulis/wm/Caulis;ZDD)Z
+}
+
+public final class dev/caulis/wm/SoundMoment : java/lang/Enum {
+	public static final field REVEAL Ldev/caulis/wm/SoundMoment;
+	public static final field START Ldev/caulis/wm/SoundMoment;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/wm/SoundMoment;
+	public static fun values ()[Ldev/caulis/wm/SoundMoment;
+}
+
+public final class dev/caulis/wm/StartupChimes {
+	public static final field INSTANCE Ldev/caulis/wm/StartupChimes;
+	public static final field PRESETS Ljava/util/List;
+	public static final field RATE I
+	public static final fun file (Ljava/lang/String;Ljava/nio/file/Path;)Ljava/nio/file/Path;
+	public static final fun wav (Ljava/lang/String;)[B
+}
+
+public abstract class dev/caulis/wm/StartupSettings {
+	public final synthetic fun getMilliseconds-5sfh64U (I)J
+	public final synthetic fun getMinutes-5sfh64U (I)J
+	public final synthetic fun getSeconds-5sfh64U (D)J
+	public final synthetic fun getSeconds-5sfh64U (I)J
+}
+
+public final class dev/caulis/wm/StartupSound : dev/caulis/wm/StartupSettings {
+	public fun <init> ()V
+	public final fun at (Ldev/caulis/wm/SoundMoment;)Ldev/caulis/wm/StartupSound;
+	public final fun delayMillis (J)Ldev/caulis/wm/StartupSound;
+	public final fun enabled (Z)Ldev/caulis/wm/StartupSound;
+	public final fun file (Ljava/lang/String;)Ldev/caulis/wm/StartupSound;
+	public final fun getAt ()Ldev/caulis/wm/SoundMoment;
+	public final fun getCacheFolder ()Ljava/nio/file/Path;
+	public final synthetic fun getDelay-UwyO8pc ()J
+	public final fun getDelayMillis ()J
+	public final fun getEnabled ()Z
+	public final fun getFile ()Ljava/lang/String;
+	public final fun getPlay ()Lkotlin/jvm/functions/Function2;
+	public final fun getPlayer ()Ljava/util/List;
+	public final fun getPlayerTimeoutMillis ()J
+	public final fun getPlayers ()Ljava/util/List;
+	public final fun getPreset ()Ljava/lang/String;
+	public final fun getVolume ()D
+	public final fun getWhenHeadless ()Z
+	public final fun play (Ljava/util/function/BiPredicate;)Ldev/caulis/wm/StartupSound;
+	public final fun player (Ljava/util/List;)Ldev/caulis/wm/StartupSound;
+	public final fun preset (Ljava/lang/String;)Ldev/caulis/wm/StartupSound;
+	public final fun setAt (Ldev/caulis/wm/SoundMoment;)V
+	public final fun setCacheFolder (Ljava/nio/file/Path;)V
+	public final synthetic fun setDelay-LRDsOJo (J)V
+	public final fun setDelayMillis (J)V
+	public final fun setEnabled (Z)V
+	public final fun setFile (Ljava/lang/String;)V
+	public final fun setPlay (Lkotlin/jvm/functions/Function2;)V
+	public final fun setPlayer (Ljava/util/List;)V
+	public final fun setPlayerTimeoutMillis (J)V
+	public final fun setPreset (Ljava/lang/String;)V
+	public final fun setVolume (D)V
+	public final fun setWhenHeadless (Z)V
+	public final fun volume (D)Ldev/caulis/wm/StartupSound;
+}
+
+public final class dev/caulis/wm/SystemKeys {
+	public fun <init> ()V
+	public final fun getBacklight ()Ljava/lang/String;
+	public final fun getBrightnessStep ()I
+	public final fun getBrightnessctl ()Ljava/lang/String;
+	public final fun getMaxVolume ()D
+	public final fun getMinBrightnessPercent ()I
+	public final fun getPlayerctl ()Ljava/lang/String;
+	public final fun getTimeoutMillis ()J
+	public final fun getUnmuteOnVolumeChange ()Z
+	public final fun getVolumeStep ()I
+	public final fun getWpctl ()Ljava/lang/String;
+	public final fun setBacklight (Ljava/lang/String;)V
+	public final fun setBrightnessStep (I)V
+	public final fun setBrightnessctl (Ljava/lang/String;)V
+	public final fun setMaxVolume (D)V
+	public final fun setMinBrightnessPercent (I)V
+	public final fun setPlayerctl (Ljava/lang/String;)V
+	public final fun setTimeoutMillis (J)V
+	public final fun setUnmuteOnVolumeChange (Z)V
+	public final fun setVolumeStep (I)V
+	public final fun setWpctl (Ljava/lang/String;)V
+}
+
 public final class dev/caulis/wm/WindowRule {
 	public final fun allOf (Lkotlin/jvm/functions/Function1;)V
 	public final fun anyOf (Lkotlin/jvm/functions/Function1;)V
@@ -504,6 +957,10 @@ public final class dev/caulis/wm/WindowRule {
 	public final fun borderColor (Ldev/caulis/render/Color;)V
 	public final fun borderColor (Ldev/caulis/render/Color;Ldev/caulis/render/Color;)V
 	public static synthetic fun borderColor$default (Ldev/caulis/wm/WindowRule;Ldev/caulis/render/Color;Ldev/caulis/render/Color;ILjava/lang/Object;)V
+	public final fun borderPaint (Ldev/caulis/render/Paint;)V
+	public final fun borderPaint (Ldev/caulis/render/Paint;Ldev/caulis/render/Paint;)V
+	public final fun borderPaint (Ldev/caulis/render/Paint;Ldev/caulis/render/Paint;Ldev/caulis/render/Paint;)V
+	public static synthetic fun borderPaint$default (Ldev/caulis/wm/WindowRule;Ldev/caulis/render/Paint;Ldev/caulis/render/Paint;Ldev/caulis/render/Paint;ILjava/lang/Object;)V
 	public final fun center ()V
 	public final fun effects (Lkotlin/jvm/functions/Function1;)V
 	public final fun getAnimated ()Ljava/lang/Boolean;
@@ -524,6 +981,7 @@ public final class dev/caulis/wm/WindowRule {
 	public final fun getOpacity ()Ljava/lang/Float;
 	public final fun getPinned ()Ljava/lang/Boolean;
 	public final fun getShadow ()Ljava/lang/Boolean;
+	public final fun getSpecialWorkspace ()Ljava/lang/String;
 	public final fun getTakesFocus ()Ljava/lang/Boolean;
 	public final fun getTitleBars ()Ldev/caulis/core/TitleBars;
 	public final fun getWorkspace ()Ljava/lang/Integer;
@@ -575,6 +1033,7 @@ public final class dev/caulis/wm/WindowRule {
 	public final fun setOpacity (Ljava/lang/Float;)V
 	public final fun setPinned (Ljava/lang/Boolean;)V
 	public final fun setShadow (Ljava/lang/Boolean;)V
+	public final fun setSpecialWorkspace (Ljava/lang/String;)V
 	public final fun setTakesFocus (Ljava/lang/Boolean;)V
 	public final fun setTitleBars (Ldev/caulis/core/TitleBars;)V
 	public final fun setWorkspace (Ljava/lang/Integer;)V
@@ -587,6 +1046,21 @@ public final class dev/caulis/wm/WindowRule {
 	public final fun where (Lkotlin/jvm/functions/Function1;)V
 }
 
+public final class dev/caulis/wm/config/ActionInfo {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ldev/caulis/wm/config/ActionInfo;
+	public static synthetic fun copy$default (Ldev/caulis/wm/config/ActionInfo;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/caulis/wm/config/ActionInfo;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgument ()Ljava/lang/String;
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public abstract interface class dev/caulis/wm/config/ActionProvider {
 	public abstract fun getActions ()Ljava/util/List;
 	public abstract fun parse (Ljava/lang/String;Ljava/lang/String;)Lkotlin/jvm/functions/Function2;
@@ -597,5 +1071,15 @@ public final class dev/caulis/wm/config/Actions {
 	public final fun getAll ()Ljava/util/List;
 	public final fun parse (Ljava/lang/String;)Lkotlin/jvm/functions/Function1;
 	public final fun parseFor (Ljava/lang/String;)Lkotlin/jvm/functions/Function2;
+}
+
+public abstract interface class dev/caulis/wm/config/ConfigLanguage {
+	public abstract fun apply (Ldev/caulis/wm/Caulis;Ljava/nio/file/Path;)Ljava/util/List;
+	public abstract fun getFileName ()Ljava/lang/String;
+	public fun stubs ()Ljava/lang/String;
+}
+
+public final class dev/caulis/wm/config/ConfigLanguage$DefaultImpls {
+	public static fun stubs (Ldev/caulis/wm/config/ConfigLanguage;)Ljava/lang/String;
 }
 

@@ -32,7 +32,11 @@ import kotlin.io.path.readText
  * Projects that need more than plain compiling — compiler plugins (serialization,
  * Compose, all-open, ...), annotation processors, KSP/kapt, own source sets or compiler
  * flags — are left to Gradle ([cannotCompile] says why).
+ *
+ * Caulis finds it by itself when caulis-reload is on the class path (java.util.ServiceLoader):
+ * there is nothing to call. Public only for that; its functions are Caulis's own.
  */
+@dev.caulis.log.InternalCaulisApi
 class InProcessCompiler : ReloadCompiler, AutoCloseable {
 
     private val log = Logger("reload")

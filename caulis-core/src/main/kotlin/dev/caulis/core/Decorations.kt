@@ -145,8 +145,16 @@ object DefaultTitleBarPainter : TitleBarPainter {
         val room = bar.width - buttonsWidth - (24 * unit).toInt()
         var text = bar.title
         if (metrics.stringWidth(text) > room) {
-            while (text.isNotEmpty() && metrics.stringWidth("$text…") > room) text = text.dropLast(1)
-            text = if (text.isEmpty()) "" else "$text…"
+            // The longest start that fits, found by halving (a title of 60 000 characters cut a
+            // character at a time froze the compositor for seconds), never inside a character.
+            var fits = 0
+            var tooLong = text.length
+            while (tooLong - fits > 1) {
+                val middle = (fits + tooLong) / 2
+                if (metrics.stringWidth(text.substring(0, middle) + "…") <= room) fits = middle else tooLong = middle
+            }
+            if (fits > 0 && Character.isHighSurrogate(text[fits - 1])) fits--
+            text = if (fits == 0) "" else text.substring(0, fits) + "…"
         }
         val textWidth = metrics.stringWidth(text)
         val x = when {

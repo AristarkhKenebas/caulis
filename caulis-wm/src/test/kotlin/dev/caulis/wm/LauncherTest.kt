@@ -24,6 +24,7 @@ class LauncherTest {
             env["WAYLAND_DISPLAY"] = "wayland-test"
             env["DISPLAY"] = ":99"
         },
+        userEnvironment = {},
         x11Available = { true },
         post = { task -> thread.execute(task) },
         settings = { Launcher.Settings(waylandFirst = true, x11Programs = x11Programs, scale = scale, sharpWholeScales = sharp) },
@@ -73,8 +74,12 @@ class LauncherTest {
 
     @Test
     fun `a program that fails on Wayland is started again through X11, and then right away`() {
-        val command = program("waylandless", """[ -n "${'$'}WAYLAND_DISPLAY" ] && exit 3; exit 0""")
+        // (It "connects" — the test says so for it — then fails.)
+        val command = program("waylandless", """[ -n "${'$'}WAYLAND_DISPLAY" ] && { sleep 0.5; exit 3; }; exit 0""")
         launch(command)
+        waitFor { Files.exists(dir.resolve("waylandless.pid")) }
+        val pid = Files.readString(dir.resolve("waylandless.pid")).trim().toInt()
+        thread.submit { launcher.clientConnected(pid) }.get()
         waitFor { starts("waylandless").size == 2 }
         val (first, second) = starts("waylandless")
         assertTrue("WAYLAND_DISPLAY=wayland-test" in first, first)
@@ -84,6 +89,28 @@ class LauncherTest {
         launch(command)
         waitFor { starts("waylandless").size == 3 }
         assertTrue("GDK_BACKEND=x11" in starts("waylandless")[2])
+    }
+
+    @Test
+    fun `a tool that never connected is not started again when it fails`() {
+        launch(program("tool", "exit 3"))
+        waitFor { starts("tool").isNotEmpty() }
+        Thread.sleep(1000)
+        assertEquals(1, starts("tool").size, "a command-line tool runs once")
+    }
+
+    @Test
+    fun `programs read nothing, and are asked to end when the compositor quits`() {
+        // A program reading its input ends at once (no pipe of ours to wait on).
+        launch(program("reader", "read line; echo \"read: ${'$'}line\" >> '$dir/reader.out'"))
+        waitFor { Files.exists(dir.resolve("reader.out")) }
+        launch(program("daemon", "exec sleep 60"))
+        waitFor { Files.exists(dir.resolve("daemon.pid")) }
+        val pid = Files.readString(dir.resolve("daemon.pid")).trim().toLong()
+        Thread.sleep(200)
+        assertTrue(ProcessHandle.of(pid).map { it.isAlive }.orElse(false), "it runs")
+        thread.submit { launcher.stopAll() }.get()
+        waitFor { !ProcessHandle.of(pid).map { it.isAlive }.orElse(false) }
     }
 
     @Test

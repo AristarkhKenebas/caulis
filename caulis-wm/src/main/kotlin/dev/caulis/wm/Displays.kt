@@ -126,6 +126,8 @@ internal class Displays(
         choosing?.cancel()
         choosing = null
         marked = null
+        // (Taken out first: put back, it is the newest — the oldest are the ones forgotten.)
+        remembered.remove(key(plugged))
         remembered[key(plugged)] = wanted
         save()
         if (wanted == mode) return
@@ -148,7 +150,11 @@ internal class Displays(
     // then the ones to be dark.
     fun apply() {
         plugged = screens.plugged()
-        fun used(screen: Screen) = wants(screen.name) && running.config.monitorSettings[screen.name]?.enabled != false
+        fun wanted(screen: Screen) = wants(screen.name) && running.config.monitorSettings[screen.name]?.enabled != false
+        // Never no screen at all (the only other one switched off in the settings): the laptop's own then.
+        val none = plugged.none(::wanted)
+        if (none) log.warn("No screen would be used in ${mode.title}: the laptop's own stays on")
+        fun used(screen: Screen) = wanted(screen) || (none && running.config.isBuiltIn(screen.name))
         for (screen in plugged) if (!screen.on && used(screen)) screens.setEnabled(screen.name, true)
         for (screen in plugged) {
             if (screen.on && used(screen) && screens.mirroring(screen.name) != mirrors(screen.name)) {
@@ -216,8 +222,8 @@ internal class Displays(
     companion object {
         private const val CHOOSE_MILLIS = 1300L
         private const val KEPT = 50
-
-        /** A laptop's own screen, by its connector's name (eDP-1, LVDS-1, DSI-1). */
-        fun builtIn(name: String): Boolean = name.startsWith("eDP") || name.startsWith("LVDS") || name.startsWith("DSI")
     }
+
+    // A laptop's own screen, by its connector's name (Caulis.builtInConnectors: eDP-1, LVDS-1, DSI-1).
+    private fun builtIn(name: String): Boolean = running.config.isBuiltIn(name)
 }

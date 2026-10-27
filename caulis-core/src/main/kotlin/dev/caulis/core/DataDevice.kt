@@ -18,13 +18,15 @@ import dev.caulis.protocol.wayland.WlSurface
  * The program that copies offers a list of formats ("text/plain;charset=utf-8", ...).
  * The focused program is told what is on the clipboard and, when pasting, asks for one
  * format; the data then flows directly between the two programs through a pipe.
- * Drag and drop is refused for now (stage 8).
+ * Drag and drop works between programs and within one (files from a file manager, tabs,
+ * text): the program the button was pressed in starts it, the one the button is let go
+ * over gets it, if it accepted one of the formats.
  *
  * The compositor can use the clipboard too ([clipboard], [setClipboard],
  * [onClipboardChanged]): to bridge it to X11 programs, keep a clipboard history, or put
  * something on it itself.
  */
-class DataDeviceManager(display: Display, private val seat: Seat) {
+class DataDeviceManager(private val display: Display, private val seat: Seat) {
 
     private val log = Logger("clipboard")
     private val devices = ArrayList<WlDataDevice>()
@@ -63,6 +65,9 @@ class DataDeviceManager(display: Display, private val seat: Seat) {
     // A program's wl_data_source.
     private class Source(val resource: WlDataSource) : ClipboardData {
         override val mimeTypes = ArrayList<String>()
+
+        // Drag and drop: what may be done with it (copy 1, move 2, ask 4), as the program said.
+        var actions = 0
         override val pid: Int get() = resource.client.pid
 
         override fun send(mimeType: String, fd: Fd) {
@@ -100,15 +105,19 @@ class DataDeviceManager(display: Display, private val seat: Seat) {
             id.data = source
             id.requests = object : WlDataSource.Requests {
                 override fun offer(resource: WlDataSource, mimeType: String) {
-                    if (source.mimeTypes.size < MAX_MIME_TYPES) source.mimeTypes += mimeType
+                    if (source.mimeTypes.size < MAX_MIME_TYPES && resource.client.server.fitsForwarded(mimeType)) source.mimeTypes += mimeType
                 }
 
                 override fun destroy(resource: WlDataSource) {}
 
-                override fun setActions(resource: WlDataSource, dndActions: Int) {}
+                override fun setActions(resource: WlDataSource, dndActions: Int) {
+                    source.actions = dndActions and ALL_ACTIONS
+                }
             }
             id.onDestroy {
                 if (selection === source) setSelection(null)
+                // A drag of it goes too.
+                if ((this@DataDeviceManager.seat.drag as? DndDrag)?.source === source) this@DataDeviceManager.seat.cancelDrag()
             }
         }
 
@@ -117,13 +126,13 @@ class DataDeviceManager(display: Display, private val seat: Seat) {
             id.onDestroy { devices -= id }
             id.requests = object : WlDataDevice.Requests {
                 override fun startDrag(resource: WlDataDevice, source: WlDataSource?, origin: WlSurface, icon: WlSurface?, serial: Int) {
-                    source?.sendCancelled() // drag and drop comes later
+                    startDrag(resource, source?.dataAs<Source>(), origin, icon, serial)
                 }
 
                 override fun setSelection(resource: WlDataDevice, source: WlDataSource?, serial: Int) {
                     // Only the program you use may set the clipboard (one in the background
                     // could swap what you copied); clipboard managers use data-control.
-                    if (!this@DataDeviceManager.seat.inUse(resource.client)) {
+                    if (!this@DataDeviceManager.seat.maySetSelection(resource.client, serial)) {
                         source?.sendCancelled()
                         return
                     }
@@ -138,6 +147,162 @@ class DataDeviceManager(display: Display, private val seat: Seat) {
 
         override fun release(resource: WlDataDeviceManager) {}
     }
+
+    // --- drag and drop -------------------------------------------------------------------
+
+    // Only the program a button is held in, with the serial of that press, may start a drag
+    // (else any program could take the pointer); [icon] is dragged along under the cursor.
+    private fun startDrag(device: WlDataDevice, source: Source?, originResource: WlSurface, iconResource: WlSurface?, serial: Int) {
+        val client = device.client
+        val origin = originResource.dataAs<Surface>() ?: return
+        if (!seat.isInputSerial(client, serial) || !seat.buttonHeld || seat.pointerFocus?.resource?.client !== client || seat.drag != null) {
+            log.info { "${client.name} tried to start a drag without a button held in it: refused" }
+            source?.resource?.sendCancelled()
+            return
+        }
+        val icon = iconResource?.dataAs<Surface>()
+        if (icon != null && !icon.assignRole(Surface.Role.DND_ICON, device, WlDataDevice.Error.ROLE)) return
+        log.info { "${client.name} drags ${source?.mimeTypes?.joinToString() ?: "within itself"}" }
+        val drag = DndDrag(source, client, icon, origin)
+        // (One listener per surface, for every drag it is in: a tab dragged many times over a
+        // session does not pile them up.)
+        if (icon != null && iconsHeard.put(icon, Unit) == null) icon.onCommit {
+            val current = seat.drag as? DndDrag
+            if (current != null && current.icon === icon) {
+                current.iconX += icon.current.offsetX
+                current.iconY += icon.current.offsetY
+                seat.onCursorChange()
+            }
+        }
+        if (originsHeard.put(origin, Unit) == null) origin.resource.onDestroy {
+            // The window the drag started in went away (its program crashed): the drag ends.
+            if ((seat.drag as? DndDrag)?.origin === origin) seat.cancelDrag()
+        }
+        seat.startDrag(drag)
+    }
+
+    // Surfaces already heard as drag icons and drag origins (see startDrag).
+    private val iconsHeard = java.util.WeakHashMap<Surface, Unit>()
+    private val originsHeard = java.util.WeakHashMap<Surface, Unit>()
+
+    // One drag: the surface it is over gets offers of what is dragged, and the drop.
+    private inner class DndDrag(val source: Source?, private val originClient: Client, override val icon: Surface?, val origin: Surface) : Seat.Drag {
+        override var iconX = 0
+        override var iconY = 0
+        private var target: Surface? = null
+        private val offers = ArrayList<WlDataOffer>()
+        private var accepted: String? = null
+        private var acceptedOnce = false
+        private var action = 0
+
+        // The program under the pointer: offered the data (a drag without data: only its own program).
+        override fun motion(timeMillis: Int, surface: Surface?, x: Double, y: Double) {
+            val over = surface?.takeIf { source != null || it.resource.client === originClient }
+            if (over !== target) {
+                leave()
+                if (over != null) enter(over, x, y)
+                return
+            }
+            if (over == null) return
+            devicesOf(over.resource.client).forEach { it.sendMotion(timeMillis, x, y) }
+        }
+
+        private fun enter(surface: Surface, x: Double, y: Double) {
+            target = surface
+            accepted = null
+            acceptedOnce = false
+            action = 0
+            val serial = display.nextSerial()
+            for (device in devicesOf(surface.resource.client)) {
+                val offer = source?.let { offerFor(device, it) }
+                device.sendEnter(serial, surface.resource, x, y, offer)
+            }
+        }
+
+        private fun offerFor(device: WlDataDevice, source: Source): WlDataOffer {
+            val offer = device.client.createServerResource(WlDataOffer, device.version)
+            var offerActions = 0
+            var preferred = 0
+            offer.requests = object : WlDataOffer.Requests {
+                override fun accept(resource: WlDataOffer, serial: Int, mimeType: String?) {
+                    if (resource !in offers) return
+                    accepted = mimeType?.takeIf { it in source.mimeTypes }
+                    if (accepted != null) acceptedOnce = true
+                    if (source.resource.isAlive) source.resource.sendTarget(accepted)
+                }
+
+                override fun receive(resource: WlDataOffer, mimeType: String, fd: Fd) {
+                    if (source.resource.isAlive && mimeType in source.mimeTypes) source.send(mimeType, fd) else fd.close()
+                }
+
+                override fun finish(resource: WlDataOffer) {
+                    // The target took the data: the drag is done.
+                    if (source.resource.isAlive && source.resource.version >= 3) source.resource.sendDndFinished()
+                }
+
+                override fun setActions(resource: WlDataOffer, dndActions: Int, preferredAction: Int) {
+                    if (dndActions and ALL_ACTIONS.inv() != 0) return resource.postError(WlDataOffer.Error.INVALID_ACTION_MASK, "unknown actions $dndActions")
+                    // (The preferred action is one action, or none.)
+                    if (preferredAction and ALL_ACTIONS.inv() != 0 || Integer.bitCount(preferredAction) > 1) {
+                        return resource.postError(WlDataOffer.Error.INVALID_ACTION, "the preferred action is one action, not $preferredAction")
+                    }
+                    if (resource !in offers) return // an offer of an earlier drag, or one left
+                    offerActions = dndActions and ALL_ACTIONS
+                    preferred = preferredAction and ALL_ACTIONS
+                    // What both sides allow: the target's choice if it can, else the first.
+                    val both = source.actions and offerActions
+                    action = when {
+                        preferred and both != 0 -> preferred and both
+                        both and 1 != 0 -> 1
+                        both and 2 != 0 -> 2
+                        both and 4 != 0 -> 4
+                        else -> 0
+                    }
+                    if (resource.version >= 3) resource.sendAction(action)
+                    if (source.resource.isAlive && source.resource.version >= 3) source.resource.sendAction(action)
+                }
+
+                override fun destroy(resource: WlDataOffer) {
+                    offers -= resource
+                }
+            }
+            offers += offer
+            device.sendDataOffer(offer)
+            source.mimeTypes.forEach(offer::sendOffer)
+            if (offer.version >= 3) offer.sendSourceActions(source.actions)
+            return offer
+        }
+
+        private fun leave() {
+            val old = target ?: return
+            target = null
+            offers.clear()
+            if (old.resource.isAlive) devicesOf(old.resource.client).forEach { it.sendLeave() }
+        }
+
+        override fun drop() {
+            val over = target
+            // Dropped where a format was accepted (and, for programs that know actions, an action agreed): it is theirs.
+            val newActions = source != null && source.resource.version >= 3 && offers.any { it.version >= 3 }
+            val taken = over != null && over.resource.isAlive && (source == null || (accepted != null && (!newActions || action != 0)))
+            if (!taken) {
+                log.trace { "Drag ended: nothing took it" }
+                cancel()
+                return
+            }
+            log.info { "Dropped on ${over!!.resource.client.name}" }
+            devicesOf(over!!.resource.client).forEach { it.sendDrop() }
+            if (source != null && source.resource.isAlive && source.resource.version >= 3) source.resource.sendDndDropPerformed()
+            target = null
+        }
+
+        override fun cancel() {
+            leave()
+            if (source != null && source.resource.isAlive) source.resource.sendCancelled()
+        }
+    }
+
+    private fun devicesOf(client: Client): List<WlDataDevice> = devices.filter { it.client === client && it.isAlive }
 
     private fun setSelection(source: ClipboardData?) {
         val old = selection
@@ -194,6 +359,9 @@ class DataDeviceManager(display: Display, private val seat: Seat) {
     companion object {
         const val VERSION = 3
         private const val MAX_MIME_TYPES = 64
+
+        // copy, move, ask (wl_data_device_manager.dnd_action)
+        private const val ALL_ACTIONS = 7
     }
 }
 

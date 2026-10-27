@@ -14,6 +14,7 @@ import dev.caulis.wm.config.ListType
 import dev.caulis.wm.config.MapType
 import dev.caulis.wm.config.OffOrType
 import dev.caulis.wm.config.RegexType
+import dev.caulis.wm.config.SpecialWorkspaceType
 import dev.caulis.wm.config.SectionType
 import dev.caulis.wm.config.SettingType
 import dev.caulis.wm.config.Settings
@@ -53,7 +54,7 @@ internal object LuaStubs {
         is IntegerType -> "integer"
         is DecimalType -> "number"
         FlagType -> "boolean"
-        is TextType, is FileType, ColorType, ActionType, RegexType, is CombinationType -> "string"
+        is TextType, is FileType, ColorType, ActionType, RegexType, SpecialWorkspaceType, is CombinationType -> "string"
         BindType -> "string|{ action: string, repeat?: boolean, release?: boolean, locked?: boolean, description?: string }"
         is ChoiceType -> type.values.joinToString("|") { "\"$it\"" }
         is ListType -> "(${luaType(type.item, path, classes)})[]"
@@ -129,7 +130,7 @@ internal object LuaStubs {
         ---@field description? string
         ---@field mode? string a key mode's own key
 
-        ---@alias caulis.Event "start"|"reload"|"unload"|"window-opened"|"window-closed"|"window-changed"|"focus-changed"|"workspace-changed"|"monitor-added"|"monitor-removed"|"notice"|"lid"|"color-scheme"
+        ---@alias caulis.Event "start"|"reload"|"unload"|"window-opened"|"window-closed"|"window-changed"|"focus-changed"|"workspace-changed"|"monitor-added"|"monitor-removed"|"notice"|"lid"|"color-scheme"|"quit"
 
         ---@class caulis
         caulis = {}
@@ -210,6 +211,11 @@ internal object LuaStubs {
 
         ---@param text string
         function caulis.log(text) end
+
+        ---Starts a program (run by /bin/sh) inside the compositor, without waiting for it. At the
+        ---top of the file: once, when the compositor starts. (os.execute does the same.)
+        ---@param command string
+        function caulis.launch(command) end
 
         ---A file next to the configuration, as a full path.
         ---@param name string

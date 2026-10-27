@@ -5,6 +5,7 @@ import dev.caulis.render.GpuTarget
 import java.lang.foreign.MemorySegment
 
 /** Something the GLES renderer can draw into: a framebuffer with a texture attached. */
+@OptIn(dev.caulis.log.InternalCaulisApi::class)
 internal abstract class GlesFramebuffer(final override val width: Int, final override val height: Int) : GpuTarget {
 
     internal var framebuffer = 0
@@ -37,6 +38,7 @@ internal abstract class GlesFramebuffer(final override val width: Int, final ove
         require(region.x >= 0 && region.y >= 0 && region.right <= width && region.bottom <= height && !region.isEmpty) { "$region is not inside ${width}x$height" }
         require(stride % 4 == 0 && stride >= region.width * 4) { "rows of $stride bytes cannot hold ${region.width} pixels" }
         require(destination.byteSize() >= stride.toLong() * (region.height - 1) + region.width * 4L) { "destination too small" }
+        Gl.drain("something drawn before reading pixels")
         bind()
         Gles.glPixelStorei(Gles.GL_PACK_ALIGNMENT(), 4)
         Gles.glPixelStorei(Gles.GL_PACK_ROW_LENGTH(), stride / 4)

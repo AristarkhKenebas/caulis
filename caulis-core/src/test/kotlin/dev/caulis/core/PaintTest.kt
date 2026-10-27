@@ -51,6 +51,7 @@ class PaintTest {
         server.onServer { d ->
             d.layout = Floating
             d.effects = Effects(border = Border(6, Color.hex("#ff0000"), Color.hex("#0000ff")), focusChangeMillis = 2000)
+            d.animations = Animations().with("border", enabled = true) // (off by default; only this one)
         }
         client.window().draw(200, 150)
         val first = rectOf(server, client)

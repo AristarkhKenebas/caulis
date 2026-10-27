@@ -17,6 +17,11 @@ class Scratchpad internal constructor(
     val style: Style,
     /** Which windows belong here (e.g. by app id). */
     val match: (Window) -> Boolean,
+    /**
+     * True for a special workspace ([Desktop.toggleSpecialWorkspace]): made when first named,
+     * shown even without windows, looking as [Desktop.specialWorkspaces] says.
+     */
+    val isSpecial: Boolean = false,
 ) {
     /** How a scratchpad looks when shown. */
     sealed interface Style
@@ -56,6 +61,9 @@ class Scratchpad internal constructor(
 
     // Hiding: still drawn while its windows glide away.
     internal var leaving = false
+
+    // A special workspace: the window that had the focus before it was shown (it gets it back).
+    internal var focusBefore: java.lang.ref.WeakReference<Window>? = null
 
     // For Overlay: its own arrangement.
     internal val workspace = Workspace(0, (style as? Overlay)?.layout ?: dev.caulis.tiling.Floating)

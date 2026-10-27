@@ -43,6 +43,24 @@ class HostileClientTest {
     }
 
     @Test
+    fun `asking a sub-surface's place again and again without a commit does not pile up`() = withServer { server ->
+        TestClient(Connection.connect(server.socketPath)).use { client ->
+            val window = client.window().also { it.draw() }
+            client.waitFor { server.onServer { it.windows.size } == 1 }
+            val sub = client.bind("wl_subcompositor", WlSubcompositor, 1)
+            val (a, b) = List(2) { client.compositor.createSurface() }
+            val subA = sub.getSubsurface(a, window.surface)
+            sub.getSubsurface(b, window.surface)
+            repeat(1000) { subA.placeAbove(b) }
+            client.connection.roundtrip()
+            assertEquals(1, server.onServer { it.windows.single().surface.pendingPlacements.size }, "one request kept: the last")
+            window.surface.commit()
+            client.connection.roundtrip()
+            assertEquals(0, server.onServer { it.windows.single().surface.pendingPlacements.size })
+        }
+    }
+
+    @Test
     fun `a toplevel destroyed stays gone, even if its surface commits a picture again`() = withServer { server ->
         TestClient(Connection.connect(server.socketPath)).use { client ->
             val window = client.window().also { it.draw() }

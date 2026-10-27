@@ -109,6 +109,16 @@ class OverlayCanvas internal constructor(
         add(DrawItem.Border(next("border"), rect, radius, width, paint, alpha, timeOf(paint)))
     }
 
+    /**
+     * The same for a window in [state] (focused, urgent, in a group): a shader paint learns
+     * it. [animate] false: a moving paint stands still (see [Border.animate]).
+     */
+    @JvmOverloads
+    fun border(rect: Rect, width: Float, paint: Paint, radius: Float, alpha: Float, state: dev.caulis.render.PaintState, animate: Boolean = true) {
+        if (rect.width <= 0 || rect.height <= 0 || width <= 0f) return
+        add(DrawItem.Border(next("border"), rect, radius, width, paint, alpha, if (animate) timeOf(paint) else 0f, state))
+    }
+
     /** A soft shadow around [box] (round by [radius]), [softness] wide, not drawn under [box] itself. */
     @JvmOverloads
     fun shadow(box: Rect, softness: Float, paint: Paint, radius: Float = 0f, alpha: Float = 1f) {

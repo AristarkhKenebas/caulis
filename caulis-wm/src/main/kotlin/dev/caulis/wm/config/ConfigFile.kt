@@ -55,22 +55,39 @@ object ConfigFile {
     }
 
     /**
-     * Where [caulis]'s file [name] (`config.json`, `config.lua`, ...) is: in
-     * [Caulis.configFolder] — or, when there is none there, for the whole system in
-     * `$XDG_CONFIG_DIRS/<configName>/` (`/etc/xdg/...`, where the NixOS module puts it). Null:
-     * nowhere.
+     * Where [caulis]'s file [name] (`config.json`, `config.lua`, ...) is: in the [folder] the
+     * configuration is read from. Null: not there.
      */
-    fun location(caulis: Caulis, name: String = "config.json"): Path? {
+    fun location(caulis: Caulis, name: String = "config.json"): Path? = folder(caulis)?.resolve(name)?.takeIf { Files.isRegularFile(it) }
+
+    /**
+     * The folder [caulis]'s configuration files are read from, as a whole: the user's own
+     * ([Caulis.configFolder]) when any of them is there — then none of the system's is read
+     * — else the first of the system's (`$XDG_CONFIG_DIRS/<configName>/`, `/etc/xdg/...`: where
+     * the NixOS module puts them) that has one. Null: none has any.
+     */
+    fun folder(caulis: Caulis): Path? {
+        val names = listOf("config.json") + languageFileNames()
+        return places(caulis).map { it.parent }.firstOrNull { folder -> names.any { Files.isRegularFile(folder.resolve(it)) } }
+    }
+
+    /**
+     * Every place [caulis]'s file [name] is looked for, the first that is there wins: the
+     * user's own ([Caulis.configFolder]), then — unless [Caulis.configDir] says where — those
+     * of the whole system (`$XDG_CONFIG_DIRS/<configName>/`, else `/etc/xdg/<configName>/`).
+     */
+    fun places(caulis: Caulis, name: String = "config.json"): List<Path> {
         val own = caulis.file(name)
-        if (Files.isRegularFile(own) || caulis.configDir != null) return own.takeIf { Files.isRegularFile(it) }
+        if (caulis.configDir != null) return listOf(own)
         val dirs = System.getenv("XDG_CONFIG_DIRS")?.takeIf { it.isNotBlank() } ?: "/etc/xdg"
-        return dirs.split(':').filter { it.startsWith("/") }
-            .map { Path.of(it, caulis.configName, name) }
-            .firstOrNull { Files.isRegularFile(it) }
+        return listOf(own) + dirs.split(':').filter { it.startsWith("/") }.map { Path.of(it, caulis.configName, name) }
     }
 
     /** The files of other languages a compositor may read, and the module that reads each. */
     val languageFiles = linkedMapOf("config.lua" to "io.github.aristarkhkenebas:caulis-lua", "config.kts" to "io.github.aristarkhkenebas:caulis-script")
+
+    /** Every language file looked for: Caulis's own languages' and those of other modules there are. */
+    fun languageFileNames(): List<String> = (languageFiles.keys + languages.map { it.fileName }).distinct()
 
     /** The languages this program has (their modules are on the class path). */
     val languages: List<ConfigLanguage> by lazy {
@@ -93,11 +110,11 @@ object ConfigFile {
         val sizes = lists.map { it.size }
         val problems = ArrayList<String>()
         location(caulis)?.let { problems += applyJson(caulis, it) }
-        for ((name, module) in languageFiles) {
+        for (name in languageFileNames()) {
             val path = location(caulis, name) ?: continue
             val language = languages.firstOrNull { it.fileName == name }
             if (language == null) {
-                problems += "$name is there, but this compositor cannot read it (it needs $module)"
+                problems += "$name is there, but this compositor cannot read it (it needs ${languageFiles[name]})"
                 continue
             }
             val found = try {
@@ -128,10 +145,16 @@ object ConfigFile {
 
 /**
  * A language a compositor's configuration can be written in besides Kotlin and JSON — Lua
- * (caulis-lua), Kotlin script (caulis-script). Found through java.util.ServiceLoader: a module
- * on the class path that has one is used for its [fileName].
+ * (caulis-lua), Kotlin script (caulis-script), or one of your own. Found through
+ * java.util.ServiceLoader: a module on the class path that lists its class in
+ * `META-INF/services/dev.caulis.wm.config.ConfigLanguage` (a public class with a constructor
+ * without arguments) is used for its [fileName], read after config.json in
+ * [Caulis.configFolder] and followed while running like it.
+ *
+ * Its file may change [Caulis]'s settings and add keys, rules and listeners as code does;
+ * [Settings]-like data can go through [ConfigFile.read] and [Settings.applyEach], as Lua's
+ * `caulis.settings { }` does.
  */
-@InternalCaulisApi
 interface ConfigLanguage {
 
     /** The file it reads in the compositor's folder: "config.lua". */

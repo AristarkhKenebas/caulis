@@ -34,23 +34,30 @@ class Logind private constructor(private val bus: DBusConnection, private val lo
     /** The session should be locked (true) or unlocked (false). */
     var onLock: (Boolean) -> Unit = {}
 
+    // Lets go of the sleep lock if getting ready takes too long (cancelled on waking).
+    private var releaseTimer: dev.caulis.event.EventLoop.Timer? = null
+
     init {
         takeSleepLock()
-        bus.onSignal(MANAGER, "PrepareForSleep") { message ->
+        // (Only from logind itself: on the system bus anyone may send a signal like it.)
+        bus.onSignal(MANAGER, "PrepareForSleep", sender = LOGIN) { message ->
             val going = message.body.firstOrNull() as? Boolean ?: return@onSignal
             if (going) {
                 log.info("The computer goes to sleep")
                 var released = false
+                // (This sleep's lock only: a late release must not let go of the next one.)
+                val lock = sleepLock
                 val release = {
                     if (!released) {
                         released = true
-                        sleepLock?.close()
-                        sleepLock = null
+                        lock?.close()
+                        if (sleepLock === lock) sleepLock = null
                         log.info("Ready to sleep")
                     }
                 }
                 // Never longer than logind waits anyway (InhibitDelayMaxSec, 5 s by default).
-                loop.after(MAX_WAIT_MILLIS) { release() }
+                releaseTimer?.cancel()
+                releaseTimer = loop.after(MAX_WAIT_MILLIS) { release() }
                 try {
                     onSleep(release)
                 } catch (e: Exception) {
@@ -59,6 +66,8 @@ class Logind private constructor(private val bus: DBusConnection, private val lo
                 }
             } else {
                 log.info("The computer woke up")
+                releaseTimer?.cancel()
+                releaseTimer = null
                 takeSleepLock()
                 try {
                     onWake()
@@ -74,8 +83,8 @@ class Logind private constructor(private val bus: DBusConnection, private val lo
             }
             val path = reply.body.firstOrNull() as? ObjectPath ?: return@call
             session = path
-            bus.onSignal(SESSION, "Lock", path.value) { onLock(true) }
-            bus.onSignal(SESSION, "Unlock", path.value) { onLock(false) }
+            bus.onSignal(SESSION, "Lock", path.value, sender = LOGIN) { onLock(true) }
+            bus.onSignal(SESSION, "Unlock", path.value, sender = LOGIN) { onLock(false) }
         }
     }
 

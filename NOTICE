@@ -52,3 +52,9 @@ org_kde_kwin_server_decoration), the LGPL-2.1-or-later:
   Copyright © 2024 Neal Gompa
   Copyright © 2024 Simon Ser
   SPDX-FileCopyrightText: 2015 Martin Gräßlin
+
+caulis-lua/src/main/java/dev/caulis/lua/LuaPatterns.java is Lua's pattern matcher taken from
+LuaJ 3.0.1 (org.luaj.vm2.lib.StringLib), changed to obey Caulis' time limit, under the MIT
+license printed at its top:
+
+  Copyright (c) 2009-2011 Luaj.org. All rights reserved.

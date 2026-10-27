@@ -31,6 +31,9 @@ internal class Osd(private val renderer: Renderer) {
     /** How long it stays after the last change. */
     var seconds = 1.5
 
+    /** Its fade in and out; the desktop's "fadeOsd" animation (usually 150 ms, straight). */
+    var fade: () -> ResolvedAnimation = { ResolvedAnimation("fadeOsd", true, 150, Curve.LINEAR, null) }
+
     fun show(look: Look) {
         this.look = look
         since = System.nanoTime()
@@ -39,7 +42,7 @@ internal class Osd(private val renderer: Renderer) {
     /** True while it is on screen or fading (frames go on). */
     fun animating(now: Long): Boolean {
         if (look == null) return false
-        if (now - since > ((seconds * 1000).toLong() + FADE_MILLIS) * 1_000_000) {
+        if (now - since > ((seconds * 1000).toLong() + fade().effectiveMillis) * 1_000_000) {
             look = null
             texture?.second?.close()
             texture = null
@@ -55,9 +58,12 @@ internal class Osd(private val renderer: Renderer) {
         val height = (if (look.level != null) 72 else 48) + look.choices.size * ROW
         val rect = Rect(area.x + (area.width - width) / 2, area.bottom - height - 80, width, height)
         val shown = (now - since) / 1_000_000.0
+        val fade = fade()
+        val millis = fade.effectiveMillis.toDouble()
         val alpha = when {
-            shown < FADE_MILLIS -> shown / FADE_MILLIS
-            shown > seconds * 1000 -> 1 - (shown - seconds * 1000) / FADE_MILLIS
+            millis <= 0.0 -> if (shown > seconds * 1000) 0.0 else 1.0
+            shown < millis -> fade.at(shown / millis)
+            shown > seconds * 1000 -> 1 - fade.at((shown - seconds * 1000) / millis)
             else -> 1.0
         }.coerceIn(0.0, 1.0).toFloat()
         return listOf(DrawItem.Image(OSD_KEY, texture(look, monitor, rect), rect, rect, 14f, alpha))
@@ -120,7 +126,6 @@ internal class Osd(private val renderer: Renderer) {
     }
 
     private companion object {
-        const val FADE_MILLIS = 150.0
         const val ROW = 34
         const val OSD_KEY = "the on-screen display"
     }

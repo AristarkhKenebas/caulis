@@ -27,6 +27,9 @@ internal class Outgoing(private val socket: UnixSocket, private val arena: Arena
 
     val hasPending: Boolean get() = buffer.position() > 0
 
+    /** How many descriptors wait to be sent (each one is open in our process until then). */
+    val queuedFds: Int get() = fds.size
+
     /** Size the buffer would need for [extra] more bytes. */
     fun sizeAfter(extra: Int): Int = buffer.position() + extra
 

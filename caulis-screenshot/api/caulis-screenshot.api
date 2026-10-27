@@ -1,3 +1,99 @@
+public final class dev/caulis/screenshot/ChooserBehaviour {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;J)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JI)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJ)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJI)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJII)V
+	public synthetic fun <init> (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJIIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ldev/caulis/screenshot/ChooserKeys;
+	public final fun component4 ()J
+	public final fun component5 ()I
+	public final fun component6 ()J
+	public final fun component7 ()I
+	public final fun component8 ()I
+	public final fun copy (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJII)Ldev/caulis/screenshot/ChooserBehaviour;
+	public static synthetic fun copy$default (Ldev/caulis/screenshot/ChooserBehaviour;Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJIIILjava/lang/Object;)Ldev/caulis/screenshot/ChooserBehaviour;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAppearMillis ()J
+	public final fun getButtons ()Ljava/util/List;
+	public final fun getDoubleClickMillis ()J
+	public final fun getGrab ()I
+	public final fun getKeys ()Ldev/caulis/screenshot/ChooserKeys;
+	public final fun getMinDrag ()I
+	public final fun getRise ()I
+	public final fun getTimerSteps ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/screenshot/ChooserButton : java/lang/Enum {
+	public static final field CLOSE Ldev/caulis/screenshot/ChooserButton;
+	public static final field POINTER Ldev/caulis/screenshot/ChooserButton;
+	public static final field REGION Ldev/caulis/screenshot/ChooserButton;
+	public static final field SCREEN Ldev/caulis/screenshot/ChooserButton;
+	public static final field SELECTION Ldev/caulis/screenshot/ChooserButton;
+	public static final field TAKE Ldev/caulis/screenshot/ChooserButton;
+	public static final field TIMER Ldev/caulis/screenshot/ChooserButton;
+	public static final field WINDOW Ldev/caulis/screenshot/ChooserButton;
+	public static final field WINDOWS Ldev/caulis/screenshot/ChooserButton;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun isKind ()Z
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/screenshot/ChooserButton;
+	public static fun values ()[Ldev/caulis/screenshot/ChooserButton;
+}
+
+public final class dev/caulis/screenshot/ChooserKeys {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component10 ()Ljava/util/List;
+	public final fun component11 ()Ljava/util/List;
+	public final fun component12 ()Ljava/util/List;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ljava/util/List;
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Ljava/util/List;
+	public final fun component8 ()Ljava/util/List;
+	public final fun component9 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;)Ldev/caulis/screenshot/ChooserKeys;
+	public static synthetic fun copy$default (Ldev/caulis/screenshot/ChooserKeys;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Ldev/caulis/screenshot/ChooserKeys;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAll ()Ljava/util/List;
+	public final fun getArea ()Ljava/util/List;
+	public final fun getCapture ()Ljava/util/List;
+	public final fun getClose ()Ljava/util/List;
+	public final fun getCopy ()Ljava/util/List;
+	public final fun getNextKind ()Ljava/util/List;
+	public final fun getPointer ()Ljava/util/List;
+	public final fun getScreen ()Ljava/util/List;
+	public final fun getSelection ()Ljava/util/List;
+	public final fun getTimer ()Ljava/util/List;
+	public final fun getWindow ()Ljava/util/List;
+	public final fun getWindows ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/caulis/screenshot/ScreenshotActions : dev/caulis/wm/config/ActionProvider {
 	public fun <init> ()V
 	public fun getActions ()Ljava/util/List;
@@ -14,30 +110,173 @@ public final class dev/caulis/screenshot/ScreenshotStyle {
 	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;)V
 	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;F)V
 	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;)V
-	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;Ljava/util/Map;)V
-	public synthetic fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;F)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FF)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFF)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;F)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FI)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;I)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;II)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;III)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;IIII)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;IIIII)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;IIIIII)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;IIIIIII)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;IIIIIIIF)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;IIIIIIIFF)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;IIIIIIIFFI)V
+	public fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;IIIIIIIFFILdev/caulis/screenshot/ScreenshotWords;)V
+	public synthetic fun <init> (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;IIIIIIIFFILdev/caulis/screenshot/ScreenshotWords;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ldev/caulis/render/Color;
+	public final fun component10 ()F
+	public final fun component11 ()F
+	public final fun component12 ()Ldev/caulis/render/Color;
+	public final fun component13 ()F
+	public final fun component14 ()I
+	public final fun component15 ()Ldev/caulis/render/Color;
+	public final fun component16 ()Ldev/caulis/render/Color;
+	public final fun component17 ()I
+	public final fun component18 ()I
+	public final fun component19 ()I
 	public final fun component2 ()Ldev/caulis/render/Color;
+	public final fun component20 ()I
+	public final fun component21 ()I
+	public final fun component22 ()I
+	public final fun component23 ()I
+	public final fun component24 ()F
+	public final fun component25 ()F
+	public final fun component26 ()I
+	public final fun component27 ()Ldev/caulis/screenshot/ScreenshotWords;
 	public final fun component3 ()Ldev/caulis/render/Color;
 	public final fun component4 ()Ldev/caulis/render/Color;
 	public final fun component5 ()Ldev/caulis/render/Color;
 	public final fun component6 ()Ldev/caulis/render/Color;
 	public final fun component7 ()F
 	public final fun component8 ()Ljava/lang/String;
-	public final fun component9 ()Ljava/util/Map;
-	public final fun copy (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;Ljava/util/Map;)Ldev/caulis/screenshot/ScreenshotStyle;
-	public static synthetic fun copy$default (Ldev/caulis/screenshot/ScreenshotStyle;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Ldev/caulis/screenshot/ScreenshotStyle;
+	public final fun component9 ()F
+	public final fun copy (Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;IIIIIIIFFILdev/caulis/screenshot/ScreenshotWords;)Ldev/caulis/screenshot/ScreenshotStyle;
+	public static synthetic fun copy$default (Ldev/caulis/screenshot/ScreenshotStyle;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;Ldev/caulis/render/Color;FLjava/lang/String;FFFLdev/caulis/render/Color;FILdev/caulis/render/Color;Ldev/caulis/render/Color;IIIIIIIFFILdev/caulis/screenshot/ScreenshotWords;ILjava/lang/Object;)Ldev/caulis/screenshot/ScreenshotStyle;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAccent ()Ldev/caulis/render/Color;
 	public final fun getBackground ()Ldev/caulis/render/Color;
 	public final fun getBorder ()Ldev/caulis/render/Color;
+	public final fun getButtonInset ()I
+	public final fun getButtonRadius ()F
+	public final fun getButtonWidth ()I
+	public final fun getCaptureFontSize ()F
+	public final fun getCapturePadding ()I
 	public final fun getCornerRadius ()F
 	public final fun getDim ()Ldev/caulis/render/Color;
 	public final fun getFont ()Ljava/lang/String;
-	public final fun getLabels ()Ljava/util/Map;
+	public final fun getFontSize ()F
+	public final fun getGroupGap ()I
+	public final fun getHandle ()Ldev/caulis/render/Color;
+	public final fun getHandleRim ()Ldev/caulis/render/Color;
+	public final fun getHandleSize ()I
+	public final fun getLabelPadding ()I
+	public final fun getLabelRadius ()F
 	public final fun getOnAccent ()Ldev/caulis/render/Color;
+	public final fun getShade ()F
+	public final fun getShadow ()Ldev/caulis/render/Color;
+	public final fun getShadowSize ()F
 	public final fun getText ()Ldev/caulis/render/Color;
+	public final fun getToolbarHeight ()I
+	public final fun getToolbarMargin ()I
+	public final fun getToolbarPadding ()I
+	public final fun getWords ()Ldev/caulis/screenshot/ScreenshotWords;
 	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/screenshot/ScreenshotWords {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()Ljava/lang/String;
+	public final fun component11 ()Ljava/lang/String;
+	public final fun component12 ()Ljava/lang/String;
+	public final fun component13 ()Ljava/lang/String;
+	public final fun component14 ()Ljava/lang/String;
+	public final fun component15 ()Ljava/lang/String;
+	public final fun component16 ()Ljava/lang/String;
+	public final fun component17 ()Ljava/lang/String;
+	public final fun component18 ()Ljava/lang/String;
+	public final fun component19 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component20 ()Ljava/lang/String;
+	public final fun component21 ()Ljava/lang/String;
+	public final fun component22 ()Ljava/lang/String;
+	public final fun component23 ()Ljava/lang/String;
+	public final fun component24 ()Ljava/lang/String;
+	public final fun component25 ()Ljava/lang/String;
+	public final fun component26 ()Ljava/util/Map;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun component8 ()Ljava/lang/String;
+	public final fun component9 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)Ldev/caulis/screenshot/ScreenshotWords;
+	public static synthetic fun copy$default (Ldev/caulis/screenshot/ScreenshotWords;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Ldev/caulis/screenshot/ScreenshotWords;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAdjustArea ()Ljava/lang/String;
+	public final fun getArea ()Ljava/lang/String;
+	public final fun getCapture ()Ljava/lang/String;
+	public final fun getClose ()Ljava/lang/String;
+	public final fun getCopied ()Ljava/lang/String;
+	public final fun getCountdown ()Ljava/lang/String;
+	public final fun getDragFirst ()Ljava/lang/String;
+	public final fun getHiddenWindow ()Ljava/lang/String;
+	public final fun getKeyNames ()Ljava/util/Map;
+	public final fun getManyWindows ()Ljava/lang/String;
+	public final fun getNewArea ()Ljava/lang/String;
+	public final fun getNoFocusedWindow ()Ljava/lang/String;
+	public final fun getNotSaved ()Ljava/lang/String;
+	public final fun getOneWindow ()Ljava/lang/String;
+	public final fun getPickFirst ()Ljava/lang/String;
+	public final fun getPointFirst ()Ljava/lang/String;
+	public final fun getPointerIn ()Ljava/lang/String;
+	public final fun getPointerNotHere ()Ljava/lang/String;
+	public final fun getPointerOut ()Ljava/lang/String;
+	public final fun getSavedTo ()Ljava/lang/String;
+	public final fun getScreen ()Ljava/lang/String;
+	public final fun getTimer ()Ljava/lang/String;
+	public final fun getTimerOff ()Ljava/lang/String;
+	public final fun getTitle ()Ljava/lang/String;
+	public final fun getWindow ()Ljava/lang/String;
+	public final fun getWindows ()Ljava/lang/String;
+	public fun hashCode ()I
+	public final fun keyName (Ljava/lang/String;)Ljava/lang/String;
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -46,14 +285,17 @@ public final class dev/caulis/screenshot/Screenshots {
 	public final fun choose ()V
 	public final fun choose (Ldev/caulis/screenshot/ShotKind;)V
 	public static synthetic fun choose$default (Ldev/caulis/screenshot/Screenshots;Ldev/caulis/screenshot/ShotKind;ILjava/lang/Object;)V
+	public final fun getChooser ()Ldev/caulis/screenshot/ChooserBehaviour;
 	public final fun getCopy ()Z
 	public final fun getDelaySeconds ()I
 	public final fun getFileName ()Ljava/lang/String;
 	public final fun getFolder ()Ljava/nio/file/Path;
-	public final fun getFormat ()Ljava/lang/String;
+	public final fun getFormat ()Ldev/caulis/screenshot/ShotFormat;
 	public final fun getJpegQuality ()F
 	public final fun getKind ()Ldev/caulis/screenshot/ShotKind;
+	public final fun getMaxPixels ()I
 	public final fun getNotify ()Z
+	public final fun getOnCountdown ()Lkotlin/jvm/functions/Function1;
 	public final fun getOnTaken ()Lkotlin/jvm/functions/Function1;
 	public final fun getOverviewKind ()Ldev/caulis/screenshot/ShotKind;
 	public final fun getPointer ()Z
@@ -65,17 +307,25 @@ public final class dev/caulis/screenshot/Screenshots {
 	public final fun getSharpWindows ()Z
 	public final fun getStyle ()Ldev/caulis/screenshot/ScreenshotStyle;
 	public final fun getThen ()Ljava/lang/String;
+	public final fun keys ()V
+	public final fun keys (Ljava/lang/String;)V
+	public final fun keys (Ljava/lang/String;Ljava/lang/String;)V
 	public final fun keys (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
-	public static synthetic fun keys$default (Ldev/caulis/screenshot/Screenshots;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
+	public final fun keys (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public static final synthetic fun keys$default (Ldev/caulis/screenshot/Screenshots;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
+	public static synthetic fun keys$default (Ldev/caulis/screenshot/Screenshots;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
 	public static final fun of (Ldev/caulis/wm/Caulis;)Ldev/caulis/screenshot/Screenshots;
+	public final fun setChooser (Ldev/caulis/screenshot/ChooserBehaviour;)V
 	public final fun setCopy (Z)V
 	public final fun setDelaySeconds (I)V
 	public final fun setFileName (Ljava/lang/String;)V
 	public final fun setFolder (Ljava/nio/file/Path;)V
-	public final fun setFormat (Ljava/lang/String;)V
+	public final fun setFormat (Ldev/caulis/screenshot/ShotFormat;)V
 	public final fun setJpegQuality (F)V
 	public final fun setKind (Ldev/caulis/screenshot/ShotKind;)V
+	public final fun setMaxPixels (I)V
 	public final fun setNotify (Z)V
+	public final fun setOnCountdown (Lkotlin/jvm/functions/Function1;)V
 	public final fun setOnTaken (Lkotlin/jvm/functions/Function1;)V
 	public final fun setOverviewKind (Ldev/caulis/screenshot/ShotKind;)V
 	public final fun setPointer (Z)V
@@ -92,6 +342,7 @@ public final class dev/caulis/screenshot/Screenshots {
 }
 
 public final class dev/caulis/screenshot/Screenshots$Companion {
+	public final synthetic fun keys$default (Ldev/caulis/screenshot/Screenshots;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
 	public final fun of (Ldev/caulis/wm/Caulis;)Ldev/caulis/screenshot/Screenshots;
 }
 
@@ -106,6 +357,21 @@ public final class dev/caulis/screenshot/Screenshots$Selection : java/lang/Enum 
 public final class dev/caulis/screenshot/ScreenshotsKt {
 	public static final fun screenshots (Ldev/caulis/wm/Caulis;Lkotlin/jvm/functions/Function1;)Ldev/caulis/screenshot/Screenshots;
 	public static synthetic fun screenshots$default (Ldev/caulis/wm/Caulis;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ldev/caulis/screenshot/Screenshots;
+}
+
+public final class dev/caulis/screenshot/ShotFormat : java/lang/Enum {
+	public static final field Companion Ldev/caulis/screenshot/ShotFormat$Companion;
+	public static final field JPEG Ldev/caulis/screenshot/ShotFormat;
+	public static final field PNG Ldev/caulis/screenshot/ShotFormat;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getExtension ()Ljava/lang/String;
+	public static final fun parse (Ljava/lang/String;)Ldev/caulis/screenshot/ShotFormat;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/screenshot/ShotFormat;
+	public static fun values ()[Ldev/caulis/screenshot/ShotFormat;
+}
+
+public final class dev/caulis/screenshot/ShotFormat$Companion {
+	public final fun parse (Ljava/lang/String;)Ldev/caulis/screenshot/ShotFormat;
 }
 
 public final class dev/caulis/screenshot/ShotKind : java/lang/Enum {

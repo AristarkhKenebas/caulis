@@ -47,9 +47,16 @@ internal fun runOnScreen(config: Caulis) {
                     override fun mirroring(name: String) = mirrored.keys.any { it.name == name }
                 })
                 running.displays = displays
+                // A monitor's link (bits per colour, adaptive sync) as the configuration says, with its next mode set.
+                fun applyLink(monitor: DrmOutput) {
+                    val wish = running.config.monitorSettings[monitor.name]
+                    monitor.maxBpc = wish?.maxBpc ?: 8
+                    monitor.adaptiveSync = wish?.adaptiveSync ?: false
+                }
+                running.applyMonitorLinks = { shown.keys.forEach(::applyLink) }
                 backend.onPluggedChanged = { now -> displays.pluggedChanged(now.map { Displays.Screen(it.name, identity(it.name, it.edid), it.output != null) }) }
                 backend.enabled = { name -> config.monitorSettings[name]?.enabled != false && displays.wants(name) }
-                fun mirrorSource() = shown.values.firstOrNull { Displays.builtIn(it.monitor.name) }
+                fun mirrorSource() = shown.values.firstOrNull { config.isBuiltIn(it.monitor.name) }
                 backend.preferredMode = { name, modes ->
                     // A mirror: the laptop's own size if it has it, else the largest of its shape.
                     val source = mirrorSource()?.monitor?.takeIf { displays.mirrors(name) }
@@ -93,6 +100,7 @@ internal fun runOnScreen(config: Caulis) {
                     // The pointer on the display's cursor plane: it moves without new pictures.
                     if (config.hardwareCursor) view.hardwareCursor = monitor.hardwareCursor
                     shown[monitor] = Shown(output, place, view)
+                    applyLink(monitor)
                     val stats = if (config.stats) FrameStats(monitor.name) else null
                     // A turned monitor gets its picture turned on the way (a program's buffer turned the same way is shown directly).
                     val rotator = dev.caulis.core.Rotator(backend.renderer, desktop)
@@ -157,15 +165,23 @@ internal fun runOnScreen(config: Caulis) {
                 val input = backend.input
                 input.onKey = running::key
                 input.onPointerMotion = running::pointerMovedBy
-                // Touchscreens and tablets: across the first monitor.
+                // Touch screens and devices that point at a place: on the monitor the configuration
+                // names (touchscreenMonitor), else the laptop's own screen, else the first.
+                val missingTouchMonitors = HashSet<String>()
+                fun touchArea(): dev.caulis.geometry.Rect {
+                    val monitors = desktop.monitors
+                    running.config.touchscreenMonitor?.let { name ->
+                        monitors.firstOrNull { it.name.equals(name, ignoreCase = true) }?.let { return it.area }
+                        if (missingTouchMonitors.add(name)) inputLog.warn("touchscreenMonitor is $name, which is not there (the laptop's screen or the first meanwhile)")
+                    }
+                    return (monitors.firstOrNull { running.config.isBuiltIn(it.name) } ?: monitors.first()).area
+                }
                 input.onPointerMotionAbsolute = { time, x, y ->
-                    val area = desktop.monitors.first().area
+                    val area = touchArea()
                     desktop.pointerMoved(time, area.x + x * area.width, area.y + y * area.height)
                 }
                 input.onPointerButton = running::pointerButton
                 input.onPointerAxis = running::pointerAxis
-                // Touch screens: on the laptop's own screen (else the first), fingers as touches.
-                fun touchArea() = (desktop.monitors.firstOrNull { Displays.builtIn(it.name) } ?: desktop.monitors.first()).area
                 input.onTouchDown = { time, id, x, y -> touchArea().let { a -> desktop.touchDown(time, id, a.x + x * a.width, a.y + y * a.height) } }
                 input.onTouchMotion = { time, id, x, y -> touchArea().let { a -> desktop.touchMotion(time, id, a.x + x * a.width, a.y + y * a.height) } }
                 input.onTouchUp = desktop::touchUp
@@ -180,8 +196,14 @@ internal fun runOnScreen(config: Caulis) {
                 input.onGesture = running::gesture
 
                 backend.start()
+                // With the reveal, the first picture (dark) goes to the monitors at once — not
+                // only once onStart is done: the text console (and its cursor) is gone sooner.
+                if (config.reveal.enabled) {
+                    for (monitor in shown.keys) running.safely("the first frame of ${monitor.name}") { monitor.onFrame() }
+                }
                 if (shown.isEmpty()) println("No monitor is connected yet; waiting for one.")
-                println("Programs inside it use WAYLAND_DISPLAY=${running.socket}. Ctrl+Alt+Backspace quits.")
+                val quitting = running.config.keys.quit?.let { "$it quits." } ?: "No key quits (keys.quit is off)."
+                println("Programs inside it use WAYLAND_DISPLAY=${running.socket}. $quitting")
                 Watchdog(loop).use { running.runLoop() }
             }
         }
@@ -191,6 +213,8 @@ internal fun runOnScreen(config: Caulis) {
 // The time comes from the display hardware at the refresh (vsync) itself.
 private const val EXACT_PRESENTATION = WpPresentationFeedback.Kind.VSYNC or
     WpPresentationFeedback.Kind.HW_CLOCK or WpPresentationFeedback.Kind.HW_COMPLETION
+
+private val inputLog = dev.caulis.log.Logger("input")
 
 private const val DEFAULT_WIDTH = 1920
 private const val DEFAULT_HEIGHT = 1080

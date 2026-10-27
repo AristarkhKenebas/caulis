@@ -246,7 +246,8 @@ class ScreenCapture(
 
     private fun serviceWaiting() {
         if (waiting.isEmpty()) return
-        val done = waiting.filter { pending ->
+        // (A copy: delivering one may end a recording, which takes its frame out of the list.)
+        val done = waiting.toList().filter { pending ->
             try {
                 pending.service()
             } catch (e: Exception) {
@@ -458,6 +459,7 @@ class ScreenCapture(
     private inner class ExtFrame(val resource: ExtImageCopyCaptureFrameV1, val session: Session) : Pending() {
         private var buffer: WlBuffer? = null
         private var captured = false
+        private var failed = false
 
         init {
             resource.requests = object : ExtImageCopyCaptureFrameV1.Requests {
@@ -493,8 +495,9 @@ class ScreenCapture(
         }
 
         override fun service(): Boolean {
-            if (!resource.isAlive) return true
+            if (!resource.isAlive || failed) return true
             if (!session.sizeStillFits()) {
+                // (If the recording stopped, this frame already failed with "stopped".)
                 fail(ExtImageCopyCaptureFrameV1.FailureReason.BUFFER_CONSTRAINTS)
                 return true
             }
@@ -516,6 +519,9 @@ class ScreenCapture(
 
         fun fail(reason: Int) {
             waiting.remove(this)
+            // Once only: a recording that stops while this frame is delivered fails it already.
+            if (failed) return
+            failed = true
             if (resource.isAlive) resource.sendFailed(reason)
             if (session.frame === this) session.frame = null
         }

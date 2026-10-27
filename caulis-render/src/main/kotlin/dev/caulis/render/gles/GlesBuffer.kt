@@ -13,6 +13,7 @@ import java.lang.foreign.ValueLayout.JAVA_LONG
  * A GBM buffer object we draw into through an EGL image. Its memory can be scanned out
  * by the display or exported as a dma-buf.
  */
+@OptIn(dev.caulis.log.InternalCaulisApi::class)
 internal class GlesBuffer private constructor(
     width: Int,
     height: Int,
@@ -57,10 +58,15 @@ internal class GlesBuffer private constructor(
     override fun offset(plane: Int): Int = Gbm.gbm_bo_get_offset(bo, plane)
 
     override fun export(): Dmabuf {
-        val planes = (0 until planeCount).map { plane ->
+        val planes = ArrayList<Dmabuf.Plane>()
+        for (plane in 0 until planeCount) {
             val fd = Gbm.gbm_bo_get_fd_for_plane(bo, plane)
-            check(fd >= 0) { "gbm_bo_get_fd_for_plane failed" }
-            Dmabuf.Plane(Fd.adopt(fd), offset(plane), stride(plane))
+            if (fd < 0) {
+                // (The planes exported so far are closed: no descriptor is left behind.)
+                planes.forEach { it.fd.close() }
+                error("gbm_bo_get_fd_for_plane failed")
+            }
+            planes += Dmabuf.Plane(Fd.adopt(fd), offset(plane), stride(plane))
         }
         return Dmabuf(width, height, format, modifier, planes)
     }

@@ -1,7 +1,8 @@
 # NixOS: a Caulis compositor for the whole system — installed, with what it needs (graphics,
 # a seat, polkit), its session offered at login if the package has one, and its settings
-# in /etc/xdg/<configName>/config.json (each user's ~/.config/<configName>/config.json,
-# when there is one, comes first).
+# in /etc/xdg/<configName>/config.json. A user with any configuration file of their own in
+# ~/.config/<configName>/ (config.json, config.lua, config.kts) gets only those: the
+# system's folder is then not read at all.
 #
 #   imports = [ caulis.nixosModules.default ];
 #   programs.caulis = {

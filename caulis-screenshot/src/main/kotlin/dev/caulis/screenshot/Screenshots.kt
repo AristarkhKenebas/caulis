@@ -1,5 +1,6 @@
 package dev.caulis.screenshot
 
+import dev.caulis.core.BytesOnClipboard
 import dev.caulis.core.Monitor
 import dev.caulis.core.Window
 import dev.caulis.geometry.Rect
@@ -31,11 +32,34 @@ enum class ShotKind {
     WINDOWS,
 }
 
+/** The kind of file a screenshot is saved as. */
+enum class ShotFormat(
+    /** The file's ending. */
+    val extension: String,
+) {
+    /** Exactly as on screen, see-through parts kept. */
+    PNG("png"),
+
+    /** Smaller, a little blurred ([Screenshots.jpegQuality]); see-through parts on white. */
+    JPEG("jpg");
+
+    companion object {
+        /** The format named [name] ("png", "jpg", "jpeg"; any case), or null if there is none of that name. */
+        @JvmStatic
+        fun parse(name: String): ShotFormat? = when (name.trim().lowercase()) {
+            "png" -> PNG
+            "jpg", "jpeg" -> JPEG
+            else -> null
+        }
+    }
+}
+
 /**
  * Screenshots, in the compositor itself: the screen stands still at once (nothing moves
  * on while you choose), a toolbar at the bottom chooses a part, a window or a monitor, the
- * pointer in it or not, and a timer. What is taken is saved as PNG ([folder]) and put on the
- * clipboard ([copy]), and a notice says so.
+ * pointer in it or not, and a timer. What is taken is saved ([folder], as [format]) and put
+ * on the clipboard ([copy]), and a notice says so. Windows hidden from capture
+ * (`hiddenFromCapture` in a rule) are black boxes in every picture, and are not taken alone.
  *
  * ```
  * screenshots()                                   // Print, Shift+Print, Alt+Print
@@ -48,10 +72,14 @@ enum class ShotKind {
  * Ctrl+C only copies it, Escape cancels. A window or a monitor is taken with a click. Over
  * an overview (windows drawn smaller) there is one kind more, [ShotKind.WINDOWS]: drag a
  * frame over windows (Shift adds to them), click one to add or drop it, Ctrl+A takes all.
+ * Its keys, buttons and timings are [chooser]'s, its look and words [style]'s.
  *
  * The same as actions for config.json, Lua and keys, when this module is in the compositor:
- * `screenshot` (the chooser), `screenshot region|window|screen`, `screenshot focused` (the
- * focused window at once), `screenshot monitor` (the monitor with the pointer at once).
+ * `screenshot` (the chooser), `screenshot region|window|screen|windows` (the chooser starting
+ * with that kind), `screenshot focused` (the focused window at once), `screenshot monitor`
+ * (the monitor with the pointer at once).
+ *
+ * Its settings and functions are for the compositor's thread.
  */
 class Screenshots internal constructor(private val caulis: Caulis) {
 
@@ -70,14 +98,24 @@ class Screenshots internal constructor(private val caulis: Caulis) {
     /** Seconds to wait before taking it (0: at once; the chooser's toolbar changes it too). */
     var delaySeconds = 0
 
+    /**
+     * Shows the seconds left before it is taken: called with each (3, 2, 1), then with 0 just
+     * before it is taken — take yours away then (it is not left out of the picture by itself).
+     * Null: the screenshots' own pill, never in the picture.
+     */
+    var onCountdown: ((secondsLeft: Int) -> Unit)? = null
+
     /** Says that one was taken (a notice). */
     var notify = true
 
     /** Called with each one taken: where it was saved (null: not saved). */
     var onTaken: (Path?) -> Unit = {}
 
-    /** How the chooser looks (its toolbar's colours, corners, font, words). */
+    /** How the chooser looks (its toolbar's colours, corners, font, sizes) and its [ScreenshotStyle.words]. */
     var style = ScreenshotStyle()
+
+    /** How the chooser behaves: its buttons, keys, timer steps and timings. */
+    var chooser = ChooserBehaviour()
 
     /** The kind the chooser starts with (the one used last). */
     var kind = ShotKind.REGION
@@ -88,8 +126,14 @@ class Screenshots internal constructor(private val caulis: Caulis) {
      */
     var overviewKind: ShotKind? = ShotKind.WINDOWS
 
-    /** How a part is chosen: [Selection.ADJUST] (dragged and resized after) or [Selection.NEW] (each drag a new one). */
-    enum class Selection { ADJUST, NEW }
+    /** How a part is chosen. */
+    enum class Selection {
+        /** Drawn once, then dragged and resized by its edges and corners (a new one: drag outside it). */
+        ADJUST,
+
+        /** Each drag draws a new one. */
+        NEW,
+    }
 
     /** How a part is chosen (the chooser's toolbar changes it too). */
     var selection = Selection.ADJUST
@@ -97,12 +141,18 @@ class Screenshots internal constructor(private val caulis: Caulis) {
     /**
      * A part with windows drawn smaller than they are (an overview, a zoomed-out view) is put
      * together from the windows themselves at their own size: sharp, as if each filled the
-     * screen, in the places they have on screen. False: the screen as it looks.
+     * screen, in the places they have on screen. False: the screen as it looks. (No pointer
+     * in such a picture.)
      */
     var sharpWindows = true
 
-    /** In a picture put together from windows: their corners' radius (desktop units) and what is behind them (null: see-through). */
+    /** In a picture put together from windows: their corners' radius (desktop units). */
     var sharpCornerRadius = 0f
+
+    /**
+     * In a picture put together from windows: the colour behind them, or null — the screen as
+     * it was behind them with [sharpWallpaper], else see-through.
+     */
     var sharpBackground: dev.caulis.render.Color? = null
 
     /**
@@ -111,11 +161,19 @@ class Screenshots internal constructor(private val caulis: Caulis) {
      */
     var sharpWallpaper = true
 
+    /**
+     * At most this many pixels in a picture put together from windows (it is made as big as
+     * the most shrunk window needs; each pixel takes 4 bytes, a few times over while it is made).
+     */
+    var maxPixels = 32_000_000
+
     /** The file's name: {date} (2026-10-26), {time} (14-03-22), {kind} (region, window, screen, windows). */
     var fileName = "Screenshot from {date} {time}"
 
-    /** "png" or "jpg" (smaller, no see-through; [jpegQuality] 0..1). */
-    var format = "png"
+    /** The kind of file saved (what is copied is always PNG). */
+    var format = ShotFormat.PNG
+
+    /** How good a JPEG is (0..1: smaller files to sharper pictures). */
     var jpegQuality = 0.92f
 
     /** A command run with each file saved ({file} is the file; else it is added at the end): an editor, an uploader. */
@@ -128,15 +186,16 @@ class Screenshots internal constructor(private val caulis: Caulis) {
 
     /**
      * Binds the keys: [choose] opens the chooser, [screen] takes the monitor with the pointer
-     * at once, [window] the focused window at once (null: not bound). A laptop's own
-     * screenshot key (XF86SelectiveScreenshot) opens the chooser too.
+     * at once, [window] the focused window at once, [selective] (a laptop's own screenshot
+     * key) opens the chooser too. Null: not bound.
      */
-    fun keys(choose: String? = "Print", screen: String? = "Shift+Print", window: String? = "Alt+Print") {
+    @JvmOverloads
+    fun keys(choose: String? = "Print", screen: String? = "Shift+Print", window: String? = "Alt+Print", selective: String? = "XF86SelectiveScreenshot") {
         keysChosen = true
         choose?.let { caulis.bind(it, BindOptions(description = "screenshot")) { choose() } }
         screen?.let { caulis.bind(it, BindOptions(description = "screenshot of the screen")) { takeMonitor() } }
         window?.let { caulis.bind(it, BindOptions(description = "screenshot of the window")) { takeFocused() } }
-        if (choose != null) caulis.bind("XF86SelectiveScreenshot", BindOptions(description = "screenshot")) { choose() }
+        selective?.let { caulis.bind(it, BindOptions(description = "screenshot")) { choose() } }
     }
 
     internal var keysChosen = false
@@ -169,7 +228,7 @@ class Screenshots internal constructor(private val caulis: Caulis) {
     /** Takes the focused window now (after [delaySeconds]); nothing if none has the focus. */
     fun takeFocused() = later {
         val window = caulis.focusedWindow
-        if (window == null) caulis.desktop.showLevel(style.word("No window has the focus")) else takeWindow(window)
+        if (window == null) caulis.desktop.showLevel(style.words.noFocusedWindow) else takeWindow(window)
     }
 
     // --- taking -----------------------------------------------------------------------------
@@ -178,10 +237,18 @@ class Screenshots internal constructor(private val caulis: Caulis) {
         Frozen.capture(caulis.desktop, monitor, pointer).use { frozen -> deliver(frozen.read(null), "screen ${monitor.name}", ShotKind.SCREEN, copyOnly) }
     }
 
+    // True if [window] is to be black in screenshots (a rule's hiddenFromCapture).
+    internal fun hidden(window: Window): Boolean = caulis.desktop.behaviorOf(window).hiddenFromCapture
+
     internal fun takeWindow(window: Window, copyOnly: Boolean = false) {
         // (Gone meanwhile — closed during a countdown: nothing, not an empty picture.)
         if (window !in caulis.desktop.allWindows) return log.info { "The window to take is gone" }
         val desktop = caulis.desktop
+        // (Hidden from screenshots: not taken, only said — a black picture would be no use.)
+        if (hidden(window)) {
+            log.info { "Not taken: ${window.appId} is hidden from screenshots" }
+            return desktop.showLevel(style.words.hiddenWindow)
+        }
         val (width, height) = desktop.windowPixelSize(window)
         val target = desktop.renderer.createTarget(width, height)
         try {
@@ -196,37 +263,68 @@ class Screenshots internal constructor(private val caulis: Caulis) {
     internal fun later(take: () -> Unit) {
         val seconds = delaySeconds
         if (seconds <= 0) return take()
-        for (left in seconds downTo 1) caulis.after((seconds - left) * 1000L) { desktop.showLevel(style.word("Screenshot in %s").replace("%s", left.toString())) }
-        caulis.after(seconds * 1000L + 150) {
+        val desktop = caulis.desktop
+        val own = onCountdown
+        val pill = if (own == null) Countdown(desktop, style) else null
+        val shown = pill?.let(desktop::addWidget)
+        fun show(left: Int) {
+            if (own != null) runCatching { own(left) }.onFailure { log.error("Your countdown (onCountdown) failed", it) } else pill?.left = left
+        }
+        log.info { "A screenshot in $seconds s" }
+        val timers = ArrayList<AutoCloseable>()
+        // A reload during the countdown cancels this configuration's timers: the countdown
+        // goes with them (not left on screen for ever), and nothing is taken.
+        // (Not taken off the list while it is being run: the configuration goes anyway.)
+        val unloading = caulis.onUnload {
+            timers.forEach(AutoCloseable::close)
+            show(0)
+            shown?.close()
+            log.info { "The configuration was reloaded during the countdown: no screenshot" }
+        }
+        for (left in seconds downTo 1) timers += caulis.after((seconds - left) * 1000L) { show(left) }
+        timers += caulis.after(seconds * 1000L) {
+            unloading.close()
+            // The countdown gone first: it is not in the picture.
+            show(0)
+            shown?.close()
             // (Locked meanwhile: nothing is taken — the windows are not to be seen now.)
             if (desktop.locked) return@after log.info { "Locked during the countdown: no screenshot" }
             take()
-        } // (the countdown gone from the screen first)
+        }
     }
 
     internal fun deliver(picture: Pixels, what: String, kind: ShotKind, copyOnly: Boolean = false) = deliver({ picture }, what, kind, copyOnly)
 
-    // Makes the picture ([make]: putting windows together), saves and copies it on a thread of
-    // its own (PNG takes a moment), then says so.
-    internal fun deliver(make: () -> Pixels, what: String, kind: ShotKind, copyOnly: Boolean = false) {
-        val now = LocalDateTime.now()
-        val jpeg = format.lowercase().let { it == "jpg" || it == "jpeg" }
+    /** The file a picture of [kind] taken at [now] is saved as in [folder] (a free name is looked for when it is written). */
+    internal fun fileFor(now: LocalDateTime, kind: ShotKind): Path {
         val name = fileName.replace("{date}", now.format(DATE)).replace("{time}", now.format(TIME)).replace("{kind}", kind.name.lowercase())
             .replace('/', '-').ifBlank { "Screenshot from ${now.format(FILE_TIME)}" }
-        val file = if (save && !copyOnly) folder.resolve("$name.${if (jpeg) "jpg" else "png"}") else null
+        return folder.resolve("$name.${format.extension}")
+    }
+
+    // Makes the picture ([make]: putting windows together), saves and copies it on a thread of
+    // its own (encoding takes a moment), then says so.
+    internal fun deliver(make: () -> Pixels, what: String, kind: ShotKind, copyOnly: Boolean = false) {
+        val file = if (save && !copyOnly) fileFor(LocalDateTime.now(), kind) else null
         val copying = copy || copyOnly
+        val format = format
+        val quality = jpegQuality
+        val words = style.words
         Thread({
             try {
                 val picture = make()
-                val png = picture.png()
+                // (A PNG only when one is wanted: copied, or saved as one.)
+                val png = if (copying || (file != null && format == ShotFormat.PNG)) picture.png() else null
                 val saved = file?.let {
                     Files.createDirectories(it.parent)
-                    writeNew(it, if (jpeg) picture.jpeg(jpegQuality) else png)
+                    writeNew(it, if (format == ShotFormat.PNG && png != null) png else picture.encode(format, quality))
                 }
                 caulis.post {
-                    if (copying) clipboard.setClipboard(PngOnClipboard(png))
+                    // (Written to whoever pastes it by the compositor's few clipboard writers: a
+                    // program asking again and again, or never reading, holds no thread of ours.)
+                    if (png != null && copying) clipboard.setClipboard(BytesOnClipboard("image/png", png))
                     log.info { "Took $what (${picture.width}x${picture.height})${saved?.let { " → $it" } ?: ""}${if (copying) ", copied" else ""}" }
-                    if (notify) notify(listOfNotNull(saved?.let { "Saved to ${shortPath(it)}" }, if (copying) "Copied" else null).joinToString(" · "), title = "Screenshot")
+                    if (notify) notify(listOfNotNull(saved?.let { words.savedTo.with(shortPath(it)) }, if (copying) words.copied else null).joinToString(" · "), title = words.title)
                     onTaken(saved)
                     // Then: the configured command with it (an editor).
                     val command = then?.takeIf { it.isNotBlank() }
@@ -238,26 +336,10 @@ class Screenshots internal constructor(private val caulis: Caulis) {
             } catch (e: Throwable) {
                 // (Out of memory too — a huge picture: said, not a thread gone without a word.)
                 log.error("The screenshot could not be saved", e)
-                caulis.post { notify("The screenshot could not be saved: ${e.message ?: e.javaClass.simpleName}", title = "Screenshot") }
+                caulis.post { notify(words.notSaved.with(e.message ?: e.javaClass.simpleName), title = words.title) }
                 if (e is VirtualMachineError && e !is OutOfMemoryError) throw e
             }
         }, "caulis-screenshot").apply { isDaemon = true }.start()
-    }
-
-    // Writes [bytes] as [file], or "name (2).png", "name (3).png"... — never over a file there
-    // (two screenshots in the same second keep both): the path written.
-    private fun writeNew(file: Path, bytes: ByteArray): Path {
-        val ext = file.fileName.toString().substringAfterLast('.', "png")
-        val base = file.fileName.toString().removeSuffix(".$ext")
-        for (n in 1..9999) {
-            val path = if (n == 1) file else file.resolveSibling("$base ($n).$ext")
-            try {
-                Files.write(path, bytes, java.nio.file.StandardOpenOption.CREATE_NEW, java.nio.file.StandardOpenOption.WRITE)
-                return path
-            } catch (_: java.nio.file.FileAlreadyExistsException) {
-            }
-        }
-        throw java.io.IOException("no free name for $file")
     }
 
     // The windows on [monitor] as drawn now, bottom to top, and where.
@@ -275,16 +357,14 @@ class Screenshots internal constructor(private val caulis: Caulis) {
     /**
      * How a picture of [shown] windows is put together: the part it shows (desktop units; all
      * of them whole when [region] is null) and how many pixels a unit is (as many as the most
-     * shrunk window needs to be at its own size; at most 8, at most 16384 pixels across).
+     * shrunk window needs to be at its own size; at most 8, at most 16384 pixels across, at
+     * most [maxPixels] in all).
      */
     internal fun plan(monitor: Monitor, shown: List<Pair<Window, Rect>>, region: Rect?): Pair<Rect, Double>? {
         if (shown.isEmpty()) return null
         val part = region ?: shown.map { it.second }.reduce(Rect::union)
         val desktop = caulis.desktop
-        val factor = shown.maxOf { (w, r) -> desktop.windowPixelSize(w).first.toDouble() / r.width.coerceAtLeast(1) }
-            .coerceAtLeast(monitor.scale).coerceAtMost(8.0).coerceAtMost(16384.0 / maxOf(part.width, part.height))
-            // (At most 64 million pixels in all: one picture of that is 256 MB already.)
-            .coerceAtMost(Math.sqrt(64e6 / (part.width.toDouble() * part.height).coerceAtLeast(1.0)))
+        val factor = plan(part, monitor.scale, shown.maxOf { (w, r) -> desktop.windowPixelSize(w).first.toDouble() / r.width.coerceAtLeast(1) }, maxPixels)
         return part to factor
     }
 
@@ -302,13 +382,17 @@ class Screenshots internal constructor(private val caulis: Caulis) {
         return composite(monitor, shown, part, factor, sharpBackground, screen.takeIf { sharpBackground == null && sharpWallpaper })
     }
 
+    /** True if [chosen] of [monitor] is put together from windows (some drawn smaller there: see [sharpWindows]). */
+    internal fun sharpThere(monitor: Monitor, chosen: Rect, windows: List<Pair<Window, Rect>>): Boolean =
+        sharpWindows && windows.any { (w, r) -> r.intersect(chosen) != null && shrunk(w, r, monitor) }
+
     /**
      * [chosen] of [monitor] put together from the windows in it at their own size (see
      * [sharpWindows]), or null when none is drawn smaller there (the screen is as sharp).
      */
     internal fun sharpRegion(monitor: Monitor, chosen: Rect, windows: List<Pair<Window, Rect>>, screen: Frozen?): Composite? {
+        if (!sharpThere(monitor, chosen, windows)) return null
         val shown = windows.filter { it.second.intersect(chosen) != null }
-        if (shown.none { (w, r) -> shrunk(w, r, monitor) }) return null
         val behind = screen.takeIf { sharpBackground == null && sharpWallpaper }
         // See-through behind them: only as big as the windows in the part (no empty margins).
         val region = if (sharpBackground != null || behind != null) chosen else shown.mapNotNull { it.second.intersect(chosen) }.reduce(Rect::union)
@@ -326,21 +410,25 @@ class Screenshots internal constructor(private val caulis: Caulis) {
                 Composite.Piece(frozen.read(seen, pointer = false), (seen.x - part.x) * factor, (seen.y - part.y) * factor, seen.width * factor, seen.height * factor, 0.0)
             }
         }
+        var black = 0
         val pieces = listOfNotNull(backdrop) + shown.map { (window, rect) ->
             val (pw, ph) = desktop.windowPixelSize(window)
-            val target = desktop.renderer.createTarget(pw, ph)
-            val pixels = try {
-                desktop.captureWindow(window, target)
-                Pixels.read(target, null, transparent = true)
-            } finally {
-                target.close()
+            // (A window hidden from screenshots: a black box in its place, as on a shared screen.)
+            val pixels = if (hidden(window)) null.also { black++ } else {
+                val target = desktop.renderer.createTarget(pw, ph)
+                try {
+                    desktop.captureWindow(window, target)
+                    Pixels.read(target, null, transparent = true)
+                } finally {
+                    target.close()
+                }
             }
             val w = rect.width * factor
             // Its corners as round as on screen at its own size.
             val radius = sharpCornerRadius * monitor.scale * (w / pw)
             Composite.Piece(pixels, (rect.x - part.x) * factor, (rect.y - part.y) * factor, w, rect.height * factor, radius)
         }
-        log.info { "Putting together ${shown.size} windows at ${String.format("%.2f", factor)}x: ${width}x$height" }
+        log.info { "Putting together ${shown.size} windows at ${String.format("%.2f", factor)}x: ${width}x$height${if (black > 0) " ($black hidden from screenshots: black)" else ""}" }
         return Composite(width, height, pieces, background)
     }
 
@@ -356,10 +444,49 @@ class Screenshots internal constructor(private val caulis: Caulis) {
         // (Held weakly both ways: the screenshots refer to their Caulis, which must still go away.)
         private val installed = WeakHashMap<Caulis, java.lang.ref.WeakReference<Screenshots>>()
 
+        // Caulis 0.1.1's keys(...) with defaults left out (it had no selective key yet): what
+        // Kotlin code built against it calls — the defaults' mask as Kotlin passes it. (It
+        // cannot be a keys with defaults: keys(choose, screen, window) is there already.)
+        @Deprecated("Kept for code built against Caulis 0.1.1", level = DeprecationLevel.HIDDEN)
+        @JvmStatic
+        @JvmName("keys\$default")
+        fun keysWithDefaults011(shots: Screenshots, choose: String?, screen: String?, window: String?, defaults: Int, @Suppress("UNUSED_PARAMETER") marker: Any?) {
+            shots.keys(
+                if (defaults and 1 != 0) "Print" else choose,
+                if (defaults and 2 != 0) "Shift+Print" else screen,
+                if (defaults and 4 != 0) "Alt+Print" else window,
+            )
+        }
+
         /** The screenshots of [caulis] (made the first time, without keys). */
         @JvmStatic
         fun of(caulis: Caulis): Screenshots = synchronized(installed) {
             installed[caulis]?.get() ?: Screenshots(caulis).also { installed[caulis] = java.lang.ref.WeakReference(it) }
+        }
+
+        /**
+         * How many pixels a unit is in a picture of [part] put together from windows: [wanted]
+         * (what the most shrunk window needs), at least the monitor's [scale], at most 8, at most
+         * 16384 pixels across and [maxPixels] in all.
+         */
+        internal fun plan(part: Rect, scale: Double, wanted: Double, maxPixels: Int): Double =
+            wanted.coerceAtLeast(scale).coerceAtMost(8.0).coerceAtMost(16384.0 / maxOf(part.width, part.height))
+                .coerceAtMost(Math.sqrt(maxPixels.coerceAtLeast(1).toDouble() / (part.width.toDouble() * part.height).coerceAtLeast(1.0)))
+
+        // Writes [bytes] as [file], or "name (2).png", "name (3).png"... — never over a file there
+        // (two screenshots in the same second keep both): the path written.
+        internal fun writeNew(file: Path, bytes: ByteArray): Path {
+            val ext = file.fileName.toString().substringAfterLast('.', "png")
+            val base = file.fileName.toString().removeSuffix(".$ext")
+            for (n in 1..9999) {
+                val path = if (n == 1) file else file.resolveSibling("$base ($n).$ext")
+                try {
+                    Files.write(path, bytes, java.nio.file.StandardOpenOption.CREATE_NEW, java.nio.file.StandardOpenOption.WRITE)
+                    return path
+                } catch (_: java.nio.file.FileAlreadyExistsException) {
+                }
+            }
+            throw java.io.IOException("no free name for $file")
         }
 
         // ~/Pictures, or what user-dirs.dirs says (XDG_PICTURES_DIR="$HOME/Bilder").
@@ -376,6 +503,10 @@ class Screenshots internal constructor(private val caulis: Caulis) {
             return Path.of(named?.takeIf { it.startsWith("/") } ?: "$home/Pictures")
         }
     }
+
+    // The names of the keys in the compositor's keyboard layout (the chooser's keys are looked up by them).
+    internal fun keyNames(): Map<Int, String> =
+        KeyNames.of(caulis.keyboardLayouts, caulis.keyboardVariants, caulis.keyboardOptions, caulis.keyboardModel, log)
 }
 
 /**

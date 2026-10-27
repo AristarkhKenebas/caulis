@@ -58,6 +58,10 @@ class Client internal constructor(
     private val recentlyDestroyed = LinkedHashSet<Int>()
     private var nextServerId = FIRST_SERVER_ID
 
+    // Ids of our own objects that are gone, to be used again (else a clipboard manager getting
+    // an offer at every copy ran through the id range in a long session).
+    private val freeServerIds = ArrayDeque<Int>()
+
     /** False after the client disconnected or was disconnected. */
     var isConnected = true
         private set
@@ -158,7 +162,15 @@ class Client internal constructor(
 
     /** Creates an object the compositor itself introduces to the client (e.g. a data offer). */
     fun <T : Resource> createServerResource(type: ResourceType<T>, version: Int): T {
-        val id = nextServerId++
+        if (resources.size >= MAX_OBJECTS && !closing) {
+            // It keeps every object we give it (offers it never destroys): it goes.
+            closing = true
+            server.log.warn("$name keeps too many objects ($MAX_OBJECTS), disconnecting")
+            server.disconnectLater(this)
+        }
+        // (The oldest freed id, and only once many are free: a message the client sent to the
+        // old object meanwhile cannot reach a new one.)
+        val id = if (freeServerIds.size > REUSE_SERVER_IDS_AFTER) freeServerIds.removeFirst() else nextServerId++
         return register(type.create(this, id, version))
     }
 
@@ -166,6 +178,7 @@ class Client internal constructor(
         if (!resource.isAlive) return
         resources.remove(resource.id)
         resource.markDestroyed()
+        if (isServerId(resource.id)) freeServerIds += resource.id
         // Tell the client the id may be reused (only for ids the client chose).
         if (!isServerId(resource.id) && isConnected) {
             recentlyDestroyed += resource.id
@@ -237,7 +250,19 @@ class Client internal constructor(
         return outgoing.grow(extra)
     }
 
-    override fun queueFd(fd: Fd, messageStart: Int) = outgoing.queueFd(fd, messageStart)
+    override fun queueFd(fd: Fd, messageStart: Int) {
+        if (outgoing.queuedFds >= MAX_QUEUED_FDS) {
+            // The client does not read, and every descriptor waiting for it stays open here:
+            // a stuck program could use up all the compositor's descriptors. It goes instead.
+            if (!closing) {
+                closing = true
+                server.log.warn("$name does not take the file descriptors sent to it ($MAX_QUEUED_FDS waiting), disconnecting")
+                server.disconnectLater(this)
+            }
+            return
+        }
+        outgoing.queueFd(fd, messageStart)
+    }
 
     override fun cancelMessage(messageStart: Int) = outgoing.cancelFds(messageStart)
 
@@ -271,5 +296,12 @@ class Client internal constructor(
 
         private const val MAX_OUTPUT = 4 * 1024 * 1024
         private const val MAX_OBJECTS = 100_000
+
+        // How many of our own ids must be free before the oldest is used again.
+        private const val REUSE_SERVER_IDS_AFTER = 4096
+
+        // File descriptors waiting for one client (keymaps, clipboard pipes, ...): far more
+        // than a working program ever has waiting, far fewer than the compositor may open.
+        private const val MAX_QUEUED_FDS = 1024
     }
 }

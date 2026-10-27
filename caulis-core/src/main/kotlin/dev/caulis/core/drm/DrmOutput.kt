@@ -52,6 +52,10 @@ class DrmOutput internal constructor(
         internal val info: ByteArray,
     ) {
         override fun toString() = "${width}x$height@${"%.2f".format(refreshMillihertz / 1000.0)}"
+
+        // The same mode is the same timings (a mode read again after a rescan is equal).
+        override fun equals(other: Any?) = other is Mode && info.contentEquals(other.info)
+        override fun hashCode() = info.contentHashCode()
     }
 
     /** The mode in use (null until [start] found one that works). */
@@ -97,7 +101,6 @@ class DrmOutput internal constructor(
     // A picture (or only the cursor's new place) is on its way to the screen; the next one waits for the flip.
     private val flipPending: Boolean get() = queued != null || queuedDirect != null || cursorOnlyPending
     private var needsModeset = true
-    private var frameScheduled = false
 
     // Each commit has a serial that comes back with its flip: a flip of an old commit (from
     // before switching terminals) is not taken for the one awaited.
@@ -116,9 +119,47 @@ class DrmOutput internal constructor(
     private var retired: List<Slot> = emptyList()
     private var retiredBlob = 0
 
-    // Mode sets also reset what other programs may have left (max bpc, colour space, HDR,
-    // VRR...) — unless the driver refuses that, then not.
-    private var resetLeftovers = true
+    // Mode sets also set our settings (max bpc, adaptive sync) and reset what other programs
+    // may have left (colour space, HDR, ...): each property the driver refuses is left out from
+    // then on (logged by name), the others still apply.
+    private val refusedProperties = HashSet<String>()
+
+    // maxBpc or adaptiveSync changed since the last tested mode set.
+    private var extrasChanged = false
+
+    // The properties the last tested mode set had (the next real one sets the same).
+    private var extrasInUse: List<Extra> = emptyList()
+
+    // One such property: [value] for [property] of the object [objectId].
+    private class Extra(val property: String, val objectId: Int, val props: Map<String, DrmDevice.Property>, val value: Long)
+
+    // The properties a mode set sets besides the mode (those the driver has and did not refuse).
+    private fun extras(): List<Extra> {
+        val list = ArrayList<Extra>()
+        connectorProps["max bpc"]?.let { prop ->
+            // (Within what the connector takes.)
+            val bpc = prop.range?.let { maxBpc.toLong().coerceIn(it) } ?: maxBpc.toLong()
+            if (bpc != maxBpc.toLong()) log.info { "$name: max bpc $maxBpc is out of the connector's range ${prop.range}: $bpc" }
+            list += Extra("max bpc", connectorId, connectorProps, bpc)
+        }
+        // What another session (or the firmware) may have left: no HDR, standard colours.
+        for (property in listOf("Colorspace", "HDR_OUTPUT_METADATA", "content type")) list += Extra(property, connectorId, connectorProps, 0)
+        // Adaptive sync only where the monitor has it (as the kernel says now).
+        val capable = device.properties(connectorId, Drm.DRM_MODE_OBJECT_CONNECTOR())["vrr_capable"]?.value == 1L
+        if (adaptiveSync && !capable) log.info { "$name: adaptive sync is on, but the monitor does not have it" }
+        list += Extra("VRR_ENABLED", crtcId, crtcProps, if (adaptiveSync && capable) 1 else 0)
+        for (property in listOf("CTM", "DEGAMMA_LUT")) list += Extra(property, crtcId, crtcProps, 0)
+        return list.filter { it.props.containsKey(it.property) && it.property !in refusedProperties }
+    }
+
+    // The [extras] the driver takes along with the mode, as [test] (a TEST_ONLY commit with
+    // them) finds: all, or — if the mode works without them — those it takes one by one.
+    private fun workingExtras(extras: List<Extra>, test: (List<Extra>) -> Int): List<Extra> =
+        takenAlong(extras, { test(it) == 0 }) { extra, alone ->
+            refusedProperties += extra.property
+            if (alone) log.warn("$name: the driver refuses ${extra.property} = ${extra.value}; left as it is")
+            else log.warn("$name: the driver refuses ${extra.property} along with the others; left as it is")
+        }
 
     init {
         device.onFlip(crtcId) { nanos, sequence, serial -> flipped(nanos, sequence, serial) }
@@ -311,16 +352,12 @@ class DrmOutput internal constructor(
             newSlots.forEach(::freeSlot)
             return false
         }
-        fun test() = device.commit(Drm.DRM_MODE_ATOMIC_TEST_ONLY() or Drm.DRM_MODE_ATOMIC_ALLOW_MODESET()) { request ->
-            fullState(request, blob, newSlots[0], candidate)
+        fun test(extras: List<Extra>) = device.commit(Drm.DRM_MODE_ATOMIC_TEST_ONLY() or Drm.DRM_MODE_ATOMIC_ALLOW_MODESET()) { request ->
+            fullState(request, blob, newSlots[0], candidate, extras)
         }
-        var result = test()
-        if (result != 0 && resetLeftovers) {
-            // Some drivers refuse a reset property (a max bpc out of range): without them.
-            resetLeftovers = false
-            result = test()
-            if (result == 0) log.info { "$name: the driver refuses resetting its colour properties; left as they are" } else resetLeftovers = true
-        }
+        // Some drivers refuse a property (a max bpc out of range): the mode goes without it.
+        val extras = workingExtras(extras(), ::test)
+        val result = test(extras)
         if (result != 0) {
             log.info { "$name: $candidate refused (${errno(result)})" }
             device.destroyBlob(blob)
@@ -335,6 +372,7 @@ class DrmOutput internal constructor(
         slots = newSlots
         modeBlob = blob
         modesetFailures = 0
+        extrasInUse = extras
         return true
     }
 
@@ -346,23 +384,14 @@ class DrmOutput internal constructor(
     }
 
     // Everything the monitor needs: connector -> CRTC -> mode, plane shows the buffer full screen.
-    private fun fullState(request: DrmDevice.AtomicRequest, blob: Int, slot: Slot, mode: Mode) {
+    private fun fullState(request: DrmDevice.AtomicRequest, blob: Int, slot: Slot, mode: Mode, extras: List<Extra>) {
         request.set(connectorId, connectorProps, "CRTC_ID", crtcId.toLong())
         request.set(crtcId, crtcProps, "MODE_ID", blob.toLong())
         request.set(crtcId, crtcProps, "ACTIVE", 1)
         // A link that failed (a dock, a KVM) is tried again with this mode set.
         request.setIfPresent(connectorId, connectorProps, "link-status", LINK_STATUS_GOOD)
-        if (resetLeftovers) {
-            // What another session (or the firmware) may have left: 8 bits a colour (a higher
-            // max bpc makes fast modes fail without DSC), no HDR, standard colours, no VRR.
-            request.setIfPresent(connectorId, connectorProps, "max bpc", 8)
-            request.setIfPresent(connectorId, connectorProps, "Colorspace", 0)
-            request.setIfPresent(connectorId, connectorProps, "HDR_OUTPUT_METADATA", 0)
-            request.setIfPresent(connectorId, connectorProps, "content type", 0)
-            request.setIfPresent(crtcId, crtcProps, "VRR_ENABLED", 0)
-            request.setIfPresent(crtcId, crtcProps, "CTM", 0)
-            request.setIfPresent(crtcId, crtcProps, "DEGAMMA_LUT", 0)
-        }
+        // Our settings and the reset of what others left (see extras).
+        for (extra in extras) request.setIfPresent(extra.objectId, extra.props, extra.property, extra.value)
         // Our gamma table (a night light), also after switching terminals.
         request.setIfPresent(crtcId, crtcProps, "GAMMA_LUT", (pendingGamma ?: gammaBlob).toLong())
         showOnPlane(request, slot, mode)
@@ -394,24 +423,41 @@ class DrmOutput internal constructor(
     /**
      * Draws the next picture with [draw] and sends it to the monitor. [draw] also gets how
      * many frames old the buffer's picture is (1 = previous frame, 0 = unknown: draw
-     * everything). Does nothing while another virtual terminal is shown or a picture is
-     * still on its way.
+     * everything). Does nothing while another virtual terminal is shown, the screen is off
+     * or a picture is still on its way. Returns true if a picture was drawn and sent.
+     *
+     * If [draw] fails, the exception goes on to the caller; this buffer counts as never
+     * drawn, so the next picture is drawn whole (no half-drawn parts stay on screen).
      */
-    fun present(draw: (target: GpuTarget, age: Int) -> Unit) {
-        val current = mode ?: return
-        if (!isSessionActive() || flipPending || !powered) return
+    fun present(draw: (target: GpuTarget, age: Int) -> Unit): Boolean {
+        val current = mode ?: return false
+        if (!isSessionActive() || flipPending || !powered) return false
         val slot = slots.first { it !== shown }
         frameNumber++
         val age = if (slot.drawnInFrame == 0L) 0 else (frameNumber - slot.drawnInFrame).toInt()
+        slot.drawnInFrame = 0 // unknown until drawn to the end
+        try {
+            draw(slot.buffer, age)
+        } catch (e: Throwable) {
+            redrawAll = true
+            throw e
+        } finally {
+            renderer.end()
+        }
         slot.drawnInFrame = frameNumber
-        draw(slot.buffer, age)
-        renderer.end()
 
         val serial = ++commitSerial
         val gamma = pendingGamma
         val result = if (needsModeset) {
+            if (extrasChanged) {
+                // maxBpc or adaptiveSync changed: tested first (a refused one is left out).
+                extrasChanged = false
+                extrasInUse = workingExtras(extras()) { extras ->
+                    device.commit(Drm.DRM_MODE_ATOMIC_TEST_ONLY() or Drm.DRM_MODE_ATOMIC_ALLOW_MODESET()) { request -> fullState(request, modeBlob, slot, current, extras) }
+                }
+            }
             device.commit(Drm.DRM_MODE_ATOMIC_ALLOW_MODESET() or Drm.DRM_MODE_PAGE_FLIP_EVENT(), serial) { request ->
-                fullState(request, modeBlob, slot, current)
+                fullState(request, modeBlob, slot, current, extrasInUse)
             }
         } else {
             device.commit(Drm.DRM_MODE_ATOMIC_NONBLOCK() or Drm.DRM_MODE_PAGE_FLIP_EVENT(), serial) { request ->
@@ -441,11 +487,13 @@ class DrmOutput internal constructor(
                 modesetFailures = 0
                 if (!start(modes.firstOrNull { it != current })) {
                     log.error("$name: no mode works; it stays off")
-                    return
+                    return false
                 }
             }
             scheduleFrame(RETRY_MILLIS)
+            return false
         }
+        return true
     }
 
     // Programs' buffers whose flip never came: given back after the next flip that does.
@@ -470,6 +518,13 @@ class DrmOutput internal constructor(
             slots.forEach { it.drawnInFrame = 0 }
             scheduleFrame(0)
         }
+    }
+
+    // Caulis 0.1.1's present (returning nothing): code built against it calls it.
+    @Deprecated("Kept for code built against Caulis 0.1.1", level = DeprecationLevel.HIDDEN)
+    @JvmName("present")
+    fun presentWithoutAnswer(draw: (target: GpuTarget, age: Int) -> Unit) {
+        present(draw)
     }
 
     /**
@@ -588,6 +643,11 @@ class DrmOutput internal constructor(
         scheduleFrame(wait)
     }
 
+    // Nothing reaches the screen (switched off, or another terminal is shown): no refresh paces
+    // the frames then, so they come only as a slow heartbeat — programs do not freeze, and
+    // the compositor does not draw for nothing as fast as it can.
+    private val dark: Boolean get() = !powered || !isSessionActive()
+
     // Asks for the next picture. If drawing fails, the screen must not freeze for good:
     // the error is logged and drawing is tried again a little later.
     private fun nextFrame() {
@@ -617,13 +677,52 @@ class DrmOutput internal constructor(
     }
 
     private fun scheduleFrame(delayMillis: Long) {
-        if (frameScheduled) return
-        frameScheduled = true
-        loop.after(delayMillis) {
-            frameScheduled = false
+        val delay = if (dark) maxOf(delayMillis, DARK_HEARTBEAT_MILLIS) else delayMillis
+        val due = System.nanoTime() + delay * 1_000_000
+        // One frame at a time; an earlier one replaces a later (the screen came back on).
+        if (frameTimer != null && due >= frameDue) return
+        frameTimer?.cancel()
+        frameDue = due
+        frameTimer = loop.after(delay) {
+            frameTimer = null
             nextFrame()
         }
     }
+
+    // The frame asked for, and when it is due (System.nanoTime).
+    private var frameTimer: EventLoop.Timer? = null
+    private var frameDue = 0L
+
+    /**
+     * The most bits per colour the link to the monitor may use ("max bpc"; 8 by default: more
+     * makes fast modes fail on links without compression). Applied with a mode set.
+     */
+    var maxBpc: Int = 8
+        set(value) {
+            require(value in 6..16) { "maxBpc must be 6..16, not $value" }
+            if (value == field) return
+            field = value
+            log.info { "$name: at most $value bits per colour (with the next mode set)" }
+            refusedProperties -= "max bpc" // (another value may be taken)
+            extrasChanged = true
+            needsModeset = true
+            if (mode != null) scheduleFrame(0)
+        }
+
+    /**
+     * Variable refresh rate (FreeSync, G-Sync compatible) if the monitor has it (off by
+     * default: some monitors flicker with it). Applied with a mode set.
+     */
+    var adaptiveSync: Boolean = false
+        set(value) {
+            if (value == field) return
+            field = value
+            log.info { "$name: adaptive sync ${if (value) "on" else "off"} (with the next mode set)" }
+            refusedProperties -= "VRR_ENABLED"
+            extrasChanged = true
+            needsModeset = true
+            if (mode != null) scheduleFrame(0)
+        }
 
     /** False while the screen is switched off (DPMS): nothing is drawn. */
     var powered = true
@@ -781,6 +880,8 @@ class DrmOutput internal constructor(
     override fun close() {
         device.removeFlipHandler(crtcId)
         flipWatchdog?.cancel()
+        frameTimer?.cancel()
+        frameTimer = null
         freeBuffers()
         freeRetired()
         cursorSlots.forEach(::freeSlot)
@@ -800,5 +901,23 @@ class DrmOutput internal constructor(
         const val MAX_MODES_TO_TRY = 8
         const val RETRY_MILLIS = 16L
         const val ERROR_RETRY_MILLIS = 1000L
+
+        // How often frames come while nothing reaches the screen (see dark).
+        const val DARK_HEARTBEAT_MILLIS = 1000L
     }
+}
+
+/**
+ * Of [extras] (properties set along with a mode), those [works] takes: all if it takes them
+ * together; else — if it takes none of them either, the mode itself fails: all, as they are not
+ * at fault — each one it takes alone, and only if those together work too. [refused] hears each
+ * one left out (alone: it was refused alone, not only along with the others).
+ */
+internal fun <T> takenAlong(extras: List<T>, works: (List<T>) -> Boolean, refused: (T, alone: Boolean) -> Unit): List<T> {
+    if (extras.isEmpty() || works(extras)) return extras
+    if (!works(emptyList())) return extras
+    val taken = extras.filter { extra -> works(listOf(extra)).also { if (!it) refused(extra, true) } }
+    if (taken.isEmpty() || works(taken)) return taken
+    taken.forEach { refused(it, false) }
+    return emptyList()
 }

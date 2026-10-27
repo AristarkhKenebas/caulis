@@ -38,6 +38,9 @@ class XWindow internal constructor(private val xwm: Xwm, val id: Int, overrideRe
     internal var netWmPid = 0
     override val pid: Int get() = netWmPid
 
+    // All X programs share Xwayland's connection: the same X client is the same program.
+    override fun sameProgramAs(other: Window): Boolean = other is XWindow && xwm.sameProgram(this, other)
+
     /** WM_HINTS: false if the program takes the keyboard itself when asked (WM_TAKE_FOCUS only). */
     internal var acceptsFocus = true
 

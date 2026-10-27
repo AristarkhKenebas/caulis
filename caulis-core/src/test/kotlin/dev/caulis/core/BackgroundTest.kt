@@ -113,7 +113,7 @@ class BackgroundTest {
             d.backgroundFor = { _, workspace -> Background.color(if (workspace == 1) Color.hex("#ff0000") else Color.hex("#0000ff")) }
         }
         assertEquals(RED, server.screenshot().at(10, 10))
-        server.onServer { d -> d.backgroundChangeMillis = 1500 }
+        server.onServer { d -> d.backgroundChangeMillis = 1500; d.animations = Animations.ON }
         server.onServer { d -> d.switchTo(2) }
         Thread.sleep(400)
         val between = server.screenshot().at(10, 10)

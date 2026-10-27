@@ -35,7 +35,8 @@ class BufferTransformTest {
                 window.surface.attach(buffer, 0, 0)
                 window.surface.damageBuffer(0, 0, 100, 200)
                 window.surface.commit()
-                client.waitFor { server.onServer { d -> d.allWindows.any { it.mapped } } }
+                // (Mapped, and placed on screen by a frame.)
+                client.waitFor { server.onServer { d -> d.allWindows.singleOrNull()?.takeIf { it.mapped }?.let(d::screenRect) != null } }
                 val rect = server.onServer { d -> d.screenRect(d.allWindows.single())!! }
                 assertEquals(200 to 100, rect.width to rect.height, "its sides traded")
                 val picture = server.screenshot(0)

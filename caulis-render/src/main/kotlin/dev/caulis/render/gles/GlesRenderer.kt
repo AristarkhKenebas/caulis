@@ -33,7 +33,7 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
 
     // Rounded boxes and shadows filled with gradients or users' paints, compiled when first
     // needed (null: did not compile, see effectProblems).
-    private val painted = HashMap<String, Program?>()
+    private val painted = programCache()
 
     private fun paintedProgram(shadowOf: Boolean, paint: Paint): Program? {
         val fill = when (paint) {
@@ -42,7 +42,7 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
             is Paint.Shader -> Shaders.paintCustom(paint.code)
         }
         val source = if (shadowOf) Shaders.shadow(fill) else Shaders.rounded(fill)
-        return painted.getOrPut(source) {
+        return painted.compiledOnce(source) {
             try {
                 Program(Shaders.VERTEX, source)
             } catch (e: IllegalStateException) {
@@ -53,7 +53,7 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
     }
 
     // The paint's own values: a colour, a gradient's colours and angle, a shader's time and size.
-    private fun setPaint(program: Program, paint: Paint, box: Rect, time: Float) {
+    private fun setPaint(program: Program, paint: Paint, box: Rect, time: Float, state: dev.caulis.render.PaintState = dev.caulis.render.PaintState.NONE) {
         when (paint) {
             is Paint.Solid -> setColor(program, paint.color)
             is Paint.Gradient -> {
@@ -66,6 +66,11 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
             is Paint.Shader -> {
                 Gles.glUniform1f(program.uniform("time"), time)
                 Gles.glUniform2f(program.uniform("size"), box.width.toFloat(), box.height.toFloat())
+                Gles.glUniform1f(program.uniform("focused"), if (state.focused) 1f else 0f)
+                Gles.glUniform1f(program.uniform("urgent"), if (state.urgent) 1f else 0f)
+                Gles.glUniform1f(program.uniform("grouped"), if (state.grouped) 1f else 0f)
+                for ((i, c) in paint.colors.withIndex()) Gles.glUniform4f(program.uniform("colors[$i]"), c.red, c.green, c.blue, c.alpha)
+                Gles.glUniform1i(program.uniform("colorCount"), paint.colors.size)
             }
         }
     }
@@ -151,8 +156,9 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
     }
 
     override fun copy(source: GpuTarget, from: Rect, target: GpuTarget) {
-        source as GlesFramebuffer
-        target as GlesFramebuffer
+        source as? GlesFramebuffer ?: throw notOurs(source)
+        target as? GlesFramebuffer ?: throw notOurs(target)
+        Gl.drain("something drawn before a copy")
         Gles.glDisable(Gles.GL_SCISSOR_TEST())
         Gles.glBindFramebuffer(Gles.GL_READ_FRAMEBUFFER(), source.framebuffer)
         Gles.glBindFramebuffer(Gles.GL_DRAW_FRAMEBUFFER(), target.framebuffer)
@@ -170,7 +176,9 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         GlesBuffer.create(egl, images, width, height, format, modifiers, scanout)
 
     override fun begin(target: GpuTarget, red: Float, green: Float, blue: Float, clip: Rect?, alpha: Float) {
-        target as GlesFramebuffer
+        target as? GlesFramebuffer ?: throw notOurs(target)
+        // Errors of the frame before (a shader of yours) are logged now, not blamed on this one.
+        Gl.drain("the drawing before this frame")
         this.target = target
         this.clip = clip
         bindTarget(target, clip)
@@ -210,7 +218,7 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         texture: GpuTexture, x: Int, y: Int, width: Int, height: Int, opaque: Boolean,
         alpha: Float, clip: Rect?, cornerRadius: Float, source: FloatArray?, transform: Int,
     ) {
-        texture as GlTexture
+        texture as? GlTexture ?: throw notOurs(texture)
         textured.use()
         setRect(textured, x, y, width, height)
         Gles.glUniform1i(textured.uniform("transform"), transform)
@@ -233,15 +241,17 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
     }
 
     // Users' effects, compiled once each (null: did not compile, see effectProblems).
-    private val effects = HashMap<String, Program?>()
-    private val effectProblems = HashMap<String, String>()
+    private val effects = programCache()
+    private val effectProblems = object : LinkedHashMap<String, String>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?) = size > MAX_PROGRAMS
+    }
 
     override fun drawTextureEffect(
         texture: GpuTexture, x: Int, y: Int, width: Int, height: Int, alpha: Float,
         effect: String, from: FloatArray, to: FloatArray, progress: Float,
     ): Boolean {
-        texture as GlTexture
-        val program = effects.getOrPut(effect) {
+        texture as? GlTexture ?: throw notOurs(texture)
+        val program = effects.compiledOnce(effect) {
             try {
                 Program(Shaders.VERTEX, Shaders.effect(effect))
             } catch (e: IllegalStateException) {
@@ -261,19 +271,42 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         Gles.glUniform4f(program.uniform("to"), to[0], to[1], to[2], to[3])
         Gles.glUniform2f(program.uniform("size"), width.toFloat(), height.toFloat())
         Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
+        Gl.drain("an effect shader of yours")
         return true
     }
 
     override fun effectProblem(effect: String): String? = effectProblems[effect]
 
     // Whole fragment shaders of users (backgrounds), compiled once each.
-    private val shaded = HashMap<String, Program?>()
+    private val shaded = programCache()
+
+    // Shaders compiled so far (for tests: one that fails is not compiled again every frame).
+    internal var compilations = 0
+        private set
+
+    // The program compiled from [source] — compiled once: a shader that did not compile stays
+    // null until its source changes (getOrPut would try again every frame, null being "absent").
+    private fun LinkedHashMap<String, Program?>.compiledOnce(source: String, compile: () -> Program?): Program? {
+        if (containsKey(source)) return get(source)
+        compilations++
+        return compile().also { put(source, it) }
+    }
+
+    // Compiled shaders, the least used going first past MAX_PROGRAMS (each save of a shader
+    // file being edited compiled one more, and the old ones stayed until the end).
+    private fun programCache() = object : LinkedHashMap<String, Program?>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Program?>?): Boolean {
+            if (size <= MAX_PROGRAMS) return false
+            eldest?.value?.close()
+            return true
+        }
+    }
 
     override fun drawShaded(
         x: Int, y: Int, width: Int, height: Int, fragment: String,
         floats: Map<String, FloatArray>, ints: Map<String, Int>, texture: GpuTexture?,
     ): Boolean {
-        val program = shaded.getOrPut(fragment) {
+        val program = shaded.compiledOnce(fragment) {
             try {
                 Program(Shaders.VERTEX, fragment)
             } catch (e: IllegalStateException) {
@@ -285,7 +318,7 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         setRect(program, x, y, width, height)
         Gles.glUniform4f(program.uniform("source"), 0f, 0f, 1f, 1f)
         if (texture != null) {
-            texture as GlTexture
+            texture as? GlTexture ?: throw notOurs(texture)
             Gles.glActiveTexture(Gles.GL_TEXTURE0())
             Gles.glBindTexture(Gles.GL_TEXTURE_2D(), texture.id)
             Gles.glUniform1i(program.uniform("picture"), 0)
@@ -301,6 +334,7 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         }
         for ((name, value) in ints) Gles.glUniform1i(program.uniform(name), value)
         Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
+        Gl.drain("a shader of yours")
         return true
     }
 
@@ -315,17 +349,21 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         drawRoundedRect(box, cornerRadius, Paint.Solid(color), borderWidth)
     }
 
-    override fun drawRoundedRect(box: Rect, cornerRadius: Float, paint: Paint, borderWidth: Float, alpha: Float, time: Float): Boolean {
+    override fun drawRoundedRect(box: Rect, cornerRadius: Float, paint: Paint, borderWidth: Float, alpha: Float, time: Float): Boolean =
+        drawRoundedRect(box, cornerRadius, paint, borderWidth, alpha, time, dev.caulis.render.PaintState.NONE)
+
+    override fun drawRoundedRect(box: Rect, cornerRadius: Float, paint: Paint, borderWidth: Float, alpha: Float, time: Float, state: dev.caulis.render.PaintState): Boolean {
         if (box.isEmpty) return true
         val program = paintedProgram(shadowOf = false, paint) ?: return false
         program.use()
         setRect(program, box.x, box.y, box.width, box.height)
-        setPaint(program, paint, box, time)
+        setPaint(program, paint, box, time, state)
         setBox(program, "outer", box)
         Gles.glUniform1f(program.uniform("radius"), radiusFor(box, cornerRadius))
         Gles.glUniform1f(program.uniform("border"), borderWidth)
-        Gles.glUniform1f(program.uniform("alpha"), alpha)
+        Gles.glUniform1f(program.uniform("alpha"), alpha * paintAlpha(paint))
         Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
+        if (paint is Paint.Shader) Gl.drain("the paint shader ${paint.name}")
         return true
     }
 
@@ -349,15 +387,16 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
             setBox(program, "cutOut", cutOut)
             Gles.glUniform1f(program.uniform("cutRadius"), radiusFor(cutOut, cutOutRadius))
         }
-        Gles.glUniform1f(program.uniform("alpha"), alpha)
+        Gles.glUniform1f(program.uniform("alpha"), alpha * paintAlpha(paint))
         Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
+        if (paint is Paint.Shader) Gl.drain("the paint shader ${paint.name}")
         return true
     }
 
     override fun drawBlur(area: Rect, cornerRadius: Float, size: Int, passes: Int, tone: BlurTone) {
         val target = target ?: return
         if (area.isEmpty || size <= 0) return
-        blur.blur(target, area, radiusFor(area, cornerRadius), size, passes, tone)
+        blur.blur(target, area, radiusFor(area, cornerRadius), size, passes, tone, clip)
         bindTarget(target, clip)
     }
 
@@ -377,6 +416,13 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
     private fun setColor(program: Program, color: Color) =
         Gles.glUniform4f(program.uniform("color"), color.red * color.alpha, color.green * color.alpha, color.blue * color.alpha, color.alpha)
 
+    // A shader paint's own strength ([Paint.faded]): colours and gradients carry it in their colours.
+    private fun paintAlpha(paint: Paint): Float = (paint as? Paint.Shader)?.alpha ?: 1f
+
+    // A picture or target some other renderer (or your own class) made: this one cannot draw it.
+    private fun notOurs(what: Any) =
+        IllegalArgumentException("$what was not made by this renderer: GlesRenderer draws only its own textures and targets (from createTexture, createTarget, importDmabuf, ...)")
+
     // Corners cannot be rounder than half the box.
     private fun radiusFor(box: Rect, radius: Float) = radius.coerceIn(0f, minOf(box.width, box.height) / 2f)
 
@@ -395,6 +441,9 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
     }
 
     companion object {
+        // How many compiled shaders of each kind are kept.
+        private const val MAX_PROGRAMS = 64
+
         /** Opens the GPU (the first render node, or [renderNode]) and prepares drawing. */
         fun create(renderNode: java.nio.file.Path = EglContext.findRenderNode()): GlesRenderer =
             GlesRenderer(EglContext.create(renderNode))

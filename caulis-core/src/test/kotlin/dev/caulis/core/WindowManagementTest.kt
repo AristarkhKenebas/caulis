@@ -101,12 +101,14 @@ class WindowManagementTest {
         client.waitFor { server.onServer { it.windows.size } == 1 }
         val (startX, startY) = server.onServer { d -> d.windows.single().let { it.x to it.y } }
 
-        // The user presses the button on the window; the app answers with "move".
+        // The user presses the button on the window; the app answers with "move" (with the press's serial).
+        val pressSerial = buttonSerials(client)
         server.onServer { d ->
             d.pointerMoved(0, startX + 10.0, startY + 10.0)
             d.pointerButton(0, BTN_LEFT, true)
         }
-        window.toplevel.move(client.seat, 0)
+        client.waitFor { pressSerial[0] != 0 }
+        window.toplevel.move(client.seat, pressSerial[0])
         client.connection.roundtrip()
         server.onServer { d ->
             d.pointerMoved(0, startX + 110.0, startY + 60.0)
@@ -121,17 +123,31 @@ class WindowManagementTest {
         window.draw(100, 100)
         client.waitFor { server.onServer { it.windows.size } == 1 }
         val (startX, startY) = server.onServer { d -> d.windows.single().let { it.x to it.y } }
+        val pressSerial = buttonSerials(client)
         server.onServer { d ->
             d.pointerMoved(0, startX + 99.0, startY + 99.0)
             d.pointerButton(0, BTN_LEFT, true)
         }
-        window.toplevel.resize(client.seat, 0, XdgToplevel.ResizeEdge.BOTTOM_RIGHT)
+        client.waitFor { pressSerial[0] != 0 }
+        window.toplevel.resize(client.seat, pressSerial[0], XdgToplevel.ResizeEdge.BOTTOM_RIGHT)
         client.connection.roundtrip()
         server.onServer { d -> d.pointerMoved(0, startX + 149.0, startY + 129.0) }
         client.waitFor { window.width == 150 && window.height == 130 }
         assertTrue(XdgToplevel.State.RESIZING in window.states)
         server.onServer { d -> d.pointerButton(0, BTN_LEFT, false) }
         client.waitFor { XdgToplevel.State.RESIZING !in window.states }
+    }
+
+    // The serial of the last button press the client got (a move or resize must name it).
+    private fun buttonSerials(client: TestClient): IntArray {
+        val serial = IntArray(1)
+        client.seat.getPointer().events = object : dev.caulis.protocol.client.wayland.WlPointer.Events {
+            override fun button(proxy: dev.caulis.protocol.client.wayland.WlPointer, serialArg: Int, time: Int, button: Int, state: Int) {
+                serial[0] = serialArg
+            }
+        }
+        client.connection.roundtrip()
+        return serial
     }
 
     private fun withServer(test: (ScreenTestServer, TestClient) -> Unit) {

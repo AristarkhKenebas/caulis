@@ -95,7 +95,10 @@ class Rotator @JvmOverloads constructor(private val renderer: Renderer, private 
                 renderer.createTarget(width, height).also { picture = it }
             }
             // The picture stays ours: only what changed since the last frame is drawn into it.
-            draw(current, if (drawnBefore) 1 else 0)
+            val age = if (drawnBefore) 1 else 0
+            // Unknown until drawn to the end: a frame that fails half-way is drawn whole next time.
+            drawnBefore = false
+            draw(current, age)
             drawnBefore = true
             val texture = current.texture
             renderer.begin(screen, 0f, 0f, 0f)

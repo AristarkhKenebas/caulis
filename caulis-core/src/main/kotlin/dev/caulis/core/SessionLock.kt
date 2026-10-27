@@ -60,8 +60,11 @@ class SessionLockManager(display: Display) {
 /** One locker's attempt to lock the session (ext_session_lock_v1). */
 class SessionLock internal constructor(val resource: ExtSessionLockV1, internal val manager: SessionLockManager) {
 
-    /** The locker's surfaces, one per monitor. */
-    val surfaces = ArrayList<LockSurface>()
+    // The locker's surfaces, one per monitor (see surfaces).
+    private val surfaceList = ArrayList<LockSurface>()
+
+    /** The locker's surfaces, one per monitor (a live, read-only view). */
+    val surfaces: List<LockSurface> = java.util.Collections.unmodifiableList(surfaceList)
 
     /** True once the locker was told the session is locked. */
     var confirmed = false
@@ -89,8 +92,8 @@ class SessionLock internal constructor(val resource: ExtSessionLockV1, internal 
                 }
                 if (!target.assignRole(Surface.Role.LOCK, resource, ExtSessionLockV1.Error.ROLE)) return
                 val lockSurface = LockSurface(id, target, output, this@SessionLock)
-                surfaces += lockSurface
-                id.onDestroy { surfaces -= lockSurface }
+                surfaceList += lockSurface
+                id.onDestroy { surfaceList -= lockSurface }
                 // As big as its monitor (or the desktop until monitors are known).
                 val (width, height) = manager.listener.lockSurfaceSize(monitor)
                 lockSurface.configure(width, height)
@@ -201,4 +204,16 @@ class LockSurface internal constructor(
     }
 
     override fun toString() = "LockSurface(${output?.name})"
+}
+
+/** Which window gets the focus when the session is unlocked ([Desktop.unlockFocus]). */
+enum class UnlockFocus {
+    /**
+     * The window that had the focus when the session was locked; if it is gone, the newest
+     * window of those open before the lock.
+     */
+    FOCUSED_BEFORE,
+
+    /** The newest window of those open before the lock. */
+    NEWEST_BEFORE,
 }

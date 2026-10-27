@@ -146,6 +146,42 @@ class SessionLockTest {
 
     private fun IntArray.at(x: Int, y: Int) = this[y * width + x]
 
+    @Test
+    fun `the locker on the second monitor gets the pointer there`() {
+        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        ScreenTestServer(monitorCount = 2).use { server ->
+            TestClient(Connection.connect(server.socketPath)).use { client ->
+                val locker = client.lock()
+                client.waitFor { locker.locked }
+                var entered: WlSurface? = null
+                client.seat.getPointer().events = object : dev.caulis.protocol.client.wayland.WlPointer.Events {
+                    override fun enter(proxy: dev.caulis.protocol.client.wayland.WlPointer, serial: Int, surface: WlSurface, surfaceX: Double, surfaceY: Double) {
+                        entered = surface
+                    }
+                }
+                // One lock surface on each monitor (the second at x = WIDTH).
+                val pictures = client.outputs.map { output ->
+                    val surface = client.compositor.createSurface()
+                    val picture = Picture(surface)
+                    locker.lock.getLockSurface(surface, output).events = object : ExtSessionLockSurfaceV1.Events {
+                        override fun configure(proxy: ExtSessionLockSurfaceV1, serial: Int, width: Int, height: Int) {
+                            picture.width = width
+                            picture.height = height
+                            proxy.ackConfigure(serial)
+                        }
+                    }
+                    client.connection.roundtrip()
+                    client.draw(surface, picture.width, picture.height)
+                    picture
+                }
+                client.connection.roundtrip()
+                server.onServer { d -> d.pointerMoved(0, width + 10.0, 10.0) }
+                // (It was over the first monitor's before.)
+                client.waitFor { entered === pictures[1].surface }
+            }
+        }
+    }
+
     private fun withServer(test: (ScreenTestServer, TestClient) -> Unit) {
         assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
         ScreenTestServer().use { server -> TestClient(Connection.connect(server.socketPath)).use { test(server, it) } }

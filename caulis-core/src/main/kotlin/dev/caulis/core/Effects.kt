@@ -78,12 +78,33 @@ data class Effects @JvmOverloads constructor(
 
 /**
  * A frame [width] pixels wide around a window, filled by whether it has the focus: one
- * colour, a gradient, a turning gradient or a shader ([Paint]).
+ * colour, a gradient, a turning gradient or a shader ([Paint]) — like Hyprland's
+ * `col.active_border`, `col.inactive_border`, `col.urgent` and the group borders:
+ *
+ * ```
+ * Border(3, focused = Paint.parse("rgba(33ccffee) rgba(00ff99ee) 45deg"), unfocused = Paint.parse("rgba(595959aa)"))
+ * Border(3, focused = Paints.file(Path.of("glow.glsl"))).withUrgent(Paint.solid(Color.hex("#ff5555")))
+ * ```
+ *
+ * A shader paint learns the window's state (`focused`, `urgent`, `grouped`, see
+ * [dev.caulis.render.Paint.Shader]), so one shader can serve every state.
  */
 data class Border @JvmOverloads constructor(
     val width: Int = 2,
     val focused: Paint = Paint.solid(Color.hex("#89b4fa")),
     val unfocused: Paint = Paint.solid(Color.hex("#45475a")),
+    /** A window that wants attention ([Window.urgent]), focused or not; null: as the others. */
+    val urgent: Paint? = null,
+    /** The focused window of a group (see [Desktop.windowGrouped]); null: [focused]. */
+    val groupedFocused: Paint? = null,
+    /** The other windows of a group; null: [unfocused]. */
+    val groupedUnfocused: Paint? = null,
+    /**
+     * False: paints that move by themselves (a turning gradient, a shader using `time`) stand
+     * still — no frame is drawn for them. (The change when the focus moves is the animation
+     * "border"'s, see [Animations].)
+     */
+    val animate: Boolean = true,
 ) {
     /** With plain colours. */
     constructor(width: Int, focused: Color, unfocused: Color) : this(width, Paint.solid(focused), Paint.solid(unfocused))
@@ -91,6 +112,31 @@ data class Border @JvmOverloads constructor(
     init {
         require(width > 0) { "a border must be at least 1 pixel wide" }
     }
+
+    // For Java, where named arguments do not exist.
+    fun withUrgent(paint: Paint?) = copy(urgent = paint)
+    fun withGrouped(focused: Paint?, unfocused: Paint?) = copy(groupedFocused = focused, groupedUnfocused = unfocused)
+    fun withAnimate(animate: Boolean) = copy(animate = animate)
+
+    /** The paint for a window in [state]. */
+    fun paintFor(state: dev.caulis.render.PaintState): Paint = when {
+        state.urgent && urgent != null -> urgent
+        state.grouped && state.focused -> groupedFocused ?: focused
+        state.grouped -> groupedUnfocused ?: unfocused
+        state.focused -> focused
+        else -> unfocused
+    }
+
+    /** Every paint at [alpha] of its strength. */
+    fun faded(alpha: Float) = copy(
+        focused = focused.faded(alpha), unfocused = unfocused.faded(alpha), urgent = urgent?.faded(alpha),
+        groupedFocused = groupedFocused?.faded(alpha), groupedUnfocused = groupedUnfocused?.faded(alpha),
+    )
+
+    // Caulis 0.1's copy (code built against it calls it).
+    @Deprecated("Kept for code built against Caulis 0.1", level = DeprecationLevel.HIDDEN)
+    fun copy(width: Int = this.width, focused: Paint = this.focused, unfocused: Paint = this.unfocused): Border =
+        Border(width, focused, unfocused, urgent, groupedFocused, groupedUnfocused, animate)
 }
 
 /**
@@ -140,8 +186,13 @@ data class Blur @JvmOverloads constructor(
 object Paints {
     /** A paint shader from [path] (`vec4 paint(vec2 at)`), used again as soon as it is saved. */
     @JvmStatic
-    fun file(path: Path): Paint {
+    fun file(path: Path): Paint.Shader {
         val text = WatchedText.of(path)
         return Paint.Shader({ text.text }, path.fileName.toString())
     }
+
+    // Caulis 0.1.1's file (returning a Paint): code built against it calls it.
+    @Deprecated("Kept for code built against Caulis 0.1.1", level = DeprecationLevel.HIDDEN)
+    @JvmStatic @JvmName("file")
+    fun fileAsPaint(path: Path): Paint = file(path)
 }

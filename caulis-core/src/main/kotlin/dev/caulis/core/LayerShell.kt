@@ -41,7 +41,7 @@ class LayerShell(display: Display) {
                         return
                     }
                     if (!target.assignRole(Surface.Role.LAYER, resource, ZwlrLayerShellV1.Error.ROLE)) return
-                    LayerSurface(id, target, this@LayerShell, Layer.entries[layer], namespace, output?.dataAs<Output>())
+                    LayerSurface(id, target, this@LayerShell, Layer.entries[layer], resource.client.server.capForwarded(namespace), output?.dataAs<Output>())
                 }
 
                 override fun destroy(resource: ZwlrLayerShellV1) {}
@@ -68,21 +68,59 @@ class LayerSurface internal constructor(
     /** The monitor the program wants it on, or null: the compositor chooses (the one with the focus). */
     val output: Output? = null,
 ) {
-    /** The state the program asked for (applied on its commit). */
-    class State(
-        var layer: LayerShell.Layer,
-        var width: Int = 0,
-        var height: Int = 0,
-        var anchor: Int = 0,
-        var exclusiveZone: Int = 0,
-        var marginTop: Int = 0,
-        var marginRight: Int = 0,
-        var marginBottom: Int = 0,
-        var marginLeft: Int = 0,
-        var keyboard: Int = ZwlrLayerSurfaceV1.KeyboardInteractivity.NONE,
-        var exclusiveEdge: Int = 0,
-    ) {
-        fun copy() = State(layer, width, height, anchor, exclusiveZone, marginTop, marginRight, marginBottom, marginLeft, keyboard, exclusiveEdge)
+    /**
+     * The state the program asked for (applied on its commit). Only the program's requests
+     * change it; [current] is a copy that stays as it is until the next commit.
+     */
+    class State internal constructor(layer: LayerShell.Layer) {
+        /** The layer it is drawn on (background, bottom, top, overlay). */
+        var layer: LayerShell.Layer = layer
+            internal set
+
+        /** The size it asked for (0: as wide or high as the monitor between its anchors). */
+        var width = 0
+            internal set
+        var height = 0
+            internal set
+
+        /** The edges it is anchored to (ZwlrLayerSurfaceV1.Anchor bits). */
+        var anchor = 0
+            internal set
+
+        /** How much room at its edge windows leave free (0: none; -1: it covers everything, panels or not). */
+        var exclusiveZone = 0
+            internal set
+
+        /** Its distance from the anchored edges. */
+        var marginTop = 0
+            internal set
+        var marginRight = 0
+            internal set
+        var marginBottom = 0
+            internal set
+        var marginLeft = 0
+            internal set
+
+        /** Whether it takes the keyboard (ZwlrLayerSurfaceV1.KeyboardInteractivity). */
+        var keyboard = ZwlrLayerSurfaceV1.KeyboardInteractivity.NONE
+            internal set
+
+        /** The edge its exclusive zone is at, if it is anchored to several (0: chosen from the anchors). */
+        var exclusiveEdge = 0
+            internal set
+
+        internal fun copy() = State(layer).also {
+            it.width = width
+            it.height = height
+            it.anchor = anchor
+            it.exclusiveZone = exclusiveZone
+            it.marginTop = marginTop
+            it.marginRight = marginRight
+            it.marginBottom = marginBottom
+            it.marginLeft = marginLeft
+            it.keyboard = keyboard
+            it.exclusiveEdge = exclusiveEdge
+        }
     }
 
     private val pending = State(layer)

@@ -33,7 +33,7 @@ Caulis is on Maven Central:
 
 ```kotlin
 repositories { mavenCentral(); google() } // (google(): only for caulis-compose's Compose)
-dependencies { implementation("io.github.aristarkhkenebas:caulis-wm:0.2.0") }
+dependencies { implementation("io.github.aristarkhkenebas:caulis-wm:0.1.2") }
 ```
 
 See `examples/` (`minimal`, `minimal-java`, `custom-layout`, `window-rules`, `desktop`, `ipc`).
@@ -48,9 +48,10 @@ val Mine = tiling("Mine") {
 }
 ```
 
-Change layouts while running: windows glide to their new places. Every animation — windows
-appearing, going away, minimizing into the dock with a genie, workspaces sliding — is a
-setting made of building blocks (`fade() + scale(0.9)`), or your own function or shader. Rules say where windows
+Change layouts while running. Animations are off by default and turned on Hyprland-like — all
+with one line, or each by name with its time, curve and look: windows appearing, going away,
+gliding, minimizing into the dock with a genie, workspaces sliding — made of building blocks
+(`fade() + scale(0.9)`), or your own function or shader. Rules say where windows
 open and how they look: `rule { appId("firefox"); workspace = 2 }`,
 `rule { appId("pavucontrol"); floating = true; size(700, 500); center() }`. Every usual key has a name
 and can be changed or turned off (`keys { close = "Super+Shift+Q"; quit = null }`).

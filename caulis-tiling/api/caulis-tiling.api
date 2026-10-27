@@ -10,6 +10,10 @@ public final class dev/caulis/tiling/BinaryTree : dev/caulis/tiling/RememberingL
 
 public final class dev/caulis/tiling/Canvas : dev/caulis/tiling/RememberingLayout {
 	public fun <init> ()V
+	public fun <init> (Ldev/caulis/tiling/Gaps;)V
+	public fun <init> (Ldev/caulis/tiling/Gaps;I)V
+	public fun <init> (Ldev/caulis/tiling/Gaps;II)V
+	public fun <init> (Ldev/caulis/tiling/Gaps;III)V
 	public fun <init> (Ldev/caulis/tiling/Gaps;IIII)V
 	public synthetic fun <init> (Ldev/caulis/tiling/Gaps;IIIIILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun createModel ()Ldev/caulis/tiling/TilingModel;
@@ -99,24 +103,39 @@ public abstract interface class dev/caulis/tiling/LayoutWindow {
 }
 
 public final class dev/caulis/tiling/Layouts {
+	public static final fun CenteredMaster ()Ldev/caulis/tiling/Layout;
+	public static final fun CenteredMaster (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
 	public static final fun CenteredMaster (Ldev/caulis/tiling/Gaps;D)Ldev/caulis/tiling/Layout;
 	public static synthetic fun CenteredMaster$default (Ldev/caulis/tiling/Gaps;DILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun Columns ()Ldev/caulis/tiling/Layout;
 	public static final fun Columns (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
 	public static synthetic fun Columns$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun Dwindle ()Ldev/caulis/tiling/Layout;
 	public static final fun Dwindle (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
 	public static synthetic fun Dwindle$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun Grid ()Ldev/caulis/tiling/Layout;
 	public static final fun Grid (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
 	public static synthetic fun Grid$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun MasterStack ()Ldev/caulis/tiling/Layout;
+	public static final fun MasterStack (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
+	public static final fun MasterStack (Ldev/caulis/tiling/Gaps;D)Ldev/caulis/tiling/Layout;
 	public static final fun MasterStack (Ldev/caulis/tiling/Gaps;DLdev/caulis/tiling/Side;)Ldev/caulis/tiling/Layout;
 	public static synthetic fun MasterStack$default (Ldev/caulis/tiling/Gaps;DLdev/caulis/tiling/Side;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun MasterStrips ()Ldev/caulis/tiling/Layout;
+	public static final fun MasterStrips (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
+	public static final fun MasterStrips (Ldev/caulis/tiling/Gaps;D)Ldev/caulis/tiling/Layout;
 	public static final fun MasterStrips (Ldev/caulis/tiling/Gaps;DI)Ldev/caulis/tiling/Layout;
 	public static synthetic fun MasterStrips$default (Ldev/caulis/tiling/Gaps;DIILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun Monocle ()Ldev/caulis/tiling/Layout;
 	public static final fun Monocle (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
 	public static synthetic fun Monocle$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun Rows ()Ldev/caulis/tiling/Layout;
 	public static final fun Rows (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
 	public static synthetic fun Rows$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun Spiral ()Ldev/caulis/tiling/Layout;
 	public static final fun Spiral (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
 	public static synthetic fun Spiral$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
+	public static final fun builtInLayouts ()Ljava/util/List;
 	public static final fun builtInLayouts (Ldev/caulis/tiling/Gaps;)Ljava/util/List;
 	public static synthetic fun builtInLayouts$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ljava/util/List;
 }
@@ -178,9 +197,12 @@ public final class dev/caulis/tiling/Side : java/lang/Enum {
 public final class dev/caulis/tiling/Split {
 	public static final field INSTANCE Ldev/caulis/tiling/Split;
 	public final fun evenly (Ldev/caulis/geometry/Rect;IIZ)Ljava/util/List;
+	public final fun evenly (Ldev/caulis/geometry/Rect;IIZLjava/util/List;)Ljava/util/List;
 	public final fun sizes (III)Ljava/util/List;
 	public final fun two (Ldev/caulis/geometry/Rect;DIZ)Lkotlin/Pair;
+	public final fun two (Ldev/caulis/geometry/Rect;DIZII)Lkotlin/Pair;
 	public final fun weighted (ILjava/util/List;I)Ljava/util/List;
+	public final fun weighted (ILjava/util/List;ILjava/util/List;)Ljava/util/List;
 }
 
 public abstract interface class dev/caulis/tiling/TilingCommand {
@@ -345,6 +367,7 @@ public final class dev/caulis/tiling/TilingScope {
 }
 
 public final class dev/caulis/tiling/TreesKt {
+	public static final fun BspSpiral ()Ldev/caulis/tiling/Layout;
 	public static final fun BspSpiral (Ldev/caulis/tiling/Gaps;)Ldev/caulis/tiling/Layout;
 	public static synthetic fun BspSpiral$default (Ldev/caulis/tiling/Gaps;ILjava/lang/Object;)Ldev/caulis/tiling/Layout;
 }

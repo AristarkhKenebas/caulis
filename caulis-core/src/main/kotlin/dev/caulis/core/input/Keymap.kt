@@ -46,15 +46,20 @@ class Keymap private constructor(
     }
 
     companion object {
+        private fun env(name: String): String? = System.getenv(name)?.takeIf { it.isNotBlank() }
+
         /**
-         * Compiles a keymap from layout names, as in `setxkbmap`:
-         * layouts "us,ru", options "grp:win_space_toggle" (Super+Space switches layout).
+         * Compiles a keymap from layout names, as in `setxkbmap`: e.g. layouts "us,ru",
+         * options "grp:win_space_toggle" (Super+Space switches layout). By default what the
+         * environment says (XKB_DEFAULT_LAYOUT, _VARIANT, _OPTIONS, _MODEL), else "us".
          */
+        @JvmOverloads
+        @JvmStatic
         fun fromNames(
-            layouts: String = "us,ru",
-            variants: String = "",
-            options: String = "grp:win_space_toggle",
-            model: String = "pc105",
+            layouts: String = env("XKB_DEFAULT_LAYOUT") ?: "us",
+            variants: String = env("XKB_DEFAULT_VARIANT") ?: "",
+            options: String = env("XKB_DEFAULT_OPTIONS") ?: "",
+            model: String = env("XKB_DEFAULT_MODEL") ?: "pc105",
         ): Keymap {
             val context = Xkb.xkb_context_new(Xkb.XKB_CONTEXT_NO_FLAGS())
             check(context != MemorySegment.NULL) { "xkb_context_new failed" }

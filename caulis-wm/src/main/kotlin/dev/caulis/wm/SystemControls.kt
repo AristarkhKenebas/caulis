@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit
 /**
  * What a laptop's keys do: the volume and the microphone (PipeWire's wpctl), the screen's
  * brightness (brightnessctl), the touchpad, and music players (playerctl) — each shown on the
- * on-screen display. The programs are run on a thread of their own: the desktop never waits.
+ * on-screen display. Steps, limits and the programs are the configuration's [SystemKeys]. The programs are run on a thread of their own: the desktop never waits.
  * A program that is not installed is said once, on screen and in the log.
  */
 internal class SystemControls(private val running: Running) {
@@ -20,50 +20,70 @@ internal class SystemControls(private val running: Running) {
     }
 
     /** Volume up or down by [percent] (negative: down), or [mute] toggled. */
-    fun volume(percent: Int? = null, mute: Boolean = false) = work {
+    fun volume(percent: Int? = null, mute: Boolean = false) {
+        val keys = settings()
+        work {
         val sink = "@DEFAULT_AUDIO_SINK@"
         when {
-            mute -> run("wpctl", "set-mute", sink, "toggle")
+            mute -> run(keys.wpctl, "set-mute", sink, "toggle")
             percent != null -> {
-                run("wpctl", "set-mute", sink, "0")
-                run("wpctl", "set-volume", "-l", "1.0", sink, "${Math.abs(percent)}%${if (percent >= 0) "+" else "-"}")
+                if (keys.unmuteOnVolumeChange) run(keys.wpctl, "set-mute", sink, "0")
+                run(keys.wpctl, "set-volume", "-l", keys.maxVolume.toString(), sink, "${Math.abs(percent)}%${if (percent >= 0) "+" else "-"}")
             }
         }
         val (level, muted) = wpctlVolume(sink) ?: return@work
         show(if (muted) "Muted" else "Volume ${Math.round(level * 100)} %", level, muted)
+        }
     }
 
+    // The configuration's settings (read on the compositor's thread, used on the worker's).
+    private fun settings(): SystemKeys = running.config.systemKeys.copy().also { keys = it }
+
+    // The settings of the key being handled.
+    @Volatile
+    private var keys = SystemKeys()
+
     /** The microphone muted or not (toggled). */
-    fun microphone() = work {
+    fun microphone() {
+        val keys = settings()
+        work {
         val source = "@DEFAULT_AUDIO_SOURCE@"
-        run("wpctl", "set-mute", source, "toggle") ?: return@work
+        run(keys.wpctl, "set-mute", source, "toggle") ?: return@work
         val (_, muted) = wpctlVolume(source) ?: return@work
         show(if (muted) "Microphone off" else "Microphone on")
+        }
     }
 
     /** The screen's brightness up or down by [percent] (through logind, else brightnessctl). */
-    fun brightness(percent: Int) = work {
+    fun brightness(percent: Int) {
+        val keys = settings()
+        work {
         val logind = running.logind
-        val backlight = backlight()
+        val backlight = backlight(keys.backlight)
         if (logind != null && backlight != null) {
             val (device, now, max) = backlight
-            // Steps of the scale shown, never quite off (a black screen looks broken).
-            val next = (now + Math.round(max * percent / 100.0).toInt()).coerceIn(maxOf(1, max / 100), max)
+            // Steps of the scale shown, never below the configuration's least (a black screen looks broken).
+            val least = if (keys.minBrightnessPercent == 0) 0 else maxOf(1, max * keys.minBrightnessPercent / 100)
+            val next = (now + Math.round(max * percent / 100.0).toInt()).coerceIn(least, max)
             running.loop.post { logind.setBrightness(device, next) }
             show("Brightness ${Math.round(next * 100.0 / max)} %", next.toDouble() / max)
             return@work
         }
-        run("brightnessctl", "--quiet", "set", "${Math.abs(percent)}%${if (percent >= 0) "+" else "-"}") ?: return@work
+        val device = keys.backlight?.let { listOf("--device", it) }.orEmpty()
+        run(*(listOf(keys.brightnessctl) + device + listOf("--quiet", "--min-value=${keys.minBrightnessPercent}%", "set", "${Math.abs(percent)}%${if (percent >= 0) "+" else "-"}")).toTypedArray()) ?: return@work
         // "intel_backlight,backlight,412,40%,1030": the fourth is the percentage.
-        val info = run("brightnessctl", "--machine-readable", "info") ?: return@work
+        val info = run(*(listOf(keys.brightnessctl) + device + listOf("--machine-readable", "info")).toTypedArray()) ?: return@work
         val value = info.trim().split(',').getOrNull(3)?.removeSuffix("%")?.toIntOrNull() ?: return@work
         show("Brightness $value %", value / 100.0)
+        }
     }
 
-    // The screen's backlight: its name, brightness and greatest brightness (sysfs), or null.
-    private fun backlight(): Triple<String, Int, Int>? {
+    // The screen's backlight: its name, brightness and greatest brightness (sysfs), or null —
+    // [name] (SystemKeys.backlight), else the first there.
+    private fun backlight(name: String?): Triple<String, Int, Int>? {
         val folder = java.nio.file.Path.of("/sys/class/backlight")
-        val device = runCatching { java.nio.file.Files.list(folder).use { it.toList() } }.getOrNull()?.minByOrNull { it.fileName.toString() } ?: return null
+        val all = runCatching { java.nio.file.Files.list(folder).use { it.toList() } }.getOrNull().orEmpty()
+        val device = (if (name != null) all.firstOrNull { it.fileName.toString() == name } else all.minByOrNull { it.fileName.toString() }) ?: return null
         fun number(name: String) = runCatching { java.nio.file.Files.readString(device.resolve(name)).trim().toInt() }.getOrNull()
         val max = number("max_brightness")?.takeIf { it > 0 } ?: return null
         val now = number("brightness") ?: return null
@@ -71,7 +91,10 @@ internal class SystemControls(private val running: Running) {
     }
 
     /** A music player: "play-pause", "next", "previous", "stop". */
-    fun media(command: String) = work { run("playerctl", command) }
+    fun media(command: String) {
+        val keys = settings()
+        work { run(keys.playerctl, command) }
+    }
 
     /** The touchpad on, off, or the other way ([on] null). */
     fun touchpad(on: Boolean?) {
@@ -103,7 +126,13 @@ internal class SystemControls(private val running: Running) {
         running.desktop.showLevel(if (guard) "Touchpad off while typing" else "Touchpad works while typing")
     }
 
-    fun close() = worker.shutdownNow()
+    fun close() {
+        worker.shutdownNow()
+        readers.shutdownNow()
+    }
+
+    // Reads the programs' output.
+    private val readers = java.util.concurrent.Executors.newCachedThreadPool { task -> Thread(task, "caulis-system-output").apply { isDaemon = true } }
 
     // --- running the programs ---------------------------------------------------------------
 
@@ -127,7 +156,8 @@ internal class SystemControls(private val running: Running) {
         return level to ("MUTED" in text)
     }
 
-    // Runs a program and returns what it printed (null if it is not there or failed).
+    // Runs a program and returns what it printed (null if it is not there, failed, or took
+    // longer than the settings allow: then it is stopped, and the next key goes on).
     private fun run(vararg command: String): String? {
         val process = try {
             ProcessBuilder(*command).redirectErrorStream(true).start()
@@ -138,9 +168,20 @@ internal class SystemControls(private val running: Running) {
             }
             return null
         }
-        val output = process.inputStream.bufferedReader().readText()
-        if (!process.waitFor(3, TimeUnit.SECONDS)) {
+        process.outputStream.close()
+        // (Read on a thread of its own: a program that never ends its output is not waited for.)
+        val reading = java.util.concurrent.CompletableFuture.supplyAsync({ process.inputStream.bufferedReader().readText() }, readers)
+        val timeout = keys.timeoutMillis
+        if (!process.waitFor(timeout, TimeUnit.MILLISECONDS)) {
+            log.warn("${command.joinToString(" ")} did not finish in $timeout ms: stopped")
             process.destroyForcibly()
+            reading.cancel(true)
+            return null
+        }
+        val output = try {
+            reading.get(timeout, TimeUnit.MILLISECONDS)
+        } catch (e: Exception) {
+            log.warn("${command.joinToString(" ")}: its output could not be read ($e)")
             return null
         }
         if (process.exitValue() != 0) {

@@ -57,6 +57,17 @@ class DataControl(display: Display, private val clipboard: DataDeviceManager) {
         if (device.primaryToo) device.offer(clipboard.primary, primary = true)
     }
 
+    // Sources set once already (one may be set only once: as the clipboard or as the primary
+    // selection, not both — else replacing one cancelled it while it still was the other).
+    private val usedSources = java.util.Collections.newSetFromMap(java.util.WeakHashMap<Source, Boolean>())
+
+    // [source] (null: clearing) may be set now; a used one is a protocol error ([usedSource]).
+    private fun use(source: Source?, device: dev.caulis.protocol.Resource, usedSource: Int): Boolean {
+        if (source == null || usedSources.add(source)) return true
+        device.postError(usedSource, "the source was already used")
+        return false
+    }
+
     // The data of a source that goes away leaves the clipboard (or the selection).
     private fun forget(source: Source) {
         if (clipboard.clipboard === source) clipboard.setClipboard(null)
@@ -76,7 +87,7 @@ class DataControl(display: Display, private val clipboard: DataDeviceManager) {
                     id.data = source
                     id.requests = object : ExtDataControlSourceV1.Requests {
                         override fun offer(resource: ExtDataControlSourceV1, mimeType: String) {
-                            if (source.mimeTypes.size < MAX_MIME_TYPES) source.mimeTypes += mimeType
+                            if (source.mimeTypes.size < MAX_MIME_TYPES && resource.client.server.fitsForwarded(mimeType)) source.mimeTypes += mimeType
                         }
 
                         override fun destroy(resource: ExtDataControlSourceV1) {}
@@ -86,8 +97,15 @@ class DataControl(display: Display, private val clipboard: DataDeviceManager) {
 
                 override fun getDataDevice(resource: ExtDataControlManagerV1, id: ExtDataControlDeviceV1, seat: WlSeat) {
                     id.requests = object : ExtDataControlDeviceV1.Requests {
-                        override fun setSelection(resource: ExtDataControlDeviceV1, source: ExtDataControlSourceV1?) = clipboard.setClipboard(source?.dataAs<Source>())
-                        override fun setPrimarySelection(resource: ExtDataControlDeviceV1, source: ExtDataControlSourceV1?) = clipboard.setPrimary(source?.dataAs<Source>())
+                        override fun setSelection(resource: ExtDataControlDeviceV1, source: ExtDataControlSourceV1?) {
+                            val data = source?.dataAs<Source>()
+                            if (use(data, resource, ExtDataControlDeviceV1.Error.USED_SOURCE)) clipboard.setClipboard(data)
+                        }
+
+                        override fun setPrimarySelection(resource: ExtDataControlDeviceV1, source: ExtDataControlSourceV1?) {
+                            val data = source?.dataAs<Source>()
+                            if (use(data, resource, ExtDataControlDeviceV1.Error.USED_SOURCE)) clipboard.setPrimary(data)
+                        }
                         override fun destroy(resource: ExtDataControlDeviceV1) {}
                     }
                     add(object : Device() {
@@ -123,7 +141,7 @@ class DataControl(display: Display, private val clipboard: DataDeviceManager) {
                     id.data = source
                     id.requests = object : ZwlrDataControlSourceV1.Requests {
                         override fun offer(resource: ZwlrDataControlSourceV1, mimeType: String) {
-                            if (source.mimeTypes.size < MAX_MIME_TYPES) source.mimeTypes += mimeType
+                            if (source.mimeTypes.size < MAX_MIME_TYPES && resource.client.server.fitsForwarded(mimeType)) source.mimeTypes += mimeType
                         }
 
                         override fun destroy(resource: ZwlrDataControlSourceV1) {}
@@ -133,8 +151,15 @@ class DataControl(display: Display, private val clipboard: DataDeviceManager) {
 
                 override fun getDataDevice(resource: ZwlrDataControlManagerV1, id: ZwlrDataControlDeviceV1, seat: WlSeat) {
                     id.requests = object : ZwlrDataControlDeviceV1.Requests {
-                        override fun setSelection(resource: ZwlrDataControlDeviceV1, source: ZwlrDataControlSourceV1?) = clipboard.setClipboard(source?.dataAs<Source>())
-                        override fun setPrimarySelection(resource: ZwlrDataControlDeviceV1, source: ZwlrDataControlSourceV1?) = clipboard.setPrimary(source?.dataAs<Source>())
+                        override fun setSelection(resource: ZwlrDataControlDeviceV1, source: ZwlrDataControlSourceV1?) {
+                            val data = source?.dataAs<Source>()
+                            if (use(data, resource, ZwlrDataControlDeviceV1.Error.USED_SOURCE)) clipboard.setClipboard(data)
+                        }
+
+                        override fun setPrimarySelection(resource: ZwlrDataControlDeviceV1, source: ZwlrDataControlSourceV1?) {
+                            val data = source?.dataAs<Source>()
+                            if (use(data, resource, ZwlrDataControlDeviceV1.Error.USED_SOURCE)) clipboard.setPrimary(data)
+                        }
                         override fun destroy(resource: ZwlrDataControlDeviceV1) {}
                     }
                     add(object : Device() {

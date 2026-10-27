@@ -29,7 +29,13 @@ import dev.caulis.core.input.Gesture
 import dev.caulis.core.input.KeyBindings
 import dev.caulis.core.input.Keymap
 import dev.caulis.core.input.PointerGestures
+import dev.caulis.core.input.PenPointer
 import dev.caulis.core.input.Seat
+import dev.caulis.core.input.Tablet
+import dev.caulis.core.input.TabletAxes
+import dev.caulis.core.input.TabletPad
+import dev.caulis.core.input.TabletTool
+import dev.caulis.core.input.Tablets
 import dev.caulis.event.EventLoop
 import dev.caulis.protocol.Display
 import dev.caulis.render.GpuTarget
@@ -56,6 +62,42 @@ internal class Running(
     var config: Caulis = initialConfig
         private set
 
+    /** False once it was closed (a configuration a reload replaced no longer reaches it then). */
+    @Volatile
+    var isOpen = true
+        private set
+
+    /** True while the configuration's onStart runs: what it starts is the session's (see Caulis.onStart). */
+    var startingUp = false
+        private set
+
+    /** Widgets, drawings and the like the session keeps (from onStart): closed when the compositor ends. */
+    val sessionResources = ArrayList<AutoCloseable>()
+
+    // Keys and listeners added in onStart (or by a replaced configuration), by the index of
+    // their list in Caulis.addableLists: each new configuration gets them too.
+    private val keptItems = ArrayList<Pair<Int, Any?>>()
+
+    /** Keeps [item] (in list [index] of Caulis.addableLists) in every configuration from now on. */
+    fun keepThroughReloads(index: Int, item: Any?) {
+        keptItems += index to item
+        log.trace { "Kept through reloads: ${item?.javaClass?.simpleName}" }
+    }
+
+    /** No longer keeps [item] (it was taken away). */
+    fun forget(item: Any?) {
+        keptItems.removeIf { it.second === item }
+    }
+
+    // The buses as the session uses them (onStart, replaced configurations): never taken away.
+    private val sessionScopes = HashMap<Boolean, dev.caulis.core.dbus.DBusScope>()
+
+    /** The session's view of the session bus (true) or the system bus (false), or null if there is none. */
+    fun sessionScope(session: Boolean): dev.caulis.core.dbus.DBusScope? = sessionScopes[session] ?: run {
+        val connection = (if (session) sessionBus else systemBus) ?: return null
+        dev.caulis.core.dbus.DBusScope(connection).also { sessionScopes[session] = it }
+    }
+
     // Monitors switched off because the configuration says enabled = false.
     private val disabledByConfig = config.monitorSettings.values.filter { !it.enabled }.mapTo(HashSet()) { it.name }
 
@@ -64,6 +106,7 @@ internal class Running(
     private val clientsLog = Logger("clients")
     private val cursorLog = Logger("cursor")
     private val gesturesLog = Logger("gestures")
+    private val inputLog = Logger("input")
 
     // Lines of the log that become notices (from any thread; shown on ours). Watched from the
     // start, so mistakes found while starting (a key used twice) are shown too. Not lines
@@ -114,6 +157,9 @@ internal class Running(
     val windowIds = WindowIds(desktop, loop)
     private val pointerGestures = PointerGestures(display, seat)
 
+    /** Drawing tablets for programs that understand pens (tablet-v2). */
+    val tablets = Tablets(display, seat)
+
     /** Socket name programs connect to, e.g. "wayland-1". */
     val socket: String
 
@@ -137,6 +183,7 @@ internal class Running(
         set(value) {
             field = value
             value?.settings = config.input
+            value?.let(::useTablets)
             value?.onSwitch = { switch, on ->
                 if (switch == dev.caulis.core.libinput.Switch.LID) {
                     log.info { "The lid is ${if (on) "closed" else "open"}" }
@@ -167,10 +214,82 @@ internal class Running(
     // Someone did something: idle timers start over, and dark screens light up again.
     private fun userActive() {
         idle.activity()
-        if (config.wakeScreensOnInput && System.nanoTime() - screensOffAt > 1_000_000_000L) {
+        if (config.wakeScreensOnInput && System.nanoTime() - screensOffAt > config.wakeScreensAfterMillis * 1_000_000L) {
             for (monitor in desktop.monitors) if (!monitor.powered) desktop.setPower(monitor, true)
         }
     }
+
+    // --- drawing tablets ----------------------------------------------------------------------
+
+    // The tablets, pens and pads of [devices]: places on the desktop as each tablet's settings
+    // say; the pen goes to programs as a pen or as the pointer (the desktop decides), pads to
+    // the program with the keyboard or to a binding ("Pad1").
+    private fun useTablets(devices: dev.caulis.core.libinput.InputDevices) {
+        devices.onTabletAdded = tablets::add
+        devices.onTabletRemoved = tablets::remove
+        devices.onPadAdded = tablets::addPad
+        devices.onPadRemoved = tablets::removePad
+        devices.onTabletProximity = { time, tablet, tool, x, y, axes, near ->
+            val (dx, dy) = tablet.place(x, y, tabletArea(tablet))
+            desktop.tabletProximity(time, tablet, tool, dx, dy, asLaid(tablet, axes), near)
+        }
+        devices.onTabletMotion = { time, tablet, tool, x, y, axes ->
+            val (dx, dy) = tablet.place(x, y, tabletArea(tablet))
+            desktop.tabletMotion(time, tool, dx, dy, asLaid(tablet, axes))
+        }
+        devices.onTabletTip = { time, _, tool, down -> desktop.tabletTip(time, tool, down) }
+        devices.onTabletButton = { time, _, tool, button, pressed -> desktop.tabletButton(time, tool, button, pressed) }
+        devices.onPadButton = ::padButton
+        devices.onPadRing = { time, pad, ring, degrees, finger ->
+            userActive()
+            tablets.padRing(time, pad, ring, degrees, finger)
+        }
+        devices.onPadStrip = { time, pad, strip, position, finger ->
+            userActive()
+            tablets.padStrip(time, pad, strip, position, finger)
+        }
+        devices.onPadMode = tablets::padMode
+        for (device in devices.list) {
+            device.tablet?.let(tablets::add)
+            device.pad?.let(tablets::addPad)
+        }
+    }
+
+    // A left-handed tablet lies turned around: its pen tilts the other way.
+    private fun asLaid(tablet: Tablet, axes: TabletAxes) = if (tablet.settings.leftHanded == true) axes.turnedAround() else axes
+
+    // Monitors named in tablet settings that are not there (said once each).
+    private val missingTabletMonitors = HashSet<String>()
+
+    /**
+     * The part of the desktop [tablet] covers: the monitor its settings name; else, for a
+     * tablet that is a screen, the laptop's own (or the first); else all monitors as one.
+     */
+    fun tabletArea(tablet: Tablet): dev.caulis.geometry.Rect {
+        val monitors = desktop.monitors
+        tablet.settings.monitor?.let { name ->
+            monitors.firstOrNull { it.name.equals(name, ignoreCase = true) }?.let { return it.area }
+            if (missingTabletMonitors.add(name)) inputLog.warn("The tablet ${tablet.name} is set to the monitor $name, which is not there (it covers ${if (tablet.screen) "the laptop's screen" else "all monitors"} meanwhile)")
+        }
+        if (tablet.screen) return (monitors.firstOrNull { config.isBuiltIn(it.name) } ?: monitors.first()).area
+        return monitors.map { it.area }.reduce(dev.caulis.geometry.Rect::union)
+    }
+
+    /** A tablet pad's [button] (0 the first): a combination bound to it ("Pad1"), else the program with the keyboard. */
+    fun padButton(timeMillis: Int, pad: TabletPad, button: Int, pressed: Boolean) {
+        userActive()
+        val code = KeyBindings.padButton(button)
+        val active = activeKeys()
+        if (!pressed) for (other in allKeys()) if (other !== active) other.key(code, false)
+        if (active.key(code, pressed)) return
+        tablets.padButton(timeMillis, pad, button, pressed)
+    }
+
+    // The pretend tablet, pen and pad of the simulate functions (tests).
+    internal val testTablet = Tablet("Caulis test tablet", widthMm = 216.0, heightMm = 135.0)
+    internal val testPen = TabletTool(TabletTool.Type.PEN, setOf(TabletTool.Capability.PRESSURE, TabletTool.Capability.DISTANCE, TabletTool.Capability.TILT))
+    internal val testPad by lazy { TabletPad("Caulis test pad", buttons = 4, tablet = testTablet).also(tablets::addPad) }
+    internal var testPenNear = false
 
     /** Switches the screens off (or on) — all of them, or the monitor [name]; false if one could not. */
     fun setScreens(on: Boolean, name: String? = null): Boolean {
@@ -344,13 +463,13 @@ internal class Running(
     // The IPC socket (null if turned off). Declared before init, which sets it.
     private var ipc: IpcServer? = null
 
-    // Starts programs: Wayland first, X11 when that fails.
-    // What every program started inside gets in its environment (on top of the compositor's own).
-    private fun fillEnvironment(env: MutableMap<String, String>) {
-        for ((name, value) in config.environment) if (value == null) env.remove(name) else env[name] = value
+    // What every program started inside gets in its environment (on top of the compositor's
+    // own) — Caulis's choices only: the user's [Caulis.environment] goes on top last (see
+    // userEnvironment). [token]: a fresh activation token too (for a program started now).
+    private fun fillEnvironment(env: MutableMap<String, String>, token: Boolean = true) {
         env["WAYLAND_DISPLAY"] = socket
         // A good activation token: its first window may take the focus.
-        env["XDG_ACTIVATION_TOKEN"] = activation.issue()
+        if (token) env["XDG_ACTIVATION_TOKEN"] = activation.issue() else env.remove("XDG_ACTIVATION_TOKEN")
         ipc?.let { env[dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE] = it.path.toString() } ?: env.remove(dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE)
         env["XDG_CURRENT_DESKTOP"] = config.desktopName
         // (Started from a text console the compositor itself was "tty": its programs are Wayland's.)
@@ -368,32 +487,87 @@ internal class Running(
         cursorFolder?.let { folder -> env["XCURSOR_PATH"] = (listOf(folder) + CursorTheme.searchPath()).joinToString(":") }
     }
 
+    // The user's own environment ([Caulis.environment]) on top of everything else — except what
+    // must be the compositor's for programs to reach it at all.
+    private fun userEnvironment(env: MutableMap<String, String>) {
+        for ((name, value) in config.environment) {
+            if (name in OWN_VARIABLES) continue
+            if (value == null) env.remove(name) else env[name] = value
+        }
+    }
     // systemd's user manager and D-Bus activation get the compositor's environment (the services
     // they start then reach it); both quietly do nothing where they are not.
     private fun exportEnvironment() {
-        val env = programEnvironment()
-        val names = listOf("WAYLAND_DISPLAY", "DISPLAY", "XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE", "XDG_SESSION_DESKTOP").filter { env[it] != null }
+        // (No activation token: it would be handed to services that never use it.)
+        val env = HashMap(System.getenv()).also { fillEnvironment(it, token = false) }.also(::userEnvironment)
+        val ours = listOf("WAYLAND_DISPLAY", "DISPLAY", "XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE", "XDG_SESSION_DESKTOP")
+        val names = (ours + config.environment.filterValues { it != null }.keys.filter { it !in OWN_VARIABLES }).distinct().filter { env[it] != null }
         val pairs = names.map { "$it=${env[it]}" }
-        for (command in listOf(listOf("systemctl", "--user", "import-environment") + names, listOf("dbus-update-activation-environment", "--systemd") + pairs)) {
-            try {
-                ProcessBuilder(command).also { it.environment().putAll(env) }
+        val portals = config.portalsToRestart.toList()
+        // (On a thread of its own: the commands are waited for, one after the other.)
+        Thread({
+            fun run(command: List<String>): Boolean = try {
+                val process = ProcessBuilder(command).also { it.environment().putAll(env) }
                     .redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD).start()
+                process.waitFor(10, java.util.concurrent.TimeUnit.SECONDS).also { if (!it) process.destroyForcibly() } && process.exitValue() == 0
             } catch (_: java.io.IOException) {
                 log.trace { "${command.first()} is not there" }
+                false
             }
-        }
-        log.info { "The session's services know this compositor: ${pairs.joinToString()}" }
+            run(listOf("systemctl", "--user", "import-environment") + names)
+            run(listOf("dbus-update-activation-environment", "--systemd") + pairs)
+            log.info { "The session's services know this compositor: ${pairs.joinToString()}" }
+            // Portals started before (by the login, by a session before) still have the old
+            // environment: a link they open went to no screen (Telegram's links did nothing).
+            // Started again, only those running.
+            if (portals.isNotEmpty() && staleServices(env["WAYLAND_DISPLAY"])) {
+                // (One by one: a portal not installed failed the whole command, and none restarted.)
+                val restarted = portals.filter { run(listOf("systemctl", "--user", "try-restart", it)) }
+                log.info { "The portals were started again with this compositor's environment (${restarted.joinToString()})" }
+            }
+        }, "caulis-environment").apply { isDaemon = true }.start()
     }
 
-    /** The environment programs started inside get (WAYLAND_DISPLAY, DISPLAY, the cursor, ...). */
-    fun programEnvironment(): Map<String, String> = HashMap(System.getenv()).also(::fillEnvironment)
+    // True if xdg-desktop-portal runs with another WAYLAND_DISPLAY than [ours] (or none).
+    private fun staleServices(ours: String?): Boolean = try {
+        java.nio.file.Files.list(java.nio.file.Path.of("/proc")).use { procs ->
+            procs.filter { it.fileName.toString().all(Char::isDigit) }.anyMatch { proc ->
+                val name = runCatching { java.nio.file.Files.readString(proc.resolve("comm")).trim() }.getOrNull()
+                if (name?.startsWith("xdg-desktop-po") != true) return@anyMatch false // (comm is cut to 15 characters)
+                val environ = runCatching { String(java.nio.file.Files.readAllBytes(proc.resolve("environ"))) }.getOrNull() ?: return@anyMatch false
+                environ.split('\u0000').none { it == "WAYLAND_DISPLAY=$ours" }
+            }
+        }
+    } catch (_: Exception) {
+        false
+    }
 
+    /** The environment programs started inside get (WAYLAND_DISPLAY, DISPLAY, the cursor, the user's own, ...). */
+    fun programEnvironment(): Map<String, String> = HashMap(System.getenv()).also { fillEnvironment(it) }.also(::userEnvironment)
+
+    // Starts programs: Wayland first, X11 when that fails.
     private val launcher = Launcher(
-        environment = ::fillEnvironment,
+        environment = { env -> fillEnvironment(env) },
+        userEnvironment = ::userEnvironment,
         x11Available = { xwayland != null },
         post = loop::post,
-        settings = { Launcher.Settings(config.waylandFirst, config.x11Programs.toSet(), desktop.largestScale, config.xwayland && config.sharpJavaScaling) },
+        settings = {
+            Launcher.Settings(
+                config.waylandFirst, config.x11Programs.toSet(), desktop.largestScale, config.xwayland && config.sharpJavaScaling,
+                config.programOutput, config.programOutputFile ?: defaultProgramLog(),
+                config.x11Fallback, config.x11FallbackMillis,
+            )
+        },
     )
+
+    /** The session's start: the reveal, the startup sound, the programs of autostart (see SessionStart). */
+    internal val sessionStart = SessionStart(this, launcher::startProgram)
+
+    // Where programs' output goes with ProgramOutput.FILE when no file is named.
+    private fun defaultProgramLog(): java.nio.file.Path {
+        val cache = System.getenv("XDG_CACHE_HOME")?.takeIf { it.startsWith("/") } ?: (System.getProperty("user.home") + "/.cache")
+        return java.nio.file.Path.of(cache, config.configName, "programs.log")
+    }
 
     init {
         Shm(display)
@@ -413,20 +587,47 @@ internal class Running(
         idle = dev.caulis.core.Idle(display, loop, desktop)
         desktop.onUserActivity = ::userActive
         desktop.pointerConstraints = dev.caulis.core.input.PointerConstraints(display, seat)
+        desktop.tablets = tablets
+        // A pen that is the pointer goes the way a mouse goes: the hooks and bindings see it too.
+        desktop.penPointer = object : PenPointer {
+            override fun moved(timeMillis: Int, x: Double, y: Double) = pointerMovedTo(timeMillis, x, y)
+            override fun button(timeMillis: Int, button: Int, pressed: Boolean) = pointerButton(timeMillis, button, pressed)
+        }
         dev.caulis.core.OutputPower(display, desktop)
         dev.caulis.core.GammaControl(display, desktop)
         outputManagement = dev.caulis.core.OutputManagement(display, desktop)
         Presentation(display)
         XdgShell(display).listener = desktop
         LayerShell(display).listener = desktop
-        SessionLockManager(display).listener = desktop
+        // (The desktop handles lockers; we only note which one is in charge, and its unlock.)
+        SessionLockManager(display).listener = object : SessionLockManager.Listener by desktop {
+            override fun lockRequested(lock: dev.caulis.core.SessionLock): Boolean =
+                desktop.lockRequested(lock).also { granted -> if (granted) lockerProgram = lock }
+
+            override fun unlockRequested(lock: dev.caulis.core.SessionLock) {
+                desktop.unlockRequested(lock)
+                if (lock === lockerProgram) {
+                    lockerProgram = null
+                    lockerUnlocked(lock)
+                }
+            }
+        }
         CursorShape(display, seat)
         shortcutsInhibit = dev.caulis.core.input.ShortcutsInhibit(display, seat)
         XdgOutputManager(display)
         ServerDecorations(display, desktop)
         dev.caulis.core.Dialogs(display, desktop)
         xwayland = if (config.xwayland) safely("Xwayland", null) { Xwayland(display, desktop, loop, clipboard, wholeScaleWorlds = config.sharpJavaScaling) } else null
-        ScreenCapture(display, desktop, renderer, ForeignToplevels(display, desktop))
+        val toplevels = ForeignToplevels(display, desktop)
+        // (Who may see the window list: the programs named in windowListPrograms, else the privileged rule.)
+        val privilegedRule = toplevels.mayListWindows
+        toplevels.mayListWindows = { client ->
+            val named = config.windowListPrograms
+            if (named == null) privilegedRule(client) else (programOfProcess(client.pid) in named).also { allowed ->
+                if (!allowed) clientsLog.info { "${client.name} may not see the window list (windowListPrograms)" }
+            }
+        }
+        ScreenCapture(display, desktop, renderer, toplevels)
         applyCursor()
         desktop.workspaceMode = config.workspaceMode // before the monitors come
         desktop.primaryMonitorName = config.primaryMonitor
@@ -505,9 +706,10 @@ internal class Running(
         fun check() {
             when {
                 lockedNow() -> ready()
-                System.nanoTime() - since > 3_000_000_000 -> {
-                    log.warn("The screen did not lock in 3 s before sleep")
-                    ready()
+                System.nanoTime() - since > config.sleepLockWaitMillis * 1_000_000 -> {
+                    lockFailed("it did not lock in ${config.sleepLockWaitMillis} ms before sleep")
+                    // (Our own lock screen: a moment to be on screen before the computer sleeps.)
+                    if (fallbackLock != null) loop.after(config.sleepOwnLockShowMillis) { ready() } else ready()
                 }
                 else -> loop.after(50) { check() }
             }
@@ -534,11 +736,55 @@ internal class Running(
     /** Settings changed by code while running (Caulis.applySettings). */
     internal fun applySettingsNow() = applyConfig()
 
+    // The desktop's own focus-stealing rule (focusStealing SAME_PROGRAM), kept the first time.
+    // (No initializer: this is first used from init, which runs before this line would.)
+    private lateinit var sameProgramRule: (dev.caulis.core.Window, dev.caulis.core.WindowRequest) -> Boolean
+
+    /** The settings of Caulis's core parts as the configuration says (see Caulis.focusStealing, maxRegionParts, ...). */
+    fun applyCoreSettings() {
+        val config = config
+        if (!::sameProgramRule.isInitialized) sameProgramRule = desktop.programMayTakeFocus
+        desktop.backgroundColor = config.backgroundColor
+        desktop.programMayTakeFocus = config.focusStealingRule?.let { rule -> { window, why -> safely("focusStealingRule", false) { rule(window, why) } } }
+            ?: when (config.focusStealing) {
+                FocusStealing.SAME_PROGRAM -> sameProgramRule
+                FocusStealing.ALWAYS -> { _, _ -> true }
+                FocusStealing.NEVER -> { _, _ -> false }
+            }
+        idle.inhibitorsWorkWhileLocked = config.idleInhibitorsWhileLocked
+        desktop.unlockFocus = config.unlockFocus
+        display.maxForwardedStringBytes = config.maxForwardedStringBytes
+        compositor.maxRegionParts = config.maxRegionParts
+        xwayland?.let { x ->
+            x.restartDelayMillis = config.xwaylandRestartMillis
+            x.restartDelayMaxMillis = config.xwaylandRestartMaxMillis
+            x.maxFailedStarts = config.xwaylandMaxFailedStarts
+        }
+        applyMonitorLinks?.invoke()
+        log.trace { "Core settings: focus stealing ${config.focusStealing}, strings ${config.maxForwardedStringBytes} bytes, regions ${config.maxRegionParts} parts" }
+    }
+
+    /** Set by the screen backend: each monitor's link settings (maxBpc, adaptiveSync) as the configuration says. */
+    var applyMonitorLinks: (() -> Unit)? = null
+    /** Tries Xwayland again after it failed too often (the action "xwayland-retry"). */
+    fun retryXwayland() {
+        val x = xwayland ?: return log.info { "Xwayland is off" }
+        log.info { "Trying Xwayland again" }
+        x.retry()
+    }
+
     private fun applyConfig() {
         val config = config
+        applyCoreSettings()
         desktop.effects = config.effects
+        desktop.specialWorkspaces = config.specialWorkspaces
         if (desktop.director !== config.director) desktop.director = config.director
-        display.privileged = { client -> safely("privilegedClients", false) { this.config.privilegedClients(client) } }
+        display.privileged = { client ->
+            // (Every program asks which features there are right as it connects: the launcher
+            // learns here that one of its programs is a Wayland one.)
+            launcher.clientConnected(client.pid)
+            safely("privilegedClients", false) { this.config.privilegedClients(client) }
+        }
         desktop.screenShader = config.screenShader
         desktop.titleBars = config.titleBars
         desktop.titleBarStyle = config.titleBarStyle
@@ -555,29 +801,67 @@ internal class Running(
         desktop.doubleClickMillis = config.doubleClickMillis
         desktop.lockColor = config.lockColor
         desktop.focusFollowsMouse = config.focusFollowsMouse
+        desktop.osdHandler = config.osdHandler
         activation.focusOnActivate = config.focusOnActivate
         idle.fullscreenInhibits = config.fullscreenKeepsAwake
+        applyIdleWatches()
+        applyKeyRepeat()
+        applyKeymap()
+        applyNumLock()
+        applyAppearance()
+        inputDevices?.settings = config.input
+        applyWorkspaces()
+        desktop.primaryMonitorName = config.primaryMonitor
+        applyScratchpads()
+        rewireEvents()
+        sessionStart.reconfigure()
+    }
+
+    /** The configuration's idle timers, made anew (they count from now). */
+    fun applyIdleWatches() {
         idleWatches.forEach(AutoCloseable::close)
         idleWatches.clear()
+        val config = config
         for (watch in config.idleWatches) {
             idleWatches += idle.watch(watch.seconds * 1000L, onIdle = { safely("onIdle") { watch.idle(config) } }, onResume = { safely("onIdle resume") { watch.resume(config) } })
         }
+        log.trace { "Idle timers: ${config.idleWatches.joinToString { "${it.seconds} s" }.ifEmpty { "none" }}" }
+    }
+
+    /** Key repeat as the configuration says, for programs and for the compositor's own keys. */
+    fun applyKeyRepeat() {
         seat.repeatRate = config.repeatRate
-        applyKeymap()
-        // Num Lock as configured, when that changes (not again on each reload: the key may have switched it since).
-        config.numLock?.let { on ->
-            if (on != appliedNumLock) {
-                seat.setNumLock(on)
-                appliedNumLock = on
-            }
+        seat.repeatDelay = config.repeatDelayMillis.toInt()
+        for (bindings in allKeys()) {
+            bindings.repeatDelay = config.repeatDelayMillis.toInt()
+            bindings.repeatRate = config.repeatRate
         }
-        seat.repeatDelay = config.repeatDelay
-        applyAppearance()
-        inputDevices?.settings = config.input
+        keyboardLog.trace { "Key repeat: ${config.repeatRate} a second after ${config.repeatDelayMillis} ms" }
+    }
+
+    /** Num Lock as configured, when that changes (not again on each reload: the key may have switched it since). */
+    fun applyNumLock() {
+        val on = config.numLock ?: return
+        if (on == appliedNumLock) return
+        seat.setNumLock(on)
+        appliedNumLock = on
+        keyboardLog.info { "Num Lock ${if (on) "on" else "off"}" }
+    }
+
+    /** The configuration's workspaces: how many, and how each is. */
+    fun applyWorkspaces() {
         desktop.workspaceCount = config.workspaceCount
         desktop.workspaceRules = config.workspaceRules
-        desktop.primaryMonitorName = config.primaryMonitor
+    }
 
+    /** Rules changed (one added while running): who draws title bars, and each window's margins and bars. */
+    fun rulesChanged() {
+        desktop.titleBarsFor = if (config.titleBarRules.isEmpty() && config.rules.none { it.titleBars != null }) null else ::titleBarsOf
+        for (window in desktop.allWindows) rulesChanged(window)
+    }
+
+    /** The configuration's scratchpads: those not there yet made, and their keys bound. */
+    fun applyScratchpads() {
         for (pad in config.scratchpads) {
             // A scratchpad asks the configuration of the moment which windows are its own.
             if (desktop.scratchpad(pad.name) == null) {
@@ -585,12 +869,10 @@ internal class Running(
                     val now = this.config.scratchpads.firstOrNull { it.name == pad.name } ?: return@addScratchpad false
                     safely("scratchpad ${pad.name}", false) { now.match(window) }
                 }
+                log.info { "Scratchpad ${pad.name}" }
             }
         }
         rebindKeys()
-
-        rewireEvents()
-
     }
 
     /** Hands the configuration's event listeners to the desktop anew (after a reload, or one added or taken away). */
@@ -616,10 +898,11 @@ internal class Running(
         inhibitedKeys.clear()
         bindKeys()
         for (pad in config.scratchpads) pad.key?.let { key -> keys.bind(key) { toggleScratchpad(pad.name) } }
-        // Quitting and text consoles also work while the screen is locked (when they are on).
+        // Text consoles also work while the screen is locked (when they are on); quitting only
+        // when keys.quitWhileLocked says so (else it would get round the lock).
         val usual = config.keys
         for (bindings in listOf(keys, lockedKeys, inhibitedKeys)) {
-            usual.quit?.let { bindings.bind(it) { quit() } }
+            if (bindings !== lockedKeys || usual.quitWhileLocked) usual.quit?.let { bindings.bind(it) { quit() } }
             if (switchConsole != null) usual.consoles?.let { modifiers -> for (n in 1..12) bindings.bind("$modifiers+F$n") { switchConsole.invoke(n) } }
         }
         usual.restoreShortcuts?.let { inhibitedKeys.bind(it) { shortcutsInhibit.restore() } }
@@ -656,7 +939,7 @@ internal class Running(
             if (!binding.enabled) continue
             val combination = binding.combination
             val run = { safely(combination) { binding.action(config) } }
-            val mode = binding.mode
+            val mode = binding.keyMode
             if (mode != null) {
                 modeKeys.getOrPut(mode) { KeyBindings() }.bind(combination, binding.options, run)
                 continue
@@ -676,9 +959,13 @@ internal class Running(
         // A mode that is gone after a reload is left.
         if (keyMode != null && keyMode !in modeKeys) enterMode(null)
         // Combinations that repeat use the loop and the key repeat of the moment.
+        // Which keys are modifiers: as the keymap says (caps:super, altwin:swap_lalt_lwin), or the physical ones.
+        val modifierOf: (Int) -> KeyBindings.Modifier? =
+            if (config.bindingModifiers == BindingModifiers.XKB) seat::modifierOfKey else { code -> KeyBindings.Modifier.of(code) }
         for (bindings in allKeys()) {
+            bindings.modifierOf = modifierOf
             bindings.schedule = { millis, task -> loop.after(millis) { task() }.let { timer -> AutoCloseable { timer.cancel() } } }
-            bindings.repeatDelay = config.repeatDelay
+            bindings.repeatDelay = config.repeatDelayMillis.toInt()
             bindings.repeatRate = config.repeatRate
         }
     }
@@ -686,14 +973,19 @@ internal class Running(
     fun quit() = loop.stop()
 
     // config.json saved again: main() runs once more (in this program, as it is) and hands over
-    // its configuration with the file on top; that one is taken on.
+    // its configuration with the file on top; that one is taken on. Each file is followed where
+    // the user's own would be and in the system's folders ($XDG_CONFIG_DIRS, /etc/xdg: where
+    // the NixOS module puts it) — made, saved or taken away.
     private fun followConfigFile() {
-        for (name in listOf("config.json") + dev.caulis.wm.config.ConfigFile.languageFiles.keys) followConfigFile(config.file(name))
+        for (name in listOf("config.json") + dev.caulis.wm.config.ConfigFile.languageFileNames()) {
+            for (path in dev.caulis.wm.config.ConfigFile.places(config, name)) followConfigFile(path)
+        }
+        log.trace { "Following the configuration files in ${dev.caulis.wm.config.ConfigFile.places(config, "config.json").joinToString { it.parent.toString() }}" }
     }
 
-    // Takes the configuration on again when [path] changes.
+    // Takes the configuration on again when [path] changes (made, saved, taken away).
     private fun followConfigFile(path: java.nio.file.Path) {
-        configWatches += dev.caulis.core.FileWatch.watch(path) {
+        configWatches += dev.caulis.wm.config.ConfigWatch(path) {
             // main() (and with it config.lua, config.kts: compiling takes seconds) runs on a
             // thread of its own: the desktop goes on meanwhile. One reload at a time.
             configReloads.execute {
@@ -716,8 +1008,12 @@ internal class Running(
         val before = config
         try {
             if (next == null) {
-                config.configProblems = dev.caulis.wm.config.ConfigFile.applyTo(config)
-                reconfigure(config)
+                // The files once more onto a copy of what the code said alone: a setting taken
+                // out of them goes back to the code's (without the copy: onto this one as it is).
+                val fresh = config.codeOnly?.let { code -> code.snapshot().also { it.codeOnly = code } } ?: config
+                log.info { "main() cannot be run again: ${path.fileName} applied onto ${if (fresh === config) "the configuration as it is" else "what the code says"}" }
+                fresh.configProblems = dev.caulis.wm.config.ConfigFile.applyTo(fresh)
+                reconfigure(fresh)
             } else {
                 reconfigure(next)
             }
@@ -755,8 +1051,19 @@ internal class Running(
         }
         val restartOnly = buildList {
             fun check(name: String, old: Any?, new: Any?) { if (old != new) add(name) }
-            check("mode", before.mode, next.mode)
+            check("backend", before.backend, next.backend)
             check("xwayland", before.xwayland, next.xwayland)
+            check("hardwareCursor", before.hardwareCursor, next.hardwareCursor)
+            check("directScanout", before.directScanout, next.directScanout)
+            check("ipc", before.ipc, next.ipc)
+            check("hotReload", before.hotReload, next.hotReload)
+            check("useConfigFile", before.useConfigFile, next.useConfigFile)
+            check("configName", before.configName, next.configName)
+            check("configDir", before.configDir, next.configDir)
+            check("headlessMonitors", before.headlessMonitors, next.headlessMonitors)
+            check("exportEnvironment", before.exportEnvironment, next.exportEnvironment)
+            check("exitAfterSeconds", before.exitAfterSeconds, next.exitAfterSeconds)
+            check("nestedIn", before.nestedIn, next.nestedIn)
             check("sharpJavaScaling", before.sharpJavaScaling, next.sharpJavaScaling)
             check("workspaceMode", before.workspaceMode, next.workspaceMode)
             check("nestedMonitors", before.nestedMonitors, next.nestedMonitors)
@@ -779,10 +1086,21 @@ internal class Running(
         }
         // (The same configuration when config.json was applied onto it: nothing to compare.)
         val same = before === next
+        // Keys and listeners from onStart (and from replaced configurations) are the new one's too.
+        if (!same) {
+            val lists = next.addableLists()
+            for ((index, item) in keptItems) {
+                @Suppress("UNCHECKED_CAST")
+                val list = lists[index] as MutableList<Any?>
+                if (list.none { it === item }) list += item
+                if (item is Caulis.Binding) item.owner = next
+            }
+        }
         before.running = null
         next.running = this
+        next.session = this
         config = next
-        next.applyLogSettings()
+        next.applyLogSettings(before)
         applyConfig()
         if (desktop.layout != next.layout) desktop.layout = next.layout
         if (same || before.scale != next.scale || before.monitorSettings.mapValues { it.value.scale } != next.monitorSettings.mapValues { it.value.scale }) applyScale()
@@ -882,6 +1200,7 @@ internal class Running(
             disabledByConfig -= name
             if (heads.setEnabled(name, true)) log.info { "Monitor $name used again" }
         }
+        applyMonitorLinks?.invoke()
         xwayland?.rescaled()
         ipc?.changed()
         outputManagement.changed()
@@ -934,7 +1253,7 @@ internal class Running(
         val command = config.scratchpads.firstOrNull { it.name == name }?.command ?: return
         val now = System.nanoTime()
         val last = startedAt[name]
-        if (last != null && now - last < STARTING_NANOS) return // still starting
+        if (last != null && now - last < config.scratchpadStartMillis * 1_000_000) return // still starting
         startedAt[name] = now
         launch(command)
     }
@@ -944,9 +1263,93 @@ internal class Running(
      * first (or through X11: [x11]). If the program does not exist, that is said in plain
      * words instead of nothing happening.
      */
-    fun launch(command: String, x11: Boolean = false) = launcher.launch(command, x11)
+    fun launch(command: String, x11: Boolean = false, fallback: Boolean = true) {
+        val pid = launcher.launch(command, x11, fallback)
+        if (pid != null && startingLocker) lockerPids += pid
+    }
 
-    fun spawn(command: List<String>, directory: java.io.File?): Process? = launcher.spawn(command, directory)
+    // Programs started as the screen locker (by Caulis.lock: lockCommand, or what your locker
+    // started): only their unlock ends the compositor's own lock screen. (Ended ones stay in
+    // the set: a pid is reused only after many others.)
+    internal val lockerPids = HashSet<Long>()
+    private var startingLocker = false
+
+    /** Runs [body], which starts the screen locker: the programs it starts may end our own lock screen. */
+    fun <T> startingLocker(body: () -> T): T {
+        val outer = startingLocker
+        startingLocker = true
+        try {
+            return body()
+        } finally {
+            startingLocker = outer
+        }
+    }
+
+    // Says so when a lock asked for has not shown in time (see Caulis.lock).
+    private var lockWatch: dev.caulis.event.EventLoop.Timer? = null
+
+    /** A lock was asked of [locker]: if the screen is not locked [Caulis.lockShowMillis] later, a notice says so. */
+    fun watchLock(locker: String) {
+        lockWatch?.cancel()
+        val millis = config.lockShowMillis
+        lockWatch = loop.after(millis) {
+            lockWatch = null
+            if (!lockedNow()) lockFailed("$locker showed no lock screen in $millis ms")
+        }
+    }
+
+    // A lock asked for did not show ([why]): said loudly, and — as lockFailure says — the
+    // compositor's own plain lock screen goes up instead.
+    private fun lockFailed(why: String) {
+        // (Said once: the lock before sleep and the watch on the lock may both find it.)
+        lockWatch?.cancel()
+        lockWatch = null
+        log.error("The screen did not lock: $why")
+        desktop.notify("The screen is NOT locked: $why. Is the locker installed? (lockCommand)", NoticeLevel.ERROR)
+        if (config.lockFailure == LockFailure.OWN_LOCK) lockOwnScreen()
+    }
+
+    // The compositor's own plain lock screen (the locker did not show), or null.
+    private var fallbackLock: FallbackLock? = null
+
+    // The locker program in charge now (to know its unlock ends our own lock screen too).
+    private var lockerProgram: dev.caulis.core.SessionLock? = null
+
+    /** Locks with the compositor's own plain lock screen (see [Caulis.lockFailure]). */
+    fun lockOwnScreen() {
+        if (fallbackLock != null) return
+        val screen = FallbackLock(color = { config.lockColor }, retry = {
+            log.info { "Starting the locker again (Enter on the compositor's own lock screen)" }
+            safely("the locker") { config.lock() }
+        })
+        fallbackLock = screen
+        desktop.lockInternally(screen, hideDesktop = true)
+        log.warn(
+            "Locked with the compositor's own plain lock screen: it ends when the locker the compositor starts unlocks — " +
+                "press Enter to start ${Launcher.programName(config.lockCommand)} again (from a text console: fix lockCommand in the configuration, save it, then press Enter)",
+        )
+    }
+
+    // A locker program unlocked the session: our own lock screen (if it is up) ends with it —
+    // if that locker is one the compositor started (lock(): Enter on our lock screen). Any
+    // other program could lock and unlock at once, without asking for a password.
+    private fun lockerUnlocked(lock: dev.caulis.core.SessionLock) {
+        val own = fallbackLock ?: return
+        val pid = lock.resource.client.pid
+        if (!launcher.descendsFrom(pid, lockerPids)) {
+            log.warn(
+                "${lock.resource.client.name} locked and unlocked, but it is not the locker the compositor started: " +
+                    "the compositor's own lock screen stays (press Enter on it to start ${Launcher.programName(config.lockCommand)})",
+            )
+            return
+        }
+        fallbackLock = null
+        if (desktop.lockScreen === own) desktop.unlockInternally()
+        log.info { "The locker unlocked: the compositor's own lock screen is gone too" }
+    }
+
+    fun spawn(command: List<String>, directory: java.io.File?): Process? =
+        launcher.spawn(command, directory)?.also { if (startingLocker) lockerPids += it.pid() }
 
     // Runs the user's code; a mistake in it is reported and the compositor keeps running.
     internal fun <T> safely(what: String, fallback: T, action: () -> T): T = try {
@@ -1029,7 +1432,7 @@ internal class Running(
 
     // Other layouts, variants, options or model in the settings: the keymap made anew, given
     // to every program (a mistake in them keeps the keymap there was).
-    private fun applyKeymap() {
+    fun applyKeymap() {
         val wanted = listOf(config.keyboardLayouts, config.keyboardVariants, config.keyboardOptions, config.keyboardModel)
         if (wanted == keymapOf) return
         val next = try {
@@ -1051,7 +1454,7 @@ internal class Running(
     private val unboundSeen = HashSet<Int>()
 
     // The keys that are the compositor's now.
-    private fun activeKeys(): KeyBindings = when {
+    internal fun activeKeys(): KeyBindings = when {
         desktop.locked -> lockedKeys
         // A window keeps the keys (a nested compositor): only quit, consoles and restoreShortcuts are ours.
         shortcutsInhibit.active -> inhibitedKeys
@@ -1081,10 +1484,21 @@ internal class Running(
     private var wheelSteps = doubleArrayOf(0.0, 0.0)
 
     /** The mouse wheel or a touchpad scrolled: a combination with the wheel, or the program under the pointer. */
-    fun pointerAxis(timeMillis: Int, vertical: Boolean, value: Double, value120: Int) {
+    fun pointerAxis(timeMillis: Int, scroll: dev.caulis.core.input.Scroll) {
         userActive()
+        // Each direction on its own for the handlers and wheel combinations; what they leave
+        // goes to the program under the pointer (both directions still in one scroll).
+        val vertical = scroll.verticalOnly()?.takeIf { !pointerAxisTaken(true, it.vertical, it.vertical120) }
+        val horizontal = scroll.horizontalOnly()?.takeIf { !pointerAxisTaken(false, it.horizontal, it.horizontal120) }
+        if (vertical == null && horizontal == null) return
+        activeKeys().interrupted()
+        desktop.pointerAxis(timeMillis, if (vertical != null && horizontal != null) scroll else vertical ?: horizontal!!)
+    }
+
+    // A scroll handler or a wheel combination takes this direction of a scroll.
+    private fun pointerAxisTaken(vertical: Boolean, value: Double, value120: Int): Boolean {
         // (An overlay — a screenshot chooser — has the mouse to itself: no handler takes it first.)
-        if (!desktop.locked && desktop.overlay == null && config.scrollHandlers.asReversed().any { h -> safely("onScroll", false) { h(config, vertical, value, value120 / 120.0) } }) return
+        if (!desktop.locked && desktop.overlay == null && config.scrollHandlers.asReversed().any { h -> safely("onScroll", false) { h(config, vertical, value, value120 / 120.0) } }) return true
         val active = activeKeys()
         if (value120 != 0 && !desktop.locked) {
             val (back, forth) = if (vertical) KeyBindings.WHEEL_UP to KeyBindings.WHEEL_DOWN else KeyBindings.WHEEL_LEFT to KeyBindings.WHEEL_RIGHT
@@ -1096,11 +1510,10 @@ internal class Running(
                     active.wheel(code)
                     wheelSteps[axis] -= Math.signum(wheelSteps[axis])
                 }
-                return
+                return true
             }
         }
-        active.interrupted()
-        desktop.pointerAxis(timeMillis, vertical, value, value120)
+        return false
     }
 
     /**
@@ -1265,7 +1678,16 @@ internal class Running(
             for (problem in config.configProblems) configNotices += desktop.notify(problem, NoticeLevel.WARNING)
             if (config.useConfigFile) followConfigFile()
             if (config.exportEnvironment ?: (switchConsole != null)) safely("handing the environment to the session") { exportEnvironment() }
-            config.startActions.forEach { action -> safely("onStart") { action(config) } }
+            // The start: dark until warm, the sound, the programs of autostart (see SessionStart).
+            sessionStart.begin()
+            // What onStart starts is the session's: it stays through reloads (see Caulis.onStart).
+            startingUp = true
+            try {
+                config.startActions.forEach { action -> safely("onStart") { action(config) } }
+            } finally {
+                startingUp = false
+            }
+            if (keptItems.isNotEmpty()) log.info { "onStart added ${keptItems.size} keys and listeners: they stay through reloads" }
             config.startWaitingTimers()
             if (config.hotReload) reloader = safely("hot reload", null) { Reloader.start(this) }
             log.info { "Your files (shaders, pictures): ${config.configFolder}${if (java.nio.file.Files.isDirectory(config.configFolder)) "" else " (not there yet)"}" }
@@ -1276,7 +1698,16 @@ internal class Running(
     }
 
     override fun close() {
+        // Your onQuit first, while the desktop and the buses are still there.
+        config.quitActions.toList().forEach { action -> safely("onQuit") { action(config) } }
+        // (No program of autostart is started again while they are being stopped.)
+        safely("the start") { sessionStart.close() }
+        if (config.stopProgramsOnQuit) safely("stopping the programs") { launcher.stopAll() }
+        isOpen = false
         if (config.running === this) config.running = null
+        sessionResources.toList().forEach { runCatching { it.close() } }
+        sessionResources.clear()
+        sessionScopes.values.forEach { it.close() }
         colorSchemeTimer?.cancel()
         stopTellingPrograms()
         if (sessionBusConnected) sessionBus?.close()
@@ -1298,8 +1729,8 @@ internal class Running(
 
     private companion object {
 
-        /** How long a scratchpad's program may take to show a window before a key press starts it again. */
-        const val STARTING_NANOS = 5_000_000_000L
+        // What programs must get from the compositor itself (Caulis.environment does not change them).
+        val OWN_VARIABLES = setOf("WAYLAND_DISPLAY", "DISPLAY", "XDG_ACTIVATION_TOKEN", dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE)
         const val BTN_LEFT = 0x110
         const val BTN_RIGHT = 0x111
 
@@ -1315,6 +1746,7 @@ internal class Running(
     // the desktop — onMonitorAdded runs for the first monitors before the loop does.
     init {
         config.running = this
+        config.session = this
     }
 }
 

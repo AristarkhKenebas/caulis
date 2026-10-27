@@ -1,16 +1,61 @@
+public final class dev/caulis/compose/AnimationSpecsKt {
+	public static final fun easing (Ldev/caulis/core/Curve;)Landroidx/compose/animation/core/Easing;
+	public static final fun spec (Ldev/caulis/core/ResolvedAnimation;)Landroidx/compose/animation/core/FiniteAnimationSpec;
+}
+
+public final class dev/caulis/compose/ComposeHandle : java/lang/AutoCloseable {
+	public static final field $stable I
+	public fun close ()V
+	public final fun focus ()V
+	public final fun focus (Z)V
+	public static synthetic fun focus$default (Ldev/caulis/compose/ComposeHandle;ZILjava/lang/Object;)V
+	public final fun getWidget ()Ldev/caulis/compose/ComposeWidget;
+	public final fun prewarm (Ldev/caulis/core/Monitor;II)V
+	public final fun restart ()V
+}
+
 public final class dev/caulis/compose/ComposeKt {
-	public static final fun compose (Ldev/caulis/wm/Caulis;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function3;)Ljava/lang/AutoCloseable;
-	public static synthetic fun compose$default (Ldev/caulis/wm/Caulis;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)Ljava/lang/AutoCloseable;
+	public static final fun compose (Ldev/caulis/wm/Caulis;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function3;Ldev/caulis/compose/ComposeRecovery;ZLkotlin/jvm/functions/Function3;)Ldev/caulis/compose/ComposeHandle;
+	public static final synthetic fun compose (Ldev/caulis/wm/Caulis;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function3;)Ljava/lang/AutoCloseable;
+	public static synthetic fun compose$default (Ldev/caulis/wm/Caulis;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function3;Ldev/caulis/compose/ComposeRecovery;ZLkotlin/jvm/functions/Function3;ILjava/lang/Object;)Ldev/caulis/compose/ComposeHandle;
+	public static synthetic fun compose$default (Ldev/caulis/wm/Caulis;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function3;ILjava/lang/Object;)Ljava/lang/AutoCloseable;
+}
+
+public final class dev/caulis/compose/ComposeRecovery {
+	public static final field $stable I
+	public static final field Companion Ldev/caulis/compose/ComposeRecovery$Companion;
+	public static final field DEFAULT Ldev/caulis/compose/ComposeRecovery;
+	public fun <init> ()V
+	public fun <init> (J)V
+	public fun <init> (JJ)V
+	public fun <init> (JJJ)V
+	public fun <init> (JJJLjava/lang/String;)V
+	public fun <init> (JJJLjava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (JJJLjava/lang/String;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun delayAfter (I)J
+	public final fun getDelayMillis ()J
+	public final fun getForgetAfterMillis ()J
+	public final fun getMaxDelayMillis ()J
+	public final fun getNotice ()Ljava/lang/String;
+	public final fun getOnError ()Lkotlin/jvm/functions/Function1;
+}
+
+public final class dev/caulis/compose/ComposeRecovery$Companion {
 }
 
 public final class dev/caulis/compose/ComposeWidget : dev/caulis/core/Widget, java/lang/AutoCloseable {
 	public static final field $stable I
 	public fun <init> (Ldev/caulis/core/Desktop;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;)V
 	public fun <init> (Ldev/caulis/core/Desktop;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function3;)V
-	public synthetic fun <init> (Ldev/caulis/core/Desktop;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function3;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ldev/caulis/core/Desktop;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function3;Ldev/caulis/core/DataDeviceManager;Ldev/caulis/compose/ComposeRecovery;Lkotlin/jvm/functions/Function3;)V
+	public fun <init> (Ldev/caulis/core/Desktop;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function3;Ldev/caulis/core/DataDeviceManager;Ldev/caulis/compose/ComposeRecovery;ZLkotlin/jvm/functions/Function3;)V
+	public synthetic fun <init> (Ldev/caulis/core/Desktop;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function3;Ldev/caulis/core/DataDeviceManager;Ldev/caulis/compose/ComposeRecovery;ZLkotlin/jvm/functions/Function3;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ldev/caulis/core/Desktop;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function3;Ldev/caulis/core/DataDeviceManager;Lkotlin/jvm/functions/Function3;)V
+	public fun <init> (Ldev/caulis/core/Desktop;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function3;)V
 	public fun <init> (Ldev/caulis/core/Desktop;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;)V
 	public fun <init> (Ldev/caulis/core/Desktop;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;)V
 	public fun <init> (Ldev/caulis/core/Desktop;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function3;)V
+	public synthetic fun <init> (Ldev/caulis/core/Desktop;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function3;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun <init> (Ldev/caulis/core/Desktop;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/caulis/core/DrawingLevel;Lkotlin/jvm/functions/Function3;)V
 	public fun <init> (Ldev/caulis/core/Desktop;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;)V
 	public fun animating (J)Z
@@ -18,8 +63,9 @@ public final class dev/caulis/compose/ComposeWidget : dev/caulis/core/Widget, ja
 	public fun close ()V
 	public fun draw (Ldev/caulis/core/Monitor;Ldev/caulis/core/OverlayCanvas;Ldev/caulis/geometry/Rect;)V
 	public fun getCursor ()Ljava/lang/String;
+	public final fun getHasKeyboard ()Z
 	public fun getLevel ()Ldev/caulis/core/DrawingLevel;
-	public final fun getOnPressOutside ()Lkotlin/jvm/functions/Function3;
+	public fun getShowsWhileLocked ()Z
 	public fun getTakesKeyboard ()Z
 	public fun key (Ldev/caulis/core/WidgetKey;)V
 	public fun keyboardFocus (Z)V
@@ -31,7 +77,20 @@ public final class dev/caulis/compose/ComposeWidget : dev/caulis/core/Widget, ja
 	public fun reserve (Ldev/caulis/core/Monitor;)Ldev/caulis/core/Reserve;
 	public final fun restart ()V
 	public fun scroll (DD)V
-	public final fun setOnPressOutside (Lkotlin/jvm/functions/Function3;)V
+}
+
+public final class dev/caulis/compose/SceneSize {
+	public static final field $stable I
+	public fun <init> (II)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun copy (II)Ldev/caulis/compose/SceneSize;
+	public static synthetic fun copy$default (Ldev/caulis/compose/SceneSize;IIILjava/lang/Object;)Ldev/caulis/compose/SceneSize;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getHeight ()I
+	public final fun getWidth ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/caulis/compose/WidgetLook {
@@ -39,20 +98,27 @@ public final class dev/caulis/compose/WidgetLook {
 	public static final field Companion Ldev/caulis/compose/WidgetLook$Companion;
 	public static final field SHOWN Ldev/caulis/compose/WidgetLook;
 	public fun <init> ()V
+	public fun <init> (F)V
+	public fun <init> (FF)V
+	public fun <init> (FFF)V
+	public fun <init> (FFFF)V
 	public fun <init> (FFFFF)V
-	public synthetic fun <init> (FFFFFILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (FFFFFLdev/caulis/core/Edge;)V
+	public synthetic fun <init> (FFFFFLdev/caulis/core/Edge;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()F
 	public final fun component2 ()F
 	public final fun component3 ()F
 	public final fun component4 ()F
 	public final fun component5 ()F
-	public final fun copy (FFFFF)Ldev/caulis/compose/WidgetLook;
-	public static synthetic fun copy$default (Ldev/caulis/compose/WidgetLook;FFFFFILjava/lang/Object;)Ldev/caulis/compose/WidgetLook;
+	public final fun component6 ()Ldev/caulis/core/Edge;
+	public final fun copy (FFFFFLdev/caulis/core/Edge;)Ldev/caulis/compose/WidgetLook;
+	public static synthetic fun copy$default (Ldev/caulis/compose/WidgetLook;FFFFFLdev/caulis/core/Edge;ILjava/lang/Object;)Ldev/caulis/compose/WidgetLook;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAlpha ()F
 	public final fun getDx ()F
 	public final fun getDy ()F
 	public final fun getReveal ()F
+	public final fun getRevealFrom ()Ldev/caulis/core/Edge;
 	public final fun getScale ()F
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;

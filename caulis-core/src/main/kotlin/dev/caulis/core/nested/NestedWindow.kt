@@ -87,7 +87,26 @@ class NestedWindow(
     /** Input from the outer session, in window pixels. Times are in milliseconds. */
     var onPointerMotion: (timeMillis: Int, x: Double, y: Double) -> Unit = { _, _, _ -> }
     var onPointerButton: (timeMillis: Int, button: Int, pressed: Boolean) -> Unit = { _, _, _ -> }
-    var onPointerAxis: (timeMillis: Int, vertical: Boolean, value: Double, value120: Int) -> Unit = { _, _, _, _ -> }
+    var onPointerAxis: (timeMillis: Int, scroll: dev.caulis.core.input.Scroll) -> Unit = { _, _ -> }
+
+    // Caulis 0.1.1's onPointerAxis (one axis at a time, the wheel in 1/120): code built against it sets it.
+    @Deprecated("Kept for code built against Caulis 0.1.1", level = DeprecationLevel.HIDDEN)
+    @get:JvmName("getOnPointerAxis") @set:JvmName("setOnPointerAxis")
+    var onPointerAxisPerAxis: (timeMillis: Int, vertical: Boolean, value: Double, value120: Int) -> Unit
+        get() = { time, vertical, value, value120 ->
+            val source = if (value120 != 0) dev.caulis.core.input.Scroll.Source.WHEEL else dev.caulis.core.input.Scroll.Source.FINGER
+            onPointerAxis(
+                time,
+                if (vertical) dev.caulis.core.input.Scroll(source, vertical = value, vertical120 = value120)
+                else dev.caulis.core.input.Scroll(source, horizontal = value, horizontal120 = value120),
+            )
+        }
+        set(old) {
+            onPointerAxis = { time, scroll ->
+                if (scroll.horizontal != 0.0 || scroll.horizontal120 != 0) old(time, false, scroll.horizontal, scroll.horizontal120)
+                if (scroll.vertical != 0.0 || scroll.vertical120 != 0) old(time, true, scroll.vertical, scroll.vertical120)
+            }
+        }
     var onKey: (timeMillis: Int, evdevCode: Int, pressed: Boolean) -> Unit = { _, _, _ -> }
 
     /** The outer session took the keyboard away (all keys count as released). */
@@ -122,7 +141,14 @@ class NestedWindow(
 
     // Input handlers. Declared before init on purpose: Kotlin initializes properties in
     // order, and the outer compositor may announce its keyboard during init already.
+    // A scroll being gathered until the outer pointer's frame: horizontal, vertical.
     private var pendingValue120 = intArrayOf(0, 0)
+    private var pendingValue = doubleArrayOf(0.0, 0.0)
+    private var pendingStop = booleanArrayOf(false, false)
+    private var pendingSource = dev.caulis.core.input.Scroll.Source.WHEEL
+    private var pendingInverted = false
+    private var pendingTime = 0
+    private var scrollPending = false
 
     private val keyboardEvents = object : WlKeyboard.Events {
         // We use our own keymap; the outer one is not needed.
@@ -133,6 +159,9 @@ class NestedWindow(
         override fun key(proxy: WlKeyboard, serial: Int, time: Int, key: Int, state: Int) =
             onKey(time, key, state == WlKeyboard.KeyState.PRESSED)
     }
+
+    // wl_pointer's axis numbers as ours: horizontal 0, vertical 1.
+    private fun index(axis: Int) = if (axis == WlPointer.Axis.HORIZONTAL_SCROLL) 0 else 1
 
     private val pointerEvents = object : WlPointer.Events {
         override fun enter(proxy: WlPointer, serial: Int, surface: WlSurface, surfaceX: Double, surfaceY: Double) {
@@ -147,14 +176,51 @@ class NestedWindow(
         override fun button(proxy: WlPointer, serial: Int, time: Int, button: Int, state: Int) =
             onPointerButton(time, button, state == WlPointer.ButtonState.PRESSED)
 
+        // Scrolling comes in parts, ended by the frame: passed on as one Scroll then.
+        override fun axisSource(proxy: WlPointer, axisSource: Int) {
+            pendingSource = when (axisSource) {
+                WlPointer.AxisSource.FINGER -> dev.caulis.core.input.Scroll.Source.FINGER
+                WlPointer.AxisSource.CONTINUOUS -> dev.caulis.core.input.Scroll.Source.CONTINUOUS
+                WlPointer.AxisSource.WHEEL_TILT -> dev.caulis.core.input.Scroll.Source.WHEEL_TILT
+                else -> dev.caulis.core.input.Scroll.Source.WHEEL
+            }
+        }
+
         override fun axisValue120(proxy: WlPointer, axis: Int, value120: Int) {
-            pendingValue120[axis.coerceIn(0, 1)] += value120
+            pendingValue120[index(axis)] += value120
+        }
+
+        override fun axisRelativeDirection(proxy: WlPointer, axis: Int, direction: Int) {
+            pendingInverted = direction == WlPointer.AxisRelativeDirection.INVERTED
+        }
+
+        override fun axisStop(proxy: WlPointer, time: Int, axis: Int) {
+            pendingStop[index(axis)] = true
+            pendingTime = time
+            scrollPending = true
         }
 
         override fun axis(proxy: WlPointer, time: Int, axis: Int, value: Double) {
-            val index = axis.coerceIn(0, 1)
-            onPointerAxis(time, axis == WlPointer.Axis.VERTICAL_SCROLL, value, pendingValue120[index])
-            pendingValue120[index] = 0
+            pendingValue[index(axis)] += value
+            pendingTime = time
+            scrollPending = true
+            // (An outer compositor too old for frames: each axis event stands alone.)
+            if (proxy.version < 5) frame(proxy)
+        }
+
+        override fun frame(proxy: WlPointer) {
+            if (!scrollPending) return
+            val scroll = dev.caulis.core.input.Scroll(
+                pendingSource, pendingValue[0], pendingValue[1], pendingValue120[0], pendingValue120[1],
+                pendingStop[0], pendingStop[1], pendingInverted,
+            )
+            pendingValue.fill(0.0)
+            pendingValue120.fill(0)
+            pendingStop.fill(false)
+            pendingSource = dev.caulis.core.input.Scroll.Source.WHEEL
+            pendingInverted = false
+            scrollPending = false
+            onPointerAxis(pendingTime, scroll)
         }
     }
 

@@ -1,9 +1,7 @@
 package dev.caulis.screenshot
 
-import dev.caulis.core.ClipboardData
 import dev.caulis.core.Desktop
 import dev.caulis.core.Monitor
-import dev.caulis.ffi.Fd
 import dev.caulis.geometry.Rect
 import dev.caulis.render.GpuTarget
 import dev.caulis.render.GpuTexture
@@ -14,39 +12,45 @@ import java.lang.foreign.Arena
 import java.lang.foreign.ValueLayout
 import javax.imageio.ImageIO
 
-/** Pixels read from the GPU: rows of ARGB, top row first. */
+/** Pixels read from the GPU: rows of ARGB (premultiplied), top row first. */
 internal class Pixels(val width: Int, val height: Int, val argb: IntArray, val transparent: Boolean) {
+
+    /** As Java's picture, on the same pixels (nothing copied). Without [transparent] the alpha is not looked at. */
+    fun image(): BufferedImage {
+        val model = if (transparent) ARGB_PRE else RGB
+        val raster = java.awt.image.Raster.createPackedRaster(java.awt.image.DataBufferInt(argb, argb.size), width, height, width, model.masks, null)
+        return BufferedImage(model, raster, model.isAlphaPremultiplied, null)
+    }
 
     /** As a PNG file's bytes. */
     fun png(): ByteArray {
-        val image = BufferedImage(width, height, if (transparent) BufferedImage.TYPE_INT_ARGB_PRE else BufferedImage.TYPE_INT_RGB)
-        image.raster.setDataElements(0, 0, width, height, if (transparent) argb else IntArray(argb.size) { argb[it] and 0xFFFFFF })
         val bytes = ByteArrayOutputStream(width * height)
-        check(ImageIO.write(image, "png", bytes)) { "no PNG writer" }
+        check(ImageIO.write(image(), "png", bytes)) { "no PNG writer" }
         return bytes.toByteArray()
     }
 
     /** As a JPEG file's bytes ([quality] 0..1; see-through parts on white). */
     fun jpeg(quality: Float): ByteArray {
-        val image = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
-        image.raster.setDataElements(0, 0, width, height, IntArray(argb.size) { i ->
-            val p = argb[i]
-            val a = (p ushr 24) and 0xFF
-            if (!transparent || a == 0xFF) p and 0xFFFFFF else {
-                // (Premultiplied: over white.)
-                val r = ((p shr 16) and 0xFF) + (255 - a)
-                val g = ((p shr 8) and 0xFF) + (255 - a)
-                val b = (p and 0xFF) + (255 - a)
-                (r.coerceAtMost(255) shl 16) or (g.coerceAtMost(255) shl 8) or b.coerceAtMost(255)
-            }
-        })
+        val image = if (!transparent) image() else BufferedImage(width, height, BufferedImage.TYPE_INT_RGB).also { rgb ->
+            rgb.raster.setDataElements(0, 0, width, height, IntArray(argb.size) { i ->
+                val p = argb[i]
+                val a = (p ushr 24) and 0xFF
+                if (a == 0xFF) p and 0xFFFFFF else {
+                    // (Premultiplied: over white.)
+                    val r = ((p shr 16) and 0xFF) + (255 - a)
+                    val g = ((p shr 8) and 0xFF) + (255 - a)
+                    val b = (p and 0xFF) + (255 - a)
+                    (r.coerceAtMost(255) shl 16) or (g.coerceAtMost(255) shl 8) or b.coerceAtMost(255)
+                }
+            })
+        }
         val writer = ImageIO.getImageWritersByFormatName("jpeg").next()
         val params = writer.defaultWriteParam.apply {
             compressionMode = javax.imageio.ImageWriteParam.MODE_EXPLICIT
             compressionQuality = quality.coerceIn(0.1f, 1f)
         }
         val bytes = ByteArrayOutputStream(width * height / 4)
-        javax.imageio.ImageIO.createImageOutputStream(bytes).use { out ->
+        ImageIO.createImageOutputStream(bytes).use { out ->
             writer.output = out
             writer.write(null, javax.imageio.IIOImage(image, null, null), params)
         }
@@ -54,7 +58,16 @@ internal class Pixels(val width: Int, val height: Int, val argb: IntArray, val t
         return bytes.toByteArray()
     }
 
+    /** In [format]'s file bytes. */
+    fun encode(format: ShotFormat, jpegQuality: Float): ByteArray = when (format) {
+        ShotFormat.PNG -> png()
+        ShotFormat.JPEG -> jpeg(jpegQuality)
+    }
+
     companion object {
+        private val ARGB_PRE = BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB_PRE).colorModel as java.awt.image.DirectColorModel
+        private val RGB = BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB).colorModel as java.awt.image.DirectColorModel
+
         /** [region] of [target] (pixels; null: all of it). */
         fun read(target: GpuTarget, region: Rect?, transparent: Boolean): Pixels {
             val part = region ?: Rect(0, 0, target.width, target.height)
@@ -68,14 +81,16 @@ internal class Pixels(val width: Int, val height: Int, val argb: IntArray, val t
 }
 
 /**
- * A monitor as it was at one moment (the chooser shows it standing still): drawn without
- * the pointer, and with it.
+ * A monitor as it was at one moment (the chooser shows it standing still): drawn without the
+ * pointer, and the pointer with what was around it (a small piece, not a second picture of it
+ * all) to put in when it is wanted.
  */
 internal class Frozen private constructor(
     val monitor: Monitor,
     private val renderer: Renderer,
     private val plain: GpuTarget,
-    private val withPointer: GpuTarget?,
+    // The pointer as drawn there (pixels of the monitor), or null: not on this monitor.
+    private val pointer: Pair<Rect, Pixels>?,
 ) : AutoCloseable {
 
     /** Where the monitor was (desktop units) and its scale then. */
@@ -96,67 +111,75 @@ internal class Frozen private constructor(
         }
 
     /** [region] (desktop units, inside [area]; null: all of it), with the [pointer] or without. */
-    fun read(region: Rect?, pointer: Boolean = withPointer != null): Pixels {
-        val target = if (pointer) withPointer ?: plain else plain
-        return Pixels.read(target, region?.let(::toPixels), transparent = false)
+    fun read(region: Rect?, pointer: Boolean = this.pointer != null): Pixels {
+        val part = region?.let(::toPixels) ?: Rect(0, 0, plain.width, plain.height)
+        val pixels = Pixels.read(plain, part, transparent = false)
+        val (at, cursor) = this.pointer?.takeIf { pointer } ?: return pixels
+        // The pointer's piece put in where it overlaps.
+        val overlap = at.intersect(part) ?: return pixels
+        for (row in overlap.y until overlap.bottom) {
+            System.arraycopy(cursor.argb, (row - at.y) * cursor.width + (overlap.x - at.x), pixels.argb, (row - part.y) * pixels.width + (overlap.x - part.x), overlap.width)
+        }
+        return pixels
     }
 
     /** [region] in this picture's pixels (at least one, never outside it). */
-    fun toPixels(region: Rect): Rect {
-        val x0 = Math.round((region.x - area.x) * scale).toInt().coerceIn(0, plain.width - 1)
-        val y0 = Math.round((region.y - area.y) * scale).toInt().coerceIn(0, plain.height - 1)
-        val x1 = Math.round((region.right - area.x) * scale).toInt().coerceIn(x0 + 1, plain.width)
-        val y1 = Math.round((region.bottom - area.y) * scale).toInt().coerceIn(y0 + 1, plain.height)
-        return Rect(x0, y0, x1 - x0, y1 - y0)
-    }
+    fun toPixels(region: Rect): Rect = toPixels(region, area, scale, plain.width, plain.height)
 
     override fun close() {
         copy?.close()
         plain.close()
-        withPointer?.close()
     }
 
     companion object {
-        /** [monitor] now; with [pointer] null both pictures, else just the one asked for. */
+        /**
+         * [monitor] now; with [pointer] null without the pointer, and the pointer kept aside
+         * (the chooser offers both), else just the one asked for.
+         */
         fun capture(desktop: Desktop, monitor: Monitor, pointer: Boolean? = null): Frozen {
             val width = monitor.pixelWidth
             val height = monitor.pixelHeight
             fun picture(cursor: Boolean) = desktop.renderer.createTarget(width, height).also { desktop.capture(it, cursor, monitor) }
             val plain = picture(cursor = pointer == true)
-            val with = if (pointer == null) picture(cursor = true) else null
-            return Frozen(monitor, desktop.renderer, plain, with)
-        }
-    }
-}
-
-/** A PNG on the clipboard (written to whoever pastes it on a thread of its own: it may be big). */
-internal class PngOnClipboard(private val png: ByteArray) : ClipboardData {
-    override val mimeTypes = listOf("image/png")
-
-    override fun send(mimeType: String, fd: Fd) {
-        Thread({
-            fd.use {
-                Arena.ofConfined().use { arena ->
-                    val all = arena.allocateFrom(ValueLayout.JAVA_BYTE, *png)
-                    var done = 0L
-                    while (done < png.size) {
-                        val written = it.write(all.asSlice(done))
-                        if (written <= 0) break // (the program stopped reading)
-                        done += written
-                    }
+            val area = monitor.area
+            val x = desktop.pointerX
+            val y = desktop.pointerY
+            val aside = if (pointer != null || x < area.x || y < area.y || x >= area.right || y >= area.bottom) null else {
+                // (Its picture reaches mostly right of and below its tip.)
+                val around = toPixels(Rect(x.toInt() - POINTER_BEFORE, y.toInt() - POINTER_BEFORE, POINTER_SIZE, POINTER_SIZE), area, monitor.scale, width, height)
+                val with = picture(cursor = true)
+                try {
+                    around to Pixels.read(with, around, transparent = false)
+                } finally {
+                    with.close()
                 }
             }
-        }, "caulis-screenshot-paste").apply { isDaemon = true }.start()
-    }
+            return Frozen(monitor, desktop.renderer, plain, aside)
+        }
 
-    override fun toString() = "a screenshot"
+        // How much around the pointer's tip is kept with it (units).
+        private const val POINTER_BEFORE = 64
+        private const val POINTER_SIZE = 256
+
+        /** [region] (desktop units) in the pixels of a monitor at [area] and [scale], [width] x [height] pixels (at least one, never outside). */
+        internal fun toPixels(region: Rect, area: Rect, scale: Double, width: Int, height: Int): Rect {
+            val x0 = Math.round((region.x - area.x) * scale).toInt().coerceIn(0, width - 1)
+            val y0 = Math.round((region.y - area.y) * scale).toInt().coerceIn(0, height - 1)
+            val x1 = Math.round((region.right - area.x) * scale).toInt().coerceIn(x0 + 1, width)
+            val y1 = Math.round((region.bottom - area.y) * scale).toInt().coerceIn(y0 + 1, height)
+            return Rect(x0, y0, x1 - x0, y1 - y0)
+        }
+    }
 }
 
 /** Windows' pictures put together into one (on any thread: the GPU's part is done). */
 internal class Composite(val width: Int, val height: Int, private val pieces: List<Piece>, private val background: dev.caulis.render.Color?) {
 
-    /** A window's [pixels], drawn at [x], [y], [w] x [h] (pixels of the whole), its corners round by [radius]. */
-    class Piece(val pixels: Pixels, val x: Double, val y: Double, val w: Double, val h: Double, val radius: Double)
+    /**
+     * A window's [pixels], drawn at [x], [y], [w] x [h] (pixels of the whole), its corners round
+     * by [radius]; null pixels: a black box (a window hidden from screenshots).
+     */
+    class Piece(val pixels: Pixels?, val x: Double, val y: Double, val w: Double, val h: Double, val radius: Double)
 
     fun draw(): Pixels {
         val canvas = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB_PRE)
@@ -165,16 +188,20 @@ internal class Composite(val width: Int, val height: Int, private val pieces: Li
         g.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY)
         g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON)
         background?.let { c ->
-            g.color = java.awt.Color(c.red, c.green, c.blue, c.alpha)
+            g.color = c.awt()
             g.fillRect(0, 0, width, height)
         }
         for (piece in pieces) {
-            val image = BufferedImage(piece.pixels.width, piece.pixels.height, BufferedImage.TYPE_INT_ARGB_PRE)
-            image.raster.setDataElements(0, 0, piece.pixels.width, piece.pixels.height, piece.pixels.argb)
             val x = Math.round(piece.x).toInt()
             val y = Math.round(piece.y).toInt()
             val w = Math.round(piece.x + piece.w).toInt() - x
             val h = Math.round(piece.y + piece.h).toInt() - y
+            if (piece.pixels == null) {
+                g.color = java.awt.Color.BLACK
+                g.fill(java.awt.geom.RoundRectangle2D.Double(x.toDouble(), y.toDouble(), w.toDouble(), h.toDouble(), 2 * piece.radius, 2 * piece.radius))
+                continue
+            }
+            val image = piece.pixels.image()
             // At its own size: copied as it is (no blur from scaling by a hair).
             val own = Math.abs(w - image.width) <= 1 && Math.abs(h - image.height) <= 1
             if (piece.radius <= 0.5) {
@@ -195,8 +222,8 @@ internal class Composite(val width: Int, val height: Int, private val pieces: Li
             g.drawImage(cut, x, y, null)
         }
         g.dispose()
-        val argb = IntArray(width * height)
-        canvas.raster.getDataElements(0, 0, width, height, argb)
+        // (Its own pixels, not copied: the picture is big.)
+        val argb = (canvas.raster.dataBuffer as java.awt.image.DataBufferInt).data
         return Pixels(width, height, argb, transparent = background == null || background.alpha < 1f)
     }
 }

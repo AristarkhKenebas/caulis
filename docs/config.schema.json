@@ -312,6 +312,16 @@
           "transform": {
             "enum": ["normal", "90", "180", "270", "flipped", "flipped-90", "flipped-180", "flipped-270"],
             "description": "turned clockwise (a screen on its side: 90)"
+          },
+          "maxBpc": {
+            "type": "integer",
+            "minimum": 6,
+            "maximum": 16,
+            "description": "the most bits per colour the link may use (default 8)"
+          },
+          "adaptiveSync": {
+            "type": "boolean",
+            "description": "variable refresh rate (FreeSync) if the monitor has it"
           }
         }
       },
@@ -352,6 +362,10 @@
           "minimum": 100,
           "maximum": 2000,
           "description": "milliseconds before a held key repeats"
+        },
+        "numLock": {
+          "type": "boolean",
+          "description": "Num Lock on (true) or off (false) from the start (else as the keyboard is)"
         }
       },
       "description": "keyboard layouts and key repeat"
@@ -407,7 +421,7 @@
             },
             "leftHanded": {
               "type": "boolean",
-              "description": "buttons swapped"
+              "description": "buttons swapped; tablets: turned around"
             },
             "middleEmulation": {
               "type": "boolean",
@@ -483,7 +497,7 @@
             },
             "leftHanded": {
               "type": "boolean",
-              "description": "buttons swapped"
+              "description": "buttons swapped; tablets: turned around"
             },
             "middleEmulation": {
               "type": "boolean",
@@ -515,6 +529,86 @@
             }
           },
           "description": "touchpads (on top of pointers)"
+        },
+        "tablets": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "false: not used at all"
+            },
+            "leftHanded": {
+              "type": "boolean",
+              "description": "buttons swapped; tablets: turned around"
+            },
+            "monitor": {
+              "type": "string",
+              "minLength": 1,
+              "description": "tablets: the monitor it covers (else a pen screen its laptop's, others all monitors as one)"
+            },
+            "keepAspect": {
+              "type": "boolean",
+              "description": "tablets: keep the monitor's shape, a strip of the tablet unused (default true)"
+            },
+            "area": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "x": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "where it starts across, 0 to 1 of the tablet"
+                },
+                "y": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "where it starts down, 0 to 1 of the tablet"
+                },
+                "width": {
+                  "type": "number",
+                  "minimum": 0.01,
+                  "maximum": 1,
+                  "description": "how wide, 0 to 1 of the tablet (else to its edge)"
+                },
+                "height": {
+                  "type": "number",
+                  "minimum": 0.01,
+                  "maximum": 1,
+                  "description": "how tall, 0 to 1 of the tablet (else to its edge)"
+                }
+              },
+              "description": "tablets: only this part of the tablet is used"
+            },
+            "pointerOnly": {
+              "type": "boolean",
+              "description": "tablets: the pen is only ever the pointer (no pressure or tilt for programs)"
+            },
+            "tipPressure": {
+              "type": "number",
+              "minimum": 0.01,
+              "maximum": 1,
+              "description": "tablets: how hard the pen presses to touch, 0.01 to 1 (else libinput decides)"
+            },
+            "lowerButton": {
+              "type": "string",
+              "minLength": 1,
+              "description": "tablets: the pen's lower button as a mouse button (\"MouseRight\", \"none\")"
+            },
+            "upperButton": {
+              "type": "string",
+              "minLength": 1,
+              "description": "tablets: the pen's upper button as a mouse button (\"MouseMiddle\", \"none\")"
+            },
+            "thirdButton": {
+              "type": "string",
+              "minLength": 1,
+              "description": "tablets: a third button of the pen as a mouse button (\"MouseSide\", \"none\")"
+            }
+          },
+          "description": "drawing tablets and their pens"
         },
         "devices": {
           "type": "object",
@@ -561,7 +655,7 @@
               },
               "leftHanded": {
                 "type": "boolean",
-                "description": "buttons swapped"
+                "description": "buttons swapped; tablets: turned around"
               },
               "middleEmulation": {
                 "type": "boolean",
@@ -590,13 +684,78 @@
               "clickMethod": {
                 "enum": ["areas", "fingers"],
                 "description": "touchpads: a click by the area pressed or by the number of fingers"
+              },
+              "monitor": {
+                "type": "string",
+                "minLength": 1,
+                "description": "tablets: the monitor it covers (else a pen screen its laptop's, others all monitors as one)"
+              },
+              "keepAspect": {
+                "type": "boolean",
+                "description": "tablets: keep the monitor's shape, a strip of the tablet unused (default true)"
+              },
+              "area": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "x": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "where it starts across, 0 to 1 of the tablet"
+                  },
+                  "y": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "where it starts down, 0 to 1 of the tablet"
+                  },
+                  "width": {
+                    "type": "number",
+                    "minimum": 0.01,
+                    "maximum": 1,
+                    "description": "how wide, 0 to 1 of the tablet (else to its edge)"
+                  },
+                  "height": {
+                    "type": "number",
+                    "minimum": 0.01,
+                    "maximum": 1,
+                    "description": "how tall, 0 to 1 of the tablet (else to its edge)"
+                  }
+                },
+                "description": "tablets: only this part of the tablet is used"
+              },
+              "pointerOnly": {
+                "type": "boolean",
+                "description": "tablets: the pen is only ever the pointer (no pressure or tilt for programs)"
+              },
+              "tipPressure": {
+                "type": "number",
+                "minimum": 0.01,
+                "maximum": 1,
+                "description": "tablets: how hard the pen presses to touch, 0.01 to 1 (else libinput decides)"
+              },
+              "lowerButton": {
+                "type": "string",
+                "minLength": 1,
+                "description": "tablets: the pen's lower button as a mouse button (\"MouseRight\", \"none\")"
+              },
+              "upperButton": {
+                "type": "string",
+                "minLength": 1,
+                "description": "tablets: the pen's upper button as a mouse button (\"MouseMiddle\", \"none\")"
+              },
+              "thirdButton": {
+                "type": "string",
+                "minLength": 1,
+                "description": "tablets: a third button of the pen as a mouse button (\"MouseSide\", \"none\")"
               }
             }
           },
           "description": "single devices by name (--devices lists them; * matches anything)"
         }
       },
-      "description": "mice, touchpads, focus"
+      "description": "mice, touchpads, tablets, focus"
     },
     "idle": {
       "type": "array",
@@ -639,6 +798,30 @@
       "type": "boolean",
       "description": "input switches dark screens on again"
     },
+    "wakeScreensAfterMillis": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 60000,
+      "description": "input this soon after screens went dark does not wake them"
+    },
+    "scratchpadStartMillis": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 60000,
+      "description": "how long a scratchpad's program may take before its key starts it again"
+    },
+    "scriptCallLimitMillis": {
+      "type": "integer",
+      "minimum": 10,
+      "maximum": 60000,
+      "description": "how long one call into config.lua's code may run"
+    },
+    "compiledScriptsKept": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "how many compiled versions of config.kts stay in its cache"
+    },
     "lid": {
       "type": "object",
       "additionalProperties": false,
@@ -667,6 +850,18 @@
         "lock": {
           "type": "boolean",
           "description": "lock the screen before the computer sleeps"
+        },
+        "lockWaitMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30000,
+          "description": "how long sleep waits for the lock screen to show"
+        },
+        "ownLockShowMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000,
+          "description": "how long the compositor's own lock screen shows before sleep, when the locker did not"
         },
         "before": {
           "type": "string",
@@ -710,6 +905,251 @@
       },
       "description": "the cursor"
     },
+    "programs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "environment": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "more environment for programs started inside (wins over Caulis's own choices)"
+        },
+        "xwayland": {
+          "type": "boolean",
+          "description": "run X11 programs too (only at the start)"
+        },
+        "waylandFirst": {
+          "type": "boolean",
+          "description": "start programs the Wayland way, through X11 when that fails"
+        },
+        "x11Programs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "description": "programs always started through X11"
+        },
+        "x11Fallback": {
+          "type": "boolean",
+          "description": "a program that connected and failed at once is started again through X11"
+        },
+        "x11FallbackMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "description": "how soon it must fail for that"
+        },
+        "stopOnQuit": {
+          "type": "boolean",
+          "description": "programs started inside are asked to end when the compositor quits"
+        },
+        "sharpJavaScaling": {
+          "type": "boolean",
+          "description": "Java programs sharp on fractional scales (only at the start)"
+        },
+        "desktopName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "what programs are told the desktop is called (XDG_CURRENT_DESKTOP)"
+        },
+        "exportEnvironment": {
+          "type": "boolean",
+          "description": "hand the environment to systemd and D-Bus activation at the start (default: on a real screen only)"
+        },
+        "portalsToRestart": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "description": "services started again with this compositor's environment when they had another one"
+        },
+        "output": {
+          "enum": ["discard", "log", "file"],
+          "description": "where started programs' output goes"
+        },
+        "outputFile": {
+          "type": "string",
+          "minLength": 1,
+          "description": "the file for output \"file\" (default ~/.cache/<name>/programs.log)"
+        }
+      },
+      "description": "programs started inside"
+    },
+    "systemKeys": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "volumeStep": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "percent per press of the volume keys"
+        },
+        "maxVolume": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 4,
+          "description": "the loudest they go (1.0: 100 %)"
+        },
+        "unmuteOnVolumeChange": {
+          "type": "boolean",
+          "description": "changing the volume switches the sound on again"
+        },
+        "brightnessStep": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "percent per press of the brightness keys"
+        },
+        "minBrightnessPercent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "the darkest they go"
+        },
+        "backlight": {
+          "type": "string",
+          "minLength": 1,
+          "description": "the backlight, by its name in /sys/class/backlight (default: the first)"
+        },
+        "wpctl": {
+          "type": "string",
+          "minLength": 1,
+          "description": "the program for the volume and the microphone"
+        },
+        "brightnessctl": {
+          "type": "string",
+          "minLength": 1,
+          "description": "the program for the brightness without logind"
+        },
+        "playerctl": {
+          "type": "string",
+          "minLength": 1,
+          "description": "the program for music players"
+        },
+        "timeoutMillis": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 60000,
+          "description": "how long these programs may take"
+        }
+      },
+      "description": "what the laptop's keys do: steps, limits, programs"
+    },
+    "screen": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hardwareCursor": {
+          "type": "boolean",
+          "description": "the pointer on the display's cursor plane (only at the start)"
+        },
+        "directScanout": {
+          "type": "boolean",
+          "description": "fullscreen programs' pictures directly on the monitor (only at the start)"
+        },
+        "touchscreenMonitor": {
+          "type": "string",
+          "minLength": 1,
+          "description": "the monitor touch screens cover (default: the laptop's own)"
+        },
+        "builtInConnectors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "maxItems": 1000,
+          "description": "how the laptop's own screen's connector begins (default eDP, LVDS, DSI)"
+        }
+      },
+      "description": "on a real screen"
+    },
+    "titleBarStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "type": "integer",
+          "minimum": 12,
+          "maximum": 120,
+          "description": "how high, in units"
+        },
+        "font": {
+          "type": "string",
+          "minLength": 1,
+          "description": "the title's font"
+        },
+        "fontSize": {
+          "type": "integer",
+          "minimum": 6,
+          "maximum": 72,
+          "description": "the title's size"
+        },
+        "bold": {
+          "type": "boolean",
+          "description": "a bold title"
+        },
+        "centerTitle": {
+          "type": "boolean",
+          "description": "the title in the middle"
+        },
+        "buttons": {
+          "type": "array",
+          "items": {
+            "enum": ["minimize", "maximize", "close"]
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "description": "the buttons, in order"
+        },
+        "buttonsLeft": {
+          "type": "boolean",
+          "description": "the buttons on the left"
+        },
+        "focusedBackground": {
+          "type": "string",
+          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+          "description": "behind the title with the focus"
+        },
+        "unfocusedBackground": {
+          "type": "string",
+          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+          "description": "behind it without"
+        },
+        "focusedText": {
+          "type": "string",
+          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+          "description": "the title with the focus"
+        },
+        "unfocusedText": {
+          "type": "string",
+          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+          "description": "the title without"
+        },
+        "buttonHover": {
+          "type": "string",
+          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+          "description": "behind a button under the pointer"
+        },
+        "closeHover": {
+          "type": "string",
+          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+          "description": "behind the close button under the pointer"
+        }
+      },
+      "description": "how the compositor's title bars look (titleBars \"compositor\")"
+    },
     "terminal": {
       "type": "string",
       "minLength": 1,
@@ -719,6 +1159,16 @@
       "type": "string",
       "minLength": 1,
       "description": "the screen locker"
+    },
+    "lockShowMillis": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 60000,
+      "description": "how long a lock may take to show before it counts as failed (lockFailure)"
+    },
+    "lockFailure": {
+      "enum": ["own-lock", "notice"],
+      "description": "when a lock does not show: the compositor's own plain lock screen, or only a notice (and sleep unlocked)"
     },
     "titleBars": {
       "enum": ["program", "compositor", "none"],
@@ -1282,6 +1732,10 @@
             }
           ],
           "description": "the windowDrag key (false: off)"
+        },
+        "quitWhileLocked": {
+          "type": "boolean",
+          "description": "the quit key works on a locked screen too (default false: it would get round the lock)"
         }
       },
       "description": "the usual keys, changed or turned off"
@@ -1741,6 +2195,192 @@
             ],
             "description": "its border's colour, or [with the keyboard, without]"
           },
+          "borderPaint": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "focused": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "gradient": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                        },
+                        "minItems": 2,
+                        "maxItems": 8,
+                        "description": "colours across the window"
+                      },
+                      "conic": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                        },
+                        "minItems": 2,
+                        "maxItems": 8,
+                        "description": "colours around the window's middle"
+                      },
+                      "degrees": {
+                        "type": "number",
+                        "minimum": -3600,
+                        "maximum": 3600,
+                        "description": "the gradient's direction or start"
+                      },
+                      "turnsPerSecond": {
+                        "type": "number",
+                        "minimum": -10,
+                        "maximum": 10,
+                        "description": "how fast it turns"
+                      },
+                      "rainbow": {
+                        "type": "number",
+                        "minimum": 0.5,
+                        "maximum": 600,
+                        "description": "a rainbow going round once every so many seconds"
+                      },
+                      "shader": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "a paint shader file (vec4 paint(vec2 at))"
+                      }
+                    }
+                  }
+                ],
+                "description": "with the keyboard"
+              },
+              "unfocused": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "gradient": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                        },
+                        "minItems": 2,
+                        "maxItems": 8,
+                        "description": "colours across the window"
+                      },
+                      "conic": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                        },
+                        "minItems": 2,
+                        "maxItems": 8,
+                        "description": "colours around the window's middle"
+                      },
+                      "degrees": {
+                        "type": "number",
+                        "minimum": -3600,
+                        "maximum": 3600,
+                        "description": "the gradient's direction or start"
+                      },
+                      "turnsPerSecond": {
+                        "type": "number",
+                        "minimum": -10,
+                        "maximum": 10,
+                        "description": "how fast it turns"
+                      },
+                      "rainbow": {
+                        "type": "number",
+                        "minimum": 0.5,
+                        "maximum": 600,
+                        "description": "a rainbow going round once every so many seconds"
+                      },
+                      "shader": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "a paint shader file (vec4 paint(vec2 at))"
+                      }
+                    }
+                  }
+                ],
+                "description": "without"
+              },
+              "urgent": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "gradient": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                        },
+                        "minItems": 2,
+                        "maxItems": 8,
+                        "description": "colours across the window"
+                      },
+                      "conic": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                        },
+                        "minItems": 2,
+                        "maxItems": 8,
+                        "description": "colours around the window's middle"
+                      },
+                      "degrees": {
+                        "type": "number",
+                        "minimum": -3600,
+                        "maximum": 3600,
+                        "description": "the gradient's direction or start"
+                      },
+                      "turnsPerSecond": {
+                        "type": "number",
+                        "minimum": -10,
+                        "maximum": 10,
+                        "description": "how fast it turns"
+                      },
+                      "rainbow": {
+                        "type": "number",
+                        "minimum": 0.5,
+                        "maximum": 600,
+                        "description": "a rainbow going round once every so many seconds"
+                      },
+                      "shader": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "a paint shader file (vec4 paint(vec2 at))"
+                      }
+                    }
+                  }
+                ],
+                "description": "while it wants attention"
+              }
+            },
+            "description": "its border's paints: gradients, shaders (focused, unfocused, urgent)"
+          },
+          "specialWorkspace": {
+            "type": "string",
+            "pattern": "^\\s*(special:\\s*)?\\S+\\s*$",
+            "description": "the special workspace it opens in, unseen (unless goToWorkspace)"
+          },
           "shadow": {
             "type": "boolean",
             "description": "false: no shadow; true: the usual one"
@@ -1875,6 +2515,209 @@
       "maxItems": 1000,
       "description": "rules for some panels (bars, launchers, notifications)"
     },
+    "specialWorkspaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dim": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "how much darker everything behind a shown one is"
+        },
+        "blur": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "size": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64,
+                  "description": "how strong"
+                },
+                "passes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6,
+                  "description": "how smooth"
+                },
+                "tone": {
+                  "enum": ["none", "hyprland"],
+                  "description": "start from no toning, or Hyprland's"
+                },
+                "noise": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "grain (a little hides banding)"
+                },
+                "contrast": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2,
+                  "description": "1: as it is"
+                },
+                "brightness": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2,
+                  "description": "1: as it is"
+                },
+                "vibrancy": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "stronger colours (0: as they are)"
+                }
+              }
+            }
+          ],
+          "description": "what is behind it blurred"
+        },
+        "gap": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "space between it and the monitor's edges"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 0.2,
+          "maximum": 1,
+          "description": "how much of the monitor it takes"
+        },
+        "animation": {
+          "enum": ["windows", "windowsIn", "windowsOut", "windowsMove", "scratchpads", "minimize", "restore", "workspaces", "overview", "border", "screenshot", "fade", "fadeScale", "fadeBackground", "fadeNotices", "fadeOsd"],
+          "description": "the animation its windows come and go with"
+        },
+        "hideWhenEmpty": {
+          "type": "boolean",
+          "description": "hide when its last window closes or leaves"
+        },
+        "newWindowsJoin": {
+          "type": "boolean",
+          "description": "windows opening while it is shown go into it"
+        },
+        "hideOnLock": {
+          "type": "boolean",
+          "description": "hide when the screen locks"
+        },
+        "clickOutsideHides": {
+          "type": "boolean",
+          "description": "a click on the dimmed area hides it"
+        },
+        "layout": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "enum": ["floating", "dwindle", "spiral", "grid", "columns", "rows", "monocle", "master-stack", "centered-master", "master-strips", "tree", "tree-spiral", "manual", "scrolling-columns", "canvas"],
+              "description": "how windows are arranged"
+            },
+            "gaps": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "inner": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 500,
+                  "description": "space between tiled windows"
+                },
+                "outer": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 500,
+                  "description": "space between them and the screen's edges"
+                },
+                "top": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 500,
+                  "description": "space at the top edge (else outer)"
+                },
+                "right": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 500,
+                  "description": "space at the right edge (else outer)"
+                },
+                "bottom": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 500,
+                  "description": "space at the bottom edge (else outer)"
+                },
+                "left": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 500,
+                  "description": "space at the left edge (else outer)"
+                }
+              },
+              "description": "space around and between windows"
+            },
+            "ratio": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 0.9,
+              "description": "the main window's share (master layouts)"
+            },
+            "side": {
+              "enum": ["left", "right", "top", "bottom"],
+              "description": "the main window's side (master-stack)"
+            },
+            "masters": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "description": "how many masters (master-stack)"
+            },
+            "newWindow": {
+              "enum": ["stack-end", "stack-top", "master"],
+              "description": "where a new window goes (master-stack)"
+            },
+            "splitRatio": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 0.9,
+              "description": "the old window's share when a new one splits it (tree)"
+            },
+            "columnWidths": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 1
+              },
+              "minItems": 1,
+              "maxItems": 10,
+              "description": "the widths column-width goes through (scrolling-columns)"
+            },
+            "newColumnWidth": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 1,
+              "description": "a new column's width (scrolling-columns)"
+            },
+            "centerFocused": {
+              "type": "boolean",
+              "description": "the focused column always in the middle (scrolling-columns)"
+            }
+          },
+          "description": "its own layout (else the usual one)"
+        }
+      },
+      "description": "special workspaces (Hyprland's special): shown over the current workspace with special-workspace toggle [name]"
+    },
     "screenShader": {
       "type": "object",
       "additionalProperties": false,
@@ -1937,7 +2780,7 @@
                   "anyOf": [
                     {
                       "type": "string",
-                      "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                      "minLength": 1
                     },
                     {
                       "type": "object",
@@ -1995,7 +2838,7 @@
                   "anyOf": [
                     {
                       "type": "string",
-                      "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                      "minLength": 1
                     },
                     {
                       "type": "object",
@@ -2048,6 +2891,184 @@
                     }
                   ],
                   "description": "without"
+                },
+                "urgent": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "gradient": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 8,
+                          "description": "colours across the window"
+                        },
+                        "conic": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 8,
+                          "description": "colours around the window's middle"
+                        },
+                        "degrees": {
+                          "type": "number",
+                          "minimum": -3600,
+                          "maximum": 3600,
+                          "description": "the gradient's direction or start"
+                        },
+                        "turnsPerSecond": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10,
+                          "description": "how fast it turns"
+                        },
+                        "rainbow": {
+                          "type": "number",
+                          "minimum": 0.5,
+                          "maximum": 600,
+                          "description": "a rainbow going round once every so many seconds"
+                        },
+                        "shader": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "a paint shader file (vec4 paint(vec2 at))"
+                        }
+                      }
+                    }
+                  ],
+                  "description": "a window that wants attention (else as the others)"
+                },
+                "groupedFocused": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "gradient": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 8,
+                          "description": "colours across the window"
+                        },
+                        "conic": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 8,
+                          "description": "colours around the window's middle"
+                        },
+                        "degrees": {
+                          "type": "number",
+                          "minimum": -3600,
+                          "maximum": 3600,
+                          "description": "the gradient's direction or start"
+                        },
+                        "turnsPerSecond": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10,
+                          "description": "how fast it turns"
+                        },
+                        "rainbow": {
+                          "type": "number",
+                          "minimum": 0.5,
+                          "maximum": 600,
+                          "description": "a rainbow going round once every so many seconds"
+                        },
+                        "shader": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "a paint shader file (vec4 paint(vec2 at))"
+                        }
+                      }
+                    }
+                  ],
+                  "description": "the focused window of a group (else focused)"
+                },
+                "groupedUnfocused": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "gradient": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 8,
+                          "description": "colours across the window"
+                        },
+                        "conic": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 8,
+                          "description": "colours around the window's middle"
+                        },
+                        "degrees": {
+                          "type": "number",
+                          "minimum": -3600,
+                          "maximum": 3600,
+                          "description": "the gradient's direction or start"
+                        },
+                        "turnsPerSecond": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10,
+                          "description": "how fast it turns"
+                        },
+                        "rainbow": {
+                          "type": "number",
+                          "minimum": 0.5,
+                          "maximum": 600,
+                          "description": "a rainbow going round once every so many seconds"
+                        },
+                        "shader": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "a paint shader file (vec4 paint(vec2 at))"
+                        }
+                      }
+                    }
+                  ],
+                  "description": "the other windows of a group (else unfocused)"
+                },
+                "animate": {
+                  "type": "boolean",
+                  "description": "false: turning gradients and shaders using time stand still"
                 }
               }
             }
@@ -2088,7 +3109,7 @@
                   "anyOf": [
                     {
                       "type": "string",
-                      "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                      "minLength": 1
                     },
                     {
                       "type": "object",
@@ -2187,7 +3208,7 @@
                   "anyOf": [
                     {
                       "type": "string",
-                      "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                      "minLength": 1
                     },
                     {
                       "type": "object",
@@ -2340,11 +3361,15 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "animations on (default false: everything changes at once; one turned on by name runs all the same)"
+        },
         "millis": {
           "type": "integer",
           "minimum": 0,
           "maximum": 5000,
-          "description": "how long animations take (0: none at all)"
+          "description": "the global time in milliseconds, of those without one of their own (0: none at all)"
         },
         "windowOpen": {
           "anyOf": [
@@ -2373,7 +3398,7 @@
               }
             }
           ],
-          "description": "a window appearing"
+          "description": "a window appearing, as code's look (older; windowsIn is the same by name)"
         },
         "windowClose": {
           "anyOf": [
@@ -2402,65 +3427,7 @@
               }
             }
           ],
-          "description": "a window going away"
-        },
-        "minimize": {
-          "anyOf": [
-            {
-              "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"]
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "style": {
-                  "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"],
-                  "description": "how it looks"
-                },
-                "millis": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 5000,
-                  "description": "how long it takes (else animations.millis, or its spring's own time)"
-                },
-                "curve": {
-                  "type": "string",
-                  "minLength": 1,
-                  "description": "how it moves"
-                }
-              }
-            }
-          ],
-          "description": "a window going into the dock"
-        },
-        "restore": {
-          "anyOf": [
-            {
-              "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"]
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "style": {
-                  "enum": ["pop", "fade", "scale", "slide-up", "genie", "fly", "none"],
-                  "description": "how it looks"
-                },
-                "millis": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 5000,
-                  "description": "how long it takes (else animations.millis, or its spring's own time)"
-                },
-                "curve": {
-                  "type": "string",
-                  "minLength": 1,
-                  "description": "how it moves"
-                }
-              }
-            }
-          ],
-          "description": "a window coming back out of the dock"
+          "description": "a window going away, as code's look (older; windowsOut is the same by name)"
         },
         "windowMove": {
           "anyOf": [
@@ -2489,7 +3456,7 @@
               }
             }
           ],
-          "description": "windows gliding to new places"
+          "description": "windows gliding to new places (older; windowsMove is the same by name)"
         },
         "workspaceSwitch": {
           "anyOf": [
@@ -2518,12 +3485,12 @@
               }
             }
           ],
-          "description": "another workspace shown"
+          "description": "another workspace shown (older; workspaces is the same by name)"
         },
         "curve": {
           "type": "string",
           "minLength": 1,
-          "description": "how animations move"
+          "description": "the global curve: how animations move"
         },
         "curves": {
           "type": "object",
@@ -2575,13 +3542,781 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 5000,
-          "description": "the overview zooming"
+          "description": "the overview zooming (older; overview.millis)"
         },
         "scaleChangeMillis": {
           "type": "integer",
           "minimum": 0,
           "maximum": 5000,
-          "description": "the picture melting when the scale changes"
+          "description": "the picture melting when the scale changes (older; fadeScale.millis)"
+        },
+        "windows": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look: popin [80%], pop [90%], fade, scale [90%], slide [up|down|left|right] [40], slide-up, genie, fly, move, none"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "every animation of windows below"
+        },
+        "windowsIn": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look: popin [80%], pop [90%], fade, scale [90%], slide [up|down|left|right] [40], slide-up, genie, fly, move, none"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "a window appearing (Animations.windowOpen)"
+        },
+        "windowsOut": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look: popin [80%], pop [90%], fade, scale [90%], slide [up|down|left|right] [40], slide-up, genie, fly, move, none"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "a window going away (Animations.windowClose)"
+        },
+        "windowsMove": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look: move, none"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "windows gliding to a new place or size: a layout change, maximize, a neighbour closing, the view settling after a swipe (Animations.windowMove)"
+        },
+        "scratchpads": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look: move, none"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "a scratchpad sliding in and out (Animations.windowMove's look)"
+        },
+        "minimize": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look: popin [80%], pop [90%], fade, scale [90%], slide [up|down|left|right] [40], slide-up, genie, fly, move, none"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "a window going into the dock (Animations.minimize)"
+        },
+        "restore": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look: popin [80%], pop [90%], fade, scale [90%], slide [up|down|left|right] [40], slide-up, genie, fly, move, none"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "a minimized window coming back (Animations.restore)"
+        },
+        "workspaces": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look: slide, slidevert, fade, none"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "another workspace shown, also after a swipe (Animations.workspaceSwitch)"
+        },
+        "overview": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look (it has one only)"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "the overview zooming out and in, also finishing a pinch (Animations.overviewMillis; 1.5 × the global time)"
+        },
+        "border": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look (it has one only)"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "border, shadow, opacity and dimming changing when the focus moves (Effects.focusChangeMillis, 150)"
+        },
+        "screenshot": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look (it has one only)"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "the screenshot chooser coming in: the screen darkening, its toolbar rising (caulis-screenshot; ChooserBehaviour.appearMillis, 170)"
+        },
+        "fade": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look (it has one only)"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "every fade below"
+        },
+        "fadeScale": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look (it has one only)"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "the picture melting into the new one when a monitor's scale changes (Animations.scaleChangeMillis, 250)"
+        },
+        "fadeBackground": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look (it has one only)"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "one background melting into the next (backgroundChangeMillis, 400)"
+        },
+        "fadeNotices": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look (it has one only)"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "the compositor's notices fading in and out (NoticeStyle.fadeMillis, 180)"
+        },
+        "fadeOsd": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "on or off (else as the one above it, in the end animations.enabled)"
+                    },
+                    "millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000,
+                      "description": "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"
+                    },
+                    "speed": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"
+                    },
+                    "curve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "how it moves"
+                    },
+                    "style": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "its look (it has one only)"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "the volume and brightness display fading in and out (150)"
         }
       },
       "description": "animations"
@@ -2820,6 +4555,74 @@
       "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
       "description": "behind the screen locker"
     },
+    "backgroundColor": {
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+      "description": "under everything (where no window or wallpaper is)"
+    },
+    "focusStealing": {
+      "enum": ["same-program", "always", "never"],
+      "description": "which programs may take the keyboard by themselves"
+    },
+    "unlockFocus": {
+      "enum": ["focused-before", "newest-before"],
+      "description": "which window gets the keyboard after unlocking (never one opened while locked)"
+    },
+    "idleInhibitorsWhileLocked": {
+      "type": "boolean",
+      "description": "idle inhibitors keep the screen on while it is locked too"
+    },
+    "maxForwardedStringBytes": {
+      "type": "integer",
+      "minimum": 16,
+      "maximum": 3000,
+      "description": "the longest title or app id passed on to other programs, in bytes"
+    },
+    "maxRegionParts": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000,
+      "description": "rectangles a program's region keeps exactly"
+    },
+    "windowListPrograms": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0,
+      "maxItems": 1000,
+      "description": "the programs that may see the list of windows (default: the privileged ones)"
+    },
+    "bindingModifiers": {
+      "enum": ["xkb", "physical"],
+      "description": "modifiers in bindings as the keyboard layout says, or the physical keys"
+    },
+    "xwaylandRestart": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "millis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600000,
+          "description": "wait after a failed start (doubled each time)"
+        },
+        "maxMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600000,
+          "description": "the longest wait"
+        },
+        "maxFailedStarts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "failed starts in a row before giving up (until xwayland-retry)"
+        }
+      },
+      "description": "when Xwayland fails to start"
+    },
     "startup": {
       "type": "array",
       "items": {
@@ -2829,6 +4632,255 @@
       "minItems": 0,
       "maxItems": 1000,
       "description": "programs started with the compositor"
+    },
+    "autostart": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "staggerMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "description": "the time between two programs starting (default 400)"
+        },
+        "afterReveal": {
+          "type": "boolean",
+          "description": "start them once the desktop is shown (default true)"
+        },
+        "desktopEntries": {
+          "type": "boolean",
+          "description": "also the .desktop files of ~/.config/autostart and /etc/xdg/autostart (default false)"
+        },
+        "afterTimeoutMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600000,
+          "description": "how long an entry waits for those it starts after (default 10000)"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "app": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1,
+                    "maxItems": 1000
+                  }
+                ],
+                "description": "a program and its arguments (no shell): [\"nm-applet\", \"--indicator\"]"
+              },
+              "script": {
+                "type": "string",
+                "minLength": 1,
+                "description": "an executable file (~ is your home)"
+              },
+              "shell": {
+                "type": "string",
+                "minLength": 1,
+                "description": "a piece of shell (/bin/sh -c)"
+              },
+              "arguments": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 0,
+                "maxItems": 1000,
+                "description": "the script's arguments"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "its name (for after, ifNotRunning and the status; default the program's)"
+              },
+              "delayMillis": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3600000,
+                "description": "wait this long more before it starts"
+              },
+              "ifNotRunning": {
+                "type": "boolean",
+                "description": "not started when a program of its name runs already"
+              },
+              "restart": {
+                "anyOf": [
+                  {
+                    "enum": ["never", "on-crash", "always"]
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "when": {
+                        "enum": ["never", "on-crash", "always"],
+                        "description": "when it is started again"
+                      },
+                      "maxTimes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000,
+                        "description": "at most this many times (default 3)"
+                      },
+                      "withinMillis": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 86400000,
+                        "description": "within this time (default 60000)"
+                      }
+                    }
+                  }
+                ],
+                "description": "started again when it ended: never (default), on-crash, always, or { when, maxTimes, withinMillis }"
+              },
+              "after": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 0,
+                "maxItems": 1000,
+                "description": "start only once these entries have started"
+              },
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "description": "more environment for it"
+              },
+              "dir": {
+                "type": "string",
+                "minLength": 1,
+                "description": "the folder it starts in (~ is your home)"
+              }
+            }
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "description": "the programs, in order"
+        }
+      },
+      "description": "programs started with the session, one after another, once per session (a reload starts only new entries)"
+    },
+    "reveal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "dark until warm, then the desktop fades in (default false)"
+        },
+        "fadeMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "description": "how long the fade takes (default 600)"
+        },
+        "maxWaitMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 120000,
+          "description": "the longest the screen stays dark (default 4000)"
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+          "description": "the colour until then (default black)"
+        },
+        "warmFrames": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 120,
+          "description": "frames drawn dark before it fades in (default 3)"
+        },
+        "hideCursor": {
+          "type": "boolean",
+          "description": "the pointer hidden while dark (default true)"
+        }
+      },
+      "description": "the start, smooth: dark until warm, then the desktop fades in"
+    },
+    "startupSound": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "play it (default false)"
+        },
+        "preset": {
+          "enum": ["airy", "classic", "glass", "soft"],
+          "description": "one of the sounds Caulis makes itself (default airy)"
+        },
+        "file": {
+          "type": "string",
+          "minLength": 1,
+          "description": "a sound file of yours instead (ogg, wav, flac: what the player plays)"
+        },
+        "volume": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "how loud, 0 to 1 (default 0.8)"
+        },
+        "delayMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "description": "wait this long more before it plays"
+        },
+        "at": {
+          "enum": ["reveal", "start"],
+          "description": "when the desktop fades in (default), or right at the start"
+        },
+        "whenHeadless": {
+          "type": "boolean",
+          "description": "played in the headless backend too (default false)"
+        },
+        "player": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "maxItems": 1000,
+          "description": "your player's command, its words ({file}, {volume}, {paVolume}, {percent})"
+        },
+        "players": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "maxItems": 1000,
+          "description": "the players tried in order (default pw-play, paplay, aplay)"
+        },
+        "playerTimeoutMillis": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 600000,
+          "description": "how long a player may play before it is stopped (default 30000)"
+        }
+      },
+      "description": "a sound when the session starts"
     },
     "logLevel": {
       "type": "integer",

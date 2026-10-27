@@ -7,6 +7,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +28,7 @@ import java.nio.file.Path
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /** A Compose scene inside the compositor: drawn, clicked, typed into. */
 class ComposeWidgetTest {
@@ -94,6 +100,114 @@ class ComposeWidgetTest {
         }
     }
 
+    @Test
+    fun `content that throws is logged and starts over instead of staying dead`() {
+        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        ScreenTestServer().use { server ->
+            var boom by mutableStateOf(false)
+            var effectBoom by mutableStateOf(false)
+            var notYet by mutableStateOf(false)
+            var color by mutableStateOf(Color.Red)
+            val errors = java.util.concurrent.CopyOnWriteArrayList<Throwable>()
+            val recovery = ComposeRecovery(delayMillis = 100, notice = null, onError = { errors += it })
+            server.onServer { d ->
+                d.addWidget(ComposeWidget(d, post = { server.loop.post(it::run) }, place = { m -> Rect(m.area.x, m.area.y, 100, 40) }, recovery = recovery) {
+                    if (boom) error("a mistake in a composable")
+                    if (notYet) TODO("not yet")
+                    LaunchedEffect(effectBoom) { if (effectBoom) error("a mistake in an effect") }
+                    Box(Modifier.fillMaxWidth().height(40.dp).background(color))
+                })
+            }
+            waitFor(server, 10, 10, RED)
+            // Thrown while composed again: told, then (fixed meanwhile) it shows again.
+            server.onServer { boom = true }
+            waitUntil { errors.size == 1 }
+            server.onServer { boom = false; color = Color.Blue }
+            waitFor(server, 10, 10, BLUE)
+            // Thrown in an effect: the same.
+            server.onServer { effectBoom = true }
+            waitUntil { errors.size == 2 }
+            server.onServer { effectBoom = false; color = Color.Red }
+            waitFor(server, 10, 10, RED)
+            // An Error, not an Exception (TODO()): the same — not past us into the desktop on every frame.
+            server.onServer { notYet = true }
+            waitUntil { errors.size == 3 }
+            Thread.sleep(50)
+            server.onServer { notYet = false; color = Color.Blue }
+            waitFor(server, 10, 10, BLUE)
+            assertEquals(
+                listOf("a mistake in a composable", "a mistake in an effect", "An operation is not implemented: not yet"),
+                errors.map { it.message },
+                "each failure told once",
+            )
+        }
+    }
+
+    @Test
+    fun `a widget shown fully see-through is not drawn and keeps no frames coming`() {
+        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        ScreenTestServer().use { server ->
+            var shown by mutableStateOf(false)
+            var ticks = 0
+            server.onServer { d ->
+                d.addWidget(ComposeWidget(d, post = { server.loop.post(it::run) }, place = { m -> Rect(m.area.x, m.area.y, 100, 40) },
+                    appearance = { if (shown) WidgetLook.SHOWN else WidgetLook(alpha = 0f) }) {
+                    // A spinner: wants a frame all the time.
+                    LaunchedEffect(Unit) { while (true) withFrameNanos { ticks++ } }
+                    Box(Modifier.fillMaxWidth().height(40.dp).background(Color.Red))
+                })
+            }
+            Thread.sleep(300)
+            val frames = server.framesDrawn
+            Thread.sleep(500)
+            assertTrue(server.framesDrawn - frames <= 2, "frames while hidden: ${server.framesDrawn - frames}")
+            server.onServer { d -> shown = true; d.requestRedraw() }
+            waitFor(server, 10, 10, RED)
+            val shownFrames = server.framesDrawn
+            Thread.sleep(300)
+            assertTrue(server.framesDrawn - shownFrames > 2, "the spinner moves once it shows")
+        }
+    }
+
+    @Test
+    fun `a lock screen in Compose gets the keys while locked, another widget no clicks`() {
+        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        ScreenTestServer().use { server ->
+            var field by mutableStateOf(TextFieldValue(""))
+            var clicks = 0
+            server.onServer { d ->
+                d.addWidget(ComposeWidget(d, post = { server.loop.post(it::run) }, place = { m -> Rect(m.area.x, m.area.y + 100, 100, 40) }) {
+                    Box(Modifier.fillMaxWidth().height(40.dp).background(Color.Red).clickable { clicks++ })
+                })
+                val lock = ComposeWidget(d, post = { server.loop.post(it::run) }, place = { m -> Rect(m.area.x, m.area.y, 300, 40) }, takesKeyboard = true) {
+                    val focus = remember { FocusRequester() }
+                    BasicTextField(field, { field = it }, Modifier.fillMaxWidth().height(40.dp).background(Color.White).focusRequester(focus))
+                    LaunchedEffect(Unit) { focus.requestFocus() }
+                }
+                d.lockInternally(lock)
+            }
+            waitFor(server, 10, 10, WHITE)
+            waitFrames(server)
+            server.onServer { d -> for (code in listOf(35, 23)) { d.key(0, code, true); d.key(0, code, false) } } // h, i
+            waitUntil { field.text == "hi" }
+            // The other widget is behind the lock: a click on it does nothing.
+            server.onServer { d ->
+                d.pointerMoved(0, 50.0, 120.0)
+                d.pointerButton(0, BTN_LEFT, true)
+                d.pointerButton(0, BTN_LEFT, false)
+            }
+            Thread.sleep(300)
+            assertEquals(0, clicks)
+            server.onServer { d -> d.unlockInternally() }
+        }
+    }
+
+    private fun waitUntil(what: () -> Boolean) {
+        val deadline = System.nanoTime() + 5_000_000_000L
+        while (!what() && System.nanoTime() < deadline) Thread.sleep(20)
+        assertTrue(what(), "not in 5 s")
+    }
+
     // The field sees what it was changed to once it is composed again: a frame or two later.
     // (Faster than any hand types: keys sent at once would find it as it was.)
     private fun waitFrames(server: ScreenTestServer) {
@@ -116,6 +230,7 @@ class ComposeWidgetTest {
     private companion object {
         const val RED = 0xFF0000
         const val BLUE = 0x0000FF
+        const val WHITE = 0xFFFFFF
         const val BTN_LEFT = 0x110
     }
 }

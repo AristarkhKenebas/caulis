@@ -59,7 +59,10 @@ object CaulisConfigScriptCompilation : ScriptCompilationConfiguration({
 /**
  * config.kts: the configuration as a Kotlin script, compiled by the compositor itself. The
  * first time (and after each change) that takes a few seconds; the compiled script is kept
- * in `~/.cache/<configName>/config-kts`, so starting again is quick.
+ * in `~/.cache/<configName>/config-kts` (the newest [Caulis.compiledScriptsKept] versions), so starting again is quick.
+ *
+ * A [ConfigLanguage]: Caulis finds it by itself when caulis-script is on the class path —
+ * there is nothing to call.
  */
 class KotlinScriptConfig : ConfigLanguage {
 
@@ -81,7 +84,7 @@ class KotlinScriptConfig : ConfigLanguage {
                     compilationCache(
                         CompiledScriptJarsCache { source, configuration ->
                             Files.createDirectories(cache)
-                            cache.resolve(key(source, configuration) + ".jar").toFile()
+                            cache.resolve(key(source, configuration) + ".jar").toFile().also { keepNewest(cache, it.toPath(), caulis.compiledScriptsKept) }
                         },
                     )
                 }
@@ -109,6 +112,21 @@ class KotlinScriptConfig : ConfigLanguage {
             problems += "$name${if (line != null && line > 0) ":$line" else ""}: ${error.message ?: error}"
         }
         return problems.distinct()
+    }
+
+    // Only the newest [kept] compiled scripts stay (each change of the script, or of Caulis,
+    // makes another; Caulis.compiledScriptsKept); [using] is the one about to be used, kept too.
+    private fun keepNewest(cache: Path, using: Path, kept: Int) {
+        try {
+            val jars = Files.list(cache).use { all -> all.filter { it.fileName.toString().endsWith(".jar") && it != using }.toList() }
+                .sortedByDescending { runCatching { Files.getLastModifiedTime(it).toMillis() }.getOrDefault(0L) }
+            for (old in jars.drop(kept - 1)) {
+                Files.deleteIfExists(old)
+                log.trace { "Old compiled script taken away: ${old.fileName}" }
+            }
+        } catch (e: Exception) {
+            log.warn("The compiled scripts in $cache could not be tidied: $e")
+        }
     }
 
     private fun cacheFolder(caulis: Caulis): Path {

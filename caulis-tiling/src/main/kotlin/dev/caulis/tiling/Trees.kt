@@ -43,7 +43,7 @@ class BinaryTree @JvmOverloads constructor(
  * or — after [TilingCommand.SplitNext] in the other direction — the focused window and the
  * new one get a container of their own.
  */
-class ManualTiling(private val gaps: Gaps = Gaps()) : RememberingLayout("Manual") {
+class ManualTiling @JvmOverloads constructor(private val gaps: Gaps = Gaps()) : RememberingLayout("Manual") {
     override fun createModel(): TilingModel = ContainerModel(gaps)
 }
 
@@ -90,14 +90,25 @@ private class ContainerModel(private val gaps: Gaps) : TilingModel {
             is Container -> {
                 if (node.children.isEmpty()) return
                 val total = if (node.sideBySide) rect.width else rect.height
-                // Weights in thousandths keep resized proportions; equal by default.
-                val sizes = Split.weighted(total, node.children.map { (it.weight * 1000).toInt().coerceAtLeast(1) }, gaps.inner)
+                // Weights in thousandths keep resized proportions; equal by default. No part
+                // smaller than its windows' minimums while they fit.
+                val least = node.children.map { least(it, node.sideBySide) }
+                val sizes = Split.weighted(total, node.children.map { (it.weight * 1000).toInt().coerceAtLeast(1) }, gaps.inner, least)
                 for ((child, slot) in node.children.zip(sizes)) {
                     val (start, size) = slot
                     val childRect = if (node.sideBySide) Rect(rect.x + start, rect.y, size, rect.height) else Rect(rect.x, rect.y + start, rect.width, size)
                     place(child, childRect, out)
                 }
             }
+        }
+    }
+
+    // The smallest [node] may be across ([horizontal]) or down: its windows' minimums, added up where they lie one after the other.
+    private fun least(node: Node, horizontal: Boolean): Int = when (node) {
+        is Leaf -> (if (horizontal) node.window.minWidth else node.window.minHeight).coerceAtLeast(1) // (a pixel at least)
+        is Container -> {
+            val each = node.children.map { least(it, horizontal) }
+            if (each.isEmpty()) 0 else if (node.sideBySide == horizontal) each.sum() + gaps.inner * (each.size - 1) else each.max()
         }
     }
 
@@ -204,6 +215,7 @@ private class ContainerModel(private val gaps: Gaps) : TilingModel {
 }
 
 /** bspwm's spiral, remembered: windows keep their places when others open or close. */
+@JvmOverloads
 fun BspSpiral(gaps: Gaps = Gaps()): Layout = BinaryTree(gaps, Insertion.SPIRAL, "Tree (spiral)")
 
 private class TreeModel(private val gaps: Gaps, private val insertion: Insertion, private val splitRatio: Double = 0.5) : TilingModel {
@@ -261,10 +273,24 @@ private class TreeModel(private val gaps: Gaps, private val insertion: Insertion
         when (node) {
             is Leaf -> out[node.window] = rect
             is Fork -> {
-                val (first, second) = Split.two(rect, node.ratio, gaps.inner, vertical = !node.sideBySide)
+                // (The split moves so neither side is smaller than its windows' minimums, while they fit.)
+                val (first, second) = Split.two(
+                    rect, node.ratio, gaps.inner, !node.sideBySide,
+                    least(node.first, node.sideBySide), least(node.second, node.sideBySide),
+                )
                 place(node.first, first, out)
                 place(node.second, second, out)
             }
+        }
+    }
+
+    // The smallest [node] may be across ([horizontal]) or down: its windows' minimums, added up where they lie one after the other.
+    private fun least(node: Node, horizontal: Boolean): Int = when (node) {
+        is Leaf -> (if (horizontal) node.window.minWidth else node.window.minHeight).coerceAtLeast(1) // (a pixel at least)
+        is Fork -> {
+            val a = least(node.first, horizontal)
+            val b = least(node.second, horizontal)
+            if (node.sideBySide == horizontal) a + b + gaps.inner else maxOf(a, b)
         }
     }
 
@@ -351,7 +377,8 @@ private class TreeModel(private val gaps: Gaps, private val insertion: Insertion
                 true
             }
             TilingCommand.Balance -> {
-                splits().forEach { it.ratio = 0.5 }
+                // Back to the share new splits get.
+                splits().forEach { it.ratio = splitRatio }
                 true
             }
             is TilingCommand.Message -> {

@@ -21,7 +21,7 @@ class Presentation(display: Display) {
 
                 override fun feedback(resource: WpPresentation, surface: WlSurface, callback: WpPresentationFeedback) {
                     val target = surface.dataAs<Surface>() ?: return callback.discard()
-                    target.pending.presentationFeedbacks += callback
+                    target.pending.feedbackList += callback
                 }
             }
             // All times we report are from the monotonic clock (it never jumps).

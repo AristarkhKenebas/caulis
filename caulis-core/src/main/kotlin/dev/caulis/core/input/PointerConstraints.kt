@@ -38,6 +38,33 @@ class PointerConstraints(display: Display, private val seat: Seat) {
         var active = false
             private set
 
+        // set_region and set_cursor_position_hint wait for the surface's next commit (the
+        // protocol makes them double-buffered state, as the surface's own).
+        private var pendingRegion: Region.Snapshot? = null
+        private var regionPending = false
+        private var pendingHint: Pair<Double, Double>? = null
+
+        internal fun regionAsked(region: Region.Snapshot?) {
+            pendingRegion = region
+            regionPending = true
+        }
+
+        internal fun hintAsked(x: Double, y: Double) {
+            pendingHint = x to y
+        }
+
+        internal fun committed() {
+            if (regionPending) {
+                region = pendingRegion
+                regionPending = false
+                pendingRegion = null
+            }
+            pendingHint?.let {
+                hint = it
+                pendingHint = null
+            }
+        }
+
         internal fun activate() {
             if (active) return
             active = true
@@ -83,11 +110,11 @@ class PointerConstraints(display: Display, private val seat: Seat) {
                     val constraint = add(resource, target, id, locks = true, region, lifetime) ?: return
                     id.requests = object : ZwpLockedPointerV1.Requests {
                         override fun setCursorPositionHint(resource: ZwpLockedPointerV1, surfaceX: Double, surfaceY: Double) {
-                            constraint.hint = surfaceX to surfaceY
+                            constraint.hintAsked(surfaceX, surfaceY)
                         }
 
                         override fun setRegion(resource: ZwpLockedPointerV1, region: WlRegion?) {
-                            constraint.region = region?.dataAs<Region>()?.snapshot()
+                            constraint.regionAsked(region?.dataAs<Region>()?.snapshot())
                         }
 
                         override fun destroy(resource: ZwpLockedPointerV1) {}
@@ -99,7 +126,7 @@ class PointerConstraints(display: Display, private val seat: Seat) {
                     val constraint = add(resource, target, id, locks = false, region, lifetime) ?: return
                     id.requests = object : ZwpConfinedPointerV1.Requests {
                         override fun setRegion(resource: ZwpConfinedPointerV1, region: WlRegion?) {
-                            constraint.region = region?.dataAs<Region>()?.snapshot()
+                            constraint.regionAsked(region?.dataAs<Region>()?.snapshot())
                         }
 
                         override fun destroy(resource: ZwpConfinedPointerV1) {}
@@ -123,9 +150,12 @@ class PointerConstraints(display: Display, private val seat: Seat) {
             if (constraints[surface] === constraint) constraints.remove(surface)
         }
         // Once per surface (constraints come and go; listeners on the surface would pile up).
-        if (watched.add(surface)) surface.resource.onDestroy {
-            constraints.remove(surface)
-            watched.remove(surface)
+        if (watched.add(surface)) {
+            surface.resource.onDestroy {
+                constraints.remove(surface)
+                watched.remove(surface)
+            }
+            surface.onCommit { constraints[surface]?.committed() }
         }
         // The pointer is over it already: it works at once.
         if (seat.pointerFocus === surface && allowed(surface)) constraint.activate()
@@ -151,7 +181,7 @@ class PointerConstraints(display: Display, private val seat: Seat) {
     fun relativeMotion(timeMillis: Int, dx: Double, dy: Double, rawDx: Double, rawDy: Double) {
         val client = seat.pointerFocus?.resource?.client ?: return
         if (relativePointers.none { it.client === client }) return
-        val micros = timeMillis.toLong() * 1000
+        val micros = Integer.toUnsignedLong(timeMillis) * 1000 // (the millisecond clock wraps after 49 days: never negative)
         for (pointer in relativePointers) {
             if (pointer.client === client) pointer.sendRelativeMotion((micros ushr 32).toInt(), micros.toInt(), dx, dy, rawDx, rawDy)
         }

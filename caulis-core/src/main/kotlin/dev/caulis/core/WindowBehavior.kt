@@ -13,6 +13,9 @@ enum class WindowRequest {
 
     /** To be brought forward with the keyboard (xdg-activation): it is marked urgent instead. */
     ACTIVATE,
+
+    /** To come back from minimized by itself (X11 programs): it is marked urgent instead. */
+    RESTORE,
 }
 
 /**

@@ -42,7 +42,7 @@ class PrimarySelection(display: Display, private val seat: Seat, private val cli
                     id.data = source
                     id.requests = object : ZwpPrimarySelectionSourceV1.Requests {
                         override fun offer(resource: ZwpPrimarySelectionSourceV1, mimeType: String) {
-                            if (source.mimeTypes.size < MAX_MIME_TYPES) source.mimeTypes += mimeType
+                            if (source.mimeTypes.size < MAX_MIME_TYPES && resource.client.server.fitsForwarded(mimeType)) source.mimeTypes += mimeType
                         }
 
                         override fun destroy(resource: ZwpPrimarySelectionSourceV1) {}
@@ -56,7 +56,7 @@ class PrimarySelection(display: Display, private val seat: Seat, private val cli
                     id.requests = object : ZwpPrimarySelectionDeviceV1.Requests {
                         override fun setSelection(resource: ZwpPrimarySelectionDeviceV1, source: ZwpPrimarySelectionSourceV1?, serial: Int) {
                             // As the clipboard: only the program you use.
-                            if (!this@PrimarySelection.seat.inUse(resource.client)) {
+                            if (!this@PrimarySelection.seat.maySetSelection(resource.client, serial)) {
                                 source?.sendCancelled()
                                 return
                             }

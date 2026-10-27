@@ -29,7 +29,11 @@ class DBusMessage internal constructor(
     val errorName: String?,
     val sender: String?,
     val signature: String,
-    /** The values, in [signature]'s order: String, ObjectPath, Boolean, Int, Long, Double, List, Fd (h), ... */
+    /**
+     * The values, in [signature]'s order: String, ObjectPath, Boolean, Int, Long, Double, List, Fd (h), ...
+     * The unsigned kinds come as their signed ones: `u` as Int and `t` as Long (2^31 and more
+     * as negative numbers: `toUInt()`/`toULong()` gives them back).
+     */
     val body: List<Any?>,
     internal val flags: Int = 0,
 ) {
@@ -141,9 +145,13 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
      */
     fun export(path: String, iface: String, methods: Map<String, DBusMethod>): AutoCloseable {
         exported.getOrPut(path) { LinkedHashMap() }[iface] = methods
+        log.trace { "Exported $iface at $path" }
         return AutoCloseable {
+            // (Only if it is still this one: an export of the same again since stays.)
+            if (exported[path]?.get(iface) !== methods) return@AutoCloseable
             exported[path]?.remove(iface)
             if (exported[path]?.isEmpty() == true) exported -= path
+            log.trace { "No longer exported: $iface at $path" }
         }
     }
 
@@ -220,12 +228,77 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
         append("</node>\n")
     }
 
-    /** Runs [handler] for every signal [member] of [iface] (from [path], if given). Asks the bus for them. */
-    fun onSignal(iface: String, member: String, path: String? = null, handler: (DBusMessage) -> Unit) {
-        signals += { m: DBusMessage -> m.iface == iface && m.member == member && (path == null || m.path == path) } to handler
-        val rule = "type='signal',interface='$iface',member='$member'" + (path?.let { ",path='$it'" } ?: "")
+    // Caulis 0.1.1's onSignal (returning nothing): code built against it calls it.
+    @Deprecated("Kept for code built against Caulis 0.1.1", level = DeprecationLevel.HIDDEN)
+    @JvmName("onSignal")
+    fun onSignalWithoutAnswer(iface: String, member: String, path: String? = null, handler: (DBusMessage) -> Unit) {
+        onSignal(iface, member, path, null, handler)
+    }
+
+    /**
+     * Runs [handler] for every signal [member] of [iface] (from [path], if given). Asks the bus
+     * for them; close the result to stop (the bus is told it need not send them any more).
+     *
+     * [sender]: only signals from this name — a unique one (":1.42") or a well-known one
+     * ("org.freedesktop.login1": whoever owns it now; followed when the owner changes). Give it
+     * whenever the signal matters: on the system bus any program may send a signal with any
+     * interface and path (a forged PrepareForSleep). Null: from anyone.
+     */
+    @JvmOverloads
+    fun onSignal(iface: String, member: String, path: String? = null, sender: String? = null, handler: (DBusMessage) -> Unit): AutoCloseable {
+        // Who owns [sender] now (its unique name), when it is a well-known name; null: no one yet.
+        // (The bus itself sends as "org.freedesktop.DBus", which no one else may own.)
+        var owner: String? = sender?.takeIf { it.startsWith(":") || it == BUS }
+        // Until the bus said who owns [sender], its signals wait here (a few at most).
+        var waiting: ArrayList<DBusMessage>? = null
+        val follow = ArrayList<AutoCloseable>()
+        if (sender != null && owner == null) {
+            waiting = ArrayList()
+            // Told of new owners first, then asked for the owner now: the bus answers in order,
+            // so no change of owner falls in between.
+            follow += onSignal("org.freedesktop.DBus", "NameOwnerChanged", "/org/freedesktop/DBus", BUS) { m ->
+                if (m.body.getOrNull(0) == sender) {
+                    owner = (m.body.getOrNull(2) as String?)?.takeIf { it.isNotEmpty() }
+                    log.trace { "$sender is now owned by ${owner ?: "no one"}" }
+                }
+            }
+            call("org.freedesktop.DBus", ObjectPath("/org/freedesktop/DBus"), "org.freedesktop.DBus", "GetNameOwner", "s", listOf(sender)) { reply ->
+                if (reply.isError) log.trace { "$sender has no owner on the bus yet" } else owner = reply.body.firstOrNull() as String?
+                val early = waiting.orEmpty()
+                waiting = null
+                for (m in early) if (m.sender != null && m.sender == owner) handler(m)
+            }
+        }
+        val listener: Pair<(DBusMessage) -> Boolean, (DBusMessage) -> Unit> = { m: DBusMessage ->
+            m.iface == iface && m.member == member && (path == null || m.path == path) &&
+                (sender == null || run {
+                    val early = waiting
+                    if (early != null) {
+                        // (Who sent it is not known yet: kept until the bus says.)
+                        if (early.size < EARLY_SIGNALS) early += m
+                        false
+                    } else {
+                        (m.sender != null && m.sender == owner).also { fits ->
+                            // (Not a warning: another listener may want it — a signal for everyone.)
+                            if (!fits) log.trace { "Ignored a signal $iface.$member from ${m.sender}: it is not from $sender" }
+                        }
+                    }
+                })
+        } to handler
+        signals += listener
+        val rule = "type='signal',interface='$iface',member='$member'" + (path?.let { ",path='$it'" } ?: "") + (sender?.let { ",sender='$it'" } ?: "")
         call("org.freedesktop.DBus", ObjectPath("/org/freedesktop/DBus"), "org.freedesktop.DBus", "AddMatch", "s", listOf(rule)) { reply ->
             if (reply.isError) log.warn("The bus refused to send $iface.$member: ${reply.body.firstOrNull()}")
+        }
+        var stopped = false
+        return AutoCloseable {
+            if (stopped) return@AutoCloseable
+            stopped = true
+            signals.removeIf { it === listener }
+            follow.forEach(AutoCloseable::close)
+            log.trace { "No longer listening to $iface.$member" }
+            // (The bus counts each AddMatch: one RemoveMatch takes this one away, others stay.)
+            call("org.freedesktop.DBus", ObjectPath("/org/freedesktop/DBus"), "org.freedesktop.DBus", "RemoveMatch", "s", listOf(rule))
         }
     }
 
@@ -400,6 +473,9 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
 
     companion object {
         private const val READ_SIZE = 64 * 1024L
+        private const val BUS = "org.freedesktop.DBus"
+        // Signals from a well-known name kept until the bus says who owns it (more are dropped).
+        private const val EARLY_SIGNALS = 64
         private const val NO_REPLY_EXPECTED = 1
         private const val DO_NOT_QUEUE = 4
         private const val PRIMARY_OWNER = 1
@@ -416,14 +492,19 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
 
         /** The session bus of this user, or null. */
         @JvmStatic
-        fun session(loop: EventLoop): DBusConnection? =
-            connect(loop, System.getenv("DBUS_SESSION_BUS_ADDRESS") ?: "unix:path=${System.getenv("XDG_RUNTIME_DIR")}/bus")
+        fun session(loop: EventLoop): DBusConnection? {
+            val address = System.getenv("DBUS_SESSION_BUS_ADDRESS")?.takeIf { it.isNotBlank() }
+                ?: System.getenv("XDG_RUNTIME_DIR")?.takeIf { it.startsWith("/") }?.let { "unix:path=$it/bus" }
+                ?: return null.also { Logger("dbus").info { "No session bus (neither DBUS_SESSION_BUS_ADDRESS nor XDG_RUNTIME_DIR is set)" } }
+            return connect(loop, address)
+        }
 
         private fun connect(loop: EventLoop, address: String): DBusConnection? {
             val log = Logger("dbus")
+            // (Values in an address may have %xx in them: "/run/user/1000/my%20bus".)
             val path = address.split(';').firstNotNullOfOrNull { part ->
                 part.removePrefix("unix:").split(',').firstOrNull { it.startsWith("path=") }?.removePrefix("path=")
-            } ?: return null.also { log.warn("The bus address $address has no socket path") }
+            }?.let(::unescape) ?: return null.also { log.warn("The bus address $address has no socket path (only unix:path= is understood)") }
             if (!Files.exists(Path.of(path))) return null.also { log.info { "No bus at $path" } }
             val socket = try {
                 UnixSocket.connect(Path.of(path))
@@ -438,6 +519,22 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
                 log.warn("The bus at $path did not let us in: $e")
                 null
             }
+        }
+
+        // A D-Bus address value with its %xx escapes undone.
+        private fun unescape(value: String): String {
+            if ('%' !in value) return value
+            val bytes = java.io.ByteArrayOutputStream()
+            var i = 0
+            while (i < value.length) {
+                val c = value[i]
+                if (c == '%' && i + 2 < value.length) {
+                    value.substring(i + 1, i + 3).toIntOrNull(16)?.let { bytes.write(it); i += 3; continue }
+                }
+                bytes.write(c.toString().toByteArray())
+                i++
+            }
+            return bytes.toString(Charsets.UTF_8)
         }
 
         // EXTERNAL authentication (the kernel tells the bus who we are), with descriptor passing.

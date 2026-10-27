@@ -116,7 +116,7 @@ private class DescribedLayout(override val name: String, private val gaps: Gaps,
         assign(groups, windows.size)
         val inner = gaps.inset(area)
         val result = arrayOfNulls<Rect>(windows.size)
-        place(root, inner, focused, result)
+        place(root, inner, focused, result, Minimums(windows))
         // Windows the description had no room for share the whole area (none are lost).
         return result.map { it ?: inner }
     }
@@ -154,54 +154,100 @@ private class DescribedLayout(override val name: String, private val gaps: Gaps,
         is Node.Box -> node.children.sumOf(::windowsIn)
     }
 
-    // Divides [rect] among the parts that got windows (empty parts take no space).
-    private fun place(node: Node, rect: Rect, focused: Int, result: Array<Rect?>, horizontal: Boolean = true) {
+    // The smallest the windows may be (what their programs asked for), and so the parts holding them.
+    private inner class Minimums(private val windows: List<LayoutWindow>) {
+        // Window [i]'s minimum width ([horizontal]) or height.
+        fun of(i: Int, horizontal: Boolean): Int = (if (horizontal) windows[i].minWidth else windows[i].minHeight).coerceAtLeast(1) // (a pixel at least)
+
+        // Windows [indices] one after the other along the split ([along]), else beside each other.
+        fun ofAll(indices: List<Int>, horizontal: Boolean, along: Boolean): Int =
+            if (indices.isEmpty()) 0 else if (along) indices.sumOf { of(it, horizontal) } + gaps.inner * (indices.size - 1) else indices.maxOf { of(it, horizontal) }
+
+        // The smallest [node] may be across [horizontal] (its windows' minimums added up where
+        // they lie one after the other); [splitHorizontal]: the direction the box around it splits in.
+        fun of(node: Node, horizontal: Boolean, splitHorizontal: Boolean): Int = when (node) {
+            is Node.Box -> {
+                val parts = node.children.filter { windowsIn(it) > 0 }
+                val each = parts.map { of(it, horizontal, node.horizontal) }
+                if (each.isEmpty()) 0 else if (node.horizontal == horizontal) each.sum() + gaps.inner * (each.size - 1) else each.max()
+            }
+            // (An even group lies along its box; the others' windows are taken as side by side at most.)
+            is Node.Group -> ofAll(node.windows, horizontal, along = node.style == Style.EVEN && splitHorizontal == horizontal)
+        }
+    }
+
+    // Divides [rect] among the parts that got windows (empty parts take no space), none
+    // smaller than its windows' minimums while they fit.
+    private fun place(node: Node, rect: Rect, focused: Int, result: Array<Rect?>, minimums: Minimums, horizontal: Boolean = true) {
         when (node) {
             is Node.Box -> {
                 val parts = node.children.filter { windowsIn(it) > 0 }
-                val sizes = Split.weighted(if (node.horizontal) rect.width else rect.height, parts.map { it.weight }, gaps.inner)
+                val least = parts.map { minimums.of(it, node.horizontal, node.horizontal) }
+                val sizes = Split.weighted(if (node.horizontal) rect.width else rect.height, parts.map { it.weight }, gaps.inner, least)
                 for ((part, slot) in parts.zip(sizes)) {
                     val (start, size) = slot
                     val partRect = if (node.horizontal) Rect(rect.x + start, rect.y, size, rect.height) else Rect(rect.x, rect.y + start, rect.width, size)
-                    place(part, partRect, focused, result, node.horizontal)
+                    place(part, partRect, focused, result, minimums, node.horizontal)
                 }
             }
             is Node.Group -> {
-                val rects = arrangeGroup(node, rect, focused, horizontal)
+                val rects = arrangeGroup(node, rect, focused, horizontal, minimums)
                 node.windows.zip(rects).forEach { (window, r) -> result[window] = r }
             }
         }
     }
 
-    private fun arrangeGroup(group: Node.Group, rect: Rect, focused: Int, horizontal: Boolean): List<Rect> {
+    private fun arrangeGroup(group: Node.Group, rect: Rect, focused: Int, horizontal: Boolean, minimums: Minimums): List<Rect> {
         val n = group.windows.size
+        val w = group.windows
         return when (group.style) {
-            Style.EVEN -> Split.evenly(rect, n, gaps.inner, vertical = !horizontal)
+            Style.EVEN -> Split.evenly(rect, n, gaps.inner, vertical = !horizontal, w.map { minimums.of(it, horizontal) })
             Style.MONOCLE -> List(n) { rect }
-            Style.GRID -> grid(rect, n)
-            Style.DWINDLE -> dwindle(rect, n)
-            Style.SPIRAL -> spiral(rect, n)
+            Style.GRID -> grid(rect, w, minimums)
+            Style.DWINDLE -> dwindle(rect, w, minimums)
+            Style.SPIRAL -> spiral(rect, w, minimums)
             Style.ACCORDION -> accordion(rect, group.windows.indexOf(focused).coerceAtLeast(0), n, group.thin)
         }
     }
 
-    private fun grid(rect: Rect, n: Int): List<Rect> {
+    private fun grid(rect: Rect, w: List<Int>, minimums: Minimums): List<Rect> {
+        val n = w.size
         val columns = Math.ceil(Math.sqrt(n.toDouble())).toInt()
         val rows = (n + columns - 1) / columns
-        return Split.evenly(rect, rows, gaps.inner, vertical = true).flatMapIndexed { row, rowRect ->
-            val inRow = if (row == rows - 1) n - columns * (rows - 1) else columns
-            Split.evenly(rowRect, inRow, gaps.inner, vertical = false)
-        }
+        val inRows = (0 until rows).map { row -> w.subList(row * columns, minOf(n, (row + 1) * columns)) }
+        return Split.evenly(rect, rows, gaps.inner, vertical = true, inRows.map { minimums.ofAll(it, horizontal = false, along = false) })
+            .flatMapIndexed { row, rowRect ->
+                Split.evenly(rowRect, inRows[row].size, gaps.inner, vertical = false, inRows[row].map { minimums.of(it, horizontal = true) })
+            }
     }
 
-    private fun dwindle(rect: Rect, n: Int): List<Rect> {
+    // Window [i] of [w] takes its part of [rest] (split [vertical]ly), the windows after it the other part.
+    private fun twoFor(rest: Rect, w: List<Int>, i: Int, vertical: Boolean, windowFirst: Boolean, minimums: Minimums): Pair<Rect, Rect> {
+        val horizontal = !vertical
+        val own = minimums.of(w[i], horizontal)
+        val others = minimums.ofAll(w.subList(i + 1, w.size), horizontal, along = false)
+        return Split.two(rest, 0.5, gaps.inner, vertical, if (windowFirst) own else others, if (windowFirst) others else own)
+    }
+
+    // True if [rest] split [vertical]ly has room for window [i]'s minimum and the others'.
+    private fun fits(rest: Rect, w: List<Int>, i: Int, vertical: Boolean, minimums: Minimums): Boolean {
+        val horizontal = !vertical
+        val needed = minimums.of(w[i], horizontal) + minimums.ofAll(w.subList(i + 1, w.size), horizontal, along = false) + gaps.inner
+        return needed <= if (vertical) rest.height else rest.width
+    }
+
+    private fun dwindle(rect: Rect, w: List<Int>, minimums: Minimums): List<Rect> {
+        val n = w.size
         val result = ArrayList<Rect>(n)
         var rest = rect
         repeat(n) { i ->
             if (i == n - 1) {
                 result += rest
             } else {
-                val (first, second) = Split.two(rest, 0.5, gaps.inner, vertical = rest.height > rest.width)
+                // Split the long way — unless only the other way gives the windows their minimums.
+                val long = rest.height > rest.width
+                val vertical = if (!fits(rest, w, i, long, minimums) && fits(rest, w, i, !long, minimums)) !long else long
+                val (first, second) = twoFor(rest, w, i, vertical, windowFirst = true, minimums)
                 result += first
                 rest = second
             }
@@ -210,7 +256,8 @@ private class DescribedLayout(override val name: String, private val gaps: Gaps,
     }
 
     // Each window takes half of what is left, turning clockwise: left, top, right, bottom.
-    private fun spiral(rect: Rect, n: Int): List<Rect> {
+    private fun spiral(rect: Rect, w: List<Int>, minimums: Minimums): List<Rect> {
+        val n = w.size
         val result = ArrayList<Rect>(n)
         var rest = rect
         repeat(n) { i ->
@@ -219,8 +266,8 @@ private class DescribedLayout(override val name: String, private val gaps: Gaps,
                 return@repeat
             }
             val vertical = i % 2 == 1
-            val (first, second) = Split.two(rest, 0.5, gaps.inner, vertical)
             val windowTakesFirst = i % 4 < 2
+            val (first, second) = twoFor(rest, w, i, vertical, windowTakesFirst, minimums)
             result += if (windowTakesFirst) first else second
             rest = if (windowTakesFirst) second else first
         }

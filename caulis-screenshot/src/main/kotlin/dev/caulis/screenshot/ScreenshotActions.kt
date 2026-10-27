@@ -2,13 +2,14 @@ package dev.caulis.screenshot
 
 import dev.caulis.core.Window
 import dev.caulis.wm.Caulis
+import dev.caulis.wm.config.ActionInfo
 import dev.caulis.wm.config.ActionProvider
 
 /** The "screenshot" action for config.json, Lua, keys and caulisctl (found on the classpath). */
 class ScreenshotActions : ActionProvider {
 
     override val actions = listOf(
-        Triple("screenshot", "[region|window|screen|windows|focused|monitor]", "a screenshot: the chooser, or the focused window / the monitor with the pointer at once"),
+        ActionInfo("screenshot", "[region|window|screen|windows|focused|monitor]", "a screenshot: the chooser, or the focused window / the monitor with the pointer at once"),
     )
 
     override fun parse(name: String, argument: String): (Caulis.(Window?) -> Unit)? {

@@ -18,7 +18,7 @@ class CursorShape(display: Display, private val seat: Seat) {
                 override fun getPointer(resource: WpCursorShapeManagerV1, cursorShapeDevice: WpCursorShapeDeviceV1, pointer: dev.caulis.protocol.wayland.WlPointer) =
                     serve(cursorShapeDevice)
 
-                // Drawing tablets are not supported yet; their cursor requests are accepted and ignored.
+                // A pen's cursor, while it is over the program (tablet-v2).
                 override fun getTabletToolV2(resource: WpCursorShapeManagerV1, cursorShapeDevice: WpCursorShapeDeviceV1, tabletTool: dev.caulis.protocol.tabletv2.ZwpTabletToolV2) =
                     serve(cursorShapeDevice, tablet = true)
 
@@ -36,7 +36,7 @@ class CursorShape(display: Display, private val seat: Seat) {
                     resource.postError(WpCursorShapeDeviceV1.Error.INVALID_SHAPE, "no cursor shape $shape")
                     return
                 }
-                if (!tablet) seat.setCursorShape(resource.client, CursorTheme.SHAPES[shape - 1])
+                if (tablet) seat.setPenCursorShape(resource.client, CursorTheme.SHAPES[shape - 1]) else seat.setCursorShape(resource.client, CursorTheme.SHAPES[shape - 1])
             }
 
             override fun destroy(resource: WpCursorShapeDeviceV1) {}

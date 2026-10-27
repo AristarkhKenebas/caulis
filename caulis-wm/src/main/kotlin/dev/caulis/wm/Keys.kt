@@ -106,10 +106,18 @@ class Keys internal constructor() {
     var splitBelow by key("Super+Shift+S")
 
     /**
-     * Quit the compositor (every program in it closes too). Works on a locked screen as
-     * well, so a broken locker can never shut you out. Null: no key quits.
+     * Quit the compositor (every program in it closes too). On a locked screen only with
+     * [quitWhileLocked] (a broken locker: switch to a text console with [consoles] and start
+     * a new one there). Null: no key quits.
      */
     var quit by key("Ctrl+Alt+BackSpace")
+
+    /**
+     * True: [quit] works on a locked screen as well. False (the default): it does not — else
+     * anyone at the keyboard could quit, closing every program, and when the compositor was
+     * started from a text console land in your logged-in shell.
+     */
+    var quitWhileLocked: Boolean = false
 
     /**
      * Modifiers + F1..F12: switch to a text console (only on the screen, not nested).
@@ -176,6 +184,12 @@ class Keys internal constructor() {
 
     /** Every usual key by name (as above) and its combination, null when off. */
     fun all(): Map<String, String?> = LinkedHashMap(values)
+
+    // Every key as here, into [other] (a copy of a configuration).
+    internal fun copyInto(other: Keys) {
+        other.values.putAll(values)
+        other.quitWhileLocked = quitWhileLocked
+    }
 
     /** True if the key [name] was changed (or turned off) from what it is by default. */
     fun changed(name: String): Boolean = values[name] != defaults[name]
@@ -249,12 +263,12 @@ class Keys internal constructor() {
         add("columnWidth", columnWidth) { desktop.tilingCommand(TilingCommand.CycleWidth) }
         add("splitBeside", splitBeside) { desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = true)) }
         add("splitBelow", splitBelow) { desktop.tilingCommand(TilingCommand.SplitNext(sideBySide = false)) }
-        add("volumeUp", volumeUp) { running?.system?.volume(5) }
-        add("volumeDown", volumeDown) { running?.system?.volume(-5) }
+        add("volumeUp", volumeUp) { running?.system?.volume(systemKeys.volumeStep) }
+        add("volumeDown", volumeDown) { running?.system?.volume(-systemKeys.volumeStep) }
         add("volumeMute", volumeMute) { running?.system?.volume(mute = true) }
         add("micMute", micMute) { running?.system?.microphone() }
-        add("brightnessUp", brightnessUp) { running?.system?.brightness(5) }
-        add("brightnessDown", brightnessDown) { running?.system?.brightness(-5) }
+        add("brightnessUp", brightnessUp) { running?.system?.brightness(systemKeys.brightnessStep) }
+        add("brightnessDown", brightnessDown) { running?.system?.brightness(-systemKeys.brightnessStep) }
         add("touchpad", touchpad) { running?.system?.touchpad(null) }
         if (touchpad != null) {
             add("touchpad", "XF86TouchpadOn") { running?.system?.touchpad(true) }

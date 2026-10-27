@@ -95,6 +95,7 @@ class GlideTest {
             TestClient(Connection.connect(server.socketPath)).use { client ->
                 server.onServer {
                     it.animationMillis = 600
+                    it.animations = Animations.ON // (off by default)
                     it.layout = dev.caulis.tiling.Columns(Gaps(0, 0))
                 }
                 val first = client.window().also { it.draw() }

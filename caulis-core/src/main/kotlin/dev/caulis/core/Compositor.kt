@@ -27,8 +27,11 @@ import dev.caulis.render.Renderer
  */
 class Compositor(val display: Display, private val renderer: Renderer?) {
 
-    /** All surfaces of all clients, in creation order. */
-    val surfaces = LinkedHashSet<Surface>()
+    // All surfaces of all clients, in creation order.
+    private val surfaceSet = LinkedHashSet<Surface>()
+
+    /** All surfaces of all clients, in creation order (a live, read-only view). */
+    val surfaces: Set<Surface> = java.util.Collections.unmodifiableSet(surfaceSet)
 
     private val uploader = renderer?.let { SurfaceUploader(it) }
     private val newSurfaceListeners = ArrayList<(Surface) -> Unit>()
@@ -88,6 +91,17 @@ class Compositor(val display: Display, private val renderer: Renderer?) {
             for (surface in surfaces) surface.tellScale()
         }
 
+    /**
+     * The most rectangles a program's region (opaque, input, pointer confinement) is kept
+     * exactly with (256 by default); past that it counts roughly (all that was added, as one
+     * rectangle, and nothing of it as opaque). Each costs work every frame.
+     */
+    var maxRegionParts: Int = Region.MAX_PARTS
+        set(value) {
+            require(value in 1..100_000) { "maxRegionParts must be 1..100000, not $value" }
+            field = value
+        }
+
     /** The scale as wp_fractional_scale wants it: in 120ths. */
     internal fun fractionalScale(): Int = Math.round(outputScale * 120).toInt()
 
@@ -103,22 +117,26 @@ class Compositor(val display: Display, private val renderer: Renderer?) {
      */
     var pictureGoing: (Surface) -> Unit = {}
 
+    // A surface left the screen at once, without a commit of its parent (a subsurface
+    // destroyed or taken off): the window manager draws anew (else its last picture stayed).
+    internal var surfaceGone: (Surface) -> Unit = {}
+
     /** The whole-number scale for programs without fractional scaling (wl_output, wl_surface). */
     val integerScale: Int get() = Math.ceil(outputScale - 1e-9).toInt().coerceAtLeast(1)
 
     private val compositorRequests = object : WlCompositor.Requests {
         override fun createSurface(resource: WlCompositor, id: WlSurface) {
             val surface = Surface(id, this@Compositor)
-            surfaces += surface
+            surfaceSet += surface
             id.onDestroy {
-                surfaces -= surface
+                surfaceSet -= surface
                 surface.destroyed()
             }
             newSurfaceListeners.forEach { it(surface) }
         }
 
         override fun createRegion(resource: WlCompositor, id: WlRegion) {
-            Region(id)
+            Region(id, maxRegionParts)
         }
 
         // Only exists in version 7 (destroys the client's handle); nothing to clean up.
@@ -163,13 +181,23 @@ class Compositor(val display: Display, private val renderer: Renderer?) {
 class Surface internal constructor(val resource: WlSurface, private val compositor: Compositor) {
 
     /** What the surface is used as. A surface gets a role once and keeps it. */
-    enum class Role { XDG_TOPLEVEL, XDG_POPUP, LAYER, LOCK, SUBSURFACE, CURSOR, XWAYLAND }
+    enum class Role { XDG_TOPLEVEL, XDG_POPUP, LAYER, LOCK, SUBSURFACE, CURSOR, XWAYLAND, DND_ICON }
 
     var role: Role? = null
         private set
 
     /** The object that gives this surface its role (a Window, Popup or Subsurface). */
     var roleObject: Any? = null
+        internal set
+
+    /**
+     * Xwayland's window [owner] (outside caulis-core) gives this surface its role: it is the
+     * [roleObject] from now on. Only for surfaces with the role [Role.XWAYLAND].
+     */
+    fun claimXwaylandRole(owner: Any) {
+        check(role == Role.XWAYLAND) { "only an Xwayland surface can be claimed, not one with the role $role" }
+        roleObject = owner
+    }
 
     /** Changes the client is still preparing. */
     internal val pending = SurfaceState()
@@ -357,11 +385,21 @@ class Surface internal constructor(val resource: WlSurface, private val composit
      */
     val hasContent: Boolean get() = width > 0 && height > 0
 
+    // Its xdg_surface while that lives (a surface may only have one at a time).
+    internal var shellSurface: ShellSurface? = null
+
+    // This surface and its subsurfaces, bottom to top (see stack).
+    internal val stackList = ArrayList<Surface>().also { it += this }
+
     /**
      * This surface and its subsurfaces, bottom to top. The surface itself is one entry,
-     * so subsurfaces can be below or above it.
+     * so subsurfaces can be below or above it. (A live, read-only view.)
      */
-    val stack = ArrayList<Surface>().also { it += this }
+    val stack: List<Surface> = java.util.Collections.unmodifiableList(stackList)
+
+    // Subsurfaces asked to go above or below a sibling (place_above/below): done at the next
+    // commit of this surface, as the protocol says (in the order asked; one a subsurface, its last).
+    internal val pendingPlacements = ArrayList<Triple<Surface, Surface, Boolean>>()
 
     /** Set if this surface is a subsurface of another one. */
     var subsurface: Subsurface? = null
@@ -446,11 +484,14 @@ class Surface internal constructor(val resource: WlSurface, private val composit
             override fun damage(resource: WlSurface, x: Int, y: Int, width: Int, height: Int) {
                 // Damage in surface coordinates; treated like buffer damage (good enough
                 // without scaling; the renderer re-uploads the touched rows).
-                if (width > 0 && height > 0) pending.damage += Rect(x * pending.scale, y * pending.scale, width * pending.scale, height * pending.scale)
+                if (width > 0 && height > 0) {
+                    pending.addDamage(Rect(x * pending.scale, y * pending.scale, width * pending.scale, height * pending.scale))
+                    pending.surfaceDamage = true
+                }
             }
 
             override fun frame(resource: WlSurface, callback: WlCallback) {
-                pending.frameCallbacks += callback
+                pending.frameCallbackList += callback
             }
 
             override fun setOpaqueRegion(resource: WlSurface, region: WlRegion?) {
@@ -482,7 +523,7 @@ class Surface internal constructor(val resource: WlSurface, private val composit
             }
 
             override fun damageBuffer(resource: WlSurface, x: Int, y: Int, width: Int, height: Int) {
-                if (width > 0 && height > 0) pending.damage += Rect(x, y, width, height)
+                if (width > 0 && height > 0) pending.addDamage(Rect(x, y, width, height))
             }
 
             override fun offset(resource: WlSurface, x: Int, y: Int) {
@@ -535,14 +576,23 @@ class Surface internal constructor(val resource: WlSurface, private val composit
         val oldHeight = height
         current.takeFrom(state)
         if (!checkViewport()) return
+        // Subsurfaces above or below each other as asked since the last commit.
+        for ((child, sibling, above) in pendingPlacements) {
+            if (child.subsurface?.parent !== this || sibling !in stackList) continue
+            stackList.remove(child)
+            val index = stackList.indexOf(sibling)
+            stackList.add(if (above) index + 1 else index, child)
+        }
+        pendingPlacements.clear()
         if (enteredOutputs.isEmpty() || toldBufferScale == 0) tellScale()
         if (current.newBuffer) {
             recordChanges(oldWidth, oldHeight)
             compositor.uploadContent(this)
             current.newBuffer = false
         }
-        current.damage.clear()
-        for (child in stack) {
+        current.damageList.clear()
+        // (A copy: a child's cached commit may place its own children, never these.)
+        for (child in stackList.toList()) {
             if (child !== this) child.subsurface?.parentCommitted()
         }
         commitListeners.forEach { it() }
@@ -568,11 +618,11 @@ class Surface internal constructor(val resource: WlSurface, private val composit
 
     /** Tells the client it is a good moment to draw its next frame. [timeMillis] is a timestamp. */
     fun sendFrameDone(timeMillis: Int) {
-        for (callback in current.frameCallbacks) {
+        for (callback in current.frameCallbackList) {
             callback.sendDone(timeMillis)
             callback.destroy()
         }
-        current.frameCallbacks.clear()
+        current.frameCallbackList.clear()
     }
 
     /** True if the point (in surface coordinates) is inside the surface's input area. */
@@ -585,16 +635,21 @@ class Surface internal constructor(val resource: WlSurface, private val composit
     }
 
     internal fun destroyed() {
-        for (feedback in current.presentationFeedbacks) feedback.discard()
-        current.presentationFeedbacks.clear()
+        if (subsurface != null || texture != null) compositor.surfaceGone(this)
+        for (feedback in current.feedbackList) feedback.discard()
+        current.feedbackList.clear()
+        pendingPlacements.clear()
         texture = null
         uploadedTexture?.close()
         uploadedTexture = null
         shownDmabuf?.stopShowing()
         shownDmabuf = null
         subsurface?.detach()
-        for (child in stack.toList()) if (child !== this) child.subsurface?.detach()
+        for (child in stackList.toList()) if (child !== this) child.subsurface?.detach()
     }
+
+    // (For a subsurface taken off its parent: see Compositor.surfaceGone.)
+    internal fun goneFromScreen() = compositor.surfaceGone(this)
 
     private companion object {
         /** More changed rectangles than this are merged into one. */
@@ -608,41 +663,95 @@ interface ClientBuffer {
     val height: Int
 }
 
-/** Everything a surface commit carries. */
-class SurfaceState {
+/**
+ * Everything a surface commit carries. The window manager reads it ([Surface.current]); only
+ * the client's requests change it.
+ */
+class SurfaceState internal constructor() {
+    /** The client's buffer (its picture), or null for none. */
     var buffer: WlBuffer? = null
+        internal set
     internal var newBuffer = false
+
+    /** wl_surface.offset (and attach's x, y): how far the picture moved from where it was. */
     var offsetX = 0
+        internal set
     var offsetY = 0
+        internal set
+
+    /** wl_surface.set_buffer_scale: buffer pixels per surface unit. */
     var scale = 1
+        internal set
+
+    /** wl_surface.set_buffer_transform: how the buffer is turned (WlOutput.Transform). */
     var transform = WlOutput.Transform.NORMAL
+        internal set
+
+    /** The buffer's size in pixels (0 without one). */
     var bufferWidth = 0
+        internal set
     var bufferHeight = 0
-    val damage = ArrayList<Rect>()
-    val frameCallbacks = ArrayList<WlCallback>()
+        internal set
+
+    // The damaged parts (buffer pixels); see damage.
+    internal val damageList = ArrayList<Rect>()
+
+    // Some damage came in surface units (wl_surface.damage): only the scale turns it into
+    // buffer pixels; a viewport or a turned buffer cannot be (see [applyTo]).
+    internal var surfaceDamage = false
+
+    /** The parts of the buffer the client redrew (buffer pixels). */
+    val damage: List<Rect> get() = damageList
+    internal val frameCallbackList = ArrayList<WlCallback>()
+
+    /** Programs waiting for "a good moment to draw" ([Surface.sendFrameDone]). */
+    val frameCallbacks: List<WlCallback> get() = frameCallbackList
+
+    /** Where the surface takes pointer and touch input (null: everywhere). */
     var inputRegion: Region.Snapshot? = null
+        internal set
     internal var inputRegionSet = false
 
     /** wp_viewport: the part of the buffer shown (x, y, width, height in buffer pixels / scale), or null for all. */
     var viewportSource: DoubleArray? = null
+        internal set
+
     /** wp_viewport: the size on screen in surface units, or -1 for the buffer's own size. */
     var viewportWidth = -1
+        internal set
     var viewportHeight = -1
+        internal set
     internal var viewportSet = false
 
     /** Where the picture has no transparency (the client says so; helps skip hidden windows). */
     var opaqueRegion: Region.Snapshot? = null
+        internal set
     internal var opaqueRegionSet = false
+    internal val feedbackList = ArrayList<WpPresentationFeedback>()
 
     /** Programs waiting to hear when this picture reached the screen (presentation-time). */
-    val presentationFeedbacks = ArrayList<WpPresentationFeedback>()
+    val presentationFeedbacks: List<WpPresentationFeedback> get() = feedbackList
+
+    // A client could damage millions of little rectangles before it commits (or a synchronized
+    // subsurface whose parent never commits, ever more): past [MAX_DAMAGE] they become the one
+    // rectangle around them all, which redraws a little more but costs nothing to keep.
+    internal fun addDamage(rect: Rect) {
+        damageList += rect
+        if (damageList.size > MAX_DAMAGE) collapseDamage()
+    }
+
+    private fun collapseDamage() {
+        val all = damageList.reduce(Rect::union)
+        damageList.clear()
+        damageList += all
+    }
 
     /** Moves the pending changes of [other] into this state and resets [other]. */
     internal fun takeFrom(other: SurfaceState) {
         if (other.newBuffer) {
             // The previous picture is replaced before it was shown: it never will be.
-            for (feedback in presentationFeedbacks) feedback.discard()
-            presentationFeedbacks.clear()
+            for (feedback in feedbackList) feedback.discard()
+            feedbackList.clear()
             buffer = other.buffer
             newBuffer = true
             val picture = other.buffer?.dataAs<ClientBuffer>()
@@ -653,9 +762,18 @@ class SurfaceState {
         offsetY = other.offsetY
         scale = other.scale
         transform = other.transform
-        damage += other.damage
-        frameCallbacks += other.frameCallbacks
-        presentationFeedbacks += other.presentationFeedbacks
+        damageList += other.damageList
+        if (damageList.size > MAX_DAMAGE) collapseDamage()
+        // Surface damage with a viewport or a turned buffer: the whole buffer is taken as
+        // changed (else only a strip of it was uploaded, the rest stayed old).
+        val viewported = (if (other.viewportSet) other.viewportSource != null || other.viewportWidth > 0 else viewportSource != null || viewportWidth > 0)
+        if (other.surfaceDamage && (viewported || transform != WlOutput.Transform.NORMAL) && bufferWidth > 0 && bufferHeight > 0) {
+            damageList.clear()
+            damageList += Rect(0, 0, bufferWidth, bufferHeight)
+        }
+        other.surfaceDamage = false
+        frameCallbackList += other.frameCallbackList
+        feedbackList += other.feedbackList
         // "Was set" travels along, so a synchronized subsurface's cached state (applied later)
         // still knows these changed.
         if (other.inputRegionSet) {
@@ -677,12 +795,17 @@ class SurfaceState {
         other.newBuffer = false
         other.offsetX = 0
         other.offsetY = 0
-        other.damage.clear()
-        other.frameCallbacks.clear()
-        other.presentationFeedbacks.clear()
+        other.damageList.clear()
+        other.frameCallbackList.clear()
+        other.feedbackList.clear()
         other.inputRegionSet = false
         other.opaqueRegionSet = false
         other.viewportSet = false
+    }
+
+    private companion object {
+        /** More damaged rectangles than this become one. */
+        const val MAX_DAMAGE = 64
     }
 }
 
@@ -720,7 +843,7 @@ class Subsurface internal constructor(resource: WlSubsurface, val surface: Surfa
     init {
         surface.subsurface = this
         surface.roleObject = this
-        parent.stack += surface // new subsurfaces start on top of their parent
+        parent.stackList += surface // new subsurfaces start on top of their parent
 
         resource.requests = object : WlSubsurface.Requests {
             override fun destroy(resource: WlSubsurface) = detach()
@@ -749,16 +872,18 @@ class Subsurface internal constructor(resource: WlSubsurface, val surface: Surfa
         resource.onDestroy { detach() }
     }
 
+    // Checked now, done at the parent's next commit (the order of subsurfaces is double-buffered).
     private fun place(resource: WlSubsurface, sibling: WlSurface, above: Boolean) {
-        val stack = parent?.stack ?: return
+        val parent = parent ?: return
         val target = sibling.dataAs<Surface>()
-        if (target == null || target === surface || target !in stack) {
+        if (target == null || target === surface || target !in parent.stackList) {
             resource.postError(WlSubsurface.Error.BAD_SURFACE, "the sibling is not a sibling of this subsurface")
             return
         }
-        stack.remove(surface)
-        val index = stack.indexOf(target)
-        stack.add(if (above) index + 1 else index, surface)
+        // One request a subsurface (its last): a program asking again and again without a
+        // commit does not grow the list without end.
+        parent.pendingPlacements.removeAll { it.first === surface }
+        parent.pendingPlacements += Triple(surface, target, above)
     }
 
     // Keeps a commit until the parent commits.
@@ -778,20 +903,25 @@ class Subsurface internal constructor(resource: WlSubsurface, val surface: Surfa
     }
 
     internal fun detach() {
-        parent?.stack?.remove(surface)
+        if (parent != null) surface.goneFromScreen()
+        parent?.stackList?.remove(surface)
         parent = null
         if (surface.subsurface === this) surface.subsurface = null
     }
 }
 
 /** A set of rectangles a client describes (e.g. which part of a surface accepts input). */
-class Region internal constructor(resource: WlRegion) {
+class Region internal constructor(resource: WlRegion, private val maxParts: Int = MAX_PARTS) {
 
-    private companion object {
+    internal companion object {
         const val MAX_PARTS = 256
     }
 
     private val parts = ArrayList<Pair<Rect, Boolean>>() // rectangle, added (true) or subtracted
+
+    // Too many parts were sent (a client could send millions, each costing work every frame):
+    // from then on only roughly — all that was added, as one rectangle.
+    private var overflowed = false
 
     init {
         resource.data = this
@@ -808,30 +938,35 @@ class Region internal constructor(resource: WlRegion) {
         }
     }
 
-    // Many parts (a client could send millions, each costing work every frame) become one:
-    // all that was added, roughly — what matters is never more than [MAX_PARTS] to look at.
+    // Never more than [maxParts] to look at; past that, all that was added as one rectangle
+    // (which then counts for input only: nothing of it is taken as certainly covered).
     private fun part(rect: Rect, added: Boolean) {
         if (rect.width <= 0 || rect.height <= 0) return
         parts += rect to added
-        if (parts.size > MAX_PARTS) {
+        if (parts.size > maxParts) {
             val all = parts.filter { it.second }.map { it.first }.reduceOrNull(Rect::union)
             parts.clear()
             if (all != null) parts += all to true
+            overflowed = true
         }
     }
 
     /** A copy that stays the same when the client changes the region later. */
-    fun snapshot() = Snapshot(parts.toList())
+    fun snapshot() = Snapshot(parts.toList(), overflowed)
 
-    class Snapshot(private val parts: List<Pair<Rect, Boolean>>) {
+    class Snapshot internal constructor(private val parts: List<Pair<Rect, Boolean>>, private val rough: Boolean) {
+        constructor(parts: List<Pair<Rect, Boolean>>) : this(parts, false)
+
         /**
          * Rectangles that are certainly inside the region: added ones that no later
-         * subtraction touches. (Careful rather than exact: it may leave parts out.)
+         * subtraction touches. (Careful rather than exact: it may leave parts out — all of
+         * them for a region of too many parts, whose opaque area is then taken as none.)
          */
         fun solidRects(): List<Rect> = solid
 
         // (Worked out once: it is asked every frame.)
         private val solid: List<Rect> by lazy {
+            if (rough) return@lazy emptyList()
             parts.withIndex().filter { (index, part) ->
                 part.second && parts.subList(index + 1, parts.size).none { !it.second && it.first.intersect(part.first) != null }
             }.map { it.value.first }

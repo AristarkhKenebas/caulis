@@ -5,6 +5,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import dev.caulis.core.WidgetKey
+import dev.caulis.log.Logger
 import java.awt.Component
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent as Awt
@@ -20,8 +21,19 @@ internal object AwtKeys {
 
     // (Compose's own factory of key events: marked as for its modules only, used here with the
     // exact Compose version this module is built against — see libs.versions.toml.)
+    fun events(key: WidgetKey, log: Logger): List<KeyEvent> = try {
+        make(key)
+    } catch (e: LinkageError) {
+        // (Another Compose than this module was built with: said once, keys go nowhere.)
+        if (!failed) log.error("Keys cannot reach Compose: Compose on the class path is not the version caulis-compose was built with (it needs exactly that one)", e)
+        failed = true
+        emptyList()
+    }
+
+    private var failed = false
+
     @OptIn(InternalComposeUiApi::class)
-    fun events(key: WidgetKey): List<KeyEvent> {
+    private fun make(key: WidgetKey): List<KeyEvent> {
         val modifiers = (if (key.shift) InputEvent.SHIFT_DOWN_MASK else 0) or
             (if (key.ctrl) InputEvent.CTRL_DOWN_MASK else 0) or
             (if (key.alt) InputEvent.ALT_DOWN_MASK else 0) or

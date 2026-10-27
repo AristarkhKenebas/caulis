@@ -115,6 +115,22 @@ class TextType(private val description: String = "text") : SettingType() {
     override fun jsonSchema() = """{"type":"string","minLength":1}"""
 }
 
+/** A special workspace's name: one word ("music"; "special:music" is the same), checked here. */
+@InternalCaulisApi
+object SpecialWorkspaceType : SettingType() {
+    override val words get() = "a special workspace's name (one word)"
+
+    override fun read(json: JsonValue, path: String, problems: Problems): Any? {
+        val text = (json as? JsonValue.Str)?.value ?: return problems.add(path, json, "$words, not ${json.kind}").let { null }
+        val name = text.trim().removePrefix("special:").trim()
+        if (name.isEmpty() || name.any { it.isWhitespace() }) return problems.add(path, json, "a special workspace's name is one word, not \"$text\"").let { null }
+        return text
+    }
+
+    override fun nix() = "lib.types.str"
+    override fun jsonSchema() = """{"type":"string","pattern":"^\\s*(special:\\s*)?\\S+\\s*$"}"""
+}
+
 /** A regular expression: checked here, so a broken one is a problem with its line, not a failure later. */
 @InternalCaulisApi
 object RegexType : SettingType() {

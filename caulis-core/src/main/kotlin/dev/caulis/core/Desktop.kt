@@ -2,7 +2,13 @@ package dev.caulis.core
 
 import dev.caulis.log.Logger
 import dev.caulis.core.cursor.CursorTheme
+import dev.caulis.core.input.PenPointer
+import dev.caulis.core.input.Scroll
 import dev.caulis.core.input.Seat
+import dev.caulis.core.input.Tablet
+import dev.caulis.core.input.TabletAxes
+import dev.caulis.core.input.TabletTool
+import dev.caulis.core.input.Tablets
 import dev.caulis.event.EventLoop
 import dev.caulis.geometry.Rect
 import dev.caulis.protocol.xdgshell.XdgToplevel
@@ -87,7 +93,7 @@ class Desktop(
     private val backdrops = Backdrops(renderer, compositor.display.loop, changed = {
         version++
         onChange()
-    }, shaderWorks = { name, code, problem -> shaderWorks(name, code, problem) })
+    }, shaderWorks = { name, code, problem -> shaderWorks(name, code, problem) }).also { it.fade = { usual -> animation("fadeBackground", usual) } }
 
     // The compositor's own notices (declared first: arranging a monitor asks for their room).
     private val noticeBoard = NoticeBoard(
@@ -101,7 +107,7 @@ class Desktop(
             version++
             onChange()
         },
-    )
+    ).also { it.fade = { usual -> animation("fadeNotices", usual) } }
 
     /** The monitors showing the desktop, in the order they came (the first is the main one). */
     val monitors: List<Monitor> get() = monitorList
@@ -223,6 +229,16 @@ class Desktop(
         val home = if (focusedMonitor === monitor) monitorList.first() else focusedMonitor
         layoutLog.info { "Monitor ${monitor.name} is gone; its windows stay on their workspaces (now on ${home.name})" }
         for (view in views + captureViews) if (view.monitor === monitor) view.monitor = home
+        // Scratchpads shown on it come over to [home]; a special workspace only if none is shown
+        // there (one a monitor: else two dimmings and two sets of windows on top of each other).
+        for (pad in shownPads.toList()) if (pad.monitor === monitor && !pad.leaving) {
+            if (pad.isSpecial && shownPads.any { it !== pad && it.isSpecial && !it.leaving && it.monitor === home }) {
+                layoutLog.info { "Special workspace ${pad.name} hidden: its monitor is gone and ${home.name} shows another one" }
+                hideScratchpad(pad, focusBack = false)
+            } else {
+                pad.monitor = home
+            }
+        }
         when (workspaceMode) {
             WorkspaceMode.PER_MONITOR, WorkspaceMode.PINNED -> for (workspace in workspaces.values.toList()) if (workspace.monitor === monitor) moveWorkspace(workspace, home)
             WorkspaceMode.SPANNING, WorkspaceMode.SEPARATE -> mergeWorkspaces(of = monitor, into = home)
@@ -364,7 +380,7 @@ class Desktop(
     // Takes the picture on [monitor] now (as a screenshot does); it fades out over the new
     // scale, while programs draw themselves anew underneath. Without animations: no fade.
     private fun fadeFromNow(monitor: Monitor) {
-        if (animationMillis <= 0 || views.none { it.monitor === monitor }) return
+        if (!animation("fadeScale", animations.scaleChangeMillis).on || views.none { it.monitor === monitor }) return
         val width = monitor.pixelWidth
         val height = monitor.pixelHeight
         if (width <= 0 || height <= 0) return
@@ -374,7 +390,7 @@ class Desktop(
             // telling programs anything (their frames are on the real screen).
             val target = renderer.createTarget(width, height)
             try {
-                renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2])
+                renderer.begin(target, backgroundColor.red, backgroundColor.green, backgroundColor.blue)
                 draw(captureItems(cursor = false, hide = false), monitor.area, monitor::toPixels, monitor.scale, monitor)
                 renderer.end()
             } catch (e: Throwable) {
@@ -407,13 +423,14 @@ class Desktop(
     // True while some monitor fades: each frame is more of the new picture.
     private fun fading(): Boolean {
         val now = System.nanoTime()
+        val melt = animation("fadeScale", animations.scaleChangeMillis)
         for ((monitor, fade) in fades.toList()) {
-            val t = (now - fade.since) / 1_000_000.0 / animations.scaleChangeMillis.coerceAtLeast(1)
-            if (t >= 1.0) {
+            val t = (now - fade.since) / 1_000_000.0 / melt.effectiveMillis.coerceAtLeast(1)
+            if (t >= 1.0 || !melt.on) {
                 dropFade(monitor)
                 version++
             } else {
-                fadeAlphas[monitor] = (1 - t * t * (3 - 2 * t)).toFloat() // smooth at both ends
+                fadeAlphas[monitor] = (1 - melt.curve.safeAt(t)).toFloat() // (smooth at both ends, usually)
             }
         }
         return fades.isNotEmpty()
@@ -497,6 +514,31 @@ class Desktop(
             surface.resource.onDestroy { keptUpdating.remove(surface) }
         }
         seat.onCursorChange = ::changed
+        // A subsurface gone at once (destroyed, taken off): its picture is not drawn any more.
+        compositor.surfaceGone = { changed() }
+        // The surface with the keyboard was destroyed before its window or menu closed (or its
+        // program quit): once the dust settles, the next one gets the keyboard.
+        seat.keyboardFocusDestroyed = { compositor.display.loop.post { if (seat.keyboardFocus == null) keyboardLost() } }
+    }
+
+    // Nobody has the keyboard although somebody should: the locker, the newest menu that took
+    // it, a panel that keeps it, or else the top window.
+    private fun keyboardLost() {
+        if (keyboardWidget != null) return
+        if (sessionLocked) {
+            lockSurfaces().firstOrNull { it.surface.resource.isAlive }?.let { keyboardTo(it.surface) }
+            return
+        }
+        ownLock?.let { own ->
+            focusWidget(own.screen)
+            return
+        }
+        if (layerFocus?.surface?.resource?.isAlive == false) layerFocus = null
+        val next = grabs.lastOrNull { it.surface.resource.isAlive }?.surface
+            ?: exclusiveLayer()?.surface?.takeIf { it.resource.isAlive }
+            ?: layerFocus?.surface
+        focusLog.info { "The keyboard's surface went away: it goes to ${next?.roleObject ?: windows.lastOrNull { it.surface.resource.isAlive } ?: "nobody"}" }
+        if (next != null) keyboardTo(next) else focus(windows.lastOrNull { it.surface.resource.isAlive })
     }
 
     // Grows with every change; the list of things to draw is rebuilt only when it moved on.
@@ -606,12 +648,16 @@ class Desktop(
 
     /**
      * Gives the keyboard to [widget] (programs lose it meanwhile), or back to the focused window
-     * (null). A click elsewhere, or another window getting the focus, ends it too.
+     * (null). A click elsewhere, or another window getting the focus, ends it too. While the
+     * session is [locked] only the lock screen and the widgets that say [Widget.showsWhileLocked]
+     * may have it; behind the compositor's own lock screen null gives it back to that screen.
      */
-    fun focusWidget(widget: Widget?) {
+    fun focusWidget(wanted: Widget?) {
+        // Behind our own lock screen the keyboard goes back to it, not to a program.
+        val widget = wanted ?: ownLock?.screen?.takeIf { !sessionLocked }
         val old = keyboardWidget
         if (old === widget) return
-        if (widget != null && locked) return // the locker keeps it
+        if (widget != null && !widgetUsable(widget)) return // the lock screen keeps it
         keyboardWidget = widget
         if (old != null) userCode("Your widget (keyboardFocus)", Unit) { old.keyboardFocus(false) }
         if (widget != null) {
@@ -624,8 +670,10 @@ class Desktop(
         changed()
     }
 
-    // [surface] gets the keyboard (or nobody does): a widget that had it loses it then.
+    // [surface] gets the keyboard (or nobody does): a widget that had it loses it then. While
+    // the session is locked only the locker's surfaces may have it (nothing else takes it away).
     private fun keyboardTo(surface: Surface?) {
+        if (locked && (surface == null || !lockAllows(surface))) return
         val old = keyboardWidget
         if (old != null && surface != null) {
             keyboardWidget = null
@@ -663,16 +711,18 @@ class Desktop(
         hoveredWidget = at.widget
         hoveredArea = at.area
         if (came) cursorChanged()
-        if (seat.pointerFocus != null) seat.pointerMotion(timeMillis, null, 0.0, 0.0)
+        // (A drag going on hears it left the program: dropped here, nobody gets it.)
+        if (seat.pointerFocus != null || seat.drag != null) seat.pointerMotion(timeMillis, null, 0.0, 0.0)
         if (moved || came) userCode("Your widget (pointerMoved)", Unit) { at.widget.pointerMoved(monitorAt(pointerX, pointerY), pointerX - at.area.x, pointerY - at.area.y) }
         return true
     }
 
     // The widget under ([x], [y]) at [level], topmost first, and its area there.
     private fun widgetAt(x: Double, y: Double, level: DrawingLevel): Pair<Widget, Rect>? {
-        if (widgets.isEmpty() || locked) return null
+        if (widgets.isEmpty()) return null
         val monitor = monitorAt(x, y)
         for (widget in widgets.asReversed()) {
+            if (locked && !widgetUsable(widget)) continue // (nothing behind the lock gets the pointer)
             if (userCode("Your widget (level)", null) { widget.level } != level) continue
             val area = userCode("Your widget (area)", null) { widget.area(monitor) } ?: continue
             if (x >= area.x && y >= area.y && x < area.right && y < area.bottom) return widget to area
@@ -681,11 +731,12 @@ class Desktop(
     }
 
     // The widgets of [level], on every monitor.
-    private fun addWidgets(all: MutableList<DrawItem>, level: DrawingLevel) {
+    private fun addWidgets(all: MutableList<DrawItem>, level: DrawingLevel, onLockScreen: Boolean = false) {
         if (widgets.isEmpty()) return
         val seconds = ((System.nanoTime() - paintStart) / 1e9).toFloat()
         for (monitor in monitorList) {
             for (widget in widgets.toList()) {
+                if (onLockScreen && !widgetUsable(widget)) continue
                 if (userCode("Your widget (level)", null) { widget.level } != level) continue
                 val area = userCode("Your widget (area)", null) { widget.area(monitor) } ?: continue
                 val canvas = OverlayCanvas(monitor, listOf("widget", widget, monitor.name), seconds)
@@ -743,8 +794,8 @@ class Desktop(
             for (window in workspace.windows) appendLine("    ${describe(window, workspace)}")
             for (window in workspace.minimized) appendLine("    ${describe(window, workspace)} [minimized]")
         }
-        for (pad in scratchpads.values) {
-            appendLine("  scratchpad ${pad.name} (${if (pad.shown) "shown" else "hidden"}): ${pad.windows.joinToString { it.toString() }.ifEmpty { "no window" }}")
+        for (pad in allPads) {
+            appendLine("  ${if (pad.isSpecial) "special workspace" else "scratchpad"} ${pad.name} (${if (pad.shown) "shown" else "hidden"}): ${pad.windows.joinToString { it.toString() }.ifEmpty { "no window" }}")
         }
         for (layer in layerSurfaces) {
             appendLine("  panel \"${layer.namespace}\" (${layer.surface.resource.client.name}) on ${layer.current.layer} at ${layer.x},${layer.y} ${layer.surface.width}x${layer.surface.height}${if (layer === layerFocus) ", has the keyboard" else ""}")
@@ -836,7 +887,7 @@ class Desktop(
      */
     fun capture(target: GpuTarget, cursor: Boolean, monitor: Monitor = monitorList.first()) {
         val items = captureItems(cursor)
-        renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2])
+        renderer.begin(target, backgroundColor.red, backgroundColor.green, backgroundColor.blue)
         draw(items, monitor.area, monitor::toPixels, monitor.scale, monitor)
         renderer.end()
     }
@@ -875,7 +926,7 @@ class Desktop(
 
     /** Every window: on all workspaces (minimized ones too) and in scratchpads. */
     val allWindows: List<Window>
-        get() = workspaces.values.flatMap { it.windows + it.minimized } + scratchpads.values.flatMap { it.windows }
+        get() = workspaces.values.flatMap { it.windows + it.minimized } + allPads.flatMap { it.windows }
 
     /** True if [window] is minimized (on any workspace). */
     fun isMinimized(window: Window): Boolean = workspaces.values.any { window in it.minimized }
@@ -1367,7 +1418,7 @@ class Desktop(
     private fun show(workspace: Workspace, on: Monitor) {
         val previous = on.workspace
         if (previous === workspace) return
-        if (millisOf(animations.workspaceSwitch) > 0 && !locked && !inOverview) {
+        if (pick("workspaces", animations.workspaceSwitch).millis > 0 && !locked && !inOverview) {
             val direction = if (workspace.number >= previous.number) 1 else -1
             slides[on] = Slide(previous, workspace, direction, System.nanoTime())
         }
@@ -1380,6 +1431,7 @@ class Desktop(
         }
         on.workspace = workspace
         moveWorkspace(workspace, on)
+        dismissHiddenGrabs("their workspace is not shown any more")
         workspace.lastMonitorName = on.name
         if (workspaceMode == WorkspaceMode.PINNED && workspace.number > 0 && !onlyStandIn()) pinnedHomes.putIfAbsent(workspace.number, on.name)
         // Empty workspaces disappear once you leave them (never one on screen), unless they always exist.
@@ -1460,6 +1512,7 @@ class Desktop(
             window.y = toMonitor.area.y + (window.y - fromMonitor.area.y).coerceIn(0, (toMonitor.area.height - 50).coerceAtLeast(0))
             floatingRects[window]?.let { floatingRects[window] = Rect(window.x, window.y, it.width, it.height) }
         }
+        dismissPopupsOf(window, "it moved to another workspace")
         from.remove(window)
         from.model.forget(window) // it lives on the other workspace now
         pending.remove(window)
@@ -1503,6 +1556,10 @@ class Desktop(
 
     // The monitor of each panel that did not ask for one (the one with the focus when it came).
     private val layerMonitors = HashMap<LayerSurface, Monitor>()
+
+    // The monitor [layer] is on, without placing it anywhere (null: on none now).
+    internal fun monitorOfLayer(layer: LayerSurface): Monitor? =
+        layer.output?.let { output -> monitorList.firstOrNull { it.output === output } } ?: layerMonitors[layer]
 
     /** The monitor [layer] is on: the one its program asked for, else the one it came on. */
     fun monitorOf(layer: LayerSurface): Monitor =
@@ -1642,13 +1699,29 @@ class Desktop(
     // --- session lock --------------------------------------------------------------------------
 
     /**
-     * True while the session is locked (by a screen locker such as swaylock): nothing of the
-     * desktop is shown, and keys and the pointer go to the locker only. Unlocking is the
-     * locker's job (after the user typed the password); if it crashes, the session stays
-     * locked and a newly started locker takes over.
+     * True while the session is locked — by a screen locker program such as swaylock
+     * (ext-session-lock), or by the compositor's own lock screen ([lockInternally]): keys, the
+     * pointer, touches and pens go to the lock screen only, no window or panel takes the
+     * focus, and windows cannot be recorded. Unlocking is the locker's job (after the user
+     * typed the password); if a locker program crashes, the session stays locked and a newly
+     * started locker takes over.
      */
-    var locked = false
-        private set
+    val locked: Boolean get() = sessionLocked || ownLock != null
+
+    // Locked by a locker program (ext-session-lock).
+    private var sessionLocked = false
+
+    /**
+     * The colour under everything: where no background, wallpaper or window is drawn (a
+     * dark slate blue by default).
+     */
+    var backgroundColor: Color = Color(0.16f, 0.18f, 0.22f)
+        set(value) {
+            if (value != field) renderLog.info { "Background colour: $value" }
+            field = value
+            views.forEach { it.damageEverything() }
+            changed()
+        }
 
     /** The colour behind the locker (and all there is until it has drawn). */
     var lockColor: Color = Color(0f, 0f, 0f)
@@ -1665,7 +1738,11 @@ class Desktop(
 
     private val lockListeners = ArrayList<(Boolean) -> Unit>()
 
-    /** Runs [listener] when the session gets locked (true) or unlocked (false). */
+    // The current locker took over a session already locked (its locker crashed): giving up
+    // before its lock is shown leaves the session locked, not unlocked.
+    private var lockTakenOver = false
+
+    /** Runs [listener] when the session gets locked (true) or unlocked (false), by a locker program or [lockInternally]. */
     fun onLockChanged(listener: (Boolean) -> Unit): AutoCloseable {
         lockListeners += listener
         return AutoCloseable { lockListeners -= listener }
@@ -1681,15 +1758,105 @@ class Desktop(
         return owner.lock === lock
     }
 
-    override fun lockRequested(lock: SessionLock): Boolean {
-        if (locked && this.lock?.alive == true) {
-            lockLog.info { "${lock.resource.client.name} wants to lock, but another locker is in charge: refused" }
-            return false
-        }
-        this.lock = lock
+    // The compositor's own lock screen ([lockInternally]).
+    private class OwnLock(val screen: Widget, val hidesDesktop: Boolean, val surfaces: (Surface) -> Boolean, val addedForTheLock: Boolean)
+
+    private var ownLock: OwnLock? = null
+
+    /** True while the compositor's own lock screen is up ([lockInternally]; a locker program may have locked on top of it). */
+    val lockedInternally: Boolean get() = ownLock != null
+
+    /** The widget showing the compositor's own lock screen ([lockInternally]), or null. */
+    val lockScreen: Widget? get() = ownLock?.screen
+
+    // Nothing of the desktop is drawn while locked: a locker program's lock, or our own with hideDesktop.
+    private val lockHidesDesktop: Boolean get() = sessionLocked || ownLock?.hidesDesktop == true
+
+    // The lock's rule for programs' surfaces: while a locker program has locked only its
+    // surfaces may have input; behind our own lock screen only those its author allows.
+    private fun lockAllows(surface: Surface): Boolean {
+        if (sessionLocked) return belongsToLocker(surface)
+        val own = ownLock ?: return true
+        return userCode("Your lock screen (surfaces)", false) { own.surfaces(surface) }
+    }
+
+    // Our widgets usable while locked: our own lock screen (unless a locker program locked on
+    // top of it), and the ones that say so (Widget.showsWhileLocked).
+    private fun widgetUsable(widget: Widget): Boolean {
+        if (!locked) return true
+        if (!sessionLocked && widget === ownLock?.screen) return true
+        return userCode("Your widget (showsWhileLocked)", false) { widget.showsWhileLocked }
+    }
+
+    /**
+     * Locks the session with the compositor's own lock screen: [screen], a [Widget] you draw
+     * (a clock and a password field), gets the keyboard, and the session is [locked] exactly
+     * as with a locker program — only [screen] and the widgets that say [Widget.showsWhileLocked]
+     * get keys, the pointer, touches and pens; no window or panel takes the focus (new
+     * windows, closed windows, fullscreen and activation requests change nothing until
+     * [unlockInternally]); menus, the overview and overlays close; idle inhibitors stop
+     * counting; windows cannot be recorded. It lasts across monitors coming and going.
+     *
+     * The desktop stays drawn behind [screen] (as newm dims it) unless [hideDesktop]: then
+     * only [lockColor] and the usable widgets are drawn. [allowSurface] lets programs' surfaces
+     * have input too (a lock screen that is a panel program; none by default). [screen] need
+     * not be added with [addWidget]: if it is not, it is shown for the time of the lock.
+     * Calling this while locked already puts [screen] in charge. Checking the password and
+     * calling [unlockInternally] is your code's job.
+     */
+    @JvmOverloads
+    fun lockInternally(screen: Widget, hideDesktop: Boolean = false, allowSurface: (Surface) -> Boolean = { false }) {
         val wasLocked = locked
-        locked = true
-        // Nothing may go on behind the locker: no menus, no overview, no dragging.
+        val old = ownLock
+        if (old != null && old.addedForTheLock && old.screen !== screen) widgets.remove(old.screen)
+        // Shown for the time of the lock only if it was not one of the widgets already.
+        val added = (old != null && old.addedForTheLock && old.screen === screen) || screen !in widgets
+        if (screen !in widgets) widgets += screen
+        if (!wasLocked) rememberFocusForUnlock()
+        ownLock = OwnLock(screen, hideDesktop, allowSurface, added)
+        lockLog.info { "Locked by the compositor's own lock screen ($screen)${if (hideDesktop) ", nothing of the desktop shown" else ""}${if (sessionLocked) " (behind a locker program)" else ""}" }
+        nothingBehindTheLock()
+        seat.lockAllows = ::lockAllows
+        if (!sessionLocked) {
+            keyboardWidget?.takeIf { it !== screen && !widgetUsable(it) }?.let { focusWidget(null) }
+            focusWidget(screen)
+        }
+        updateWidgets()
+        pointerMoved((System.nanoTime() / 1_000_000).toInt(), pointerX, pointerY)
+        if (!wasLocked) notify(lockListeners, true, "lock")
+    }
+
+    /**
+     * Ends the compositor's own lock screen ([lockInternally]): the session is unlocked
+     * (unless a locker program locked it meanwhile — then that one's unlock is still needed),
+     * and the focused window, or the panel that keeps the keyboard, gets the keyboard again.
+     */
+    fun unlockInternally() {
+        val own = ownLock ?: return
+        ownLock = null
+        if (own.addedForTheLock) widgets.remove(own.screen)
+        if (keyboardWidget === own.screen) {
+            keyboardWidget = null
+            userCode("Your widget (keyboardFocus)", Unit) { own.screen.keyboardFocus(false) }
+        }
+        if (hoveredWidget === own.screen || pressedWidget?.widget === own.screen) leaveWidgets()
+        if (sessionLocked) {
+            lockLog.info("The compositor's own lock screen is gone; the locker program still locks the session")
+            seat.lockAllows = ::lockAllows
+            updateWidgets()
+            return
+        }
+        lockLog.info("Unlocked (the compositor's own lock screen)")
+        unlocked()
+        updateWidgets()
+    }
+
+    // Nothing may go on behind a lock: no menus, no overview, no dragging, no overlay, our
+    // widgets lose the pointer and the keyboard (unless they may be used while locked).
+    private fun nothingBehindTheLock() {
+        hideSpecialsForLock()
+        seat.cancelDrag()
+        seat.forgetInput()
         grabs.toList().asReversed().forEach { it.dismiss() }
         grabs.clear()
         endGrab()
@@ -1700,17 +1867,89 @@ class Desktop(
             cameraFrom = Camera.NONE
             cameraTo = Camera.NONE
         }
+        overviewTarget = null
         closeOverlay()
-        // Our widgets lose the pointer and the keyboard (keys are the locker's now).
         leaveWidgets()
-        keyboardWidget?.let { old ->
+        keyboardWidget?.takeIf { !widgetUsable(it) }?.let { old ->
             keyboardWidget = null
             userCode("Your widget (keyboardFocus)", Unit) { old.keyboardFocus(false) }
         }
-        seat.mayFocus = ::belongsToLocker
+    }
+
+    /**
+     * Which window gets the focus when the session is unlocked: by default the one that had it
+     * when the session was locked. A window that opened while locked never gets it (what the
+     * user types right after unlocking could be a password).
+     */
+    var unlockFocus: UnlockFocus = UnlockFocus.FOCUSED_BEFORE
+        set(value) {
+            if (field != value) lockLog.info { "After unlocking the focus goes to: ${value.name.lowercase()}" }
+            field = value
+        }
+
+    // Windows get a number as they open: those up to [mappedBeforeLock] were open before the
+    // session was locked; [focusBeforeLock] had the focus then.
+    private var mapCount = 0L
+    private val mapNumbers = java.util.WeakHashMap<Window, Long>()
+    private var mappedBeforeLock = Long.MAX_VALUE
+    private var focusBeforeLock: java.lang.ref.WeakReference<Window>? = null
+
+    // The session is getting locked (it was not): which windows were there, which had the focus.
+    private fun rememberFocusForUnlock() {
+        mappedBeforeLock = mapCount
+        focusBeforeLock = focusedWindow?.let { java.lang.ref.WeakReference(it) }
+    }
+
+    // The window to focus after unlocking (see [unlockFocus]), or null.
+    private fun windowForUnlock(): Window? {
+        fun usable(window: Window) = window.mapped && (window in windows || scratchpadOf(window) != null) &&
+            (mapNumbers[window] ?: Long.MAX_VALUE) <= mappedBeforeLock
+        val newest = windows.filter(::usable).maxByOrNull { mapNumbers[it] ?: 0L }
+        return when (unlockFocus) {
+            UnlockFocus.FOCUSED_BEFORE -> focusBeforeLock?.get()?.takeIf(::usable) ?: newest
+            UnlockFocus.NEWEST_BEFORE -> newest
+        }
+    }
+
+    // The session is not locked any more: the window that had the focus before (see
+    // [unlockFocus]; or the panel that keeps the keyboard) gets it back; windows that came or
+    // went meanwhile did not take the focus.
+    private fun unlocked() {
+        seat.lockAllows = { true }
+        val layer = exclusiveLayer()
+        val window = windowForUnlock()
+        focusBeforeLock = null
+        mappedBeforeLock = Long.MAX_VALUE
+        if (layer != null) keyboardTo(layer.surface)
+        else {
+            lockLog.info { "Unlocked: the focus goes to ${window ?: "nothing"}" }
+            focus(window)
+        }
+        changed()
+        pointerMoved((System.nanoTime() / 1_000_000).toInt(), pointerX, pointerY)
+        notify(lockListeners, false, "unlock")
+    }
+
+    override fun lockRequested(lock: SessionLock): Boolean {
+        if (sessionLocked && this.lock?.alive == true) {
+            lockLog.info { "${lock.resource.client.name} wants to lock, but another locker is in charge: refused" }
+            return false
+        }
+        this.lock = lock
+        val wasLocked = locked
+        if (!wasLocked) rememberFocusForUnlock()
+        lockTakenOver = sessionLocked
+        sessionLocked = true
+        nothingBehindTheLock()
+        // (Our own lock screen, if up, gives way to the locker program's.)
+        keyboardWidget?.takeIf { !widgetUsable(it) }?.let { old ->
+            keyboardWidget = null
+            userCode("Your widget (keyboardFocus)", Unit) { old.keyboardFocus(false) }
+        }
+        seat.lockAllows = ::lockAllows
         lockPending = true
         lockShownOn.clear()
-        lockLog.info { "Locked by ${lock.resource.client.name}${if (wasLocked) " (taking over from a crashed locker)" else ""}: nothing of the desktop is shown now" }
+        lockLog.info { "Locked by ${lock.resource.client.name}${if (lockTakenOver) " (taking over from a crashed locker)" else ""}: nothing of the desktop is shown now" }
         confirmLockIfShown()
         changed()
         if (!wasLocked) notify(lockListeners, true, "lock")
@@ -1730,7 +1969,7 @@ class Desktop(
 
     override fun lockSurfaceCommitted(surface: LockSurface) {
         if (surface.lock !== lock) return // an earlier locker's leftovers
-        if (surface.mapped && seat.keyboardFocus == null) keyboardTo(surface.surface)
+        if (surface.mapped && seat.keyboardFocus == null && keyboardWidget == null) keyboardTo(surface.surface)
         changed()
         // The pointer may be over it now.
         val hit = surfaceAt(pointerX, pointerY)
@@ -1742,19 +1981,48 @@ class Desktop(
             lockLog.warn("An old locker (${lock.resource.client.name}) tried to unlock; ignored")
             return
         }
+        if (!lock.confirmed && lockTakenOver) {
+            // A new locker took over from one that crashed, then gave up before its lock was
+            // on screen: the session was locked all along, and stays so (no password was asked).
+            lockLog.warn("${lock.resource.client.name} took over the lock but gave up before it was shown: the session stays locked")
+            lockPending = false
+            changed()
+            return
+        }
         lockLog.info { "Unlocked by ${lock.resource.client.name}" }
         this.lock = null
-        locked = false
+        sessionLocked = false
         lockPending = false
-        seat.mayFocus = { true }
-        keyboardTo(exclusiveLayer()?.surface ?: focusedWindow?.surface)
-        changed()
-        pointerMoved((System.nanoTime() / 1_000_000).toInt(), pointerX, pointerY)
-        notify(lockListeners, false, "unlock")
+        lockTakenOver = false
+        val own = ownLock
+        if (own != null) {
+            // Our own lock screen was up below it: it is in charge again.
+            lockLog.info("The compositor's own lock screen still locks the session")
+            seat.lockAllows = ::lockAllows
+            focusWidget(own.screen)
+            changed()
+            return
+        }
+        unlocked()
     }
 
     override fun lockAbandoned(lock: SessionLock) {
         if (lock !== this.lock) return
+        val own = ownLock
+        if (own != null) {
+            // A locker program crashed on top of our own lock screen: that one is in charge
+            // again (it asks for the password itself), not a red screen without a way back.
+            lockLog.warn("The screen locker quit without unlocking; the compositor's own lock screen is in charge again")
+            this.lock = null
+            sessionLocked = false
+            lockPending = false
+            lockTakenOver = false
+            seat.lockAllows = ::lockAllows
+            focusWidget(own.screen)
+            updateWidgets()
+            changed()
+            return
+        }
         // The locker crashed: the session stays locked (that is the point of a lock).
         lockPending = false
         lockLog.warn("The screen locker quit without unlocking; the session stays locked until a new locker is started")
@@ -1783,12 +2051,211 @@ class Desktop(
     /** The scratchpad named [name], if there is one. */
     fun scratchpad(name: String): Scratchpad? = scratchpads[name]
 
-    /** The scratchpad [window] lives in, if any. */
-    fun scratchpadOf(window: Window): Scratchpad? = scratchpads.values.firstOrNull { window in it.windows }
+    /** The scratchpad (or special workspace, see [Scratchpad.isSpecial]) [window] lives in, if any. */
+    fun scratchpadOf(window: Window): Scratchpad? = allPads.firstOrNull { window in it.windows }
 
-    // The scratchpad a new window belongs to (by the scratchpads' rules).
-    private fun scratchpadFor(window: Window): Scratchpad? =
-        scratchpads.values.firstOrNull { pad -> userCode("Your scratchpad ${pad.name}'s match", false) { pad.match(window) } }
+    // The scratchpad a new window belongs to: by the scratchpads' rules, a rule sending it to a
+    // special workspace, or the special workspace shown where it opens.
+    private fun scratchpadFor(window: Window): Scratchpad? {
+        scratchpads.values.firstOrNull { pad -> userCode("Your scratchpad ${pad.name}'s match", false) { pad.match(window) } }?.let { return it }
+        placementOf(window).specialWorkspace?.let { name ->
+            // (A bad name from a rule: logged, and the window opens as usual — not refused.)
+            try {
+                return specialWorkspace(name)
+            } catch (e: IllegalArgumentException) {
+                layoutLog.warn("$window: your rule's special workspace is no good (${e.message}); it opens as usual")
+            }
+        }
+        if (!specialWorkspaces.newWindowsJoin) return null
+        val shown = shownSpecialOn(focusedMonitor) ?: return null
+        // (A dialog of a window elsewhere stays with its window.)
+        val parent = window.parent
+        return if (parent == null || scratchpadOf(parent) === shown) shown else null
+    }
+
+    // --- special workspaces (Hyprland's "special", on the scratchpads' machinery) ----------
+
+    private val specials = LinkedHashMap<String, Scratchpad>()
+
+    // Scratchpads and special workspaces together.
+    private val allPads: List<Scratchpad> get() = scratchpads.values + specials.values
+
+    /**
+     * How special workspaces look and behave: dimming and blur behind them, their size, their
+     * animation, whether they hide when empty or on the lock (see [SpecialWorkspaces]).
+     */
+    var specialWorkspaces: SpecialWorkspaces = SpecialWorkspaces.USUAL
+        set(value) {
+            field = value
+            layoutLog.info { "Special workspaces: $value" }
+            for (pad in shownPads) if (pad.isSpecial && !pad.leaving) placeScratchpad(pad, appearing = emptySet())
+            changed()
+        }
+
+    /** The special workspaces made so far (each the first time it was named), by name. */
+    val specialWorkspaceNames: List<String> get() = specials.keys.toList()
+
+    /** The special workspace [name] ("special" for the one without a name), made now if it is new. */
+    @JvmOverloads
+    fun specialWorkspace(name: String = SpecialWorkspaces.DEFAULT_NAME): Scratchpad {
+        val key = specialName(name)
+        return specials.getOrPut(key) {
+            layoutLog.info { "Special workspace $key made" }
+            Scratchpad(key, Scratchpad.Overlay(specialLayout(), specialWorkspaces.dim), { false }, isSpecial = true)
+        }
+    }
+
+    // "special:music" (Hyprland's way) and "music" are the same; "" or "special" the one without a name.
+    private fun specialName(name: String): String {
+        val plain = name.trim().removePrefix("special:").trim()
+        require(plain.none { it.isWhitespace() }) { "a special workspace's name is one word, not \"$name\"" }
+        return plain.ifEmpty { SpecialWorkspaces.DEFAULT_NAME }
+    }
+
+    // The layout its windows are tiled with now.
+    private fun specialLayout(): dev.caulis.tiling.Layout = specialWorkspaces.layout ?: layout
+
+    /** The special workspace shown on [monitor] (null: none). */
+    fun shownSpecialOn(monitor: Monitor): Scratchpad? = shownPads.lastOrNull { it.isSpecial && !it.leaving && padMonitor(it) === monitor }
+
+    /**
+     * Shows the special workspace [name] over the workspace on the focused monitor (hiding
+     * another one shown there), or hides it if it is shown: Hyprland's `togglespecialworkspace`.
+     * It shows even without windows (new ones then open in it). Returns true if it is shown now.
+     */
+    @JvmOverloads
+    fun toggleSpecialWorkspace(name: String = SpecialWorkspaces.DEFAULT_NAME): Boolean {
+        val pad = specialWorkspace(name)
+        if (pad.shown && !pad.leaving) {
+            // Shown on another monitor: it comes over here instead.
+            if (padMonitor(pad) !== focusedMonitor) return showSpecial(pad)
+            hideScratchpad(pad)
+            return false
+        }
+        return showSpecial(pad)
+    }
+
+    /** Shows the special workspace [name] on the focused monitor (nothing if it is shown there already). */
+    @JvmOverloads
+    fun showSpecialWorkspace(name: String = SpecialWorkspaces.DEFAULT_NAME) {
+        val pad = specialWorkspace(name)
+        if (!pad.shown || pad.leaving || padMonitor(pad) !== focusedMonitor) showSpecial(pad)
+    }
+
+    /** Hides the special workspace [name] if it is shown. */
+    @JvmOverloads
+    fun hideSpecialWorkspace(name: String = SpecialWorkspaces.DEFAULT_NAME) {
+        val pad = specials[specialName(name)] ?: return
+        if (pad.shown && !pad.leaving) hideScratchpad(pad)
+    }
+
+    // Shows [pad] on the focused monitor (moving it here if it is shown on another one).
+    // Not while locked if special workspaces hide on the lock: returns false then.
+    private fun showSpecial(pad: Scratchpad): Boolean {
+        if (locked && specialWorkspaces.hideOnLock) {
+            layoutLog.info { "Special workspace ${pad.name} not shown: the session is locked" }
+            return false
+        }
+        // One special workspace per monitor: the one shown there goes.
+        for (other in shownPads.toList()) if (other !== pad && other.isSpecial && !other.leaving && padMonitor(other) === focusedMonitor) hideScratchpad(other, focusBack = false)
+        // Shown on another monitor: it moves over here (keeping the window to go back to there).
+        if (pad.shown && !pad.leaving && padMonitor(pad) !== focusedMonitor) pad.monitor = focusedMonitor
+        layoutLog.info { "Special workspace ${pad.name} shown on ${focusedMonitor.name}" }
+        showScratchpad(pad, appearing = pad.windows.toSet())
+        return true
+    }
+
+    /**
+     * Moves [window] into the special workspace [name] (made if new). It shows there, with
+     * the focus — unless [silent]: then it waits there (and the focus stays on this workspace),
+     * as Hyprland's `movetoworkspacesilent special:name`.
+     */
+    @JvmOverloads
+    fun moveToSpecialWorkspace(window: Window, name: String = SpecialWorkspaces.DEFAULT_NAME, silent: Boolean = false) {
+        val pad = specialWorkspace(name)
+        val before = scratchpadOf(window)
+        if (before === pad) {
+            if (!silent && (!pad.shown || pad.leaving)) showSpecial(pad)
+            return
+        }
+        if (before != null) {
+            leavePad(before, window)
+        } else {
+            val from = workspaceOf(window) ?: return
+            if (window.fullscreen) setFullscreen(window, false)
+            if (window.maximized) setMaximized(window, false)
+            pinned -= window
+            from.remove(window)
+            from.model.forget(window)
+            pending.remove(window)
+            arrange(from)
+        }
+        pad.windows += window
+        layoutLog.info { "$window moved into the special workspace ${pad.name}${if (silent) " (silently)" else ""}" }
+        val hadFocus = window === focusedWindow
+        if (pad.shown && !pad.leaving) {
+            placeScratchpad(pad, appearing = emptySet())
+            if (!silent || hadFocus) focus(window)
+        } else if (!silent) {
+            showSpecial(pad)
+            focus(window)
+        } else {
+            // Waiting there unseen: drawn nowhere, the focus goes on.
+            glides -= window
+            if (hadFocus) passFocusOn(windows.lastOrNull())
+        }
+        windowListChanged()
+        changed()
+    }
+
+    /**
+     * Moves [window] out of its special workspace (or scratchpad) onto the workspace shown on
+     * the focused monitor, tiled there as usual. False if it is in none.
+     */
+    fun moveOutOfSpecialWorkspace(window: Window): Boolean {
+        val pad = scratchpadOf(window) ?: return false
+        leavePad(pad, window)
+        val workspace = focusedMonitor.workspace
+        workspace.add(window)
+        window.tiled = workspace.layout !== dev.caulis.tiling.Floating && !floats(window)
+        if (!window.tiled) {
+            workspace.floating += window
+            val visible = window.visibleRect
+            val place = floatingRects[window] ?: cascadeRect(visible.width, visible.height, focusedMonitor.area)
+            window.x = place.x
+            window.y = place.y
+            window.configure(place.width, place.height)
+        }
+        arrange(workspace)
+        layoutLog.info { "$window moved out of ${pad.name} onto workspace ${workspace.number}" }
+        focus(window)
+        windowListChanged()
+        changed()
+        return true
+    }
+
+    // [window] leaves [pad]: the others take its place; an empty special workspace may hide.
+    private fun leavePad(pad: Scratchpad, window: Window) {
+        pad.windows -= window
+        pad.workspace.model.forget(window)
+        glides -= window
+        if (padFocus === window) padFocus = null
+        if (!pad.shown || pad.leaving) return
+        if (pad.windows.isEmpty() && (!pad.isSpecial || specialWorkspaces.hideWhenEmpty)) hideScratchpad(pad, focusBack = false)
+        else placeScratchpad(pad, appearing = emptySet())
+    }
+
+    // The monitor a shown scratchpad is on.
+    private fun padMonitor(pad: Scratchpad): Monitor = pad.monitor?.takeIf { it in monitorList } ?: focusedMonitor
+
+    // Shown special workspaces hide when the session locks (if the settings say so).
+    private fun hideSpecialsForLock() {
+        if (!specialWorkspaces.hideOnLock) return
+        for (pad in shownPads.toList()) if (pad.isSpecial && !pad.leaving) {
+            layoutLog.info { "Special workspace ${pad.name} hidden: the screen locks" }
+            hideScratchpad(pad, focusBack = false)
+        }
+    }
 
     /**
      * Shows the scratchpad [name], or hides it if it is shown. Returns false if it has no
@@ -1814,46 +2281,86 @@ class Desktop(
     }
 
     // The monitor area a scratchpad is shown in.
-    private fun padArea(pad: Scratchpad): Rect = (pad.monitor?.takeIf { it in monitorList } ?: focusedMonitor).area
+    private fun padArea(pad: Scratchpad): Rect = padMonitor(pad).area
 
-    private fun showScratchpad(pad: Scratchpad, appearing: Set<Window>) {
-        if (!pad.shown || pad.leaving) pad.monitor = focusedMonitor
+    // Where a special workspace's windows are tiled: inside its gap, as big as its size says.
+    private fun specialArea(pad: Scratchpad): Rect {
+        val area = padMonitor(pad).usableArea
+        val settings = specialWorkspaces
+        val gap = settings.gap.coerceAtMost(minOf(area.width, area.height) / 4)
+        val w = ((area.width - 2 * gap) * settings.size).roundToInt().coerceAtLeast(1)
+        val h = ((area.height - 2 * gap) * settings.size).roundToInt().coerceAtLeast(1)
+        return Rect(area.x + (area.width - w) / 2, area.y + (area.height - h) / 2, w, h)
+    }
+
+    // The animation a scratchpad's windows come and go with.
+    private fun padAnimation(pad: Scratchpad?): String = if (pad?.isSpecial == true) specialWorkspaces.animation else "scratchpads"
+
+    private fun showScratchpad(pad: Scratchpad, appearing: Set<Window>, focusOn: Window? = null) {
+        if (!pad.shown || pad.leaving) {
+            pad.monitor = focusedMonitor
+            if (pad.isSpecial) pad.focusBefore = focusedWindow?.takeIf { scratchpadOf(it) == null }?.let { java.lang.ref.WeakReference(it) }
+        }
         pad.shown = true
         pad.leaving = false
+        padTimers.remove(pad)?.cancel()
         shownPads -= pad
         shownPads += pad
         placeScratchpad(pad, appearing)
-        focus(pad.windows.last())
+        (focusOn ?: pad.windows.lastOrNull())?.let(::focus)
     }
 
     private val padTimers = HashMap<Scratchpad, EventLoop.Timer>()
 
-    private fun hideScratchpad(pad: Scratchpad) {
+    private fun hideScratchpad(pad: Scratchpad, focusBack: Boolean = true) {
         pad.leaving = true
+        if (pad.isSpecial) layoutLog.info { "Special workspace ${pad.name} hidden" }
+        // A special workspace gives the focus back to the window that had it before (if it is still there).
+        val back = pad.focusBefore?.get()?.takeIf { focusBack && it in windows }
+        pad.focusBefore = null
         val now = System.nanoTime()
         for (window in pad.windows) {
             val from = shownRects[window] ?: currentRect(window)
-            glides[window] = Glide(from, now, to = pad.hiddenRect(from, padArea(pad)))
+            glides[window] = Glide(from, now, to = pad.hiddenRect(from, padArea(pad)), name = padAnimation(pad))
         }
         // (A hide before this one, shown again in between, must not end this one early.)
         padTimers.remove(pad)?.cancel()
-        padTimers[pad] = compositor.display.loop.after(animationMillis) {
+        fun gone() {
             padTimers -= pad
-            if (!pad.leaving) return@after // shown again meanwhile
+            if (!pad.leaving) return // shown again meanwhile
             pad.leaving = false
             pad.shown = false
             shownPads -= pad
             for (window in pad.windows) glides -= window
-            if (padFocus != null && padFocus in pad.windows) focus(windows.lastOrNull())
+            dismissHiddenGrabs("their scratchpad is hidden")
+            if (padFocus != null && padFocus in pad.windows) focus(back ?: windows.lastOrNull())
             changed()
         }
-        if (padFocus != null && padFocus in pad.windows) focus(windows.lastOrNull())
+        // (Without the animation: gone at once, not drawn where it was meanwhile.)
+        val millis = pick(padAnimation(pad), animations.windowMove).millis
+        if (millis <= 0) gone() else padTimers[pad] = compositor.display.loop.after(millis) { gone() }
+        if (padFocus != null && padFocus in pad.windows) focus(back ?: windows.lastOrNull())
         changed()
     }
 
     // Where the scratchpad's windows go: its edge, the middle, or its own layout.
     private fun padTargets(pad: Scratchpad, extra: Window? = null): Map<Window, Rect> {
         val windows = pad.windows + listOfNotNull(extra)
+        if (windows.isEmpty()) return emptyMap()
+        if (pad.isSpecial) {
+            // The compositor's layout (or its own), inside its gap.
+            val layout = specialLayout()
+            val area = specialArea(pad)
+            if (layout === Floating) {
+                // No tiling: each window in the middle, two thirds of it as big.
+                val w = area.width * 2 / 3
+                val h = area.height * 2 / 3
+                return windows.associateWith { fit(it, Rect(area.x + (area.width - w) / 2, area.y + (area.height - h) / 2, w, h)) }
+            }
+            if (pad.workspace.layout != layout) pad.workspace.layout = layout
+            val rects = arrangeSafely(pad.workspace, windows, area, windows.lastOrNull())
+            return windows.associateWith { window -> fit(window, rects.getOrNull(windows.indexOf(window)) ?: area) }
+        }
         if (pad.style is Scratchpad.Overlay) {
             val rects = arrangeSafely(pad.workspace, windows, padArea(pad), windows.lastOrNull())
             return windows.zip(rects).associate { (window, rect) -> window to fit(window, rect) }
@@ -1866,13 +2373,14 @@ class Desktop(
     private fun placeScratchpad(pad: Scratchpad, appearing: Set<Window>) {
         val now = System.nanoTime()
         for ((window, rect) in padTargets(pad)) {
-            window.tiled = pad.style is Scratchpad.Overlay
+            window.tiled = pad.style is Scratchpad.Overlay && !(pad.isSpecial && specialLayout() === Floating)
             val visibleRect = window.visibleRect
-            if (visibleRect.width != rect.width || visibleRect.height != rect.height) window.configure(rect.width, rect.height)
+            // (Asked for by the size it was asked last too: it may not have drawn that one yet.)
+            if (visibleRect.width != rect.width || visibleRect.height != rect.height || window.configuredSize != rect.width to rect.height) window.configure(rect.width, rect.height)
             window.x = rect.x
             window.y = rect.y
-            if (window in appearing && animationMillis > 0) {
-                glides[window] = Glide(pad.hiddenRect(rect, padArea(pad)), now)
+            if (window in appearing && pick(padAnimation(pad), animations.windowMove).millis > 0) {
+                glides[window] = Glide(pad.hiddenRect(rect, padArea(pad)), now, name = padAnimation(pad))
             }
         }
         changed()
@@ -2066,12 +2574,16 @@ class Desktop(
     /** Two clicks on a title bar within this many milliseconds are a double click (maximize). */
     var doubleClickMillis = 400L
 
-    private val cameraMillis: Long get() = (if (animationMillis == 0L) 0L else animations.overviewMillis ?: (animationMillis * 3 / 2)).coerceAtLeast(1)
+    // The overview's zoom: its own time, else 1.5 × the global one.
+    private fun overviewAnimation() = animation("overview", animations.overviewMillis ?: (animationMillis * 3 / 2))
+
+    private val cameraMillis: Long get() = overviewAnimation().effectiveMillis.coerceAtLeast(1)
 
     private fun cameraAt(now: Long): Camera {
-        val t = (now - cameraStart) / (cameraMillis * 1_000_000.0)
-        if (t >= 1.0 || animationMillis == 0L || animations.overviewMillis == 0L) return cameraTo
-        return cameraFrom.mix(cameraTo, animations.curve.safeAt(t))
+        val zoom = overviewAnimation()
+        val t = (now - cameraStart) / (zoom.effectiveMillis.coerceAtLeast(1) * 1_000_000.0)
+        if (t >= 1.0 || !zoom.on) return cameraTo
+        return cameraFrom.mix(cameraTo, zoom.curve.safeAt(t))
     }
 
     private fun cameraMoving(now: Long) = cameraTo !== cameraFrom && (now - cameraStart) < cameraMillis * 1_000_000
@@ -2107,6 +2619,11 @@ class Desktop(
 
     /** The fingers lifted: the overview finishes opening ([open]) or closing, smoothly from where it is. */
     fun endOverviewGesture(open: Boolean) {
+        // (Locked meanwhile: the lock closed the overview, and it does not open behind it.)
+        if (locked) {
+            overviewTarget = null
+            return
+        }
         val now = System.nanoTime()
         val target = overviewTarget ?: overviewCamera()
         overviewTarget = null
@@ -2284,7 +2801,7 @@ class Desktop(
     fun notify(text: String, level: NoticeLevel = NoticeLevel.INFO, title: String? = null): Notice =
         noticeBoard.add(level, text, title, if (this::focusedMonitor.isInitialized) focusedMonitor.name else null)
 
-    private val osd = Osd(renderer)
+    private val osd = Osd(renderer).also { it.fade = { animation("fadeOsd") } }
 
     /** What the on-screen display says now ("Volume 45 %"), or null when it is not shown. */
     val onScreenDisplay: String? get() = osd.look?.title
@@ -2323,7 +2840,10 @@ class Desktop(
 
     /** Opens [overlay] above everything (one closes the one open before). */
     fun openOverlay(overlay: Overlay) {
-        if (locked) return
+        if (locked) {
+            overlayLog.info { "Not opened while the session is locked: $overlay" }
+            return
+        }
         closeOverlay()
         this.overlay = overlay
         endGrab()
@@ -2617,6 +3137,18 @@ class Desktop(
         }
 
     /**
+     * True for windows in a group (tabs, a stack) of your compositor's: their border is
+     * [Border.groupedFocused] / [Border.groupedUnfocused], and a shader paint learns it
+     * (`grouped`). Caulis' own layouts have no groups: false for every window by default.
+     */
+    var windowGrouped: (Window) -> Boolean = { false }
+        set(value) {
+            field = value
+            renderLog.info("Your windowGrouped rule is in use")
+            changed()
+        }
+
+    /**
      * The effects of panels, docks and other layer surfaces (none by default), e.g. blur
      * behind a see-through bar: `{ if (it.namespace == "waybar") Effects(blur = Blur()) else Effects.NONE }`.
      */
@@ -2671,9 +3203,9 @@ class Desktop(
     private var focusChanging = false
     private val paintStart = System.nanoTime()
 
-    // The time a moving paint is drawn at (0 for one that does not move).
-    private fun paintTime(paint: dev.caulis.render.Paint): Float {
-        if (!paint.moving) return 0f
+    // The time a moving paint is drawn at (0 for one that does not move, or must not: [animate] false).
+    private fun paintTime(paint: dev.caulis.render.Paint, animate: Boolean = true): Float {
+        if (!animate || !paint.moving) return 0f
         paintsMoving = true
         return ((System.nanoTime() - paintStart) / 1e9).toFloat()
     }
@@ -2688,7 +3220,8 @@ class Desktop(
         val now = System.nanoTime()
         val change = focusLooks[owner]
         if (change == null || change.first != focused) focusLooks[owner] = focused to if (change == null) 0L else now
-        val e = animationProgress(focusLooks.getValue(owner).second, fx.focusChangeMillis, now)?.let { animations.curve.safeAt(it).toFloat().coerceIn(0f, 1f) }
+        val fading = animation("border", fx.focusChangeMillis)
+        val e = animationProgress(focusLooks.getValue(owner).second, fading.effectiveMillis, now)?.let { fading.curve.safeAt(it).toFloat().coerceIn(0f, 1f) }
         if (e != null) focusChanging = true
         fun shadowOf(focus: Boolean) = (if (focus) fx.shadow else fx.inactiveShadow ?: fx.shadow)?.takeIf { it != Shadow.NONE }
         fun addShadow(shadow: Shadow, alpha: Float, key: String) {
@@ -2707,12 +3240,17 @@ class Desktop(
         fx.border?.let { border ->
             val width = (border.width * scale).roundToInt().coerceAtLeast(1)
             val outer = Rect(rect.x - width, rect.y - width, rect.width + 2 * width, rect.height + 2 * width)
-            fun paintOf(focus: Boolean) = if (focus) border.focused else border.unfocused
+            // Urgent, in a group, focused: the paint for each state (and the shader learns it).
+            val window = owner as? Window
+            val urgent = window?.urgent == true
+            val grouped = window != null && userCode("Your windowGrouped", false) { windowGrouped(window) }
+            fun stateOf(focus: Boolean) = dev.caulis.render.PaintState(focus, urgent, grouped)
+            fun paintOf(focus: Boolean) = border.paintFor(stateOf(focus))
             // One pixel more, under the window's edge: its soft edge then blends into the border, not the background.
             val round = if (radius > 0f) radius + width else 0f
             // The border before stays below until the new one is all there.
-            if (e != null) all += DrawItem.Border(EffectKey("border before", owner), outer, round, width + 1f, paintOf(!focused), 1f, paintTime(paintOf(!focused)))
-            all += DrawItem.Border(EffectKey("border", owner), outer, round, width + 1f, paintOf(focused), e ?: 1f, paintTime(paintOf(focused)))
+            if (e != null) all += DrawItem.Border(EffectKey("border before", owner), outer, round, width + 1f, paintOf(!focused), 1f, paintTime(paintOf(!focused), border.animate), stateOf(!focused))
+            all += DrawItem.Border(EffectKey("border", owner), outer, round, width + 1f, paintOf(focused), e ?: 1f, paintTime(paintOf(focused), border.animate), stateOf(focused))
         }
         fun dimOf(focus: Boolean) = if (focus) 0f else fx.dimInactive
         val dim = if (e != null) dimOf(!focused) + (dimOf(focused) - dimOf(!focused)) * e else dimOf(focused)
@@ -2729,23 +3267,63 @@ class Desktop(
         set(value) {
             require(value in 0..10_000) { "animationMillis is 0 to 10000, not $value" }
             field = value
+            animationSettings = null
         }
 
     /**
-     * How windows appear and go away and how workspaces change (see [Animations]); how long
-     * they take is [animationMillis] unless [Animations] says otherwise.
+     * All animations: on or off ([Animations.enabled], off by default), each by name (see
+     * [AnimationTree.CAULIS]), how windows appear and go away and how workspaces change; how
+     * long they take is [animationMillis] unless [Animations] says otherwise.
      */
     var animations: Animations = Animations()
         set(value) {
             field = value
+            animationSettings = null
             changed()
         }
 
-    // How long an animation takes and along which curve (its own, or the usual).
-    private fun millisOf(animation: WindowAnimation) = if (animationMillis == 0L) 0L else animation.millis ?: curveOf(animation).naturalMillis ?: animationMillis
-    private fun millisOf(animation: WorkspaceAnimation) = if (animationMillis == 0L) 0L else animation.millis ?: curveOf(animation).naturalMillis ?: animationMillis
-    private fun curveOf(animation: WindowAnimation) = animation.curve ?: animations.curve
-    private fun curveOf(animation: WorkspaceAnimation) = animation.curve ?: animations.curve
+    // The animations' settings by name, made again when they change.
+    private var animationSettings: AnimationSettings? = null
+
+    /**
+     * What the animation [name] (of [AnimationTree.CAULIS]) comes to now: on or off, how long,
+     * along which curve, which look. ([animationMillis] = 0 turns all of them off, as before.)
+     */
+    @JvmOverloads
+    fun animation(name: String, usualMillis: Long? = null, usualCurve: Curve? = null): ResolvedAnimation {
+        val settings = animationSettings ?: (
+            if (animationMillis == 0L) AnimationSettings(AnimationTree.CAULIS, false, 0, animations.curve)
+            else animations.settings(animationMillis)
+        ).also { made ->
+            animationSettings = made
+            log.info { "Animations ${if (made.enabled) "on" else "off"}${if (made.entries.isEmpty()) "" else ", ${made.entries.size} set by name"}" }
+            log.trace { "Animations by name:\n${made.describe()}" }
+        }
+        return settings.resolve(name, usualMillis, usualCurve)
+    }
+
+    // A window's animation by [name]: the code's look (or the one its settings name), its time and curve.
+    private class Picked<T>(val look: T, val millis: Long, val curve: Curve)
+
+    // Window looks by their names, made once (asked every frame).
+    private val namedLooks = HashMap<String, WindowAnimation?>()
+
+    private fun pick(name: String, code: WindowAnimation): Picked<WindowAnimation> {
+        val resolved = animation(name, code.millis, code.curve)
+        val style = resolved.style?.takeIf { it != "default" }
+        val look = when {
+            style == null -> code
+            name == "windowsMove" || name == "scratchpads" -> if (style.trim().lowercase() == "none") WindowAnimation.NONE else code
+            else -> namedLooks.getOrPut(style) { WindowAnimation.named(style) } ?: code
+        }
+        return Picked(look, if (look === WindowAnimation.NONE) 0L else resolved.effectiveMillis, resolved.curve)
+    }
+
+    private fun pick(name: String, code: WorkspaceAnimation): Picked<WorkspaceAnimation> {
+        val resolved = animation(name, code.millis, code.curve)
+        val look = resolved.style?.takeIf { it != "default" }?.let(WorkspaceAnimation::named) ?: code
+        return Picked(look, if (look === WorkspaceAnimation.NONE) 0L else resolved.effectiveMillis, resolved.curve)
+    }
 
     // How much of an animation's time has passed (0 to 1), or null once it is over (or off).
     private fun animationProgress(start: Long, millis: Long, now: Long): Double? {
@@ -2809,12 +3387,13 @@ class Desktop(
     }
 
     // [window] on its way as a picture (see Flight), if it is on screen and the animation is on.
-    private fun flightOf(window: Window, kind: FlightKind, animation: WindowAnimation, to: Rect? = null, workspace: Workspace? = workspaceOf(window)): Flight? {
-        val millis = millisOf(animation)
+    private fun flightOf(window: Window, kind: FlightKind, name: String, code: WindowAnimation, to: Rect? = null, workspace: Workspace? = workspaceOf(window)): Flight? {
+        val picked = pick(name, code)
+        val millis = picked.millis
         if (millis <= 0 || locked || inOverview || workspace == null || monitorList.none { it.workspace === workspace } || scratchpadOf(window) != null) return null
         if (!behaviorOf(window).animated) return null
         val (target, texture, box) = pictureOf(window) ?: return null
-        return Flight(target, texture, box, to ?: box, System.nanoTime(), workspace, animation, millis, curveOf(animation), kind, window)
+        return Flight(target, texture, box, to ?: box, System.nanoTime(), workspace, picked.look, millis, picked.curve, kind, window)
     }
 
     // A window's pictures on their way are let go (it does something else now).
@@ -2829,7 +3408,7 @@ class Desktop(
     private fun lastLookOf(window: Window): Flight? {
         val workspace = workspaceOf(window) ?: return null
         if (window !in workspace.windows) return null
-        return flightOf(window, FlightKind.CLOSE, animations.windowClose, workspace = workspace)
+        return flightOf(window, FlightKind.CLOSE, "windowsOut", animations.windowClose, workspace = workspace)
     }
 
     // How a flight is drawn now (null once it is over).
@@ -2906,13 +3485,13 @@ class Desktop(
             inactiveOpacity = fx.inactiveOpacity * alpha,
             shadow = fx.shadow?.let { it.copy(color = it.color.faded(alpha)) },
             inactiveShadow = fx.inactiveShadow?.takeIf { it != Shadow.NONE }?.let { it.copy(color = it.color.faded(alpha)) } ?: fx.inactiveShadow,
-            border = fx.border?.let { it.copy(focused = it.focused.faded(alpha), unfocused = it.unfocused.faded(alpha)) },
+            border = fx.border?.faded(alpha),
             blur = null,
         )
     }
 
     // A window on its way: where it started; the end is wherever the window is now.
-    private class Glide(val from: Rect, val startNanos: Long, val to: Rect? = null)
+    private class Glide(val from: Rect, val startNanos: Long, val to: Rect? = null, val name: String = "windowsMove")
 
     private val glides = HashMap<Window, Glide>()
 
@@ -2939,8 +3518,9 @@ class Desktop(
         val shown = shownRects[window]
         window.x = x
         window.y = y
-        if (animationMillis > 0 && shown != null && (window in activeWorkspace.windows || scratchpadOf(window) != null) && behaviorOf(window).animated) {
-            glides[window] = Glide(shown, System.nanoTime())
+        val name = scratchpadOf(window)?.let(::padAnimation) ?: "windowsMove"
+        if (shown != null && (window in activeWorkspace.windows || scratchpadOf(window) != null) && behaviorOf(window).animated && pick(name, animations.windowMove).millis > 0) {
+            glides[window] = Glide(shown, System.nanoTime(), name = name)
         }
     }
 
@@ -2948,10 +3528,10 @@ class Desktop(
     // at first and gently slowing down. Null when the glide is over.
     private fun glidePosition(glide: Glide, current: Rect, nowNanos: Long): Rect? {
         val target = glide.to ?: current
-        val animation = animations.windowMove
-        val t = animationProgress(glide.startNanos, millisOf(animation), nowNanos) ?: return null
+        val picked = pick(glide.name, animations.windowMove)
+        val t = animationProgress(glide.startNanos, picked.millis, nowNanos) ?: return null
         return try {
-            animation.frame(Motion(null, glide.from, target, curveOf(animation).safeAt(t), t, focusedMonitor.usableArea)).rect
+            picked.look.frame(Motion(null, glide.from, target, picked.curve.safeAt(t), t, focusedMonitor.usableArea)).rect
         } catch (e: Throwable) {
             e.rethrowIfFatal()
             log.error("Your window move animation failed (windows jump): $e", e)
@@ -3100,6 +3680,7 @@ class Desktop(
     fun applyPlacement(window: Window, placement: WindowPlacement) {
         if (scratchpadOf(window) != null || workspaceOf(window) == null) return
         layoutLog.info { "$window: placed by a rule ($placement)" }
+        placement.specialWorkspace?.let { name -> return moveToSpecialWorkspace(window, name, silent = !placement.goToWorkspace) }
         val monitor = monitorNamed(placement.monitor)
         when {
             validWorkspace(placement) != null -> moveToWorkspace(window, workspace(placement.workspace!!, monitor ?: monitorOf(window)))
@@ -3132,7 +3713,7 @@ class Desktop(
         if (directed(window)) return userCode("Your WindowDirector (initialSize)", 0 to 0) { director!!.initialSize(window) }
         scratchpadFor(window)?.let { pad ->
             window.tiled = pad.style is Scratchpad.Overlay // told in the very first configure
-            return padTargets(pad, extra = window).getValue(window).let { it.width to it.height }
+            return padTargets(pad, extra = window)[window]?.let { it.width to it.height } ?: (0 to 0)
         }
         // Where it goes (rules), told in the very first configure too.
         val placement = placementOf(window)
@@ -3149,10 +3730,22 @@ class Desktop(
     }
 
     override fun windowMapped(window: Window) {
+        mapNumbers[window] = ++mapCount
         scratchpadFor(window)?.let { pad ->
-            // Its program was just started (usually by the scratchpad's key): show it.
+            // Its program was just started (usually by the scratchpad's key): show it. A special
+            // workspace's rule sends it there silently (unless goToWorkspace), or it is shown already.
+            val placement = placementOf(window)
+            placements -= window
             pad.windows += window
-            showScratchpad(pad, appearing = setOf(window))
+            if (pad.isSpecial && (!pad.shown || pad.leaving) && !placement.goToWorkspace) {
+                layoutLog.info { "$window opened in the special workspace ${pad.name} (hidden)" }
+                windowListChanged()
+                changed()
+            } else if (pad.isSpecial && (!pad.shown || pad.leaving)) {
+                showSpecial(pad)
+            } else {
+                showScratchpad(pad, appearing = setOf(window))
+            }
             windowsLog.info { "Opened $window (workspace ${workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
             notify(windowOpenedListeners, window, "window-opened")
             return
@@ -3204,7 +3797,7 @@ class Desktop(
         targets[window]?.let { window.x = it.x; window.y = it.y }
         // The keyboard: if it is on screen (or should be shown) and may take it.
         val shown = monitorList.any { it.workspace === workspace }
-        if ((shown || placement.goToWorkspace) && millisOf(animations.windowOpen) > 0 && !locked && behavior.animated) {
+        if ((shown || placement.goToWorkspace) && pick("windowsIn", animations.windowOpen).millis > 0 && !locked && behavior.animated) {
             appearing[window] = System.nanoTime()
         }
         if (placement.goToWorkspace || (shown && placement.focus)) focus(window) else changed()
@@ -3214,6 +3807,9 @@ class Desktop(
 
     override fun windowUnmapped(window: Window) {
         windowsLog.info { "Closed $window" }
+        dismissPopupsOf(window, "it closed")
+        // Its dialogs belong to its own parent now (or to nobody).
+        for (child in allWindows) if (child.parent === window) child.parentGone(window)
         placements -= window
         appearing -= window
         pinned -= window
@@ -3235,18 +3831,26 @@ class Desktop(
         screenRects -= window
         if (grab?.window === window) grab = null
         if (hovered === window) hovered = null
+        // (It had the focus even if a launcher, a widget or a panel has the keyboard now.)
+        val hadFocus = window === lastFocused || window.activated || seat.keyboardFocus === window.surface
         if (lastFocused === window) lastFocused = null
         windowListChanged()
         scratchpadOf(window)?.let { pad ->
             pad.windows -= window
-            if (pad.windows.isEmpty()) {
+            pad.workspace.model.forget(window)
+            // (A special workspace may stay shown empty, if its settings say so; new windows then open in it.)
+            val back = pad.focusBefore?.get()?.takeIf { it in windows }
+            if (pad.windows.isEmpty() && (!pad.isSpecial || specialWorkspaces.hideWhenEmpty)) {
+                if (pad.isSpecial && pad.shown) layoutLog.info { "Special workspace ${pad.name} hidden: its last window closed" }
                 pad.shown = false
                 pad.leaving = false
+                pad.focusBefore = null
                 shownPads -= pad
+                padTimers.remove(pad)?.cancel()
             } else if (pad.shown) {
                 placeScratchpad(pad, appearing = emptySet())
             }
-            if (padFocus === window || seat.keyboardFocus === window.surface) focus(pad.windows.lastOrNull()?.takeIf { pad.shown } ?: windows.lastOrNull())
+            if (padFocus === window || hadFocus) passFocusOn(pad.windows.lastOrNull()?.takeIf { pad.shown } ?: back ?: windows.lastOrNull())
             changed()
             notify(windowClosedListeners, window, "window-closed")
             return
@@ -3258,7 +3862,7 @@ class Desktop(
             arrange(workspace)
             dropIfEmpty(workspace)
         }
-        if (seat.keyboardFocus === window.surface) focus(windows.lastOrNull())
+        if (hadFocus) passFocusOn(windows.lastOrNull())
         changed()
         notify(windowClosedListeners, window, "window-closed")
     }
@@ -3268,7 +3872,7 @@ class Desktop(
     override fun windowDestroyed(window: Window) {
         placements -= window
         for (workspace in workspaces.values) workspace.model.forget(window)
-        scratchpads.values.forEach { it.windows -= window }
+        allPads.forEach { it.windows -= window }
     }
 
     override fun windowCommitted(window: Window) {
@@ -3322,7 +3926,45 @@ class Desktop(
 
     override fun fullscreenRequested(window: Window, fullscreen: Boolean) {
         if (directorTakes(window, WindowRequest.FULLSCREEN, fullscreen)) return
-        if (scratchpadOf(window) != null || refuses(window, WindowRequest.FULLSCREEN)) window.configure() else setFullscreen(window, fullscreen)
+        if (scratchpadOf(window) != null || refuses(window, WindowRequest.FULLSCREEN)) {
+            window.configure()
+            return
+        }
+        // Fullscreen, but the focus only as the rule against focus stealing says (a window on
+        // a hidden workspace took the keyboard while the user typed elsewhere).
+        applyFullscreen(window, fullscreen, takeFocus = false)
+        if (fullscreen && window.mapped) focusRequested(window, WindowRequest.FULLSCREEN)
+    }
+
+    /**
+     * Whether a program's own request ([WindowRequest.FULLSCREEN], [WindowRequest.RESTORE],
+     * X11's [WindowRequest.ACTIVATE]) may give [window] the focus: the rule against focus
+     * stealing. By default only if the focused window is this one or another of its program's
+     * (a video going fullscreen, a program moving between its own windows); else the window
+     * is only marked [urgent][Window.urgent]. xdg-activation with a good token does not ask
+     * (the token is the proof); the window manager's own [focus] never does.
+     */
+    var programMayTakeFocus: (window: Window, why: WindowRequest) -> Boolean = { window, _ ->
+        focusedWindow.let { it != null && (it === window || it.sameProgramAs(window)) }
+    }
+
+    /**
+     * A program asked for the focus for [window] by itself ([why]): it gets it if
+     * [programMayTakeFocus] says so, else the window is marked urgent. Nothing while [locked].
+     */
+    fun focusRequested(window: Window, why: WindowRequest) {
+        if (locked) {
+            focusLog.info { "$window asked for the focus ($why) while locked: ignored" }
+            return
+        }
+        if (window === focusedWindow && seat.keyboardFocus === window.surface) return
+        if (userCode("programMayTakeFocus", false) { programMayTakeFocus(window, why) }) {
+            focusLog.info { "$window takes the focus ($why)" }
+            focus(window)
+        } else if (window !== focusedWindow) {
+            focusLog.info { "$window asked for the focus ($why); marked urgent instead" }
+            setUrgent(window, true)
+        }
     }
 
     // Minimizing a scratchpad window hides its scratchpad.
@@ -3348,8 +3990,10 @@ class Desktop(
         applyState(window)
     }
 
-    /** Shows [window] on the whole screen, above everything (or back as before). */
-    fun setFullscreen(window: Window, fullscreen: Boolean) {
+    /** Shows [window] on the whole screen, above everything (or back as before); it gets the focus. */
+    fun setFullscreen(window: Window, fullscreen: Boolean) = applyFullscreen(window, fullscreen, takeFocus = true)
+
+    private fun applyFullscreen(window: Window, fullscreen: Boolean, takeFocus: Boolean) {
         windowsLog.info { "$window: ${if (fullscreen) "fullscreen" else "not fullscreen"}" }
         if (!window.configured) {
             window.fullscreen = fullscreen
@@ -3361,7 +4005,7 @@ class Desktop(
         }
         window.fullscreen = fullscreen
         applyState(window)
-        if (fullscreen && window.mapped) focus(window)
+        if (takeFocus && fullscreen && window.mapped) focus(window)
     }
 
     // Puts a window where its states say: full desktop, its tile, or its floating place.
@@ -3399,14 +4043,19 @@ class Desktop(
         // Into its dock icon (or down out of sight), as the minimize animation says.
         val shown = shownRects[window]
         stopFlights(window)
-        if (shown != null) flightOf(window, FlightKind.MINIMIZE, animations.minimize, to = minimizedRect(window, shown))?.let { flights += it }
+        if (shown != null) flightOf(window, FlightKind.MINIMIZE, "minimize", animations.minimize, to = minimizedRect(window, shown))?.let { flights += it }
         workspace.windowList -= window
         workspace.minimizedList += window
         window.setMinimized(true)
+        dismissPopupsOf(window, "it was minimized")
         pending.remove(window)
         if (grab?.window === window) grab = null
         arrange(workspace)
-        if (workspace === activeWorkspace) focus(windows.lastOrNull())
+        // (Only if it had the focus: a background window minimizing itself takes nothing away.)
+        if (workspace === activeWorkspace && (window === lastFocused || window.activated)) {
+            window.setActivated(false)
+            passFocusOn(windows.lastOrNull())
+        }
     }
 
     /**
@@ -3484,13 +4133,25 @@ class Desktop(
     private var buttonsHeld = 0
 
     override fun moveRequested(window: Window, serial: Int) {
+        if (!dragAllowed(window, serial, "move")) return
         if (directed(window) && userCode("Your WindowDirector (moveRequested)", false) { director!!.moveRequested(window) }) return
         beginMove(window)
     }
 
     override fun resizeRequested(window: Window, serial: Int, edges: Int) {
+        if (!dragAllowed(window, serial, "resize")) return
         if (directed(window) && userCode("Your WindowDirector (resizeRequested)", false) { director!!.resizeRequested(window, edges) }) return
         beginResize(window, edges)
+    }
+
+    // A program may start dragging its window only with the button the user holds in it: the
+    // press went to that program ([serial] is the press's, or a later event of it), not to another.
+    private fun dragAllowed(window: Window, serial: Int, what: String): Boolean {
+        val client = window.surface.resource.client
+        val pressed = pressedIn?.surface?.resource?.client
+        if (buttonsHeld > 0 && pressed === client && seat.isInputSerial(client, serial)) return true
+        windowsLog.info { "$window asked to $what without a button held in it: refused" }
+        return false
     }
 
     /**
@@ -3616,6 +4277,15 @@ class Desktop(
     // Surfaces visible right now; they get "frame done" at every refresh.
     private val visible = LinkedHashSet<Surface>()
 
+    // The monitor each visible picture is shown on most (only with more than one monitor).
+    private val surfaceHomes = HashMap<Surface, Monitor>()
+
+    // True if [monitor] is the one [surface] is shown on most (or nobody knows: then any is).
+    private fun shownMostlyOn(surface: Surface, monitor: Monitor): Boolean {
+        val home = surfaceHomes[surface] ?: return true
+        return home === monitor || home !in monitorList
+    }
+
     // A menu stays on the monitor its window (or panel) is on.
     override fun popupBounds(popup: Popup): Rect? {
         val (ox, oy) = popup.parent?.let(::visibleOrigin) ?: popup.layerParent?.let { it.x to it.y } ?: return null
@@ -3633,19 +4303,52 @@ class Desktop(
     override fun popupUnmapped(popup: Popup) {
         popups -= popup
         grabs -= popup
+        // Its own menus go with it (a submenu without its menu would float there forever).
+        popups.filter { it.parent === popup.shell }.asReversed().forEach { it.dismiss() }
         changed()
-        if (seat.keyboardFocus === popup.surface) {
-            keyboardTo(grabs.lastOrNull()?.surface ?: windows.lastOrNull()?.surface)
-        }
+        if (seat.keyboardFocus === popup.surface) restoreKeyboard()
     }
 
-    override fun popupGrab(popup: Popup) {
-        // Only a program you are using now may take the keyboard with a menu (one in the
-        // background would get your keys): else the menu is closed at once (an invalid grab).
+    // Closes the menus of [owner] (a window), as when it goes, hides or moves away: menus of
+    // a window that is not there must not stay on screen.
+    private fun dismissPopupsOf(owner: Window, why: String) {
+        val gone = popups.filter { ownerOf(it.surface) === owner }
+        if (gone.isEmpty()) return
+        windowsLog.info { "The menus of $owner close: $why" }
+        gone.asReversed().forEach { it.dismiss() }
+    }
+
+    // Menus holding the keyboard (grabs) that are not shown any more close: an invisible one
+    // kept the title bars from being clicked, and might get the keyboard back.
+    private fun dismissHiddenGrabs(why: String) {
+        val hidden = grabs.filter { !popupShown(it) }
+        if (hidden.isEmpty()) return
+        windowsLog.info { "${hidden.size} menu(s) holding the keyboard close: $why" }
+        // (Not holding it any more even if the program never closes them.)
+        grabs -= hidden.toSet()
+        hidden.asReversed().forEach { it.dismiss() }
+        if (hidden.any { seat.keyboardFocus === it.surface }) restoreKeyboard()
+    }
+
+    // A menu is shown only while what it belongs to is: its window on a shown workspace (not
+    // minimized) or in a shown scratchpad, or its panel. (Until its program closes it.)
+    private fun popupShown(popup: Popup): Boolean = when (val owner = ownerOf(popup.surface)) {
+        is Window -> owner.mapped && (
+            scratchpadOf(owner)?.let { it.shown && !it.leaving }
+                ?: workspaceOf(owner)?.let { it.windows.contains(owner) && monitorList.any { m -> m.workspace === it } }
+                ?: false
+            )
+        is LayerSurface -> owner in layerSurfaces
+        else -> false
+    }
+
+    override fun popupGrab(popup: Popup, serial: Int) {
+        // Only a program you are using now may take the keyboard with a menu — answering a
+        // click or a key you gave it (one in the background, even under the pointer, would
+        // get your keys): else the menu is closed at once (an invalid grab).
         val client = popup.resource.client
-        val inUse = seat.keyboardFocus?.resource?.client === client || seat.pointerFocus?.resource?.client === client
-        if (!inUse || locked || (popup.parent == null && popup.layerParent == null)) {
-            windowsLog.info { "${client.name} asked for a menu grab while not in use: the menu is closed" }
+        if (!seat.isInputSerial(client, serial) || locked || (popup.parent == null && popup.layerParent == null)) {
+            windowsLog.info { "${client.name} asked for a menu grab not answering your input: the menu is closed" }
             popup.dismiss()
             return
         }
@@ -3663,6 +4366,9 @@ class Desktop(
         changed()
     }
 
+    // When the focus last went to another window (System.nanoTime).
+    internal var focusedAt = 0L
+
     /** The windows that want attention, oldest first. */
     val urgentWindows: List<Window> get() = allWindows.filter { it.urgent }
 
@@ -3677,11 +4383,49 @@ class Desktop(
         return dialog
     }
 
+    // The focused window went (closed, minimized): [next] gets the focus — the keyboard too if
+    // a window had it; a launcher, a widget or a panel that has it keeps it (and gives it to
+    // [next] when done). Nothing while locked (unlocking gives the top window the focus).
+    private fun passFocusOn(next: Window?) {
+        if (locked) return
+        if (keyboardWidget == null && exclusiveLayer() == null && layerFocus == null) return focus(next)
+        val pad = next?.let(::scratchpadOf)
+        for (other in activeWorkspace.windowList) if (other !== next) other.setActivated(false)
+        for (other in allPads.flatMap { it.windows }) if (other !== next) other.setActivated(false)
+        if (next != null) {
+            if (pad == null && activeWorkspace.windowList.remove(next)) activeWorkspace.windowList += next
+            next.setActivated(true)
+        }
+        padFocus = next?.takeIf { pad != null }
+        if (next !== lastFocused) {
+            lastFocused = next
+            focusedAt = System.nanoTime()
+            focusLog.info { "Focus: ${next ?: "nothing"} (the keyboard stays where it is)" }
+            notify(focusListeners, next, "focus")
+        }
+        changed()
+    }
+
+    // Somebody should have the keyboard back (a menu closed): the newest menu that took it,
+    // the panel that keeps it or was clicked, else the focused window (a scratchpad's too).
+    private fun restoreKeyboard() {
+        if (keyboardWidget != null) return
+        if (locked) return keyboardLost()
+        keyboardTo(grabs.lastOrNull()?.surface ?: exclusiveLayer()?.surface ?: layerFocus?.surface ?: focusedWindow?.surface)
+    }
+
     /**
      * Raises [window], marks it active and gives it the keyboard (null = nothing focused).
      * A minimized window comes back; a window on another workspace brings that workspace.
      */
     fun focus(window: Window?) {
+        // The locker has the keyboard while the session is locked; no window takes it (nor
+        // raises itself, nor switches workspaces) behind the lock — but one the compositor's own
+        // lock screen allows (a lock screen that is a program's window).
+        if (locked && (window == null || !lockAllows(window.surface))) {
+            focusLog.info { "Focus to ${window ?: "nothing"} ignored: the session is locked" }
+            return
+        }
         // A window waiting for a modal dialog of its own: the dialog gets the focus (an IDE's
         // settings; else keys seemed to do nothing) — unless a rule says it never takes it (then
         // the focus went back to the window, and round again).
@@ -3697,7 +4441,12 @@ class Desktop(
         if (window != null && window.urgent) setUrgent(window, false)
         val pad = window?.let(::scratchpadOf)
         // Everything else loses the "active" look.
-        for (other in scratchpads.values.flatMap { it.windows }) if (other !== window) other.setActivated(false)
+        for (other in allPads.flatMap { it.windows }) if (other !== window) other.setActivated(false)
+        // A window of a hidden special workspace (from a task bar): the special workspace shows.
+        if (pad != null && pad.isSpecial && (!pad.shown || pad.leaving)) {
+            showScratchpad(pad, appearing = pad.windows.toSet(), focusOn = window)
+            return
+        }
         if (pad != null) {
             for (other in activeWorkspace.windows) other.setActivated(false)
             pad.windows -= window
@@ -3710,6 +4459,7 @@ class Desktop(
             }
             if (window !== lastFocused) {
                 lastFocused = window
+                focusedAt = System.nanoTime()
                 focusLog.info { "Focus: ${window ?: "nothing"}" }
                 notify(focusListeners, window, "focus")
             }
@@ -3748,7 +4498,7 @@ class Desktop(
                 // Back out of its dock icon (or up from below), as the restore animation says.
                 stopFlights(window)
                 glides -= window
-                flightOf(window, FlightKind.RESTORE, animations.restore, to = minimizedRect(window, currentRect(window)))?.let { flights += it }
+                flightOf(window, FlightKind.RESTORE, "restore", animations.restore, to = minimizedRect(window, currentRect(window)))?.let { flights += it }
             }
         }
         val list = activeWorkspace.windowList
@@ -3764,6 +4514,7 @@ class Desktop(
         }
         if (window !== lastFocused) {
             lastFocused = window
+            focusedAt = System.nanoTime()
             focusLog.info { "Focus: ${window ?: "nothing"}" }
             notify(focusListeners, window, "focus")
         }
@@ -3980,6 +4731,202 @@ class Desktop(
         touchPoints.clear()
     }
 
+    // --- drawing tablets -------------------------------------------------------------------------
+
+    /**
+     * tablet-v2, for programs that understand pens (null: none — then a pen is always the
+     * pointer). Set by whoever made it, as [pointerConstraints].
+     */
+    var tablets: Tablets? = null
+
+    /**
+     * Where a pen that is the pointer sends its movement and its clicks: to [pointerMoved] and
+     * [pointerButton] by default. A window manager puts its own way in between, so its
+     * bindings and hooks see the pen as they see a mouse.
+     */
+    var penPointer: PenPointer = object : PenPointer {
+        override fun moved(timeMillis: Int, x: Double, y: Double) = pointerMoved(timeMillis, x, y)
+        override fun button(timeMillis: Int, button: Int, pressed: Boolean) = pointerButton(timeMillis, button, pressed)
+    }
+
+    // Each tool near a tablet: its tablet, where it is, its tip, and the program's surface it is
+    // over (null: it is the pointer there). While its tip or a button is down it stays where
+    // that began — a program's surface, or the pointer — as a mouse with a button held does.
+    private class Pen(val tablet: Tablet) {
+        var x = 0.0
+        var y = 0.0
+        var tip = false
+        var surface: Surface? = null
+        var window: Window? = null
+        // Where that surface's top left corner is (desktop units), and how stretched it is drawn.
+        var originX = 0.0
+        var originY = 0.0
+        var scaleX = 1.0
+        var scaleY = 1.0
+        // Buttons held: each one's code as it was passed on (the pointer's button, or the pen's own).
+        val buttons = HashMap<Int, Int>()
+        // The tip went down only to close a menu of ours: its lifting is nobody's either.
+        var swallowed = false
+    }
+
+    private val pens = HashMap<TabletTool, Pen>()
+
+    /**
+     * A [tool] of [tablet] came near it ([near]) at ([x], [y]) (desktop units) with its [axes],
+     * or went away. Over a program that takes tablet events ([tablets]) that program gets the
+     * pen — pressure, tilt and all; elsewhere (our bars, menus and title bars, an overlay, the
+     * overview, a program that does not, a [Tablet] set to [dev.caulis.core.input.DeviceSettings.pointerOnly])
+     * the pen is the pointer: its tip the left button, its buttons as its settings say.
+     */
+    fun tabletProximity(timeMillis: Int, tablet: Tablet, tool: TabletTool, x: Double, y: Double, axes: TabletAxes, near: Boolean) {
+        onUserActivity()
+        if (near) {
+            val pen = pens.getOrPut(tool) {
+                inputLog.trace { "The $tool came near ${tablet.name}" }
+                Pen(tablet)
+            }
+            penMoved(timeMillis, tool, pen, x, y, axes)
+            return
+        }
+        val pen = pens[tool] ?: return
+        if (pen.tip) tabletTip(timeMillis, tool, false)
+        for (button in pen.buttons.keys.toList()) tabletButton(timeMillis, tool, button, false)
+        pens.remove(tool)
+        if (pen.surface != null) tablets?.proximityOut(timeMillis, tool)
+        inputLog.trace { "The $tool went away" }
+    }
+
+    /** [tool] (near a tablet: [tabletProximity]) moved to ([x], [y]) (desktop units), and its [axes] changed. */
+    fun tabletMotion(timeMillis: Int, tool: TabletTool, x: Double, y: Double, axes: TabletAxes) {
+        val pen = pens[tool] ?: return
+        onUserActivity()
+        penMoved(timeMillis, tool, pen, x, y, axes)
+    }
+
+    /** [tool]'s tip touched the tablet ([down]) or lifted off it. */
+    fun tabletTip(timeMillis: Int, tool: TabletTool, down: Boolean) {
+        val pen = pens[tool] ?: return
+        if (pen.tip == down) return
+        onUserActivity()
+        pen.tip = down
+        if (pen.surface == null) return penPointer.button(timeMillis, BTN_LEFT, down)
+        if (down) {
+            // A touch outside our open menus closes them, as a click does (and only that).
+            if (penPressedOutside(pen)) {
+                pen.swallowed = true
+                return
+            }
+            pen.window?.let { if (it !== focusedWindow) focus(it) }
+        } else if (pen.swallowed) {
+            pen.swallowed = false
+            return
+        }
+        tablets?.tip(timeMillis, tool, down)
+    }
+
+    /** A [button] of [tool] (a Linux code: 0x14b the pen's lower one, 0x14c the upper one) was pressed or let go. */
+    fun tabletButton(timeMillis: Int, tool: TabletTool, button: Int, pressed: Boolean) {
+        val pen = pens[tool] ?: return
+        onUserActivity()
+        if (pressed) {
+            if (button in pen.buttons) return
+            if (pen.surface != null) {
+                pen.buttons[button] = button
+                tablets?.button(timeMillis, tool, button, true)
+            } else {
+                val asPointer = pen.tablet.settings.pointerButtonOf(button)
+                pen.buttons[button] = asPointer
+                if (asPointer != 0) penPointer.button(timeMillis, asPointer, true)
+            }
+            return
+        }
+        val sent = pen.buttons.remove(button) ?: return
+        if (pen.surface != null) tablets?.button(timeMillis, tool, button, false) else if (sent != 0) penPointer.button(timeMillis, sent, false)
+    }
+
+    private fun penMoved(timeMillis: Int, tool: TabletTool, pen: Pen, x: Double, y: Double, axes: TabletAxes) {
+        pen.x = x
+        pen.y = y
+        if (pen.tip || pen.buttons.isNotEmpty()) {
+            val surface = pen.surface ?: return penPointer.moved(timeMillis, x, y)
+            if (surface.resource.isAlive && seat.allowed(surface) && tablets?.surfaceOf(tool) === surface) {
+                showPenAt(x, y)
+                tablets?.motion(timeMillis, tool, (x - pen.originX) / pen.scaleX, (y - pen.originY) / pen.scaleY, axes)
+                return
+            }
+            // The surface went away (or the screen was locked) under the pen: what it held is let go.
+            inputLog.trace { "The $tool lost the surface it touched" }
+            pen.tip = false
+            pen.swallowed = false
+            pen.buttons.clear()
+        }
+        val hit = tabletTarget(pen.tablet, x, y)
+        if (hit == null) {
+            if (pen.surface != null) {
+                tablets?.proximityOut(timeMillis, tool)
+                pen.surface = null
+                pen.window = null
+            }
+            penPointer.moved(timeMillis, x, y)
+            return
+        }
+        // Onto a program's surface: the pointer leaves whatever it was over (programs, our widgets and bars).
+        if (pen.surface == null) pointerAway(timeMillis)
+        pen.surface = hit.surface
+        pen.window = hit.root.roleObject as? Window
+        pen.originX = x - hit.localX * hit.scaleX
+        pen.originY = y - hit.localY * hit.scaleY
+        pen.scaleX = hit.scaleX
+        pen.scaleY = hit.scaleY
+        showPenAt(x, y)
+        tablets?.proximityIn(timeMillis, pen.tablet, tool, hit.surface, hit.localX, hit.localY, axes)
+    }
+
+    // The program's surface at ([x], [y]) that gets the pen as a pen, or null: there the pen is
+    // the pointer (our own things, programs without tablet events, and while the pointer is busy).
+    private fun tabletTarget(tablet: Tablet, x: Double, y: Double): Hit? {
+        val tablets = tablets ?: return null
+        if (tablet.settings.pointerOnly == true) return null
+        if ((overlay != null && !locked) || inOverview || grab != null || grabs.isNotEmpty() || buttonsHeld > 0) return null
+        if (!locked && noticeBoard.at(x, y) != null) return null
+        val hit = (pointedAt(x, y, widgetsToo = true) as? Pointed.AtSurface)?.hit ?: return null
+        // (Our title bars and window edges are above what is under them.)
+        if (!locked && decorationAt(x, y) != null) return null
+        if (!hit.surface.resource.isAlive || !seat.allowed(hit.surface) || !tablets.takes(hit.surface)) return null
+        return hit
+    }
+
+    // The pen took over from the pointer: what the pointer was over hears that it left.
+    private fun pointerAway(timeMillis: Int) {
+        hoverWidget(timeMillis, null, moved = false)
+        if (titleHover != null) {
+            titleHover = null
+            changed()
+        }
+        decorationCursor = null
+        if (seat.pointerFocus != null) seat.pointerMotion(timeMillis, null, 0.0, 0.0)
+    }
+
+    // The cursor is where the pen is (over a program that takes the pen as a pen).
+    private fun showPenAt(x: Double, y: Double) {
+        cursorActive()
+        val on = monitorAt(x, y)
+        pointerX = x.coerceIn(on.area.x.toDouble(), on.area.right - 1.0)
+        pointerY = y.coerceIn(on.area.y.toDouble(), on.area.bottom - 1.0)
+        onChange()
+    }
+
+    // The pen's tip touched a program: our widgets it is not on hear of it (an open menu
+    // closes, a text field gives the keyboard back). True if one took it (the program does not get it).
+    private fun penPressedOutside(pen: Pen): Boolean {
+        if (keyboardWidget != null) focusWidget(null)
+        var taken = false
+        for (other in widgets.toList().asReversed()) {
+            if (userCode("Your widget (pressedOutside)", false) { other.pressedOutside(BTN_LEFT, pen.x, pen.y, false) }) taken = true
+        }
+        return taken
+    }
+
     fun pointerMoved(timeMillis: Int, x: Double, y: Double) {
         // From an absolute position (nested, tablets): the movement counts for constraints too.
         pointerConstraints?.let { pc ->
@@ -4021,7 +4968,7 @@ class Desktop(
         }
         // Buttons held since a press in a program: it keeps the pointer, wherever it goes.
         pressedIn?.let { pressed ->
-            if (buttonsHeld > 0 && !locked && pressed.surface.resource.isAlive) {
+            if (buttonsHeld > 0 && !locked && pressed.surface.resource.isAlive && seat.drag == null) {
                 seat.pointerMotion(timeMillis, pressed.surface, (pointerX - pressed.x) / pressed.scaleX, (pointerY - pressed.y) / pressed.scaleY)
                 onChange()
                 return
@@ -4030,7 +4977,7 @@ class Desktop(
         }
         // A button pressed in a widget: it keeps the pointer until let go.
         pressedWidget?.let { pressed ->
-            if (buttonsHeld > 0 && !locked) {
+            if (buttonsHeld > 0) {
                 userCode("Your widget (pointerMoved)", Unit) { pressed.widget.pointerMoved(pressed.monitor, pointerX - pressed.area.x, pointerY - pressed.area.y) }
                 onChange()
                 return
@@ -4041,7 +4988,8 @@ class Desktop(
         // are above the widgets below the windows.
         val under = pointedAt(pointerX, pointerY, widgetsToo = true)
         val overWidget = under as? Pointed.AtWidget
-        val decoration = if (overWidget != null && overWidget.level != DrawingLevel.BELOW_WINDOWS) null else decorationAt(pointerX, pointerY)
+        // (Behind a lock no title bar lights up and no edge shows a resize cursor.)
+        val decoration = if (locked || (overWidget != null && overWidget.level != DrawingLevel.BELOW_WINDOWS)) null else decorationAt(pointerX, pointerY)
         if (hoverWidget(timeMillis, overWidget.takeIf { decoration == null }, moved = true)) {
             onChange()
             return
@@ -4083,7 +5031,8 @@ class Desktop(
     private fun pointerOntoWhatIsThere() {
         if (pointerCheckedVersion == version) return
         pointerCheckedVersion = version
-        if (locked || overlay != null || grab != null || inOverview || buttonsHeld > 0) return
+        if (overlay != null || grab != null || inOverview || buttonsHeld > 0) return
+        if (pens.values.any { it.surface != null }) return // (the pen has it: the program under it gets the pen)
         val time = (System.nanoTime() / 1_000_000).toInt()
         val under = pointedAt(pointerX, pointerY, widgetsToo = true)
         val overWidget = under as? Pointed.AtWidget
@@ -4127,25 +5076,28 @@ class Desktop(
         val releasedFrom = if (!pressed && buttonsHeld == 0) pressedIn.also { pressedIn = null } else null
         cursorActive()
         if (!passToApps) return
-        if (locked) {
-            seat.pointerButton(timeMillis, button, pressed) // only the locker can be under the pointer
+        // A drag and drop going on: letting go drops it (wherever the pointer is).
+        if (seat.drag != null) {
+            seat.pointerButton(timeMillis, button, pressed)
+            if (seat.drag == null) movePointer(timeMillis, pointerX, pointerY) // the one under the pointer gets it now
             return
         }
         if (withOverlay { it.pointerButton(button, pressed) }) return
-        // Notices are above everything (a bar too): a click on one is theirs.
-        if (noticeClick(button, pressed)) return
+        // Notices are above everything (a bar too): a click on one is theirs (none on a lock screen).
+        if (!locked && noticeClick(button, pressed)) return
         // A release of a press that only closed a menu: nobody's.
         if (!pressed && button == outsideButton) {
             outsideButton = null
             return
         }
         // A widget's (the one pressed in keeps it until the last button is let go).
-        val widgetTarget = if (locked || inOverview) null else pressedWidget?.widget ?: hoveredWidget
+        // (While locked only the lock screen's widgets can be hovered or pressed.)
+        val widgetTarget = if (inOverview) null else pressedWidget?.widget ?: hoveredWidget
         // A press anywhere else: the widgets it is not on hear of it (an open menu closes).
         if (pressed && buttonsHeld == 1 && !inOverview && widgets.isNotEmpty()) {
             var taken = false
             for (other in widgets.toList().asReversed()) {
-                if (other === widgetTarget) continue
+                if (other === widgetTarget || !widgetUsable(other)) continue
                 if (userCode("Your widget (pressedOutside)", false) { other.pressedOutside(button, pointerX, pointerY, widgetTarget != null) }) taken = true
             }
             if (taken && widgetTarget == null) {
@@ -4168,6 +5120,17 @@ class Desktop(
         }
         // A click anywhere else takes the keyboard back from a widget.
         if (pressed && keyboardWidget != null) focusWidget(null)
+        if (locked) {
+            // Only the lock screen can be under the pointer: a click on one of its surfaces
+            // (the locker's on another monitor, or one our own lock screen allows) gives that
+            // one the keyboard — taking it from our own lock screen's widget too.
+            if (pressed) surfaceAt(pointerX, pointerY)?.takeIf { lockAllows(it.root) }?.let { hit ->
+                val window = hit.root.roleObject as? Window
+                if (window != null) focus(window) else if (seat.keyboardFocus !== hit.root) keyboardTo(hit.root)
+            }
+            seat.pointerButton(timeMillis, button, pressed)
+            return
+        }
         if (inOverview) {
             if (pressed) overviewClick()
             return
@@ -4190,8 +5153,8 @@ class Desktop(
                 grabs.clear()
                 return
             }
-            // A click on the dimmed area around an overlay scratchpad hides it.
-            val overlay = shownPads.lastOrNull { it.style is Scratchpad.Overlay && !it.leaving }
+            // A click on the dimmed area around an overlay scratchpad (or a special workspace) hides it.
+            val overlay = shownPads.lastOrNull { it.style is Scratchpad.Overlay && !it.leaving && (!it.isSpecial || specialWorkspaces.clickOutsideHides) }
             if (overlay != null && (hit == null || (hit.root.roleObject as? Window)?.let(::scratchpadOf) !== overlay)) {
                 hideScratchpad(overlay)
                 return
@@ -4233,15 +5196,38 @@ class Desktop(
 
     private class PressedIn(val surface: Surface, val x: Double, val y: Double, val scaleX: Double, val scaleY: Double)
 
+    /**
+     * Scrolling as 0.1.1 had it: [value] units along one axis, [value120] the wheel's steps in
+     * 1/120 (a full notch = 120; 0: fingers).
+     */
+    @Deprecated("Give a Scroll (where it came from, notches in 1/120)", ReplaceWith("pointerAxis(timeMillis, Scroll(...))"))
     fun pointerAxis(timeMillis: Int, vertical: Boolean, value: Double, value120: Int) {
-        inputLog.trace { "Scroll ${if (vertical) "vertical" else "horizontal"} $value ($value120/120)" }
+        val source = if (value120 != 0) dev.caulis.core.input.Scroll.Source.WHEEL else dev.caulis.core.input.Scroll.Source.FINGER
+        pointerAxis(
+            timeMillis,
+            if (vertical) dev.caulis.core.input.Scroll(source, vertical = value, vertical120 = value120)
+            else dev.caulis.core.input.Scroll(source, horizontal = value, horizontal120 = value120),
+        )
+    }
+
+    /** Scrolling (the wheel or fingers, see [Scroll]): an overlay, a widget or the program under the pointer gets it. */
+    fun pointerAxis(timeMillis: Int, scroll: Scroll) {
+        inputLog.trace { "$scroll" }
         cursorActive()
-        if (!locked && withOverlay { it.scroll(vertical, if (value120 != 0) value120 / 120.0 else value / 15.0) }) return
-        hoveredWidget?.takeIf { !locked && !inOverview }?.let { widget ->
-            userCode("Your widget (scroll)", Unit) { if (vertical) widget.scroll(0.0, value) else widget.scroll(value, 0.0) }
+        if (!locked && overlay != null) {
+            // An overlay hears each direction in steps (a notch is 1).
+            for (vertical in listOf(true, false)) {
+                val value = if (vertical) scroll.vertical else scroll.horizontal
+                val value120 = if (vertical) scroll.vertical120 else scroll.horizontal120
+                if (value != 0.0 || value120 != 0) withOverlay { it.scroll(vertical, if (value120 != 0) value120 / 120.0 else value / 15.0) }
+            }
             return
         }
-        seat.pointerAxis(timeMillis, vertical, value, value120)
+        hoveredWidget?.takeIf { !inOverview }?.let { widget ->
+            if (scroll.horizontal != 0.0 || scroll.vertical != 0.0) userCode("Your widget (scroll)", Unit) { widget.scroll(scroll.horizontal, scroll.vertical) }
+            return
+        }
+        seat.pointerAxis(timeMillis, scroll)
     }
 
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
@@ -4250,7 +5236,7 @@ class Desktop(
         // Typing (not just holding Ctrl or Super): the cursor makes way.
         if (pressed && hideCursorWhileTyping && evdevCode !in MODIFIER_KEYS && seat.keyboardFocus != null) hideCursor()
         if (pressed || evdevCode == widgetRepeatKey) stopWidgetRepeat()
-        keyboardWidget?.takeIf { !locked && overlay == null }?.let { widget ->
+        keyboardWidget?.takeIf { widgetUsable(it) && overlay == null }?.let { widget ->
             val text = if (pressed) seat.textOf(evdevCode) else null
             seat.key(timeMillis, evdevCode, pressed) // (no program has the keyboard: only its state moves on)
             val m = seat.modifierBits
@@ -4260,15 +5246,31 @@ class Desktop(
             if (pressed && evdevCode !in MODIFIER_KEYS && seat.repeatRate > 0) repeatForWidget(widget, key, seat.repeatDelay.toLong())
             return
         }
+        // A key pressed while the overview or an overlay had the keyboard: its release is not
+        // for programs either (they never saw the press); the keyboard's state follows both.
+        if (!pressed && keptKeys.remove(evdevCode)) {
+            if (!locked && overlay != null) withOverlay { it.key(evdevCode, false) }
+            seat.trackKey(evdevCode, false)
+            return
+        }
         if (!locked && overlay != null) {
             withOverlay { it.key(evdevCode, pressed) }
-            if (pressed) return // ...as with the overview below
+            if (pressed) return keepKey(evdevCode) // ...as with the overview below
         }
         if (inOverview && pressed) {
             if (evdevCode == KEY_ESC) setOverview(false)
-            return // new key presses are not for programs while the overview is open...
+            return keepKey(evdevCode) // new key presses are not for programs while the overview is open...
         }
-        seat.key(timeMillis, evdevCode, pressed) // ...but releases are, or keys would stick
+        if (pressed) keptKeys.remove(evdevCode) // (its release, missed somehow, is the programs' now)
+        seat.key(timeMillis, evdevCode, pressed) // ...but releases of keys they saw pressed are, or keys would stick
+    }
+
+    // Keys pressed while the overview or an overlay had them (programs never saw the press).
+    private val keptKeys = HashSet<Int>()
+
+    private fun keepKey(evdevCode: Int) {
+        keptKeys += evdevCode
+        seat.trackKey(evdevCode, true) // (Shift held there is still held for programs afterwards)
     }
 
     // The key a widget gets again and again while it is held (programs repeat keys themselves).
@@ -4285,7 +5287,7 @@ class Desktop(
         widgetRepeatKey = key.evdevCode
         widgetRepeat = compositor.display.loop.after(delayMillis) {
             widgetRepeat = null
-            if (keyboardWidget !== widget || locked || overlay != null) {
+            if (keyboardWidget !== widget || !widgetUsable(widget) || overlay != null) {
                 widgetRepeatKey = -1
                 return@after
             }
@@ -4319,16 +5321,35 @@ class Desktop(
         fun Hit?.at(): Pointed? = this?.let(Pointed::AtSurface)
         fun widget(level: DrawingLevel): Pointed? =
             if (widgetsToo && widgets.isNotEmpty()) widgetAt(x, y, level)?.let { (widget, area) -> Pointed.AtWidget(widget, area, level) } else null
-        if (locked) {
-            // Only the locker is there.
-            for (lockSurface in lockSurfaces()) hitTree(lockSurface.surface, x, y, lockSurface.surface)?.let { return it.at() }
+        if (lockHidesDesktop) {
+            // Only the lock is there: the widgets usable on it, the locker's surfaces (each on its monitor).
+            for (level in listOf(DrawingLevel.ON_TOP, DrawingLevel.ABOVE_WINDOWS, DrawingLevel.BELOW_WINDOWS, DrawingLevel.WALLPAPER)) widget(level)?.let { return it }
+            for (lockSurface in lockSurfaces()) {
+                val area = lockMonitor(lockSurface).area
+                hitTree(lockSurface.surface, x - area.x, y - area.y, lockSurface.surface)?.let { return it.at() }
+            }
             return null
         }
+        if (locked) {
+            // Behind our own lock screen (the desktop drawn): what is there, if the lock lets it have input.
+            return when (val there = pointedAtUnlocked(x, y, widgetsToo)) {
+                is Pointed.AtSurface -> there.takeIf { lockAllows(it.hit.root) }
+                else -> there // (only usable widgets are found)
+            }
+        }
+        return pointedAtUnlocked(x, y, widgetsToo)
+    }
+
+    private fun pointedAtUnlocked(x: Double, y: Double, widgetsToo: Boolean): Pointed? {
+        fun Hit?.at(): Pointed? = this?.let(Pointed::AtSurface)
+        fun widget(level: DrawingLevel): Pointed? =
+            if (widgetsToo && widgets.isNotEmpty()) widgetAt(x, y, level)?.let { (widget, area) -> Pointed.AtWidget(widget, area, level) } else null
         widget(DrawingLevel.ON_TOP)?.let { return it }
         for ((surface, place) in unmanaged.entries.reversed()) {
             hitTree(surface, x - place.first, y - place.second, surface)?.let { return it.at() }
         }
         for (popup in popups.asReversed()) {
+            if (!popupShown(popup)) continue
             val (px, py) = popupOrigin(popup)
             hitTree(popup.surface, x - px, y - py, popup.surface)?.let { return it.at() }
         }
@@ -4454,22 +5475,22 @@ class Desktop(
         presentDirect: ((DmabufBuffer) -> Boolean)? = null,
     ): Boolean {
         if (brokenOverlay != null && brokenOverlay === overlay) closeOverlay()
-        val noticesMoving = noticeBoard.animating() || osd.animating(System.nanoTime()) // (also lets go of those that faded away)
-        // Each asked every time (they move their animations on: none may be skipped by another).
+        // Each asked every time (they move their animations on, and let go of what faded away:
+        // none may be skipped because another already said yes).
+        val now = System.nanoTime()
+        val noticesMoving = noticeBoard.animating() or osd.animating(now)
         val fadingNow = fading()
         val animatingNow = animating()
         val backdropsChanging = backdrops.changing()
-        val directorMoving = director?.let { d -> userCode("Your WindowDirector (animating)", false) { d.animating(System.nanoTime()) } } == true ||
-            drawings.values.any { list -> list.any { d -> userCode("Your drawing (animating)", false) { d.animating(System.nanoTime()) } } } ||
-            widgets.any { w -> userCode("Your widget (animating)", false) { w.animating(System.nanoTime()) } }
+        var directorMoving = director?.let { d -> userCode("Your WindowDirector (animating)", false) { d.animating(now) } } == true
+        for (list in drawings.values) for (d in list) if (userCode("Your drawing (animating)", false) { d.animating(now) }) directorMoving = true
+        for (w in widgets.toList()) if (userCode("Your widget (animating)", false) { w.animating(now) }) directorMoving = true
         if (glides.isNotEmpty() || cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsMoving || focusChanging || directorMoving) {
             // Windows are gliding (or the overview zooms): the scene changes every frame until done.
             renderLog.trace {
                 val why = listOfNotNull("glides".takeIf { glides.isNotEmpty() }, "camera".takeIf { cameraMoving(System.nanoTime()) }, "fading".takeIf { fadingNow },
                     "notices".takeIf { noticesMoving }, "animating".takeIf { animatingNow }, "backdrops".takeIf { backdropsChanging }, "paints".takeIf { paintsMoving },
-                    "focus".takeIf { focusChanging }, "director".takeIf { director?.animating(System.nanoTime()) == true },
-                    "drawings".takeIf { drawings.values.any { l -> l.any { it.animating(System.nanoTime()) } } },
-                    widgets.filter { it.animating(System.nanoTime()) }.takeIf { it.isNotEmpty() }?.joinToString(prefix = "widgets ") { it.javaClass.simpleName })
+                    "focus".takeIf { focusChanging }, "director, drawings or widgets".takeIf { directorMoving })
                 "Moving: ${why.joinToString()}"
             }
             version++
@@ -4492,13 +5513,26 @@ class Desktop(
             view.shownWithoutDrawing()
             takeFeedbacks(view)
         } else if (draw) {
-            present { target, age -> render(view, target, age) }
+            var drawn = false
+            present { target, age ->
+                drawn = true
+                try {
+                    render(view, target, age)
+                } catch (e: Throwable) {
+                    // Half a frame: the next one is drawn whole, so nothing stale stays on screen.
+                    view.damageEverything()
+                    throw e
+                }
+            }
+            // Nothing reached the screen (it is off, or another terminal is shown): what changed
+            // stays to be drawn, and the backend's slow heartbeat still gives programs their frames.
+            if (!drawn) renderLog.trace { "${view.monitor.name}: nothing drawn (the screen is dark)" }
         } else {
             // Nothing new to show: whatever programs committed is on screen already.
             takeFeedbacks(view)
             presented(view, System.nanoTime(), refreshNanos = 0, sequence = 0, flags = 0)
         }
-        frameShown((System.nanoTime() / 1_000_000).toInt())
+        frameShown(view, (System.nanoTime() / 1_000_000).toInt())
         for (listener in frameListeners.toList()) listener()
         return draw
     }
@@ -4562,7 +5596,7 @@ class Desktop(
             view.cursorOnPlane = true
             return
         }
-        if (monitor.transform != Transform.NORMAL || locked) return intoFrames()
+        if (monitor.transform != Transform.NORMAL || lockHidesDesktop) return intoFrames()
         val bounds = cursor.map { it.rect }.reduce(Rect::union)
         if (bounds.intersect(monitor.area) == null) {
             // On another monitor: none here.
@@ -4571,7 +5605,12 @@ class Desktop(
             view.cursorOnPlane = true
             return
         }
-        val pixels = monitor.toPixels(bounds)
+        // The cursor where the pointer really is, to the monitor's pixel: at scale 2 it moved
+        // in steps of 2 pixels (one unit) before.
+        val whole = monitor.toPixels(bounds)
+        val dx = Math.round((pointerX - Math.floor(pointerX)) * monitor.scale).toInt()
+        val dy = Math.round((pointerY - Math.floor(pointerY)) * monitor.scale).toInt()
+        val pixels = Rect(whole.x + dx, whole.y + dy, whole.width, whole.height)
         if (pixels.width > plane.width || pixels.height > plane.height) return intoFrames()
         // A new picture when the cursor looks different (another shape, its next frame, the
         // program drew a new one, another size or scale); else it only moves.
@@ -4579,7 +5618,7 @@ class Desktop(
             cursorVersion, if (cursor.any { it is DrawItem.Picture }) version else 0L)
         val draw: ((GpuTarget) -> Unit)? = if (key == view.planeCursorKey) null else { target ->
             renderer.begin(target, 0f, 0f, 0f, alpha = 0f)
-            draw(cursor, null, { r -> monitor.toPixels(r).let { Rect(it.x - pixels.x, it.y - pixels.y, it.width, it.height) } }, monitor.scale, monitor)
+            draw(cursor, null, { r -> monitor.toPixels(r).let { Rect(it.x - whole.x, it.y - whole.y, it.width, it.height) } }, monitor.scale, monitor)
             renderer.end()
         }
         if (!plane.show(pixels.x, pixels.y, draw)) return intoFrames()
@@ -4597,7 +5636,7 @@ class Desktop(
         takeFeedbacks(view)
         val monitor = view.monitor
         val bounds = monitor.area
-        view.showsLock = locked
+        view.showsLock = lockHidesDesktop
         var parts = view.takeRepaintParts(if (fullRedraw) 0 else age, bounds) ?: return
         // Blur reads around its area: a change near it (within its reach, not only under it)
         // changes it too — one part with all it needs (else a bar's blur stayed stale while a
@@ -4622,10 +5661,10 @@ class Desktop(
             // (One unit more around the part: what touches its pixels.)
             val near = Rect(part.x - 1, part.y - 1, part.width + 2, part.height + 2)
             if (i == 0) {
-                renderer.begin(target, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], clip = pixels)
+                renderer.begin(target, backgroundColor.red, backgroundColor.green, backgroundColor.blue, clip = pixels)
             } else {
                 renderer.setClip(pixels)
-                renderer.drawColor(pixels.x, pixels.y, pixels.width, pixels.height, BACKGROUND[0], BACKGROUND[1], BACKGROUND[2])
+                renderer.drawColor(pixels.x, pixels.y, pixels.width, pixels.height, backgroundColor.red, backgroundColor.green, backgroundColor.blue)
             }
             draw(items, near, monitor::toPixels, monitor.scale, monitor)
         }
@@ -4649,7 +5688,7 @@ class Desktop(
                     if (!drawn) renderer.drawShadow(p(item.box), item.radius * s, item.softness * s, dev.caulis.render.Paint.solid(dev.caulis.render.Color(0f, 0f, 0f, 0.45f * item.alpha)), p(item.cutOut), item.cutOutRadius * s)
                 }
                 is DrawItem.Border -> {
-                    val drawn = renderer.drawRoundedRect(r, item.radius * s, item.paint, item.width * s, item.alpha, item.time)
+                    val drawn = renderer.drawRoundedRect(r, item.radius * s, item.paint, item.width * s, item.alpha, item.time, item.state)
                     paintWorks(item.paint, drawn)
                     if (!drawn) renderer.drawRoundedRect(r, item.radius * s, item.paint.firstColor().let { it.copy(alpha = it.alpha * item.alpha) }, item.width * s)
                 }
@@ -4728,7 +5767,8 @@ class Desktop(
     // The visible programs' "tell me when it is shown" requests now belong to this frame.
     private fun takeFeedbacks(view: DesktopView) {
         for (surface in visible) {
-            val feedbacks = surface.current.presentationFeedbacks
+            if (!shownMostlyOn(surface, view.monitor)) continue
+            val feedbacks = surface.current.feedbackList
             if (feedbacks.isEmpty()) continue
             view.inFlight += feedbacks
             feedbacks.clear()
@@ -4779,6 +5819,20 @@ class Desktop(
         itemsCursorStart = cursorStart
         addCursor(all)
         for (i in cursorStart until all.size) (all[i] as? DrawItem.Picture)?.let { visible += it.surface }
+        surfaceHomes.clear()
+        if (monitorList.size > 1) {
+            // Where each picture is shown most (frame callbacks and presentation times come from there).
+            val shownArea = HashMap<Surface, HashMap<Monitor, Long>>()
+            for (item in all) {
+                if (item !is DrawItem.Picture) continue
+                for (monitor in monitorList) {
+                    if (item.only != null && item.only !== monitor) continue
+                    val part = item.rect.intersect(monitor.area) ?: continue
+                    shownArea.getOrPut(item.surface) { HashMap() }.merge(monitor, part.width.toLong() * part.height, Long::plus)
+                }
+            }
+            for ((surface, areas) in shownArea) surfaceHomes[surface] = areas.maxBy { it.value }.key
+        }
         items = all
         itemsVersion = version
         itemsPointerX = pointerX
@@ -4796,13 +5850,15 @@ class Desktop(
         paintsMoving = false
         focusChanging = false
         val all = ArrayList<DrawItem>()
-        if (locked) {
-            // Nothing of the desktop: a plain colour and the locker's pictures, on every monitor.
-            val color = if (lock?.alive == true) lockColor else abandonedLockColor
+        if (lockHidesDesktop) {
+            // Nothing of the desktop: a plain colour and the locker's pictures, on every monitor
+            // (and our widgets usable on the lock screen, above them).
+            val color = if (!sessionLocked || lock?.alive == true) lockColor else abandonedLockColor
             for (monitor in monitorList) {
                 all += DrawItem.Color("$LOCK_BACKGROUND ${monitor.name}", monitor.area, color.red, color.green, color.blue, covers = listOf(monitor.area))
             }
             for (lockSurface in lockSurfaces()) lockMonitor(lockSurface).area.let { addTree(all, lockSurface.surface, it.x, it.y) }
+            for (level in DrawingLevel.entries) addWidgets(all, level, onLockScreen = true)
             sceneVisible.clear()
             for (item in all) if (item is DrawItem.Picture) sceneVisible += item.surface
             scene = all
@@ -4825,14 +5881,15 @@ class Desktop(
         class Change(val monitor: Monitor, val frame: WorkspaceFrame)
         val changes = HashMap<Workspace, Change>()
         for ((monitor, slide) in slides.toList()) {
-            val animation = animations.workspaceSwitch
-            val t = animationProgress(slide.start, millisOf(animation), now)
+            val picked = pick("workspaces", animations.workspaceSwitch)
+            val animation = picked.look
+            val t = animationProgress(slide.start, picked.millis, now)
             if (t == null || inOverview || monitor !in monitorList || monitor.workspace !== slide.to) {
                 slides -= monitor
                 continue
             }
             val frame = try {
-                animation.frame(curveOf(animation).safeAt(t), slide.direction, monitor.area)
+                animation.frame(picked.curve.safeAt(t), slide.direction, monitor.area)
             } catch (e: Throwable) {
                 e.rethrowIfFatal()
                 log.error("Your workspace animation failed (workspaces change at once): $e", e)
@@ -4876,7 +5933,12 @@ class Desktop(
         // Shown scratchpads above every workspace, the last shown on top.
         for (pad in shownPads) {
             val overlay = pad.style as? Scratchpad.Overlay
-            if (overlay != null && !pad.leaving) {
+            if (pad.isSpecial && !pad.leaving) {
+                // A special workspace: what is behind it blurred and dimmed, as its settings say.
+                val settings = specialWorkspaces
+                settings.blur?.let { blur -> all += DrawItem.Blur(EffectKey("blur special", pad), padArea(pad), 0f, blur.size, blur.passes, blur.tone) }
+                if (settings.dim > 0f) all += DrawItem.Color("dim special ${pad.name}", padArea(pad), 0f, 0f, 0f, alpha = settings.dim)
+            } else if (overlay != null && !pad.leaving) {
                 all += DrawItem.Color("dim ${pad.name}", padArea(pad), 0f, 0f, 0f, alpha = overlay.dim)
             }
             for (window in pad.windows) addWindow(all, window, now, leaving = pad.leaving)
@@ -4884,13 +5946,14 @@ class Desktop(
         addLayers(all, LayerShell.Layer.OVERLAY)
         for (popup in popups) {
             if (camera !== Camera.NONE) break // menus are not part of the overview
+            if (!popupShown(popup)) continue
             val (x, y) = popupOrigin(popup)
             addTree(all, popup.surface, x, y)
         }
         if (camera === Camera.NONE) for ((surface, place) in unmanaged) addTree(all, surface, place.first, place.second)
         addDrawings(all, DrawingLevel.ON_TOP)
-        // Our own notices above everything (not on a locked screen: nothing of the desktop is).
-        for (monitor in monitorList) all += noticeBoard.items(monitor, monitorList, noticeFallback(monitor))
+        // Our own notices above everything (not on a locked screen: what they say is private).
+        if (!locked) for (monitor in monitorList) all += noticeBoard.items(monitor, monitorList, noticeFallback(monitor))
         if (!locked) overlay?.takeIf { it !== brokenOverlay }?.let { open ->
             for (monitor in monitorList) {
                 val canvas = OverlayCanvas(monitor, "overlay ${monitor.name}")
@@ -4990,10 +6053,11 @@ class Desktop(
         var alpha = 1f
         val appearSince = if (plain) null else appearing[window]
         if (appearSince != null) {
-            val animation = animations.windowOpen
-            val t = animationProgress(appearSince, millisOf(animation), now)
+            val picked = pick("windowsIn", animations.windowOpen)
+            val animation = picked.look
+            val t = animationProgress(appearSince, picked.millis, now)
             val frame = if (t == null) null else try {
-                animation.frame(Motion(window, world, world, curveOf(animation).safeAt(t), t, monitorOf(window).usableArea))
+                animation.frame(Motion(window, world, world, picked.curve.safeAt(t), t, monitorOf(window).usableArea))
             } catch (e: Throwable) {
                 e.rethrowIfFatal()
                 log.error("Your window animation failed (it is drawn without): $e", e)
@@ -5115,9 +6179,13 @@ class Desktop(
     }
 
     private fun addCursor(items: MutableList<DrawItem>) {
+        // (Whole units here, rounded down — also left of and above 0; the cursor plane adds
+        // the part of a unit in the monitor's pixels, see placeHardwareCursor.)
+        val x = Math.floor(pointerX).toInt()
+        val y = Math.floor(pointerY).toInt()
+        // What is dragged (drag and drop), under the cursor.
+        seat.drag?.let { drag -> drag.icon?.takeIf { it.hasContent && it.resource.isAlive }?.let { addTree(items, it, x + drag.iconX, y + drag.iconY) } }
         if (cursorHidden) return
-        val x = pointerX.toInt()
-        val y = pointerY.toInt()
         val shape = cursorShapeNow()
         if (shape == null) {
             // The program drew its own cursor (or hid it).
@@ -5204,11 +6272,11 @@ class Desktop(
             current is Grab.Move -> "grabbing"
             current is Grab.Resize -> resizeCursor(current.edges)
             overlay != null && !locked -> overlay?.cursor ?: "default"
-            (pressedWidget != null || hoveredWidget != null) && !locked && !inOverview -> userCode("Your widget (cursor)", "default") { (pressedWidget?.widget ?: hoveredWidget)!!.cursor }
+            (pressedWidget != null || hoveredWidget != null) && !inOverview -> userCode("Your widget (cursor)", "default") { (pressedWidget?.widget ?: hoveredWidget)!!.cursor }
             inOverview -> "default"
             noticeBoard.hovering -> "default" // our notice, not the program below it
             decorationCursor != null -> decorationCursor
-            seat.pointerFocus == null -> "default"
+            seat.pointerFocus == null && seat.penFocus == null -> "default"
             else -> seat.cursorShape
         }
     }
@@ -5303,8 +6371,12 @@ class Desktop(
      * just asked for a new size is the exception: it draws that at once (a window manager
      * waits for it before showing the window, as newm does).
      */
-    fun frameShown(timeMillis: Int) {
-        for (surface in visible) if (surface.resource.isAlive) surface.sendFrameDone(timeMillis)
+    fun frameShown(timeMillis: Int) = frameShown(null, timeMillis)
+
+    // The same after a frame of [view]: programs on screen hear of it from the monitor that
+    // shows most of them (else a window on a 60 Hz monitor drew at the 144 Hz one's pace).
+    private fun frameShown(view: DesktopView?, timeMillis: Int) {
+        for (surface in visible) if (surface.resource.isAlive && (view == null || shownMostlyOn(surface, view.monitor))) surface.sendFrameDone(timeMillis)
         for (surface in compositor.surfaces) {
             if (surface !in visible && isKeptUpdating(surface)) surface.sendFrameDone(timeMillis)
         }
@@ -5327,7 +6399,7 @@ class Desktop(
                 surface.sendFrameDone(time)
                 // Its pictures were never shown, and will not be until it is visible again.
                 for (feedback in surface.current.presentationFeedbacks) feedback.discard()
-                surface.current.presentationFeedbacks.clear()
+                surface.current.feedbackList.clear()
             }
             scheduleHiddenRefresh()
         }
@@ -5338,8 +6410,6 @@ class Desktop(
     }
 
     private companion object {
-        // The widget levels found before windows and panels, and the one below them.
-        val BACKGROUND = floatArrayOf(0.16f, 0.18f, 0.22f)
         const val FADE_KEY = "the frame before the scale change"
         const val CURSOR_BORDER = "cursor border"
         const val CURSOR_FILL = "cursor fill"

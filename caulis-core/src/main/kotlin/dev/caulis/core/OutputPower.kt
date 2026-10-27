@@ -25,6 +25,10 @@ class OutputPower(display: Display, private val desktop: Desktop) {
                 override fun getOutputPower(resource: ZwlrOutputPowerManagerV1, id: ZwlrOutputPowerV1, output: WlOutput) {
                     id.requests = object : ZwlrOutputPowerV1.Requests {
                         override fun setMode(resource: ZwlrOutputPowerV1, mode: Int) {
+                            if (mode != ZwlrOutputPowerV1.Mode.ON && mode != ZwlrOutputPowerV1.Mode.OFF) {
+                                resource.postError(ZwlrOutputPowerV1.Error.INVALID_MODE, "power mode $mode does not exist (0 off, 1 on)")
+                                return
+                            }
                             val monitor = monitorOf(output) ?: return resource.sendFailed()
                             if (!desktop.setPower(monitor, mode == ZwlrOutputPowerV1.Mode.ON)) resource.sendFailed()
                         }

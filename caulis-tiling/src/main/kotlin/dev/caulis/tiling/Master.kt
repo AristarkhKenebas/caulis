@@ -54,6 +54,9 @@ private class MasterModel(
     private val newWindow: NewWindow,
 ) : TilingModel {
 
+    // The share it started with (Balance goes back to it).
+    private val initialRatio = ratio
+
     // Masters first, then the stack.
     private val order = ArrayList<LayoutWindow>()
     private var focusWanted: LayoutWindow? = null
@@ -80,15 +83,24 @@ private class MasterModel(
         val rest = order.subList(count, order.size)
         // Masters side by side along the stack's direction: on the left, they are on top of each other.
         val vertical = side == Side.TOP || side == Side.BOTTOM
+        // The smallest each window may be (what its program asked for): across the split, and along it.
+        fun across(w: LayoutWindow) = (if (vertical) w.minHeight else w.minWidth).coerceAtLeast(0)
+        fun along(w: LayoutWindow) = (if (vertical) w.minWidth else w.minHeight).coerceAtLeast(0)
         if (rest.isEmpty()) {
-            Split.evenly(area, top.size, gaps.inner, vertical = !vertical).forEachIndexed { i, r -> out[top[i]] = r }
+            Split.evenly(area, top.size, gaps.inner, !vertical, top.map(::along)).forEachIndexed { i, r -> out[top[i]] = r }
             return out
         }
         val masterFirst = side == Side.LEFT || side == Side.TOP
-        val (first, second) = Split.two(area, if (masterFirst) ratio else 1 - ratio, gaps.inner, vertical = vertical)
+        // (The split moves so neither side is narrower than its widest window's minimum, while they fit.)
+        val masterLeast = top.maxOf(::across)
+        val stackLeast = rest.maxOf(::across)
+        val (first, second) = Split.two(
+            area, if (masterFirst) ratio else 1 - ratio, gaps.inner, vertical,
+            if (masterFirst) masterLeast else stackLeast, if (masterFirst) stackLeast else masterLeast,
+        )
         val (masterArea, stackArea) = if (masterFirst) first to second else second to first
-        Split.evenly(masterArea, top.size, gaps.inner, vertical = !vertical).forEachIndexed { i, r -> out[top[i]] = r }
-        Split.evenly(stackArea, rest.size, gaps.inner, vertical = !vertical).forEachIndexed { i, r -> out[rest[i]] = r }
+        Split.evenly(masterArea, top.size, gaps.inner, !vertical, top.map(::along)).forEachIndexed { i, r -> out[top[i]] = r }
+        Split.evenly(stackArea, rest.size, gaps.inner, !vertical, rest.map(::along)).forEachIndexed { i, r -> out[rest[i]] = r }
         return out
     }
 
@@ -114,8 +126,10 @@ private class MasterModel(
             }
             setRatio(ratio + grow)
         }
-        TilingCommand.Rotate -> true.also { side = Side.entries[(side.ordinal + 1) % Side.entries.size] }
-        TilingCommand.Balance -> setRatio(0.5)
+        // A quarter turn clockwise: left, top, right, bottom.
+        TilingCommand.Rotate -> true.also { side = CLOCKWISE[(CLOCKWISE.indexOf(side) + 1) % CLOCKWISE.size] }
+        // Back to the share it started with.
+        TilingCommand.Balance -> setRatio(initialRatio)
         is TilingCommand.Message -> message(command, focused)
         else -> false
     }
@@ -161,5 +175,9 @@ private class MasterModel(
 
     override fun forget(window: LayoutWindow) {
         order -= window
+    }
+
+    private companion object {
+        val CLOCKWISE = listOf(Side.LEFT, Side.TOP, Side.RIGHT, Side.BOTTOM)
     }
 }

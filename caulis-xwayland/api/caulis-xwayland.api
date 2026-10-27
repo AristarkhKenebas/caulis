@@ -16,6 +16,7 @@ public final class dev/caulis/xwayland/XWindow : dev/caulis/core/Window {
 	public fun getPrefersFloating ()Z
 	public fun getSurface ()Ldev/caulis/core/Surface;
 	public fun getVisibleRect ()Ldev/caulis/geometry/Rect;
+	public fun sameProgramAs (Ldev/caulis/core/Window;)Z
 	public fun setActivated (Z)V
 	public fun setMinimized (Z)V
 	public fun toString ()Ljava/lang/String;
@@ -27,9 +28,16 @@ public final class dev/caulis/xwayland/Xwayland : java/lang/AutoCloseable {
 	public fun close ()V
 	public final fun cursorChanged ()V
 	public final fun getDisplayName ()Ljava/lang/String;
+	public final fun getMaxFailedStarts ()I
+	public final fun getRestartDelayMaxMillis ()J
+	public final fun getRestartDelayMillis ()J
 	public final fun getRunning ()Z
 	public final fun getXwm ()Ldev/caulis/xwayland/Xwm;
 	public final fun rescaled ()V
+	public final fun retry ()V
+	public final fun setMaxFailedStarts (I)V
+	public final fun setRestartDelayMaxMillis (J)V
+	public final fun setRestartDelayMillis (J)V
 }
 
 public final class dev/caulis/xwayland/Xwm : java/lang/AutoCloseable {

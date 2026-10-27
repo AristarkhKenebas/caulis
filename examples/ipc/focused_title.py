@@ -13,8 +13,6 @@ import os
 import socket
 import sys
 
-from google.protobuf.internal.decoder import _DecodeVarint32
-from google.protobuf.internal.encoder import _VarintBytes
 
 from caulis.ipc.v1 import caulis_pb2 as caulis
 
@@ -41,7 +39,7 @@ class Connection:
         request.id = self.next_id
         self.next_id += 1
         body = request.SerializeToString()
-        self.sock.sendall(_VarintBytes(len(body)) + body)
+        self.sock.sendall(varint(len(body)) + body)
         while True:
             message = self.receive()
             if message.HasField("reply") and message.reply.id == request.id:
@@ -53,8 +51,11 @@ class Connection:
         """The next Message from the compositor."""
         while True:
             if self.data:
-                size, start = _DecodeVarint32(self.data, 0)
-                if len(self.data) >= start + size:
+                read = read_varint(self.data)
+                if read is None:
+                    pass  # its size is not all here yet: read on
+                elif len(self.data) >= read[1] + read[0]:
+                    size, start = read
                     message = caulis.Message()
                     message.ParseFromString(self.data[start:start + size])
                     self.data = self.data[start + size:]
@@ -63,6 +64,31 @@ class Connection:
             if not chunk:
                 sys.exit(0)  # the compositor went away
             self.data += chunk
+
+
+def varint(value):
+    """value as a protobuf varint (7 bits a byte, the lowest first)."""
+    out = bytearray()
+    while True:
+        byte = value & 0x7F
+        value >>= 7
+        if value:
+            out.append(byte | 0x80)
+        else:
+            out.append(byte)
+            return bytes(out)
+
+
+def read_varint(data):
+    """(value, where the rest starts) from the varint at the start of data; None while it is cut off."""
+    value = 0
+    for i, byte in enumerate(data[:5]):
+        value |= (byte & 0x7F) << (7 * i)
+        if not byte & 0x80:
+            return value, i + 1
+    if len(data) >= 5:
+        raise RuntimeError("a size of more than 5 bytes: not the compositor talking")
+    return None
 
 
 def main():

@@ -25,6 +25,13 @@ import java.nio.ByteOrder
  */
 class ForeignToplevels(private val display: Display, private val desktop: Desktop) {
 
+    /**
+     * Which programs may read the list of windows (titles and app ids of every window, also
+     * through ext-foreign-toplevel-list, which screen sharing uses to pick a window). By
+     * default the [privileged][Display.privileged] ones, as for docks that manage windows.
+     */
+    var mayListWindows: (dev.caulis.protocol.Client) -> Boolean = { client -> display.privileged(client) }
+
     // What a dock was last told about a window.
     private data class Facts(val title: String, val appId: String, val states: Set<Int>, val parent: Window?, val output: Output?)
 
@@ -45,7 +52,7 @@ class ForeignToplevels(private val display: Display, private val desktop: Deskto
     private var nextIdentifier = 1L
 
     init {
-        display.addPrivilegedGlobal(ZwlrForeignToplevelManagerV1, WLR_VERSION) { manager ->
+        display.addGlobal(ZwlrForeignToplevelManagerV1, WLR_VERSION, { client -> display.privileged(client) && mayListWindows(client) }) { manager ->
             log.info { "${manager.client.name} watches the windows (a dock or taskbar)" }
             wlr[manager] = LinkedHashMap()
             manager.requests = object : ZwlrForeignToplevelManagerV1.Requests {
@@ -56,7 +63,8 @@ class ForeignToplevels(private val display: Display, private val desktop: Deskto
             manager.onDestroy { wlr.remove(manager) }
             sync()
         }
-        display.addGlobal(ExtForeignToplevelListV1, EXT_VERSION) { list ->
+        // (The titles of every window: not for any program, see mayListWindows.)
+        display.addGlobal(ExtForeignToplevelListV1, EXT_VERSION, { client -> mayListWindows(client) }) { list ->
             log.info { "${list.client.name} reads the window list" }
             ext[list] = LinkedHashMap()
             list.requests = object : ExtForeignToplevelListV1.Requests {

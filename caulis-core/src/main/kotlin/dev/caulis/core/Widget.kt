@@ -88,4 +88,12 @@ interface Widget {
 
     /** It got the keyboard (true) or lost it. */
     fun keyboardFocus(has: Boolean) {}
+
+    /**
+     * True if it is shown and gets input while the session is locked (an on-screen keyboard,
+     * a "battery low" pill). False by default: behind a locker program it is not drawn, and
+     * behind the compositor's own lock screen ([Desktop.lockInternally]) it is drawn but gets
+     * nothing. The widget given to [Desktop.lockInternally] needs no such mark.
+     */
+    val showsWhileLocked: Boolean get() = false
 }

@@ -53,7 +53,7 @@ class InputTest {
                 r.pointerButton(0, 0x113, true)
                 r.pointerButton(0, 0x113, false)
                 r.key(0, SUPER, true)
-                r.pointerAxis(0, true, 15.0, 120)
+                r.pointerAxis(0, dev.caulis.core.input.Scroll(dev.caulis.core.input.Scroll.Source.WHEEL, vertical = 15.0, vertical120 = 120))
                 r.key(0, SUPER, false)
             }
             assertEquals(1, side.get())

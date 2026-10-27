@@ -62,6 +62,7 @@ class CaulisIpc private constructor(private val channel: SocketChannel) : AutoCl
      * Runs [action] as in config.json's "bind" ("close", "exec firefox", "workspace 3", ...),
      * on [window] (Window.id; 0: the focused one). Throws [IpcException] when it cannot.
      */
+    @JvmOverloads
     fun run(action: String, window: Long = 0) {
         request(Request.newBuilder().setRun(dev.caulis.ipc.v1.Run.newBuilder().setAction(action).setWindow(window))).orFail()
     }
@@ -81,6 +82,7 @@ class CaulisIpc private constructor(private val channel: SocketChannel) : AutoCl
      * Runs [code] in the configuration's [language] ("lua": in config.lua's own state) and
      * returns what it returned, as text. Throws [IpcException] with the mistake.
      */
+    @JvmOverloads
     fun eval(code: String, language: String = "lua"): String =
         request(Request.newBuilder().setEval(dev.caulis.ipc.v1.Eval.newBuilder().setLanguage(language).setCode(code))).orFail().output
 
@@ -111,6 +113,8 @@ class CaulisIpc private constructor(private val channel: SocketChannel) : AutoCl
         const val SOCKET_VARIABLE = "CAULIS_SOCKET"
 
         /** Connects to [socket] (by default: see [findSocket]). */
+        @JvmStatic
+        @JvmOverloads
         fun connect(socket: Path = findSocket()): CaulisIpc {
             val channel = SocketChannel.open(StandardProtocolFamily.UNIX)
             try {
@@ -127,6 +131,8 @@ class CaulisIpc private constructor(private val channel: SocketChannel) : AutoCl
          * for `$WAYLAND_DISPLAY` in `$XDG_RUNTIME_DIR`, else the only one there — of the
          * compositor called [name] (its configName), when given.
          */
+        @JvmStatic
+        @JvmOverloads
         fun findSocket(environment: Map<String, String> = System.getenv(), name: String? = null): Path {
             environment[SOCKET_VARIABLE]?.takeIf { it.isNotBlank() }?.let { return Path.of(it) }
             val runtime = environment["XDG_RUNTIME_DIR"]?.takeIf { it.startsWith("/") }?.let { Path.of(it) }

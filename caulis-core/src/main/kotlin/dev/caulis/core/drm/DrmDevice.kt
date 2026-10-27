@@ -112,8 +112,13 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
                 val property = Drm.drmModeGetProperty(fd, id)
                 if (property == MemorySegment.NULL) continue
                 val name = _drmModeProperty.name(property).getString(0)
+                // A range property (max bpc) says which values it takes.
+                val range = if (_drmModeProperty.flags(property) and PROP_RANGE != 0 && _drmModeProperty.count_values(property) >= 2) {
+                    val bounds = _drmModeProperty.values(property).reinterpret(16)
+                    bounds.getAtIndex(JAVA_LONG, 0)..bounds.getAtIndex(JAVA_LONG, 1)
+                } else null
                 Drm.drmModeFreeProperty(property)
-                result[name] = Property(id, values.getAtIndex(JAVA_LONG, i.toLong()))
+                result[name] = Property(id, values.getAtIndex(JAVA_LONG, i.toLong()), range)
             }
             return result
         } finally {
@@ -121,7 +126,7 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
         }
     }
 
-    internal class Property(val id: Int, val value: Long)
+    internal class Property(val id: Int, val value: Long, val range: LongRange? = null)
 
     /** The contents of a property blob (e.g. a monitor's EDID), or null. */
     internal fun blob(id: Long): ByteArray? {
@@ -282,6 +287,7 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
 
     private companion object {
         const val MODIFIER_LINEAR = 0L
+        const val PROP_RANGE = 1 shl 1 // DRM_MODE_PROP_RANGE
     }
 
     override fun close() {

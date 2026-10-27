@@ -15,7 +15,8 @@ import dev.caulis.wm.DisplayMode
  * ```
  * close · quit · lock · terminal · overview · next-window · dump-state
  * exec firefox --private-window          (a program; the rest of the line is its command)
- * workspace 3 · move-to-workspace 3
+ * workspace 3 · move-to-workspace 3 · move-to-workspace special:music silent
+ * special-workspace toggle [name] · move-to-special [name] [silent] · move-out-of-special
  * focus left|right · move left|right|up|down · resize ... · preselect ...
  * maximize · fullscreen · minimize · float · pin · tag +video
  * rotate · balance · column-width · split-beside · split-below
@@ -26,57 +27,84 @@ import dev.caulis.wm.DisplayMode
 object Actions {
 
     /** Every action, its argument and what it does (for the documentation and messages). */
-    val all: List<Triple<String, String, String>> get() = builtIn + providers.flatMap { it.actions }
+    val all: List<ActionInfo> get() = builtIn + providers.flatMap { provider -> provider.actions.map(::info) } + own.values
+
+    // (A provider compiled against Caulis 0.1 lists its actions as Triples.)
+    private fun info(item: Any?): ActionInfo = when (item) {
+        is ActionInfo -> item
+        is Triple<*, *, *> -> ActionInfo(item.first.toString(), item.second.toString(), item.third.toString())
+        else -> ActionInfo(item.toString(), "", "")
+    }
+
+    /** An action of a compositor's own ([Caulis.action]): what it is, and what it does. */
+    internal class Own(val name: String, val argument: String, val description: String, val run: Caulis.(String, Window?) -> Unit)
+
+    // The names of actions compositors added (Caulis.action), so text naming them is read right.
+    private val own = java.util.concurrent.ConcurrentHashMap<String, ActionInfo>()
+
+    // Makes [name] an action text may name (its work is the configuration's, see Caulis.action).
+    internal fun addOwn(name: String, argument: String, description: String) {
+        require(name.isNotBlank() && name.none { it.isWhitespace() || it.isUpperCase() }) { "an action's name is one word in small letters (\"toggle-bar\"), not \"$name\"" }
+        require(builtIn.none { it.name == name }) { "\"$name\" is an action of Caulis's own already" }
+        own[name] = ActionInfo(name, argument, description)
+        dev.caulis.log.Logger("config").trace { "Action of your own: $name" }
+    }
 
     // Actions of modules on the classpath (caulis-screenshot's "screenshot", ...).
     private val providers: List<ActionProvider> by lazy {
         java.util.ServiceLoader.load(ActionProvider::class.java, Actions::class.java.classLoader).toList()
     }
 
-    private val builtIn: List<Triple<String, String, String>> = listOf(
-        Triple("close", "", "closes the focused window"),
-        Triple("quit", "", "quits the compositor"),
-        Triple("lock", "", "locks the screen"),
-        Triple("terminal", "", "opens the terminal"),
-        Triple("exec", "command", "starts a program"),
-        Triple("overview", "", "opens or closes the overview"),
-        Triple("next-window", "", "focuses the next window"),
-        Triple("dump-state", "", "writes the state to the log"),
-        Triple("workspace", "number|next|prev|back|empty", "shows a workspace (back: the one before; empty: the first empty one)"),
-        Triple("move-to-workspace", "number|next|prev|back|empty", "moves the focused window to a workspace"),
-        Triple("focus-monitor", "left|right|up|down|next|primary|connector", "gives the focus to another monitor"),
-        Triple("move-to-monitor", "left|right|up|down|next|primary|connector", "moves the focused window to another monitor"),
-        Triple("focus", "left|right", "focuses the window beside"),
-        Triple("move", "left|right|up|down", "moves the window in the layout (or to the monitor beside)"),
-        Triple("resize", "left|right|up|down", "resizes the window in the layout"),
-        Triple("preselect", "left|right|up|down", "where the next window goes / moves the canvas"),
-        Triple("maximize", "", "maximizes the focused window, or back"),
-        Triple("fullscreen", "", "fullscreens the focused window, or back"),
-        Triple("minimize", "", "minimizes the focused window"),
-        Triple("float", "", "takes the focused window out of the layout, or back"),
-        Triple("pin", "[on|off|toggle]", "pins the focused window: it floats on every workspace (toggles without an argument)"),
-        Triple("tag", "+name|-name|name", "gives the focused window a tag (+), takes it away (-), or toggles it, for rules with hasTag"),
-        Triple("rotate", "", "rotates the split (trees)"),
-        Triple("balance", "", "evens out the sizes"),
-        Triple("column-width", "", "the next column width (scrolling columns)"),
-        Triple("split-beside", "", "the next window beside the focused one (manual tiling)"),
-        Triple("split-below", "", "the next window below the focused one (manual tiling)"),
-        Triple("layout", "name", "switches the layout"),
-        Triple("layout-message", "text", "tells the layout something (\"ratio +0.05\", \"masters +1\", \"toggle-split\", \"width 0.5\", ...)"),
-        Triple("scale", "number", "sets the scale"),
-        Triple("notify", "text", "shows a notice"),
-        Triple("focus-urgent", "", "focuses the window that wants attention"),
-        Triple("dpms", "on|off|toggle [monitor]", "switches the screens (or one) off or on"),
-        Triple("keep-awake", "on|off|toggle", "no idle timers while on"),
-        Triple("keyboard-layout", "next|prev|number", "the next keyboard layout (of keyboardLayouts), the one before, or one by its number (0: the first)"),
-        Triple("mode", "name|reset", "turns a key mode on (\"mode resize\"), or back to the usual keys"),
-        Triple("volume", "+5|-5|mute", "louder, quieter, or sound off and on (wpctl), shown on screen"),
-        Triple("mic-mute", "", "the microphone off or on"),
-        Triple("brightness", "+5|-5", "the screen brighter or darker"),
-        Triple("touchpad", "on|off|toggle | typing on|off|toggle", "the touchpad on or off; typing: off while typing (a palm on it moves nothing), or not"),
-        Triple("media", "play-pause|next|previous|stop", "the music player (playerctl)"),
-        Triple("displays", "next|extend|mirror|laptop|external", "how the laptop's screen and a monitor or projector are used together"),
-        Triple("color-scheme", "dark|light|default|toggle|auto", "light or dark for programs (until the schedule's next change); auto: back to the schedule"),
+    private val builtIn: List<ActionInfo> = listOf(
+        ActionInfo("close", "", "closes the focused window"),
+        ActionInfo("quit", "", "quits the compositor"),
+        ActionInfo("lock", "", "locks the screen"),
+        ActionInfo("xwayland-retry", "", "tries Xwayland again after it failed to start too often"),
+        ActionInfo("terminal", "", "opens the terminal"),
+        ActionInfo("exec", "command", "starts a program"),
+        ActionInfo("overview", "", "opens or closes the overview"),
+        ActionInfo("next-window", "", "focuses the next window"),
+        ActionInfo("dump-state", "", "writes the state to the log"),
+        ActionInfo("autostart", "", "lists the programs started with the session and how each is (a notice, and the log)"),
+        ActionInfo("play-startup-sound", "[preset]", "plays the startup sound now (or one of the presets: airy, classic, glass, soft) — to try it"),
+        ActionInfo("workspace", "number|next|prev|back|empty", "shows a workspace (back: the one before; empty: the first empty one)"),
+        ActionInfo("move-to-workspace", "number|next|prev|back|empty|special[:name] [silent]", "moves the focused window to a workspace (special:name: into a special workspace, as move-to-special)"),
+        ActionInfo("special-workspace", "toggle|show|hide [name]", "shows the special workspace (\"special\" without a name) over the current one, or hides it"),
+        ActionInfo("move-to-special", "[name] [silent]", "moves the focused window into a special workspace, shown with it (silent: it waits there unseen)"),
+        ActionInfo("move-out-of-special", "", "moves the focused window out of its special workspace onto the workspace on screen"),
+        ActionInfo("focus-monitor", "left|right|up|down|next|primary|connector", "gives the focus to another monitor"),
+        ActionInfo("move-to-monitor", "left|right|up|down|next|primary|connector", "moves the focused window to another monitor"),
+        ActionInfo("focus", "left|right", "focuses the window beside"),
+        ActionInfo("move", "left|right|up|down", "moves the window in the layout (or to the monitor beside)"),
+        ActionInfo("resize", "left|right|up|down", "resizes the window in the layout"),
+        ActionInfo("preselect", "left|right|up|down", "where the next window goes / moves the canvas"),
+        ActionInfo("maximize", "", "maximizes the focused window, or back"),
+        ActionInfo("fullscreen", "", "fullscreens the focused window, or back"),
+        ActionInfo("minimize", "", "minimizes the focused window"),
+        ActionInfo("float", "", "takes the focused window out of the layout, or back"),
+        ActionInfo("pin", "[on|off|toggle]", "pins the focused window: it floats on every workspace (toggles without an argument)"),
+        ActionInfo("tag", "+name|-name|name", "gives the focused window a tag (+), takes it away (-), or toggles it, for rules with hasTag"),
+        ActionInfo("rotate", "", "rotates the split (trees)"),
+        ActionInfo("balance", "", "evens out the sizes"),
+        ActionInfo("column-width", "", "the next column width (scrolling columns)"),
+        ActionInfo("split-beside", "", "the next window beside the focused one (manual tiling)"),
+        ActionInfo("split-below", "", "the next window below the focused one (manual tiling)"),
+        ActionInfo("layout", "name", "switches the layout"),
+        ActionInfo("layout-message", "text", "tells the layout something (\"ratio +0.05\", \"masters +1\", \"toggle-split\", \"width 0.5\", ...)"),
+        ActionInfo("scale", "number", "sets the scale"),
+        ActionInfo("notify", "text", "shows a notice"),
+        ActionInfo("focus-urgent", "", "focuses the window that wants attention"),
+        ActionInfo("dpms", "on|off|toggle [monitor]", "switches the screens (or one) off or on"),
+        ActionInfo("keep-awake", "on|off|toggle", "no idle timers while on"),
+        ActionInfo("keyboard-layout", "next|prev|number", "the next keyboard layout (of keyboardLayouts), the one before, or one by its number (0: the first)"),
+        ActionInfo("mode", "name|reset", "turns a key mode on (\"mode resize\"), or back to the usual keys"),
+        ActionInfo("volume", "+5|-5|mute", "louder, quieter, or sound off and on (wpctl), shown on screen"),
+        ActionInfo("mic-mute", "", "the microphone off or on"),
+        ActionInfo("brightness", "+5|-5", "the screen brighter or darker"),
+        ActionInfo("touchpad", "on|off|toggle | typing on|off|toggle", "the touchpad on or off; typing: off while typing (a palm on it moves nothing), or not"),
+        ActionInfo("media", "play-pause|next|previous|stop", "the music player (playerctl)"),
+        ActionInfo("displays", "next|extend|mirror|laptop|external", "how the laptop's screen and a monitor or projector are used together"),
+        ActionInfo("color-scheme", "dark|light|default|toggle|auto", "light or dark for programs (until the schedule's next change); auto: back to the schedule"),
     )
 
     /**
@@ -145,13 +173,55 @@ object Actions {
             "close" -> window { it.close() }
             "quit" -> { _ -> quit() }
             "lock" -> { _ -> lock() }
+            "xwayland-retry" -> { _ -> liveOrNull()?.retryXwayland() }
             "terminal" -> { _ -> openTerminal() }
             "exec" -> needs("a command").let { command -> { _ -> launch(command) } }
             "overview" -> { _ -> desktop.toggleOverview() }
             "next-window" -> { _ -> desktop.cycleFocus() }
             "dump-state" -> { _ -> dumpState() }
+            "autostart" -> { _ ->
+                // (In the log, and as a notice.)
+                val lines = autostartStatus()
+                val text = if (lines.isEmpty()) "No program started with the session" else lines.joinToString("\n")
+                dev.caulis.log.Logger("autostart").info { "The programs of the start:\n$text" }
+                notify(text, NoticeLevel.INFO, "Autostart")
+            }
+            "play-startup-sound" -> {
+                val preset = argument.lowercase().ifEmpty { null }
+                if (preset != null && preset !in dev.caulis.wm.StartupChimes.PRESETS) {
+                    throw IllegalArgumentException("\"$preset\" is not a startup sound (there are ${dev.caulis.wm.StartupChimes.PRESETS.joinToString()})")
+                }
+                { _ -> playStartupSound(preset) }
+            }
             "workspace" -> workspaceTarget().let { target -> { _ -> target()?.let(desktop::switchTo) } }
-            "move-to-workspace" -> workspaceTarget().let { target -> window { w -> target()?.let { desktop.moveToWorkspace(w, it) } } }
+            "move-to-workspace" -> if (argument.lowercase().startsWith("special")) {
+                // Hyprland's "movetoworkspace special:name" (and "... silent").
+                val words = argument.split(Regex("\\s+"))
+                val silent = words.drop(1).let { rest -> rest == listOf("silent") || (rest.isNotEmpty() && throw IllegalArgumentException("\"${rest.joinToString(" ")}\" is not silent")) }
+                val special = words[0].substringAfter(':', "").ifEmpty { dev.caulis.core.SpecialWorkspaces.DEFAULT_NAME }
+                window { w -> desktop.moveToSpecialWorkspace(w, special, silent) }
+            } else workspaceTarget().let { target -> window { w -> target()?.let { desktop.moveToWorkspace(w, it) } } }
+            "special-workspace" -> {
+                val words = argument.split(Regex("\\s+")).filter { it.isNotEmpty() }
+                val how = words.getOrNull(0)?.lowercase() ?: "toggle"
+                if (words.size > 2) throw IllegalArgumentException("\"$argument\" is more than toggle|show|hide [name]")
+                val special = words.getOrNull(1) ?: dev.caulis.core.SpecialWorkspaces.DEFAULT_NAME
+                when (how) {
+                    "toggle" -> { _ -> desktop.toggleSpecialWorkspace(special) }
+                    "show" -> { _ -> desktop.showSpecialWorkspace(special) }
+                    "hide" -> { _ -> desktop.hideSpecialWorkspace(special) }
+                    else -> throw IllegalArgumentException("\"$how\" is not toggle, show or hide")
+                }
+            }
+            "move-to-special" -> {
+                val words = argument.split(Regex("\\s+")).filter { it.isNotEmpty() }
+                val silent = words.lastOrNull()?.lowercase() == "silent"
+                val names = if (silent) words.dropLast(1) else words
+                if (names.size > 1) throw IllegalArgumentException("\"$argument\" is more than [name] [silent]")
+                val special = names.firstOrNull() ?: dev.caulis.core.SpecialWorkspaces.DEFAULT_NAME
+                window { w -> desktop.moveToSpecialWorkspace(w, special, silent) }
+            }
+            "move-out-of-special" -> window { w -> desktop.moveOutOfSpecialWorkspace(w) }
             "focus-monitor" -> monitorTarget().let { target -> { _ -> target()?.let(desktop::focusMonitor) } }
             "move-to-monitor" -> monitorTarget().let { target -> window { w -> target()?.let { desktop.moveToMonitor(w, it) } } }
             "focus" -> direction().let { d ->
@@ -250,7 +320,12 @@ object Actions {
             "mode" -> needs("a mode name, or reset").let { mode -> { _ -> enterMode(mode.takeIf { it != "reset" && it != "default" }) } }
             else -> {
                 for (provider in providers) provider.parse(name, argument)?.let { return it }
-                val near = all.map { it.first }.minByOrNull { distance(it, name) }?.takeIf { distance(it, name) <= 2 }
+                // A compositor's own: run by the configuration of the moment.
+                if (own.containsKey(name)) return { window ->
+                    val action = ownActions[name] ?: throw IllegalStateException("the action \"$name\" is not in this configuration")
+                    action.run(this, argument, window)
+                }
+                val near = all.map { it.name }.minByOrNull { distance(it, name) }?.takeIf { distance(it, name) <= 2 }
                 throw IllegalArgumentException("\"$name\" is not an action" + (near?.let { " (did you mean \"$it\"?)" } ?: ""))
             }
         }
@@ -274,7 +349,7 @@ object Actions {
  */
 interface ActionProvider {
     /** Its actions: name, argument and what it does. */
-    val actions: List<Triple<String, String, String>>
+    val actions: List<ActionInfo>
 
     /**
      * What the action [name] with [argument] does, or null if it is not one of these. Throws
@@ -282,3 +357,9 @@ interface ActionProvider {
      */
     fun parse(name: String, argument: String): (Caulis.(Window?) -> Unit)?
 }
+
+/**
+ * One action as text knows it: its [name] ("workspace"), what [argument] it takes
+ * ("number|next|prev", empty: none) and what it does ([description]).
+ */
+data class ActionInfo(val name: String, val argument: String, val description: String)

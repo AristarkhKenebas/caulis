@@ -115,7 +115,7 @@ class ScreenTestServer(
                     this.renderer = renderer
                     Display(eventLoop).use { display ->
                         this.display = display
-                        Keymap.fromNames().use { keymap ->
+                        Keymap.fromNames(layouts = "us,ru", options = "grp:win_space_toggle").use { keymap ->
                             Seat(display, keymap).use { seat ->
                                 val compositor = Compositor(display, renderer)
                                 Shm(display)

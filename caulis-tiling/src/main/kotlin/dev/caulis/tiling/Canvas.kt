@@ -13,7 +13,7 @@ import dev.caulis.geometry.Rect
  * Each workspace has its own canvas; use one workspace for "one canvas only".
  * New windows take [windowColumns] × [windowRows] cells.
  */
-class Canvas(
+class Canvas @JvmOverloads constructor(
     private val gaps: Gaps = Gaps(),
     private val columns: Int = 2,
     private val rows: Int = 2,

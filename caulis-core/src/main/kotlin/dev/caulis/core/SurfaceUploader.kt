@@ -35,14 +35,14 @@ internal class SurfaceUploader(private val renderer: Renderer) {
         if (buffer == null) {
             // A null buffer means "hide me".
             surface.texture = null
-            surface.current.damage.clear()
+            surface.current.damageList.clear()
             return
         }
         if (gpu != null) {
             // Already on the GPU: show the buffer itself, nothing to copy.
             surface.texture = gpu.texture
             surface.opaque = gpu.opaque
-            surface.current.damage.clear()
+            surface.current.damageList.clear()
             return
         }
         val shm = buffer.dataAs<ShmBuffer>()
@@ -62,15 +62,20 @@ internal class SurfaceUploader(private val renderer: Renderer) {
         surface.texture = texture
 
         val (firstRow, rowCount) = if (fullUpload) 0 to shm.height else changedRows(surface.current.damage, shm.height)
-        surface.current.damage.clear()
+        surface.current.damageList.clear()
 
-        if (rowCount > 0) {
-            val rowBytes = shm.width.toLong() * 4
-            val pixels = staging(rowBytes * rowCount)
+        // In bands of rows that fit the staging memory (never more than a 4K picture's): a
+        // huge picture costs time, not gigabytes at once.
+        val rowBytes = shm.width.toLong() * 4
+        val band = (KEEP_STAGING / rowBytes).toInt().coerceIn(1, maxOf(rowCount, 1))
+        var done = 0
+        while (done < rowCount) {
+            val rows = minOf(band, rowCount - done)
+            val pixels = staging(rowBytes * rows)
             try {
                 shm.pool.read { memory ->
-                    for (row in 0 until rowCount) {
-                        val from = shm.offset + (firstRow + row).toLong() * shm.stride
+                    for (row in 0 until rows) {
+                        val from = shm.offset + (firstRow + done + row).toLong() * shm.stride
                         MemorySegment.copy(memory, from, pixels, row * rowBytes, rowBytes)
                     }
                 }
@@ -82,7 +87,8 @@ internal class SurfaceUploader(private val renderer: Renderer) {
                 // Its pool was destroyed after the attach (allowed): there is nothing to show.
                 return
             }
-            texture.upload(pixels, firstRow, rowCount)
+            texture.upload(pixels, firstRow + done, rows)
+            done += rows
         }
         surface.opaque = shm.format == WlShm.Format.XRGB8888
         buffer.sendRelease()

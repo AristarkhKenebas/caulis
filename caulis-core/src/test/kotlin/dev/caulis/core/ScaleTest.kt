@@ -175,6 +175,7 @@ class ScaleTest {
         server.onServer {
             it.layout = Floating
             it.animationMillis = 200 // (fading needs animations on)
+            it.animations = Animations.ON
         }
         val window = client.window()
         window.draw(100, 100)

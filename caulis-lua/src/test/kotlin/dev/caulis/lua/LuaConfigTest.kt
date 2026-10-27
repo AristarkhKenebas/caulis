@@ -76,7 +76,22 @@ class LuaConfigTest {
                 "while true do pcall(function() while true do end end) end" to "runs too long",
                 "local function f() return 1 + f() end f()" to "", // a stack overflow (LuaJ reports it its own way)
                 "local s = string.rep('x', 2^31)" to "",
+                // An array beyond the VM's limit: an OutOfMemoryError, a problem and not the end of the desktop.
+                "local s = string.rep('x', 2^31 - 1)" to "too much memory",
+                // Patterns that backtrack without end: LuaJ matches in Java, where the hook never comes.
+                "string.find(string.rep('a', 40), '(.-)(.-)(.-)(.-)(.-)(.-)(.-)(.-)b')" to "runs too long",
+                "local s = ('a'):rep(40) s:match('(.-)(.-)(.-)(.-)(.-)(.-)(.-)(.-)b')" to "runs too long",
+                "for w in string.gmatch(('a'):rep(40), '(.*)(.*)(.*)(.*)(.*)(.*)(.*)b') do end" to "runs too long",
+                "while true do pcall(string.gsub, ('a'):rep(40), '(.-)(.-)(.-)(.-)(.-)(.-)(.-)(.-)b', '') end" to "runs too long",
+                "coroutine.wrap(function() string.find(('a'):rep(40), '(.-)(.-)(.-)(.-)(.-)(.-)(.-)(.-)b') end)()" to "runs too long",
                 "luajava.bindClass('java.lang.System'):exit(1)" to "index",
+                // Java classes through require: not found (they would bring the hooks and Java back).
+                "require('org.luaj.vm2.lib.jse.LuajavaLib')" to "not found",
+                "require('org.luaj.vm2.lib.DebugLib') debug.sethook() while true do end" to "not found",
+                "local d = require('debug') d.sethook() while true do end" to "attempt to call nil",
+                "package.loadlib('x', 'y')" to "attempt to call nil",
+                "os.exit(1)" to "os.exit",
+                "io.popen('sleep 5')" to "io.popen",
             )) {
                 val start = System.nanoTime()
                 val (_, problems) = apply(code)
@@ -88,6 +103,47 @@ class LuaConfigTest {
         } finally {
             LuaConfig.LOAD_LIMIT = usual
         }
+    }
+
+    @Test
+    fun `string patterns still match as Lua's do`() {
+        val (_, problems) = apply(
+            """
+            assert(string.find("hello world", "o w") == 5)
+            assert(select(3, ("key = value"):find("(%w+)%s*=%s*(%w+)")) == "key")
+            assert(string.match("2024-10-27", "(%d+)-(%d+)") == "2024")
+            assert(string.gsub("hello world", "(%w+)", "%1 %1") == "hello hello world world")
+            assert(select(2, string.gsub("abc", "", "-")) == 4)
+            assert(string.gsub("${'$'}name-x", "%${'$'}(%w+)", { name = "lua" }) == "lua-x")
+            assert(string.match("f(a(b)c)", "%b()") == "(a(b)c)")
+            assert(string.find("THE (quick) fox", "%f[%a]%a+", 5) == 6)
+            local words = {}
+            for w in ("one two three"):gmatch("%a+") do words[#words + 1] = w end
+            assert(#words == 3 and words[3] == "three")
+            assert(not pcall(string.find, "x", "[a"))
+            """,
+        )
+        assertEquals(emptyList(), problems)
+    }
+
+    @Test
+    fun `os execute does not wait, and at the top of the file only starts once the compositor runs`() {
+        val marker = folder.resolve("started")
+        val start = System.nanoTime()
+        val (_, problems) = apply(
+            """
+            local ok, how, status = os.execute("sleep 2; touch '$marker'")
+            assert(ok == true and how == "exit" and status == 0)
+            assert(os.execute() == true)
+            caulis.launch("touch '$marker'")
+            assert(io.read() == nil) -- the standard input is empty: nothing waits
+            """,
+        )
+        val seconds = (System.nanoTime() - start) / 1e9
+        assertEquals(emptyList(), problems)
+        assertTrue(seconds < 1.5, "config.lua took $seconds s")
+        Thread.sleep(300)
+        assertTrue(!Files.exists(marker), "nothing was started while the file was only read")
     }
 
     @Test
@@ -171,7 +227,7 @@ class LuaConfigTest {
 
     @Test
     fun `the input guide's Lua is right`() {
-        val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter(". Mice, touchpads, and keys that do more\n").substringBefore("\n## ")
+        val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter(". Mice, touchpads, tablets, and keys that do more\n").substringBefore("\n## ")
         val example = section.substringAfter("```lua\n").substringBefore("```")
         assertTrue("mode = \"resize\"" in example)
         assertEquals(emptyList(), apply(example).second)

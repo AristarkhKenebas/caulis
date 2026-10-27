@@ -20,7 +20,7 @@ class AnimationsTest {
     fun `a window fades in, and its last look fades out when it closes`() = withServer { server, client ->
         server.onServer { d ->
             d.layout = Floating
-            d.animations = Animations(windowOpen = WindowAnimation.fade().lasting(1500), windowClose = WindowAnimation.fade().lasting(1500))
+            d.animations = Animations(enabled = true, windowOpen = WindowAnimation.fade().lasting(1500), windowClose = WindowAnimation.fade().lasting(1500))
         }
         val window = client.window()
         window.draw(200, 150)
@@ -47,6 +47,7 @@ class AnimationsTest {
         server.onServer { d ->
             d.layout = Floating
             d.animations = Animations(
+                enabled = true,
                 workspaceSwitch = WorkspaceAnimation.SLIDE.lasting(2000).curved(Curve.LINEAR),
                 // Own: it appears red (through the shader), where it will be.
                 windowOpen = WindowAnimation { m -> WindowFrame(m.to, shader = shader, progress = m.progress) }.lasting(1500),
@@ -72,7 +73,7 @@ class AnimationsTest {
         try {
             server.onServer { d ->
                 d.layout = Floating
-                d.animations = Animations(windowOpen = WindowAnimation { m -> WindowFrame(m.to, shader = WindowShader("this is not GLSL")) }.lasting(1500))
+                d.animations = Animations(enabled = true, windowOpen = WindowAnimation { m -> WindowFrame(m.to, shader = WindowShader("this is not GLSL")) }.lasting(1500))
             }
             client.window().draw(200, 150)
             client.waitFor { server.onServer { d -> d.allWindows.singleOrNull()?.mapped } == true }
@@ -103,6 +104,7 @@ class AnimationsTest {
             server.onServer { d ->
                 d.layout = Floating
                 d.animations = Animations(
+                enabled = true,
                     windowOpen = WindowAnimation { m -> WindowFrame(m.to, shader = dissolve, progress = m.progress) }.lasting(1500),
                     minimize = WindowAnimation.genie().lasting(1500),
                 )
@@ -118,6 +120,38 @@ class AnimationsTest {
         } finally {
             dev.caulis.log.Log.listener = null
         }
+    }
+
+    @Test
+    fun `animations are off by default, and named settings fall back along the tree`() {
+        val usual = Animations().settings(220)
+        for (name in AnimationTree.CAULIS.names) assertEquals(false, usual.resolve(name).on, "$name is off by default")
+        val on = Animations.ON.settings(220)
+        assertEquals(220L, on.resolve("windowsIn").millis)
+        assertEquals(150L, on.resolve("border").millis, "its own usual time")
+        assertEquals(330L, on.resolve("overview", 330).millis, "the code's time")
+        val some = Animations()
+            .with("windows", enabled = true, millis = 300, curve = Curve.LINEAR)
+            .with("windowsIn", style = "popin 80%")
+            .with("minimize", enabled = false)
+        val s = some.settings(220)
+        assertEquals(true, s.resolve("windowsOut").on, "on through its parent")
+        assertEquals(300L, s.resolve("windowsMove").millis)
+        assertEquals(Curve.LINEAR, s.resolve("windowsIn").curve)
+        assertEquals("popin 80%", s.resolve("windowsIn").style)
+        assertEquals(false, s.resolve("minimize").on, "its own setting wins")
+        assertEquals(false, s.resolve("workspaces").on, "not under windows: off as all")
+        assertEquals(1.0, s.resolve("minimize").at(0.1), "off: there at once")
+        // Hyprland's speed: tenths of a second.
+        val built = AnimationsBuilder(Animations()).apply { animation("workspaces", enabled = true, speed = 3.5, style = "slidevert") }.animations
+        assertEquals(350L, built.settings(220).resolve("workspaces").millis)
+        assertEquals("slidevert", built.settings(220).resolve("workspaces").style)
+        // Looks that do not fit are refused at once (not on every frame).
+        assertEquals(null, Animations.styleProblem("windowsIn", "slide left 120"))
+        assertNotEquals(null, Animations.styleProblem("windowsIn", "wobble"))
+        assertNotEquals(null, Animations.styleProblem("border", "fade"))
+        assertTrue(runCatching { Animations().with("workspaces", style = "popin") }.isFailure)
+        assertTrue(runCatching { Animations().with("nothing") }.isFailure)
     }
 
     @Test

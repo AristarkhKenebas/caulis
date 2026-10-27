@@ -187,4 +187,36 @@ class RuleStatesTest {
         assertEquals(300L, a.workspaceSwitch.millis)
         assertEquals(dev.caulis.core.Curve.EASE_IN_OUT, a.workspaceSwitch.curve)
     }
+
+    @Test
+    fun `animations by name in config_json, Hyprland-like, off by default`() {
+        assertEquals(false, Caulis().animations.enabled, "off unless turned on")
+        val read = ConfigFile.read(
+            """
+            { "animations": {
+                "enabled": true,
+                "curves": { "snappy": { "bezier": [0.05, 0.9, 0.1, 1.05] } },
+                "windows": { "millis": 300, "curve": "snappy" },
+                "windowsIn": "popin 80%",
+                "minimize": "genie",
+                "fade": false,
+                "workspaces": { "speed": 3, "style": "slidevert" },
+                "border": { "enabled": true, "style": "wobble" }
+            } }
+            """.trimIndent(),
+        )
+        assertEquals(emptyList(), read.problems)
+        val caulis = Caulis()
+        Settings.apply(caulis, read.values)
+        val s = caulis.animations.settings(caulis.animationMillis)
+        assertEquals(true, caulis.animations.enabled)
+        assertEquals(300L, s.resolve("windowsMove").millis)
+        assertTrue(s.resolve("windowsOut").curve.at(0.5) > 0.9, "the snappy curve, from windows")
+        assertEquals("popin 80%", s.resolve("windowsIn").style)
+        assertEquals("genie", s.resolve("minimize").style)
+        assertEquals(false, s.resolve("fadeOsd").on, "off with fade")
+        assertEquals(300L, s.resolve("workspaces").millis)
+        assertEquals("slidevert", s.resolve("workspaces").style)
+        assertEquals(null, s.resolve("border").style, "a look it cannot take is left out (with a warning)")
+    }
 }

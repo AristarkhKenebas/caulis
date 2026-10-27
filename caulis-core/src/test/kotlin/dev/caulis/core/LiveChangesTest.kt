@@ -15,7 +15,12 @@ import kotlin.test.assertTrue
 class LiveChangesTest {
 
     @Test
-    fun `no frame loses the wallpaper or flashes while settings change`() {
+    fun `no frame loses the wallpaper or flashes while settings change`() = settingsChange(animated = true)
+
+    @Test
+    fun `nor with animations off (the default), changes at once without a flash`() = settingsChange(animated = false)
+
+    private fun settingsChange(animated: Boolean) {
         assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
         // (The picture below is made before any Desktop exists: as Desktop would have it.)
         System.setProperty("java.awt.headless", "true")
@@ -32,7 +37,10 @@ class LiveChangesTest {
                     val worst = ConcurrentHashMap<String, Int>()
                     val stale = ConcurrentHashMap<String, Int>()
                     var step = "the wallpaper comes"
-                    server.onServer { d -> d.background = Background.image(picture, Background.Fit.FILL) }
+                    server.onServer { d ->
+                        d.animations = if (animated) Animations.ON else Animations()
+                        d.background = Background.image(picture, Background.Fit.FILL)
+                    }
                     val deadline = System.nanoTime() + 5_000_000_000
                     while (server.screenshot(0)[200 * ScreenTestServer.WIDTH + 200].let { it == EMPTY || it == BLACK }) {
                         check(System.nanoTime() < deadline) { "the wallpaper did not come" }
@@ -72,7 +80,8 @@ class LiveChangesTest {
                     println("Pixels without wallpaper, worst frame of each step:\n$report")
                     // (A few hundred: the cursor's own black outline.)
                     assertTrue(worst.values.all { it < 2000 }, "a frame without the wallpaper:\n$report")
-                    assertTrue(worst.keys.size >= 12, "frames were seen:\n$report")
+                    // (Without animations a monitor whose picture does not change shows no new frame.)
+                    assertTrue(worst.keys.size >= if (animated) 12 else 8, "frames were seen:\n$report")
                     assertTrue(stale.values.all { it == 0 }, "pixels left over from before, after each step:\n$stale")
                 }
             }

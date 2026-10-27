@@ -129,6 +129,7 @@ class ForeignToplevelsTest {
         server.onServer {
             it.layout = Floating
             it.animationMillis = 2000 // slow, to look at it on the way
+            it.animations = Animations.ON // (off by default)
         }
         val dock = Dock(dockClient)
         // The dock is a window here too; its "icon" is at 10, 10 inside it.

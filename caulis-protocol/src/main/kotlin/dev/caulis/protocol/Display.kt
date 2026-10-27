@@ -154,10 +154,6 @@ class Display(val loop: EventLoop) : AutoCloseable {
         addGlobal(type, version, { true }, onBind)
 
     /**
-     * Offers a feature only to the clients [visibleTo] accepts (e.g. one only Xwayland may
-     * use): the others neither see nor can bind it.
-     */
-    /**
      * Which clients may use the privileged features — screenshots and screen sharing,
      * clipboard managers, panels and lock screens, arranging monitors, gamma, managing other
      * programs' windows. Every client by default (as most compositors do); decide it before
@@ -169,6 +165,37 @@ class Display(val loop: EventLoop) : AutoCloseable {
     fun <T : Resource> addPrivilegedGlobal(type: ResourceType<T>, version: Int, onBind: (T) -> Unit): Global =
         addGlobal(type, version, { client -> privileged(client) }, onBind)
 
+    /**
+     * The longest text, in UTF-8 bytes, that a program's window title, app id, clipboard type
+     * or panel name may have when it is passed on to other programs (panels, docks, clipboard
+     * managers): longer ones are cut at a character's end. Programs built on libwayland drop
+     * the connection on an event bigger than 4096 bytes. 1024 by default.
+     */
+    var maxForwardedStringBytes: Int = 1024
+        set(value) {
+            require(value in 16..3000) { "maxForwardedStringBytes must be 16..3000, not $value" }
+            field = value
+        }
+
+    /** True if [text] is no longer than [maxForwardedStringBytes] (a clipboard type longer than that is left out, not cut). */
+    fun fitsForwarded(text: String): Boolean =
+        text.length * 3 <= maxForwardedStringBytes || text.encodeToByteArray().size <= maxForwardedStringBytes
+
+    /** [text] cut to [maxForwardedStringBytes] (at a character's end). */
+    fun capForwarded(text: String): String {
+        if (text.length * 3 <= maxForwardedStringBytes) return text // (fits whatever the characters)
+        val bytes = text.encodeToByteArray()
+        if (bytes.size <= maxForwardedStringBytes) return text
+        var end = maxForwardedStringBytes
+        while (end > 0 && (bytes[end].toInt() and 0xC0) == 0x80) end-- // not inside a character
+        log.trace { "A text of ${bytes.size} bytes was cut to $end" }
+        return bytes.decodeToString(0, end)
+    }
+
+    /**
+     * Offers a feature only to the clients [visibleTo] accepts (e.g. one only Xwayland may
+     * use): the others neither see nor can bind it.
+     */
     fun <T : Resource> addGlobal(type: ResourceType<T>, version: Int, visibleTo: (Client) -> Boolean, onBind: (T) -> Unit): Global {
         require(version in 1..type.version) {
             "$type: version $version is not supported by the generated code (max ${type.version})"

@@ -1,6 +1,7 @@
 package dev.caulis.render
 
 import dev.caulis.geometry.Rect
+import dev.caulis.log.InternalCaulisApi
 import java.lang.foreign.MemorySegment
 
 /**
@@ -136,6 +137,13 @@ interface Renderer : AutoCloseable {
         return true
     }
 
+    /**
+     * The same, and the window's [state] for a shader paint (its `focused`, `urgent`,
+     * `grouped`): a border of a window. Renderers that know no states draw it without.
+     */
+    fun drawRoundedRect(box: Rect, cornerRadius: Float, paint: Paint, borderWidth: Float, alpha: Float, time: Float, state: PaintState): Boolean =
+        drawRoundedRect(box, cornerRadius, paint, borderWidth, alpha, time)
+
     /** [drawShadow] filled with [paint] at [alpha] (see the [drawRoundedRect] with a paint). */
     fun drawShadow(box: Rect, cornerRadius: Float, softness: Float, paint: Paint, cutOut: Rect?, cutOutRadius: Float, alpha: Float = 1f, time: Float = 0f): Boolean {
         drawShadow(box, cornerRadius, softness, paint.firstColor().let { it.copy(alpha = it.alpha * alpha) }, cutOut, cutOutRadius)
@@ -165,7 +173,11 @@ fun blurReach(size: Int, passes: Int): Int = size * (2 shl passes.coerceIn(1, MA
 /** More blur passes than this make no visible difference (and cost a lot). */
 const val MAX_BLUR_PASSES = 6
 
-/** A picture on the GPU. */
+/**
+ * A picture on the GPU, made by a [Renderer] (only its own can be drawn: a class of yours
+ * implementing this cannot, so implementing it needs `@OptIn(InternalCaulisApi::class)`).
+ */
+@SubclassOptInRequired(InternalCaulisApi::class)
 interface GpuTexture : AutoCloseable {
     val width: Int
     val height: Int
@@ -182,7 +194,8 @@ interface GpuTexture : AutoCloseable {
     val uploads: Long get() = 0
 }
 
-/** A picture that can be drawn into. */
+/** A picture that can be drawn into, made by a [Renderer] (see [GpuTexture]: only its own). */
+@SubclassOptInRequired(InternalCaulisApi::class)
 interface GpuTarget : AutoCloseable {
     val width: Int
     val height: Int
@@ -204,6 +217,8 @@ interface GpuTarget : AutoCloseable {
  * A [GpuTarget] backed by a shareable GPU buffer. Its memory can be shown by the display
  * (with [handle], a number valid on the renderer's DRM device) or given to others ([export]).
  */
+@OptIn(InternalCaulisApi::class)
+@SubclassOptInRequired(InternalCaulisApi::class)
 interface GpuBuffer : GpuTarget {
     val format: Int
     val modifier: Long

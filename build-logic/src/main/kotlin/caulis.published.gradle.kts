@@ -11,7 +11,7 @@ plugins {
     signing
 }
 
-// What a release is called: -Pcaulis.version=0.1.0 (else the catalog's -SNAPSHOT).
+// What a release is called: -Pcaulis.version=0.1.0 (else the catalog's version).
 providers.gradleProperty("caulis.version").orNull?.let { version = it }
 
 java {
@@ -49,11 +49,15 @@ val javadocJar by tasks.registering(Jar::class) {
     from(javadocPage)
 }
 
-// The license goes into every jar.
 val licenseFile = layout.projectDirectory.file("LICENSE").asFile.takeIf { it.exists() } ?: rootProject.file("LICENSE")
+// The license goes into every jar, and the version into its manifest (a running compositor
+// reports it: IPC, the log).
 tasks.withType<Jar>().configureEach {
     from(licenseFile) { into("META-INF") }
     from(rootProject.file("NOTICE")) { into("META-INF") }
+    val name = project.name
+    val release = project.version.toString()
+    manifest.attributes("Implementation-Title" to name, "Implementation-Version" to release)
 }
 
 // Test helpers (ScreenTestServer, TestClient) stay ours: not part of what is published.
@@ -103,10 +107,10 @@ publishing {
     }
 }
 
-// Signed with your key for a release (gpg's own agent: no key in any file here); snapshots
-// are not signed.
+// Signed with your key for a release going out (gpg's own agent: no key in any file here);
+// snapshots, and what only goes to your own ~/.m2 (publishToMavenLocal), need no key.
 signing {
-    isRequired = !version.toString().endsWith("-SNAPSHOT")
+    setRequired({ !version.toString().endsWith("-SNAPSHOT") && gradle.taskGraph.allTasks.any { it is PublishToMavenRepository } })
     useGpgCmd()
     sign(publishing.publications)
 }
