@@ -39,7 +39,14 @@ class Keymap private constructor(
     /** How many layouts it has ("us,ru": two). */
     val layoutCount: Int get() = Xkb.xkb_keymap_num_layouts(keymap)
 
+    /** False once closed (a [Seat] closes the keymap it replaces, and its own when it is closed). */
+    var isOpen = true
+        private set
+
+    /** Lets go of the keymap; closing it again does nothing. */
     override fun close() {
+        if (!isOpen) return
+        isOpen = false
         shared.close()
         Xkb.xkb_keymap_unref(keymap)
         Xkb.xkb_context_unref(context)
@@ -138,6 +145,16 @@ class KeyboardState internal constructor(
 
     /** The symbol a key produces now, e.g. XKB_KEY_q (for compositor shortcuts). */
     fun symbol(evdevCode: Int): Int = Xkb.xkb_state_key_get_one_sym(state, evdevCode + 8)
+
+    /**
+     * The symbol a key gives on its own in the layout in use, whatever is held: Alt is Alt_L
+     * even while Shift is held (with "grp:alt_shift_toggle" Shift+Alt gives ISO_Next_Group),
+     * Caps Lock is Super_L with "caps:super". For telling which keys are modifiers.
+     */
+    fun baseSymbol(evdevCode: Int): Int {
+        Xkb.xkb_state_update_mask(probe, 0, 0, 0, 0, 0, modifiers.group)
+        return Xkb.xkb_state_key_get_one_sym(probe, evdevCode + 8)
+    }
 
     /** The character a key types now (with the layout and Shift, Caps Lock, AltGr), or null for none (arrows, Ctrl, F1). */
     fun text(evdevCode: Int): String? {

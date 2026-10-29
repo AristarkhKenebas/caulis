@@ -74,7 +74,7 @@ kotlin {
 tasks.withType<JavaCompile>().configureEach { options.release = 26 }
 
 dependencies {
-    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.2")
+    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.3")
 }
 
 application {
@@ -87,7 +87,7 @@ application {
 // running compositor, taken on in about a second (step "Change it while it runs").
 val development by configurations.creating
 dependencies {
-    development("io.github.aristarkhkenebas:caulis-reload:0.1.2")
+    development("io.github.aristarkhkenebas:caulis-reload:0.1.3")
 }
 tasks.named<JavaExec>("run") {
     classpath += development
@@ -1340,7 +1340,10 @@ pictures put together from windows). The look — colours, font, sizes, how dark
 gets — is `style = ScreenshotStyle(...)`, its words in your language
 `ScreenshotStyle(words = ScreenshotWords(capture = "Aufnehmen", ...))`; the buttons and
 their order, the timer's steps, the keys and the timings are `chooser = ChooserBehaviour(...)`
-(`keys = ChooserKeys(capture = listOf("Return"), ...)`).
+(`keys = ChooserKeys(capture = listOf("Return"), ...)`). The chooser starts choosing a part
+each time; a window is chosen with its key (W) or button. `ChooserBehaviour(rememberKind = true)`
+starts with the kind used last instead, `clickPicksWindow = true` makes a click (not a drag)
+take the window under the pointer as the part.
 
 With the module in the compositor, config.json and Lua have the action too: `"Print":
 "screenshot"` (the chooser), `screenshot region`, `screenshot window`, `screenshot screen`,
@@ -1761,7 +1764,7 @@ can also say *when* and *how* — functions on keys, on events, on timers. Add t
 your compositor:
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-lua:0.1.2")
+implementation("io.github.aristarkhkenebas:caulis-lua:0.1.3")
 ```
 
 Then it reads `~/.config/<configName>/config.lua` by itself (after `config.json`, on top of
@@ -1860,7 +1863,7 @@ no project: the compositor compiles it itself. Add the module (it contains the K
 compiler, so it makes your compositor bigger):
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-script:0.1.2")
+implementation("io.github.aristarkhkenebas:caulis-script:0.1.3")
 ```
 
 `~/.config/<configName>/config.kts` is then read after `config.json` and `config.lua`, as if
@@ -1876,8 +1879,11 @@ onWindowOpened { window ->
 }
 ```
 
-The first start after a change compiles it (a few seconds); the compiled script is kept in
-`~/.cache/<configName>/config-kts`, so the next start is quick. Saving it while running takes
+The first start after a change compiles it (a few seconds, in a Java of its own that ends
+right after: the Kotlin compiler never stays in the compositor's memory); the compiled script is
+kept in `~/.cache/<configName>/config-kts`, so the next start only loads it. That Java's options
+and time limit: `KotlinScriptConfig.compilerJvmOptions` and `compilerTimeoutSeconds` (set them in
+your `Main.kt` before `caulis { }`). Saving it while running takes
 it on, like the others. A mistake is reported with its line
 (`config.kts:2: Unresolved reference 'lyaout'`), and the compositor starts anyway.
 

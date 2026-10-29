@@ -131,7 +131,11 @@ class Client internal constructor(
             reader.requestFailed()
             // A bug in the compositor (or in user code) while handling this request — also
             // an Error such as a stack overflow. Only this client is affected.
-            server.log.error("Error while handling ${target.type.name} request $opcode from $name", e)
+            // (The program's name without its process id: the same failure in every foot started
+            // is one message, which notices count instead of showing a card for each. The id is
+            // in the line before.)
+            server.log.info { "$name: handling its ${target.type.name} request $opcode failed (below)" }
+            server.log.error("Error while handling ${target.type.name} request $opcode from $program", e)
             postError(displayObject, WlDisplay.Error.IMPLEMENTATION, "compositor error: ${e.message}")
         }
     }

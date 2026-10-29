@@ -224,6 +224,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getResizeBorder ()I
 	public final fun getReveal ()Ldev/caulis/wm/Reveal;
 	public final fun getRevealed ()Z
+	public final fun getRunningBackend ()Ldev/caulis/wm/Caulis$Backend;
 	public final fun getScale ()D
 	public final fun getScratchpadStartMillis ()J
 	public final fun getScreenShader ()Ldev/caulis/core/ScreenShader;

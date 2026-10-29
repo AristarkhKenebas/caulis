@@ -1,7 +1,8 @@
 // config.kts: a compositor's configuration as a Kotlin script, compiled by the compositor
 // itself (no Gradle, no project) — all of Caulis, as in Main.kt. Add it to a compositor that
-// should read config.kts; it is found by itself (ServiceLoader). It is big: it contains the
-// Kotlin compiler.
+// should read config.kts; it is found by itself (ServiceLoader). It is big: it brings the
+// Kotlin compiler (run in a short-lived Java of its own when a script needs compiling, never
+// loaded into the compositor).
 
 plugins {
     id("caulis.published")

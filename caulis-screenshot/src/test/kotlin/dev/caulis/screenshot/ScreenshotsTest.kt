@@ -55,6 +55,26 @@ class ScreenshotsTest {
     }
 
     @Test
+    fun `the chooser starts choosing a part each time, unless it is told to remember the kind`() = withShots { caulis, folder, _ ->
+        caulis.onLoop {
+            val shots = Screenshots.of(caulis)
+            assertEquals(ShotKind.REGION, shots.kind)
+            shots.choose(ShotKind.SCREEN)
+            key(caulis, KEY_ENTER)
+            assertEquals(ShotKind.REGION, shots.kind, "a part again next time (rememberKind off)")
+        }
+        waitForFiles(folder, 1)
+        caulis.onLoop {
+            val shots = Screenshots.of(caulis)
+            shots.chooser = shots.chooser.copy(rememberKind = true)
+            shots.choose(ShotKind.SCREEN)
+            key(caulis, KEY_ENTER)
+            assertEquals(ShotKind.SCREEN, shots.kind, "the kind used last (rememberKind on)")
+        }
+        waitForFiles(folder, 2)
+    }
+
+    @Test
     fun `a screenshot copied is pasted by the compositor's few clipboard writers, not a thread per paste`() = withShots { caulis, _, _ ->
         caulis.onLoop {
             val shots = Screenshots.of(caulis)

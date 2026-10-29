@@ -459,8 +459,15 @@ class Desktop(
     /** The monitor showing [output], if any. */
     fun monitorOf(output: Output): Monitor? = monitorList.firstOrNull { it.output === output }
 
-    /** The monitor a window is on: the one its workspace is shown on (or was last). */
-    fun monitorOf(window: Window): Monitor = workspaceOf(window)?.monitor ?: focusedMonitor
+    /**
+     * The monitor a window is on: the one its workspace is shown on (or was last) — or, for
+     * a window your [director] places, the one it is drawn on most (its workspace is only
+     * where it opened: a menu, its scale and its size limits are of where you see it).
+     */
+    fun monitorOf(window: Window): Monitor {
+        if (director != null) screenRects[window]?.takeIf { directed(window) }?.let { rect -> return monitorAt(rect.x + rect.width / 2.0, rect.y + rect.height / 2.0) }
+        return workspaceOf(window)?.monitor ?: focusedMonitor
+    }
 
     /** Size of the monitor with the focus, in desktop units. */
     val width: Int get() = focusedMonitor.area.width
@@ -1084,6 +1091,7 @@ class Desktop(
     private val lockLog = Logger("lock")
     private val cursorLog = Logger("cursor")
     private val renderLog = Logger("render")
+    private val BUSY_REPORT_NANOS = 10_000_000_000L
     private val overlayLog = Logger("overlay")
     private var lastFocused: Window? = null
 
@@ -4290,7 +4298,7 @@ class Desktop(
     override fun popupBounds(popup: Popup): Rect? {
         val (ox, oy) = popup.parent?.let(::visibleOrigin) ?: popup.layerParent?.let { it.x to it.y } ?: return null
         val window = generateSequence(popup.parent) { (it.role as? Popup)?.parent }.mapNotNull { it.role as? Window }.firstOrNull()
-        val monitor = window?.let { if (workspaceOf(it) != null) monitorOf(it) else null } ?: monitorAt(ox.toDouble(), oy.toDouble())
+        val monitor = window?.let { if (workspaceOf(it) != null || directed(it)) monitorOf(it) else null } ?: monitorAt(ox.toDouble(), oy.toDouble())
         val area = monitor.area
         return Rect(area.x - ox, area.y - oy, area.width, area.height)
     }
@@ -4502,7 +4510,10 @@ class Desktop(
             }
         }
         val list = activeWorkspace.windowList
-        for (other in list) if (other !== window) other.setActivated(false)
+        // Every other window is not the active one any more — also those on other monitors'
+        // workspaces (a window clicked on the second monitor left the first one's looking
+        // focused, and some programs then acted as if they still had the keys).
+        for (other in allWindows) if (other !== window && other.activated) other.setActivated(false)
         if (window != null) {
             // On top of its own workspace (only if it is on this one: never into another's list).
             if (list.remove(window)) list += window
@@ -5482,16 +5493,19 @@ class Desktop(
         val fadingNow = fading()
         val animatingNow = animating()
         val backdropsChanging = backdrops.changing()
-        var directorMoving = director?.let { d -> userCode("Your WindowDirector (animating)", false) { d.animating(now) } } == true
-        for (list in drawings.values) for (d in list) if (userCode("Your drawing (animating)", false) { d.animating(now) }) directorMoving = true
-        for (w in widgets.toList()) if (userCode("Your widget (animating)", false) { w.animating(now) }) directorMoving = true
+        val directorAnimating = director?.let { d -> userCode("Your WindowDirector (animating)", false) { d.animating(now) } } == true
+        var directorMoving = directorAnimating
+        var movingThing: Any? = null
+        for (list in drawings.values) for (d in list) if (userCode("Your drawing (animating)", false) { d.animating(now) }) { directorMoving = true; movingThing = d }
+        for (w in widgets.toList()) if (userCode("Your widget (animating)", false) { w.animating(now) }) { directorMoving = true; movingThing = w }
         if (glides.isNotEmpty() || cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsMoving || focusChanging || directorMoving) {
             // Windows are gliding (or the overview zooms): the scene changes every frame until done.
-            renderLog.trace {
+            if (renderLog.level >= 2) {
                 val why = listOfNotNull("glides".takeIf { glides.isNotEmpty() }, "camera".takeIf { cameraMoving(System.nanoTime()) }, "fading".takeIf { fadingNow },
                     "notices".takeIf { noticesMoving }, "animating".takeIf { animatingNow }, "backdrops".takeIf { backdropsChanging }, "paints".takeIf { paintsMoving },
-                    "focus".takeIf { focusChanging }, "director, drawings or widgets".takeIf { directorMoving })
-                "Moving: ${why.joinToString()}"
+                    "focus".takeIf { focusChanging }, "director".takeIf { directorAnimating }, movingThing?.let { "drawing or widget $it" })
+                renderLog.trace { "Moving: ${why.joinToString()}" }
+                busy.moving(why)
             }
             version++
             onChange()
@@ -5534,7 +5548,35 @@ class Desktop(
         }
         frameShown(view, (System.nanoTime() / 1_000_000).toInt())
         for (listener in frameListeners.toList()) listener()
+        if (draw && renderLog.level >= 2) busy.drawn(view.monitor.name)
         return draw
+    }
+
+    // What kept the screens being drawn: said every few seconds at the render log's info level
+    // (CAULIS_LOG=render=2) — the frames drawn per monitor, and what was moving, most often first.
+    // (To find out why a compositor that should be idle keeps a processor busy.)
+    private val busy = object {
+        private var since = System.nanoTime()
+        private val frames = LinkedHashMap<String, Int>()
+        private val reasons = HashMap<String, Int>()
+
+        fun moving(why: List<String>) {
+            for (reason in why) reasons.merge(reason, 1, Int::plus)
+        }
+
+        fun drawn(monitor: String) {
+            frames.merge(monitor, 1, Int::plus)
+            val now = System.nanoTime()
+            if (now - since < BUSY_REPORT_NANOS) return
+            val seconds = (now - since) / 1e9
+            renderLog.info {
+                "Frames in the last %.0f s: %s; moving: %s".format(seconds, frames.entries.joinToString { "${it.key} ${it.value}" },
+                    reasons.entries.sortedByDescending { it.value }.take(5).joinToString { "${it.key} (${it.value})" }.ifEmpty { "nothing (programs' or the pointer's changes)" })
+            }
+            since = now
+            frames.clear()
+            reasons.clear()
+        }
     }
 
     /**
@@ -5780,16 +5822,24 @@ class Desktop(
         if (items === view.shown) return // nothing changed since the last comparison
         val before = view.shown.withIndex().associateBy({ it.value.key }, { it })
         val now = items.withIndex().associateBy({ it.value.key }, { it })
+        // (What changed, at the finest level: to find what keeps a screen being drawn.)
+        val why = if (renderLog.level >= 3) ArrayList<String>() else null
         for ((key, old) in before) {
             val new = now[key]
             if (new == null) {
                 old.value.areas.forEach(view::damage)
+                why?.add("gone $key")
             } else if (new.index != old.index || new.value.differsFrom(old.value)) {
                 old.value.areas.forEach(view::damage)
                 new.value.areas.forEach(view::damage)
+                why?.add("changed $key ${new.value.rect}")
             }
         }
-        for ((key, new) in now) if (key !in before) new.value.areas.forEach(view::damage)
+        for ((key, new) in now) if (key !in before) {
+            new.value.areas.forEach(view::damage)
+            why?.add("new $key")
+        }
+        if (!why.isNullOrEmpty()) renderLog.trace { "${view.monitor.name} changed: ${why.take(6).joinToString("; ")}" }
         view.shown = items
     }
 

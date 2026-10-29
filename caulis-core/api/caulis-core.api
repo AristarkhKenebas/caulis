@@ -3352,6 +3352,7 @@ public final class dev/caulis/core/input/KeyBindings {
 	public final fun bind (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)V
 	public final fun clear ()V
 	public final fun described ()Ljava/util/List;
+	public final fun forget (I)V
 	public final fun getModifierOf ()Lkotlin/jvm/functions/Function1;
 	public final fun getRepeatDelay ()I
 	public final fun getRepeatRate ()I
@@ -3419,6 +3420,7 @@ public final class dev/caulis/core/input/KeyBindings$Options {
 }
 
 public final class dev/caulis/core/input/KeyboardState : java/lang/AutoCloseable {
+	public final fun baseSymbol (I)I
 	public fun close ()V
 	public final fun getModifiers ()Ldev/caulis/core/input/KeyboardState$Modifiers;
 	public final fun setLocks (II)Z
@@ -3457,6 +3459,7 @@ public final class dev/caulis/core/input/Keymap : java/lang/AutoCloseable {
 	public final fun getLayoutCount ()I
 	public final fun getShared ()Ldev/caulis/ffi/SharedMemory;
 	public final fun getSharedSize ()I
+	public final fun isOpen ()Z
 	public final fun newState ()Ldev/caulis/core/input/KeyboardState;
 }
 

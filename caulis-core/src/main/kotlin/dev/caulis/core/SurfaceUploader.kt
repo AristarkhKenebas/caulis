@@ -74,10 +74,14 @@ internal class SurfaceUploader(private val renderer: Renderer) {
             val pixels = staging(rowBytes * rows)
             try {
                 shm.pool.read { memory ->
-                    for (row in 0 until rows) {
+                    // Rows one after the other in the program's memory: one copy for the band.
+                    if (shm.stride.toLong() == rowBytes) {
+                        MemorySegment.copy(memory, shm.offset + (firstRow + done).toLong() * shm.stride, pixels, 0, rowBytes * rows)
+                    } else for (row in 0 until rows) {
                         val from = shm.offset + (firstRow + done + row).toLong() * shm.stride
                         MemorySegment.copy(memory, from, pixels, row * rowBytes, rowBytes)
                     }
+                    Unit
                 }
             } catch (e: SharedMemoryException) {
                 buffer.client.server.log.warn("Client ${buffer.client.pid}: ${e.message}")

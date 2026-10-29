@@ -30,7 +30,9 @@ enum class ChooserButton {
  * comes ([appearMillis], the toolbar rising [rise] units: the desktop's animation "screenshot", off
  * unless animations are on), what counts as a double click
  * ([doubleClickMillis]), how near an edge of a part the pointer grabs it ([grab] units) and how
- * far a drag must go to be one ([minDrag] units).
+ * far a drag must go to be one ([minDrag] units). It starts choosing a part (a window is
+ * chosen by its key or button): with [rememberKind] it starts with the kind used last instead,
+ * and with [clickPicksWindow] a click (not a drag) while choosing a part takes the window there.
  */
 data class ChooserBehaviour @JvmOverloads constructor(
     val buttons: List<ChooserButton> = ChooserButton.entries,
@@ -41,6 +43,10 @@ data class ChooserBehaviour @JvmOverloads constructor(
     val doubleClickMillis: Long = 400,
     val grab: Int = 7,
     val minDrag: Int = 4,
+    /** It starts with the kind used last (a window after a window): false starts with [Screenshots.kind] each time. */
+    val rememberKind: Boolean = false,
+    /** A click without a drag, while choosing a part, makes the window under it the part (false: nothing chosen). */
+    val clickPicksWindow: Boolean = false,
 ) {
     init {
         require(timerSteps.isNotEmpty() && timerSteps.all { it >= 0 }) { "the timer's steps are seconds, 0 or more (at least one): $timerSteps" }

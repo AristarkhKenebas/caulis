@@ -117,7 +117,7 @@ class Screenshots internal constructor(private val caulis: Caulis) {
     /** How the chooser behaves: its buttons, keys, timer steps and timings. */
     var chooser = ChooserBehaviour()
 
-    /** The kind the chooser starts with (the one used last). */
+    /** The kind the chooser starts with ([ShotKind.REGION]; the one used last if [ChooserBehaviour.rememberKind]). */
     var kind = ShotKind.REGION
 
     /**

@@ -373,9 +373,10 @@ internal class ScreenshotOverlay(
         when (drag) {
             Drag.NEW -> {
                 val part = region
-                // A click, not a drag: the window there as it was drawn (or nothing).
+                // A click, not a drag: the window there as it was drawn, if clickPicksWindow says so (else nothing).
                 if (part == null || part.width < behaviour.minDrag || part.height < behaviour.minDrag) {
-                    region = windowAt(regionOn, dragX, dragY)?.second?.intersect(regionOn.area)
+                    region = if (behaviour.clickPicksWindow) windowAt(regionOn, dragX, dragY)?.second?.intersect(regionOn.area) else null
+                    if (region != null) shots.log.trace { "A click picked the window under it as the part" }
                 }
             }
             Drag.LASSO -> {
@@ -488,7 +489,7 @@ internal class ScreenshotOverlay(
 
     private fun remember() {
         // (Over an overview the kind it starts with is its own: what was used anywhere else stays.)
-        if (kind != ShotKind.WINDOWS) shots.kind = kind
+        if (kind != ShotKind.WINDOWS && behaviour.rememberKind) shots.kind = kind
         shots.selection = selection
         shots.pointer = pointer
         shots.delaySeconds = delay

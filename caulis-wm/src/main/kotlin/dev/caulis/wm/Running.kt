@@ -139,8 +139,8 @@ internal class Running(
     val display = Display(loop)
     // The keymap and the settings it was made of (made anew when they change: a reload).
     private var keymapOf = listOf(config.keyboardLayouts, config.keyboardVariants, config.keyboardOptions, config.keyboardModel)
-    private var keymap = Keymap.fromNames(layouts = config.keyboardLayouts, variants = config.keyboardVariants, options = config.keyboardOptions, model = config.keyboardModel)
-    val seat = Seat(display, keymap)
+    // (The seat owns the keymap: it closes the one it replaces, and its last one.)
+    val seat = Seat(display, Keymap.fromNames(layouts = config.keyboardLayouts, variants = config.keyboardVariants, options = config.keyboardOptions, model = config.keyboardModel))
     private val compositor = Compositor(display, renderer)
     val desktop = Desktop(renderer, seat, compositor, width, height)
 
@@ -1391,17 +1391,32 @@ internal class Running(
             if (pressed) modifierKeysDown += evdevCode else modifierKeysDown -= evdevCode
             modifiersHeld = modifierKeysDown.fold(0) { m, code -> m or KeyInput.Modifiers.of(code) }
         }
-        if (config.keyHandlers.isEmpty()) return false
+        if (config.keyHandlers.isEmpty()) {
+            handlersSawDown.clear()
+            return false
+        }
         // (Latin whatever the layout: Super+D on the Russian layout is Super+D, not Super+в.)
         val keysym = seat.shortcutName(evdevCode)
         val locked = desktop.locked
-        if (locked && !keysym.startsWith("XF86")) return false // (never what is typed into the locker)
-        // An overlay (a screenshot chooser) has the keys to itself, as it has the mouse; its
-        // releases too (else a Ctrl taken here stayed held for it). The laptop's keys go on.
-        if (desktop.overlay != null && !keysym.startsWith("XF86")) return false
+        // The release of a key the handlers saw go down: theirs too, whatever opened since (a
+        // lock, a screenshot chooser) — else they thought it held for good (Super pressed,
+        // the chooser opened, Super let go: every binding of theirs with Super broke).
+        val sawDown = !pressed && handlersSawDown.remove(evdevCode)
+        if (!sawDown) {
+            if (locked && !keysym.startsWith("XF86")) return false // (never what is typed into the locker)
+            // An overlay (a screenshot chooser) has the keys to itself, as it has the mouse; its
+            // releases too (else a Ctrl taken here stayed held for it). The laptop's keys go on.
+            if (desktop.overlay != null && !keysym.startsWith("XF86")) return false
+        } else {
+            keyboardLog.trace { "A release for onKey: it saw the key go down" }
+        }
+        if (pressed) handlersSawDown += evdevCode
         val input = KeyInput(evdevCode, pressed, keysym, modifiersHeld, before, locked, timeMillis)
         return config.keyHandlers.asReversed().any { handler -> safely("onKey", false) { handler(config, input) } }
     }
+
+    // Keys onKey handlers were told went down (and not yet that they were let go).
+    private val handlersSawDown = HashSet<Int>()
 
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
         userActive()
@@ -1412,6 +1427,9 @@ internal class Running(
             // The keyboard's state still follows the key: modifiers would stick, and a layout
             // switch or Caps Lock on a key the configuration took would do nothing.
             if (KeyInput.Modifiers.of(evdevCode) != 0 || programHolds) seat.key(timeMillis, evdevCode, pressed) else seat.trackKey(evdevCode, pressed)
+            // The combinations stop counting it as held too (its press may have reached them:
+            // a Super held there for good broke every combination without Super).
+            if (!pressed) for (bindings in allKeys()) bindings.forget(evdevCode)
             return
         }
         val active = activeKeys()
@@ -1442,11 +1460,8 @@ internal class Running(
             keymapOf = wanted
             return
         }
-        val old = keymap
         seat.setKeymap(next)
-        keymap = next
         keymapOf = wanted
-        old.close()
         keyboardLog.info { "Keyboard layouts: ${wanted[0]}${if (wanted[2].isNotEmpty()) " (${wanted[2]})" else ""}" }
     }
 
@@ -1468,6 +1483,13 @@ internal class Running(
     /** Forgets every key held (the keyboard went to another session or terminal). */
     fun releaseKeys() {
         for (bindings in allKeys()) bindings.releaseAll()
+        // onKey handlers hear the releases of what they saw go down (they keep their own count of
+        // what is held); then nothing counts as held for them.
+        val now = (System.nanoTime() / 1_000_000).toInt()
+        for (code in handlersSawDown.toList()) keyTaken(now, code, false)
+        handlersSawDown.clear()
+        modifierKeysDown.clear()
+        modifiersHeld = 0
     }
 
     /** Turns the key mode [name] on; null: the usual keys again. */
@@ -1723,7 +1745,6 @@ internal class Running(
         xwayland?.close()
         desktop.close()
         seat.close()
-        keymap.close()
         display.close()
     }
 

@@ -59,7 +59,10 @@ class KeyBindings {
     }
 
     private val bindings = ArrayList<Binding>()
-    private val held = LinkedHashSet<Int>()
+    // Keys held down, each with the modifier it was when pressed (kept: a layout switch or a
+    // new keymap while it is held must not turn a held Alt into "no modifier" and back, which
+    // left it held for good, or lost it).
+    private val held = LinkedHashMap<Int, Modifier?>()
     private val swallowed = HashSet<Int>()
 
     // Combinations that run when their key is let go, by key.
@@ -101,10 +104,10 @@ class KeyBindings {
     }
 
     /** True while [modifier] is held down (e.g. for Super+drag to move windows). */
-    fun isHeld(modifier: Modifier): Boolean = held.any { modifier(it) == modifier }
+    fun isHeld(modifier: Modifier): Boolean = modifier in held.values
 
     /** The modifiers held down now. */
-    fun heldModifiers(): Set<Modifier> = held.mapNotNull(::modifier).toSet()
+    fun heldModifiers(): Set<Modifier> = held.values.filterNotNullTo(HashSet())
 
     /**
      * Handles a key or mouse button (Linux codes); returns true if it belonged to a
@@ -113,21 +116,22 @@ class KeyBindings {
     fun key(evdevCode: Int, pressed: Boolean): Boolean {
         if (!pressed) {
             val wasModifiers = heldModifiers()
-            held -= evdevCode
+            val wasModifier = if (evdevCode in held) held.remove(evdevCode) else modifier(evdevCode)
             if (evdevCode == repeatingKey) stopRepeating()
             // A modifier alone pressed and let go: its tap.
             val tap = tapCandidate
             tapCandidate = null
-            if (tap != null && modifier(evdevCode) != null) {
+            if (tap != null && wasModifier != null) {
                 bindings.lastOrNull { it.key == null && it.modifiers == wasModifiers }?.let { it.action(); return false }
             }
             onRelease.remove(evdevCode)?.let { it.action(); swallowed.remove(evdevCode); return true }
             return swallowed.remove(evdevCode)
         }
-        held += evdevCode
+        val isModifier = modifier(evdevCode)
+        held[evdevCode] = isModifier
         val active = heldModifiers()
-        tapCandidate = if (modifier(evdevCode) != null && held.all { modifier(it) != null }) active else null
-        if (modifier(evdevCode) != null) return false
+        tapCandidate = if (isModifier != null && held.values.all { it != null }) active else null
+        if (isModifier != null) return false
         // Exact match: Super+Q does not also fire for Super+Shift+Q.
         val binding = bindings.lastOrNull { it.key == evdevCode && it.modifiers == active } ?: return false
         swallowed += evdevCode
@@ -165,7 +169,7 @@ class KeyBindings {
         repeatingKey = code
         fun next(delay: Long) {
             repeating = schedule(delay) {
-                if (repeatingKey == code && code in held) {
+                if (repeatingKey == code && code in held.keys) {
                     binding.action()
                     next(1000L / repeatRate.coerceAtLeast(1))
                 }
@@ -185,6 +189,19 @@ class KeyBindings {
         bindings.clear()
         onRelease.clear()
         stopRepeating()
+    }
+
+    /**
+     * [evdevCode] was let go, but someone else took the release (an onKey handler): it is no
+     * longer held, its combination stops repeating, and nothing runs. Without this a held
+     * modifier stayed held for good, and every combination without it stopped working.
+     */
+    fun forget(evdevCode: Int) {
+        held -= evdevCode
+        swallowed -= evdevCode
+        onRelease -= evdevCode
+        if (evdevCode == repeatingKey) stopRepeating()
+        tapCandidate = null
     }
 
     /** Forgets held keys (e.g. after switching to another terminal and back). */

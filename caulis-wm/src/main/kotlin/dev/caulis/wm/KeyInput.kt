@@ -12,7 +12,7 @@ class KeyInput(
     val keysym: String,
     val modifiers: Int,
     val modifiersBefore: Int,
-    /** The screen is locked: only the laptop's special keys (XF86…) are told then. */
+    /** The screen is locked: only the laptop's special keys (XF86…) are told then, and the releases of keys you were told went down before. */
     val locked: Boolean,
     val timeMillis: Int,
 ) {

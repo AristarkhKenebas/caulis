@@ -139,19 +139,43 @@ class ForeignToplevelsTest {
         apps.window { it.setTitle("app") }.draw(300, 200)
         apps.connection.roundtrip()
         dockClient.waitFor { dock.entries.any { it.title == "app" } }
-        val (dockRect, appRect) = server.onServer { d ->
-            d.screenRect(d.allWindows.first { it.title == "dock" })!! to d.screenRect(d.allWindows.first { it.title == "app" })!!
+        // Both placed and drawn where they stay (under load the app may still be opening).
+        val (dockRect, appRect) = eventually({ "both windows placed and drawn" }) {
+            server.onServer { d ->
+                val dockW = d.allWindows.firstOrNull { it.title == "dock" }
+                val appW = d.allWindows.firstOrNull { it.title == "app" }
+                val dr = dockW?.let(d::screenRect)
+                val ar = appW?.let(d::screenRect)
+                if (dr != null && ar != null && d.shownRect(appW) == ar) dr to ar else null
+            }
         }
         val icon = Rect(dockRect.x + 10, dockRect.y + 10, 32, 32)
 
         dock.entry("app").handle.setRectangle(dockWindow.surface, 10, 10, 32, 32)
         dock.entry("app").handle.setMinimized()
         dockClient.waitFor { MINIMIZED in dock.entry("app").states }
-        Thread.sleep(1000) // about halfway
-        val halfway = server.onServer { d -> d.shownRect(d.allWindows.first { it.title == "app" }) }!!
-        assertTrue(halfway.width in (icon.width + 1) until appRect.width, "smaller on the way: $halfway")
-        val towards = Math.abs(halfway.x - icon.x) < Math.abs(appRect.x - icon.x) || Math.abs(halfway.y - icon.y) < Math.abs(appRect.y - icon.y)
-        assertTrue(towards, "closer to the icon $icon than it started ($appRect): $halfway")
+        // On the way (looked at until it is, however slow the frames come): smaller than it was,
+        // bigger than the icon, and closer to the icon than it started.
+        var last: Rect? = null
+        val onTheWay = eventually({ "on its way into the icon $icon from $appRect (last seen: $last)" }) {
+            val now = server.onServer { d -> d.allWindows.firstOrNull { it.title == "app" }?.let(d::shownRect) }
+            last = now
+            now?.takeIf { r ->
+                r.width in (icon.width + 1) until appRect.width &&
+                    (Math.abs(r.x - icon.x) < Math.abs(appRect.x - icon.x) || Math.abs(r.y - icon.y) < Math.abs(appRect.y - icon.y))
+            }
+        }
+        assertTrue(onTheWay.width < appRect.width)
+    }
+
+    // What [probe] gives once it gives something (tried every 20 ms, for up to 10 s).
+    private fun <T : Any> eventually(what: () -> String, probe: () -> T?): T {
+        val until = System.nanoTime() + 10_000_000_000L
+        while (true) {
+            probe()?.let { return it }
+            if (System.nanoTime() > until) throw AssertionError("Not reached in 10 s: ${what()}")
+            Thread.sleep(20)
+        }
     }
 
     @Test

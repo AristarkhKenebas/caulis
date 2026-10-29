@@ -33,7 +33,7 @@ Caulis is on Maven Central:
 
 ```kotlin
 repositories { mavenCentral(); google() } // (google(): only for caulis-compose's Compose)
-dependencies { implementation("io.github.aristarkhkenebas:caulis-wm:0.1.2") }
+dependencies { implementation("io.github.aristarkhkenebas:caulis-wm:0.1.3") }
 ```
 
 See `examples/` (`minimal`, `minimal-java`, `custom-layout`, `window-rules`, `desktop`, `ipc`).
@@ -92,7 +92,7 @@ Wayland way when they can, and through X11 when that fails.
 | `caulis-compose` | parts of the compositor's own interface in Compose: bars, docks, launchers, pop-ups (optional) |
 | `caulis-screenshot` | screenshots in the compositor: an area, a window or a screen, saved and copied (optional) |
 | `caulis-lua` | `config.lua`: the configuration in Lua — settings, keys, rules and events (optional) |
-| `caulis-script` | `config.kts`: the configuration as a Kotlin script, compiled by the compositor (optional; contains the Kotlin compiler) |
+| `caulis-script` | `config.kts`: the configuration as a Kotlin script (optional; brings the Kotlin compiler, which runs in a short-lived Java of its own when the script changed — never inside the compositor) |
 | `caulis-reload` | fast hot reload while developing: compiles your configuration inside the running compositor (optional, `run` task only) |
 
 ## Requirements

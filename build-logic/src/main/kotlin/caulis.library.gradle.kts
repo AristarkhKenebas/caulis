@@ -13,7 +13,7 @@ fun library(name: String) = libs.findLibrary(name).get()
 
 fun version(name: String) = libs.findVersion(name).get().requiredVersion.toInt()
 
-// How other builds name these modules, e.g. io.github.aristarkhkenebas:caulis-core:0.1.2.
+// How other builds name these modules, e.g. io.github.aristarkhkenebas:caulis-core:0.1.3.
 group = "io.github.aristarkhkenebas"
 version = libs.findVersion("caulis").get().requiredVersion
 
@@ -45,6 +45,9 @@ dependencies {
 val gpuTests = gradle.sharedServices.registerIfAbsent("gpuTests", GpuTests::class) { maxParallelUsages = 1 }
 val gpuTestModules = setOf("caulis-core", "caulis-render", "caulis-xwayland", "caulis-wm", "caulis-reload")
 
+// The tests' own D-Bus session bus (see PrivateSessionBus).
+val privateBus = gradle.sharedServices.registerIfAbsent("privateSessionBus", PrivateSessionBus::class) {}
+
 tasks.withType<Test>().configureEach {
     if (project.name in gpuTestModules) usesService(gpuTests)
     useJUnitPlatform()
@@ -53,6 +56,13 @@ tasks.withType<Test>().configureEach {
     jvmArgs("--enable-native-access=ALL-UNNAMED")
     // Protocol Buffers and the Kotlin compiler still use sun.misc.Unsafe: no warnings about it.
     jvmArgs("--sun-misc-unsafe-memory-access=allow")
+    // Tests never reach the desktop's buses: a session bus of their own (no names taken on the
+    // user's — a test compositor there took names of the live session), nothing asked of
+    // logind or NetworkManager.
+    usesService(privateBus)
+    val bus = privateBus
+    doFirst { (this as Test).environment("DBUS_SESSION_BUS_ADDRESS", bus.get().address) }
+    environment("DBUS_SYSTEM_BUS_ADDRESS", "unix:path=/nonexistent/caulis-test-system-bus")
 }
 
 // API documentation (./gradlew dokkaGenerate at the top level builds the whole website).

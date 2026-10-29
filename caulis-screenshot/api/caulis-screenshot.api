@@ -8,8 +8,11 @@ public final class dev/caulis/screenshot/ChooserBehaviour {
 	public fun <init> (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJ)V
 	public fun <init> (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJI)V
 	public fun <init> (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJII)V
-	public synthetic fun <init> (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJIIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJIIZ)V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJIIZZ)V
+	public synthetic fun <init> (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJIIZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/util/List;
+	public final fun component10 ()Z
 	public final fun component2 ()Ljava/util/List;
 	public final fun component3 ()Ldev/caulis/screenshot/ChooserKeys;
 	public final fun component4 ()J
@@ -17,15 +20,18 @@ public final class dev/caulis/screenshot/ChooserBehaviour {
 	public final fun component6 ()J
 	public final fun component7 ()I
 	public final fun component8 ()I
-	public final fun copy (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJII)Ldev/caulis/screenshot/ChooserBehaviour;
-	public static synthetic fun copy$default (Ldev/caulis/screenshot/ChooserBehaviour;Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJIIILjava/lang/Object;)Ldev/caulis/screenshot/ChooserBehaviour;
+	public final fun component9 ()Z
+	public final fun copy (Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJIIZZ)Ldev/caulis/screenshot/ChooserBehaviour;
+	public static synthetic fun copy$default (Ldev/caulis/screenshot/ChooserBehaviour;Ljava/util/List;Ljava/util/List;Ldev/caulis/screenshot/ChooserKeys;JIJIIZZILjava/lang/Object;)Ldev/caulis/screenshot/ChooserBehaviour;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAppearMillis ()J
 	public final fun getButtons ()Ljava/util/List;
+	public final fun getClickPicksWindow ()Z
 	public final fun getDoubleClickMillis ()J
 	public final fun getGrab ()I
 	public final fun getKeys ()Ldev/caulis/screenshot/ChooserKeys;
 	public final fun getMinDrag ()I
+	public final fun getRememberKind ()Z
 	public final fun getRise ()I
 	public final fun getTimerSteps ()Ljava/util/List;
 	public fun hashCode ()I

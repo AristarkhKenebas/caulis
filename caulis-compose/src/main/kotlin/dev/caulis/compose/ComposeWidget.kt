@@ -151,14 +151,10 @@ class ComposeWidget @JvmOverloads constructor(
     private var broken = false
     private val compositorClipboard = clipboard?.let { CompositorClipboard(it, log) }
 
-    // A state changed anywhere (a clock, a volume): notifications sent, frames asked for.
-    private val pendingApply = AtomicBoolean(false)
-    private val writes = Snapshot.registerGlobalWriteObserver {
-        if (pendingApply.compareAndSet(false, true)) post(Runnable {
-            pendingApply.set(false)
-            Snapshot.sendApplyNotifications()
-            if (!closed) desktop.requestRedraw()
-        })
+    // A state changed anywhere (a clock, a volume): notifications sent, frames asked for — once
+    // for all the widgets (not one task per widget for every write).
+    init {
+        Writes.add(this)
     }
 
     override fun area(monitor: Monitor): Rect? = if (closed) null else place(monitor)
@@ -484,7 +480,7 @@ class ComposeWidget @JvmOverloads constructor(
     override fun close() {
         if (closed) return
         closed = true
-        writes.dispose()
+        Writes.remove(this)
         restarts.cancel()
         restartAt.clear()
         for (name in parts.keys.toList()) drop(name)
@@ -533,6 +529,42 @@ class ComposeWidget @JvmOverloads constructor(
         val part = parts.remove(name) ?: return
         part.scene.close()
         part.texture?.close()
+    }
+
+    override fun toString(): String = "ComposeWidget@${Integer.toHexString(hashCode())}" +
+        parts.entries.joinToString(prefix = " (", postfix = ")") { (name, part) -> "$name ${part.width}x${part.height}" }
+
+    // One global write observer for every Compose widget: a write (from any thread) sends the
+    // apply notifications once on the compositor's thread, and asks for a frame on each desktop.
+    private object Writes {
+        private val live = java.util.concurrent.CopyOnWriteArrayList<ComposeWidget>()
+        private val pending = AtomicBoolean(false)
+        private var observer: androidx.compose.runtime.snapshots.ObserverHandle? = null
+
+        @Synchronized
+        fun add(widget: ComposeWidget) {
+            live += widget
+            if (observer == null) observer = Snapshot.registerGlobalWriteObserver { written() }
+        }
+
+        @Synchronized
+        fun remove(widget: ComposeWidget) {
+            live -= widget
+            if (live.isEmpty()) {
+                observer?.dispose()
+                observer = null
+            }
+        }
+
+        private fun written() {
+            if (!pending.compareAndSet(false, true)) return
+            val first = live.firstOrNull() ?: return pending.set(false)
+            first.post(Runnable {
+                pending.set(false)
+                Snapshot.sendApplyNotifications()
+                for (desktop in live.filter { !it.closed }.map { it.desktop }.distinct()) desktop.requestRedraw()
+            })
+        }
     }
 
     private companion object {

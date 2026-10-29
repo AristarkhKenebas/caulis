@@ -20,7 +20,13 @@ import java.nio.ByteOrder
  */
 class Seat(private val display: Display, keymap: Keymap) : AutoCloseable {
 
-    /** The keymap programs are given (see [setKeymap]). */
+    /**
+     * The keymap programs are given (see [setKeymap]). The seat owns it: it closes it when
+     * another one replaces it, and when the seat itself is closed.
+     */
+    // (Careful: in initializers below, "keymap" alone is the constructor's argument, the first
+    // keymap for ever — the handler of get_keyboard kept sending that one after it was
+    // replaced and closed. Code that runs later uses sendKeymap, a function, where it is this.)
     var keymap: Keymap = keymap
         private set
 
@@ -218,7 +224,7 @@ class Seat(private val display: Display, keymap: Keymap) : AutoCloseable {
             id.requests = object : WlKeyboard.Requests {
                 override fun release(resource: WlKeyboard) {}
             }
-            id.sendKeymap(WlKeyboard.KeymapFormat.XKB_V1, keymap.shared.fd, keymap.sharedSize)
+            sendKeymap(id)
             if (id.version >= 4) id.sendRepeatInfo(repeatRate, repeatDelay)
             // A keyboard created while its client already has focus starts focused.
             val focus = keyboardFocus
@@ -355,19 +361,34 @@ class Seat(private val display: Display, keymap: Keymap) : AutoCloseable {
 
     /**
      * Gives programs another keymap (other layouts, options): every keyboard gets it at once.
-     * Num Lock and the layout in use stay as they were (the layout if the new keymap has it).
-     * The old keymap is the caller's to close.
+     * Num Lock and the layout in use stay as they were (the layout if the new keymap has it),
+     * and keys held down stay held (Super held while the keymap changes is still Super).
+     * The seat owns [next] from now on and closes the keymap it replaces (closing it again
+     * yourself does no harm).
      */
     fun setKeymap(next: Keymap) {
+        require(next.isOpen) { "The keymap was already closed" }
+        if (next === keymap) return
         val before = keyboardState.modifiers
         val state = next.newState()
+        // The keys held down now are held in the new state too (else their modifiers were lost
+        // until let go, and the release came for a key the new state never saw pressed).
+        for (code in pressedKeys) state.update(code, true)
         state.setLocks(before.locked, if (before.group < next.layoutCount) before.group else 0)
         keyboardState.close()
         keyboardState = state
+        val old = keymap
         keymap = next
-        for (keyboard in keyboards) keyboard.sendKeymap(WlKeyboard.KeymapFormat.XKB_V1, next.shared.fd, next.sharedSize)
+        for (keyboard in keyboards) sendKeymap(keyboard)
         keyboardFocus?.let { focus -> for (keyboard in keyboardsOf(focus.resource.client)) sendModifiers(keyboard) }
+        // (Only now: every keyboard has the new one; the old one's file was copied for those still waiting to read it.)
+        old.close()
+        keyboardLog.trace { "Keymap replaced (${next.layoutCount} layouts), sent to ${keyboards.size} keyboards" }
     }
+
+    // The keymap in use, to one keyboard.
+    private fun sendKeymap(keyboard: WlKeyboard) =
+        keyboard.sendKeymap(WlKeyboard.KeymapFormat.XKB_V1, keymap.shared.fd, keymap.sharedSize)
 
     /** The keyboard layout in use: 0 for the keymap's first ("us" of "us,ru"). */
     val layoutIndex: Int get() = keyboardState.modifiers.group
@@ -415,7 +436,9 @@ class Seat(private val display: Display, keymap: Keymap) : AutoCloseable {
      * with `caps:super`, Alt and Super swap with `altwin:swap_lalt_lwin`), or null: not one of
      * Ctrl, Alt, Shift, Super (Hyper counts as Super, Meta as Alt). For [KeyBindings.modifierOf].
      */
-    fun modifierOfKey(evdevCode: Int): KeyBindings.Modifier? = when (keyboardState.symbol(evdevCode)) {
+    // (What the key gives on its own: with Shift held, "grp:alt_shift_toggle" makes Alt
+    // ISO_Next_Group, and Alt was then no modifier at all.)
+    fun modifierOfKey(evdevCode: Int): KeyBindings.Modifier? = when (keyboardState.baseSymbol(evdevCode)) {
         0xffe1, 0xffe2 -> KeyBindings.Modifier.SHIFT
         0xffe3, 0xffe4 -> KeyBindings.Modifier.CTRL
         0xffe7, 0xffe8, 0xffe9, 0xffea -> KeyBindings.Modifier.ALT
@@ -708,7 +731,10 @@ class Seat(private val display: Display, keymap: Keymap) : AutoCloseable {
 
     private fun touchesOf(client: Client) = touches.filter { it.client === client && it.isAlive }
 
-    override fun close() = keyboardState.close()
+    override fun close() {
+        keyboardState.close()
+        keymap.close()
+    }
 
     companion object {
         const val VERSION = 9
@@ -724,3 +750,4 @@ class Seat(private val display: Display, keymap: Keymap) : AutoCloseable {
 }
 
 private val focusLog = dev.caulis.log.Logger("focus")
+private val keyboardLog = dev.caulis.log.Logger("keyboard")

@@ -2442,6 +2442,14 @@ class Caulis {
     // The backend it was started with (AUTO and CAULIS_MODE decided), once it starts.
     internal var backendInUse: Backend? = null
 
+    /**
+     * Where it runs once started: [Backend.SCREEN], [Backend.NESTED] or [Backend.HEADLESS]
+     * ([backend] with AUTO and `CAULIS_MODE` decided); null before the start. Only on the
+     * screen is it the session's own compositor (what belongs to the session — its
+     * notification daemon, its bars — is not to be touched from a nested or headless one).
+     */
+    val runningBackend: Backend? get() = backendInUse
+
     // The log settings from code, then CAULIS_LOG / CAULIS_LOG_FILE on top (they win). Areas
     // the configuration before set and this one does not go back to the usual level; a log
     // file it no longer names is closed. ([before]: the configuration a reload replaces.)
