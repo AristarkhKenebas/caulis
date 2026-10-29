@@ -993,6 +993,45 @@
       },
       "description": "programs started inside"
     },
+    "performance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stallReportMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "description": "the main loop busy this long with one thing is logged with what it was (0: not watched)"
+        },
+        "trimMemory": {
+          "type": "boolean",
+          "description": "memory the C library freed is given back to the system after the start and now and then"
+        },
+        "trimMemoryEveryMinutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1440,
+          "description": "how often after the start (0: only after the start)"
+        },
+        "mallocPools": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64,
+          "description": "at most this many malloc pools for the compositor (0: glibc's own; only at the start)"
+        },
+        "quickCursor": {
+          "type": "boolean",
+          "description": "the cursor moves the moment the pointer does, not with the next frame"
+        },
+        "widgetThreads": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16,
+          "description": "threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)"
+        }
+      },
+      "description": "watching the main loop, giving memory back"
+    },
     "systemKeys": {
       "type": "object",
       "additionalProperties": false,
@@ -4577,6 +4616,10 @@
       "enum": ["focused-before", "newest-before"],
       "description": "which window gets the keyboard after unlocking (never one opened while locked)"
     },
+    "idleInhibitors": {
+      "type": "boolean",
+      "description": "programs' idle inhibitors (video players: idle-inhibit) keep the screen on (default true)"
+    },
     "idleInhibitorsWhileLocked": {
       "type": "boolean",
       "description": "idle inhibitors keep the screen on while it is locked too"
@@ -4602,6 +4645,54 @@
       "minItems": 0,
       "maxItems": 1000,
       "description": "the programs that may see the list of windows (default: the privileged ones)"
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "program": {
+                "type": "string",
+                "minLength": 1,
+                "description": "the program's path (\"/usr/bin/grim\") or name (\"grim\"), a regular expression"
+              },
+              "feature": {
+                "enum": ["screencopy", "window-list", "clipboard", "panels", "lock", "monitors", "gamma"],
+                "description": "what it wants"
+              },
+              "mode": {
+                "enum": ["allow", "ask", "deny"],
+                "description": "allow, ask (screencopy only) or deny"
+              }
+            },
+            "required": ["program", "feature", "mode"]
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "description": "the rules, the first that matches decides"
+        },
+        "defaults": {
+          "type": "object",
+          "additionalProperties": {
+            "enum": ["allow", "ask", "deny"]
+          },
+          "description": "what a feature gets when no rule matches (default: the privileged rule)"
+        }
+      },
+      "description": "which programs may take pictures of the screen, see the window list, read the clipboard, show panels, lock, arrange monitors (as Hyprland's permissions)"
+    },
+    "primarySelection": {
+      "type": "boolean",
+      "description": "middle-click paste (default true; only at the start)"
+    },
+    "adaptiveSync": {
+      "type": "boolean",
+      "description": "variable refresh rate on every monitor that has it, unless its own says otherwise (default false)"
     },
     "bindingModifiers": {
       "enum": ["xkb", "physical"],

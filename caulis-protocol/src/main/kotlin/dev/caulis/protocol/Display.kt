@@ -166,6 +166,18 @@ class Display(val loop: EventLoop) : AutoCloseable {
         addGlobal(type, version, { client -> privileged(client) }, onBind)
 
     /**
+     * Whether a client may use the privileged feature of that name — "screencopy",
+     * "window-list", "clipboard", "panels", "lock", "monitors", "gamma" — asked when it
+     * connects, for each feature. By default the [privileged] rule, whatever the feature;
+     * a compositor sets it for permissions by program (as Hyprland's).
+     */
+    var mayUse: (Client, String) -> Boolean = { client, _ -> privileged(client) }
+
+    /** A feature only the clients [mayUse] lets in see, under the [feature]'s name (see there). */
+    fun <T : Resource> addPrivilegedGlobal(type: ResourceType<T>, version: Int, feature: String, onBind: (T) -> Unit): Global =
+        addGlobal(type, version, { client -> mayUse(client, feature) }, onBind)
+
+    /**
      * The longest text, in UTF-8 bytes, that a program's window title, app id, clipboard type
      * or panel name may have when it is passed on to other programs (panels, docks, clipboard
      * managers): longer ones are cut at a character's end. Programs built on libwayland drop

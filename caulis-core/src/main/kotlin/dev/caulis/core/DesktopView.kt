@@ -31,6 +31,7 @@ class DesktopView internal constructor(monitor: Monitor) {
             field?.takeIf { planeCursorKey != null }?.hide()
             field = value
             planeCursorKey = null
+            planeCursorOffset = null
             cursorOnPlane = false
             everything = true
         }
@@ -39,6 +40,9 @@ class DesktopView internal constructor(monitor: Monitor) {
     internal var cursorOnPlane = false
     // What the plane's picture shows (redrawn when this changes).
     internal var planeCursorKey: Any? = null
+    // Where the plane's picture is from the pointer (desktop units, from the pointer's whole
+    // unit; its size): for moving it at once with the pointer (Desktop.quickCursor). Null: not on the plane.
+    internal var planeCursorOffset: Rect? = null
 
     // True if the last frame drawn here showed the locked session (nothing of the desktop).
     internal var showsLock = false

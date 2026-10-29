@@ -28,9 +28,10 @@ class ForeignToplevels(private val display: Display, private val desktop: Deskto
     /**
      * Which programs may read the list of windows (titles and app ids of every window, also
      * through ext-foreign-toplevel-list, which screen sharing uses to pick a window). By
-     * default the [privileged][Display.privileged] ones, as for docks that manage windows.
+     * default those [Display.mayUse] lets use "window-list" (the [privileged][Display.privileged]
+     * ones, unless permissions say otherwise), as for docks that manage windows.
      */
-    var mayListWindows: (dev.caulis.protocol.Client) -> Boolean = { client -> display.privileged(client) }
+    var mayListWindows: (dev.caulis.protocol.Client) -> Boolean = { client -> display.mayUse(client, "window-list") }
 
     // What a dock was last told about a window.
     private data class Facts(val title: String, val appId: String, val states: Set<Int>, val parent: Window?, val output: Output?)
@@ -52,7 +53,7 @@ class ForeignToplevels(private val display: Display, private val desktop: Deskto
     private var nextIdentifier = 1L
 
     init {
-        display.addGlobal(ZwlrForeignToplevelManagerV1, WLR_VERSION, { client -> display.privileged(client) && mayListWindows(client) }) { manager ->
+        display.addGlobal(ZwlrForeignToplevelManagerV1, WLR_VERSION, { client -> mayListWindows(client) }) { manager ->
             log.info { "${manager.client.name} watches the windows (a dock or taskbar)" }
             wlr[manager] = LinkedHashMap()
             manager.requests = object : ZwlrForeignToplevelManagerV1.Requests {

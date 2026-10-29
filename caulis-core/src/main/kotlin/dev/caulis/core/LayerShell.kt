@@ -28,7 +28,7 @@ class LayerShell(display: Display) {
     var listener: Listener = object : Listener {}
 
     init {
-        display.addPrivilegedGlobal(ZwlrLayerShellV1, VERSION) { shell ->
+        display.addPrivilegedGlobal(ZwlrLayerShellV1, VERSION, "panels") { shell ->
             shell.requests = object : ZwlrLayerShellV1.Requests {
                 override fun getLayerSurface(resource: ZwlrLayerShellV1, id: ZwlrLayerSurfaceV1, surface: WlSurface, output: WlOutput?, layer: Int, namespace: String) {
                     if (layer !in 0..3) {

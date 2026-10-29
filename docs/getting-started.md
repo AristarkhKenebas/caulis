@@ -84,7 +84,7 @@ kotlin {
 tasks.withType<JavaCompile>().configureEach { options.release = 26 }
 
 dependencies {
-    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.4")
+    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.5")
 }
 
 application {
@@ -97,7 +97,7 @@ application {
 // running compositor, taken on in about a second (step "Change it while it runs").
 val development by configurations.creating
 dependencies {
-    development("io.github.aristarkhkenebas:caulis-reload:0.1.4")
+    development("io.github.aristarkhkenebas:caulis-reload:0.1.5")
 }
 tasks.named<JavaExec>("run") {
     classpath += development
@@ -1301,6 +1301,14 @@ A lock screen of your own drawn by the compositor (no locker program):
 Idle inhibitors (a video playing) count for nothing while the screen is locked, so a locked
 screen still goes dark; `idleInhibitorsWhileLocked = true` lets them keep it on.
 
+Something that keeps the computer awake another way than Wayland — a browser asking over D-Bus
+(org.freedesktop.ScreenSaver), logind's idle inhibitors — is held with
+`val held = inhibitIdle("Firefox: video-playing")` (and `held.close()` when it ends; with a `pid`
+it counts only while a window of that process shows). `idleInhibitedBy` says in words what keeps
+the computer awake now, for a bar. `idleInhibitors = false` ignores programs' idle-inhibit. If
+something starts keeping the computer awake while it is idle already (a video that started by
+itself), the idle watches hear that someone is back.
+
 ### A few more settings
 
 ```kotlin
@@ -1309,6 +1317,14 @@ focusStealing = FocusStealing.SAME_PROGRAM    // or ALWAYS, NEVER: who may take 
 focusStealingRule = { window, why -> window.appId == "mpv" }   // or decide yourself
 bindingModifiers = BindingModifiers.XKB       // caps:super and the like count in bindings; PHYSICAL: the printed keys
 windowListPrograms = mutableSetOf("waybar")   // only these see the window list (default: privileged programs)
+permissions {                                 // as Hyprland's permissions: by the program's path or name (regular expressions)
+    rule("/usr/bin/grim", "screencopy", "allow")  // features: screencopy, window-list, clipboard, panels, lock, monitors, gamma
+    rule("wf-recorder", "screencopy", "ask")       // ask (screencopy only): its pictures wait for askPermission's answer
+    default("clipboard", "deny")                   // no rule for a program: this (none: privilegedClients decides)
+}
+askPermission = { question -> question.answer(PermissionAnswer.ALLOW_WHILE_RUNNING) }   // show a card; default: no one to ask, so no
+primarySelection = true                       // middle-click paste (false: not offered; at the start)
+adaptiveSync = false                          // variable refresh rate on every monitor that has it (monitor("DP-1") { adaptiveSync } wins)
 maxForwardedStringBytes = 1024                // titles and app ids passed on to other programs are cut here
 maxRegionParts = 256                          // rectangles a program's input/opaque region keeps exactly
 xwaylandRestartMillis = 1000                  // after a failed Xwayland start (doubled each time) ...
@@ -1783,7 +1799,7 @@ can also say *when* and *how* — functions on keys, on events, on timers. Add t
 your compositor:
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-lua:0.1.4")
+implementation("io.github.aristarkhkenebas:caulis-lua:0.1.5")
 ```
 
 Then it reads `~/.config/<configName>/config.lua` by itself (after `config.json`, on top of
@@ -1882,7 +1898,7 @@ no project: the compositor compiles it itself. Add the module (it contains the K
 compiler, so it makes your compositor bigger):
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-script:0.1.4")
+implementation("io.github.aristarkhkenebas:caulis-script:0.1.5")
 ```
 
 `~/.config/<configName>/config.kts` is then read after `config.json` and `config.lua`, as if
@@ -2200,6 +2216,27 @@ running), `config` (your own code) and `native`. A line looks like this:
 the focus, panels, the lock, the cursor — the first thing to look at when windows behave
 oddly. (`dumpState()` does the same from your code.) And if the compositor stops with an
 error, its report ends with the last events before it, even when the log level was low.
+
+### Stutters and memory
+
+Everything the compositor does runs on one loop: while one thing takes long, no input is
+handled and no frame drawn — the pointer stands still. `CAULIS_LOG=native=2` names each thing
+that took 50 ms or more (`stallReportMillis`; 0: not watched), with the code it came from,
+and 30 s after the start the longest of the start:
+
+```
+20:39:40.520    13,031 I native   The main loop was busy for 268 ms: a timer (newm.Warmup)
+20:40:04.663    37,174 I native   The first 30 s: the main loop was busy at most 371 ms: a timer (newm.Warmup)
+```
+
+The cursor on a monitor's cursor plane moves the moment the pointer does, before anything
+else the move causes (`quickCursorMoves`, on). Memory the C library freed (Skia, the GPU
+driver, fonts) is given back after the start and every `trimMemoryEveryMinutes` (10;
+`trimMemory`), and the compositor uses at most `mallocPools` (2) of glibc's malloc pools.
+Compose widgets (bars, menus) are composed on the loop but drawn into pixels on
+`widgetThreads` (2) threads of their own (0: on the loop). In config.json they are in
+`"performance": { "stallReportMillis", "trimMemory", "trimMemoryEveryMinutes", "mallocPools",
+"quickCursor", "widgetThreads" }`.
 
 Keys are written at level 3 of `input` (as key numbers), never while the screen is locked;
 the Wayland log never shows which key was pressed. Still, a level 3 log of `input` records

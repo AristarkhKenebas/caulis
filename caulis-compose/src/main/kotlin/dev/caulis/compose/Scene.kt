@@ -96,6 +96,36 @@ internal class Scene(
         return MemorySegment.ofAddress(pixmap.addr).reinterpret(width.toLong() * height * 4)
     }
 
+    private val recorder = org.jetbrains.skia.PictureRecorder()
+
+    /**
+     * Composes, lays it out and records what it draws (animations at [nanoTime]) — on the
+     * compositor's thread, as all of Compose — without drawing it into pixels: [play] does
+     * that, on any thread.
+     */
+    fun record(nanoTime: Long): org.jetbrains.skia.Picture {
+        frames.performFrame(nanoTime)
+        scene.measureAndLayout()
+        val canvas = recorder.beginRecording(org.jetbrains.skia.Rect.makeWH(width.toFloat(), height.toFloat()))
+        scene.draw(canvas.asComposeCanvas())
+        return recorder.finishRecordingAsPicture()
+    }
+
+    /**
+     * Draws [picture] (from [record]) into the picture's pixels, as [render] returns them.
+     * Any thread, one at a time, never while [render] runs. Closes [picture].
+     */
+    fun play(picture: org.jetbrains.skia.Picture): MemorySegment? {
+        try {
+            surface.canvas.clear(Color.TRANSPARENT)
+            surface.canvas.drawPicture(picture)
+        } finally {
+            picture.close()
+        }
+        if (!surface.peekPixels(pixmap) || pixmap.rowBytes != width * 4) return null
+        return MemorySegment.ofAddress(pixmap.addr).reinterpret(width.toLong() * height * 4)
+    }
+
     fun sendPointerEvent(
         type: PointerEventType,
         position: Offset,
@@ -113,6 +143,7 @@ internal class Scene(
             scene.close()
         } finally {
             frames.close()
+            recorder.close()
             pixmap.close()
             surface.close()
         }

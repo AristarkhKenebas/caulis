@@ -80,7 +80,7 @@ class DataControl(display: Display, private val clipboard: DataDeviceManager) {
     }
 
     private fun ext(display: Display) {
-        display.addPrivilegedGlobal(ExtDataControlManagerV1, 1) { manager ->
+        display.addPrivilegedGlobal(ExtDataControlManagerV1, 1, "clipboard") { manager ->
             manager.requests = object : ExtDataControlManagerV1.Requests {
                 override fun createDataSource(resource: ExtDataControlManagerV1, id: ExtDataControlSourceV1) {
                     val source = Source({ m, fd -> if (id.isAlive) id.sendSend(m, fd) }, { if (id.isAlive) id.sendCancelled() }, id.client.name, id.client.pid)
@@ -134,7 +134,7 @@ class DataControl(display: Display, private val clipboard: DataDeviceManager) {
     }
 
     private fun wlr(display: Display) {
-        display.addPrivilegedGlobal(ZwlrDataControlManagerV1, 2) { manager ->
+        display.addPrivilegedGlobal(ZwlrDataControlManagerV1, 2, "clipboard") { manager ->
             manager.requests = object : ZwlrDataControlManagerV1.Requests {
                 override fun createDataSource(resource: ZwlrDataControlManagerV1, id: ZwlrDataControlSourceV1) {
                     val source = Source({ m, fd -> if (id.isAlive) id.sendSend(m, fd) }, { if (id.isAlive) id.sendCancelled() }, id.client.name, id.client.pid)

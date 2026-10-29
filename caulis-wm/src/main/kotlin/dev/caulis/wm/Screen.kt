@@ -51,7 +51,7 @@ internal fun runOnScreen(config: Caulis) {
                 fun applyLink(monitor: DrmOutput) {
                     val wish = running.config.monitorSettings[monitor.name]
                     monitor.maxBpc = wish?.maxBpc ?: 8
-                    monitor.adaptiveSync = wish?.adaptiveSync ?: false
+                    monitor.adaptiveSync = wish?.adaptiveSync ?: running.config.adaptiveSync
                 }
                 running.applyMonitorLinks = { shown.keys.forEach(::applyLink) }
                 backend.onPluggedChanged = { now -> displays.pluggedChanged(now.map { Displays.Screen(it.name, identity(it.name, it.edid), it.output != null) }) }

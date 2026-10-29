@@ -4963,6 +4963,8 @@ class Desktop(
         val on = monitorAt(x, y)
         pointerX = x.coerceIn(on.area.x.toDouble(), on.area.right - 1.0)
         pointerY = y.coerceIn(on.area.y.toDouble(), on.area.bottom - 1.0)
+        lastPointerMoveNanos = System.nanoTime()
+        if (quickCursorMoves) quickCursor()
         if (!locked) noticeBoard.pointerAt(pointerX, pointerY)
         if (!locked && withOverlay { it.pointerMoved(pointerX, pointerY) }) {
             onChange()
@@ -5060,6 +5062,32 @@ class Desktop(
 
     /** The window under the pointer gets the keyboard as soon as the pointer comes onto it. */
     var focusFollowsMouse = false
+
+    /**
+     * A cursor on a monitor's cursor plane moves the moment the pointer does (on its own,
+     * before anything else the move causes) — not with the next frame: it stays smooth while
+     * a frame or a widget is slow. Off: it moves with the frames.
+     */
+    var quickCursorMoves = true
+
+    /**
+     * Threads a widget may draw its pixels on (Compose widgets: composed on the compositor's
+     * thread, their recorded picture drawn into pixels on one of these and shown a moment
+     * later). 0: everything on the compositor's thread.
+     */
+    @Volatile
+    var widgetThreads = 2
+        set(value) {
+            require(value in 0..16) { "widgetThreads is 0 to 16, not $value" }
+            field = value
+        }
+
+    /**
+     * When the pointer last moved (System.nanoTime; 0: not yet): work that may wait (drawing
+     * ahead, tidying up) can wait until the user rests, so the pointer never stutters for it.
+     */
+    var lastPointerMoveNanos = 0L
+        private set
 
     // The window the pointer was over last (for focusFollowsMouse).
     private var hovered: Window? = null
@@ -5618,6 +5646,7 @@ class Desktop(
     // Puts the cursor on [view]'s cursor plane if it can be there (on this monitor, fitting the
     // plane, the monitor not turned); else back into the frames. Called before each frame.
     private fun placeHardwareCursor(view: DesktopView) {
+        view.planeCursorOffset = null
         val plane = view.hardwareCursor
         if (plane == null) {
             view.cursorOnPlane = false
@@ -5666,6 +5695,30 @@ class Desktop(
         if (!plane.show(pixels.x, pixels.y, draw)) return intoFrames()
         view.planeCursorKey = key
         view.cursorOnPlane = true
+        view.planeCursorOffset = Rect(bounds.x - Math.floor(pointerX).toInt(), bounds.y - Math.floor(pointerY).toInt(), bounds.width, bounds.height)
+    }
+
+    // The cursor on a cursor plane moved with the pointer at once — before what the move does
+    // otherwise (what is under it, hovering, the next frame): a busy frame or a slow widget
+    // does not hold the cursor up. Only its place, the same picture, worked out as
+    // [placeHardwareCursor] does it; anything else (another shape, onto another monitor)
+    // waits for the next frame, which places it as usual.
+    private fun quickCursor() {
+        for (view in views) {
+            val offset = view.planeCursorOffset ?: continue
+            val plane = view.hardwareCursor ?: continue
+            if (!view.cursorOnPlane || view.planeCursorKey == null) continue
+            val monitor = view.monitor
+            val fx = Math.floor(pointerX)
+            val fy = Math.floor(pointerY)
+            val bounds = Rect(fx.toInt() + offset.x, fy.toInt() + offset.y, offset.width, offset.height)
+            if (bounds.intersect(monitor.area) == null) continue
+            val whole = monitor.toPixels(bounds)
+            if (whole.width > plane.width || whole.height > plane.height) continue
+            val dx = Math.round((pointerX - fx) * monitor.scale).toInt()
+            val dy = Math.round((pointerY - fy) * monitor.scale).toInt()
+            plane.show(whole.x + dx, whole.y + dy, null)
+        }
     }
 
     /**

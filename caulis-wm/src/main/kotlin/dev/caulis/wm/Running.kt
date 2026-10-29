@@ -104,6 +104,12 @@ internal class Running(
     private val log = Logger("config")
     private val keyboardLog = Logger("keyboard")
     private val clientsLog = Logger("clients")
+
+    // Screen pictures (made with the display; their permission questions answered through it).
+    private var capture: ScreenCapture? = null
+
+    // The permission rules at work, and the person's answers.
+    private val permissions = PermissionKeeper({ config }, { capture?.answered() }, { client -> display.privileged(client) })
     private val cursorLog = Logger("cursor")
     private val gesturesLog = Logger("gestures")
     private val inputLog = Logger("input")
@@ -579,7 +585,8 @@ internal class Running(
         // A notice's copy button puts its text here.
         desktop.copyText = { text -> clipboard.setClipboard(dev.caulis.core.TextOnClipboard(text)) }
         desktop.osdHandler = config.osdHandler
-        dev.caulis.core.PrimarySelection(display, seat, clipboard)
+        // (Middle-click paste: offered unless the configuration said no.)
+        if (config.primarySelection) dev.caulis.core.PrimarySelection(display, seat, clipboard) else clientsLog.info { "Middle-click paste is off (primarySelection)" }
         dev.caulis.core.DataControl(display, clipboard)
         activation = dev.caulis.core.Activation(display, seat, desktop)
         logind?.let { l ->
@@ -630,7 +637,11 @@ internal class Running(
                 if (!allowed) clientsLog.info { "${client.name} may not see the window list (windowListPrograms)" }
             }
         }
-        ScreenCapture(display, desktop, renderer, toplevels)
+        capture = ScreenCapture(display, desktop, renderer, toplevels).also { c ->
+            // (Permissions: "ask" makes a program's pictures wait for the person's answer.)
+            c.allowed = { client -> permissions.captureAllowed(client) }
+            c.asking = { client -> permissions.asking(client, "screencopy") }
+        }
         applyCursor()
         desktop.workspaceMode = config.workspaceMode // before the monitors come
         desktop.primaryMonitorName = config.primaryMonitor
@@ -755,6 +766,7 @@ internal class Running(
                 FocusStealing.NEVER -> { _, _ -> false }
             }
         idle.inhibitorsWorkWhileLocked = config.idleInhibitorsWhileLocked
+        idle.protocolInhibitors = config.idleInhibitors
         desktop.unlockFocus = config.unlockFocus
         display.maxForwardedStringBytes = config.maxForwardedStringBytes
         compositor.maxRegionParts = config.maxRegionParts
@@ -789,6 +801,8 @@ internal class Running(
             launcher.clientConnected(client.pid)
             safely("privilegedClients", false) { this.config.privilegedClients(client) }
         }
+        // Each privileged feature: the permission rules first, else the privileged rule.
+        display.mayUse = { client, feature -> permissions.mayUse(client, feature) }
         desktop.screenShader = config.screenShader
         desktop.titleBars = config.titleBars
         desktop.titleBarStyle = config.titleBarStyle
@@ -805,6 +819,8 @@ internal class Running(
         desktop.doubleClickMillis = config.doubleClickMillis
         desktop.lockColor = config.lockColor
         desktop.focusFollowsMouse = config.focusFollowsMouse
+        desktop.quickCursorMoves = config.quickCursorMoves
+        desktop.widgetThreads = config.widgetThreads
         desktop.osdHandler = config.osdHandler
         activation.focusOnActivate = config.focusOnActivate
         idle.fullscreenInhibits = config.fullscreenKeepsAwake
@@ -1725,9 +1741,40 @@ internal class Running(
             config.startWaitingTimers()
             if (config.hotReload) reloader = safely("hot reload", null) { Reloader.start(this) }
             log.info { "Your files (shaders, pictures): ${config.configFolder}${if (java.nio.file.Files.isDirectory(config.configFolder)) "" else " (not there yet)"}" }
+            watchTheStart()
             loop.run()
         } finally {
             config.running = null
+        }
+    }
+
+    // How the start went (the longest the loop was busy), and the memory the start freed given back.
+    private fun watchTheStart() {
+        loop.stallMillis = config.stallReportMillis
+        if (config.stallReportMillis > 0) {
+            loop.after(START_REPORT_MILLIS) {
+                val longest = loop.longestStall?.let { "${loop.longestStallMillis} ms: $it" } ?: "never ${config.stallReportMillis} ms or more"
+                dev.caulis.log.Logger("native").info { "The first ${START_REPORT_MILLIS / 1000} s: the main loop was busy at most $longest" }
+            }
+        }
+        if (!config.trimMemory || !dev.caulis.ffi.NativeMemory.canTrim) return
+        fun trim() {
+            if (!isOpen) return
+            Thread.ofPlatform().daemon().name("caulis-trim").start { dev.caulis.ffi.NativeMemory.trim() }
+        }
+        loop.after(TRIM_FIRST_MILLIS) { trim() }
+        loop.after(TRIM_SECOND_MILLIS) {
+            trim()
+            val minutes = config.trimMemoryEveryMinutes
+            if (minutes > 0) {
+                fun next() {
+                    loop.after(minutes * 60_000L) {
+                        trim()
+                        if (isOpen) next()
+                    }
+                }
+                next()
+            }
         }
     }
 
@@ -1770,6 +1817,10 @@ internal class Running(
 
         // What programs must get from the compositor itself (Caulis.environment does not change them).
         val OWN_VARIABLES = setOf("WAYLAND_DISPLAY", "DISPLAY", "XDG_ACTIVATION_TOKEN", dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE)
+        // The start's report, and when the memory the start freed is given back (Caulis.trimMemory).
+        const val START_REPORT_MILLIS = 30_000L
+        const val TRIM_FIRST_MILLIS = 20_000L
+        const val TRIM_SECOND_MILLIS = 60_000L
         const val BTN_LEFT = 0x110
         const val BTN_RIGHT = 0x111
 

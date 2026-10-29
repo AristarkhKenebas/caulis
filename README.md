@@ -29,6 +29,8 @@ Caulis.create()
 **New here? Start with [Your first compositor](docs/getting-started.md)**, or create a
 ready project right away: `templates/new-compositor.sh ~/my-compositor`.
 
+What changed in each release: [CHANGELOG.md](CHANGELOG.md).
+
 Caulis is on Maven Central, and every release is also in its own Maven repository on GitHub
 Pages (the same coordinates and signatures — a mirror for the months when Central's free monthly
 limit is used up, so a new version may be there first):
@@ -41,7 +43,7 @@ repositories {
     }
     google() // (only for caulis-compose's Compose)
 }
-dependencies { implementation("io.github.aristarkhkenebas:caulis-wm:0.1.4") }
+dependencies { implementation("io.github.aristarkhkenebas:caulis-wm:0.1.5") }
 ```
 
 See `examples/` (`minimal`, `minimal-java`, `custom-layout`, `window-rules`, `desktop`, `ipc`).

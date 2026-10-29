@@ -28,7 +28,7 @@ jobs:
         run: ci/install-deps-debian.sh
 
       - name: Build and test
-        # (The jars carry the tag's version: v0.1.4 → 0.1.4.)
+        # (The jars carry the tag's version: v0.1.5 → 0.1.5.)
         run: CAULIS_VERSION="${GITHUB_REF_NAME#v}" ci/build.sh
 
       - name: Create the release

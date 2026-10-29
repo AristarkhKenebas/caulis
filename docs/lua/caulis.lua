@@ -24,6 +24,7 @@
 ---@field displays? caulis.Settings.displays a laptop with a monitor or projector
 ---@field cursor? caulis.Settings.cursor the cursor
 ---@field programs? caulis.Settings.programs programs started inside
+---@field performance? caulis.Settings.performance watching the main loop, giving memory back
 ---@field systemKeys? caulis.Settings.systemKeys what the laptop's keys do: steps, limits, programs
 ---@field screen? caulis.Settings.screen on a real screen
 ---@field titleBarStyle? caulis.Settings.titleBarStyle how the compositor's title bars look (titleBars "compositor")
@@ -54,10 +55,14 @@
 ---@field backgroundColor? string under everything (where no window or wallpaper is)
 ---@field focusStealing? "same-program"|"always"|"never" which programs may take the keyboard by themselves
 ---@field unlockFocus? "focused-before"|"newest-before" which window gets the keyboard after unlocking (never one opened while locked)
+---@field idleInhibitors? boolean programs' idle inhibitors (video players: idle-inhibit) keep the screen on (default true)
 ---@field idleInhibitorsWhileLocked? boolean idle inhibitors keep the screen on while it is locked too
 ---@field maxForwardedStringBytes? integer the longest title or app id passed on to other programs, in bytes
 ---@field maxRegionParts? integer rectangles a program's region keeps exactly
 ---@field windowListPrograms? (string)[] the programs that may see the list of windows (default: the privileged ones)
+---@field permissions? caulis.Settings.permissions which programs may take pictures of the screen, see the window list, read the clipboard, show panels, lock, arrange monitors (as Hyprland's permissions)
+---@field primarySelection? boolean middle-click paste (default true; only at the start)
+---@field adaptiveSync? boolean variable refresh rate on every monitor that has it, unless its own says otherwise (default false)
 ---@field bindingModifiers? "xkb"|"physical" modifiers in bindings as the keyboard layout says, or the physical keys
 ---@field xwaylandRestart? caulis.Settings.xwaylandRestart when Xwayland fails to start
 ---@field startup? (string)[] programs started with the compositor
@@ -268,6 +273,14 @@
 ---@field outputFile? string the file for output "file" (default ~/.cache/<name>/programs.log)
 ---@field start? "native"|"java" how programs are started: native (posix_spawn; survives Java being updated meanwhile) or java (ProcessBuilder)
 ---@field javaUpdatedNotice? string shown once when Java was updated under the running compositor ("": not shown)
+
+---@class caulis.Settings.performance
+---@field stallReportMillis? integer the main loop busy this long with one thing is logged with what it was (0: not watched)
+---@field trimMemory? boolean memory the C library freed is given back to the system after the start and now and then
+---@field trimMemoryEveryMinutes? integer how often after the start (0: only after the start)
+---@field mallocPools? integer at most this many malloc pools for the compositor (0: glibc's own; only at the start)
+---@field quickCursor? boolean the cursor moves the moment the pointer does, not with the next frame
+---@field widgetThreads? integer threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)
 
 ---@class caulis.Settings.systemKeys
 ---@field volumeStep? integer percent per press of the volume keys
@@ -823,6 +836,15 @@
 ---@field gtkLightTheme? string with gtkDarkTheme: GTK 3 programs' theme when light ("Adwaita")
 ---@field gtkDarkTheme? string with gtkLightTheme: their theme when dark ("Adwaita-dark")
 ---@field toPrograms? boolean tell programs (default: on a real screen only, not nested)
+
+---@class caulis.Settings.permissions
+---@field rules? (caulis.Settings.permissions.rules)[] the rules, the first that matches decides
+---@field defaults? table<string, "allow"|"ask"|"deny"> what a feature gets when no rule matches (default: the privileged rule)
+
+---@class caulis.Settings.permissions.rules
+---@field program? string the program's path ("/usr/bin/grim") or name ("grim"), a regular expression
+---@field feature? "screencopy"|"window-list"|"clipboard"|"panels"|"lock"|"monitors"|"gamma" what it wants
+---@field mode? "allow"|"ask"|"deny" allow, ask (screencopy only) or deny
 
 ---@class caulis.Settings.xwaylandRestart
 ---@field millis? integer wait after a failed start (doubled each time)

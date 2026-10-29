@@ -1,20 +1,34 @@
 public final class dev/caulis/event/EventLoop : java/lang/AutoCloseable {
+	public static final field Companion Ldev/caulis/event/EventLoop$Companion;
 	public fun <init> ()V
 	public final fun add (Ldev/caulis/ffi/Fd;ZZLkotlin/jvm/functions/Function1;)V
 	public static synthetic fun add$default (Ldev/caulis/event/EventLoop;Ldev/caulis/ffi/Fd;ZZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 	public final fun after (JLkotlin/jvm/functions/Function0;)Ldev/caulis/event/EventLoop$Timer;
 	public final fun beforeWait (Lkotlin/jvm/functions/Function0;)V
 	public fun close ()V
+	public static final fun codeName (Ljava/lang/Object;)Ljava/lang/String;
 	public final fun dispatch (I)V
 	public final fun getLastIterationNanos ()J
+	public final fun getLongestStall ()Ljava/lang/String;
+	public final fun getLongestStallMillis ()J
 	public final fun getOnError ()Lkotlin/jvm/functions/Function2;
+	public final fun getOnStall ()Lkotlin/jvm/functions/Function2;
+	public final fun getStallMillis ()J
+	public final fun getTaskOrigin ()Ljava/lang/Object;
 	public final fun post (Lkotlin/jvm/functions/Function0;)V
 	public final fun remove (Ldev/caulis/ffi/Fd;)V
 	public final fun run ()V
 	public final fun setOnError (Lkotlin/jvm/functions/Function2;)V
+	public final fun setOnStall (Lkotlin/jvm/functions/Function2;)V
+	public final fun setStallMillis (J)V
+	public final fun setTaskOrigin (Ljava/lang/Object;)V
 	public final fun stop ()V
 	public final fun update (Ldev/caulis/ffi/Fd;ZZ)V
 	public static synthetic fun update$default (Ldev/caulis/event/EventLoop;Ldev/caulis/ffi/Fd;ZZILjava/lang/Object;)V
+}
+
+public final class dev/caulis/event/EventLoop$Companion {
+	public final fun codeName (Ljava/lang/Object;)Ljava/lang/String;
 }
 
 public final class dev/caulis/event/EventLoop$Timer {
@@ -66,6 +80,14 @@ public final class dev/caulis/ffi/NativeException : java/lang/RuntimeException {
 	public fun <init> (Ljava/lang/String;I)V
 	public final fun getErrno ()I
 	public final fun getFunction ()Ljava/lang/String;
+}
+
+public final class dev/caulis/ffi/NativeMemory {
+	public static final field INSTANCE Ldev/caulis/ffi/NativeMemory;
+	public static final fun getCanTrim ()Z
+	public static final fun limitPools (I)Z
+	public static final fun residentKb ()J
+	public static final fun trim ()J
 }
 
 public final class dev/caulis/ffi/Processes {

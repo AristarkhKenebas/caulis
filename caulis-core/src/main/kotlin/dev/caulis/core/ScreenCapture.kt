@@ -50,6 +50,25 @@ class ScreenCapture(
     /** Which programs may take pictures of the screen or of windows. */
     var allowed: (Client) -> Boolean = { true }
 
+    /**
+     * True while the person is being asked whether this program may take pictures (a
+     * permission's "ask"): its pictures wait for the answer, then [allowed] decides. Call
+     * [answered] when the answer is there. Never by default.
+     */
+    var asking: (Client) -> Boolean = { false }
+
+    /** An answer [asking] waited for is there: the pictures waiting are given (or refused) now. */
+    fun answered() {
+        desktop.requestFrame()
+    }
+
+    // A picture of [client] waits for the person's answer (true), or is refused (false: then it fails); null: go on.
+    private fun waitOrRefuse(client: Client): Boolean? = when {
+        asking(client) -> true
+        !allowed(client) -> false.also { log.trace { "${client.name} may not take pictures (it was asked, and the answer was no)" } }
+        else -> null
+    }
+
     private val log = Logger("capture")
 
     // Pictures waiting for something to show (or for the next refresh), checked after every refresh.
@@ -64,7 +83,7 @@ class ScreenCapture(
         desktop.frameListeners += ::serviceWaiting
         desktop.commitListeners += { surface -> windowSessions.forEach { it.committed(surface) } }
 
-        display.addPrivilegedGlobal(ZwlrScreencopyManagerV1, WLR_VERSION) { manager ->
+        display.addPrivilegedGlobal(ZwlrScreencopyManagerV1, WLR_VERSION, "screencopy") { manager ->
             val damageViews = HashMap<Pair<Boolean, Monitor>, DesktopView>() // per cursor choice and monitor: what this program got last
             manager.onDestroy { damageViews.values.forEach(desktop::removeCaptureView) }
             manager.requests = object : ZwlrScreencopyManagerV1.Requests {
@@ -85,7 +104,7 @@ class ScreenCapture(
             }
         }
 
-        display.addPrivilegedGlobal(ExtOutputImageCaptureSourceManagerV1, 1) { manager ->
+        display.addPrivilegedGlobal(ExtOutputImageCaptureSourceManagerV1, 1, "screencopy") { manager ->
             manager.requests = object : ExtOutputImageCaptureSourceManagerV1.Requests {
                 override fun createSource(resource: ExtOutputImageCaptureSourceManagerV1, source: ExtImageCaptureSourceV1, output: WlOutput) =
                     source(source, Source.Screen(output.dataAs<Output>()))
@@ -93,7 +112,7 @@ class ScreenCapture(
                 override fun destroy(resource: ExtOutputImageCaptureSourceManagerV1) {}
             }
         }
-        display.addPrivilegedGlobal(ExtForeignToplevelImageCaptureSourceManagerV1, 1) { manager ->
+        display.addPrivilegedGlobal(ExtForeignToplevelImageCaptureSourceManagerV1, 1, "screencopy") { manager ->
             manager.requests = object : ExtForeignToplevelImageCaptureSourceManagerV1.Requests {
                 override fun createSource(resource: ExtForeignToplevelImageCaptureSourceManagerV1, source: ExtImageCaptureSourceV1, toplevelHandle: ExtForeignToplevelHandleV1) =
                     source(source, toplevels?.windowOf(toplevelHandle)?.let(Source::OneWindow) ?: Source.Gone)
@@ -101,7 +120,7 @@ class ScreenCapture(
                 override fun destroy(resource: ExtForeignToplevelImageCaptureSourceManagerV1) {}
             }
         }
-        display.addPrivilegedGlobal(ExtImageCopyCaptureManagerV1, 1) { manager ->
+        display.addPrivilegedGlobal(ExtImageCopyCaptureManagerV1, 1, "screencopy") { manager ->
             manager.requests = object : ExtImageCopyCaptureManagerV1.Requests {
                 override fun createSession(resource: ExtImageCopyCaptureManagerV1, session: ExtImageCopyCaptureSessionV1, source: ExtImageCaptureSourceV1, options: Int) {
                     if (options and ExtImageCopyCaptureManagerV1.Options.PAINT_CURSORS.inv() != 0) {
@@ -320,6 +339,14 @@ class ScreenCapture(
         override fun service(): Boolean {
             if (!resource.isAlive) return true
             val target = buffer ?: return true
+            when (waitOrRefuse(resource.client)) {
+                true -> return false
+                false -> {
+                    resource.sendFailed()
+                    return true
+                }
+                null -> {}
+            }
             // A recording waits until something changed; a screenshot takes the picture now.
             val changed = desktop.captureChanges(damageView(monitor), cursor)
             if (withDamage && changed == null) return false
@@ -496,6 +523,14 @@ class ScreenCapture(
 
         override fun service(): Boolean {
             if (!resource.isAlive || failed) return true
+            when (waitOrRefuse(resource.client)) {
+                true -> return false
+                false -> {
+                    fail(ExtImageCopyCaptureFrameV1.FailureReason.UNKNOWN)
+                    return true
+                }
+                null -> {}
+            }
             if (!session.sizeStillFits()) {
                 // (If the recording stopped, this frame already failed with "stopped".)
                 fail(ExtImageCopyCaptureFrameV1.FailureReason.BUFFER_CONSTRAINTS)

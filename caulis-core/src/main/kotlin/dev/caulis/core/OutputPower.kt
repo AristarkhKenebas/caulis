@@ -20,7 +20,7 @@ class OutputPower(display: Display, private val desktop: Desktop) {
     private val powers = ArrayList<Pair<ZwlrOutputPowerV1, Monitor>>()
 
     init {
-        display.addPrivilegedGlobal(ZwlrOutputPowerManagerV1, 1) { manager ->
+        display.addPrivilegedGlobal(ZwlrOutputPowerManagerV1, 1, "monitors") { manager ->
             manager.requests = object : ZwlrOutputPowerManagerV1.Requests {
                 override fun getOutputPower(resource: ZwlrOutputPowerManagerV1, id: ZwlrOutputPowerV1, output: WlOutput) {
                     id.requests = object : ZwlrOutputPowerV1.Requests {
@@ -68,7 +68,7 @@ class GammaControl(display: Display, private val desktop: Desktop) {
     private val owners = HashMap<Monitor, ZwlrGammaControlV1>()
 
     init {
-        display.addPrivilegedGlobal(ZwlrGammaControlManagerV1, 1) { manager ->
+        display.addPrivilegedGlobal(ZwlrGammaControlManagerV1, 1, "gamma") { manager ->
             manager.requests = object : ZwlrGammaControlManagerV1.Requests {
                 override fun getGammaControl(resource: ZwlrGammaControlManagerV1, id: ZwlrGammaControlV1, output: WlOutput) {
                     val monitor = output.dataAs<Output>()?.let { o -> desktop.monitors.firstOrNull { it.output === o } }

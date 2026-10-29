@@ -68,6 +68,25 @@ class HardwareCursorTest {
     }
 
     @Test
+    fun `the plane follows the pointer at once, where the next frame puts it too`() = withDesktop { _, d, view, plane, frame ->
+        d.pointerMoved(0, 100.0, 100.0)
+        d.frame(view, frame)
+        val first = plane.at!!
+        d.pointerMoved(0, 140.5, 120.0)
+        val quick = plane.at!!
+        assertEquals(first.first + 40 + 1, quick.first, "moved before any frame: $first -> $quick")
+        assertEquals(first.second + 20, quick.second)
+        d.frame(view, frame)
+        assertEquals(quick, plane.at, "the frame puts it in the same place")
+        // Off: it waits for the frame.
+        d.quickCursorMoves = false
+        d.pointerMoved(0, 160.0, 130.0)
+        assertEquals(quick, plane.at)
+        d.frame(view, frame)
+        assertTrue(plane.at != quick)
+    }
+
+    @Test
     fun `a cursor too big for the plane, or a turned monitor, goes into the frames`() = withDesktop { _, d, view, plane, frame ->
         d.pointerMoved(0, 100.0, 100.0)
         d.frame(view, frame)

@@ -3,6 +3,13 @@ public final class dev/caulis/compose/AnimationSpecsKt {
 	public static final fun spec (Ldev/caulis/core/ResolvedAnimation;)Landroidx/compose/animation/core/FiniteAnimationSpec;
 }
 
+public final class dev/caulis/compose/ComposableSingletons$ComposeWarmupKt {
+	public static final field INSTANCE Ldev/caulis/compose/ComposableSingletons$ComposeWarmupKt;
+	public fun <init> ()V
+	public final fun getLambda$-1899051920$io_github_aristarkhkenebas_caulis_compose ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$34675964$io_github_aristarkhkenebas_caulis_compose ()Lkotlin/jvm/functions/Function4;
+}
+
 public final class dev/caulis/compose/ComposeHandle : java/lang/AutoCloseable {
 	public static final field $stable I
 	public fun close ()V
@@ -41,6 +48,15 @@ public final class dev/caulis/compose/ComposeRecovery {
 }
 
 public final class dev/caulis/compose/ComposeRecovery$Companion {
+}
+
+public final class dev/caulis/compose/ComposeWarmup {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/caulis/compose/ComposeWarmup;
+	public static final fun start ()Ljava/lang/Thread;
+	public static final fun start (I)Ljava/lang/Thread;
+	public static final fun start (ILkotlin/jvm/functions/Function2;)Ljava/lang/Thread;
+	public static synthetic fun start$default (ILkotlin/jvm/functions/Function2;ILjava/lang/Object;)Ljava/lang/Thread;
 }
 
 public final class dev/caulis/compose/ComposeWidget : dev/caulis/core/Widget, java/lang/AutoCloseable {

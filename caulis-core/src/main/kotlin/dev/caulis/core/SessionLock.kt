@@ -40,7 +40,7 @@ class SessionLockManager(display: Display) {
     var listener: Listener = object : Listener {}
 
     init {
-        display.addPrivilegedGlobal(ExtSessionLockManagerV1, VERSION) { manager ->
+        display.addPrivilegedGlobal(ExtSessionLockManagerV1, VERSION, "lock") { manager ->
             manager.requests = object : ExtSessionLockManagerV1.Requests {
                 override fun lock(resource: ExtSessionLockManagerV1, id: ExtSessionLockV1) {
                     val lock = SessionLock(id, this@SessionLockManager)

@@ -425,6 +425,12 @@ class Seat(private val display: Display, keymap: Keymap) : AutoCloseable {
     /** The character [evdevCode] types now (layout, Shift, AltGr), or null: none (for the compositor's own text fields). */
     fun textOf(evdevCode: Int): String? = keyboardState.text(evdevCode)
 
+    /** The character [evdevCode] types in layout number [layout] (with Shift or not), whatever is held now; null: none. */
+    fun textIn(evdevCode: Int, layout: Int, shift: Boolean): String? = keyboardState.textIn(evdevCode, Math.floorMod(layout, layoutCount.coerceAtLeast(1)), shift)
+
+    /** True while Caps Lock is on (locked; not with "caps:super" and the like, where the key is no Caps Lock). */
+    val capsLock: Boolean get() = keyboardState.modifiers.locked and 2 != 0
+
     /** The name of the symbol [evdevCode] means for shortcuts: Latin whatever the layout ("d" for the key of "в"; see [KeyboardState.shortcutSymbol]). */
     fun shortcutName(evdevCode: Int): String = keySymbolName(keyboardState.shortcutSymbol(evdevCode, layoutCount))
 

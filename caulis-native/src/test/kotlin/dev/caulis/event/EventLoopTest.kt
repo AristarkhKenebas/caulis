@@ -66,4 +66,45 @@ class EventLoopTest {
             }
         }
     }
+
+    @Test
+    fun `a task that holds the loop is reported with the code it came from, quick ones are not`() {
+        EventLoop().use { loop ->
+            val stalls = ArrayList<Pair<String, Long>>()
+            loop.stallMillis = 40
+            loop.onStall = { what, millis -> stalls += what to millis }
+            loop.after(1) { Thread.sleep(60) }
+            loop.after(2) { }
+            val origin = Any()
+            loop.post { loop.taskOrigin = origin; Thread.sleep(45) }
+            loop.after(150) { loop.stop() }
+            loop.run()
+            assertEquals(2, stalls.size, "$stalls")
+            assertTrue(stalls.any { (what, ms) -> what.startsWith("a timer (dev.caulis.event.EventLoopTest") && ms >= 60 }, "$stalls")
+            assertTrue(stalls.any { (what, _) -> what == "a posted task (java.lang.Object)" }, "$stalls")
+            assertTrue(loop.longestStallMillis >= 60)
+            assertEquals(stalls.maxBy { it.second }.first, loop.longestStall)
+        }
+    }
+
+    @Test
+    fun `no stall report at 0`() {
+        EventLoop().use { loop ->
+            var told = false
+            loop.stallMillis = 0
+            loop.onStall = { _, _ -> told = true }
+            loop.after(1) { Thread.sleep(30) }
+            loop.after(40) { loop.stop() }
+            loop.run()
+            assertEquals(false, told)
+        }
+    }
+
+    @Test
+    fun `the C library's memory can be given back where it is glibc`() {
+        val freed = dev.caulis.ffi.NativeMemory.trim()
+        if (dev.caulis.ffi.NativeMemory.canTrim) assertTrue(freed >= 0) else assertEquals(-1L, freed)
+        assertTrue(dev.caulis.ffi.NativeMemory.residentKb() > 0)
+        if (dev.caulis.ffi.NativeMemory.canTrim) assertTrue(dev.caulis.ffi.NativeMemory.limitPools(8))
+    }
 }

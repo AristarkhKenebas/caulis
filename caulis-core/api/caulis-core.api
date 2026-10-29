@@ -576,6 +576,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getKeyboardFocus ()Ldev/caulis/core/Surface;
 	public final fun getKeyboardWidget ()Ldev/caulis/core/Widget;
 	public final fun getLargestScale ()D
+	public final fun getLastPointerMoveNanos ()J
 	public final fun getLayerBehaviorFor ()Lkotlin/jvm/functions/Function1;
 	public final fun getLayerEffects ()Lkotlin/jvm/functions/Function1;
 	public final fun getLayers ()Ljava/util/List;
@@ -609,6 +610,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getPrimaryMonitor ()Ldev/caulis/core/Monitor;
 	public final fun getPrimaryMonitorName ()Ljava/lang/String;
 	public final fun getProgramMayTakeFocus ()Lkotlin/jvm/functions/Function2;
+	public final fun getQuickCursorMoves ()Z
 	public final fun getRenderer ()Ldev/caulis/render/Renderer;
 	public final fun getResizeBorder ()I
 	public final fun getScale ()D
@@ -624,6 +626,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getUnlockFocus ()Ldev/caulis/core/UnlockFocus;
 	public final fun getUrgentWindows ()Ljava/util/List;
 	public final fun getUsableArea ()Ldev/caulis/geometry/Rect;
+	public final fun getWidgetThreads ()I
 	public final fun getWidth ()I
 	public final fun getWindowEffects ()Lkotlin/jvm/functions/Function1;
 	public final fun getWindowGrouped ()Lkotlin/jvm/functions/Function1;
@@ -760,6 +763,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun setPower (Ldev/caulis/core/Monitor;Z)Z
 	public final fun setPrimaryMonitorName (Ljava/lang/String;)V
 	public final fun setProgramMayTakeFocus (Lkotlin/jvm/functions/Function2;)V
+	public final fun setQuickCursorMoves (Z)V
 	public final fun setResizeBorder (I)V
 	public final fun setScale (D)V
 	public final fun setScale (Ldev/caulis/core/Monitor;D)V
@@ -773,6 +777,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun setTransform (Ldev/caulis/core/Monitor;Ldev/caulis/core/Transform;)V
 	public final fun setUnlockFocus (Ldev/caulis/core/UnlockFocus;)V
 	public final fun setUrgent (Ldev/caulis/core/Window;Z)V
+	public final fun setWidgetThreads (I)V
 	public final fun setWindowEffects (Lkotlin/jvm/functions/Function1;)V
 	public final fun setWindowGrouped (Lkotlin/jvm/functions/Function1;)V
 	public final fun setWorkspaceCount (I)V
@@ -1009,10 +1014,15 @@ public final class dev/caulis/core/Idle {
 	public final fun getFullscreenInhibits ()Z
 	public final fun getInhibitedByUser ()Z
 	public final fun getInhibitorsWorkWhileLocked ()Z
+	public final fun getProtocolInhibitors ()Z
+	public final fun hold (Ljava/lang/String;I)Ljava/lang/AutoCloseable;
+	public static synthetic fun hold$default (Ldev/caulis/core/Idle;Ljava/lang/String;IILjava/lang/Object;)Ljava/lang/AutoCloseable;
 	public final fun inhibited ()Z
+	public final fun inhibitedBy ()Ljava/util/List;
 	public final fun setFullscreenInhibits (Z)V
 	public final fun setInhibitedByUser (Z)V
 	public final fun setInhibitorsWorkWhileLocked (Z)V
+	public final fun setProtocolInhibitors (Z)V
 	public final fun watch (JZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;)Ljava/lang/AutoCloseable;
 	public static synthetic fun watch$default (Ldev/caulis/core/Idle;JZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Ljava/lang/AutoCloseable;
 }
@@ -1718,8 +1728,11 @@ public final class dev/caulis/core/ScreenCapture {
 	public static final field WLR_VERSION I
 	public fun <init> (Ldev/caulis/protocol/Display;Ldev/caulis/core/Desktop;Ldev/caulis/render/Renderer;Ldev/caulis/core/ForeignToplevels;)V
 	public synthetic fun <init> (Ldev/caulis/protocol/Display;Ldev/caulis/core/Desktop;Ldev/caulis/render/Renderer;Ldev/caulis/core/ForeignToplevels;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun answered ()V
 	public final fun getAllowed ()Lkotlin/jvm/functions/Function1;
+	public final fun getAsking ()Lkotlin/jvm/functions/Function1;
 	public final fun setAllowed (Lkotlin/jvm/functions/Function1;)V
+	public final fun setAsking (Lkotlin/jvm/functions/Function1;)V
 }
 
 public final class dev/caulis/core/ScreenCapture$Companion {
@@ -2934,6 +2947,7 @@ public final class dev/caulis/core/dbus/DBusConnection : java/lang/AutoCloseable
 	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
 	public static synthetic fun onSignal$default (Ldev/caulis/core/dbus/DBusConnection;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/AutoCloseable;
 	public static synthetic fun onSignal$default (Ldev/caulis/core/dbus/DBusConnection;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public static final fun open (Ldev/caulis/event/EventLoop;Ljava/lang/String;)Ldev/caulis/core/dbus/DBusConnection;
 	public final fun requestName (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
 	public static synthetic fun requestName$default (Ldev/caulis/core/dbus/DBusConnection;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 	public static final fun session (Ldev/caulis/event/EventLoop;)Ldev/caulis/core/dbus/DBusConnection;
@@ -2941,6 +2955,7 @@ public final class dev/caulis/core/dbus/DBusConnection : java/lang/AutoCloseable
 }
 
 public final class dev/caulis/core/dbus/DBusConnection$Companion {
+	public final fun open (Ldev/caulis/event/EventLoop;Ljava/lang/String;)Ldev/caulis/core/dbus/DBusConnection;
 	public final fun session (Ldev/caulis/event/EventLoop;)Ldev/caulis/core/dbus/DBusConnection;
 	public final fun system (Ldev/caulis/event/EventLoop;)Ldev/caulis/core/dbus/DBusConnection;
 }
@@ -3428,6 +3443,7 @@ public final class dev/caulis/core/input/KeyboardState : java/lang/AutoCloseable
 	public final fun shortcutSymbol (II)I
 	public final fun symbol (I)I
 	public final fun text (I)Ljava/lang/String;
+	public final fun textIn (IIZ)Ljava/lang/String;
 	public final fun update (IZ)Z
 }
 
@@ -3553,6 +3569,7 @@ public final class dev/caulis/core/input/Seat : java/lang/AutoCloseable {
 	public fun <init> (Ldev/caulis/protocol/Display;Ldev/caulis/core/input/Keymap;)V
 	public fun close ()V
 	public final fun focusKeyboard (Ldev/caulis/core/Surface;)V
+	public final fun getCapsLock ()Z
 	public final fun getCursorHotspotX ()I
 	public final fun getCursorHotspotY ()I
 	public final fun getCursorShape ()Ljava/lang/String;
@@ -3595,6 +3612,7 @@ public final class dev/caulis/core/input/Seat : java/lang/AutoCloseable {
 	public final fun setTouchScreen (Z)V
 	public final fun shortcutName (I)Ljava/lang/String;
 	public final fun takesTouch (Ldev/caulis/core/Surface;)Z
+	public final fun textIn (IIZ)Ljava/lang/String;
 	public final fun textOf (I)Ljava/lang/String;
 	public final fun touchCancel ()V
 	public final fun touchDown (ILdev/caulis/core/Surface;IDD)V

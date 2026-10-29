@@ -499,6 +499,10 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
             return connect(loop, address)
         }
 
+        /** The bus at [address] ("unix:path=/tmp/x/bus": a bus of your own, a test's private one), or null. */
+        @JvmStatic
+        fun open(loop: EventLoop, address: String): DBusConnection? = connect(loop, address)
+
         private fun connect(loop: EventLoop, address: String): DBusConnection? {
             val log = Logger("dbus")
             // (Values in an address may have %xx in them: "/run/user/1000/my%20bus".)

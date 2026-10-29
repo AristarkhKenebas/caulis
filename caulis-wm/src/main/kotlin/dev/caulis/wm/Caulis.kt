@@ -558,6 +558,16 @@ class Caulis {
     internal val monitorSettings = LinkedHashMap<String, MonitorSettings>()
 
     /**
+     * Variable refresh rate (FreeSync) on every monitor that has it, unless a [monitor]'s own
+     * adaptiveSync says otherwise (Hyprland's misc.vrr). False by default. On the screen only.
+     */
+    var adaptiveSync = false
+        set(value) {
+            field = value
+            running?.applyMonitorSettings()
+        }
+
+    /**
      * Settings of the monitor at connector [name], e.g.
      * `monitor("DP-2") { scale = 1.5; position(1920, 0) }` or `monitor("HDMI-A-1") { enabled = false }`.
      * Can be changed while running (all of it: only what differs changes).
@@ -625,6 +635,60 @@ class Caulis {
      * else stay behind and run twice after the next start. Off: they are left running.
      */
     var stopProgramsOnQuit = true
+
+    /**
+     * The main loop busy this long (milliseconds) or longer with one thing — meanwhile no input
+     * is handled and no frame drawn: the pointer stutters — is logged with what it was (area
+     * "native", level 2), and the longest of the first 30 seconds once then. 0: not watched.
+     */
+    var stallReportMillis = 50L
+        set(value) {
+            require(value in 0..60_000) { "stallReportMillis is 0 to 60000, not $value" }
+            field = value
+        }
+
+    /**
+     * Memory freed by the C library (Skia, the GPU driver, fonts) given back to the system
+     * after the start (20 s and 60 s after it) and then every [trimMemoryEveryMinutes]: glibc
+     * keeps it otherwise, tens of megabytes. Done on a thread of its own. Off: kept.
+     */
+    var trimMemory = true
+
+    /**
+     * At most this many of glibc's malloc pools for the compositor itself (glibc's own choice:
+     * up to 8 per CPU core, each keeping memory that was freed): fewer pools, less memory kept
+     * for nothing. Programs started inside keep glibc's default. 0: glibc's own. Only at the start.
+     */
+    var mallocPools = 2
+        set(value) {
+            require(value in 0..64) { "mallocPools is 0 to 64, not $value" }
+            field = value
+        }
+
+    /**
+     * The cursor (on a monitor's cursor plane) moves the moment the pointer does, before
+     * anything else the move causes — smooth while a frame or a widget is slow. Off: it moves
+     * with the frames.
+     */
+    var quickCursorMoves = true
+
+    /**
+     * Threads the compositor's own widgets (Compose: bars, menus) draw their pixels on — the
+     * compositor's thread only composes them; spread over more cores. 0: all on the
+     * compositor's thread.
+     */
+    var widgetThreads = 2
+        set(value) {
+            require(value in 0..16) { "widgetThreads is 0 to 16, not $value" }
+            field = value
+        }
+
+    /** How often [trimMemory] gives memory back after the start, in minutes (0: only after the start). */
+    var trimMemoryEveryMinutes = 10
+        set(value) {
+            require(value in 0..1440) { "trimMemoryEveryMinutes is 0 to 1440, not $value" }
+            field = value
+        }
 
     /**
      * Programs started with the session (a bar, a tray applet): one after another, once the
@@ -783,6 +847,18 @@ class Caulis {
         seat.setLayout(index)
         keyboardLog.info { "Keyboard layout: ${keyboardLayoutNames.getOrNull(seat.layoutIndex) ?: seat.layoutIndex}" }
     }
+
+    /** True while Caps Lock is on (for a lock screen's "Caps Lock is on"); false before the compositor runs. */
+    val capsLockOn: Boolean get() = liveOrNull()?.seat?.capsLock == true
+
+    /**
+     * The character the key [evdevCode] types in keyboard layout number [layout] (the one in use
+     * by default), with Shift or not — for an on-screen keyboard's labels; null for none (or
+     * before the compositor runs).
+     */
+    @JvmOverloads
+    fun keyText(evdevCode: Int, shift: Boolean = false, layout: Int = keyboardLayoutNow): String? =
+        liveOrNull()?.seat?.textIn(evdevCode, layout, shift)
 
     /**
      * Num Lock on (true) or off (false) from the start; null leaves it to the keyboard.
@@ -1140,6 +1216,31 @@ class Caulis {
      */
     var privilegedClients: (dev.caulis.protocol.Client) -> Boolean = { true }
 
+    /**
+     * Permissions by program, as Hyprland's: which programs may take pictures of the screen,
+     * see the window list, read the clipboard, show panels, lock, arrange monitors — allow,
+     * ask or deny (see [Permissions]). No rules (the default): [privilegedClients] decides.
+     */
+    val permissions = Permissions()
+
+    /** Sets [permissions]: `permissions { rule("/usr/bin/grim", "screencopy", "allow") }`. */
+    fun permissions(configure: Permissions.() -> Unit) {
+        permissions.configure()
+    }
+
+    /**
+     * Asks the person about a permission whose rule says "ask" (a card with allow / deny),
+     * then answers the [PermissionQuestion]. Null (the default): there is no one to ask, so
+     * the answer is no, and a notice says so.
+     */
+    var askPermission: ((PermissionQuestion) -> Unit)? = null
+
+    /**
+     * Middle-click paste (the primary selection: what is selected is pasted with the middle
+     * button). True by default; false: programs are not offered it. Only at the start.
+     */
+    var primarySelection = true
+
     /** Show fullscreen programs' pictures directly on the monitor (screen mode). Only at the start. */
     var directScanout = true
 
@@ -1439,6 +1540,34 @@ class Caulis {
     /** A fullscreen window on screen keeps the computer awake (videos, games): no idle timers then. */
     var fullscreenKeepsAwake = false
 
+    /** Programs' idle inhibitors (idle-inhibit: mpv, browsers on Wayland) keep the computer awake (true); false: they are ignored. */
+    var idleInhibitors = true
+        set(value) {
+            field = value
+            running?.applyCoreSettings()
+        }
+
+    /**
+     * What keeps the computer from counting as idle now, in words for people: "mpv" (its
+     * idle-inhibit), an [inhibitIdle] reason, "keep-awake", "game (fullscreen)"; empty when
+     * nothing does (or before the compositor runs). For a bar's "kept awake by ...".
+     */
+    val idleInhibitedBy: List<String> get() = running?.idle?.inhibitedBy().orEmpty()
+
+    /**
+     * Keeps the computer from counting as idle (no [onIdle], no ext-idle-notify "idled") until
+     * the result is closed: for inhibitors that come another way than Wayland — D-Bus
+     * (org.freedesktop.ScreenSaver.Inhibit, what browsers use for a video), logind's idle
+     * inhibitors. [reason] is shown in [idleInhibitedBy]. With [pid] above 0 it counts only while
+     * a window of that process is shown. Like idle-inhibit, nothing while locked unless
+     * [idleInhibitorsWhileLocked]. Only while running (before: nothing is held, and it says so).
+     */
+    @JvmOverloads
+    fun inhibitIdle(reason: String, pid: Int = 0): AutoCloseable {
+        val r = running ?: return AutoCloseable {}.also { idleLog.warn("inhibitIdle($reason) before the compositor runs: nothing is held") }
+        return r.idle.hold(reason, pid)
+    }
+
     internal class IdleWatch(val seconds: Long, val idle: Caulis.() -> Unit, val resume: Caulis.() -> Unit)
     internal val idleWatches = ArrayList<IdleWatch>()
 
@@ -1662,6 +1791,26 @@ class Caulis {
     fun panelRule(configure: PanelRule.() -> Unit) {
         panelRules += PanelRule().apply(configure)
     }
+
+    /**
+     * [rule], giving the rule back so that it can be taken out again with [removeRule] — for
+     * a configuration of your own that is read again (its rules replaced, not added twice).
+     */
+    @JvmSynthetic
+    fun addRule(configure: WindowRule.() -> Unit): WindowRule = WindowRule().apply(configure).also {
+        rules += it
+        running?.rulesChanged()
+    }
+
+    /** Takes out a rule made with [addRule] (true if it was there). */
+    fun removeRule(rule: WindowRule): Boolean = rules.remove(rule).also { if (it) running?.rulesChanged() }
+
+    /** [panelRule], giving the rule back for [removePanelRule]. */
+    @JvmSynthetic
+    fun addPanelRule(configure: PanelRule.() -> Unit): PanelRule = PanelRule().apply(configure).also { panelRules += it }
+
+    /** Takes out a rule made with [addPanelRule] (true if it was there). */
+    fun removePanelRule(rule: PanelRule): Boolean = panelRules.remove(rule)
 
     /**
      * A shader the whole screen goes through last ([ScreenShader][dev.caulis.core.ScreenShader]): `ScreenShader.GRAYSCALE`,
@@ -2124,6 +2273,7 @@ class Caulis {
         lateinit var timer: dev.caulis.event.EventLoop.Timer
         timer = r.loop.after(millis.coerceAtLeast(0)) {
             timers -= timer
+            r.loop.taskOrigin = action // (a slow one is named by its own code: EventLoop.onStall)
             r.safely("a timer") { action(this) }
         }
         if (mine) timers += timer
@@ -2143,7 +2293,10 @@ class Caulis {
     @JvmSynthetic
     fun post(action: Caulis.() -> Unit) {
         val r = liveOrNull() ?: return
-        r.loop.post { r.safely("posted work") { action(this) } }
+        r.loop.post {
+            r.loop.taskOrigin = action
+            r.safely("posted work") { action(this) }
+        }
     }
 
     /** The same for Java. */
@@ -2165,6 +2318,7 @@ class Caulis {
             timer = r.loop.after(millis) {
                 timers -= timer!!
                 if (stopped) return@after
+                r.loop.taskOrigin = action
                 r.safely("a repeating timer") { action(this) }
                 if (!stopped) next()
             }.also { if (mine) timers += it }
@@ -2432,6 +2586,7 @@ class Caulis {
         // Whose main() this is (to run it again when config.json changes).
         Reloader.startedFrom = Thread.currentThread().stackTrace.lastOrNull { it.methodName == "main" }?.className
         applyLogSettings()
+        if (mallocPools > 0) dev.caulis.ffi.NativeMemory.limitPools(mallocPools)
         // CAULIS_MODE=headless|nested|screen chooses without changing the code.
         val chosen = System.getenv("CAULIS_MODE")?.takeIf { it.isNotBlank() }?.let { value ->
             Backend.entries.firstOrNull { it.name.equals(value, ignoreCase = true) } ?: throw CannotStartException("CAULIS_MODE=$value: there are ${Backend.entries.joinToString { it.name.lowercase() }}")
@@ -2529,3 +2684,4 @@ fun caulis(configure: Caulis.() -> Unit) {
 class CannotStartException(message: String) : RuntimeException(message)
 
 private val keyboardLog = Logger("keyboard")
+private val idleLog = Logger("idle")

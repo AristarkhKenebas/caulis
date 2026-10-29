@@ -139,6 +139,10 @@ class ComposeWidget @JvmOverloads constructor(
         var drawnOnce = false
         // Its content threw: the scene is dead (it starts over soon); its last picture stays.
         var failed = false
+        // Its pixels are being drawn on a worker (see render): not drawn again meanwhile.
+        var busy = false
+        // Let go while busy: closed once the worker is done.
+        var dropped = false
     }
 
     private val parts = HashMap<String, Part>()
@@ -255,7 +259,12 @@ class ComposeWidget @JvmOverloads constructor(
 
     // Compose draws the scene (Skia, on the processor); its pixels go straight from Skia's
     // picture to ours on the GPU (no copy in between, nothing new made each frame).
+    // With worker threads (Desktop.widgetThreads), the compositor's thread only composes and
+    // records what is drawn; the pixels are drawn on a worker and shown a moment later (the
+    // first picture of a scene at once, so nothing empty shows).
     private fun render(name: String, part: Part) {
+        if (part.busy) return // (the frame after the worker is done draws it)
+        if (part.texture != null && desktop.widgetThreads > 0) return renderOnWorker(name, part)
         val started = System.nanoTime()
         part.drawnOnce = true
         val pixels = guarded(name, part) { part.scene.render(started) } ?: return
@@ -263,7 +272,41 @@ class ComposeWidget @JvmOverloads constructor(
         val texture = part.texture ?: desktop.renderer.createTexture(part.width, part.height).also { part.texture = it }
         texture.upload(pixels, 0, part.height)
         val ms = (System.nanoTime() - started) / 1_000_000.0
-        if (ms > 8) log.trace { "Compose frame of ${part.width}x${part.height} px took %.1f ms (drawing %.1f)".format(ms, (rendered - started) / 1e6) }
+        // (Slow enough to stop the pointer — the loop's stall report names only the frame: said at level 2.)
+        if (ms >= SLOW_FRAME_MILLIS) {
+            log.info { "Compose frame of ${part.width}x${part.height} px on $name took %.1f ms (drawing %.1f)".format(ms, (rendered - started) / 1e6) }
+        } else if (ms > 8) {
+            log.trace { "Compose frame of ${part.width}x${part.height} px took %.1f ms (drawing %.1f)".format(ms, (rendered - started) / 1e6) }
+        }
+    }
+
+    private fun renderOnWorker(name: String, part: Part) {
+        val started = System.nanoTime()
+        part.drawnOnce = true
+        val picture = guarded(name, part) { part.scene.record(started) } ?: return
+        part.busy = true
+        val recorded = System.nanoTime()
+        Workers.run(desktop.widgetThreads) {
+            val pixels = try {
+                part.scene.play(picture)
+            } catch (e: Throwable) {
+                if (e is VirtualMachineError && e !is StackOverflowError) throw e
+                log.warn("Drawing a Compose picture on a worker failed: $e")
+                null
+            }
+            val drawn = System.nanoTime()
+            post(Runnable {
+                part.busy = false
+                if (part.dropped) return@Runnable closePart(part)
+                if (closed || parts[name] !== part) return@Runnable
+                if (pixels != null) part.texture?.upload(pixels, 0, part.height)
+                desktop.requestRedraw()
+                val ms = (drawn - started) / 1_000_000.0
+                if (ms >= SLOW_FRAME_MILLIS) {
+                    log.info { "Compose frame of ${part.width}x${part.height} px on $name took %.1f ms (composed %.1f here, drawn on a worker)".format(ms, (recorded - started) / 1e6) }
+                }
+            })
+        }
     }
 
     // --- content that fails ---------------------------------------------------------------
@@ -368,11 +411,29 @@ class ComposeWidget @JvmOverloads constructor(
             hoverOn = monitor.name
             send(monitor.name, PointerEventType.Enter, at, modifiers = modifiers())
         }
-        send(monitor.name, PointerEventType.Move, at, modifiers = modifiers())
         last = at
+        // One move a turn of the compositor's loop, the latest: a mouse sends up to 1000 a
+        // second, and each went through the scene at once (finding what is under it) — a
+        // waste on the compositor's thread while the pointer is over a menu or a card.
+        if (!moveQueued) {
+            moveQueued = true
+            post(Runnable { sendMove() })
+        }
+    }
+
+    // A move waits to be sent (see pointerMoved).
+    private var moveQueued = false
+
+    // The latest move to the scene the pointer is on, if one waits.
+    private fun sendMove() {
+        if (!moveQueued) return
+        moveQueued = false
+        val at = last ?: return
+        send(hoverOn, PointerEventType.Move, at, modifiers = modifiers())
     }
 
     override fun pointerLeft() {
+        sendMove()
         send(hoverOn, PointerEventType.Exit, Offset.Zero)
         hoverOn = null
         last = null
@@ -383,6 +444,7 @@ class ComposeWidget @JvmOverloads constructor(
         !closed && onPressOutside(x, y, onAnother)
 
     override fun pointerButton(button: Int, pressed: Boolean) {
+        sendMove() // (the press where the pointer is now)
         if (sceneOf(hoverOn) == null) return
         val at = last ?: return
         if (pressed) keysOn = hoverOn
@@ -398,6 +460,7 @@ class ComposeWidget @JvmOverloads constructor(
     }
 
     override fun scroll(dx: Double, dy: Double) {
+        sendMove()
         val at = last ?: return
         // Compose counts in lines (one wheel notch is one; the compositor gives units, a notch
         // being WHEEL_UNITS of them).
@@ -527,12 +590,41 @@ class ComposeWidget @JvmOverloads constructor(
 
     private fun drop(name: String) {
         val part = parts.remove(name) ?: return
+        // (Its pixels still being drawn on a worker: closed when that is done.)
+        if (part.busy) part.dropped = true else closePart(part)
+    }
+
+    private fun closePart(part: Part) {
         part.scene.close()
         part.texture?.close()
     }
 
     override fun toString(): String = "ComposeWidget@${Integer.toHexString(hashCode())}" +
         parts.entries.joinToString(prefix = " (", postfix = ")") { (name, part) -> "$name ${part.width}x${part.height}" }
+
+    // The threads that draw Compose's pictures into pixels (see renderOnWorker): as many as
+    // Desktop.widgetThreads says at most, ending when idle for a while (none at idle).
+    private object Workers {
+        private val pool = java.util.concurrent.ThreadPoolExecutor(
+            1, 1, 5, java.util.concurrent.TimeUnit.SECONDS, java.util.concurrent.LinkedBlockingQueue(),
+            { r -> Thread(r, "caulis-compose-draw").apply { isDaemon = true } },
+        ).apply { allowCoreThreadTimeOut(true) }
+
+        fun run(threads: Int, task: () -> Unit) {
+            val wanted = threads.coerceIn(1, 16)
+            if (pool.maximumPoolSize != wanted) {
+                // (Growing: the most first; shrinking: the core first.)
+                if (wanted > pool.maximumPoolSize) {
+                    pool.maximumPoolSize = wanted
+                    pool.corePoolSize = wanted
+                } else {
+                    pool.corePoolSize = wanted
+                    pool.maximumPoolSize = wanted
+                }
+            }
+            pool.execute(task)
+        }
+    }
 
     // One global write observer for every Compose widget: a write (from any thread) sends the
     // apply notifications once on the compositor's thread, and asks for a frame on each desktop.
@@ -579,6 +671,9 @@ class ComposeWidget @JvmOverloads constructor(
 
         // As see-through as this: not seen (not drawn, no frames for it, no clicks).
         const val HIDDEN = 0.002f
+
+        // A frame this slow (ms) is said at level 2.
+        const val SLOW_FRAME_MILLIS = 50
 
         // Compose's pointer shapes (Java's cursors on the desktop) and the compositor's names.
         val CURSORS = listOf(

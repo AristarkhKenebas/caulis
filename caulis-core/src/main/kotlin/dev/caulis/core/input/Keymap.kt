@@ -164,6 +164,17 @@ class KeyboardState internal constructor(
     }
 
     /**
+     * The character [evdevCode] types in layout number [layout] with Shift held or not, whatever
+     * is held now — for an on-screen keyboard's labels — or null for none.
+     */
+    fun textIn(evdevCode: Int, layout: Int, shift: Boolean): String? {
+        Xkb.xkb_state_update_mask(probe, if (shift) 1 else 0, 0, 0, 0, 0, layout)
+        val code = Xkb.xkb_state_key_get_utf32(probe, evdevCode + 8)
+        if (code < 0x20 || code == 0x7f || !Character.isValidCodePoint(code)) return null
+        return String(Character.toChars(code))
+    }
+
+    /**
      * The symbol a key means for shortcuts: a Latin letter of the layout in use as it is; else for
      * a printing key what it gives in the first layout where it is Latin — so Super+D is Super+D
      * on the Russian layout too (where the key types "в"), and Super+/ is Super+/ (where it types

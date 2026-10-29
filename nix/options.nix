@@ -207,6 +207,14 @@ let
       "start" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "native" "java" ]); default = null; description = "how programs are started: native (posix_spawn; survives Java being updated meanwhile) or java (ProcessBuilder)"; };
       "javaUpdatedNotice" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "shown once when Java was updated under the running compositor (\"\": not shown)"; };
     }; }); default = null; description = "programs started inside"; };
+    "performance" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
+      "stallReportMillis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (60000)); default = null; description = "the main loop busy this long with one thing is logged with what it was (0: not watched)"; };
+      "trimMemory" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "memory the C library freed is given back to the system after the start and now and then"; };
+      "trimMemoryEveryMinutes" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (1440)); default = null; description = "how often after the start (0: only after the start)"; };
+      "mallocPools" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (64)); default = null; description = "at most this many malloc pools for the compositor (0: glibc's own; only at the start)"; };
+      "quickCursor" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "the cursor moves the moment the pointer does, not with the next frame"; };
+      "widgetThreads" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (16)); default = null; description = "threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)"; };
+    }; }); default = null; description = "watching the main loop, giving memory back"; };
     "systemKeys" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
       "volumeStep" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (1) (100)); default = null; description = "percent per press of the volume keys"; };
       "maxVolume" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck lib.types.number (x: x >= 0.1 && x <= 4) // { description = "a number from 0.1 to 4"; }); default = null; description = "the loudest they go (1.0: 100 %)"; };
@@ -748,10 +756,21 @@ let
     "backgroundColor" = lib.mkOption { type = lib.types.nullOr (lib.types.strMatching "#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})"); default = null; description = "under everything (where no window or wallpaper is)"; };
     "focusStealing" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "same-program" "always" "never" ]); default = null; description = "which programs may take the keyboard by themselves"; };
     "unlockFocus" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "focused-before" "newest-before" ]); default = null; description = "which window gets the keyboard after unlocking (never one opened while locked)"; };
+    "idleInhibitors" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "programs' idle inhibitors (video players: idle-inhibit) keep the screen on (default true)"; };
     "idleInhibitorsWhileLocked" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "idle inhibitors keep the screen on while it is locked too"; };
     "maxForwardedStringBytes" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (16) (3000)); default = null; description = "the longest title or app id passed on to other programs, in bytes"; };
     "maxRegionParts" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (1) (100000)); default = null; description = "rectangles a program's region keeps exactly"; };
     "windowListPrograms" = lib.mkOption { type = lib.types.nullOr (lib.types.listOf lib.types.str); default = null; description = "the programs that may see the list of windows (default: the privileged ones)"; };
+    "permissions" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
+      "rules" = lib.mkOption { type = lib.types.nullOr (lib.types.listOf (lib.types.submodule { options = {
+        "program" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "the program's path (\"/usr/bin/grim\") or name (\"grim\"), a regular expression"; };
+        "feature" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "screencopy" "window-list" "clipboard" "panels" "lock" "monitors" "gamma" ]); default = null; description = "what it wants"; };
+        "mode" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "allow" "ask" "deny" ]); default = null; description = "allow, ask (screencopy only) or deny"; };
+      }; })); default = null; description = "the rules, the first that matches decides"; };
+      "defaults" = lib.mkOption { type = lib.types.nullOr (lib.types.attrsOf (lib.types.enum [ "allow" "ask" "deny" ])); default = null; description = "what a feature gets when no rule matches (default: the privileged rule)"; };
+    }; }); default = null; description = "which programs may take pictures of the screen, see the window list, read the clipboard, show panels, lock, arrange monitors (as Hyprland's permissions)"; };
+    "primarySelection" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "middle-click paste (default true; only at the start)"; };
+    "adaptiveSync" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "variable refresh rate on every monitor that has it, unless its own says otherwise (default false)"; };
     "bindingModifiers" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "xkb" "physical" ]); default = null; description = "modifiers in bindings as the keyboard layout says, or the physical keys"; };
     "xwaylandRestart" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
       "millis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (600000)); default = null; description = "wait after a failed start (doubled each time)"; };

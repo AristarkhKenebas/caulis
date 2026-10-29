@@ -563,6 +563,21 @@ object Settings {
                 "programs started inside",
             ),
             Field(
+                "performance",
+                SectionType(
+                    listOf(
+                        Field("stallReportMillis", IntegerType(0, 60_000), "the main loop busy this long with one thing is logged with what it was (0: not watched)"),
+                        Field("trimMemory", FlagType, "memory the C library freed is given back to the system after the start and now and then"),
+                        Field("trimMemoryEveryMinutes", IntegerType(0, 1440), "how often after the start (0: only after the start)"),
+                        Field("mallocPools", IntegerType(0, 64), "at most this many malloc pools for the compositor (0: glibc's own; only at the start)"),
+                        Field("quickCursor", FlagType, "the cursor moves the moment the pointer does, not with the next frame"),
+                        Field("widgetThreads", IntegerType(0, 16), "threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)"),
+                    ),
+                    "performance",
+                ),
+                "watching the main loop, giving memory back",
+            ),
+            Field(
                 "systemKeys",
                 SectionType(
                     listOf(
@@ -791,10 +806,37 @@ object Settings {
             Field("backgroundColor", ColorType, "under everything (where no window or wallpaper is)"),
             Field("focusStealing", ChoiceType(listOf("same-program", "always", "never")), "which programs may take the keyboard by themselves"),
             Field("unlockFocus", ChoiceType(listOf("focused-before", "newest-before")), "which window gets the keyboard after unlocking (never one opened while locked)"),
+            Field("idleInhibitors", FlagType, "programs' idle inhibitors (video players: idle-inhibit) keep the screen on (default true)"),
             Field("idleInhibitorsWhileLocked", FlagType, "idle inhibitors keep the screen on while it is locked too"),
             Field("maxForwardedStringBytes", IntegerType(16, 3000), "the longest title or app id passed on to other programs, in bytes"),
             Field("maxRegionParts", IntegerType(1, 100_000), "rectangles a program's region keeps exactly"),
             Field("windowListPrograms", ListType(TextType("a program name")), "the programs that may see the list of windows (default: the privileged ones)"),
+            Field(
+                "permissions",
+                SectionType(
+                    listOf(
+                        Field(
+                            "rules",
+                            ListType(
+                                SectionType(
+                                    listOf(
+                                        Field("program", TextType("a regular expression"), "the program's path (\"/usr/bin/grim\") or name (\"grim\"), a regular expression", required = true),
+                                        Field("feature", ChoiceType(dev.caulis.wm.Permissions.FEATURES), "what it wants", required = true),
+                                        Field("mode", ChoiceType(listOf("allow", "ask", "deny")), "allow, ask (screencopy only) or deny", required = true),
+                                    ),
+                                    "a permission rule",
+                                ),
+                            ),
+                            "the rules, the first that matches decides",
+                        ),
+                        Field("defaults", MapType(ChoiceType(listOf("allow", "ask", "deny")), "feature"), "what a feature gets when no rule matches (default: the privileged rule)"),
+                    ),
+                    "permissions by program",
+                ),
+                "which programs may take pictures of the screen, see the window list, read the clipboard, show panels, lock, arrange monitors (as Hyprland's permissions)",
+            ),
+            Field("primarySelection", FlagType, "middle-click paste (default true; only at the start)"),
+            Field("adaptiveSync", FlagType, "variable refresh rate on every monitor that has it, unless its own says otherwise (default false)"),
             Field("bindingModifiers", ChoiceType(listOf("xkb", "physical")), "modifiers in bindings as the keyboard layout says, or the physical keys"),
             Field(
                 "xwaylandRestart",
@@ -937,6 +979,14 @@ object Settings {
             (k["numLock"] as Boolean?)?.let { caulis.numLock = it }
             (k["layouts"] as String?)?.let { caulis.keyboardLayouts = it }
             (k["options"] as String?)?.let { caulis.keyboardOptions = it }
+        }
+        section("performance")?.let { p ->
+            (p["stallReportMillis"] as Int?)?.let { caulis.stallReportMillis = it.toLong() }
+            (p["trimMemory"] as Boolean?)?.let { caulis.trimMemory = it }
+            (p["trimMemoryEveryMinutes"] as Int?)?.let { caulis.trimMemoryEveryMinutes = it }
+            (p["mallocPools"] as Int?)?.let { caulis.mallocPools = it }
+            (p["quickCursor"] as Boolean?)?.let { caulis.quickCursorMoves = it }
+            (p["widgetThreads"] as Int?)?.let { caulis.widgetThreads = it }
         }
         section("cursor")?.let { c ->
             (c["theme"] as String?)?.let { caulis.cursorTheme = it }
@@ -1199,10 +1249,21 @@ object Settings {
         (values["backgroundColor"] as Color?)?.let { caulis.backgroundColor = it }
         (values["focusStealing"] as String?)?.let { caulis.focusStealing = dev.caulis.wm.FocusStealing.valueOf(it.uppercase().replace('-', '_')) }
         (values["unlockFocus"] as String?)?.let { caulis.unlockFocus = dev.caulis.core.UnlockFocus.valueOf(it.uppercase().replace('-', '_')) }
+        (values["idleInhibitors"] as Boolean?)?.let { caulis.idleInhibitors = it }
         (values["idleInhibitorsWhileLocked"] as Boolean?)?.let { caulis.idleInhibitorsWhileLocked = it }
         (values["maxForwardedStringBytes"] as Int?)?.let { caulis.maxForwardedStringBytes = it }
         (values["maxRegionParts"] as Int?)?.let { caulis.maxRegionParts = it }
         (values["windowListPrograms"] as List<String>?)?.let { caulis.windowListPrograms = LinkedHashSet(it) }
+        section("permissions")?.let { p ->
+            // (The file's rules replace those of before: a new version of the file replaces them.)
+            val rules = p["rules"] as List<Map<String, Any?>>?
+            val defaults = p["defaults"] as Map<String, String>?
+            caulis.permissions.clear()
+            rules?.forEach { r -> caulis.permissions.rule(r["program"] as String, r["feature"] as String, r["mode"] as String) }
+            defaults?.forEach { (feature, mode) -> caulis.permissions.default(feature, mode) }
+        }
+        (values["primarySelection"] as Boolean?)?.let { caulis.primarySelection = it }
+        (values["adaptiveSync"] as Boolean?)?.let { caulis.adaptiveSync = it }
         (values["bindingModifiers"] as String?)?.let { caulis.bindingModifiers = dev.caulis.wm.BindingModifiers.valueOf(it.uppercase()) }
         section("xwaylandRestart")?.let { x ->
             (x["millis"] as Int?)?.let { caulis.xwaylandRestartMillis = it.toLong() }
