@@ -1,0 +1,509 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>StartupSound</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-wm/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-wm/main" data-filter=":caulis-wm/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-wm::dev.caulis.wm/StartupSound///PointingToDeclaration//-1748554126">
+  <div class="breadcrumbs"><a href="../../index.html">caulis-wm</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.wm</a><span class="delimiter">/</span><span class="current">StartupSound</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Startup</span><wbr><span><span>Sound</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">StartupSound</a> : <a href="../-startup-settings/index.html">StartupSettings</a></div><p class="paragraph">A sound when the session starts — off unless you turn it on:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">startupSound {<br>    enabled = true<br>    preset = "airy"             // or "classic", "glass", "soft" (made by Caulis itself)<br>    file = "~/sounds/hello.ogg" // or a file of yours instead (ogg, wav, flac: what the player plays)<br>    volume = 0.8<br>}</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><p class="paragraph">It is played by a player program (<a href="player.html">player</a>, else the first of <a href="players.html">players</a> that works: pw-play, paplay, aplay), never on the compositor's thread, when the desktop fades in (<a href="at.html">at</a>). The presets are made once and kept in <code class="lang-kotlin">~/.cache/&lt;configName&gt;/sounds/</code>. The action <code class="lang-kotlin">play-startup-sound</code> plays it again (to try; <code class="lang-kotlin">play-startup-sound glass</code> another preset).</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="331640177%2FConstructors%2F-1748554126" anchor-label="StartupSound" id="331640177%2FConstructors%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-startup-sound.html"><span>Startup</span><wbr><span><span>Sound</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="331640177%2FConstructors%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="-467735408%2FProperties%2F-1748554126" anchor-label="at" id="-467735408%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="at.html"><span><span>at</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-467735408%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="at.html">at</a><span class="token operator">: </span><a href="../-sound-moment/index.html">SoundMoment</a></div><div class="brief "><p class="paragraph">When it plays: as the desktop fades in (the default), or right at the start.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="902515783%2FProperties%2F-1748554126" anchor-label="cacheFolder" id="902515783%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="cache-folder.html"><span>cache</span><wbr><span><span>Folder</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="902515783%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="cache-folder.html">cacheFolder</a><span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/nio/file/Path.html">Path</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Where the presets are written; null: <code class="lang-kotlin">~/.cache/&lt;configName&gt;/sounds</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-851336140%2FProperties%2F-1748554126" anchor-label="delay" id="-851336140%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="delay.html"><span><span>delay</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-851336140%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="delay.html">delay</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a></div><div class="brief "><p class="paragraph"><a href="delay-millis.html">delayMillis</a> as a Duration: <code class="lang-kotlin">delay = 300.milliseconds</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1704884402%2FProperties%2F-1748554126" anchor-label="delayMillis" id="-1704884402%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="delay-millis.html"><span>delay</span><wbr><span><span>Millis</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1704884402%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="delay-millis.html">delayMillis</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></div><div class="brief "><p class="paragraph">Waits this long more before it plays, in milliseconds.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="474604982%2FProperties%2F-1748554126" anchor-label="enabled" id="474604982%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="enabled.html"><span><span>enabled</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="474604982%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="enabled.html">enabled</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Played at all (off by default).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-839580185%2FProperties%2F-1748554126" anchor-label="file" id="-839580185%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="file.html"><span><span>file</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-839580185%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="file.html">file</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">A sound file of yours instead of the preset (<code class="lang-kotlin">~</code> is your home; relative: next to the configuration).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1404095931%2FProperties%2F-1748554126" anchor-label="milliseconds" id="1404095931%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-startup-settings/milliseconds.html"><span><span>milliseconds</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1404095931%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">.</span><a href="../-startup-settings/milliseconds.html">milliseconds</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2003367502%2FProperties%2F-1748554126" anchor-label="minutes" id="-2003367502%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-startup-settings/minutes.html"><span><span>minutes</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2003367502%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">.</span><a href="../-startup-settings/minutes.html">minutes</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-335163601%2FProperties%2F-1748554126" anchor-label="play" id="-335163601%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="play.html"><span><span>play</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-335163601%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="play.html">play</a><span class="token operator">: </span><span class="token punctuation">(</span>file<span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/nio/file/Path.html">Path</a><span class="token punctuation">, </span>volume<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Your own way to play it instead of <a href="players.html">players</a> (on a thread of its own: it may take its time): gets the file and the volume, true if it played.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1997841758%2FProperties%2F-1748554126" anchor-label="player" id="-1997841758%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="player.html"><span><span>player</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1997841758%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="player.html">player</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token operator">?</span></div><div class="brief "><p class="paragraph">The player of your choice, its words: <code class="lang-kotlin">player = listOf("mpv", "--no-video", "{file}")</code> (<code class="lang-kotlin">{file}</code> the sound's file — put last when not written —, <code class="lang-kotlin">{volume}</code> 0 to 1, <code class="lang-kotlin">{paVolume}</code> 0 to 65536 as paplay has it, <code class="lang-kotlin">{percent}</code> 0 to 100). Null: <a href="players.html">players</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-237297563%2FProperties%2F-1748554126" anchor-label="players" id="-237297563%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="players.html"><span><span>players</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-237297563%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="players.html">players</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-mutable-list/index.html">MutableList</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">The players tried one after another until one plays it (when <a href="player.html">player</a> is not set): a command each, with the same <code class="lang-kotlin">{file}</code>, <code class="lang-kotlin">{volume}</code>, <code class="lang-kotlin">{paVolume}</code>, <code class="lang-kotlin">{percent}</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="60232689%2FProperties%2F-1748554126" anchor-label="playerTimeoutMillis" id="60232689%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="player-timeout-millis.html"><span>player</span><wbr><span>Timeout</span><wbr><span><span>Millis</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="60232689%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="player-timeout-millis.html">playerTimeoutMillis</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></div><div class="brief "><p class="paragraph">How long a player may play, in milliseconds: then it is stopped (a long sound file is cut off there). It counts as played — the next player does not start it over.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1862046620%2FProperties%2F-1748554126" anchor-label="preset" id="-1862046620%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="preset.html"><span><span>preset</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1862046620%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="preset.html">preset</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div><div class="brief "><p class="paragraph">One of the sounds Caulis makes itself: <a href="../-startup-chimes/-p-r-e-s-e-t-s.html">StartupChimes.PRESETS</a> ("airy", "classic", "glass", "soft").</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1832986032%2FProperties%2F-1748554126" anchor-label="seconds" id="1832986032%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-startup-settings/seconds.html"><span><span>seconds</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1832986032%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token punctuation">.</span><a href="../-startup-settings/seconds.html">seconds</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a></div><div class="symbol monospace"><span class="token keyword">val </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">.</span><a href="../-startup-settings/seconds.html">seconds</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1106243447%2FProperties%2F-1748554126" anchor-label="volume" id="-1106243447%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="volume.html"><span><span>volume</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1106243447%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="volume.html">volume</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a></div><div class="brief "><p class="paragraph">How loud, 0 to 1 (where the player can say: aplay plays it as it is).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1784143984%2FProperties%2F-1748554126" anchor-label="whenHeadless" id="1784143984%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="when-headless.html"><span>when</span><wbr><span><span>Headless</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1784143984%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="when-headless.html">whenHeadless</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Played in the headless backend too (off by default: nobody listens there — tests, virtual monitors). The action <code class="lang-kotlin">play-startup-sound</code> plays it anywhere.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="90326981%2FFunctions%2F-1748554126" anchor-label="at" id="90326981%2FFunctions%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="at.html"><span><span>at</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="90326981%2FFunctions%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="at.html"><span class="token function">at</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">moment<span class="token operator">: </span><a href="../-sound-moment/index.html">SoundMoment</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">StartupSound</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="761255723%2FFunctions%2F-1748554126" anchor-label="delayMillis" id="761255723%2FFunctions%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="delay-millis.html"><span>delay</span><wbr><span><span>Millis</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="761255723%2FFunctions%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="delay-millis.html"><span class="token function">delayMillis</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">millis<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">StartupSound</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="880711291%2FFunctions%2F-1748554126" anchor-label="enabled" id="880711291%2FFunctions%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="enabled.html"><span><span>enabled</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="880711291%2FFunctions%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="enabled.html"><span class="token function">enabled</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">on<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">StartupSound</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1523299322%2FFunctions%2F-1748554126" anchor-label="file" id="-1523299322%2FFunctions%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="file.html"><span><span>file</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1523299322%2FFunctions%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="file.html"><span class="token function">file</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">path<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">StartupSound</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-122974570%2FFunctions%2F-1748554126" anchor-label="play" id="-122974570%2FFunctions%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="play.html"><span><span>play</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-122974570%2FFunctions%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="play.html"><span class="token function">play</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">play<span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/util/function/BiPredicate.html">BiPredicate</a><span class="token operator">&lt;</span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/nio/file/Path.html">Path</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">StartupSound</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1503778953%2FFunctions%2F-1748554126" anchor-label="player" id="-1503778953%2FFunctions%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="player.html"><span><span>player</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1503778953%2FFunctions%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="player.html"><span class="token function">player</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">command<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">StartupSound</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-827660512%2FFunctions%2F-1748554126" anchor-label="preset" id="-827660512%2FFunctions%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="preset.html"><span><span>preset</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-827660512%2FFunctions%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="preset.html"><span class="token function">preset</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">StartupSound</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1848742747%2FFunctions%2F-1748554126" anchor-label="volume" id="1848742747%2FFunctions%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="volume.html"><span><span>volume</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1848742747%2FFunctions%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="volume.html"><span class="token function">volume</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">volume<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">StartupSound</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

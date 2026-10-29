@@ -1,0 +1,666 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>Shape</title>
+<link href="../../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../../styles/style.css" rel="Stylesheet">
+<link href="../../../../styles/main.css" rel="Stylesheet">
+<link href="../../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-protocol/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-protocol/main" data-filter=":caulis-protocol/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-protocol::dev.caulis.protocol.cursorshapev1/WpCursorShapeDeviceV1.Shape///PointingToDeclaration//-1726305676">
+  <div class="breadcrumbs"><a href="../../../index.html">caulis-protocol</a><span class="delimiter">/</span><a href="../../index.html">dev.caulis.protocol.cursorshapev1</a><span class="delimiter">/</span><a href="../index.html">WpCursorShapeDeviceV1</a><span class="delimiter">/</span><span class="current">Shape</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Shape</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="index.html">Shape</a></div><p class="paragraph">Cursor shapes</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="-264422513%2FProperties%2F-1726305676" anchor-label="ALIAS" id="-264422513%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-a-l-i-a-s.html"><span><span>ALIAS</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-264422513%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-a-l-i-a-s.html">ALIAS</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">11</span></div><div class="brief "><p class="paragraph">drag-and-drop: alias of/shortcut to something is to be created</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1545061385%2FProperties%2F-1726305676" anchor-label="ALL_RESIZE" id="1545061385%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-a-l-l_-r-e-s-i-z-e.html"><span>ALL_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1545061385%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-a-l-l_-r-e-s-i-z-e.html">ALL_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">36</span></div><div class="brief "><p class="paragraph">resizing: something can be moved or resized in any direction (non-css value)</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-708847600%2FProperties%2F-1726305676" anchor-label="ALL_SCROLL" id="-708847600%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-a-l-l_-s-c-r-o-l-l.html"><span>ALL_</span><wbr><span>SCROLL</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-708847600%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-a-l-l_-s-c-r-o-l-l.html">ALL_SCROLL</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">32</span></div><div class="brief "><p class="paragraph">something can be scrolled in any direction</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1528812455%2FProperties%2F-1726305676" anchor-label="CELL" id="-1528812455%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-c-e-l-l.html"><span><span>CELL</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1528812455%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-c-e-l-l.html">CELL</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">7</span></div><div class="brief "><p class="paragraph">a cell or set of cells may be selected</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-517435416%2FProperties%2F-1726305676" anchor-label="COL_RESIZE" id="-517435416%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-c-o-l_-r-e-s-i-z-e.html"><span>COL_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-517435416%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-c-o-l_-r-e-s-i-z-e.html">COL_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">30</span></div><div class="brief "><p class="paragraph">resizing: that the item/column can be resized horizontally</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1411323468%2FProperties%2F-1726305676" anchor-label="CONTEXT_MENU" id="1411323468%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-c-o-n-t-e-x-t_-m-e-n-u.html"><span>CONTEXT_</span><wbr><span>MENU</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1411323468%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-c-o-n-t-e-x-t_-m-e-n-u.html">CONTEXT_MENU</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">2</span></div><div class="brief "><p class="paragraph">a context menu is available for the object under the cursor</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="173535654%2FProperties%2F-1726305676" anchor-label="COPY" id="173535654%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-c-o-p-y.html"><span><span>COPY</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="173535654%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-c-o-p-y.html">COPY</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">12</span></div><div class="brief "><p class="paragraph">drag-and-drop: something is to be copied</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1530663165%2FProperties%2F-1726305676" anchor-label="CROSSHAIR" id="1530663165%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-c-r-o-s-s-h-a-i-r.html"><span><span>CROSSHAIR</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1530663165%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-c-r-o-s-s-h-a-i-r.html">CROSSHAIR</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">8</span></div><div class="brief "><p class="paragraph">simple crosshair</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1919295550%2FProperties%2F-1726305676" anchor-label="DEFAULT" id="1919295550%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-d-e-f-a-u-l-t.html"><span><span>DEFAULT</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1919295550%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-d-e-f-a-u-l-t.html">DEFAULT</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span></div><div class="brief "><p class="paragraph">default cursor</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1260941269%2FProperties%2F-1726305676" anchor-label="DND_ASK" id="-1260941269%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-d-n-d_-a-s-k.html"><span>DND_</span><wbr><span>ASK</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1260941269%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-d-n-d_-a-s-k.html">DND_ASK</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">35</span></div><div class="brief "><p class="paragraph">drag-and-drop: the user will select which action will be carried out (non-css value)</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1708781133%2FProperties%2F-1726305676" anchor-label="E_RESIZE" id="1708781133%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-e_-r-e-s-i-z-e.html"><span>E_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1708781133%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-e_-r-e-s-i-z-e.html">E_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">18</span></div><div class="brief "><p class="paragraph">resizing: the east border is to be moved</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1297348354%2FProperties%2F-1726305676" anchor-label="EW_RESIZE" id="-1297348354%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-e-w_-r-e-s-i-z-e.html"><span>EW_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1297348354%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-e-w_-r-e-s-i-z-e.html">EW_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">26</span></div><div class="brief "><p class="paragraph">resizing: the east and west borders are to be moved</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-71031121%2FProperties%2F-1726305676" anchor-label="GRAB" id="-71031121%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-g-r-a-b.html"><span><span>GRAB</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-71031121%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-g-r-a-b.html">GRAB</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">16</span></div><div class="brief "><p class="paragraph">drag-and-drop: something can be grabbed</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1489860241%2FProperties%2F-1726305676" anchor-label="GRABBING" id="-1489860241%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-g-r-a-b-b-i-n-g.html"><span><span>GRABBING</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1489860241%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-g-r-a-b-b-i-n-g.html">GRABBING</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">17</span></div><div class="brief "><p class="paragraph">drag-and-drop: something is being grabbed</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2060775258%2FProperties%2F-1726305676" anchor-label="HELP" id="2060775258%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-h-e-l-p.html"><span><span>HELP</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2060775258%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-h-e-l-p.html">HELP</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">3</span></div><div class="brief "><p class="paragraph">help is available for the object under the cursor</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-631061302%2FProperties%2F-1726305676" anchor-label="MOVE" id="-631061302%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-m-o-v-e.html"><span><span>MOVE</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-631061302%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-m-o-v-e.html">MOVE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">13</span></div><div class="brief "><p class="paragraph">drag-and-drop: something is to be moved</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-764442026%2FProperties%2F-1726305676" anchor-label="N_RESIZE" id="-764442026%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-n_-r-e-s-i-z-e.html"><span>N_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-764442026%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-n_-r-e-s-i-z-e.html">N_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">19</span></div><div class="brief "><p class="paragraph">resizing: the north border is to be moved</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-6375933%2FProperties%2F-1726305676" anchor-label="NE_RESIZE" id="-6375933%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-n-e_-r-e-s-i-z-e.html"><span>NE_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-6375933%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-n-e_-r-e-s-i-z-e.html">NE_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">20</span></div><div class="brief "><p class="paragraph">resizing: the north-east corner is to be moved</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1196418599%2FProperties%2F-1726305676" anchor-label="NESW_RESIZE" id="1196418599%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-n-e-s-w_-r-e-s-i-z-e.html"><span>NESW_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1196418599%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-n-e-s-w_-r-e-s-i-z-e.html">NESW_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">28</span></div><div class="brief "><p class="paragraph">resizing: the north-east and south-west corners are to be moved</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-196628174%2FProperties%2F-1726305676" anchor-label="NO_DROP" id="-196628174%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-n-o_-d-r-o-p.html"><span>NO_</span><wbr><span>DROP</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-196628174%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-n-o_-d-r-o-p.html">NO_DROP</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">14</span></div><div class="brief "><p class="paragraph">drag-and-drop: the dragged item cannot be dropped at the current cursor location</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-638538301%2FProperties%2F-1726305676" anchor-label="NOT_ALLOWED" id="-638538301%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-n-o-t_-a-l-l-o-w-e-d.html"><span>NOT_</span><wbr><span>ALLOWED</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-638538301%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-n-o-t_-a-l-l-o-w-e-d.html">NOT_ALLOWED</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">15</span></div><div class="brief "><p class="paragraph">drag-and-drop: the requested action will not be carried out</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-513081839%2FProperties%2F-1726305676" anchor-label="NS_RESIZE" id="-513081839%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-n-s_-r-e-s-i-z-e.html"><span>NS_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-513081839%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-n-s_-r-e-s-i-z-e.html">NS_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">27</span></div><div class="brief "><p class="paragraph">resizing: the north and south borders are to be moved</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-657854955%2FProperties%2F-1726305676" anchor-label="NW_RESIZE" id="-657854955%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-n-w_-r-e-s-i-z-e.html"><span>NW_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-657854955%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-n-w_-r-e-s-i-z-e.html">NW_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">21</span></div><div class="brief "><p class="paragraph">resizing: the north-west corner is to be moved</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1453184601%2FProperties%2F-1726305676" anchor-label="NWSE_RESIZE" id="-1453184601%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-n-w-s-e_-r-e-s-i-z-e.html"><span>NWSE_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1453184601%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-n-w-s-e_-r-e-s-i-z-e.html">NWSE_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">29</span></div><div class="brief "><p class="paragraph">resizing: the north-west and south-east corners are to be moved</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="991587266%2FProperties%2F-1726305676" anchor-label="POINTER" id="991587266%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-p-o-i-n-t-e-r.html"><span><span>POINTER</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="991587266%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-p-o-i-n-t-e-r.html">POINTER</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">4</span></div><div class="brief "><p class="paragraph">pointer that indicates a link or another interactive element</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1113708270%2FProperties%2F-1726305676" anchor-label="PROGRESS" id="1113708270%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-p-r-o-g-r-e-s-s.html"><span><span>PROGRESS</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1113708270%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-p-r-o-g-r-e-s-s.html">PROGRESS</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">5</span></div><div class="brief "><p class="paragraph">progress indicator</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1344331842%2FProperties%2F-1726305676" anchor-label="ROW_RESIZE" id="1344331842%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-r-o-w_-r-e-s-i-z-e.html"><span>ROW_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1344331842%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-r-o-w_-r-e-s-i-z-e.html">ROW_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">31</span></div><div class="brief "><p class="paragraph">resizing: that the item/row can be resized vertically</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1202075227%2FProperties%2F-1726305676" anchor-label="S_RESIZE" id="1202075227%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-s_-r-e-s-i-z-e.html"><span>S_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1202075227%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-s_-r-e-s-i-z-e.html">S_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">22</span></div><div class="brief "><p class="paragraph">resizing: the south border is to be moved</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="826116766%2FProperties%2F-1726305676" anchor-label="SE_RESIZE" id="826116766%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-s-e_-r-e-s-i-z-e.html"><span>SE_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="826116766%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-s-e_-r-e-s-i-z-e.html">SE_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">23</span></div><div class="brief "><p class="paragraph">resizing: the south-east corner is to be moved</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="174637744%2FProperties%2F-1726305676" anchor-label="SW_RESIZE" id="174637744%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-s-w_-r-e-s-i-z-e.html"><span>SW_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="174637744%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-s-w_-r-e-s-i-z-e.html">SW_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">24</span></div><div class="brief "><p class="paragraph">resizing: the south-west corner is to be moved</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="566606574%2FProperties%2F-1726305676" anchor-label="TEXT" id="566606574%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-t-e-x-t.html"><span><span>TEXT</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="566606574%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-t-e-x-t.html">TEXT</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">9</span></div><div class="brief "><p class="paragraph">text may be selected</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1052472873%2FProperties%2F-1726305676" anchor-label="VERTICAL_TEXT" id="1052472873%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-v-e-r-t-i-c-a-l_-t-e-x-t.html"><span>VERTICAL_</span><wbr><span>TEXT</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1052472873%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-v-e-r-t-i-c-a-l_-t-e-x-t.html">VERTICAL_TEXT</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">10</span></div><div class="brief "><p class="paragraph">vertical text may be selected</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1057302111%2FProperties%2F-1726305676" anchor-label="W_RESIZE" id="1057302111%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-w_-r-e-s-i-z-e.html"><span>W_</span><wbr><span>RESIZE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1057302111%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-w_-r-e-s-i-z-e.html">W_RESIZE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">25</span></div><div class="brief "><p class="paragraph">resizing: the west border is to be moved</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2125549478%2FProperties%2F-1726305676" anchor-label="WAIT" id="2125549478%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-w-a-i-t.html"><span><span>WAIT</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2125549478%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-w-a-i-t.html">WAIT</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">6</span></div><div class="brief "><p class="paragraph">program is busy, user should wait</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1634512050%2FProperties%2F-1726305676" anchor-label="ZOOM_IN" id="-1634512050%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-z-o-o-m_-i-n.html"><span>ZOOM_</span><wbr><span>IN</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1634512050%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-z-o-o-m_-i-n.html">ZOOM_IN</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">33</span></div><div class="brief "><p class="paragraph">something can be zoomed in</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1912680967%2FProperties%2F-1726305676" anchor-label="ZOOM_OUT" id="-1912680967%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-z-o-o-m_-o-u-t.html"><span>ZOOM_</span><wbr><span>OUT</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1912680967%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-z-o-o-m_-o-u-t.html">ZOOM_OUT</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">34</span></div><div class="brief "><p class="paragraph">something can be zoomed out</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

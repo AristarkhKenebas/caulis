@@ -1,0 +1,329 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>dev.caulis.render</title>
+<link href="../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-render/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-render/main" data-filter=":caulis-render/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="package" id="content" pageids="caulis-render::dev.caulis.render////PointingToDeclaration//-2019836238">
+  <div class="breadcrumbs"><a href="../index.html">caulis-render</a><span class="delimiter">/</span><span class="current">dev.caulis.render</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+    <div class="platform-hinted UnderCoverText" data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><p class="paragraph">The renderer interface, GPU pictures, shared GPU buffers (dma-buf), colours, and the drawing behind window effects: rounded clipping, borders, shadows and blur.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button><button class="section-tab" data-togglable="FUNCTION,EXTENSION_FUNCTION">Functions</button><button class="section-tab" data-togglable="PROPERTY,EXTENSION_PROPERTY">Properties</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="-493336235%2FClasslikes%2F-2019836238" anchor-label="BlurTone" id="-493336235%2FClasslikes%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-blur-tone/index.html"><span>Blur</span><wbr><span><span>Tone</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-493336235%2FClasslikes%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-blur-tone/index.html">BlurTone</a>&nbsp;<span><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-overloads/index.html"><span class="token annotation builtin">JvmOverloads</span></a>&nbsp;</span><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>noise<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.0f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>contrast<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">1.0f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>brightness<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">1.0f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>vibrancy<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.0f</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">How blurred glass is toned (<a href="-renderer/draw-blur.html">Renderer.drawBlur</a>): <a href="../../caulis-render/dev.caulis.render/-blur-tone/--root--.html">noise</a> adds grain (0 to 1; a little, like 0.01, hides banding), <a href="../../caulis-render/dev.caulis.render/-blur-tone/--root--.html">contrast</a> and <a href="../../caulis-render/dev.caulis.render/-blur-tone/--root--.html">brightness</a> scale (1: as it is), <a href="../../caulis-render/dev.caulis.render/-blur-tone/--root--.html">vibrancy</a> makes colours stronger (0: as they are; 0.2 is lively).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="156973521%2FClasslikes%2F-2019836238" anchor-label="Color" id="156973521%2FClasslikes%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-color/index.html"><span><span>Color</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="156973521%2FClasslikes%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-color/index.html">Color</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>red<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>green<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>blue<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>alpha<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">1.0f</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">A colour with transparency, each part 0..1 (alpha 0 = invisible, 1 = solid).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1012697389%2FClasslikes%2F-2019836238" anchor-label="Dmabuf" id="-1012697389%2FClasslikes%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-dmabuf/index.html"><span><span>Dmabuf</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1012697389%2FClasslikes%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-dmabuf/index.html">Dmabuf</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>format<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>modifier<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>planes<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="-dmabuf/-plane/index.html">Dmabuf.Plane</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/AutoCloseable.html">AutoCloseable</a></div><div class="brief "><p class="paragraph">A GPU buffer described by file descriptors (Linux "dma-buf"): how programs, the GPU and the display share pictures without copying them.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1790506724%2FClasslikes%2F-2019836238" anchor-label="DmabufFormat" id="-1790506724%2FClasslikes%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-dmabuf-format/index.html"><span>Dmabuf</span><wbr><span><span>Format</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1790506724%2FClasslikes%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-dmabuf-format/index.html">DmabufFormat</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>format<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>modifier<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">A format and memory layout the GPU can read pictures in.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1023090744%2FClasslikes%2F-2019836238" anchor-label="GpuBuffer" id="-1023090744%2FClasslikes%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-gpu-buffer/index.html"><span>Gpu</span><wbr><span><span>Buffer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1023090744%2FClasslikes%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-subclass-opt-in-required/index.html"><span class="token annotation builtin">SubclassOptInRequired</span></a><span class="token punctuation">(</span><span>markerClass<span class="token operator"> = </span><span class="token punctuation">[</span><span><a href="../../caulis-log/dev.caulis.log/-internal-caulis-api/index.html">InternalCaulisApi::class</a></span><wbr><span class="token punctuation">]</span></span><wbr><span class="token punctuation">)</span></div></div><span class="token keyword">interface </span><a href="-gpu-buffer/index.html">GpuBuffer</a> : <a href="-gpu-target/index.html">GpuTarget</a></div><div class="brief "><p class="paragraph">A <a href="-gpu-target/index.html">GpuTarget</a> backed by a shareable GPU buffer. Its memory can be shown by the display (with <a href="-gpu-buffer/handle.html">handle</a>, a number valid on the renderer's DRM device) or given to others (<a href="-gpu-buffer/export.html">export</a>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="378523901%2FClasslikes%2F-2019836238" anchor-label="GpuDevices" id="378523901%2FClasslikes%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-gpu-devices/index.html"><span>Gpu</span><wbr><span><span>Devices</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="378523901%2FClasslikes%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-gpu-devices/index.html">GpuDevices</a></div><div class="brief "><p class="paragraph">GPUs as the kernel numbers them. A device number (dev_t) is what Wayland programs send each other to say "this GPU" (e.g. in linux-dmabuf feedback).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="304607127%2FClasslikes%2F-2019836238" anchor-label="GpuTarget" id="304607127%2FClasslikes%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-gpu-target/index.html"><span>Gpu</span><wbr><span><span>Target</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="304607127%2FClasslikes%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-subclass-opt-in-required/index.html"><span class="token annotation builtin">SubclassOptInRequired</span></a><span class="token punctuation">(</span><span>markerClass<span class="token operator"> = </span><span class="token punctuation">[</span><span><a href="../../caulis-log/dev.caulis.log/-internal-caulis-api/index.html">InternalCaulisApi::class</a></span><wbr><span class="token punctuation">]</span></span><wbr><span class="token punctuation">)</span></div></div><span class="token keyword">interface </span><a href="-gpu-target/index.html">GpuTarget</a> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/AutoCloseable.html">AutoCloseable</a></div><div class="brief "><p class="paragraph">A picture that can be drawn into, made by a <a href="-renderer/index.html">Renderer</a> (see <a href="-gpu-texture/index.html">GpuTexture</a>: only its own).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="524929663%2FClasslikes%2F-2019836238" anchor-label="GpuTexture" id="524929663%2FClasslikes%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-gpu-texture/index.html"><span>Gpu</span><wbr><span><span>Texture</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="524929663%2FClasslikes%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-subclass-opt-in-required/index.html"><span class="token annotation builtin">SubclassOptInRequired</span></a><span class="token punctuation">(</span><span>markerClass<span class="token operator"> = </span><span class="token punctuation">[</span><span><a href="../../caulis-log/dev.caulis.log/-internal-caulis-api/index.html">InternalCaulisApi::class</a></span><wbr><span class="token punctuation">]</span></span><wbr><span class="token punctuation">)</span></div></div><span class="token keyword">interface </span><a href="-gpu-texture/index.html">GpuTexture</a> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/AutoCloseable.html">AutoCloseable</a></div><div class="brief "><p class="paragraph">A picture on the GPU, made by a <a href="-renderer/index.html">Renderer</a> (only its own can be drawn: a class of yours implementing this cannot, so implementing it needs <code class="lang-kotlin">@OptIn(InternalCaulisApi::class)</code>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-944770762%2FClasslikes%2F-2019836238" anchor-label="Paint" id="-944770762%2FClasslikes%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-paint/index.html"><span><span>Paint</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-944770762%2FClasslikes%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">sealed </span><span class="token keyword">class </span><a href="-paint/index.html">Paint</a></div><div class="brief "><p class="paragraph">What a border or a shadow is filled with: one colour, a gradient (also turning), or a shader of your own.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-640535813%2FClasslikes%2F-2019836238" anchor-label="PaintState" id="-640535813%2FClasslikes%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-paint-state/index.html"><span>Paint</span><wbr><span><span>State</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-640535813%2FClasslikes%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-paint-state/index.html">PaintState</a>&nbsp;<span><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-overloads/index.html"><span class="token annotation builtin">JvmOverloads</span></a>&nbsp;</span><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>focused<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>urgent<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>grouped<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">The state of the window a paint is drawn for, handed to a <a href="-paint/-shader/index.html">Paint.Shader</a> as <code class="lang-kotlin">focused</code>, <code class="lang-kotlin">urgent</code> and <code class="lang-kotlin">grouped</code> (1.0 or 0.0) — one shader can then glow for the focused window and blink for an urgent one.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="266621515%2FClasslikes%2F-2019836238" anchor-label="Renderer" id="266621515%2FClasslikes%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-renderer/index.html"><span><span>Renderer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="266621515%2FClasslikes%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-renderer/index.html">Renderer</a> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/AutoCloseable.html">AutoCloseable</a></div><div class="brief "><p class="paragraph">Draws Caulis's pictures on the GPU. The rest of Caulis only talks to this interface, so the drawing technology can be swapped: OpenGL ES today (<a href="../dev.caulis.render.gles/index.html">dev.caulis.render.gles</a>), Vulkan later.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="844115501%2FProperties%2F-2019836238" anchor-label="MAX_BLUR_PASSES" id="844115501%2FProperties%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-m-a-x_-b-l-u-r_-p-a-s-s-e-s.html"><span>MAX_</span><wbr><span>BLUR_</span><wbr><span>PASSES</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="844115501%2FProperties%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-m-a-x_-b-l-u-r_-p-a-s-s-e-s.html">MAX_BLUR_PASSES</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">6</span></div><div class="brief "><p class="paragraph">More blur passes than this make no visible difference (and cost a lot).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="1155047522%2FFunctions%2F-2019836238" anchor-label="blurReach" id="1155047522%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="blur-reach.html"><span>blur</span><wbr><span><span>Reach</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1155047522%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="blur-reach.html"><span class="token function">blurReach</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">size<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">passes<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">How far beyond its area <a href="-renderer/draw-blur.html">Renderer.drawBlur</a> with <a href="blur-reach.html">size</a> and <a href="blur-reach.html">passes</a> reads pixels.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

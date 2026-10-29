@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>All modules</title>
+    <link href="images/logo-icon.svg" rel="icon" type="image/svg">
+        <script>var pathToRoot = "";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="scripts/sourceset_dependencies.js" async="async"></script>
+<link href="styles/style.css" rel="Stylesheet">
+<link href="styles/main.css" rel="Stylesheet">
+<link href="styles/prism.css" rel="Stylesheet">
+<link href="styles/logo-styles.css" rel="Stylesheet">
+<link href="ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="ui-kit/ui-kit.min.js" defer="defer"></script>
+</head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+            <a class="library-name--link" href="index.html" tabindex="1">
+                    Caulis
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config='{"defaultSize": 280, "minSize": 200, "maxSize": 400}'>
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                    data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" id="content" pageIds="Caulis::.ext/allModules///PointingToDeclaration//0">
+  <div class="breadcrumbs"></div>
+  <div class="cover ">
+    <h2 class="">All modules:</h2>
+    <div class="table"><a data-name="1001971377%2FMain%2F0" anchor-label="caulis-compose" id="1001971377%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-compose/index.html">caulis-compose</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1001971377%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">Parts of a compositor's own interface written in Compose — a bar, a dock, a launcher, a volume pill, notifications. Each is a Compose scene drawn into a picture (no window, no X11) and shown by the compositor as one of its widgets: it gets the pointer where it is, the wheel, and — when it asks — the keyboard (text fields work, with the keyboard layout). Everything Compose runs (recomposition, animations, <code class="lang-kotlin">LaunchedEffect</code>) runs on the compositor's thread.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="-1167763744%2FMain%2F0" anchor-label="caulis-core" id="-1167763744%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-core/index.html">caulis-core</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1167763744%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">The compositor itself: surfaces and windows, the window manager (dev.caulis.core.Desktop), input, monitors, and the two backends (a window in another session, or the real screen). Use it directly when <code class="lang-kotlin">caulis-wm</code> is not flexible enough.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="1270684269%2FMain%2F0" anchor-label="caulis-geometry" id="1270684269%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-geometry/index.html">caulis-geometry</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1270684269%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">Rectangles in whole pixels (dev.caulis.geometry.Rect), shared by drawing and tiling.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="-1607335833%2FMain%2F0" anchor-label="caulis-ipc" id="-1607335833%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-ipc/index.html">caulis-ipc</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1607335833%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">The IPC socket of a running compositor: its messages, described in <code class="lang-kotlin">src/main/proto/caulis/ipc/v1/caulis.proto</code> (programs in any language make their code from it), and dev.caulis.ipc.CaulisIpc, a client for programs on the JVM. The compositor's side is part of caulis-wm.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="1085887039%2FMain%2F0" anchor-label="caulis-log" id="1085887039%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-log/index.html">caulis-log</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1085887039%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">The log of Caulis: levels 0 (nearly silent) to 3 (everything, step by step), for everything or for single areas (<code class="lang-kotlin">wayland</code>, <code class="lang-kotlin">focus</code>, <code class="lang-kotlin">render</code>, ...). See dev.caulis.log.Log.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="-1920482293%2FMain%2F0" anchor-label="caulis-lua" id="-1920482293%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-lua/index.html">caulis-lua</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1920482293%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph"><code class="lang-kotlin">config.lua</code>: a compositor's configuration in Lua (LuaJ, Lua 5.2 on the JVM). A compositor with this module on its class path reads <code class="lang-kotlin">config.lua</code> from its folder by itself. See the guide, step 27.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="-1607038488%2FMain%2F0" anchor-label="caulis-native" id="-1607038488%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-native/index.html">caulis-native</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1607038488%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">Safe Kotlin around the C pieces Caulis needs: file descriptors, sockets, shared memory, epoll — and the event loop (dev.caulis.event.EventLoop) everything runs on.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="-2101368057%2FMain%2F0" anchor-label="caulis-protocol" id="-2101368057%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-protocol/index.html">caulis-protocol</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2101368057%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">The Wayland protocol, implemented from scratch: the wire format, the server side (dev.caulis.protocol.Display, clients, objects) and a client side. Classes for each protocol are generated from its XML description.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="-1686917466%2FMain%2F0" anchor-label="caulis-reload" id="-1686917466%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-reload/index.html">caulis-reload</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1686917466%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">Fast hot reload, for development only: when you save a file, your configuration is compiled right inside the running compositor (the Kotlin compiler, and the JDK's own for Java files) instead of a Gradle build, incrementally (only what changed, and what depends on it) — well under a second from saving to seeing it. Without this module, hot reload uses the project's Gradle and takes several seconds.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="-1807813303%2FMain%2F0" anchor-label="caulis-render" id="-1807813303%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-render/index.html">caulis-render</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1807813303%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">Drawing on the GPU. The rest of Caulis only talks to dev.caulis.render.Renderer, so the technology behind it can change (OpenGL ES today, Vulkan later).</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="-1978796935%2FMain%2F0" anchor-label="caulis-screenshot" id="-1978796935%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-screenshot/index.html">caulis-screenshot</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1978796935%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">Screenshots inside a Caulis compositor: the screen frozen at once, a toolbar to choose an area, a window or a monitor (with or without the pointer, at once or after a few seconds), saved as PNG or JPEG and put on the clipboard. Optional: <code class="lang-kotlin">screenshots()</code> in a configuration binds Print, Shift+Print and Alt+Print; with this module on the class path, text configurations have the <code class="lang-kotlin">screenshot</code> action. See the guide, step 20.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="2068937652%2FMain%2F0" anchor-label="caulis-script" id="2068937652%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-script/index.html">caulis-script</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2068937652%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph"><code class="lang-kotlin">config.kts</code>: a compositor's configuration as a Kotlin script, compiled by the compositor itself — no Gradle, no project. A compositor with this module on its class path reads <code class="lang-kotlin">config.kts</code> from its folder by itself. It contains the Kotlin compiler. See the guide, step 28.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="297505940%2FMain%2F0" anchor-label="caulis-tiling" id="297505940%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-tiling/index.html">caulis-tiling</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="297505940%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">How windows are arranged — pure Kotlin, independent of Wayland and graphics.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="1975432969%2FMain%2F0" anchor-label="caulis-wm" id="1975432969%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-wm/index.html">caulis-wm</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1975432969%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph"><strong>Start here.</strong> A complete compositor in a few lines:</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="1399180029%2FMain%2F0" anchor-label="caulis-xwayland" id="1399180029%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-xwayland/index.html">caulis-xwayland</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1399180029%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">X11 programs in a Caulis compositor: Xwayland is started when the first one connects, and Caulis is the window manager of their windows (through XCB) — they tile, float, get title bars and effects, show in docks and screen sharing like Wayland windows, at the right scale. Copy and paste works between X11 and Wayland programs (CLIPBOARD, large data in pieces).</p>
+            </span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

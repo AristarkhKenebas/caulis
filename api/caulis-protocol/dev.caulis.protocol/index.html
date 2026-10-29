@@ -1,0 +1,276 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>dev.caulis.protocol</title>
+<link href="../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-protocol/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-protocol/main" data-filter=":caulis-protocol/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="package" id="content" pageids="caulis-protocol::dev.caulis.protocol////PointingToDeclaration//-1726305676">
+  <div class="breadcrumbs"><a href="../index.html">caulis-protocol</a><span class="delimiter">/</span><span class="current">dev.caulis.protocol</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+    <div class="platform-hinted UnderCoverText" data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><p class="paragraph">Sockets, clients, objects (<a href="-resource/index.html">dev.caulis.protocol.Resource</a>) and messages.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="7379717%2FClasslikes%2F-1726305676" anchor-label="Client" id="7379717%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-client/index.html"><span><span>Client</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="7379717%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-client/index.html">Client</a> : <a href="../../caulis-protocol/dev.caulis.protocol/-wire-output/index.html">WireOutput</a></div><div class="brief "><p class="paragraph">One connected program.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="132257104%2FClasslikes%2F-1726305676" anchor-label="Display" id="132257104%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-display/index.html"><span><span>Display</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="132257104%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-display/index.html">Display</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>loop<span class="token operator">: </span><a href="../../caulis-native/dev.caulis.event/-event-loop/index.html">EventLoop</a></span></span><span class="token punctuation">)</span> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/AutoCloseable.html">AutoCloseable</a></div><div class="brief "><p class="paragraph">The Wayland server: the socket programs connect to, the connected <a href="-client/index.html">Client</a>s, and the list of <a href="-global/index.html">Global</a>s — the features the compositor offers (wl_compositor, wl_seat, ...).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2120774099%2FClasslikes%2F-1726305676" anchor-label="Global" id="-2120774099%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-global/index.html"><span><span>Global</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2120774099%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-global/index.html">Global</a></div><div class="brief "><p class="paragraph">One feature offered to clients (see <a href="-display/add-global.html">Display.addGlobal</a>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1059757400%2FClasslikes%2F-1726305676" anchor-label="MessageReader" id="-1059757400%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-message-reader/index.html"><span>Message</span><wbr><span><span>Reader</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1059757400%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-message-reader/index.html">MessageReader</a> : <a href="-wire-reader/index.html">WireReader</a></div><div class="brief "><p class="paragraph">Reads the arguments of one request a client sent.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1984586504%2FClasslikes%2F-1726305676" anchor-label="MessageWriter" id="-1984586504%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-message-writer/index.html"><span>Message</span><wbr><span><span>Writer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1984586504%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-message-writer/index.html">MessageWriter</a></div><div class="brief "><p class="paragraph">Writes one message: an event from the compositor to a client, or a request from our client side to another compositor. Generated code uses it: <code class="lang-kotlin">event(OPCODE).int(x).string(title).end()</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-292579877%2FClasslikes%2F-1726305676" anchor-label="ProtocolException" id="-292579877%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-protocol-exception/index.html"><span>Protocol</span><wbr><span><span>Exception</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-292579877%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-protocol-exception/index.html">ProtocolException</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>resource<span class="token operator">: </span><a href="-resource/index.html">Resource</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>code<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">message<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/RuntimeException.html">RuntimeException</a></div><div class="brief "><p class="paragraph">The client broke the protocol (a wrong argument, an unknown object, ...). The client gets <a href="../../caulis-protocol/dev.caulis.protocol/-protocol-exception/--root--.html">code</a> and <a href="../../caulis-protocol/dev.caulis.protocol/-protocol-exception/--root--.html">message</a> as a wl_display.error and is disconnected.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="448788578%2FClasslikes%2F-1726305676" anchor-label="Resource" id="448788578%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-resource/index.html"><span><span>Resource</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="448788578%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">class </span><a href="-resource/index.html">Resource</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>client<span class="token operator">: </span><a href="-client/index.html">Client</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>id<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>version<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">One protocol object that belongs to one client, for example a client's wl_surface.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-989196856%2FClasslikes%2F-1726305676" anchor-label="ResourceType" id="-989196856%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-resource-type/index.html"><span>Resource</span><wbr><span><span>Type</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-989196856%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">class </span><a href="-resource-type/index.html">ResourceType</a><span class="token operator">&lt;</span><a href="-resource-type/index.html">T</a><span class="token operator"> : </span><a href="-resource/index.html">Resource</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>version<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">A Wayland interface, like <code class="lang-kotlin">wl_surface</code> version 7, and a way to create objects of it.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1465009995%2FClasslikes%2F-1726305676" anchor-label="Wire" id="1465009995%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-wire/index.html"><span><span>Wire</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1465009995%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-wire/index.html">Wire</a></div><div class="brief "><p class="paragraph">Every Wayland message, written at level 3 of the "wayland" log area — like <code class="lang-kotlin">WAYLAND_DEBUG=1</code> of libwayland. <code class="lang-kotlin">CAULIS_LOG=wayland=3</code> turns it on:</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1432716216%2FClasslikes%2F-1726305676" anchor-label="WireReader" id="-1432716216%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-wire-reader/index.html"><span>Wire</span><wbr><span><span>Reader</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1432716216%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">class </span><a href="-wire-reader/index.html">WireReader</a></div><div class="brief "><p class="paragraph">Reads the basic argument types of one Wayland message, with bounds checks. Shared by the server side (<a href="-message-reader/index.html">MessageReader</a>, requests from clients) and the client side (events from a compositor we connect to).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

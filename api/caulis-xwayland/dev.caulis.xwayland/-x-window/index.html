@@ -1,0 +1,655 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>XWindow</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-xwayland/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-xwayland/main" data-filter=":caulis-xwayland/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-xwayland::dev.caulis.xwayland/XWindow///PointingToDeclaration//-125515330">
+  <div class="breadcrumbs"><a href="../../index.html">caulis-xwayland</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.xwayland</a><span class="delimiter">/</span><span class="current">XWindow</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>XWindow</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">XWindow</a> : <a href="../../../caulis-core/dev.caulis.core/-window/index.html">Window</a></div><p class="paragraph">An X11 program's window, managed like any other window. X works in the screen's pixels; the desktop in its own units: positions and sizes are converted with the scale both ways.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="980883537%2FProperties%2F-125515330" anchor-label="activated" id="980883537%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#980883537%2FProperties%2F-125515330"><span><span>activated</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="980883537%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="index.html#980883537%2FProperties%2F-125515330">activated</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1216296986%2FProperties%2F-125515330" anchor-label="appId" id="-1216296986%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-1216296986%2FProperties%2F-125515330"><span>app</span><wbr><span><span>Id</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1216296986%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">var </span><a href="index.html#-1216296986%2FProperties%2F-125515330">appId</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-392676991%2FProperties%2F-125515330" anchor-label="caughtUp" id="-392676991%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-392676991%2FProperties%2F-125515330"><span>caught</span><wbr><span><span>Up</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-392676991%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">val </span><a href="index.html#-392676991%2FProperties%2F-125515330">caughtUp</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="817059649%2FProperties%2F-125515330" anchor-label="configured" id="817059649%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="configured.html"><span><span>configured</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="817059649%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="configured.html">configured</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1659426880%2FProperties%2F-125515330" anchor-label="configuredSize" id="1659426880%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="configured-size.html"><span>configured</span><wbr><span><span>Size</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1659426880%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="configured-size.html">configuredSize</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-pair/index.html">Pair</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="977536269%2FProperties%2F-125515330" anchor-label="fixedSize" id="977536269%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#977536269%2FProperties%2F-125515330"><span>fixed</span><wbr><span><span>Size</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="977536269%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="index.html#977536269%2FProperties%2F-125515330">fixedSize</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="170076093%2FProperties%2F-125515330" anchor-label="fullscreen" id="170076093%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#170076093%2FProperties%2F-125515330"><span><span>fullscreen</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="170076093%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="index.html#170076093%2FProperties%2F-125515330">fullscreen</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1582536444%2FProperties%2F-125515330" anchor-label="id" id="-1582536444%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="id.html"><span><span>id</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1582536444%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="id.html">id</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1987128852%2FProperties%2F-125515330" anchor-label="mapped" id="-1987128852%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="mapped.html"><span><span>mapped</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1987128852%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="mapped.html">mapped</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1492566967%2FProperties%2F-125515330" anchor-label="maxHeight" id="1492566967%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#1492566967%2FProperties%2F-125515330"><span>max</span><wbr><span><span>Height</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1492566967%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">var </span><a href="index.html#1492566967%2FProperties%2F-125515330">maxHeight</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="643373290%2FProperties%2F-125515330" anchor-label="maximized" id="643373290%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#643373290%2FProperties%2F-125515330"><span><span>maximized</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="643373290%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="index.html#643373290%2FProperties%2F-125515330">maximized</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="87756118%2FProperties%2F-125515330" anchor-label="maxWidth" id="87756118%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#87756118%2FProperties%2F-125515330"><span>max</span><wbr><span><span>Width</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="87756118%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">var </span><a href="index.html#87756118%2FProperties%2F-125515330">maxWidth</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-170777335%2FProperties%2F-125515330" anchor-label="minHeight" id="-170777335%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-170777335%2FProperties%2F-125515330"><span>min</span><wbr><span><span>Height</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-170777335%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">var </span><a href="index.html#-170777335%2FProperties%2F-125515330">minHeight</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1973762500%2FProperties%2F-125515330" anchor-label="minWidth" id="1973762500%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#1973762500%2FProperties%2F-125515330"><span>min</span><wbr><span><span>Width</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1973762500%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">var </span><a href="index.html#1973762500%2FProperties%2F-125515330">minWidth</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1159675531%2FProperties%2F-125515330" anchor-label="modal" id="-1159675531%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-1159675531%2FProperties%2F-125515330"><span><span>modal</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1159675531%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="index.html#-1159675531%2FProperties%2F-125515330">modal</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-620810461%2FProperties%2F-125515330" anchor-label="needsTitleBar" id="-620810461%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="needs-title-bar.html"><span>needs</span><wbr><span>Title</span><wbr><span><span>Bar</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-620810461%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="needs-title-bar.html">needsTitleBar</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-789460105%2FProperties%2F-125515330" anchor-label="overrideRedirect" id="-789460105%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="override-redirect.html"><span>override</span><wbr><span><span>Redirect</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-789460105%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="override-redirect.html">overrideRedirect</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">A menu, tooltip or drag picture that places itself (not managed, shown where it says).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1376150738%2FProperties%2F-125515330" anchor-label="parent" id="-1376150738%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-1376150738%2FProperties%2F-125515330"><span><span>parent</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1376150738%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="index.html#-1376150738%2FProperties%2F-125515330">parent</a><span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-window/index.html">Window</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1983084848%2FProperties%2F-125515330" anchor-label="pid" id="-1983084848%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="pid.html"><span><span>pid</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1983084848%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="pid.html">pid</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1859634286%2FProperties%2F-125515330" anchor-label="prefersFloating" id="-1859634286%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="prefers-floating.html"><span>prefers</span><wbr><span><span>Floating</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1859634286%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="prefers-floating.html">prefersFloating</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1466858119%2FProperties%2F-125515330" anchor-label="resizing" id="1466858119%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#1466858119%2FProperties%2F-125515330"><span><span>resizing</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1466858119%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="index.html#1466858119%2FProperties%2F-125515330">resizing</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1977939150%2FProperties%2F-125515330" anchor-label="serverDecorated" id="1977939150%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#1977939150%2FProperties%2F-125515330"><span>server</span><wbr><span><span>Decorated</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1977939150%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="index.html#1977939150%2FProperties%2F-125515330">serverDecorated</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="649750254%2FProperties%2F-125515330" anchor-label="surface" id="649750254%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="surface.html"><span><span>surface</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="649750254%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="surface.html">surface</a><span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-surface/index.html">Surface</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="616299724%2FProperties%2F-125515330" anchor-label="tiled" id="616299724%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#616299724%2FProperties%2F-125515330"><span><span>tiled</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="616299724%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="index.html#616299724%2FProperties%2F-125515330">tiled</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1045757994%2FProperties%2F-125515330" anchor-label="title" id="1045757994%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#1045757994%2FProperties%2F-125515330"><span><span>title</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1045757994%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">var </span><a href="index.html#1045757994%2FProperties%2F-125515330">title</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1536039031%2FProperties%2F-125515330" anchor-label="urgent" id="1536039031%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#1536039031%2FProperties%2F-125515330"><span><span>urgent</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1536039031%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="index.html#1536039031%2FProperties%2F-125515330">urgent</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1758499653%2FProperties%2F-125515330" anchor-label="visibleRect" id="1758499653%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="visible-rect.html"><span>visible</span><wbr><span><span>Rect</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1758499653%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="visible-rect.html">visibleRect</a><span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-849874806%2FProperties%2F-125515330" anchor-label="x" id="-849874806%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-849874806%2FProperties%2F-125515330"><span><span>x</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-849874806%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="index.html#-849874806%2FProperties%2F-125515330">x</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-818854999%2FProperties%2F-125515330" anchor-label="y" id="-818854999%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-818854999%2FProperties%2F-125515330"><span><span>y</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-818854999%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="index.html#-818854999%2FProperties%2F-125515330">y</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="-1502697597%2FFunctions%2F-125515330" anchor-label="close" id="-1502697597%2FFunctions%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="close.html"><span><span>close</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1502697597%2FFunctions%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="close.html"><span class="token function">close</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-107245366%2FFunctions%2F-125515330" anchor-label="configure" id="-107245366%2FFunctions%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="configure.html"><span><span>configure</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-107245366%2FFunctions%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="configure.html"><span class="token function">configure</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-899760862%2FFunctions%2F-125515330" anchor-label="sameProgramAs" id="-899760862%2FFunctions%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="same-program-as.html"><span>same</span><wbr><span>Program</span><wbr><span><span>As</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-899760862%2FFunctions%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="same-program-as.html"><span class="token function">sameProgramAs</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-window/index.html">Window</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-379324971%2FFunctions%2F-125515330" anchor-label="setActivated" id="-379324971%2FFunctions%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-activated.html"><span>set</span><wbr><span><span>Activated</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-379324971%2FFunctions%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="set-activated.html"><span class="token function">setActivated</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">active<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2096226176%2FFunctions%2F-125515330" anchor-label="setMinimized" id="-2096226176%2FFunctions%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-minimized.html"><span>set</span><wbr><span><span>Minimized</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2096226176%2FFunctions%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="set-minimized.html"><span class="token function">setMinimized</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">minimized<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="750978899%2FFunctions%2F-125515330" anchor-label="toString" id="750978899%2FFunctions%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="to-string.html"><span>to</span><wbr><span><span>String</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="750978899%2FFunctions%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="to-string.html"><span class="token function">toString</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

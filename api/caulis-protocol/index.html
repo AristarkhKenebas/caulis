@@ -1,0 +1,1347 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>caulis-protocol</title>
+<link href="../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../scripts/sourceset_dependencies.js" async></script>
+<link href="../styles/style.css" rel="Stylesheet">
+<link href="../styles/main.css" rel="Stylesheet">
+<link href="../styles/prism.css" rel="Stylesheet">
+<link href="../styles/logo-styles.css" rel="Stylesheet">
+<link href="../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../scripts/main.js" defer></script>
+<script type="text/javascript" src="../scripts/prism.js" async></script>
+<script type="text/javascript" src="../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-protocol/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-protocol/main" data-filter=":caulis-protocol/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" id="content" pageids="caulis-protocol::////PointingToDeclaration//-1726305676">
+  <div class="breadcrumbs"></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>caulis-protocol</span></span></h1>
+    <div class="platform-hinted UnderCoverText" data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><p class="paragraph">The Wayland protocol, implemented from scratch: the wire format, the server side (<a href="dev.caulis.protocol/-display/index.html">dev.caulis.protocol.Display</a>, clients, objects) and a client side. Classes for each protocol are generated from its XML description.</p></div></div>
+  </div>
+  <h2 class="">Packages</h2>
+  <div class="table"><a data-name="385105872%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol" id="385105872%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol/index.html">dev.caulis.protocol</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="385105872%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div><span class="brief-comment"><a data-name="385105872%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol" id="385105872%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+            <p class="paragraph">Sockets, clients, objects (<a href="dev.caulis.protocol/-resource/index.html">dev.caulis.protocol.Resource</a>) and messages.</p>
+          </span></div>
+      </div>
+    </div>
+<a data-name="323169901%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client" id="323169901%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client/index.html">dev.caulis.protocol.client</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="323169901%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div><span class="brief-comment"><a data-name="323169901%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client" id="323169901%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+            <p class="paragraph">The client side, used to run as a window inside another compositor.</p>
+          </span></div>
+      </div>
+    </div>
+<a data-name="1646769541%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.cursorshapev1" id="1646769541%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.cursorshapev1/index.html">dev.caulis.protocol.client.cursorshapev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1646769541%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="2125805266%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.extdatacontrolv1" id="2125805266%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.extdatacontrolv1/index.html">dev.caulis.protocol.client.extdatacontrolv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2125805266%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1630991200%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.extforeigntoplevellistv1" id="-1630991200%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.extforeigntoplevellistv1/index.html">dev.caulis.protocol.client.extforeigntoplevellistv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1630991200%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="1814254264%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.extidlenotifyv1" id="1814254264%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.extidlenotifyv1/index.html">dev.caulis.protocol.client.extidlenotifyv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1814254264%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1712604543%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.extimagecapturesourcev1" id="-1712604543%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.extimagecapturesourcev1/index.html">dev.caulis.protocol.client.extimagecapturesourcev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1712604543%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="1393770129%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.extimagecopycapturev1" id="1393770129%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.extimagecopycapturev1/index.html">dev.caulis.protocol.client.extimagecopycapturev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1393770129%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1689747424%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.extsessionlockv1" id="-1689747424%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.extsessionlockv1/index.html">dev.caulis.protocol.client.extsessionlockv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1689747424%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="2060973495%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.fractionalscalev1" id="2060973495%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.fractionalscalev1/index.html">dev.caulis.protocol.client.fractionalscalev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2060973495%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-304606047%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.idleinhibitunstablev1" id="-304606047%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.idleinhibitunstablev1/index.html">dev.caulis.protocol.client.idleinhibitunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-304606047%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-970421067%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.keyboardshortcutsinhibitunstablev1" id="-970421067%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.keyboardshortcutsinhibitunstablev1/index.html">dev.caulis.protocol.client.keyboardshortcutsinhibitunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-970421067%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="1481250281%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.linuxdmabufv1" id="1481250281%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.linuxdmabufv1/index.html">dev.caulis.protocol.client.linuxdmabufv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1481250281%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-824380403%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.pointerconstraintsunstablev1" id="-824380403%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.pointerconstraintsunstablev1/index.html">dev.caulis.protocol.client.pointerconstraintsunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-824380403%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="1060848021%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.pointergesturesunstablev1" id="1060848021%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.pointergesturesunstablev1/index.html">dev.caulis.protocol.client.pointergesturesunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1060848021%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-2024299636%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.presentationtime" id="-2024299636%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.presentationtime/index.html">dev.caulis.protocol.client.presentationtime</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2024299636%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-43148033%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.relativepointerunstablev1" id="-43148033%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.relativepointerunstablev1/index.html">dev.caulis.protocol.client.relativepointerunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-43148033%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="958961624%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.serverdecoration" id="958961624%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.serverdecoration/index.html">dev.caulis.protocol.client.serverdecoration</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="958961624%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="10123591%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.tabletv2" id="10123591%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.tabletv2/index.html">dev.caulis.protocol.client.tabletv2</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="10123591%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="311112120%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.viewporter" id="311112120%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.viewporter/index.html">dev.caulis.protocol.client.viewporter</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="311112120%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1678990887%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.wayland" id="-1678990887%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.wayland/index.html">dev.caulis.protocol.client.wayland</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1678990887%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1797111478%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.wlrdatacontrolunstablev1" id="-1797111478%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.wlrdatacontrolunstablev1/index.html">dev.caulis.protocol.client.wlrdatacontrolunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1797111478%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1494981763%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.wlrforeigntoplevelmanagementunstablev1" id="-1494981763%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.wlrforeigntoplevelmanagementunstablev1/index.html">dev.caulis.protocol.client.wlrforeigntoplevelmanagementunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1494981763%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-536731999%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.wlrgammacontrolunstablev1" id="-536731999%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.wlrgammacontrolunstablev1/index.html">dev.caulis.protocol.client.wlrgammacontrolunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-536731999%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="175036490%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.wlrlayershellunstablev1" id="175036490%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.wlrlayershellunstablev1/index.html">dev.caulis.protocol.client.wlrlayershellunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="175036490%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="1449389775%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.wlroutputmanagementunstablev1" id="1449389775%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.wlroutputmanagementunstablev1/index.html">dev.caulis.protocol.client.wlroutputmanagementunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1449389775%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="601309502%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.wlroutputpowermanagementunstablev1" id="601309502%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.wlroutputpowermanagementunstablev1/index.html">dev.caulis.protocol.client.wlroutputpowermanagementunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="601309502%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1988233812%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.wlrscreencopyunstablev1" id="-1988233812%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.wlrscreencopyunstablev1/index.html">dev.caulis.protocol.client.wlrscreencopyunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1988233812%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1174795817%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.wpprimaryselectionunstablev1" id="-1174795817%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.wpprimaryselectionunstablev1/index.html">dev.caulis.protocol.client.wpprimaryselectionunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1174795817%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="1050164619%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.xdgactivationv1" id="1050164619%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.xdgactivationv1/index.html">dev.caulis.protocol.client.xdgactivationv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1050164619%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1546174663%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.xdgdecorationunstablev1" id="-1546174663%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.xdgdecorationunstablev1/index.html">dev.caulis.protocol.client.xdgdecorationunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1546174663%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="115148477%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.xdgdialogv1" id="115148477%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.xdgdialogv1/index.html">dev.caulis.protocol.client.xdgdialogv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="115148477%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1304086774%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.xdgoutputunstablev1" id="-1304086774%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.xdgoutputunstablev1/index.html">dev.caulis.protocol.client.xdgoutputunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1304086774%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-730163142%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.xdgshell" id="-730163142%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.xdgshell/index.html">dev.caulis.protocol.client.xdgshell</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-730163142%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1268874424%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.client.xwaylandshellv1" id="-1268874424%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.client.xwaylandshellv1/index.html">dev.caulis.protocol.client.xwaylandshellv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1268874424%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-301916760%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.cursorshapev1" id="-301916760%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.cursorshapev1/index.html">dev.caulis.protocol.cursorshapev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-301916760%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-409815089%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.extdatacontrolv1" id="-409815089%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.extdatacontrolv1/index.html">dev.caulis.protocol.extdatacontrolv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-409815089%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1714929507%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.extforeigntoplevellistv1" id="-1714929507%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.extforeigntoplevellistv1/index.html">dev.caulis.protocol.extforeigntoplevellistv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1714929507%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="1732460059%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.extidlenotifyv1" id="1732460059%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.extidlenotifyv1/index.html">dev.caulis.protocol.extidlenotifyv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1732460059%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="778539748%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.extimagecapturesourcev1" id="778539748%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.extimagecapturesourcev1/index.html">dev.caulis.protocol.extimagecapturesourcev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="778539748%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="140497844%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.extimagecopycapturev1" id="140497844%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.extimagecopycapturev1/index.html">dev.caulis.protocol.extimagecopycapturev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="140497844%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="69599517%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.extsessionlockv1" id="69599517%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.extsessionlockv1/index.html">dev.caulis.protocol.extsessionlockv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="69599517%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="766153818%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.fractionalscalev1" id="766153818%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.fractionalscalev1/index.html">dev.caulis.protocol.fractionalscalev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="766153818%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1557878332%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.idleinhibitunstablev1" id="-1557878332%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.idleinhibitunstablev1/index.html">dev.caulis.protocol.idleinhibitunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1557878332%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="67676274%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.keyboardshortcutsinhibitunstablev1" id="67676274%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.keyboardshortcutsinhibitunstablev1/index.html">dev.caulis.protocol.keyboardshortcutsinhibitunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="67676274%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-467436020%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.linuxdmabufv1" id="-467436020%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.linuxdmabufv1/index.html">dev.caulis.protocol.linuxdmabufv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-467436020%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="251126154%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.pointerconstraintsunstablev1" id="251126154%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.pointerconstraintsunstablev1/index.html">dev.caulis.protocol.pointerconstraintsunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="251126154%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1541239496%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.pointergesturesunstablev1" id="-1541239496%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.pointergesturesunstablev1/index.html">dev.caulis.protocol.pointergesturesunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1541239496%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-264952695%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.presentationtime" id="-264952695%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.presentationtime/index.html">dev.caulis.protocol.presentationtime</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-264952695%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="1649731746%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.relativepointerunstablev1" id="1649731746%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.relativepointerunstablev1/index.html">dev.caulis.protocol.relativepointerunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1649731746%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1576658731%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.serverdecoration" id="-1576658731%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.serverdecoration/index.html">dev.caulis.protocol.serverdecoration</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1576658731%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-319600828%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.tabletv2" id="-319600828%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.tabletv2/index.html">dev.caulis.protocol.tabletv2</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-319600828%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="1273525365%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.viewporter" id="1273525365%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.viewporter/index.html">dev.caulis.protocol.viewporter</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1273525365%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="1081319484%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.wayland" id="1081319484%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.wayland/index.html">dev.caulis.protocol.wayland</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1081319484%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1881049785%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.wlrdatacontrolunstablev1" id="-1881049785%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.wlrdatacontrolunstablev1/index.html">dev.caulis.protocol.wlrdatacontrolunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1881049785%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="2074499258%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.wlrforeigntoplevelmanagementunstablev1" id="2074499258%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.wlrforeigntoplevelmanagementunstablev1/index.html">dev.caulis.protocol.wlrforeigntoplevelmanagementunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2074499258%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="1156147780%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.wlrgammacontrolunstablev1" id="1156147780%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.wlrgammacontrolunstablev1/index.html">dev.caulis.protocol.wlrgammacontrolunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1156147780%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1628786515%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.wlrlayershellunstablev1" id="-1628786515%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.wlrlayershellunstablev1/index.html">dev.caulis.protocol.wlrlayershellunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1628786515%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="430354674%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.wlroutputmanagementunstablev1" id="430354674%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.wlroutputmanagementunstablev1/index.html">dev.caulis.protocol.wlroutputmanagementunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="430354674%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="1639406843%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.wlroutputpowermanagementunstablev1" id="1639406843%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.wlroutputpowermanagementunstablev1/index.html">dev.caulis.protocol.wlroutputpowermanagementunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1639406843%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="502910479%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.wlrscreencopyunstablev1" id="502910479%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.wlrscreencopyunstablev1/index.html">dev.caulis.protocol.wlrscreencopyunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="502910479%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-99289260%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.wpprimaryselectionunstablev1" id="-99289260%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.wpprimaryselectionunstablev1/index.html">dev.caulis.protocol.wpprimaryselectionunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-99289260%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="968370414%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.xdgactivationv1" id="968370414%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.xdgactivationv1/index.html">dev.caulis.protocol.xdgactivationv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="968370414%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="944969628%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.xdgdecorationunstablev1" id="944969628%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.xdgdecorationunstablev1/index.html">dev.caulis.protocol.xdgdecorationunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="944969628%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-114812000%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.xdgdialogv1" id="-114812000%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.xdgdialogv1/index.html">dev.caulis.protocol.xdgdialogv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-114812000%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-85280531%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.xdgoutputunstablev1" id="-85280531%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.xdgoutputunstablev1/index.html">dev.caulis.protocol.xdgoutputunstablev1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-85280531%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1059887561%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.xdgshell" id="-1059887561%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.xdgshell/index.html">dev.caulis.protocol.xdgshell</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1059887561%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1350668629%2FPackages%2F-1726305676" anchor-label="dev.caulis.protocol.xwaylandshellv1" id="-1350668629%2FPackages%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+    <div class="table-row table-row_platform-tagged" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="dev.caulis.protocol.xwaylandshellv1/index.html">dev.caulis.protocol.xwaylandshellv1</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1350668629%2FPackages%2F-1726305676"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right platform-tags--wrapper">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">jvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,550 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>ScreenshotStyle</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-screenshot/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-screenshot/main" data-filter=":caulis-screenshot/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-screenshot::dev.caulis.screenshot/ScreenshotStyle///PointingToDeclaration//-426483710">
+  <div class="breadcrumbs"><a href="../../index.html">caulis-screenshot</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.screenshot</a><span class="delimiter">/</span><span class="current">ScreenshotStyle</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Screenshot</span><wbr><span><span>Style</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">ScreenshotStyle</a>&nbsp;<span><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-overloads/index.html"><span class="token annotation builtin">JvmOverloads</span></a>&nbsp;</span><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>background<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(0.11f, 0.118f, 0.141f, 0.925f)<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>text<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(0.94f, 0.95f, 0.965f)<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>dim<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(0.94f, 0.95f, 0.965f, 0.5f)<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>border<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(1f, 1f, 1f, 0.11f)<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>accent<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(0.24f, 0.55f, 0.99f)<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>onAccent<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(1f, 1f, 1f)<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>cornerRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">18.0f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>font<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span>java.awt.Font.SANS_SERIF<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>fontSize<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">12.0f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>captureFontSize<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">13.0f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>shade<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.42f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>shadow<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(0f, 0f, 0f, 0.35f)<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>shadowSize<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">18.0f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>handleSize<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">9</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>handle<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(1f, 1f, 1f)<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>handleRim<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(0.1f, 0.1f, 0.12f, 0.6f)<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>toolbarHeight<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">58</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>buttonWidth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">50</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>capturePadding<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">30</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>toolbarMargin<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">28</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>toolbarPadding<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">7</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>groupGap<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">12</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>buttonInset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">7</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>buttonRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">11.0f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>labelRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">8.0f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>labelPadding<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">11</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>words<span class="token operator">: </span><a href="../-screenshot-words/index.html">ScreenshotWords</a><span class="token operator"> = </span>ScreenshotWords()</span></span><span class="token punctuation">)</span></div><p class="paragraph">How the screenshot chooser looks: its toolbar's <a href="../../../caulis-screenshot/dev.caulis.screenshot/-screenshot-style/--root--.html">background</a>, <a href="../../../caulis-screenshot/dev.caulis.screenshot/-screenshot-style/--root--.html">text</a> and <a href="../../../caulis-screenshot/dev.caulis.screenshot/-screenshot-style/--root--.html">border</a>, <a href="../../../caulis-screenshot/dev.caulis.screenshot/-screenshot-style/--root--.html">dim</a> text (a key's name in a tip), the <a href="../../../caulis-screenshot/dev.caulis.screenshot/-screenshot-style/--root--.html">accent</a> (the Capture button, the frame around a window or screen; <a href="../../../caulis-screenshot/dev.caulis.screenshot/-screenshot-style/--root--.html">onAccent</a> is written on it), its corners' <a href="../../../caulis-screenshot/dev.caulis.screenshot/-screenshot-style/--root--.html">cornerRadius</a> (units; half its height makes a pill), the <a href="../../../caulis-screenshot/dev.caulis.screenshot/-screenshot-style/--root--.html">font</a> and its sizes, how dark the screen gets around what is chosen (<a href="../../../caulis-screenshot/dev.caulis.screenshot/-screenshot-style/--root--.html">shade</a>), and its <a href="../../../caulis-screenshot/dev.caulis.screenshot/-screenshot-style/--root--.html">words</a> in your language. Sizes are in desktop units.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="-1195773822%2FConstructors%2F-426483710" anchor-label="ScreenshotStyle" id="-1195773822%2FConstructors%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-screenshot-style.html"><span>Screenshot</span><wbr><span><span>Style</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1195773822%2FConstructors%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-overloads/index.html"><span class="token annotation builtin">JvmOverloads</span></a></div></div><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">background<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(0.11f, 0.118f, 0.141f, 0.925f)<span class="token punctuation">, </span></span><span class="parameter ">text<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(0.94f, 0.95f, 0.965f)<span class="token punctuation">, </span></span><span class="parameter ">dim<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(0.94f, 0.95f, 0.965f, 0.5f)<span class="token punctuation">, </span></span><span class="parameter ">border<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(1f, 1f, 1f, 0.11f)<span class="token punctuation">, </span></span><span class="parameter ">accent<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(0.24f, 0.55f, 0.99f)<span class="token punctuation">, </span></span><span class="parameter ">onAccent<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(1f, 1f, 1f)<span class="token punctuation">, </span></span><span class="parameter ">cornerRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">18.0f</span><span class="token punctuation">, </span></span><span class="parameter ">font<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span>java.awt.Font.SANS_SERIF<span class="token punctuation">, </span></span><span class="parameter ">fontSize<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">12.0f</span><span class="token punctuation">, </span></span><span class="parameter ">captureFontSize<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">13.0f</span><span class="token punctuation">, </span></span><span class="parameter ">shade<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.42f</span><span class="token punctuation">, </span></span><span class="parameter ">shadow<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(0f, 0f, 0f, 0.35f)<span class="token punctuation">, </span></span><span class="parameter ">shadowSize<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">18.0f</span><span class="token punctuation">, </span></span><span class="parameter ">handleSize<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">9</span><span class="token punctuation">, </span></span><span class="parameter ">handle<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(1f, 1f, 1f)<span class="token punctuation">, </span></span><span class="parameter ">handleRim<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator"> = </span>Color(0.1f, 0.1f, 0.12f, 0.6f)<span class="token punctuation">, </span></span><span class="parameter ">toolbarHeight<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">58</span><span class="token punctuation">, </span></span><span class="parameter ">buttonWidth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">50</span><span class="token punctuation">, </span></span><span class="parameter ">capturePadding<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">30</span><span class="token punctuation">, </span></span><span class="parameter ">toolbarMargin<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">28</span><span class="token punctuation">, </span></span><span class="parameter ">toolbarPadding<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">7</span><span class="token punctuation">, </span></span><span class="parameter ">groupGap<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">12</span><span class="token punctuation">, </span></span><span class="parameter ">buttonInset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">7</span><span class="token punctuation">, </span></span><span class="parameter ">buttonRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">11.0f</span><span class="token punctuation">, </span></span><span class="parameter ">labelRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">8.0f</span><span class="token punctuation">, </span></span><span class="parameter ">labelPadding<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">11</span><span class="token punctuation">, </span></span><span class="parameter ">words<span class="token operator">: </span><a href="../-screenshot-words/index.html">ScreenshotWords</a><span class="token operator"> = </span>ScreenshotWords()</span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="1558299036%2FProperties%2F-426483710" anchor-label="accent" id="1558299036%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="accent.html"><span><span>accent</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1558299036%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="accent.html">accent</a><span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1237040440%2FProperties%2F-426483710" anchor-label="background" id="1237040440%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="background.html"><span><span>background</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1237040440%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="background.html">background</a><span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-315378566%2FProperties%2F-426483710" anchor-label="border" id="-315378566%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="border.html"><span><span>border</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-315378566%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="border.html">border</a><span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1912953673%2FProperties%2F-426483710" anchor-label="buttonInset" id="1912953673%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="button-inset.html"><span>button</span><wbr><span><span>Inset</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1912953673%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="button-inset.html">buttonInset</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">How far a button's tile is inside the toolbar (above and below), and its corners' radius.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1884443266%2FProperties%2F-426483710" anchor-label="buttonRadius" id="1884443266%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="button-radius.html"><span>button</span><wbr><span><span>Radius</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1884443266%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="button-radius.html">buttonRadius</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-700977472%2FProperties%2F-426483710" anchor-label="buttonWidth" id="-700977472%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="button-width.html"><span>button</span><wbr><span><span>Width</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-700977472%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="button-width.html">buttonWidth</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-136694562%2FProperties%2F-426483710" anchor-label="captureFontSize" id="-136694562%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="capture-font-size.html"><span>capture</span><wbr><span>Font</span><wbr><span><span>Size</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-136694562%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="capture-font-size.html">captureFontSize</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">The size of the Capture button's word (bold).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1013244571%2FProperties%2F-426483710" anchor-label="capturePadding" id="1013244571%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="capture-padding.html"><span>capture</span><wbr><span><span>Padding</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1013244571%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="capture-padding.html">capturePadding</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1000185089%2FProperties%2F-426483710" anchor-label="cornerRadius" id="-1000185089%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="corner-radius.html"><span>corner</span><wbr><span><span>Radius</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1000185089%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="corner-radius.html">cornerRadius</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1382935916%2FProperties%2F-426483710" anchor-label="dim" id="1382935916%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="dim.html"><span><span>dim</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1382935916%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="dim.html">dim</a><span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1956954121%2FProperties%2F-426483710" anchor-label="font" id="-1956954121%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="font.html"><span><span>font</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1956954121%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="font.html">font</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-513706506%2FProperties%2F-426483710" anchor-label="fontSize" id="-513706506%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="font-size.html"><span>font</span><wbr><span><span>Size</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-513706506%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="font-size.html">fontSize</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">The size of the tips' and labels' text (the size of the part chosen).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="991247599%2FProperties%2F-426483710" anchor-label="groupGap" id="991247599%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="group-gap.html"><span>group</span><wbr><span><span>Gap</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="991247599%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="group-gap.html">groupGap</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="891661822%2FProperties%2F-426483710" anchor-label="handle" id="891661822%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="handle.html"><span><span>handle</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="891661822%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="handle.html">handle</a><span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1758493274%2FProperties%2F-426483710" anchor-label="handleRim" id="-1758493274%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="handle-rim.html"><span>handle</span><wbr><span><span>Rim</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1758493274%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="handle-rim.html">handleRim</a><span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1532524419%2FProperties%2F-426483710" anchor-label="handleSize" id="-1532524419%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="handle-size.html"><span>handle</span><wbr><span><span>Size</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1532524419%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="handle-size.html">handleSize</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">The dots on a part's edges and corners (to drag them): their size, colour and rim.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1961486473%2FProperties%2F-426483710" anchor-label="labelPadding" id="1961486473%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="label-padding.html"><span>label</span><wbr><span><span>Padding</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1961486473%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="label-padding.html">labelPadding</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="63354894%2FProperties%2F-426483710" anchor-label="labelRadius" id="63354894%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="label-radius.html"><span>label</span><wbr><span><span>Radius</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="63354894%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="label-radius.html">labelRadius</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">The pills with a tip or the size of the part: their corners' radius and the room left and right of their text.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1259174269%2FProperties%2F-426483710" anchor-label="onAccent" id="1259174269%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="on-accent.html"><span>on</span><wbr><span><span>Accent</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1259174269%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="on-accent.html">onAccent</a><span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="996959655%2FProperties%2F-426483710" anchor-label="shade" id="996959655%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="shade.html"><span><span>shade</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="996959655%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="shade.html">shade</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">How dark the screen gets around what is chosen (0: not at all, 1: black).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-737449466%2FProperties%2F-426483710" anchor-label="shadow" id="-737449466%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="shadow.html"><span><span>shadow</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-737449466%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="shadow.html">shadow</a><span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a></div><div class="brief "><p class="paragraph">The toolbar's shadow: its colour and how far it spreads.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1564475259%2FProperties%2F-426483710" anchor-label="shadowSize" id="-1564475259%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="shadow-size.html"><span>shadow</span><wbr><span><span>Size</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1564475259%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="shadow-size.html">shadowSize</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1564861223%2FProperties%2F-426483710" anchor-label="text" id="-1564861223%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="text.html"><span><span>text</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1564861223%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="text.html">text</a><span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1165498894%2FProperties%2F-426483710" anchor-label="toolbarHeight" id="-1165498894%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="toolbar-height.html"><span>toolbar</span><wbr><span><span>Height</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1165498894%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="toolbar-height.html">toolbarHeight</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">The toolbar's height, a button's width (Capture is as wide as its word needs, with <a href="../../../caulis-screenshot/dev.caulis.screenshot/-screenshot-style/--root--.html">capturePadding</a> each side).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1033287861%2FProperties%2F-426483710" anchor-label="toolbarMargin" id="-1033287861%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="toolbar-margin.html"><span>toolbar</span><wbr><span><span>Margin</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1033287861%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="toolbar-margin.html">toolbarMargin</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">How far above the bottom of the monitor (its usable part) the toolbar is.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-451243312%2FProperties%2F-426483710" anchor-label="toolbarPadding" id="-451243312%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="toolbar-padding.html"><span>toolbar</span><wbr><span><span>Padding</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-451243312%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="toolbar-padding.html">toolbarPadding</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">The room at the toolbar's ends, and between its groups of buttons (the kinds, the options, Capture).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1997692075%2FProperties%2F-426483710" anchor-label="words" id="1997692075%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="words.html"><span><span>words</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1997692075%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="words.html">words</a><span class="token operator">: </span><a href="../-screenshot-words/index.html">ScreenshotWords</a></div><div class="brief "><p class="paragraph">Its words: in your language.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

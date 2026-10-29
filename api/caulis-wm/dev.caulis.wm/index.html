@@ -1,0 +1,535 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>dev.caulis.wm</title>
+<link href="../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-wm/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-wm/main" data-filter=":caulis-wm/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="package" id="content" pageids="caulis-wm::dev.caulis.wm////PointingToDeclaration//-1748554126">
+  <div class="breadcrumbs"><a href="../index.html">caulis-wm</a><span class="delimiter">/</span><span class="current">dev.caulis.wm</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+    <div class="platform-hinted UnderCoverText" data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><p class="paragraph">The <code class="lang-kotlin">caulis { }</code> entry point and the <code class="lang-kotlin">Caulis</code> class (also usable from Java).</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button><button class="section-tab" data-togglable="FUNCTION,EXTENSION_FUNCTION">Functions</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="-94299424%2FClasslikes%2F-1748554126" anchor-label="ActionHandler" id="-94299424%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-action-handler/index.html"><span>Action</span><wbr><span><span>Handler</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-94299424%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token keyword">interface </span><a href="-action-handler/index.html">ActionHandler</a></div><div class="brief "><p class="paragraph">For Java: an action of your own (<a href="-caulis/action.html">Caulis.action</a>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-795502239%2FClasslikes%2F-1748554126" anchor-label="Autostart" id="-795502239%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-autostart/index.html"><span><span>Autostart</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-795502239%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-autostart/index.html">Autostart</a> : <a href="-startup-settings/index.html">StartupSettings</a></div><div class="brief "><p class="paragraph">Programs started with the session — a bar, a tray applet, a notification daemon — one after another (<a href="-autostart/stagger.html">stagger</a> apart, so the start does not stutter), once the desktop is shown (<a href="-autostart/after-reveal.html">afterReveal</a>):</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1026604713%2FClasslikes%2F-1748554126" anchor-label="BindingModifiers" id="-1026604713%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-binding-modifiers/index.html"><span>Binding</span><wbr><span><span>Modifiers</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1026604713%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">enum </span><a href="-binding-modifiers/index.html">BindingModifiers</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="-binding-modifiers/index.html">BindingModifiers</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">Which keys are modifiers in bindings (see <a href="-caulis/binding-modifiers.html">Caulis.bindingModifiers</a>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2111445203%2FClasslikes%2F-1748554126" anchor-label="BindOptions" id="2111445203%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-bind-options/index.html"><span>Bind</span><wbr><span><span>Options</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2111445203%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">typealias </span><a href="-bind-options/index.html">BindOptions</a><span class="token operator"> = </span><a href="../../caulis-core/dev.caulis.core.input/-key-bindings/-options/index.html">KeyBindings.Options</a></div><div class="brief "><p class="paragraph">How one of your keys behaves (repeat while held, on release, while locked, a description).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="419714686%2FClasslikes%2F-1748554126" anchor-label="CannotStartException" id="419714686%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-cannot-start-exception/index.html"><span>Cannot</span><wbr><span>Start</span><wbr><span><span>Exception</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="419714686%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-cannot-start-exception/index.html">CannotStartException</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">message<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/RuntimeException.html">RuntimeException</a></div><div class="brief "><p class="paragraph">The compositor cannot start because something it needs is missing (explained on stderr).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="511581871%2FClasslikes%2F-1748554126" anchor-label="Caulis" id="511581871%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-caulis/index.html"><span><span>Caulis</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="511581871%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-caulis/index.html">Caulis</a></div><div class="brief "><p class="paragraph">A complete compositor, configured in a few lines and started with <a href="-caulis/run.html">run</a>:</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-646129809%2FClasslikes%2F-1748554126" anchor-label="DisplayMode" id="-646129809%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-display-mode/index.html"><span>Display</span><wbr><span><span>Mode</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-646129809%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">enum </span><a href="-display-mode/index.html">DisplayMode</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="-display-mode/index.html">DisplayMode</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">How a laptop's own screen and a monitor or projector plugged into it are used together.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1337391671%2FClasslikes%2F-1748554126" anchor-label="FocusStealing" id="-1337391671%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-focus-stealing/index.html"><span>Focus</span><wbr><span><span>Stealing</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1337391671%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">enum </span><a href="-focus-stealing/index.html">FocusStealing</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="-focus-stealing/index.html">FocusStealing</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">Which programs may take the keyboard by themselves (see <a href="-caulis/focus-stealing.html">Caulis.focusStealing</a>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1730727005%2FClasslikes%2F-1748554126" anchor-label="KeyInput" id="-1730727005%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-key-input/index.html"><span>Key</span><wbr><span><span>Input</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1730727005%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-key-input/index.html">KeyInput</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>evdevCode<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>pressed<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>keysym<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>modifiers<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>modifiersBefore<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>locked<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>timeMillis<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">A key as <a href="-caulis/on-key.html">Caulis.onKey</a> gets it, before anything else does: its Linux code, its symbol's name for shortcuts ("h", "H", "Return", "Super_L", "XF86AudioMute" — Latin whatever the layout: the key of "в" on the Russian layout is "d"), and the modifiers held before and after it (<a href="-key-input/-modifiers/index.html">Modifiers</a> bits).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1688743162%2FClasslikes%2F-1748554126" anchor-label="Keys" id="1688743162%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-keys/index.html"><span><span>Keys</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1688743162%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-keys/index.html">Keys</a></div><div class="brief "><p class="paragraph">All the usual keys of a <a href="-caulis/index.html">Caulis</a> compositor, each with a name: change one, or turn it off with null. Set them in <code class="lang-kotlin">keys { }</code>:</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="593868885%2FClasslikes%2F-1748554126" anchor-label="LockFailure" id="593868885%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-lock-failure/index.html"><span>Lock</span><wbr><span><span>Failure</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="593868885%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">enum </span><a href="-lock-failure/index.html">LockFailure</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="-lock-failure/index.html">LockFailure</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">What happens when a lock that was asked for (a key, idle, logind, before sleep) does not show.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1773886196%2FClasslikes%2F-1748554126" anchor-label="PanelRule" id="1773886196%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-panel-rule/index.html"><span>Panel</span><wbr><span><span>Rule</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1773886196%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-panel-rule/index.html">PanelRule</a></div><div class="brief "><p class="paragraph">A rule for some panels (layer surfaces: bars, docks, launchers, notifications), written in <code class="lang-kotlin">panelRule { }</code>: which ones (<a href="-panel-rule/namespace.html">namespace</a>, <a href="-panel-rule/layer.html">layer</a>, <a href="-panel-rule/where.html">where</a>) and how they look and behave.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-13636013%2FClasslikes%2F-1748554126" anchor-label="PointerButtonHandler" id="-13636013%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-pointer-button-handler/index.html"><span>Pointer</span><wbr><span>Button</span><wbr><span><span>Handler</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-13636013%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token keyword">interface </span><a href="-pointer-button-handler/index.html">PointerButtonHandler</a></div><div class="brief "><p class="paragraph">For Java: <a href="-caulis/on-pointer-button.html">Caulis.onPointerButton</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1283290839%2FClasslikes%2F-1748554126" anchor-label="PointerMotionHandler" id="1283290839%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-pointer-motion-handler/index.html"><span>Pointer</span><wbr><span>Motion</span><wbr><span><span>Handler</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1283290839%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token keyword">interface </span><a href="-pointer-motion-handler/index.html">PointerMotionHandler</a></div><div class="brief "><p class="paragraph">For Java: <a href="-caulis/on-pointer-motion.html">Caulis.onPointerMotion</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1105511311%2FClasslikes%2F-1748554126" anchor-label="ProgramOutput" id="1105511311%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-program-output/index.html"><span>Program</span><wbr><span><span>Output</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1105511311%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">enum </span><a href="-program-output/index.html">ProgramOutput</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="-program-output/index.html">ProgramOutput</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">Where the output of the programs a compositor starts goes (see <a href="-caulis/program-output.html">Caulis.programOutput</a>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1590484522%2FClasslikes%2F-1748554126" anchor-label="ReloadCompiler" id="-1590484522%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-reload-compiler/index.html"><span>Reload</span><wbr><span><span>Compiler</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1590484522%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-reload-compiler/index.html">ReloadCompiler</a></div><div class="brief "><p class="paragraph">Compiles a project's sources inside the running compositor, for <a href="-caulis/hot-reload.html">Caulis.hotReload</a> — in well under the time a Gradle build takes. The module caulis-reload provides one (meant for development only: add it to the <code class="lang-kotlin">run</code> task, not to what you install); without it, the project's own Gradle compiles.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2045991003%2FClasslikes%2F-1748554126" anchor-label="Restart" id="-2045991003%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-restart/index.html"><span><span>Restart</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2045991003%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-restart/index.html">Restart</a></div><div class="brief "><p class="paragraph">When a program of <a href="-autostart/index.html">Autostart</a> that ended is started again: never (<a href="-restart/-companion/-n-e-v-e-r.html">NEVER</a>, the default), when it crashed (<a href="-restart/-companion/on-crash.html">onCrash</a>), whenever it ended (<a href="-restart/-companion/always.html">always</a>), or when your own rule says so (<a href="-restart/-companion/when-ended.html">whenEnded</a>) — at most <a href="../../caulis-wm/dev.caulis.wm/-restart/--root--.html">maxTimes</a> times within <a href="../../caulis-wm/dev.caulis.wm/-restart/--root--.html">withinMillis</a> (then it is given up, and the log says so).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="385052161%2FClasslikes%2F-1748554126" anchor-label="Reveal" id="385052161%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-reveal/index.html"><span><span>Reveal</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="385052161%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-reveal/index.html">Reveal</a> : <a href="-startup-settings/index.html">StartupSettings</a></div><div class="brief "><p class="paragraph">The start, smooth: the screens stay <a href="-reveal/color.html">color</a> (black) — no half-drawn frames, no panel popping in — until the compositor is warm: its first frames drawn (shaders compiled on the way) and the work you asked it to wait for done (<a href="-reveal/hold.html">hold</a>, <a href="-reveal/when-warm.html">whenWarm</a>); then the desktop fades in over <a href="-reveal/fade.html">fade</a>. Never longer than <a href="-reveal/max-wait.html">maxWait</a>. Programs of <a href="-autostart/index.html">Autostart</a> start after it.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-498761414%2FClasslikes%2F-1748554126" anchor-label="ScreenDisplayHandler" id="-498761414%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-screen-display-handler/index.html"><span>Screen</span><wbr><span>Display</span><wbr><span><span>Handler</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-498761414%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token keyword">interface </span><a href="-screen-display-handler/index.html">ScreenDisplayHandler</a></div><div class="brief "><p class="paragraph">What <a href="-caulis/on-screen-display.html">Caulis.onScreenDisplay</a> hands what the laptop's keys changed to.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1615370377%2FClasslikes%2F-1748554126" anchor-label="ScrollHandler" id="-1615370377%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-scroll-handler/index.html"><span>Scroll</span><wbr><span><span>Handler</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1615370377%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token keyword">interface </span><a href="-scroll-handler/index.html">ScrollHandler</a></div><div class="brief "><p class="paragraph">For Java: <a href="-caulis/on-scroll.html">Caulis.onScroll</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1054988219%2FClasslikes%2F-1748554126" anchor-label="SoundMoment" id="-1054988219%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-sound-moment/index.html"><span>Sound</span><wbr><span><span>Moment</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1054988219%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">enum </span><a href="-sound-moment/index.html">SoundMoment</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="-sound-moment/index.html">SoundMoment</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">When <a href="-startup-sound/index.html">StartupSound</a> plays.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1362624384%2FClasslikes%2F-1748554126" anchor-label="StartupChimes" id="1362624384%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-startup-chimes/index.html"><span>Startup</span><wbr><span><span>Chimes</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1362624384%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-startup-chimes/index.html">StartupChimes</a></div><div class="brief "><p class="paragraph">The startup sounds Caulis makes itself: a small additive synthesizer (soft pads of a few detuned partials, glassy bells, a shimmer, a hall around it), written as a WAV file — the same bytes every time. Every preset's notes are our own; none is a recording.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1182812652%2FClasslikes%2F-1748554126" anchor-label="StartupSettings" id="-1182812652%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-startup-settings/index.html"><span>Startup</span><wbr><span><span>Settings</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1182812652%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">class </span><a href="-startup-settings/index.html">StartupSettings</a></div><div class="brief "><p class="paragraph">What the start's settings share: times written as <code class="lang-kotlin">2.seconds</code> or <code class="lang-kotlin">400.milliseconds</code> in them without importing anything.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1983266588%2FClasslikes%2F-1748554126" anchor-label="StartupSound" id="1983266588%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-startup-sound/index.html"><span>Startup</span><wbr><span><span>Sound</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1983266588%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-startup-sound/index.html">StartupSound</a> : <a href="-startup-settings/index.html">StartupSettings</a></div><div class="brief "><p class="paragraph">A sound when the session starts — off unless you turn it on:</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-976975029%2FClasslikes%2F-1748554126" anchor-label="SystemKeys" id="-976975029%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-system-keys/index.html"><span>System</span><wbr><span><span>Keys</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-976975029%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-system-keys/index.html">SystemKeys</a></div><div class="brief "><p class="paragraph">What a laptop's keys do (<a href="-keys/volume-up.html">Keys.volumeUp</a>, <a href="-keys/brightness-up.html">Keys.brightnessUp</a>, the media keys and the actions <code class="lang-kotlin">volume</code>, <code class="lang-kotlin">brightness</code>, <code class="lang-kotlin">media</code>): the steps, the limits, and the programs run for them. Change them with <code class="lang-kotlin">systemKeys { volumeStep = 2; maxVolume = 1.5 }</code>; every change applies at the next key press.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1710852830%2FClasslikes%2F-1748554126" anchor-label="WindowRule" id="-1710852830%2FClasslikes%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-window-rule/index.html"><span>Window</span><wbr><span><span>Rule</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1710852830%2FClasslikes%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-window-rule/index.html">WindowRule</a></div><div class="brief "><p class="paragraph">A rule for some windows, written in <code class="lang-kotlin">rule { }</code>: which windows (<a href="-window-rule/app-id.html">appId</a>, <a href="-window-rule/title.html">title</a>, <a href="-window-rule/program.html">program</a>, <a href="-window-rule/where.html">where</a>) and what happens to them.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="490542218%2FFunctions%2F-1748554126" anchor-label="caulis" id="490542218%2FFunctions%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="caulis.html"><span><span>caulis</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="490542218%2FFunctions%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="caulis.html"><span class="token function">caulis</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">configure<span class="token operator">: </span><a href="-caulis/index.html">Caulis</a><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Configures and runs a compositor (see <a href="-caulis/index.html">Caulis</a>). Problems that stop it from starting are printed in plain words and end the program.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

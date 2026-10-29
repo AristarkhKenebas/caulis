@@ -1,0 +1,494 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>ZwlrForeignToplevelHandleV1</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-protocol/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-protocol/main" data-filter=":caulis-protocol/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-protocol::dev.caulis.protocol.wlrforeigntoplevelmanagementunstablev1/ZwlrForeignToplevelHandleV1///PointingToDeclaration//-1726305676">
+  <div class="breadcrumbs"><a href="../../index.html">caulis-protocol</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.protocol.wlrforeigntoplevelmanagementunstablev1</a><span class="delimiter">/</span><span class="current">ZwlrForeignToplevelHandleV1</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Zwlr</span><wbr><span>Foreign</span><wbr><span>Toplevel</span><wbr><span>Handle</span><wbr><span><span>V1</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">ZwlrForeignToplevelHandleV1</a> : <a href="../../dev.caulis.protocol/-resource/index.html">Resource</a></div><p class="paragraph">An opened toplevel</p><p class="paragraph">A zwlr_foreign_toplevel_handle_v1 object represents an opened toplevel window. Each app may have multiple opened toplevels.</p><p class="paragraph">Each toplevel has a list of outputs it is visible on, conveyed to the client with the output_enter and output_leave events.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="-1962029401%2FClasslikes%2F-1726305676" anchor-label="Companion" id="-1962029401%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1962029401%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a> : <a href="../../dev.caulis.protocol/-resource-type/index.html">ResourceType</a><span class="token operator">&lt;</span><a href="index.html">ZwlrForeignToplevelHandleV1</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1937228843%2FClasslikes%2F-1726305676" anchor-label="Error" id="1937228843%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-error/index.html"><span><span>Error</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1937228843%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-error/index.html">Error</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-434922325%2FClasslikes%2F-1726305676" anchor-label="Requests" id="-434922325%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-requests/index.html"><span><span>Requests</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-434922325%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-requests/index.html">Requests</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-667710014%2FClasslikes%2F-1726305676" anchor-label="State" id="-667710014%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-state/index.html"><span><span>State</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-667710014%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-state/index.html">State</a></div><div class="brief "><p class="paragraph">Types of states on the toplevel</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="-81368846%2FProperties%2F-1726305676" anchor-label="client" id="-81368846%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol/-resource/client.html"><span><span>client</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-81368846%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="../../dev.caulis.protocol/-resource/client.html">client</a><span class="token operator">: </span><a href="../../dev.caulis.protocol/-client/index.html">Client</a></div><div class="brief "><p class="paragraph">The client that owns this object.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1459266061%2FProperties%2F-1726305676" anchor-label="data" id="-1459266061%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol/-resource/data.html"><span><span>data</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1459266061%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="../../dev.caulis.protocol/-resource/data.html">data</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">The compositor's own object behind this protocol object (for example the <code class="lang-kotlin">ShmBuffer</code> behind a wl_buffer). Set by whoever implements the interface; read with <a href="../../dev.caulis.protocol/-resource/data-as.html">dataAs</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="136427938%2FProperties%2F-1726305676" anchor-label="id" id="136427938%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol/-resource/id.html"><span><span>id</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="136427938%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="../../dev.caulis.protocol/-resource/id.html">id</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">The number the client uses to refer to this object.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="895464634%2FProperties%2F-1726305676" anchor-label="isAlive" id="895464634%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol/-resource/is-alive.html"><span>is</span><wbr><span><span>Alive</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="895464634%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="../../dev.caulis.protocol/-resource/is-alive.html">isAlive</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">False once the object was destroyed (by the client, the compositor, or a disconnect).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="236465782%2FProperties%2F-1726305676" anchor-label="requests" id="236465782%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="requests.html"><span><span>requests</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="236465782%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="requests.html">requests</a><span class="token operator">: </span><a href="-requests/index.html">ZwlrForeignToplevelHandleV1.Requests</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Handles the requests clients send to this object; set by the code that implements zwlr_foreign_toplevel_handle_v1.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2008331840%2FProperties%2F-1726305676" anchor-label="type" id="2008331840%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="type.html"><span><span>type</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2008331840%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="type.html">type</a><span class="token operator">: </span><a href="../../dev.caulis.protocol/-resource-type/index.html">ResourceType</a><span class="token operator">&lt;</span><a href="index.html">ZwlrForeignToplevelHandleV1</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1128231099%2FProperties%2F-1726305676" anchor-label="version" id="-1128231099%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol/-resource/version.html"><span><span>version</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1128231099%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="../../dev.caulis.protocol/-resource/version.html">version</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">The protocol version the client asked for; newer features are only used if it allows.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="-155893663%2FFunctions%2F-1726305676" anchor-label="dataAs" id="-155893663%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol/-resource/data-as.html"><span>data</span><wbr><span><span>As</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-155893663%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../../dev.caulis.protocol/-resource/data-as.html">T</a><span class="token operator">&gt; </span><a href="../../dev.caulis.protocol/-resource/data-as.html"><span class="token function">dataAs</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../dev.caulis.protocol/-resource/data-as.html">T</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph"><a href="../../dev.caulis.protocol/-resource/data.html">data</a> if it is a <a href="../../dev.caulis.protocol/-resource/data-as.html">T</a>, otherwise null (e.g. a buffer of another kind).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-553093533%2FFunctions%2F-1726305676" anchor-label="destroy" id="-553093533%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol/-resource/destroy.html"><span><span>destroy</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-553093533%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="../../dev.caulis.protocol/-resource/destroy.html"><span class="token function">destroy</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Destroys the object from the compositor's side.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-272827740%2FFunctions%2F-1726305676" anchor-label="onDestroy" id="-272827740%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol/-resource/on-destroy.html"><span>on</span><wbr><span><span>Destroy</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-272827740%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="../../dev.caulis.protocol/-resource/on-destroy.html"><span class="token function">onDestroy</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">listener<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Runs <a href="../../dev.caulis.protocol/-resource/on-destroy.html">listener</a> when this object goes away, for any reason.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2051554344%2FFunctions%2F-1726305676" anchor-label="postError" id="-2051554344%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol/-resource/post-error.html"><span>post</span><wbr><span><span>Error</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2051554344%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="../../dev.caulis.protocol/-resource/post-error.html"><span class="token function">postError</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">code<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">message<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Reports that the client used this object wrongly. The client gets the error and is disconnected; the compositor keeps running.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-44954344%2FFunctions%2F-1726305676" anchor-label="sendAppId" id="-44954344%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="send-app-id.html"><span>send</span><wbr><span>App</span><wbr><span><span>Id</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-44954344%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="send-app-id.html"><span class="token function">sendAppId</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">appId<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">App-id change</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1645541914%2FFunctions%2F-1726305676" anchor-label="sendClosed" id="-1645541914%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="send-closed.html"><span>send</span><wbr><span><span>Closed</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1645541914%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="send-closed.html"><span class="token function">sendClosed</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">This toplevel has been destroyed</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1184585264%2FFunctions%2F-1726305676" anchor-label="sendDone" id="-1184585264%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="send-done.html"><span>send</span><wbr><span><span>Done</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1184585264%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="send-done.html"><span class="token function">sendDone</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">All information about the toplevel has been sent</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1207521575%2FFunctions%2F-1726305676" anchor-label="sendOutputEnter" id="1207521575%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="send-output-enter.html"><span>send</span><wbr><span>Output</span><wbr><span><span>Enter</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1207521575%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="send-output-enter.html"><span class="token function">sendOutputEnter</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">output<span class="token operator">: </span><a href="../../dev.caulis.protocol.wayland/-wl-output/index.html">WlOutput</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Toplevel entered an output</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1212963416%2FFunctions%2F-1726305676" anchor-label="sendOutputLeave" id="-1212963416%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="send-output-leave.html"><span>send</span><wbr><span>Output</span><wbr><span><span>Leave</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1212963416%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="send-output-leave.html"><span class="token function">sendOutputLeave</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">output<span class="token operator">: </span><a href="../../dev.caulis.protocol.wayland/-wl-output/index.html">WlOutput</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Toplevel left an output</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1236432808%2FFunctions%2F-1726305676" anchor-label="sendParent" id="1236432808%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="send-parent.html"><span>send</span><wbr><span><span>Parent</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1236432808%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="send-parent.html"><span class="token function">sendParent</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">parent<span class="token operator">: </span><a href="index.html">ZwlrForeignToplevelHandleV1</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Parent change</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1389767091%2FFunctions%2F-1726305676" anchor-label="sendState" id="1389767091%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="send-state.html"><span>send</span><wbr><span><span>State</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1389767091%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="send-state.html"><span class="token function">sendState</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">state<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-byte-array/index.html">ByteArray</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">The toplevel state changed</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1308466348%2FFunctions%2F-1726305676" anchor-label="sendTitle" id="-1308466348%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="send-title.html"><span>send</span><wbr><span><span>Title</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1308466348%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="send-title.html"><span class="token function">sendTitle</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">title<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Title change</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1072371343%2FFunctions%2F-1726305676" anchor-label="toString" id="-1072371343%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol/-resource/to-string.html"><span>to</span><wbr><span><span>String</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1072371343%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../dev.caulis.protocol/-resource/to-string.html"><span class="token function">toString</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,299 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>Xwayland</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-xwayland/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-xwayland/main" data-filter=":caulis-xwayland/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-xwayland::dev.caulis.xwayland/Xwayland///PointingToDeclaration//-125515330">
+  <div class="breadcrumbs"><a href="../../index.html">caulis-xwayland</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.xwayland</a><span class="delimiter">/</span><span class="current">Xwayland</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Xwayland</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">Xwayland</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">display<span class="token operator">: </span><a href="../../../caulis-protocol/dev.caulis.protocol/-display/index.html">Display</a><span class="token punctuation">, </span></span><span class="parameter ">desktop<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-desktop/index.html">Desktop</a><span class="token punctuation">, </span></span><span class="parameter ">loop<span class="token operator">: </span><a href="../../../caulis-native/dev.caulis.event/-event-loop/index.html">EventLoop</a><span class="token punctuation">, </span></span><span class="parameter ">clipboard<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-data-device-manager/index.html">DataDeviceManager</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">idleSeconds<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">10</span><span class="token punctuation">, </span></span><span class="parameter ">wholeScaleWorlds<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">true</span><span class="token punctuation">, </span></span><span class="parameter ">wholeScaleOf<span class="token operator">: </span><span class="token punctuation">(</span>pid<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator">?</span><span class="token operator"> = </span>WholeScalePrograms::scaleOf</span></span><span class="token punctuation">)</span> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/AutoCloseable.html">AutoCloseable</a></div><p class="paragraph">X11 programs in the compositor. Their display (<a href="display-name.html">displayName</a>, e.g. ":1", what DISPLAY is set to) is open at once, but Xwayland itself is started only when the first X11 program connects — no memory or start-up time is spent while none runs — and stops by itself <a href="../../../caulis-xwayland/dev.caulis.xwayland/-xwayland/--root--.html">idleSeconds</a> after the last one left; the next starts it again.</p><p class="paragraph">Their windows are managed by <a href="../-xwm/index.html">Xwm</a>: they tile, float, get title bars and effects, show in docks and screen sharing like Wayland windows, and copy and paste works between X11 and Wayland programs (give the <a href="../../../caulis-xwayland/dev.caulis.xwayland/-xwayland/--root--.html">clipboard</a>).</p><p class="paragraph">Scaled screens: X works in the screen's real pixels and programs are told the real DPI (Xft.dpi) and cursor size, so they are as sharp and as big as Wayland programs. Programs that only know whole scales — Java (Swing, AWT) — cannot draw at 1.5: with <a href="../../../caulis-xwayland/dev.caulis.xwayland/-xwayland/--root--.html">wholeScaleWorlds</a>, they get an Xwayland of their own that works in a whole number of pixels per unit (their scale, e.g. 2), and are shown at exactly the screen's scale — sharp (made smaller, never larger), the right size, every part clickable. The display then is a door (<a href="../../../caulis-xwayland/dev.caulis.xwayland/-x-router/index.html">XRouter</a>) that joins each program to its Xwayland.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="-1321382727%2FConstructors%2F-125515330" anchor-label="Xwayland" id="-1321382727%2FConstructors%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-xwayland.html"><span><span>Xwayland</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1321382727%2FConstructors%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">display<span class="token operator">: </span><a href="../../../caulis-protocol/dev.caulis.protocol/-display/index.html">Display</a><span class="token punctuation">, </span></span><span class="parameter ">desktop<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-desktop/index.html">Desktop</a><span class="token punctuation">, </span></span><span class="parameter ">loop<span class="token operator">: </span><a href="../../../caulis-native/dev.caulis.event/-event-loop/index.html">EventLoop</a><span class="token punctuation">, </span></span><span class="parameter ">clipboard<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-data-device-manager/index.html">DataDeviceManager</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">idleSeconds<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">10</span><span class="token punctuation">, </span></span><span class="parameter ">wholeScaleWorlds<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">true</span><span class="token punctuation">, </span></span><span class="parameter ">wholeScaleOf<span class="token operator">: </span><span class="token punctuation">(</span>pid<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator">?</span><span class="token operator"> = </span>WholeScalePrograms::scaleOf</span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="1433665478%2FProperties%2F-125515330" anchor-label="displayName" id="1433665478%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="display-name.html"><span>display</span><wbr><span><span>Name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1433665478%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="display-name.html">displayName</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div><div class="brief "><p class="paragraph">The X display X11 programs connect to, e.g. ":1" (set DISPLAY to it).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1309913185%2FProperties%2F-125515330" anchor-label="maxFailedStarts" id="1309913185%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="max-failed-starts.html"><span>max</span><wbr><span>Failed</span><wbr><span><span>Starts</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1309913185%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="max-failed-starts.html">maxFailedStarts</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">After this many failed starts in a row Xwayland is not tried any more: X11 programs are turned away at once (instead of waiting forever) until <a href="retry.html">retry</a> (5 by default).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-938553251%2FProperties%2F-125515330" anchor-label="restartDelayMaxMillis" id="-938553251%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="restart-delay-max-millis.html"><span>restart</span><wbr><span>Delay</span><wbr><span>Max</span><wbr><span><span>Millis</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-938553251%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="restart-delay-max-millis.html">restartDelayMaxMillis</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></div><div class="brief "><p class="paragraph">The longest wait between tries to start a failing Xwayland (60 s by default).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1547476557%2FProperties%2F-125515330" anchor-label="restartDelayMillis" id="1547476557%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="restart-delay-millis.html"><span>restart</span><wbr><span>Delay</span><wbr><span><span>Millis</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1547476557%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="restart-delay-millis.html">restartDelayMillis</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></div><div class="brief "><p class="paragraph">After Xwayland failed to start (not installed, quitting before it was ready, or crashing sooner than <a href="restart-delay-max-millis.html">restartDelayMaxMillis</a> after it was ready) it is tried again with the next X11 program after this many milliseconds (1 s by default), twice as long after each failure in a row, up to <a href="restart-delay-max-millis.html">restartDelayMaxMillis</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="231644084%2FProperties%2F-125515330" anchor-label="running" id="231644084%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="running.html"><span><span>running</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="231644084%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="running.html">running</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">True while an Xwayland runs.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1221883387%2FProperties%2F-125515330" anchor-label="xwm" id="-1221883387%2FProperties%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="xwm.html"><span><span>xwm</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1221883387%2FProperties%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="xwm.html">xwm</a><span class="token operator">: </span><a href="../-xwm/index.html">Xwm</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">The window manager of the Xwayland ordinary programs use now, while it runs.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="956076827%2FFunctions%2F-125515330" anchor-label="close" id="956076827%2FFunctions%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="close.html"><span><span>close</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="956076827%2FFunctions%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="close.html"><span class="token function">close</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="60760917%2FFunctions%2F-125515330" anchor-label="cursorChanged" id="60760917%2FFunctions%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="cursor-changed.html"><span>cursor</span><wbr><span><span>Changed</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="60760917%2FFunctions%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="cursor-changed.html"><span class="token function">cursorChanged</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">The cursor theme or size changed: X11 programs started from now on use it, and the default X cursor too.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="754801146%2FFunctions%2F-125515330" anchor-label="rescaled" id="754801146%2FFunctions%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="rescaled.html"><span><span>rescaled</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="754801146%2FFunctions%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="rescaled.html"><span class="token function">rescaled</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">The scale changed. X11 programs running keep drawing at their scale (they could not change it anyway) and are shown at the same size; programs started from now on get an Xwayland at the new scale and draw at it exactly. Without the door, the one Xwayland follows the scale (its programs keep their DPI until they are restarted).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1045826453%2FFunctions%2F-125515330" anchor-label="retry" id="-1045826453%2FFunctions%2F-125515330" data-filterable-set=":caulis-xwayland/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-xwayland/main" data-filterable-set=":caulis-xwayland/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="retry.html"><span><span>retry</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1045826453%2FFunctions%2F-125515330"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-xwayland/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="retry.html"><span class="token function">retry</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Tries Xwayland again after it failed to start (e.g. once it was installed): the next X11 program starts it.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

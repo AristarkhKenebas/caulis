@@ -1,0 +1,449 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>ComposeWidget</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-compose/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-compose/main" data-filter=":caulis-compose/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-compose::dev.caulis.compose/ComposeWidget///PointingToDeclaration//-2090524700">
+  <div class="breadcrumbs"><a href="../../index.html">caulis-compose</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.compose</a><span class="delimiter">/</span><span class="current">ComposeWidget</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Compose</span><wbr><span><span>Widget</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">ComposeWidget</a>&nbsp;<span><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-overloads/index.html"><span class="token annotation builtin">JvmOverloads</span></a>&nbsp;</span><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">desktop<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-desktop/index.html">Desktop</a><span class="token punctuation">, </span></span><span class="parameter ">post<span class="token operator">: </span><span class="token punctuation">(</span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/Runnable.html">Runnable</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token punctuation">, </span></span><span class="parameter ">place<span class="token operator">: </span><span class="token punctuation">(</span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>level<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-drawing-level/index.html">DrawingLevel</a><span class="token operator"> = </span>DrawingLevel.ON_TOP<span class="token punctuation">, </span></span><span class="parameter ">reserve<span class="token operator">: </span><span class="token punctuation">(</span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../../../caulis-core/dev.caulis.core/-reserve/index.html">Reserve</a><span class="token operator">?</span><span class="token operator"> = </span>{ null }<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>takesKeyboard<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span><span class="token punctuation">, </span></span><span class="parameter ">sceneSize<span class="token operator">: </span><span class="token punctuation">(</span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../-scene-size/index.html">SceneSize</a><span class="token operator">?</span><span class="token operator"> = </span>{ null }<span class="token punctuation">, </span></span><span class="parameter ">appearance<span class="token operator">: </span><span class="token punctuation">(</span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../-widget-look/index.html">WidgetLook</a><span class="token operator"> = </span>{ WidgetLook.SHOWN }<span class="token punctuation">, </span></span><span class="parameter ">moving<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span>{ false }<span class="token punctuation">, </span></span><span class="parameter ">onPressOutside<span class="token operator">: </span><span class="token punctuation">(</span>x<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token punctuation">, </span>y<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token punctuation">, </span>onAnother<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span>{ _, _, _ -&gt; false }<span class="token punctuation">, </span></span><span class="parameter ">clipboard<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-data-device-manager/index.html">DataDeviceManager</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">recovery<span class="token operator">: </span><a href="../-compose-recovery/index.html">ComposeRecovery</a><span class="token operator"> = </span>ComposeRecovery.DEFAULT<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>showsWhileLocked<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span><span class="token punctuation">, </span></span><span class="parameter ">content<span class="token operator">: </span><span><span class="token annotation builtin">@</span><span data-unresolved-link="androidx.compose.runtime/Composable///PointingToDeclaration/"><span class="token annotation builtin">Composable</span></span>&nbsp;</span><span class="token punctuation">(</span>monitor<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span> : <a href="../../../caulis-core/dev.caulis.core/-widget/index.html">Widget</a>, <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/AutoCloseable.html">AutoCloseable</a></div><p class="paragraph">A part of the compositor's own interface written in Compose — a bar, a dock, a launcher, a volume pill: a <a href="../../../caulis-core/dev.caulis.core/-widget/index.html">Widget</a> whose <a href="../../../caulis-compose/dev.caulis.compose/-compose-widget/--root--.html">content</a> is a Compose scene (one per monitor it is on), drawn into a picture only when something in it changed, and getting the pointer (with the shape Compose asks for), the wheel and — with <a href="../../../caulis-compose/dev.caulis.compose/-compose-widget/--root--.html">takesKeyboard</a> — the keyboard (text fields work, Ctrl+C and Ctrl+V with the compositor's <a href="../../../caulis-compose/dev.caulis.compose/-compose-widget/--root--.html">clipboard</a>).</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">desktop.addWidget(ComposeWidget(desktop, post = { loop.post(it::run) },<br>    place = { m -&gt; Rect(m.area.x, m.area.y, m.area.width, 32) }, reserve = { Reserve(Edge.TOP, 32) }) { monitor -&gt;<br>    Row(Modifier.fillMaxSize().background(Color(0xCC1E1E2E))) { Text(monitor.name, color = Color.White) }<br>})</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><p class="paragraph">Close the widget (or the handle <a href="../../../caulis-core/dev.caulis.core/-desktop/add-widget.html">Desktop.addWidget</a> gave: that closes it too) when it is not needed any more: it is then nowhere (no room kept, no clicks taken, nothing drawn). A new size in pixels (its area grown, another scale) makes its scene anew: state kept in it with <code class="lang-kotlin">remember</code> starts over then — keep it outside for a widget that changes its size, or give it a <a href="../../../caulis-compose/dev.caulis.compose/-compose-widget/--root--.html">sceneSize</a>. In a Caulis configuration <code class="lang-kotlin">compose(...)</code> does this for you.</p><p class="paragraph">Everything Compose runs (recomposition, animations, <code class="lang-kotlin">LaunchedEffect</code>) runs on the compositor's thread through <a href="../../../caulis-compose/dev.caulis.compose/-compose-widget/--root--.html">post</a>; call its functions on that thread too. Content that throws is logged and started over (<a href="../../../caulis-compose/dev.caulis.compose/-compose-widget/--root--.html">recovery</a>); while its <a href="../../../caulis-compose/dev.caulis.compose/-compose-widget/--root--.html">appearance</a> is fully see-through it is not drawn at all.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="1484663094%2FConstructors%2F-2090524700" anchor-label="ComposeWidget" id="1484663094%2FConstructors%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-compose-widget.html"><span>Compose</span><wbr><span><span>Widget</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1484663094%2FConstructors%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-overloads/index.html"><span class="token annotation builtin">JvmOverloads</span></a></div></div><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">desktop<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-desktop/index.html">Desktop</a><span class="token punctuation">, </span></span><span class="parameter ">post<span class="token operator">: </span><span class="token punctuation">(</span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/Runnable.html">Runnable</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token punctuation">, </span></span><span class="parameter ">place<span class="token operator">: </span><span class="token punctuation">(</span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter ">level<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-drawing-level/index.html">DrawingLevel</a><span class="token operator"> = </span>DrawingLevel.ON_TOP<span class="token punctuation">, </span></span><span class="parameter ">reserve<span class="token operator">: </span><span class="token punctuation">(</span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../../../caulis-core/dev.caulis.core/-reserve/index.html">Reserve</a><span class="token operator">?</span><span class="token operator"> = </span>{ null }<span class="token punctuation">, </span></span><span class="parameter ">takesKeyboard<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span><span class="token punctuation">, </span></span><span class="parameter ">sceneSize<span class="token operator">: </span><span class="token punctuation">(</span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../-scene-size/index.html">SceneSize</a><span class="token operator">?</span><span class="token operator"> = </span>{ null }<span class="token punctuation">, </span></span><span class="parameter ">appearance<span class="token operator">: </span><span class="token punctuation">(</span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../-widget-look/index.html">WidgetLook</a><span class="token operator"> = </span>{ WidgetLook.SHOWN }<span class="token punctuation">, </span></span><span class="parameter ">moving<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span>{ false }<span class="token punctuation">, </span></span><span class="parameter ">onPressOutside<span class="token operator">: </span><span class="token punctuation">(</span>x<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token punctuation">, </span>y<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token punctuation">, </span>onAnother<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span>{ _, _, _ -&gt; false }<span class="token punctuation">, </span></span><span class="parameter ">clipboard<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-data-device-manager/index.html">DataDeviceManager</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">recovery<span class="token operator">: </span><a href="../-compose-recovery/index.html">ComposeRecovery</a><span class="token operator"> = </span>ComposeRecovery.DEFAULT<span class="token punctuation">, </span></span><span class="parameter ">showsWhileLocked<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span><span class="token punctuation">, </span></span><span class="parameter ">content<span class="token operator">: </span><span><span class="token annotation builtin">@</span><span data-unresolved-link="androidx.compose.runtime/Composable///PointingToDeclaration/"><span class="token annotation builtin">Composable</span></span>&nbsp;</span><span class="token punctuation">(</span>monitor<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="1925042587%2FProperties%2F-2090524700" anchor-label="cursor" id="1925042587%2FProperties%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="cursor.html"><span><span>cursor</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1925042587%2FProperties%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">var </span><a href="cursor.html">cursor</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div><div class="brief "><p class="paragraph">The cursor Compose asks for where the pointer is ("text" over a text field, "pointer" over a link, ...).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-272929208%2FProperties%2F-2090524700" anchor-label="hasKeyboard" id="-272929208%2FProperties%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="has-keyboard.html"><span>has</span><wbr><span><span>Keyboard</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-272929208%2FProperties%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="has-keyboard.html">hasKeyboard</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">True while it has the keyboard (<a href="../../../caulis-core/dev.caulis.core/-desktop/focus-widget.html">Desktop.focusWidget</a>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1719668283%2FProperties%2F-2090524700" anchor-label="level" id="-1719668283%2FProperties%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="level.html"><span><span>level</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1719668283%2FProperties%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="level.html">level</a><span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-drawing-level/index.html">DrawingLevel</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="334835756%2FProperties%2F-2090524700" anchor-label="showsWhileLocked" id="334835756%2FProperties%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="shows-while-locked.html"><span>shows</span><wbr><span>While</span><wbr><span><span>Locked</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="334835756%2FProperties%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="shows-while-locked.html">showsWhileLocked</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Shown and used while the session is locked too (an on-screen keyboard, a "battery low" pill: see <a href="../../../caulis-core/dev.caulis.core/-widget/shows-while-locked.html">Widget.showsWhileLocked</a>). A lock screen of your own in Compose needs no such mark: give the widget to <a href="../../../caulis-core/dev.caulis.core/-desktop/lock-internally.html">Desktop.lockInternally</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2076532566%2FProperties%2F-2090524700" anchor-label="takesKeyboard" id="2076532566%2FProperties%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="takes-keyboard.html"><span>takes</span><wbr><span><span>Keyboard</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2076532566%2FProperties%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="takes-keyboard.html">takesKeyboard</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="1814056238%2FFunctions%2F-2090524700" anchor-label="animating" id="1814056238%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="animating.html"><span><span>animating</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1814056238%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="animating.html"><span class="token function">animating</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">now<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2128851043%2FFunctions%2F-2090524700" anchor-label="area" id="-2128851043%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="area.html"><span><span>area</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2128851043%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="area.html"><span class="token function">area</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">monitor<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="878942673%2FFunctions%2F-2090524700" anchor-label="close" id="878942673%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="close.html"><span><span>close</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="878942673%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="close.html"><span class="token function">close</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1337068179%2FFunctions%2F-2090524700" anchor-label="draw" id="-1337068179%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="draw.html"><span><span>draw</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1337068179%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="draw.html"><span class="token function">draw</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">monitor<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a><span class="token punctuation">, </span></span><span class="parameter ">canvas<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-overlay-canvas/index.html">OverlayCanvas</a><span class="token punctuation">, </span></span><span class="parameter ">area<span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-851172714%2FFunctions%2F-2090524700" anchor-label="key" id="-851172714%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="key.html"><span><span>key</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-851172714%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="key.html"><span class="token function">key</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">key<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-widget-key/index.html">WidgetKey</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1410697725%2FFunctions%2F-2090524700" anchor-label="keyboardFocus" id="1410697725%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="keyboard-focus.html"><span>keyboard</span><wbr><span><span>Focus</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1410697725%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="keyboard-focus.html"><span class="token function">keyboardFocus</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">has<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-885790836%2FFunctions%2F-2090524700" anchor-label="pointerButton" id="-885790836%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="pointer-button.html"><span>pointer</span><wbr><span><span>Button</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-885790836%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="pointer-button.html"><span class="token function">pointerButton</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">button<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">pressed<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-245377947%2FFunctions%2F-2090524700" anchor-label="pointerLeft" id="-245377947%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="pointer-left.html"><span>pointer</span><wbr><span><span>Left</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-245377947%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="pointer-left.html"><span class="token function">pointerLeft</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="703994896%2FFunctions%2F-2090524700" anchor-label="pointerMoved" id="703994896%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="pointer-moved.html"><span>pointer</span><wbr><span><span>Moved</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="703994896%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="pointer-moved.html"><span class="token function">pointerMoved</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">monitor<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a><span class="token punctuation">, </span></span><span class="parameter ">x<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token punctuation">, </span></span><span class="parameter ">y<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="796223150%2FFunctions%2F-2090524700" anchor-label="pressedOutside" id="796223150%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="pressed-outside.html"><span>pressed</span><wbr><span><span>Outside</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="796223150%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="pressed-outside.html"><span class="token function">pressedOutside</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">button<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">x<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token punctuation">, </span></span><span class="parameter ">y<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token punctuation">, </span></span><span class="parameter ">onAnother<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1627853056%2FFunctions%2F-2090524700" anchor-label="prewarm" id="1627853056%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="prewarm.html"><span><span>prewarm</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1627853056%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="prewarm.html"><span class="token function">prewarm</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">monitor<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a><span class="token punctuation">, </span></span><span class="parameter ">width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Draws its scene once now, off screen, <a href="prewarm.html">width</a> x <a href="prewarm.html">height</a> units on <a href="prewarm.html">monitor</a>. The first time something is drawn is slow (classes loaded, fonts, pictures): done ahead, its first showing is as quick as the next ones. Its own scene is kept when that is its size (with a sceneSize, the scene is that size and <a href="prewarm.html">width</a>, <a href="prewarm.html">height</a> do not matter). Nothing once it is closed. Call it on the compositor's thread.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="366579252%2FFunctions%2F-2090524700" anchor-label="reserve" id="366579252%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="reserve.html"><span><span>reserve</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="366579252%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="reserve.html"><span class="token function">reserve</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">monitor<span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-monitor/index.html">Monitor</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core/-reserve/index.html">Reserve</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-284803430%2FFunctions%2F-2090524700" anchor-label="restart" id="-284803430%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="restart.html"><span><span>restart</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-284803430%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="restart.html"><span class="token function">restart</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Starts its scenes over (made anew at the next frame): for content that is something else now (another menu), state kept with <code class="lang-kotlin">remember</code> starts over too. Done just after (so it may be called from inside its content); call it on the compositor's thread.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1996234469%2FFunctions%2F-2090524700" anchor-label="scroll" id="1996234469%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="scroll.html"><span><span>scroll</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1996234469%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="scroll.html"><span class="token function">scroll</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">dx<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token punctuation">, </span></span><span class="parameter ">dy<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-663467451%2FFunctions%2F-2090524700" anchor-label="toString" id="-663467451%2FFunctions%2F-2090524700" data-filterable-set=":caulis-compose/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-compose/main" data-filterable-set=":caulis-compose/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="to-string.html"><span>to</span><wbr><span><span>String</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-663467451%2FFunctions%2F-2090524700"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-compose/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="to-string.html"><span class="token function">toString</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

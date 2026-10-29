@@ -1,0 +1,554 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>ScreenshotWords</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-screenshot/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-screenshot/main" data-filter=":caulis-screenshot/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-screenshot::dev.caulis.screenshot/ScreenshotWords///PointingToDeclaration//-426483710">
+  <div class="breadcrumbs"><a href="../../index.html">caulis-screenshot</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.screenshot</a><span class="delimiter">/</span><span class="current">ScreenshotWords</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Screenshot</span><wbr><span><span>Words</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">ScreenshotWords</a>&nbsp;<span><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-overloads/index.html"><span class="token annotation builtin">JvmOverloads</span></a>&nbsp;</span><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>area<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Area"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>window<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Window"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>screen<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Screen"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>windows<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Windows, whole"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>adjustArea<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Move and resize the area"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>newArea<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"A new area each time"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>pointerIn<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Pointer: in the picture"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>pointerOut<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Pointer: left out"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>pointerNotHere<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Pointer: not in a picture put together from windows"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>timer<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Timer: %s s"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>timerOff<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Timer: off"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>capture<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Capture"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>close<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Close"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>oneWindow<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"1 window"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>manyWindows<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"%s windows"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>dragFirst<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Drag to choose a part first"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>pointFirst<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Point at a window first"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>pickFirst<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Drag over windows or click them first"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>noFocusedWindow<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"No window has the focus"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>hiddenWindow<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"This window is hidden from screenshots"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>countdown<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Screenshot in %s"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>title<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Screenshot"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>savedTo<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Saved to %s"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>copied<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Copied"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>notSaved<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"The screenshot could not be saved: %s"</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>keyNames<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token operator"> = </span>mapOf("Return" to "Enter", "KP_Enter" to "Enter", "Escape" to "Esc", "space" to "Space")</span></span><span class="token punctuation">)</span></div><p class="paragraph">Every text the screenshots show, to put in your language (<code class="lang-kotlin">%s</code> is replaced: a number, a file). Key names in the tips come from <a href="../../../caulis-screenshot/dev.caulis.screenshot/-screenshot-words/--root--.html">keyNames</a> (a key's own name otherwise: "A", "Tab").</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="33379572%2FConstructors%2F-426483710" anchor-label="ScreenshotWords" id="33379572%2FConstructors%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-screenshot-words.html"><span>Screenshot</span><wbr><span><span>Words</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="33379572%2FConstructors%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-overloads/index.html"><span class="token annotation builtin">JvmOverloads</span></a></div></div><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">area<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Area"</span><span class="token punctuation">, </span></span><span class="parameter ">window<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Window"</span><span class="token punctuation">, </span></span><span class="parameter ">screen<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Screen"</span><span class="token punctuation">, </span></span><span class="parameter ">windows<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Windows, whole"</span><span class="token punctuation">, </span></span><span class="parameter ">adjustArea<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Move and resize the area"</span><span class="token punctuation">, </span></span><span class="parameter ">newArea<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"A new area each time"</span><span class="token punctuation">, </span></span><span class="parameter ">pointerIn<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Pointer: in the picture"</span><span class="token punctuation">, </span></span><span class="parameter ">pointerOut<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Pointer: left out"</span><span class="token punctuation">, </span></span><span class="parameter ">pointerNotHere<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Pointer: not in a picture put together from windows"</span><span class="token punctuation">, </span></span><span class="parameter ">timer<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Timer: %s s"</span><span class="token punctuation">, </span></span><span class="parameter ">timerOff<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Timer: off"</span><span class="token punctuation">, </span></span><span class="parameter ">capture<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Capture"</span><span class="token punctuation">, </span></span><span class="parameter ">close<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Close"</span><span class="token punctuation">, </span></span><span class="parameter ">oneWindow<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"1 window"</span><span class="token punctuation">, </span></span><span class="parameter ">manyWindows<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"%s windows"</span><span class="token punctuation">, </span></span><span class="parameter ">dragFirst<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Drag to choose a part first"</span><span class="token punctuation">, </span></span><span class="parameter ">pointFirst<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Point at a window first"</span><span class="token punctuation">, </span></span><span class="parameter ">pickFirst<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Drag over windows or click them first"</span><span class="token punctuation">, </span></span><span class="parameter ">noFocusedWindow<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"No window has the focus"</span><span class="token punctuation">, </span></span><span class="parameter ">hiddenWindow<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"This window is hidden from screenshots"</span><span class="token punctuation">, </span></span><span class="parameter ">countdown<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Screenshot in %s"</span><span class="token punctuation">, </span></span><span class="parameter ">title<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Screenshot"</span><span class="token punctuation">, </span></span><span class="parameter ">savedTo<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Saved to %s"</span><span class="token punctuation">, </span></span><span class="parameter ">copied<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Copied"</span><span class="token punctuation">, </span></span><span class="parameter ">notSaved<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"The screenshot could not be saved: %s"</span><span class="token punctuation">, </span></span><span class="parameter ">keyNames<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token operator"> = </span>mapOf("Return" to "Enter", "KP_Enter" to "Enter", "Escape" to "Esc", "space" to "Space")</span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="429314658%2FProperties%2F-426483710" anchor-label="adjustArea" id="429314658%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="adjust-area.html"><span>adjust</span><wbr><span><span>Area</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="429314658%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="adjust-area.html">adjustArea</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1146820721%2FProperties%2F-426483710" anchor-label="area" id="1146820721%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="area.html"><span><span>area</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1146820721%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="area.html">area</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="388344566%2FProperties%2F-426483710" anchor-label="capture" id="388344566%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="capture.html"><span><span>capture</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="388344566%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="capture.html">capture</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="64488516%2FProperties%2F-426483710" anchor-label="close" id="64488516%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="close.html"><span><span>close</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="64488516%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="close.html">close</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2079549914%2FProperties%2F-426483710" anchor-label="copied" id="2079549914%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="copied.html"><span><span>copied</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2079549914%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="copied.html">copied</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1640417621%2FProperties%2F-426483710" anchor-label="countdown" id="-1640417621%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="countdown.html"><span><span>countdown</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1640417621%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="countdown.html">countdown</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-963830432%2FProperties%2F-426483710" anchor-label="dragFirst" id="-963830432%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="drag-first.html"><span>drag</span><wbr><span><span>First</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-963830432%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="drag-first.html">dragFirst</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="748127844%2FProperties%2F-426483710" anchor-label="hiddenWindow" id="748127844%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="hidden-window.html"><span>hidden</span><wbr><span><span>Window</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="748127844%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="hidden-window.html">hiddenWindow</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-291222571%2FProperties%2F-426483710" anchor-label="keyNames" id="-291222571%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="key-names.html"><span>key</span><wbr><span><span>Names</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-291222571%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="key-names.html">keyNames</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Key names as the tips show them (by their name in xkb: "Return", "Escape", "space").</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="113169752%2FProperties%2F-426483710" anchor-label="manyWindows" id="113169752%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="many-windows.html"><span>many</span><wbr><span><span>Windows</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="113169752%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="many-windows.html">manyWindows</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1270053327%2FProperties%2F-426483710" anchor-label="newArea" id="1270053327%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="new-area.html"><span>new</span><wbr><span><span>Area</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1270053327%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="new-area.html">newArea</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1355675958%2FProperties%2F-426483710" anchor-label="noFocusedWindow" id="1355675958%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="no-focused-window.html"><span>no</span><wbr><span>Focused</span><wbr><span><span>Window</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1355675958%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="no-focused-window.html">noFocusedWindow</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1333865750%2FProperties%2F-426483710" anchor-label="notSaved" id="-1333865750%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="not-saved.html"><span>not</span><wbr><span><span>Saved</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1333865750%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="not-saved.html">notSaved</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="482628230%2FProperties%2F-426483710" anchor-label="oneWindow" id="482628230%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="one-window.html"><span>one</span><wbr><span><span>Window</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="482628230%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="one-window.html">oneWindow</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1686613107%2FProperties%2F-426483710" anchor-label="pickFirst" id="-1686613107%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="pick-first.html"><span>pick</span><wbr><span><span>First</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1686613107%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="pick-first.html">pickFirst</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="96806330%2FProperties%2F-426483710" anchor-label="pointerIn" id="96806330%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="pointer-in.html"><span>pointer</span><wbr><span><span>In</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="96806330%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="pointer-in.html">pointerIn</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-389279368%2FProperties%2F-426483710" anchor-label="pointerNotHere" id="-389279368%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="pointer-not-here.html"><span>pointer</span><wbr><span>Not</span><wbr><span><span>Here</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-389279368%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="pointer-not-here.html">pointerNotHere</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div><div class="brief "><p class="paragraph">The pointer button where the picture is put together from windows (no pointer there).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1211215085%2FProperties%2F-426483710" anchor-label="pointerOut" id="1211215085%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="pointer-out.html"><span>pointer</span><wbr><span><span>Out</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1211215085%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="pointer-out.html">pointerOut</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="963361950%2FProperties%2F-426483710" anchor-label="pointFirst" id="963361950%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="point-first.html"><span>point</span><wbr><span><span>First</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="963361950%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="point-first.html">pointFirst</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1885137318%2FProperties%2F-426483710" anchor-label="savedTo" id="-1885137318%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="saved-to.html"><span>saved</span><wbr><span><span>To</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1885137318%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="saved-to.html">savedTo</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1681968434%2FProperties%2F-426483710" anchor-label="screen" id="1681968434%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="screen.html"><span><span>screen</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1681968434%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="screen.html">screen</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1487406185%2FProperties%2F-426483710" anchor-label="timer" id="-1487406185%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="timer.html"><span><span>timer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1487406185%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="timer.html">timer</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="934025012%2FProperties%2F-426483710" anchor-label="timerOff" id="934025012%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="timer-off.html"><span>timer</span><wbr><span><span>Off</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="934025012%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="timer-off.html">timerOff</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1237488668%2FProperties%2F-426483710" anchor-label="title" id="-1237488668%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="title.html"><span><span>title</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1237488668%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="title.html">title</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1940778542%2FProperties%2F-426483710" anchor-label="window" id="1940778542%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="window.html"><span><span>window</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1940778542%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="window.html">window</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1600847449%2FProperties%2F-426483710" anchor-label="windows" id="1600847449%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="windows.html"><span><span>windows</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1600847449%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="windows.html">windows</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="2113933586%2FFunctions%2F-426483710" anchor-label="keyName" id="2113933586%2FFunctions%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="key-name.html"><span>key</span><wbr><span><span>Name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2113933586%2FFunctions%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="key-name.html"><span class="token function">keyName</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">key<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div><div class="brief "><p class="paragraph">How a key (its xkb name) is shown in a tip.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

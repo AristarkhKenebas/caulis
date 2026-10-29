@@ -1,0 +1,479 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>GlesRenderer</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-render/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-render/main" data-filter=":caulis-render/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-render::dev.caulis.render.gles/GlesRenderer///PointingToDeclaration//-2019836238">
+  <div class="breadcrumbs"><a href="../../index.html">caulis-render</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.render.gles</a><span class="delimiter">/</span><span class="current">GlesRenderer</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Gles</span><wbr><span><span>Renderer</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">GlesRenderer</a> : <a href="../../dev.caulis.render/-renderer/index.html">Renderer</a></div><p class="paragraph">The OpenGL ES 3 <a href="../../dev.caulis.render/-renderer/index.html">Renderer</a>: draws rectangles with a colour or a texture, using one small shader each. Create it with <a href="-companion/create.html">create</a> on the event loop thread.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="-2090236573%2FClasslikes%2F-2019836238" anchor-label="Companion" id="-2090236573%2FClasslikes%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2090236573%2FClasslikes%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="-842283040%2FProperties%2F-2019836238" anchor-label="description" id="-842283040%2FProperties%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="description.html"><span><span>description</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-842283040%2FProperties%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="description.html">description</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div><div class="brief "><p class="paragraph">Human-readable name of the GPU and driver, for logs.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1859760987%2FProperties%2F-2019836238" anchor-label="dmabufFormats" id="1859760987%2FProperties%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="dmabuf-formats.html"><span>dmabuf</span><wbr><span><span>Formats</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1859760987%2FProperties%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="dmabuf-formats.html">dmabufFormats</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../../dev.caulis.render/-dmabuf-format/index.html">DmabufFormat</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">GPU buffer formats this renderer can show (for clients' dma-bufs).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-954485370%2FProperties%2F-2019836238" anchor-label="renderNode" id="-954485370%2FProperties%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="render-node.html"><span>render</span><wbr><span><span>Node</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-954485370%2FProperties%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="render-node.html">renderNode</a><span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/nio/file/Path.html">Path</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">The GPU's render node (e.g. /dev/dri/renderD128): clients allocate their GPU buffers there.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="1803038790%2FFunctions%2F-2019836238" anchor-label="begin" id="1803038790%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="begin.html"><span><span>begin</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1803038790%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="begin.html"><span class="token function">begin</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">target<span class="token operator">: </span><a href="../../dev.caulis.render/-gpu-target/index.html">GpuTarget</a><span class="token punctuation">, </span></span><span class="parameter ">red<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">green<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">blue<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">clip<span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">alpha<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">1.0f</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Starts drawing a frame into <a href="../../dev.caulis.render/-renderer/begin.html">target</a>. Only pixels inside <a href="../../dev.caulis.render/-renderer/begin.html">clip</a> change (null = the whole target); that part is first cleared to the given colour (<a href="../../dev.caulis.render/-renderer/begin.html">alpha</a> 0 = see-through, e.g. for a picture of one window). Drawing only what changed saves most of the work when little moves on screen.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1758397604%2FFunctions%2F-2019836238" anchor-label="close" id="1758397604%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="close.html"><span><span>close</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1758397604%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="close.html"><span class="token function">close</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1578151297%2FFunctions%2F-2019836238" anchor-label="copy" id="-1578151297%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="copy.html"><span><span>copy</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1578151297%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="copy.html"><span class="token function">copy</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">source<span class="token operator">: </span><a href="../../dev.caulis.render/-gpu-target/index.html">GpuTarget</a><span class="token punctuation">, </span></span><span class="parameter ">from<span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token punctuation">, </span></span><span class="parameter ">target<span class="token operator">: </span><a href="../../dev.caulis.render/-gpu-target/index.html">GpuTarget</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Copies the part <a href="../../dev.caulis.render/-renderer/copy.html">from</a> of <a href="../../dev.caulis.render/-renderer/copy.html">source</a> into the whole of <a href="../../dev.caulis.render/-renderer/copy.html">target</a> (on the GPU, stretched if the sizes differ).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-862241616%2FFunctions%2F-2019836238" anchor-label="createBuffer" id="-862241616%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="create-buffer.html"><span>create</span><wbr><span><span>Buffer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-862241616%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="create-buffer.html"><span class="token function">createBuffer</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">format<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">modifiers<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">scanout<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../dev.caulis.render/-gpu-buffer/index.html">GpuBuffer</a></div><div class="brief "><p class="paragraph">A GPU buffer to draw into that others can read: the display (KMS) or another compositor. Allocated with <a href="../../dev.caulis.render/-renderer/create-buffer.html">format</a> and one of <a href="../../dev.caulis.render/-renderer/create-buffer.html">modifiers</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="668411822%2FFunctions%2F-2019836238" anchor-label="createTarget" id="668411822%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="create-target.html"><span>create</span><wbr><span><span>Target</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="668411822%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="create-target.html"><span class="token function">createTarget</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../dev.caulis.render/-gpu-target/index.html">GpuTarget</a></div><div class="brief "><p class="paragraph">Something to draw into, e.g. one output frame.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1025846238%2FFunctions%2F-2019836238" anchor-label="createTexture" id="-1025846238%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="create-texture.html"><span>create</span><wbr><span><span>Texture</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1025846238%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="create-texture.html"><span class="token function">createTexture</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../dev.caulis.render/-gpu-texture/index.html">GpuTexture</a></div><div class="brief "><p class="paragraph">A picture of <a href="../../dev.caulis.render/-renderer/create-texture.html">width</a>x<a href="../../dev.caulis.render/-renderer/create-texture.html">height</a> pixels in BGRA byte order (Wayland's ARGB/XRGB8888).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1946424579%2FFunctions%2F-2019836238" anchor-label="drawBlur" id="-1946424579%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="draw-blur.html"><span>draw</span><wbr><span><span>Blur</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1946424579%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="draw-blur.html"><span class="token function">drawBlur</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">area<span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token punctuation">, </span></span><span class="parameter ">cornerRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">size<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">passes<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">tone<span class="token operator">: </span><a href="../../dev.caulis.render/-blur-tone/index.html">BlurTone</a><span class="token operator"> = </span>BlurTone.NONE</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Blurs what was drawn so far under <a href="../../dev.caulis.render/-renderer/draw-blur.html">area</a> (frosted glass behind a see-through window), its corners rounded by <a href="../../dev.caulis.render/-renderer/draw-blur.html">cornerRadius</a>. <a href="../../dev.caulis.render/-renderer/draw-blur.html">size</a> is how strong the blur is, <a href="../../dev.caulis.render/-renderer/draw-blur.html">passes</a> how smooth (each pass doubles the reach). It reads pixels up to <a href="../../dev.caulis.render/blur-reach.html">blurReach</a> beyond <a href="../../dev.caulis.render/-renderer/draw-blur.html">area</a>, so those must have been drawn in this frame too. <a href="../../dev.caulis.render/-renderer/draw-blur.html">tone</a> colours the glass (grain, contrast, brightness, vibrancy).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-380869118%2FFunctions%2F-2019836238" anchor-label="drawColor" id="-380869118%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="draw-color.html"><span>draw</span><wbr><span><span>Color</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-380869118%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="draw-color.html"><span class="token function">drawColor</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">x<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">y<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">red<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">green<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">blue<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">alpha<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">1.0f</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Fills the rectangle with a colour.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-357541049%2FFunctions%2F-2019836238" anchor-label="drawRoundedRect" id="-357541049%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="draw-rounded-rect.html"><span>draw</span><wbr><span>Rounded</span><wbr><span><span>Rect</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-357541049%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="draw-rounded-rect.html"><span class="token function">drawRoundedRect</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">box<span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token punctuation">, </span></span><span class="parameter ">cornerRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">color<span class="token operator">: </span><a href="../../dev.caulis.render/-color/index.html">Color</a><span class="token punctuation">, </span></span><span class="parameter ">borderWidth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.0f</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Fills <a href="../../dev.caulis.render/-renderer/draw-rounded-rect.html">box</a> with <a href="../../dev.caulis.render/-renderer/draw-rounded-rect.html">color</a>, its corners rounded by <a href="../../dev.caulis.render/-renderer/draw-rounded-rect.html">cornerRadius</a>. With a <a href="../../dev.caulis.render/-renderer/draw-rounded-rect.html">borderWidth</a>, only a frame that wide along the inside of <a href="../../dev.caulis.render/-renderer/draw-rounded-rect.html">box</a> is drawn (a window border).</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="draw-rounded-rect.html"><span class="token function">drawRoundedRect</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">box<span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token punctuation">, </span></span><span class="parameter ">cornerRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">paint<span class="token operator">: </span><a href="../../dev.caulis.render/-paint/index.html">Paint</a><span class="token punctuation">, </span></span><span class="parameter ">borderWidth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.0f</span><span class="token punctuation">, </span></span><span class="parameter ">alpha<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">1.0f</span><span class="token punctuation">, </span></span><span class="parameter ">time<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.0f</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph"><a href="../../dev.caulis.render/-renderer/draw-rounded-rect.html">drawRoundedRect</a> filled with <a href="../../dev.caulis.render/-renderer/draw-rounded-rect.html">paint</a> (a gradient, a shader, ...) at <a href="../../dev.caulis.render/-renderer/draw-rounded-rect.html">alpha</a>; <a href="../../dev.caulis.render/-renderer/draw-rounded-rect.html">time</a> in seconds moves a turning gradient or a shader. False if <a href="../../dev.caulis.render/-renderer/draw-rounded-rect.html">paint</a>'s shader does not compile (nothing drawn; <a href="../../dev.caulis.render/-renderer/effect-problem.html">effectProblem</a> with its code says why).</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="draw-rounded-rect.html"><span class="token function">drawRoundedRect</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">box<span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token punctuation">, </span></span><span class="parameter ">cornerRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">paint<span class="token operator">: </span><a href="../../dev.caulis.render/-paint/index.html">Paint</a><span class="token punctuation">, </span></span><span class="parameter ">borderWidth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">alpha<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">time<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">state<span class="token operator">: </span><a href="../../dev.caulis.render/-paint-state/index.html">PaintState</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">The same, and the window's <a href="../../dev.caulis.render/-renderer/draw-rounded-rect.html">state</a> for a shader paint (its <code class="lang-kotlin">focused</code>, <code class="lang-kotlin">urgent</code>, <code class="lang-kotlin">grouped</code>): a border of a window. Renderers that know no states draw it without.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="272882094%2FFunctions%2F-2019836238" anchor-label="drawShaded" id="272882094%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="draw-shaded.html"><span>draw</span><wbr><span><span>Shaded</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="272882094%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="draw-shaded.html"><span class="token function">drawShaded</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">x<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">y<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">fragment<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">floats<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float-array/index.html">FloatArray</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">ints<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyMap()<span class="token punctuation">, </span></span><span class="parameter ">texture<span class="token operator">: </span><a href="../../dev.caulis.render/-gpu-texture/index.html">GpuTexture</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Fills the rectangle with a whole fragment shader of your own (<a href="../../dev.caulis.render/-renderer/draw-shaded.html">fragment</a>: GLSL ES 3 with <code class="lang-kotlin">in vec2 uv</code>, 0..1 from the top left, and its own <code class="lang-kotlin">out vec4</code>). <a href="../../dev.caulis.render/-renderer/draw-shaded.html">floats</a> are set by name (1, 2 or 4 numbers each: float, vec2, vec4), <a href="../../dev.caulis.render/-renderer/draw-shaded.html">ints</a> too; <a href="../../dev.caulis.render/-renderer/draw-shaded.html">texture</a> is <code class="lang-kotlin">sampler2D picture</code> if given. Returns false (drawing nothing) if it does not compile; <a href="../../dev.caulis.render/-renderer/effect-problem.html">effectProblem</a> says why.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-579998705%2FFunctions%2F-2019836238" anchor-label="drawShadow" id="-579998705%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="draw-shadow.html"><span>draw</span><wbr><span><span>Shadow</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-579998705%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="draw-shadow.html"><span class="token function">drawShadow</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">box<span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token punctuation">, </span></span><span class="parameter ">cornerRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">softness<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">color<span class="token operator">: </span><a href="../../dev.caulis.render/-color/index.html">Color</a><span class="token punctuation">, </span></span><span class="parameter ">cutOut<span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">cutOutRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span>cornerRadius</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">A soft shadow of the rounded rectangle <a href="../../dev.caulis.render/-renderer/draw-shadow.html">box</a>, blurred over <a href="../../dev.caulis.render/-renderer/draw-shadow.html">softness</a> pixels (it reaches that far beyond <a href="../../dev.caulis.render/-renderer/draw-shadow.html">box</a>). Nothing is drawn inside <a href="../../dev.caulis.render/-renderer/draw-shadow.html">cutOut</a> (e.g. the window casting it, so the shadow does not show through a see-through window).</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="draw-shadow.html"><span class="token function">drawShadow</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">box<span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token punctuation">, </span></span><span class="parameter ">cornerRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">softness<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">paint<span class="token operator">: </span><a href="../../dev.caulis.render/-paint/index.html">Paint</a><span class="token punctuation">, </span></span><span class="parameter ">cutOut<span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter ">cutOutRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">alpha<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">1.0f</span><span class="token punctuation">, </span></span><span class="parameter ">time<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.0f</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph"><a href="../../dev.caulis.render/-renderer/draw-shadow.html">drawShadow</a> filled with <a href="../../dev.caulis.render/-renderer/draw-shadow.html">paint</a> at <a href="../../dev.caulis.render/-renderer/draw-shadow.html">alpha</a> (see the <a href="../../dev.caulis.render/-renderer/draw-rounded-rect.html">drawRoundedRect</a> with a paint).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-673990571%2FFunctions%2F-2019836238" anchor-label="drawTexture" id="-673990571%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="draw-texture.html"><span>draw</span><wbr><span><span>Texture</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-673990571%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="draw-texture.html"><span class="token function">drawTexture</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">texture<span class="token operator">: </span><a href="../../dev.caulis.render/-gpu-texture/index.html">GpuTexture</a><span class="token punctuation">, </span></span><span class="parameter ">x<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">y<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">opaque<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token punctuation">, </span></span><span class="parameter ">alpha<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">1.0f</span><span class="token punctuation">, </span></span><span class="parameter ">clip<span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">cornerRadius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.0f</span><span class="token punctuation">, </span></span><span class="parameter ">source<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float-array/index.html">FloatArray</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">transform<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Draws <a href="../../dev.caulis.render/-renderer/draw-texture.html">texture</a> stretched over the rectangle. <a href="../../dev.caulis.render/-renderer/draw-texture.html">opaque</a> ignores its alpha (XRGB pictures). With a <a href="../../dev.caulis.render/-renderer/draw-texture.html">clip</a>, only the part inside it is drawn, its corners rounded by <a href="../../dev.caulis.render/-renderer/draw-texture.html">cornerRadius</a> (with soft, anti-aliased edges). With a <a href="../../dev.caulis.render/-renderer/draw-texture.html">source</a>, only that part of the texture is shown (stretched over the rectangle).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1448470420%2FFunctions%2F-2019836238" anchor-label="drawTextureEffect" id="-1448470420%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="draw-texture-effect.html"><span>draw</span><wbr><span>Texture</span><wbr><span><span>Effect</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1448470420%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="draw-texture-effect.html"><span class="token function">drawTextureEffect</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">texture<span class="token operator">: </span><a href="../../dev.caulis.render/-gpu-texture/index.html">GpuTexture</a><span class="token punctuation">, </span></span><span class="parameter ">x<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">y<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">alpha<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">, </span></span><span class="parameter ">effect<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">from<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float-array/index.html">FloatArray</a><span class="token punctuation">, </span></span><span class="parameter ">to<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float-array/index.html">FloatArray</a><span class="token punctuation">, </span></span><span class="parameter ">progress<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Draws <a href="../../dev.caulis.render/-renderer/draw-texture-effect.html">texture</a> into the rectangle through <a href="../../dev.caulis.render/-renderer/draw-texture-effect.html">effect</a>: GLSL (OpenGL ES 3) code with a function <code class="lang-kotlin">vec4 effect(vec2 at)</code> — <code class="lang-kotlin">at</code> is 0..1 in the rectangle, <code class="lang-kotlin">window(uv)</code> reads the texture (see-through outside 0..1), <code class="lang-kotlin">progress</code>, <code class="lang-kotlin">from</code> and <code class="lang-kotlin">to</code> (x, y, width, height in the rectangle's 0..1) and <code class="lang-kotlin">size</code> (pixels) are there to use. Returns false (drawing nothing) if the code does not compile; <a href="../../dev.caulis.render/-renderer/effect-problem.html">effectProblem</a> then says why.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-274160842%2FFunctions%2F-2019836238" anchor-label="effectProblem" id="-274160842%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="effect-problem.html"><span>effect</span><wbr><span><span>Problem</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-274160842%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="effect-problem.html"><span class="token function">effectProblem</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">effect<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Why <a href="../../dev.caulis.render/-renderer/effect-problem.html">effect</a> does not compile, or null if it does (or was not tried yet).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1322105569%2FFunctions%2F-2019836238" anchor-label="end" id="1322105569%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="end.html"><span><span>end</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1322105569%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="end.html"><span class="token function">end</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Ends the frame: hands the drawing to the GPU. Whoever reads a <a href="../../dev.caulis.render/-gpu-buffer/index.html">GpuBuffer</a> afterwards (the display, another compositor) gets the finished picture; the kernel makes them wait for the GPU, so this call itself does not wait.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-943769973%2FFunctions%2F-2019836238" anchor-label="finish" id="-943769973%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="finish.html"><span><span>finish</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-943769973%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="finish.html"><span class="token function">finish</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Waits until the GPU has finished everything asked so far (before others read what was drawn).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1887794431%2FFunctions%2F-2019836238" anchor-label="importDmabuf" id="-1887794431%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="import-dmabuf.html"><span>import</span><wbr><span><span>Dmabuf</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1887794431%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="import-dmabuf.html"><span class="token function">importDmabuf</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">buffer<span class="token operator">: </span><a href="../../dev.caulis.render/-dmabuf/index.html">Dmabuf</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../dev.caulis.render/-gpu-texture/index.html">GpuTexture</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Shows a client's GPU buffer as a texture without copying it. The texture reads the client's memory directly, so the client must not reuse the buffer while it is shown. Returns null if the format is not supported. The <a href="../../dev.caulis.render/-renderer/import-dmabuf.html">buffer</a> descriptors stay owned by the caller.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1113353040%2FFunctions%2F-2019836238" anchor-label="importDmabufTarget" id="-1113353040%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="import-dmabuf-target.html"><span>import</span><wbr><span>Dmabuf</span><wbr><span><span>Target</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1113353040%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="import-dmabuf-target.html"><span class="token function">importDmabufTarget</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">buffer<span class="token operator">: </span><a href="../../dev.caulis.render/-dmabuf/index.html">Dmabuf</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../dev.caulis.render/-gpu-target/index.html">GpuTarget</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">A client's GPU buffer to draw into (e.g. a screen recorder's): the picture goes straight into its memory. Null if it cannot be drawn into. Close it when done; the <a href="../../dev.caulis.render/-renderer/import-dmabuf-target.html">buffer</a> descriptors stay owned by the caller.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1192854979%2FFunctions%2F-2019836238" anchor-label="setClip" id="1192854979%2FFunctions%2F-2019836238" data-filterable-set=":caulis-render/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-render/main" data-filterable-set=":caulis-render/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-clip.html"><span>set</span><wbr><span><span>Clip</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1192854979%2FFunctions%2F-2019836238"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-render/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="set-clip.html"><span class="token function">setClip</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">clip<span class="token operator">: </span><a href="../../../caulis-geometry/dev.caulis.geometry/-rect/index.html">Rect</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">From now on, draws only inside <a href="../../dev.caulis.render/-renderer/set-clip.html">clip</a> (pixels; null: everywhere) — for a frame redrawn in parts.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

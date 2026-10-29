@@ -1,0 +1,310 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>TilingScope</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-tiling/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-tiling/main" data-filter=":caulis-tiling/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-tiling::dev.caulis.tiling/TilingScope///PointingToDeclaration//1886807303">
+  <div class="breadcrumbs"><a href="../../index.html">caulis-tiling</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.tiling</a><span class="delimiter">/</span><span class="current">TilingScope</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Tiling</span><wbr><span><span>Scope</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-tiling/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">TilingScope</a></div><p class="paragraph">The building blocks of <a href="../tiling.html">tiling</a>.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="-1514383646%2FProperties%2F1886807303" anchor-label="count" id="-1514383646%2FProperties%2F1886807303" data-filterable-set=":caulis-tiling/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-tiling/main" data-filterable-set=":caulis-tiling/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="count.html"><span><span>count</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1514383646%2FProperties%2F1886807303"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-tiling/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="count.html">count</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">How many windows are being arranged.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1376197754%2FProperties%2F1886807303" anchor-label="focused" id="1376197754%2FProperties%2F1886807303" data-filterable-set=":caulis-tiling/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-tiling/main" data-filterable-set=":caulis-tiling/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="focused.html"><span><span>focused</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1376197754%2FProperties%2F1886807303"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-tiling/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="focused.html">focused</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">Which of them has the focus (0 = the first, -1 = none).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="1884078550%2FFunctions%2F1886807303" anchor-label="accordion" id="1884078550%2FFunctions%2F1886807303" data-filterable-set=":caulis-tiling/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-tiling/main" data-filterable-set=":caulis-tiling/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="accordion.html"><span><span>accordion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1884078550%2FFunctions%2F1886807303"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-tiling/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="accordion.html"><span class="token function">accordion</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">weight<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span><span class="token punctuation">, </span></span><span class="parameter ">thin<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">40</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">The remaining windows stacked, the focused one big and the others <a href="accordion.html">thin</a> pixels high — thin strips showing their title bars (like i3's stacked containers).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2057745719%2FFunctions%2F1886807303" anchor-label="column" id="-2057745719%2FFunctions%2F1886807303" data-filterable-set=":caulis-tiling/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-tiling/main" data-filterable-set=":caulis-tiling/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="column.html"><span><span>column</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2057745719%2FFunctions%2F1886807303"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-tiling/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="column.html"><span class="token function">column</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">weight<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span><span class="token punctuation">, </span></span><span class="parameter ">build<span class="token operator">: </span><a href="index.html">TilingScope</a><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Parts on top of each other (top to bottom).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1730549398%2FFunctions%2F1886807303" anchor-label="dwindle" id="-1730549398%2FFunctions%2F1886807303" data-filterable-set=":caulis-tiling/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-tiling/main" data-filterable-set=":caulis-tiling/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="dwindle.html"><span><span>dwindle</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1730549398%2FFunctions%2F1886807303"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-tiling/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="dwindle.html"><span class="token function">dwindle</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">weight<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">The remaining windows, each taking half of what is left (like Hyprland's dwindle).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1202097473%2FFunctions%2F1886807303" anchor-label="grid" id="1202097473%2FFunctions%2F1886807303" data-filterable-set=":caulis-tiling/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-tiling/main" data-filterable-set=":caulis-tiling/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="grid.html"><span><span>grid</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1202097473%2FFunctions%2F1886807303"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-tiling/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="grid.html"><span class="token function">grid</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">weight<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">The remaining windows in a grid (as square as possible).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1851031946%2FFunctions%2F1886807303" anchor-label="monocle" id="-1851031946%2FFunctions%2F1886807303" data-filterable-set=":caulis-tiling/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-tiling/main" data-filterable-set=":caulis-tiling/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="monocle.html"><span><span>monocle</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1851031946%2FFunctions%2F1886807303"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-tiling/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="monocle.html"><span class="token function">monocle</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">weight<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">The remaining windows all in the same place, the focused one on top.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="33620467%2FFunctions%2F1886807303" anchor-label="rest" id="33620467%2FFunctions%2F1886807303" data-filterable-set=":caulis-tiling/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-tiling/main" data-filterable-set=":caulis-tiling/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="rest.html"><span><span>rest</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="33620467%2FFunctions%2F1886807303"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-tiling/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="rest.html"><span class="token function">rest</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">weight<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">All windows not placed elsewhere, side by side in a row or stacked in a column.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-293627155%2FFunctions%2F1886807303" anchor-label="row" id="-293627155%2FFunctions%2F1886807303" data-filterable-set=":caulis-tiling/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-tiling/main" data-filterable-set=":caulis-tiling/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="row.html"><span><span>row</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-293627155%2FFunctions%2F1886807303"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-tiling/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="row.html"><span class="token function">row</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">weight<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span><span class="token punctuation">, </span></span><span class="parameter ">build<span class="token operator">: </span><a href="index.html">TilingScope</a><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Parts side by side (left to right).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-46818032%2FFunctions%2F1886807303" anchor-label="share" id="-46818032%2FFunctions%2F1886807303" data-filterable-set=":caulis-tiling/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-tiling/main" data-filterable-set=":caulis-tiling/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="share.html"><span><span>share</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-46818032%2FFunctions%2F1886807303"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-tiling/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="share.html"><span class="token function">share</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">part<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">of<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">weight<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Part <a href="share.html">part</a> of <a href="share.html">of</a> equal shares of the remaining windows — e.g. <code class="lang-kotlin">share(1, 2)</code> and <code class="lang-kotlin">share(2, 2)</code> put half of the others on each side of a centred master.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-748242250%2FFunctions%2F1886807303" anchor-label="spiral" id="-748242250%2FFunctions%2F1886807303" data-filterable-set=":caulis-tiling/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-tiling/main" data-filterable-set=":caulis-tiling/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="spiral.html"><span><span>spiral</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-748242250%2FFunctions%2F1886807303"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-tiling/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="spiral.html"><span class="token function">spiral</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">weight<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">The remaining windows in a spiral: left, top, right, bottom, ... (like bspwm).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1350242647%2FFunctions%2F1886807303" anchor-label="window" id="1350242647%2FFunctions%2F1886807303" data-filterable-set=":caulis-tiling/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-tiling/main" data-filterable-set=":caulis-tiling/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="window.html"><span><span>window</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1350242647%2FFunctions%2F1886807303"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-tiling/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="window.html"><span class="token function">window</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">weight<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">One window (the next one in order: the first <code class="lang-kotlin">window()</code> gets the oldest window).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

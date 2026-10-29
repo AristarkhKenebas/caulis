@@ -1,0 +1,397 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>RequestOrBuilder</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-ipc/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-ipc/main" data-filter=":caulis-ipc/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-ipc::dev.caulis.ipc.v1/RequestOrBuilder///PointingToDeclaration//-311735314">
+  <div class="breadcrumbs"><a href="../../index.html">caulis-ipc</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.ipc.v1</a><span class="delimiter">/</span><span class="current">RequestOrBuilder</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Request</span><wbr><span>Or</span><wbr><span><span>Builder</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="com.google.protobuf/Generated///PointingToDeclaration/"><span class="token annotation builtin">Generated</span></span></div></div><span class="token keyword">interface </span><a href="index.html">RequestOrBuilder</a> : <span data-unresolved-link="com.google.protobuf/MessageLiteOrBuilder///PointingToDeclaration/">MessageLiteOrBuilder</span></div><h4 class="tableheader">Inheritors</h4><div class="table"><div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="../-request/index.html">Request</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="../-request/-builder/index.html">Builder</a></div></span></div><div></div></div></div></div></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="1481251631%2FFunctions%2F-311735314" anchor-label="getCheckConfig" id="1481251631%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-check-config.html"><span>get</span><wbr><span>Check</span><wbr><span><span>Config</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1481251631%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-check-config.html"><span class="token function">getCheckConfig</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-check-config/index.html">CheckConfig</a></div><div class="brief "><code class="lang-java">.caulis.ipc.v1.CheckConfig check_config = 6;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-889905270%2FFunctions%2F-311735314" anchor-label="getDefaultInstanceForType" id="-889905270%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-rect-or-builder/index.html#-889905270%2FFunctions%2F-311735314"><span>get</span><wbr><span>Default</span><wbr><span>Instance</span><wbr><span>For</span><wbr><span><span>Type</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-889905270%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="../-rect-or-builder/index.html#-889905270%2FFunctions%2F-311735314"><span class="token function">getDefaultInstanceForType</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="com.google.protobuf/MessageLite///PointingToDeclaration/">MessageLite</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1610328187%2FFunctions%2F-311735314" anchor-label="getEval" id="-1610328187%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-eval.html"><span>get</span><wbr><span><span>Eval</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1610328187%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-eval.html"><span class="token function">getEval</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-eval/index.html">Eval</a></div><div class="brief "><code class="lang-java">.caulis.ipc.v1.Eval eval = 8;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2147256614%2FFunctions%2F-311735314" anchor-label="getGetDevices" id="-2147256614%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-get-devices.html"><span>get</span><wbr><span>Get</span><wbr><span><span>Devices</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2147256614%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-get-devices.html"><span class="token function">getGetDevices</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-get-devices/index.html">GetDevices</a></div><div class="brief "><code class="lang-java">.caulis.ipc.v1.GetDevices get_devices = 7;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1489289178%2FFunctions%2F-311735314" anchor-label="getGetState" id="-1489289178%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-get-state.html"><span>get</span><wbr><span>Get</span><wbr><span><span>State</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1489289178%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-get-state.html"><span class="token function">getGetState</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-get-state/index.html">GetState</a></div><div class="brief "><code class="lang-java">.caulis.ipc.v1.GetState get_state = 4;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1395628743%2FFunctions%2F-311735314" anchor-label="getHello" id="1395628743%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-hello.html"><span>get</span><wbr><span><span>Hello</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1395628743%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-hello.html"><span class="token function">getHello</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-hello/index.html">Hello</a></div><div class="brief "><code class="lang-java">.caulis.ipc.v1.Hello hello = 2;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1766481690%2FFunctions%2F-311735314" anchor-label="getId" id="-1766481690%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-id.html"><span>get</span><wbr><span><span>Id</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1766481690%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-id.html"><span class="token function">getId</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">Comes back in the Reply (any number the program likes).
+</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><code class="lang-java">uint32 id = 1;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-640261586%2FFunctions%2F-311735314" anchor-label="getRun" id="-640261586%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-run.html"><span>get</span><wbr><span><span>Run</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-640261586%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-run.html"><span class="token function">getRun</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-run/index.html">Run</a></div><div class="brief "><code class="lang-java">.caulis.ipc.v1.Run run = 3;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-163897521%2FFunctions%2F-311735314" anchor-label="getSubscribe" id="-163897521%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-subscribe.html"><span>get</span><wbr><span><span>Subscribe</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-163897521%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-subscribe.html"><span class="token function">getSubscribe</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-subscribe/index.html">Subscribe</a></div><div class="brief "><code class="lang-java">.caulis.ipc.v1.Subscribe subscribe = 5;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2069416691%2FFunctions%2F-311735314" anchor-label="getWhatCase" id="-2069416691%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-what-case.html"><span>get</span><wbr><span>What</span><wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2069416691%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-what-case.html"><span class="token function">getWhatCase</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-request/-what-case/index.html">Request.WhatCase</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2007446413%2FFunctions%2F-311735314" anchor-label="hasCheckConfig" id="-2007446413%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="has-check-config.html"><span>has</span><wbr><span>Check</span><wbr><span><span>Config</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2007446413%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="has-check-config.html"><span class="token function">hasCheckConfig</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><code class="lang-java">.caulis.ipc.v1.CheckConfig check_config = 6;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-739980607%2FFunctions%2F-311735314" anchor-label="hasEval" id="-739980607%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="has-eval.html"><span>has</span><wbr><span><span>Eval</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-739980607%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="has-eval.html"><span class="token function">hasEval</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><code class="lang-java">.caulis.ipc.v1.Eval eval = 8;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="511151382%2FFunctions%2F-311735314" anchor-label="hasGetDevices" id="511151382%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="has-get-devices.html"><span>has</span><wbr><span>Get</span><wbr><span><span>Devices</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="511151382%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="has-get-devices.html"><span class="token function">hasGetDevices</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><code class="lang-java">.caulis.ipc.v1.GetDevices get_devices = 7;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1123530082%2FFunctions%2F-311735314" anchor-label="hasGetState" id="1123530082%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="has-get-state.html"><span>has</span><wbr><span>Get</span><wbr><span><span>State</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1123530082%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="has-get-state.html"><span class="token function">hasGetState</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><code class="lang-java">.caulis.ipc.v1.GetState get_state = 4;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1688367349%2FFunctions%2F-311735314" anchor-label="hasHello" id="-1688367349%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="has-hello.html"><span>has</span><wbr><span><span>Hello</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1688367349%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="has-hello.html"><span class="token function">hasHello</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><code class="lang-java">.caulis.ipc.v1.Hello hello = 2;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1027827854%2FFunctions%2F-311735314" anchor-label="hasRun" id="-1027827854%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="has-run.html"><span>has</span><wbr><span><span>Run</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1027827854%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="has-run.html"><span class="token function">hasRun</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><code class="lang-java">.caulis.ipc.v1.Run run = 3;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-770879085%2FFunctions%2F-311735314" anchor-label="hasSubscribe" id="-770879085%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="has-subscribe.html"><span>has</span><wbr><span><span>Subscribe</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-770879085%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="has-subscribe.html"><span class="token function">hasSubscribe</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><code class="lang-java">.caulis.ipc.v1.Subscribe subscribe = 5;</code></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-786502173%2FFunctions%2F-311735314" anchor-label="isInitialized" id="-786502173%2FFunctions%2F-311735314" data-filterable-set=":caulis-ipc/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-ipc/main" data-filterable-set=":caulis-ipc/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-rect-or-builder/index.html#-786502173%2FFunctions%2F-311735314"><span>is</span><wbr><span><span>Initialized</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-786502173%2FFunctions%2F-311735314"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-ipc/main"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="../-rect-or-builder/index.html#-786502173%2FFunctions%2F-311735314"><span class="token function">isInitialized</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

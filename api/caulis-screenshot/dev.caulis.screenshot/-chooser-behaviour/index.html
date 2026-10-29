@@ -1,0 +1,295 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>ChooserBehaviour</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-screenshot/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-screenshot/main" data-filter=":caulis-screenshot/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-screenshot::dev.caulis.screenshot/ChooserBehaviour///PointingToDeclaration//-426483710">
+  <div class="breadcrumbs"><a href="../../index.html">caulis-screenshot</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.screenshot</a><span class="delimiter">/</span><span class="current">ChooserBehaviour</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Chooser</span><wbr><span><span>Behaviour</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">ChooserBehaviour</a>&nbsp;<span><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-overloads/index.html"><span class="token annotation builtin">JvmOverloads</span></a>&nbsp;</span><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>buttons<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-chooser-button/index.html">ChooserButton</a><span class="token operator">&gt;</span><span class="token operator"> = </span>ChooserButton.entries<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>timerSteps<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator">&gt;</span><span class="token operator"> = </span>listOf(0, 3, 5, 10)<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>keys<span class="token operator">: </span><a href="../-chooser-keys/index.html">ChooserKeys</a><span class="token operator"> = </span>ChooserKeys()<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>appearMillis<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">170</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>rise<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">16</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>doubleClickMillis<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">400</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>grab<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">7</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>minDrag<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">4</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>rememberKind<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>clickPicksWindow<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span></span></span><span class="token punctuation">)</span></div><p class="paragraph">How the chooser behaves: its toolbar's <a href="../../../caulis-screenshot/dev.caulis.screenshot/-chooser-behaviour/--root--.html">buttons</a> (in this order; <a href="../-chooser-button/-w-i-n-d-o-w-s/index.html">ChooserButton.WINDOWS</a> shows only over an overview), the timer's <a href="../../../caulis-screenshot/dev.caulis.screenshot/-chooser-behaviour/--root--.html">timerSteps</a> (seconds, 0: off), its <a href="../../../caulis-screenshot/dev.caulis.screenshot/-chooser-behaviour/--root--.html">keys</a>, how quickly it comes (<a href="../../../caulis-screenshot/dev.caulis.screenshot/-chooser-behaviour/--root--.html">appearMillis</a>, the toolbar rising <a href="../../../caulis-screenshot/dev.caulis.screenshot/-chooser-behaviour/--root--.html">rise</a> units: the desktop's animation "screenshot", off unless animations are on), what counts as a double click (<a href="../../../caulis-screenshot/dev.caulis.screenshot/-chooser-behaviour/--root--.html">doubleClickMillis</a>), how near an edge of a part the pointer grabs it (<a href="../../../caulis-screenshot/dev.caulis.screenshot/-chooser-behaviour/--root--.html">grab</a> units) and how far a drag must go to be one (<a href="../../../caulis-screenshot/dev.caulis.screenshot/-chooser-behaviour/--root--.html">minDrag</a> units). It starts choosing a part (a window is chosen by its key or button): with <a href="../../../caulis-screenshot/dev.caulis.screenshot/-chooser-behaviour/--root--.html">rememberKind</a> it starts with the kind used last instead, and with <a href="../../../caulis-screenshot/dev.caulis.screenshot/-chooser-behaviour/--root--.html">clickPicksWindow</a> a click (not a drag) while choosing a part takes the window there.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="742811984%2FConstructors%2F-426483710" anchor-label="ChooserBehaviour" id="742811984%2FConstructors%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-chooser-behaviour.html"><span>Chooser</span><wbr><span><span>Behaviour</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="742811984%2FConstructors%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-overloads/index.html"><span class="token annotation builtin">JvmOverloads</span></a></div></div><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">buttons<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-chooser-button/index.html">ChooserButton</a><span class="token operator">&gt;</span><span class="token operator"> = </span>ChooserButton.entries<span class="token punctuation">, </span></span><span class="parameter ">timerSteps<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator">&gt;</span><span class="token operator"> = </span>listOf(0, 3, 5, 10)<span class="token punctuation">, </span></span><span class="parameter ">keys<span class="token operator">: </span><a href="../-chooser-keys/index.html">ChooserKeys</a><span class="token operator"> = </span>ChooserKeys()<span class="token punctuation">, </span></span><span class="parameter ">appearMillis<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">170</span><span class="token punctuation">, </span></span><span class="parameter ">rise<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">16</span><span class="token punctuation">, </span></span><span class="parameter ">doubleClickMillis<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">400</span><span class="token punctuation">, </span></span><span class="parameter ">grab<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">7</span><span class="token punctuation">, </span></span><span class="parameter ">minDrag<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">4</span><span class="token punctuation">, </span></span><span class="parameter ">rememberKind<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span><span class="token punctuation">, </span></span><span class="parameter ">clickPicksWindow<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="59964200%2FProperties%2F-426483710" anchor-label="appearMillis" id="59964200%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="appear-millis.html"><span>appear</span><wbr><span><span>Millis</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="59964200%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="appear-millis.html">appearMillis</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1093497942%2FProperties%2F-426483710" anchor-label="buttons" id="1093497942%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="buttons.html"><span><span>buttons</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1093497942%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="buttons.html">buttons</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-chooser-button/index.html">ChooserButton</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1655913705%2FProperties%2F-426483710" anchor-label="clickPicksWindow" id="1655913705%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="click-picks-window.html"><span>click</span><wbr><span>Picks</span><wbr><span><span>Window</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1655913705%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="click-picks-window.html">clickPicksWindow</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">A click without a drag, while choosing a part, makes the window under it the part (false: nothing chosen).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-102728326%2FProperties%2F-426483710" anchor-label="doubleClickMillis" id="-102728326%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="double-click-millis.html"><span>double</span><wbr><span>Click</span><wbr><span><span>Millis</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-102728326%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="double-click-millis.html">doubleClickMillis</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1505498057%2FProperties%2F-426483710" anchor-label="grab" id="-1505498057%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="grab.html"><span><span>grab</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1505498057%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="grab.html">grab</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1880214129%2FProperties%2F-426483710" anchor-label="keys" id="-1880214129%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="keys.html"><span><span>keys</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1880214129%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="keys.html">keys</a><span class="token operator">: </span><a href="../-chooser-keys/index.html">ChooserKeys</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="812992721%2FProperties%2F-426483710" anchor-label="minDrag" id="812992721%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="min-drag.html"><span>min</span><wbr><span><span>Drag</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="812992721%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="min-drag.html">minDrag</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1519248994%2FProperties%2F-426483710" anchor-label="rememberKind" id="1519248994%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="remember-kind.html"><span>remember</span><wbr><span><span>Kind</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1519248994%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="remember-kind.html">rememberKind</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">It starts with the kind used last (a window after a window): false starts with <a href="../-screenshots/kind.html">Screenshots.kind</a> each time.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="43557466%2FProperties%2F-426483710" anchor-label="rise" id="43557466%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="rise.html"><span><span>rise</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="43557466%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="rise.html">rise</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1470070753%2FProperties%2F-426483710" anchor-label="timerSteps" id="1470070753%2FProperties%2F-426483710" data-filterable-set=":caulis-screenshot/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-screenshot/main" data-filterable-set=":caulis-screenshot/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="timer-steps.html"><span>timer</span><wbr><span><span>Steps</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1470070753%2FProperties%2F-426483710"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-screenshot/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="timer-steps.html">timerSteps</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

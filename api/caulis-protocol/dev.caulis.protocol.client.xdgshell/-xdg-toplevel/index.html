@@ -1,0 +1,539 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>XdgToplevel</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-protocol/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-protocol/main" data-filter=":caulis-protocol/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-protocol::dev.caulis.protocol.client.xdgshell/XdgToplevel///PointingToDeclaration//-1726305676">
+  <div class="breadcrumbs"><a href="../../index.html">caulis-protocol</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.protocol.client.xdgshell</a><span class="delimiter">/</span><span class="current">XdgToplevel</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Xdg</span><wbr><span><span>Toplevel</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">XdgToplevel</a> : <a href="../../dev.caulis.protocol.client/-proxy/index.html">Proxy</a></div><p class="paragraph">Toplevel surface</p><p class="paragraph">This interface defines an xdg_surface role which allows a surface to, among other things, set window-like properties such as maximize, fullscreen, and minimize, set application-specific metadata like title and id, and well as trigger user interactive operations such as interactive resize and move.</p><p class="paragraph">An xdg_toplevel by default is responsible for providing the full intended visual representation of the toplevel, which depending on the window state, may mean things like a title bar, window controls and drop shadow.</p><p class="paragraph">Unmapping an xdg_toplevel means that the surface cannot be shown by the compositor until it is explicitly mapped again. All active operations (e.g., move, resize) are canceled and all attributes (e.g. title, state, stacking, ...) are discarded for an xdg_toplevel surface when it is unmapped. The xdg_toplevel returns to the state it had right after xdg_surface.get_toplevel. The client can re-map the toplevel by performing a commit without any buffer attached, waiting for a configure event and handling it as usual (see xdg_surface description).</p><p class="paragraph">Attaching a null buffer to a toplevel unmaps the surface.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="-674624640%2FClasslikes%2F-1726305676" anchor-label="Companion" id="-674624640%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-674624640%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a> : <a href="../../dev.caulis.protocol.client/-proxy-type/index.html">ProxyType</a><span class="token operator">&lt;</span><a href="index.html">XdgToplevel</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-218212988%2FClasslikes%2F-1726305676" anchor-label="Error" id="-218212988%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-error/index.html"><span><span>Error</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-218212988%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-error/index.html">Error</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-747911619%2FClasslikes%2F-1726305676" anchor-label="Events" id="-747911619%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-events/index.html"><span><span>Events</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-747911619%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-events/index.html">Events</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="724299589%2FClasslikes%2F-1726305676" anchor-label="ResizeEdge" id="724299589%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-resize-edge/index.html"><span>Resize</span><wbr><span><span>Edge</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="724299589%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-resize-edge/index.html">ResizeEdge</a></div><div class="brief "><p class="paragraph">edge values for resizing</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1471815451%2FClasslikes%2F-1726305676" anchor-label="State" id="1471815451%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-state/index.html"><span><span>State</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1471815451%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-state/index.html">State</a></div><div class="brief "><p class="paragraph">types of state on the surface</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="36613130%2FClasslikes%2F-1726305676" anchor-label="WmCapabilities" id="36613130%2FClasslikes%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-wm-capabilities/index.html"><span>Wm</span><wbr><span><span>Capabilities</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="36613130%2FClasslikes%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-wm-capabilities/index.html">WmCapabilities</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="2011266970%2FProperties%2F-1726305676" anchor-label="connection" id="2011266970%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol.client/-proxy/connection.html"><span><span>connection</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2011266970%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="../../dev.caulis.protocol.client/-proxy/connection.html">connection</a><span class="token operator">: </span><a href="../../dev.caulis.protocol.client/-connection/index.html">Connection</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="681728968%2FProperties%2F-1726305676" anchor-label="events" id="681728968%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="events.html"><span><span>events</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="681728968%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="events.html">events</a><span class="token operator">: </span><a href="-events/index.html">XdgToplevel.Events</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Receives the events the compositor sends to this object.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1005628157%2FProperties%2F-1726305676" anchor-label="id" id="1005628157%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol.client/-proxy/id.html"><span><span>id</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1005628157%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="../../dev.caulis.protocol.client/-proxy/id.html">id</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="227042367%2FProperties%2F-1726305676" anchor-label="isAlive" id="227042367%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol.client/-proxy/is-alive.html"><span>is</span><wbr><span><span>Alive</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="227042367%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="../../dev.caulis.protocol.client/-proxy/is-alive.html">isAlive</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">False once destroyed.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1663429177%2FProperties%2F-1726305676" anchor-label="type" id="-1663429177%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="type.html"><span><span>type</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1663429177%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="type.html">type</a><span class="token operator">: </span><a href="../../dev.caulis.protocol.client/-proxy-type/index.html">ProxyType</a><span class="token operator">&lt;</span><a href="index.html">XdgToplevel</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1796653366%2FProperties%2F-1726305676" anchor-label="version" id="-1796653366%2FProperties%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol.client/-proxy/version.html"><span><span>version</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1796653366%2FProperties%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="../../dev.caulis.protocol.client/-proxy/version.html">version</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="-1562306945%2FFunctions%2F-1726305676" anchor-label="destroy" id="-1562306945%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="destroy.html"><span><span>destroy</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1562306945%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="destroy.html"><span class="token function">destroy</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Destroy the xdg_toplevel</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1623142244%2FFunctions%2F-1726305676" anchor-label="move" id="-1623142244%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="move.html"><span><span>move</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1623142244%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="move.html"><span class="token function">move</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">seat<span class="token operator">: </span><a href="../../dev.caulis.protocol.client.wayland/-wl-seat/index.html">WlSeat</a><span class="token punctuation">, </span></span><span class="parameter ">serial<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Start an interactive move</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1058386980%2FFunctions%2F-1726305676" anchor-label="resize" id="1058386980%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="resize.html"><span><span>resize</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1058386980%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="resize.html"><span class="token function">resize</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">seat<span class="token operator">: </span><a href="../../dev.caulis.protocol.client.wayland/-wl-seat/index.html">WlSeat</a><span class="token punctuation">, </span></span><span class="parameter ">serial<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">edges<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Start an interactive resize</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-819891907%2FFunctions%2F-1726305676" anchor-label="setAppId" id="-819891907%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-app-id.html"><span>set</span><wbr><span>App</span><wbr><span><span>Id</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-819891907%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="set-app-id.html"><span class="token function">setAppId</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">appId<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Set application ID</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-805319894%2FFunctions%2F-1726305676" anchor-label="setFullscreen" id="-805319894%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-fullscreen.html"><span>set</span><wbr><span><span>Fullscreen</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-805319894%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="set-fullscreen.html"><span class="token function">setFullscreen</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">output<span class="token operator">: </span><a href="../../dev.caulis.protocol.client.wayland/-wl-output/index.html">WlOutput</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Set the window as fullscreen on an output</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-463306837%2FFunctions%2F-1726305676" anchor-label="setMaximized" id="-463306837%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-maximized.html"><span>set</span><wbr><span><span>Maximized</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-463306837%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="set-maximized.html"><span class="token function">setMaximized</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Maximize the window</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1674002847%2FFunctions%2F-1726305676" anchor-label="setMaxSize" id="-1674002847%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-max-size.html"><span>set</span><wbr><span>Max</span><wbr><span><span>Size</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1674002847%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="set-max-size.html"><span class="token function">setMaxSize</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Set the maximum size</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2126651139%2FFunctions%2F-1726305676" anchor-label="setMinimized" id="-2126651139%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-minimized.html"><span>set</span><wbr><span><span>Minimized</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2126651139%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="set-minimized.html"><span class="token function">setMinimized</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Set the window as minimized</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1737385935%2FFunctions%2F-1726305676" anchor-label="setMinSize" id="1737385935%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-min-size.html"><span>set</span><wbr><span>Min</span><wbr><span><span>Size</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1737385935%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="set-min-size.html"><span class="token function">setMinSize</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Set the minimum size</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-532315998%2FFunctions%2F-1726305676" anchor-label="setParent" id="-532315998%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-parent.html"><span>set</span><wbr><span><span>Parent</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-532315998%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="set-parent.html"><span class="token function">setParent</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">parent<span class="token operator">: </span><a href="index.html">XdgToplevel</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Set the parent of this surface</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2083403911%2FFunctions%2F-1726305676" anchor-label="setTitle" id="-2083403911%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-title.html"><span>set</span><wbr><span><span>Title</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2083403911%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="set-title.html"><span class="token function">setTitle</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">title<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Set surface title</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1063391265%2FFunctions%2F-1726305676" anchor-label="showWindowMenu" id="1063391265%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="show-window-menu.html"><span>show</span><wbr><span>Window</span><wbr><span><span>Menu</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1063391265%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="show-window-menu.html"><span class="token function">showWindowMenu</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">seat<span class="token operator">: </span><a href="../../dev.caulis.protocol.client.wayland/-wl-seat/index.html">WlSeat</a><span class="token punctuation">, </span></span><span class="parameter ">serial<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">x<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">y<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Show the window menu</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-318625140%2FFunctions%2F-1726305676" anchor-label="toString" id="-318625140%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../dev.caulis.protocol.client/-proxy/to-string.html"><span>to</span><wbr><span><span>String</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-318625140%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../dev.caulis.protocol.client/-proxy/to-string.html"><span class="token function">toString</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1866220043%2FFunctions%2F-1726305676" anchor-label="unsetFullscreen" id="-1866220043%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="unset-fullscreen.html"><span>unset</span><wbr><span><span>Fullscreen</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1866220043%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="unset-fullscreen.html"><span class="token function">unsetFullscreen</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Unset the window as fullscreen</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="716233650%2FFunctions%2F-1726305676" anchor-label="unsetMaximized" id="716233650%2FFunctions%2F-1726305676" data-filterable-set=":caulis-protocol/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-protocol/main" data-filterable-set=":caulis-protocol/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="unset-maximized.html"><span>unset</span><wbr><span><span>Maximized</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="716233650%2FFunctions%2F-1726305676"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-protocol/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="unset-maximized.html"><span class="token function">unsetMaximized</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Unmaximize the window</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
