@@ -93,7 +93,7 @@
   <div class="breadcrumbs"><a href="../../index.html">caulis-core</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.core</a><span class="delimiter">/</span><span class="current">Idle</span></div>
   <div class="cover ">
     <h1 class="cover"><span><span>Idle</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">Idle</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">display<span class="token operator">: </span><a href="../../../caulis-protocol/dev.caulis.protocol/-display/index.html">Display</a><span class="token punctuation">, </span></span><span class="parameter ">loop<span class="token operator">: </span><a href="../../../caulis-native/dev.caulis.event/-event-loop/index.html">EventLoop</a><span class="token punctuation">, </span></span><span class="parameter ">desktop<span class="token operator">: </span><a href="../-desktop/index.html">Desktop</a></span></span><span class="token punctuation">)</span></div><p class="paragraph">When nobody uses the computer: programs (<a href="watch.html">watch</a>, and swayidle or hypridle through ext-idle-notify) are told after so long without a key, a click or the pointer moving, and again when someone is back. A video player that keeps a window on screen (idle-inhibit), <a href="inhibited-by-user.html">inhibitedByUser</a>, or — if <a href="fullscreen-inhibits.html">fullscreenInhibits</a> — a fullscreen window keeps it from counting as idle.</p></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">Idle</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">display<span class="token operator">: </span><a href="../../../caulis-protocol/dev.caulis.protocol/-display/index.html">Display</a><span class="token punctuation">, </span></span><span class="parameter ">loop<span class="token operator">: </span><a href="../../../caulis-native/dev.caulis.event/-event-loop/index.html">EventLoop</a><span class="token punctuation">, </span></span><span class="parameter ">desktop<span class="token operator">: </span><a href="../-desktop/index.html">Desktop</a></span></span><span class="token punctuation">)</span></div><p class="paragraph">When nobody uses the computer: programs (<a href="watch.html">watch</a>, and swayidle or hypridle through ext-idle-notify) are told after so long without a key, a click or the pointer moving, and again when someone is back. A video player that keeps a window on screen (idle-inhibit), a <a href="hold.html">hold</a> (a browser asking over D-Bus), <a href="inhibited-by-user.html">inhibitedByUser</a>, or — if <a href="fullscreen-inhibits.html">fullscreenInhibits</a> — a fullscreen window keeps it from counting as idle. Something that starts keeping it awake while it is idle already (a video started by itself) counts as someone back.</p></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
@@ -164,6 +164,21 @@
               </div>
             </div>
           </div>
+<a data-name="1408703419%2FProperties%2F-1526861317" anchor-label="protocolInhibitors" id="1408703419%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="protocol-inhibitors.html"><span>protocol</span><wbr><span><span>Inhibitors</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1408703419%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="protocol-inhibitors.html">protocolInhibitors</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Programs' idle inhibitors (idle-inhibit: video players) count (true); false: they are ignored.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div data-togglable="FUNCTION">
@@ -183,6 +198,21 @@
               </div>
             </div>
           </div>
+<a data-name="-224327242%2FFunctions%2F-1526861317" anchor-label="hold" id="-224327242%2FFunctions%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="hold.html"><span><span>hold</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-224327242%2FFunctions%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="hold.html"><span class="token function">hold</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">reason<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">pid<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-auto-closeable/index.html">AutoCloseable</a></div><div class="brief "><p class="paragraph">Keeps the computer from counting as idle until the result is closed — for what asks outside Wayland (org.freedesktop.ScreenSaver.Inhibit over D-Bus, logind's idle inhibitors). <a href="hold.html">reason</a> is shown to people (<a href="inhibited-by.html">inhibitedBy</a>). With <a href="hold.html">pid</a> above 0 it counts only while a window of that process is shown (a player playing in a window). Like idle-inhibit it counts for nothing while locked unless <a href="inhibitors-work-while-locked.html">inhibitorsWorkWhileLocked</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="-290982504%2FFunctions%2F-1526861317" anchor-label="inhibited" id="-290982504%2FFunctions%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
             <div class="main-subrow keyValue ">
@@ -194,6 +224,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="inhibited.html"><span class="token function">inhibited</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">True while something keeps the computer from counting as idle.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1569094079%2FFunctions%2F-1526861317" anchor-label="inhibitedBy" id="-1569094079%2FFunctions%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="inhibited-by.html"><span>inhibited</span><wbr><span><span>By</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1569094079%2FFunctions%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="inhibited-by.html"><span class="token function">inhibitedBy</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">What keeps the computer from counting as idle now, in words for people: "mpv" (its idle-inhibit), a <a href="hold.html">hold</a>'s reason ("Firefox: video-playing"), "keep-awake", "mpv (fullscreen)"; empty: nothing.</p></div></div></div>
                 </div>
               </div>
             </div>
