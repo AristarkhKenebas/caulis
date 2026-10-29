@@ -1,0 +1,116 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-native",
+    "version": "0.1.4",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-log",
+          "version": {
+            "requires": "0.1.4"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-native-0.1.4.jar",
+          "url": "caulis-native-0.1.4.jar",
+          "size": 569285,
+          "sha512": "1751caf660c7ee3cc703d3769b10bf7241f59d16fdc3ed82be45490ac32650f22b63123e9cadb622deda9bf83cdff32dfa8d2db6baf7db2955bb82def2d4f46d",
+          "sha256": "b4c4b55427a366d4bff39dbb2fdce331082fabf6d3387a33e02c8dc0e788e673",
+          "sha1": "a5ef93b55a72a7e9780854f7a99d3d4fb3c8a72e",
+          "md5": "48b003fea7d6488bedded65c92d520e9"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-log",
+          "version": {
+            "requires": "0.1.4"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-native-0.1.4.jar",
+          "url": "caulis-native-0.1.4.jar",
+          "size": 569285,
+          "sha512": "1751caf660c7ee3cc703d3769b10bf7241f59d16fdc3ed82be45490ac32650f22b63123e9cadb622deda9bf83cdff32dfa8d2db6baf7db2955bb82def2d4f46d",
+          "sha256": "b4c4b55427a366d4bff39dbb2fdce331082fabf6d3387a33e02c8dc0e788e673",
+          "sha1": "a5ef93b55a72a7e9780854f7a99d3d4fb3c8a72e",
+          "md5": "48b003fea7d6488bedded65c92d520e9"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-native-0.1.4-sources.jar",
+          "url": "caulis-native-0.1.4-sources.jar",
+          "size": 132677,
+          "sha512": "ad65c3932889abccee05bbf8c0c5ac55a60ecde4e2a94da0b9df4b4f5f2058a8e19259c2858c0697ed8b6cac9161e3b7d3026d81d1b083c31b35978b38abc81e",
+          "sha256": "f52711bf98a8d3072fc2e0c6496e15f29493bac6d1a5eb2a7df0c6173b3d1f03",
+          "sha1": "6995b4139d9a773bf516529cca5f836eefc3a873",
+          "md5": "5ce39b58fcc63dabfaa142b939eb2c92"
+        }
+      ]
+    }
+  ]
+}

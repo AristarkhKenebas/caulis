@@ -1,0 +1,130 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-render",
+    "version": "0.1.4",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-native",
+          "version": {
+            "requires": "0.1.4"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-geometry",
+          "version": {
+            "requires": "0.1.4"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-render-0.1.4.jar",
+          "url": "caulis-render-0.1.4.jar",
+          "size": 147224,
+          "sha512": "5b10635f35d80b6d7a7b7a1dbeebcdfae51995e36e1d5652ba1ff9d612db22f8eaa1856e991cd0552f3f0e6d377d89dfbc1c0533e351657fff3578d625dc357d",
+          "sha256": "730a109124d46336dd31a1f6c5bb8f780539b56d5274a83fc75c3d1940f78957",
+          "sha1": "a0575d0b86df299630b2368871de03e946660bb1",
+          "md5": "274151e2069a0bc3d1a85656e53fd0e9"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-native",
+          "version": {
+            "requires": "0.1.4"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-geometry",
+          "version": {
+            "requires": "0.1.4"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-render-0.1.4.jar",
+          "url": "caulis-render-0.1.4.jar",
+          "size": 147224,
+          "sha512": "5b10635f35d80b6d7a7b7a1dbeebcdfae51995e36e1d5652ba1ff9d612db22f8eaa1856e991cd0552f3f0e6d377d89dfbc1c0533e351657fff3578d625dc357d",
+          "sha256": "730a109124d46336dd31a1f6c5bb8f780539b56d5274a83fc75c3d1940f78957",
+          "sha1": "a0575d0b86df299630b2368871de03e946660bb1",
+          "md5": "274151e2069a0bc3d1a85656e53fd0e9"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-render-0.1.4-sources.jar",
+          "url": "caulis-render-0.1.4-sources.jar",
+          "size": 41676,
+          "sha512": "18533f266ed835b3e4089f1c31d92215ba3f34fb7432d77a396a85721526fb372f9c5d788d6788d7c2e7fdb6cea9a05985d1dc3a5bc7a8e4ca0c8e4e1807a956",
+          "sha256": "55f4109e3884bc39c40e849d100cd6f50315d191fa0f57f2627de1cefeb6cf86",
+          "sha1": "6800f4248e77d203db7379060511c6fa6202ce58",
+          "md5": "0f51cc4a564ed6c7087da1b69b50d551"
+        }
+      ]
+    }
+  ]
+}
