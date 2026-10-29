@@ -980,6 +980,15 @@
           "type": "string",
           "minLength": 1,
           "description": "the file for output \"file\" (default ~/.cache/<name>/programs.log)"
+        },
+        "start": {
+          "enum": ["native", "java"],
+          "description": "how programs are started: native (posix_spawn; survives Java being updated meanwhile) or java (ProcessBuilder)"
+        },
+        "javaUpdatedNotice": {
+          "type": "string",
+          "minLength": 1,
+          "description": "shown once when Java was updated under the running compositor (\"\": not shown)"
         }
       },
       "description": "programs started inside"

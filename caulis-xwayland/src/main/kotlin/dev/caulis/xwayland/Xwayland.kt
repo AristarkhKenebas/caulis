@@ -273,7 +273,7 @@ class Xwayland(
     // Xwayland at the start, on a thread of its own (it takes a moment; the loop never waits).
     private val terminateDelay = java.util.concurrent.CompletableFuture.supplyAsync({
         runCatching {
-            val help = ProcessBuilder("Xwayland", "-help").redirectErrorStream(true).start()
+            val help = dev.caulis.ffi.Processes.start(ProcessBuilder("Xwayland", "-help").redirectErrorStream(true))
             help.inputStream.bufferedReader().readText().also { help.waitFor() }
         }.getOrDefault("").contains("-terminate [delay]")
     }, { task -> Thread.ofVirtual().name("xwayland-help").start(task) })

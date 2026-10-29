@@ -235,12 +235,12 @@ internal object SoundPlayer {
             }
             log.trace { "Playing with: ${command.joinToString(" ")}" }
             val process = try {
-                ProcessBuilder(command).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD).also { builder ->
+                dev.caulis.ffi.Processes.start(ProcessBuilder(command).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD).also { builder ->
                     builder.environment().clear()
                     builder.environment().putAll(env)
-                }.start()
+                })
             } catch (e: Exception) {
-                tried += "$program (${e.message})"
+                tried += "$program (${dev.caulis.ffi.Processes.reason(e)})"
                 continue
             }
             if (!process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)) {

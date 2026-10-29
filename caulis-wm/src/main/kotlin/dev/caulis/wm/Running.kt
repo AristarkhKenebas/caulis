@@ -507,11 +507,14 @@ internal class Running(
         // (On a thread of its own: the commands are waited for, one after the other.)
         Thread({
             fun run(command: List<String>): Boolean = try {
-                val process = ProcessBuilder(command).also { it.environment().putAll(env) }
-                    .redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD).start()
+                val process = dev.caulis.ffi.Processes.start(
+                    ProcessBuilder(command).also { it.environment().putAll(env) }
+                        .redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD),
+                )
                 process.waitFor(10, java.util.concurrent.TimeUnit.SECONDS).also { if (!it) process.destroyForcibly() } && process.exitValue() == 0
-            } catch (_: java.io.IOException) {
-                log.trace { "${command.first()} is not there" }
+            } catch (e: java.io.IOException) {
+                if (dev.caulis.ffi.Processes.isNotFound(e)) log.trace { "${command.first()} is not there" }
+                else dev.caulis.ffi.Processes.tellStartFailed(log, command.first(), e)
                 false
             }
             run(listOf("systemctl", "--user", "import-environment") + names)
@@ -776,6 +779,7 @@ internal class Running(
     private fun applyConfig() {
         val config = config
         applyCoreSettings()
+        dev.caulis.ffi.Processes.method = config.processStart
         desktop.effects = config.effects
         desktop.specialWorkspaces = config.specialWorkspaces
         if (desktop.director !== config.director) desktop.director = config.director
@@ -1691,10 +1695,18 @@ internal class Running(
         }
     }
 
+    // Java updated under the running compositor: said once (Caulis.javaUpdatedNotice).
+    private var javaUpdates: AutoCloseable? = null
+
     /** Runs the user's start actions and the main loop until [quit]. */
     fun runLoop() {
         config.running = this
         try {
+            // (Asked now: what is on disk at the start is what later changes are compared with.)
+            dev.caulis.ffi.Processes.javaChanged()
+            javaUpdates = dev.caulis.ffi.Processes.onJavaChanged {
+                loop.post { if (isOpen) config.javaUpdatedNotice?.let { desktop.notify(it, NoticeLevel.WARNING) } }
+            }
             config.exitAfterSeconds?.let { seconds -> loop.after(seconds * 1000) { quit() } }
             for (problem in config.startWarnings) desktop.notify("${problem.message} ${problem.fix}", NoticeLevel.WARNING)
             for (problem in config.configProblems) configNotices += desktop.notify(problem, NoticeLevel.WARNING)
@@ -1722,6 +1734,12 @@ internal class Running(
     override fun close() {
         // Your onQuit first, while the desktop and the buses are still there.
         config.quitActions.toList().forEach { action -> safely("onQuit") { action(config) } }
+        // The configuration's window and focus listeners end here: windows that go away now (their
+        // programs cut off as everything is taken down) are not "closed" by anyone — a handler
+        // would find no desktop to act on.
+        configListeners.forEach { runCatching { it.close() } }
+        configListeners.clear()
+        javaUpdates?.close()
         // (No program of autostart is started again while they are being stopped.)
         safely("the start") { sessionStart.close() }
         if (config.stopProgramsOnQuit) safely("stopping the programs") { launcher.stopAll() }

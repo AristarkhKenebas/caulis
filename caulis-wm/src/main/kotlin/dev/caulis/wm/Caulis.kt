@@ -996,6 +996,21 @@ class Caulis {
     var programOutputFile: java.nio.file.Path? = null
 
     /**
+     * How every program is started (by [launch], [spawn], the system keys, autostart, ...):
+     * [dev.caulis.ffi.Processes.Method.NATIVE] (the default) with the C library's posix_spawn —
+     * still working after the system updated Java under the running compositor — or
+     * [dev.caulis.ffi.Processes.Method.JAVA] with Java's own ProcessBuilder (natively after
+     * Java's helper failed once). See [dev.caulis.ffi.Processes].
+     */
+    var processStart: dev.caulis.ffi.Processes.Method = dev.caulis.ffi.Processes.Method.NATIVE
+
+    /**
+     * Shown once (a notice) when the Java the compositor runs on was updated on disk while it
+     * runs — some of it may no longer fit until a restart. null: not shown (it is logged anyway).
+     */
+    var javaUpdatedNotice: String? = "Java was updated: restart the compositor when convenient"
+
+    /**
      * The name of your compositor's folder of settings, shaders and pictures:
      * `~/.config/<configName>` (or `$XDG_CONFIG_HOME/<configName>`), see [configFolder].
      * Also names its IPC socket. Only at the start.
@@ -1845,6 +1860,8 @@ class Caulis {
     fun sharpJavaScaling(on: Boolean): Caulis = apply { sharpJavaScaling = on }
     fun titleBars(titleBars: TitleBars): Caulis = apply { this.titleBars = titleBars }
     fun noticeStyle(style: NoticeStyle): Caulis = apply { noticeStyle = style }
+    fun processStart(method: dev.caulis.ffi.Processes.Method): Caulis = apply { processStart = method }
+    fun javaUpdatedNotice(text: String?): Caulis = apply { javaUpdatedNotice = text }
     fun animations(animations: Animations): Caulis = apply { this.animations = animations }
     fun animations(configure: Consumer<dev.caulis.core.AnimationsBuilder>): Caulis = apply { animations { configure.accept(this) } }
     fun configName(name: String): Caulis = apply { configName = name }
@@ -2449,6 +2466,14 @@ class Caulis {
      * notification daemon, its bars — is not to be touched from a nested or headless one).
      */
     val runningBackend: Backend? get() = backendInUse
+
+    /**
+     * True while the compositor runs with this configuration (or one a reload replaced): its
+     * [desktop] can be used. False before the start and once it is quitting — a handler that
+     * may run while everything is taken down (windows closing as their programs are cut off)
+     * checks it before touching the desktop.
+     */
+    val isRunning: Boolean get() = liveOrNull() != null
 
     // The log settings from code, then CAULIS_LOG / CAULIS_LOG_FILE on top (they win). Areas
     // the configuration before set and this one does not go back to the usual level; a log

@@ -182,6 +182,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getIdleInhibitorsWhileLocked ()Z
 	public final fun getInput ()Ldev/caulis/core/input/InputSettings;
 	public final fun getIpc ()Z
+	public final fun getJavaUpdatedNotice ()Ljava/lang/String;
 	public final fun getKeyMode ()Ljava/lang/String;
 	public final fun getKeyModeNow ()Ljava/lang/String;
 	public final fun getKeyboardLayoutNames ()Ljava/util/List;
@@ -216,6 +217,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getPortalsToRestart ()Ljava/util/List;
 	public final fun getPrimaryMonitor ()Ljava/lang/String;
 	public final fun getPrivilegedClients ()Lkotlin/jvm/functions/Function1;
+	public final fun getProcessStart ()Ldev/caulis/ffi/Processes$Method;
 	public final fun getProgramOutput ()Ldev/caulis/wm/ProgramOutput;
 	public final fun getProgramOutputFile ()Ljava/nio/file/Path;
 	public final fun getRepeatDelay ()I
@@ -264,6 +266,8 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getXwaylandRestartMillis ()J
 	public final fun holdReveal (Ljava/lang/String;)Ljava/lang/AutoCloseable;
 	public final fun idOf (Ldev/caulis/core/Window;)J
+	public final fun isRunning ()Z
+	public final fun javaUpdatedNotice (Ljava/lang/String;)Ldev/caulis/wm/Caulis;
 	public final fun keyMode (Ljava/lang/String;Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun keyMode (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
 	public final fun keyboard (Ljava/lang/String;)Ldev/caulis/wm/Caulis;
@@ -363,6 +367,7 @@ public final class dev/caulis/wm/Caulis {
 	public static synthetic fun playStartupSound$default (Ldev/caulis/wm/Caulis;Ljava/lang/String;ILjava/lang/Object;)V
 	public final fun post (Ljava/util/function/Consumer;)V
 	public final synthetic fun post (Lkotlin/jvm/functions/Function1;)V
+	public final fun processStart (Ldev/caulis/ffi/Processes$Method;)Ldev/caulis/wm/Caulis;
 	public final fun programEnvironment ()Ljava/util/Map;
 	public final fun quit ()V
 	public final fun reveal (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
@@ -419,6 +424,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setHotReload (Z)V
 	public final fun setIdleInhibitorsWhileLocked (Z)V
 	public final fun setIpc (Z)V
+	public final fun setJavaUpdatedNotice (Ljava/lang/String;)V
 	public final fun setKeyboardLayouts (Ljava/lang/String;)V
 	public final fun setKeyboardModel (Ljava/lang/String;)V
 	public final fun setKeyboardOptions (Ljava/lang/String;)V
@@ -447,6 +453,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setOverviewPinchFingers (I)V
 	public final fun setPrimaryMonitor (Ljava/lang/String;)V
 	public final fun setPrivilegedClients (Lkotlin/jvm/functions/Function1;)V
+	public final fun setProcessStart (Ldev/caulis/ffi/Processes$Method;)V
 	public final fun setProgramOutput (Ldev/caulis/wm/ProgramOutput;)V
 	public final fun setProgramOutputFile (Ljava/nio/file/Path;)V
 	public final fun setRepeatDelay (I)V

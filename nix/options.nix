@@ -204,6 +204,8 @@ let
       "portalsToRestart" = lib.mkOption { type = lib.types.nullOr (lib.types.listOf lib.types.str); default = null; description = "services started again with this compositor's environment when they had another one"; };
       "output" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "discard" "log" "file" ]); default = null; description = "where started programs' output goes"; };
       "outputFile" = lib.mkOption { type = lib.types.nullOr (lib.types.either lib.types.str lib.types.path); default = null; description = "the file for output \"file\" (default ~/.cache/<name>/programs.log)"; };
+      "start" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "native" "java" ]); default = null; description = "how programs are started: native (posix_spawn; survives Java being updated meanwhile) or java (ProcessBuilder)"; };
+      "javaUpdatedNotice" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "shown once when Java was updated under the running compositor (\"\": not shown)"; };
     }; }); default = null; description = "programs started inside"; };
     "systemKeys" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
       "volumeStep" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (1) (100)); default = null; description = "percent per press of the volume keys"; };

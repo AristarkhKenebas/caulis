@@ -36,7 +36,7 @@ cp -r "$caulis/templates/starter" "$target"
 cp "$caulis/gradlew" "$caulis/gradlew.bat" "$target/"
 mkdir -p "$target/gradle"
 cp -r "$caulis/gradle/wrapper" "$target/gradle/"
-# Caulis from Maven Central; with --sources, built along from this folder (its changes at once).
+# Caulis from Maven Central or its GitHub Pages mirror (settings.gradle.kts); with --sources, built along from this folder (its changes at once).
 if $sources; then
     echo "caulis.sources=$caulis" > "$target/gradle.properties"
     flake_caulis="path:$caulis"

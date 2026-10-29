@@ -114,9 +114,9 @@ internal class Launcher(
                 if (settings().waylandFirst) for ((name, value) in WAYLAND_FIRST) if (System.getenv(name) == null) put(name, value)
                 userEnvironment(this) // (the user's own win)
             }
-            builder.start()
+            dev.caulis.ffi.Processes.start(builder)
         } catch (e: Exception) {
-            log.warn("${command.firstOrNull()?.substringAfterLast('/')} could not be started: ${e.message}")
+            dev.caulis.ffi.Processes.tellStartFailed(log, command.firstOrNull()?.substringAfterLast('/').orEmpty(), e)
             null
         }
     }
@@ -145,7 +145,7 @@ internal class Launcher(
             process.onExit().thenAccept { ended -> post { ended(started, ended.exitValue(), throughX) } }
             return process.pid()
         } catch (e: Exception) {
-            log.warn("${programName(command)} could not be started: ${e.message}")
+            dev.caulis.ffi.Processes.tellStartFailed(log, programName(command), e)
             log.trace { "Its command: $command" }
             return null
         }
@@ -167,7 +167,7 @@ internal class Launcher(
             directory?.let(builder::directory)
             startWith(builder, program, throughX, extraEnvironment)
         } catch (e: Exception) {
-            log.warn("\"$program\" could not be started: ${e.message}")
+            dev.caulis.ffi.Processes.tellStartFailed(log, program, e)
             null
         }
     }
@@ -211,7 +211,7 @@ internal class Launcher(
                 builder.redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.appendTo(file.toFile()))
             }
         }
-        val process = builder.start()
+        val process = dev.caulis.ffi.Processes.start(builder)
         if (output.first == ProgramOutput.LOG) logOutput(program, process)
         alive += process
         process.onExit().thenAccept { ended -> alive -= ended }

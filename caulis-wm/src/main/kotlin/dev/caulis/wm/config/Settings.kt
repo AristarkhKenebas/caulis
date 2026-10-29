@@ -555,6 +555,8 @@ object Settings {
                         Field("portalsToRestart", ListType(TextType("a systemd user unit")), "services started again with this compositor's environment when they had another one"),
                         Field("output", ChoiceType(listOf("discard", "log", "file")), "where started programs' output goes"),
                         Field("outputFile", FileType(), "the file for output \"file\" (default ~/.cache/<name>/programs.log)"),
+                        Field("start", ChoiceType(listOf("native", "java")), "how programs are started: native (posix_spawn; survives Java being updated meanwhile) or java (ProcessBuilder)"),
+                        Field("javaUpdatedNotice", TextType(), "shown once when Java was updated under the running compositor (\"\": not shown)"),
                     ),
                     "programs",
                 ),
@@ -954,6 +956,8 @@ object Settings {
             (p["portalsToRestart"] as List<String>?)?.let { caulis.portalsToRestart.clear(); caulis.portalsToRestart += it }
             (p["output"] as String?)?.let { caulis.programOutput = dev.caulis.wm.ProgramOutput.valueOf(it.uppercase()) }
             (p["outputFile"] as String?)?.let { caulis.programOutputFile = caulis.file(it) }
+            (p["start"] as String?)?.let { caulis.processStart = dev.caulis.ffi.Processes.Method.valueOf(it.uppercase()) }
+            (p["javaUpdatedNotice"] as String?)?.let { caulis.javaUpdatedNotice = it.ifEmpty { null } }
         }
         section("systemKeys")?.let { k ->
             val keys = caulis.systemKeys

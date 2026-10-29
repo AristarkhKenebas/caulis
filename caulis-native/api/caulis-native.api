@@ -68,6 +68,35 @@ public final class dev/caulis/ffi/NativeException : java/lang/RuntimeException {
 	public final fun getFunction ()Ljava/lang/String;
 }
 
+public final class dev/caulis/ffi/Processes {
+	public static final field INSTANCE Ldev/caulis/ffi/Processes;
+	public static final fun getMethod ()Ldev/caulis/ffi/Processes$Method;
+	public static final fun isNotFound (Ljava/lang/Throwable;)Z
+	public static final fun javaChanged ()Z
+	public static final fun onJavaChanged (Ljava/lang/Runnable;)Ljava/lang/AutoCloseable;
+	public static final fun reason (Ljava/lang/Throwable;)Ljava/lang/String;
+	public static final fun setMethod (Ldev/caulis/ffi/Processes$Method;)V
+	public static final fun start (Ljava/lang/ProcessBuilder;)Ljava/lang/Process;
+	public static final fun tellStartFailed (Ldev/caulis/log/Logger;Ljava/lang/String;Ljava/lang/Throwable;)V
+	public static final fun tellStartFailed (Ldev/caulis/log/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/lang/String;)V
+	public static synthetic fun tellStartFailed$default (Ldev/caulis/log/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/lang/String;ILjava/lang/Object;)V
+}
+
+public final class dev/caulis/ffi/Processes$Method : java/lang/Enum {
+	public static final field JAVA Ldev/caulis/ffi/Processes$Method;
+	public static final field NATIVE Ldev/caulis/ffi/Processes$Method;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/ffi/Processes$Method;
+	public static fun values ()[Ldev/caulis/ffi/Processes$Method;
+}
+
+public final class dev/caulis/ffi/ProgramStartException : java/io/IOException {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Z)V
+	public final fun getNotFound ()Z
+	public final fun getProgram ()Ljava/lang/String;
+	public final fun getReason ()Ljava/lang/String;
+}
+
 public final class dev/caulis/ffi/Readiness {
 	public static final synthetic fun box-impl (I)Ldev/caulis/ffi/Readiness;
 	public static fun constructor-impl (I)I

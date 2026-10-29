@@ -1,5 +1,9 @@
-# Builds the API documentation website and publishes it on GitHub Pages
-# (Settings → Pages → Source: "GitHub Actions" must be chosen once).
+# Builds the API documentation website and puts it on GitHub Pages, under api/:
+# https://aristarkhkenebas.github.io/caulis/api/
+#
+# Pages is served from the branch gh-pages (Settings → Pages → Source: "Deploy from a branch",
+# gh-pages, / (root)), which also holds the Maven repository (maven/, written by
+# ci/publish-github-pages.sh). This job changes only api/ there.
 name: Docs
 
 on:
@@ -8,13 +12,11 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -33,18 +35,22 @@ jobs:
       - name: Build the website
         run: ./gradlew --console=plain dokkaGenerate
 
-      - uses: actions/configure-pages@v6
-
-      - uses: actions/upload-pages-artifact@v5
-        with:
-          path: build/dokka/html
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-24.04
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v5
+      - name: Put it on the branch gh-pages, under api/
+        run: |
+          if ! git ls-remote --exit-code --heads origin gh-pages >/dev/null; then
+            echo "No branch gh-pages yet (ci/publish-github-pages.sh begins it): nothing to update."
+            exit 0
+          fi
+          git fetch --depth=1 origin gh-pages
+          git worktree add pages FETCH_HEAD
+          rm -rf pages/api
+          cp -r build/dokka/html pages/api
+          cd pages
+          git add -A api
+          if git diff --cached --quiet; then
+            echo "The documentation did not change."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "API documentation of ${GITHUB_SHA::7}"
+          git push origin HEAD:gh-pages

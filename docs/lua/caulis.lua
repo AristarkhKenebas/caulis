@@ -266,6 +266,8 @@
 ---@field portalsToRestart? (string)[] services started again with this compositor's environment when they had another one
 ---@field output? "discard"|"log"|"file" where started programs' output goes
 ---@field outputFile? string the file for output "file" (default ~/.cache/<name>/programs.log)
+---@field start? "native"|"java" how programs are started: native (posix_spawn; survives Java being updated meanwhile) or java (ProcessBuilder)
+---@field javaUpdatedNotice? string shown once when Java was updated under the running compositor ("": not shown)
 
 ---@class caulis.Settings.systemKeys
 ---@field volumeStep? integer percent per press of the volume keys

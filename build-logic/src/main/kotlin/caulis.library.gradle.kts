@@ -13,7 +13,7 @@ fun library(name: String) = libs.findLibrary(name).get()
 
 fun version(name: String) = libs.findVersion(name).get().requiredVersion.toInt()
 
-// How other builds name these modules, e.g. io.github.aristarkhkenebas:caulis-core:0.1.3.
+// How other builds name these modules, e.g. io.github.aristarkhkenebas:caulis-core:0.1.4.
 group = "io.github.aristarkhkenebas"
 version = libs.findVersion("caulis").get().requiredVersion
 

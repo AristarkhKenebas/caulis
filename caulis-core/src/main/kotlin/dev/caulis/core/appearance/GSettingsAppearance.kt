@@ -43,9 +43,9 @@ class GSettingsAppearance(
 
         fun start(command: List<String>) {
             try {
-                ProcessBuilder(command).redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD).start()
+                dev.caulis.ffi.Processes.start(ProcessBuilder(command).redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD))
             } catch (e: java.io.IOException) {
-                log.warn("${command.first()} cannot be started ($e): GTK programs are not told the appearance")
+                dev.caulis.ffi.Processes.tellStartFailed(log, command.first(), e, "GTK programs are not told the appearance")
             }
         }
     }

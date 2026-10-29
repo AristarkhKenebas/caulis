@@ -8,6 +8,7 @@ import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout.ADDRESS
 import java.lang.foreign.ValueLayout.JAVA_INT
 import java.lang.foreign.ValueLayout.JAVA_LONG
+import java.lang.foreign.ValueLayout.JAVA_SHORT
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.VarHandle
 
@@ -333,5 +334,76 @@ internal object Libc {
     fun kill(pid: Int, signal: Int) {
         val state = errnoState.get()
         check("kill", killHandle.invokeExact(state, pid, signal) as Int, state)
+    }
+
+    // --- starting programs the way Java's ProcessBuilder does, without its helper ---------
+
+    private val spawnFileActionsChdir = function("posix_spawn_file_actions_addchdir_np", JAVA_INT, ADDRESS, ADDRESS)
+    private val spawnHandle = function("posix_spawn", JAVA_INT, ADDRESS, ADDRESS, ADDRESS, ADDRESS, ADDRESS, ADDRESS)
+    private val spawnAttrInit = function("posix_spawnattr_init", JAVA_INT, ADDRESS)
+    private val spawnAttrDestroy = function("posix_spawnattr_destroy", JAVA_INT, ADDRESS)
+    private val spawnAttrSetFlags = function("posix_spawnattr_setflags", JAVA_INT, ADDRESS, JAVA_SHORT)
+    private val spawnAttrSetSigMask = function("posix_spawnattr_setsigmask", JAVA_INT, ADDRESS, ADDRESS)
+    private val spawnAttrSetSigDefault = function("posix_spawnattr_setsigdefault", JAVA_INT, ADDRESS, ADDRESS)
+    private val sigEmptySet = function("sigemptyset", JAVA_INT, ADDRESS)
+    private val sigFillSet = function("sigfillset", JAVA_INT, ADDRESS)
+    private val waitidHandle = function("waitid", JAVA_INT, JAVA_INT, JAVA_INT, ADDRESS, JAVA_INT)
+    private val ioctlIntHandle = function("ioctl", JAVA_INT, JAVA_INT, JAVA_LONG, ADDRESS, firstVariadicArg = 2)
+
+    /** posix_spawnattr_t is opaque; this is more than glibc needs (336 bytes). sigset_t is 128 bytes. */
+    const val SPAWN_ATTR_SIZE = 1024L
+    const val SIGSET_SIZE = 128L
+
+    /** In the new program, the working directory becomes [path] (glibc 2.29+). */
+    fun spawnActionsChdir(actions: MemorySegment, path: MemorySegment) {
+        val state = errnoState.get()
+        val result = spawnFileActionsChdir.invokeExact(state, actions, path) as Int
+        if (result != 0) throw NativeException("posix_spawn_file_actions_addchdir_np", result)
+    }
+
+    /**
+     * Fills [attributes] (to be destroyed with [spawnAttrDestroy]) so that the new program
+     * starts with no signal blocked and every signal's default action: nothing of the JVM's
+     * own signal handling goes along.
+     */
+    fun spawnAttrClean(attributes: MemorySegment, scratch: MemorySegment) {
+        val state = errnoState.get()
+        fun ok(name: String, result: Int) { if (result != 0) throw NativeException(name, result) }
+        ok("posix_spawnattr_init", spawnAttrInit.invokeExact(state, attributes) as Int)
+        val sigsetEmpty = scratch.asSlice(0, SIGSET_SIZE)
+        val sigsetAll = scratch.asSlice(SIGSET_SIZE, SIGSET_SIZE)
+        check("sigemptyset", sigEmptySet.invokeExact(state, sigsetEmpty) as Int, state)
+        check("sigfillset", sigFillSet.invokeExact(state, sigsetAll) as Int, state)
+        ok("posix_spawnattr_setsigmask", spawnAttrSetSigMask.invokeExact(state, attributes, sigsetEmpty) as Int)
+        ok("posix_spawnattr_setsigdefault", spawnAttrSetSigDefault.invokeExact(state, attributes, sigsetAll) as Int)
+        // POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK
+        ok("posix_spawnattr_setflags", spawnAttrSetFlags.invokeExact(state, attributes, (0x04 or 0x08).toShort()) as Int)
+    }
+
+    fun spawnAttrDestroy(attributes: MemorySegment) {
+        val state = errnoState.get()
+        spawnAttrDestroy.invokeExact(state, attributes) as Int
+    }
+
+    /** Starts [path] (no PATH lookup) with [argv] and [envp]; returns the pid; throws with the reason (ENOENT: not there). */
+    fun spawnAt(path: MemorySegment, actions: MemorySegment, attributes: MemorySegment, argv: MemorySegment, envp: MemorySegment, pidOut: MemorySegment): Int {
+        val state = errnoState.get()
+        val result = spawnHandle.invokeExact(state, pidOut, path, actions, attributes, argv, envp) as Int
+        if (result != 0) throw NativeException("posix_spawn", result)
+        return pidOut.get(JAVA_INT, 0)
+    }
+
+    /** waitid(P_PID, [pid], [info], [options]): waits for the process to change state (EINTR is thrown). */
+    fun waitid(pid: Int, info: MemorySegment, options: Int) {
+        val state = errnoState.get()
+        check("waitid", waitidHandle.invokeExact(state, 1, pid, info, options) as Int, state)
+    }
+
+    /** ioctl([fd], [request], &int): the int it gives back (FIONREAD: the bytes waiting to be read). */
+    fun ioctlInt(fd: Int, request: Long): Int = Arena.ofConfined().use { arena ->
+        val value = arena.allocate(JAVA_INT)
+        val state = errnoState.get()
+        check("ioctl", ioctlIntHandle.invokeExact(state, fd, request, value) as Int, state)
+        value.get(JAVA_INT, 0)
     }
 }

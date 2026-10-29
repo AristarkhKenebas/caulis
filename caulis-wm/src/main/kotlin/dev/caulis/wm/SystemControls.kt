@@ -160,11 +160,13 @@ internal class SystemControls(private val running: Running) {
     // longer than the settings allow: then it is stopped, and the next key goes on).
     private fun run(vararg command: String): String? {
         val process = try {
-            ProcessBuilder(*command).redirectErrorStream(true).start()
+            dev.caulis.ffi.Processes.start(ProcessBuilder(*command).redirectErrorStream(true))
         } catch (e: java.io.IOException) {
-            if (missing.add(command[0])) {
-                log.warn("${command[0]} is not installed: the key needs it")
-                running.loop.post { running.desktop.showLevel("${command[0]} is not installed") }
+            // "Not installed" only when it is not there; else the real reason (each said once).
+            val notFound = dev.caulis.ffi.Processes.isNotFound(e)
+            dev.caulis.ffi.Processes.tellStartFailed(log, command[0], e, "the key needs it")
+            if (missing.add(command[0] + if (notFound) "" else "\u0000" + dev.caulis.ffi.Processes.reason(e))) {
+                running.loop.post { running.desktop.showLevel(if (notFound) "${command[0]} is not installed" else "${command[0]} could not be started") }
             }
             return null
         }

@@ -171,10 +171,11 @@ internal class Reloader private constructor(
     private fun compile(vararg tasks: String = arrayOf("classes")): Pair<Int, List<String>>? {
         val gradlew = project.gradlew ?: return null
         val process = try {
-            ProcessBuilder(listOf(gradlew.toString(), "--quiet", "--console=plain", "-p", project.root.toString()) + tasks)
-                .directory(gradlew.parent.toFile())
-                .redirectErrorStream(true)
-                .start()
+            dev.caulis.ffi.Processes.start(
+                ProcessBuilder(listOf(gradlew.toString(), "--quiet", "--console=plain", "-p", project.root.toString()) + tasks)
+                    .directory(gradlew.parent.toFile())
+                    .redirectErrorStream(true),
+            )
         } catch (e: Exception) {
             log.warn("Gradle could not be started to compile the configuration: $e")
             notify("$e", "Your configuration could not be compiled")

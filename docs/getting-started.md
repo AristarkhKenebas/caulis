@@ -16,7 +16,10 @@ can write a bit of Kotlin (or Java), you can follow along.
 ## 1. Get Caulis
 
 Caulis is on Maven Central (`io.github.aristarkhkenebas:caulis-wm`), so your project needs no
-copy of it. The template and the examples come with its sources, though:
+copy of it. Every release is also in Caulis' own Maven repository on GitHub Pages,
+`https://aristarkhkenebas.github.io/caulis/maven`, with the same coordinates: a mirror for the
+months when Central's free monthly limit is used up (a new version may be there first), so the
+files below name both. The template and the examples come with its sources, though:
 
 ```sh
 git clone <caulis repository> ~/caulis
@@ -32,7 +35,7 @@ cd ~/my-compositor
 ./gradlew run
 ```
 
-(It uses Caulis from Maven Central; `new-compositor.sh --sources ~/my-compositor` builds it from
+(It uses Caulis from Maven Central or its GitHub Pages mirror; `new-compositor.sh --sources ~/my-compositor` builds it from
 your Caulis folder instead.)
 
 Then skip to step 3. If you prefer to see every piece, make a folder with three files:
@@ -48,11 +51,18 @@ plugins {
 }
 
 dependencyResolutionManagement {
-    repositories { mavenCentral() }
+    repositories {
+        mavenCentral()
+        // The same releases (same coordinates), for when one is not on Central yet: Central's
+        // free monthly limit. Only Caulis is looked up there.
+        maven("https://aristarkhkenebas.github.io/caulis/maven") {
+            content { includeGroup("io.github.aristarkhkenebas") }
+        }
+    }
 }
 
-// (Caulis comes from Maven Central. To build it from the sources of step 1 instead — your
-// changes to Caulis at once — add: includeBuild("../caulis").)
+// (Caulis comes from Maven Central or that mirror. To build it from the sources of step 1
+// instead — your changes to Caulis at once — add: includeBuild("../caulis").)
 ```
 
 `build.gradle.kts`:
@@ -74,7 +84,7 @@ kotlin {
 tasks.withType<JavaCompile>().configureEach { options.release = 26 }
 
 dependencies {
-    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.3")
+    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.4")
 }
 
 application {
@@ -87,7 +97,7 @@ application {
 // running compositor, taken on in about a second (step "Change it while it runs").
 val development by configurations.creating
 dependencies {
-    development("io.github.aristarkhkenebas:caulis-reload:0.1.3")
+    development("io.github.aristarkhkenebas:caulis-reload:0.1.4")
 }
 tasks.named<JavaExec>("run") {
     classpath += development
@@ -1140,6 +1150,15 @@ Programs started inside read nothing (their input is empty) and, when the compos
 are asked to end (`stopProgramsOnQuit = false` leaves them running). Code of your own that
 must stop then — threads, programs from `spawn` — goes in `onQuit { }`.
 
+Every program is started through one way, `dev.caulis.ffi.Processes.start(ProcessBuilder)`
+(use it for programs of your own too): by default straight with the C library's posix_spawn
+(`processStart = Processes.Method.NATIVE`), so starting programs keeps working when the system
+updates Java while the compositor runs (Java's own way, `Processes.Method.JAVA`, then fails with
+"Failed to exec spawn helper" until a restart). When Java was updated under the running
+compositor, `javaUpdatedNotice` is shown once (null: only logged): restart when convenient.
+A program that cannot start is logged with the real reason — "is not installed" only when it
+is not there.
+
 ## 17. The cursor
 
 Caulis has its own cursors: `"Caulis"` (sharp white arrows with a black outline, as on
@@ -1764,7 +1783,7 @@ can also say *when* and *how* — functions on keys, on events, on timers. Add t
 your compositor:
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-lua:0.1.3")
+implementation("io.github.aristarkhkenebas:caulis-lua:0.1.4")
 ```
 
 Then it reads `~/.config/<configName>/config.lua` by itself (after `config.json`, on top of
@@ -1863,7 +1882,7 @@ no project: the compositor compiles it itself. Add the module (it contains the K
 compiler, so it makes your compositor bigger):
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-script:0.1.3")
+implementation("io.github.aristarkhkenebas:caulis-script:0.1.4")
 ```
 
 `~/.config/<configName>/config.kts` is then read after `config.json` and `config.lua`, as if
