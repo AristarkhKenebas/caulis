@@ -15,6 +15,8 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-10-30
+
 ### Added
 - `Desktop.panelsShowWhileLocked` (default false): whether the compositor's own lock screen
   (`lockInternally` without `hideDesktop`) shows programs' panels (a bar, a notification
@@ -404,7 +406,8 @@ The first release on Maven Central.
 - A project template (`templates/new-compositor.sh`), examples, a getting-started guide, API docs,
   a Nix flake with NixOS and Home Manager modules.
 
-[Unreleased]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.8...HEAD
+[0.1.8]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.4...v0.1.5
