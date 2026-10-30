@@ -69,6 +69,9 @@ class Scratchpad internal constructor(
     // A special workspace: the window that had the focus before it was shown (it gets it back).
     internal var focusBefore: java.lang.ref.WeakReference<Window>? = null
 
+    // The window that had the focus as it began to go: it keeps its focused look (border, glow) while it fades.
+    internal var focusedAsItWent: java.lang.ref.WeakReference<Window>? = null
+
     // For Overlay: its own arrangement.
     internal val workspace = Workspace(0, (style as? Overlay)?.layout ?: dev.caulis.tiling.Floating)
 

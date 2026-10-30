@@ -2521,6 +2521,7 @@ class Desktop(
         val began = System.nanoTime()
         padChanges(pad, padAmount(pad, began), began)
         pad.leaving = true
+        pad.focusedAsItWent = focusedWindow?.takeIf { it in pad.windows }?.let { java.lang.ref.WeakReference(it) }
         if (pad.isSpecial) layoutLog.info { "Special workspace ${pad.name} hidden" }
         // A special workspace gives the focus back to the window that had it before (if it is still there).
         val back = pad.focusBefore?.get()?.takeIf { focusBack && it in windows }
@@ -6232,7 +6233,9 @@ class Desktop(
         // The compositor's title bar over it, if it has one: effects go around both.
         val bar = titleHeight(window).let { if (it > 0) Rect(rect.x, rect.y - (it * scaleY).roundToInt(), rect.width, (it * scaleY).roundToInt()) else null }
         val frame = bar?.union(rect) ?: rect
-        val look = addEffects(all, window, window.surface, visibleRect, frame, minOf(scaleX, scaleY), fx, focused = window === focusedWindow)
+        // (A window of a scratchpad going keeps the look of the focus it had: border and glow fade with it.)
+        val looksFocused = window === focusedWindow || (leaving && scratchpadOf(window)?.focusedAsItWent?.get() === window)
+        val look = addEffects(all, window, window.surface, visibleRect, frame, minOf(scaleX, scaleY), fx, focused = looksFocused)
         if (bar != null) all += DrawItem.Image(EffectKey("title", window), ownTitleBars.texture(window, bar), bar, look.clip, look.radius, alpha = alpha)
         addTree(all, window.surface, rect.x - (visibleRect.x * scaleX).roundToInt(), rect.y - (visibleRect.y * scaleY).roundToInt(), scaleX, scaleY, look)
         if (look.dim > 0f) all += DrawItem.Tint(EffectKey("dim", window), frame, look.radius, 0f, 0f, 0f, look.dim * alpha)
