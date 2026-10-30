@@ -242,7 +242,9 @@ class ComposeWidget @JvmOverloads constructor(
         for ((name, part) in parts.entries.toList()) {
             val monitor = shown[name] ?: continue
             if (part.busy || now - part.lastShown < keep * 1_000_000_000L) continue
-            if (place(monitor) != null && appearance(monitor).alpha > HIDDEN) {
+            // (Placed but hidden by its look — a popup waiting to be measured — is still drawn,
+            // so its scene would only be made anew at once, again and again: it is kept.)
+            if (place(monitor) != null) {
                 part.lastShown = now // (shown, only not drawn meanwhile)
                 continue
             }

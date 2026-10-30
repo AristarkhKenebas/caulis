@@ -202,6 +202,33 @@ class ComposeWidgetTest {
         }
     }
 
+    @Test
+    fun `a widget placed but hidden by its look keeps its scene, not made anew again and again`() {
+        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        ScreenTestServer().use { server ->
+            val made = java.util.concurrent.atomic.AtomicInteger()
+            server.onServer { d ->
+                val widget = ComposeWidget(
+                    d, post = { server.loop.post(it::run) }, place = { m -> Rect(m.area.x, m.area.y, 100, 40) },
+                    appearance = { WidgetLook(alpha = 0f) },
+                ) {
+                    remember { made.incrementAndGet() }
+                    Box(Modifier.fillMaxWidth().height(40.dp).background(Color.Red))
+                }
+                widget.keepHiddenSeconds = 1
+                d.addWidget(widget)
+            }
+            waitUntil { made.get() >= 1 }
+            // Frames for 3 s (something else changing on the screen).
+            val until = System.nanoTime() + 3_000_000_000L
+            while (System.nanoTime() < until) {
+                server.onServer { d -> d.requestRedraw() }
+                Thread.sleep(100)
+            }
+            assertEquals(1, made.get(), "composed once")
+        }
+    }
+
     private fun waitUntil(what: () -> Boolean) {
         val deadline = System.nanoTime() + 5_000_000_000L
         while (!what() && System.nanoTime() < deadline) Thread.sleep(20)

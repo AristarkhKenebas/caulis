@@ -38,6 +38,9 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   leaves the cursor on the cursor plane jumping back after every warp.
 - `ScreenShader.file(path)` no longer adds a file watch each time it is made (each
   configuration reload): every save of the shader read it once per reload since the start.
+- A Compose widget that is placed but hidden by its look (a popup waiting to be measured)
+  keeps its scene: it was let go after `keepHiddenSeconds` and composed anew at once, again every
+  minute, on the compositor's thread.
 
 ### Security
 - A program can no longer freeze the compositor by sending a named pipe (FIFO) as its
