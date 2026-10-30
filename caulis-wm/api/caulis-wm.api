@@ -271,6 +271,8 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getUseConfigFile ()Z
 	public final fun getWakeScreensAfterMillis ()J
 	public final fun getWakeScreensOnInput ()Z
+	public final fun getWallpaperFpsLimit ()I
+	public final fun getWallpaperShadersPaused ()Z
 	public final fun getWaylandFirst ()Z
 	public final fun getWidgetThreads ()I
 	public final fun getWindowListPrograms ()Ljava/util/Set;
@@ -525,6 +527,8 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setUseConfigFile (Z)V
 	public final fun setWakeScreensAfterMillis (J)V
 	public final fun setWakeScreensOnInput (Z)V
+	public final fun setWallpaperFpsLimit (I)V
+	public final fun setWallpaperShadersPaused (Z)V
 	public final fun setWaylandFirst (Z)V
 	public final fun setWidgetThreads (I)V
 	public final fun setWindowListPrograms (Ljava/util/Set;)V

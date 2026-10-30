@@ -82,6 +82,7 @@ class Desktop(
         appearingPictures.values.forEach { it.close() }
         appearingPictures.clear()
         backdrops.close()
+        wallpaperShaders.close()
         osd.close()
     }
 
@@ -89,11 +90,38 @@ class Desktop(
 
     private val monitorList = ArrayList<Monitor>()
 
+    // What wallpaper shaders share (their clock, the pointer, their frames), wherever drawn.
+    private val wallpaperShaders = ShaderWallpapers(compositor.display.loop) {
+        version++
+        onChange()
+    }
+
     // The backgrounds of the monitors (declared first: drawing asks for them).
     private val backdrops = Backdrops(renderer, compositor.display.loop, changed = {
         version++
         onChange()
-    }, shaderWorks = { name, code, problem -> shaderWorks(name, code, problem) }).also { it.fade = { usual -> animation("fadeBackground", usual) } }
+    }, shaderWorks = { name, code, problem -> shaderWorks(name, code, problem) }, shaders = wallpaperShaders).also { it.fade = { usual -> animation("fadeBackground", usual) } }
+
+    /**
+     * Every wallpaper shader ([WallpaperShader], the background's or a drawing's) stands still:
+     * its time and the pointer as they were, nothing drawn anew for it — for a dimmed screen,
+     * a laptop saving its battery. False again: they go on from where they stopped.
+     */
+    var wallpaperShadersPaused: Boolean
+        get() = wallpaperShaders.paused
+        set(value) {
+            wallpaperShaders.paused = value
+        }
+
+    /**
+     * The most frames a second any wallpaper shader is drawn at, whatever it asks (0, the
+     * default: as each asks, [WallpaperShader.framesPerSecond]) — e.g. fewer on battery.
+     */
+    var wallpaperFpsLimit: Int
+        get() = wallpaperShaders.fpsLimit
+        set(value) {
+            wallpaperShaders.fpsLimit = value
+        }
 
     // The compositor's own notices (declared first: arranging a monitor asks for their room).
     private val noticeBoard = NoticeBoard(
@@ -600,9 +628,10 @@ class Desktop(
         val list = drawings[level].orEmpty()
         if (list.isEmpty()) return addWidgets(all, level)
         val seconds = ((System.nanoTime() - paintStart) / 1e9).toFloat()
+        val scene = wallpaperScene()
         for (monitor in monitorList) {
             for (drawing in list.toList()) {
-                val canvas = OverlayCanvas(monitor, listOf("drawing", drawing, monitor.name), seconds)
+                val canvas = OverlayCanvas(monitor, listOf("drawing", drawing, monitor.name), seconds, scene)
                 try {
                     drawing.draw(monitor, canvas)
                 } catch (e: Throwable) {
@@ -616,6 +645,9 @@ class Desktop(
         }
         addWidgets(all, level)
     }
+
+    // What wallpaper shaders drawn on canvases need now (the pointer, the clock, all monitors).
+    private fun wallpaperScene() = WallpaperScene(wallpaperShaders, renderer, pointerX, pointerY, System.nanoTime(), if (monitorList.isEmpty()) Rect(0, 0, 1, 1) else desktopBounds()) { name, code, problem -> shaderWorks(name, code, problem) }
 
     private val widgets = ArrayList<Widget>()
     private var hoveredWidget: Widget? = null
@@ -742,12 +774,13 @@ class Desktop(
     private fun addWidgets(all: MutableList<DrawItem>, level: DrawingLevel, onLockScreen: Boolean = false) {
         if (widgets.isEmpty()) return
         val seconds = ((System.nanoTime() - paintStart) / 1e9).toFloat()
+        val scene = wallpaperScene()
         for (monitor in monitorList) {
             for (widget in widgets.toList()) {
                 if (onLockScreen && !widgetUsable(widget)) continue
                 if (userCode("Your widget (level)", null) { widget.level } != level) continue
                 val area = userCode("Your widget (area)", null) { widget.area(monitor) } ?: continue
-                val canvas = OverlayCanvas(monitor, listOf("widget", widget, monitor.name), seconds)
+                val canvas = OverlayCanvas(monitor, listOf("widget", widget, monitor.name), seconds, scene)
                 try {
                     widget.draw(monitor, canvas, area)
                 } catch (e: Throwable) {
@@ -5090,6 +5123,7 @@ class Desktop(
         pointerX = x.coerceIn(on.area.x.toDouble(), on.area.right - 1.0)
         pointerY = y.coerceIn(on.area.y.toDouble(), on.area.bottom - 1.0)
         lastPointerMoveNanos = System.nanoTime()
+        wallpaperShaders.pointerMoved()
         // (Not while the input thread already showed movements after this one: it would go back.)
         if (quickCursorMoves && earlyInFlight.get() <= 1) quickCursor()
         publishEarly()
@@ -5244,6 +5278,8 @@ class Desktop(
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean, passToApps: Boolean = true) {
         inputLog.trace { "Button $button ${if (pressed) "pressed" else "released"} at ${pointerX.toInt()},${pointerY.toInt()}${if (passToApps) "" else " (for the window manager)"}" }
         buttonsHeld = (buttonsHeld + if (pressed) 1 else -1).coerceAtLeast(0)
+        // (Wallpaper shaders may ripple from it: not on a lock screen.)
+        if (pressed && !locked) wallpaperShaders.pressed(pointerX, pointerY, button)
         // A first button pressed: no release is owed to a notice or a menu any more (one taken
         // elsewhere — by the lock, by an overlay — left these set).
         if (pressed && buttonsHeld == 1) {
@@ -6226,6 +6262,7 @@ class Desktop(
         val (fullscreen, normal) = stackingOrder().filter { !directed(it) }.partition { it.fullscreen }
         // Our background on each monitor, below a wallpaper program's (which wins).
         val allMonitors = desktopBounds()
+        wallpaperShaders.sample(pointerX, pointerY, now)
         for (monitor in monitorList) all += backdrops.items(monitor, monitor.workspace.number, pointerX, pointerY, now, allMonitors, largestScale)
         addDrawings(all, DrawingLevel.WALLPAPER)
         addLayers(all, LayerShell.Layer.BACKGROUND)
@@ -6328,8 +6365,9 @@ class Desktop(
 
         // Leave out what nobody can see; only the rest counts as visible.
         val kept = cullHidden(all, desktopBounds())
-        // A moving background goes on only where it is seen (not under a wallpaper program).
-        backdrops.sceneBuilt(kept.mapNotNullTo(HashSet()) { item -> (item as? DrawItem.Custom)?.key?.toString()?.substringAfter("background ", "")?.takeIf { it.isNotEmpty() } })
+        // A moving wallpaper shader goes on only where it is seen (not under a wallpaper program, a fullscreen window).
+        backdrops.sceneBuilt()
+        wallpaperShaders.sceneBuilt(kept)
         sceneVisible.clear()
         for (item in kept) if (item is DrawItem.Picture) sceneVisible += item.surface
         placeSurfaces(kept)

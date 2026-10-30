@@ -186,6 +186,25 @@ class Caulis {
         running?.applyLooks()
     }
 
+    /**
+     * Wallpaper shaders ([WallpaperShader][dev.caulis.core.WallpaperShader]) stand still: their time and the pointer as
+     * they were, nothing drawn anew for them (false, the default). Set it from your own rules
+     * — a dimmed screen, a laptop on battery — and back to go on where they stopped.
+     */
+    var wallpaperShadersPaused = false
+        set(value) {
+            field = value
+            running?.desktop?.wallpaperShadersPaused = value
+        }
+
+    /** The most frames a second any wallpaper shader is drawn at (0, the default: as each asks; e.g. 15 on battery). */
+    var wallpaperFpsLimit = 0
+        set(value) {
+            require(value in 0..240) { "wallpaperFpsLimit is 0 (none) to 240" }
+            field = value
+            running?.desktop?.wallpaperFpsLimit = value
+        }
+
     /** How long one background melts into the next (milliseconds). */
     var backgroundChangeMillis = 400L
         set(value) {

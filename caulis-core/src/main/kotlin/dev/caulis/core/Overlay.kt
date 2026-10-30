@@ -47,6 +47,8 @@ class OverlayCanvas internal constructor(
     private val key: Any,
     /** Seconds since the compositor started (for paints that move: gradients turning, shaders). */
     val time: Float = 0f,
+    // What a wallpaper shader drawn here needs from the desktop (null: none can be drawn here).
+    private val scene: WallpaperScene? = null,
 ) {
 
     internal val items = ArrayList<DrawItem>()
@@ -127,6 +129,23 @@ class OverlayCanvas internal constructor(
     }
 
     /**
+     * A wallpaper shader ([WallpaperShader]) over [rect], [alpha] as strong: its `at` is 0..1
+     * over [rect], which may be bigger than the monitor (only the monitor's part is drawn) — a
+     * wallpaper that moves and zooms with a view is a [rect] that moves and grows. [view] is the
+     * part of the whole picture [rect] shows (its `view` uniform; null: all of it). It is drawn
+     * anew as the shader asks ([WallpaperShader.framesPerSecond], the pointer), only while it
+     * is seen; one that does not compile shows its fallback colour. On a canvas with no monitor
+     * (a window's decorations) nothing is drawn.
+     */
+    @JvmOverloads
+    fun wallpaper(shader: WallpaperShader, rect: Rect, alpha: Float = 1f, view: BackgroundView? = null) {
+        val monitor = monitor ?: return
+        val scene = scene ?: return
+        if (rect.width <= 0 || rect.height <= 0 || alpha <= 0f) return
+        add(scene.item(listOf(key, "wallpaper", items.size), monitor, rect, shader, alpha, view))
+    }
+
+    /**
      * What is below [rect] (drawn so far) blurred, round by [radius]: [size] how far each pass
      * reaches, [passes] how many (more: softer, slower); [tone] tints it (frosted glass).
      */
@@ -167,4 +186,18 @@ interface Drawing {
 
     /** True while it changes by itself: frames keep coming. */
     fun animating(now: Long): Boolean = false
+}
+
+/** What a wallpaper shader on an [OverlayCanvas] needs from the desktop: its pointer, clock and frames. */
+internal class WallpaperScene(
+    private val shaders: ShaderWallpapers,
+    private val renderer: dev.caulis.render.Renderer,
+    private val pointerX: Double,
+    private val pointerY: Double,
+    private val now: Long,
+    private val desktop: Rect,
+    private val works: (name: String, code: String, problem: String?) -> Unit,
+) {
+    fun item(key: Any, monitor: Monitor, rect: Rect, shader: WallpaperShader, alpha: Float, view: BackgroundView?): DrawItem =
+        shaders.item(key, renderer, monitor, rect, shader, alpha, pointerX, pointerY, now, desktop, monitor.workspace.number, view, null, look = listOf(shader), works = works)
 }

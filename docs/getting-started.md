@@ -615,9 +615,36 @@ background = Background.image(file("walls/sea.jpg"))   // pictures too: saved ag
 `file("/usr/share/...")` where it says; `configDir = Path.of(...)` puts the folder elsewhere.
 The log says where the folder is when the compositor starts.
 
-A shader that uses `time` or `pointer` is drawn `framesPerSecond` times a second, only
-while it can be seen (about 6% of one core at 30 per second, nested); one that does not
-compile is said once in the log and the usual background shows.
+A shader that uses `time` is drawn `framesPerSecond` times a second, only while it can be
+seen (about 6% of one core at 30 per second, nested); one that only follows the pointer is
+drawn anew while the pointer moves (at most `framesPerSecond` times a second) and rests with
+it. One that does not compile is said once in the log and its `fallback` colour (else the
+usual background) shows.
+
+**Wallpapers that answer the mouse and match your look.** Besides `pointer`, a shader can read
+`pointerPixels` (the pointer in pixels), `pointerVelocity` (how fast it moves, in `at` units a
+second, smoothed — a trail, a wake), the last four presses `clicks[0..3]` (x, y as `at`, the
+`time` of the press, the button: 1 left, 2 middle, 3 right; `clickCount` of them — a ripple is
+`time - clicks[0].z` old), colours you hand it (`colors[0..7]`, `colorCount`) and settings of
+your own by name, each a `float` in its code:
+
+```kotlin
+background = Background.shader(
+    WallpaperShader.file(file("ripples.glsl")).with(
+        colors = listOf(Color.hex("#3ddc97"), Color.hex("#f2b33d")),   // colors[0], colors[1]
+        values = mapOf("speed" to 0.6f, "intensity" to 1.2f),           // float speed, intensity
+        fallback = Color.hex("#0c110f"),                                 // if it does not compile
+        framesPerSecond = 30,
+    ),
+)
+wallpaperFpsLimit = 15          // never more than 15 a second, whatever a shader asks (battery)
+wallpaperShadersPaused = true   // all stand still (a dimmed screen); false: on from where they stopped
+```
+
+A `Drawing` (`desktop.addDrawing`) draws one too, over any rectangle — bigger than
+the monitor for a wallpaper that moves and zooms with your own view:
+`canvas.wallpaper(shader, rect, alpha)` (its `at` is 0..1 over `rect`; it is paced and rests
+under a fullscreen window just as the background).
 
 A wallpaper program — swaybg, hyprpaper, swww, mpvpaper, waypaper's backends, anything on
 the background layer — simply draws on top: it wins, and a moving shader below it rests.

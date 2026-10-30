@@ -104,9 +104,22 @@ fun interface BackgroundPainter {
  * }
  * ```
  *
- * A shader that uses `time` or `pointer` moves: it is drawn [framesPerSecond] times a
- * second (more costs more power; panels and windows above it are drawn again with it).
- * One that does not compile is reported once in the log, and [Background.USUAL] shows.
+ * More it can read, for wallpapers that answer the pointer and match a look:
+ *
+ * - `vec2 pointerPixels` — the pointer in the picture's pixels from its top left (-1, -1 when elsewhere)
+ * - `vec2 pointerVelocity` — how fast the pointer moves, in `at` units (0..1 of the picture) a second, smoothed
+ * - `vec4 clicks[4]`, `int clickCount` — the last presses, newest first: x, y (as `at`), the
+ *   `time` it was pressed at (so `time - clicks[0].z` is its age) and the button (1 left, 2 middle, 3 right)
+ * - `vec4 colors[8]`, `int colorCount` — [colors] given to it (plain, not premultiplied)
+ * - each of [values] as a `float` of its name (`speed`, `intensity`, ...): settings of the shader
+ * - `vec4 view` — the part of the whole picture shown (a view moving and zooming over it); `viewAt(at)`
+ *
+ * A shader that uses `time` moves: it is drawn [framesPerSecond] times a second (more costs
+ * more power; panels and windows above it are drawn again with it), only while it is seen.
+ * One that uses only the pointer (`pointer`, `pointerPixels`, `pointerVelocity`, `clicks`,
+ * `desktopPointer`) is drawn anew only while the pointer moves or a click is fresh. One that
+ * does not compile is reported once in the log, and [fallback] (else [Background.USUAL]) shows.
+ * [Desktop.wallpaperShadersPaused] and [Desktop.wallpaperFpsLimit] hold them all still or slower.
  */
 class WallpaperShader private constructor(
     private val inline: String?,
@@ -115,14 +128,39 @@ class WallpaperShader private constructor(
     val image: Path?,
     /** How often a moving shader is drawn anew. */
     val framesPerSecond: Int,
+    /** Colours handed to it (`colors[0]`.. and `colorCount`), at most [MAX_COLORS]: a look's accents. */
+    val colors: List<Color>,
+    /** Settings of the shader by name, each a `float` of that name in its code (`speed`, `intensity`, ...). */
+    val values: Map<String, Float>,
+    /** What shows if it does not compile (null: [Background.USUAL]'s colour). */
+    val fallback: Color?,
 ) {
     /** A shader written in your code. */
     @JvmOverloads
-    constructor(code: String, image: Path? = null, framesPerSecond: Int = 30) : this(code, null, image, framesPerSecond)
+    constructor(code: String, image: Path? = null, framesPerSecond: Int = 30) : this(code, null, image, framesPerSecond, emptyList(), emptyMap(), null)
 
     init {
         require(framesPerSecond in 1..240) { "framesPerSecond must be 1 to 240" }
+        require(colors.size <= MAX_COLORS) { "a wallpaper shader gets up to $MAX_COLORS colours, not ${colors.size}" }
+        for (name in values.keys) {
+            require(NAME.matches(name) && !name.startsWith("gl_") && !name.startsWith("caulis") && name !in RESERVED) {
+                "\"$name\" cannot be a shader value's name (letters, digits and _, not one of Caulis's own: ${RESERVED.joinToString()})"
+            }
+        }
+        require(values.values.all { it.isFinite() }) { "a shader value is a number, not ${values.values.firstOrNull { !it.isFinite() }}" }
     }
+
+    /**
+     * The same shader with other [colors], [values], [fallback] or [framesPerSecond] (the
+     * file, if any, is still followed: a saved change shows at once).
+     */
+    @JvmOverloads
+    fun with(
+        colors: List<Color> = this.colors,
+        values: Map<String, Float> = this.values,
+        fallback: Color? = this.fallback,
+        framesPerSecond: Int = this.framesPerSecond,
+    ): WallpaperShader = WallpaperShader(inline, file, image, framesPerSecond, colors.toList(), LinkedHashMap(values), fallback)
 
     /** The GLSL code with the `wallpaper` function (and any helpers it needs); a file's as it is now. */
     val code: String get() = inline ?: file!!.text
@@ -136,22 +174,29 @@ class WallpaperShader private constructor(
     /** What to call it in messages: its file's name, or "a wallpaper shader". */
     val name: String get() = file?.path?.fileName?.toString() ?: "a wallpaper shader"
 
-    /** True if it changes by itself (it uses `time`, `pointer` or `desktopPointer`). */
-    val moving: Boolean
-        get() {
-            val now = code
-            if (now !== movingOf) {
-                movingOf = now
-                movingNow = Regex("""\b(time|pointer|desktopPointer)\b""").containsMatchIn(now)
-            }
-            return movingNow
-        }
+    /** True if it changes by itself (it uses `time`, or the pointer: `pointer`, `pointerPixels`, `pointerVelocity`, `clicks`, `desktopPointer`). */
+    val moving: Boolean get() = uses().let { it.time || it.pointer }
 
-    @Volatile private var movingOf: String? = null
-    @Volatile private var movingNow = false
+    /** True if it uses `time`: drawn [framesPerSecond] times a second while seen. */
+    val usesTime: Boolean get() = uses().time
 
-    // The same code and picture is the same shader (compiled once, a mistake said once).
-    override fun equals(other: Any?) = other is WallpaperShader && other.code == code && other.image == image && other.framesPerSecond == framesPerSecond
+    /** True if it follows the pointer or clicks: drawn anew while the pointer moves (and a click is fresh). */
+    val usesPointer: Boolean get() = uses().pointer
+
+    private class Uses(val code: String, val time: Boolean, val pointer: Boolean)
+
+    @Volatile private var usesNow: Uses? = null
+
+    // What the code reads, found once per version of it.
+    private fun uses(): Uses {
+        val now = code
+        usesNow?.let { if (it.code === now) return it }
+        return Uses(now, TIME.containsMatchIn(now), POINTER.containsMatchIn(now)).also { usesNow = it }
+    }
+
+    // The same code, picture and settings is the same shader (compiled once, a mistake said once).
+    override fun equals(other: Any?) = other is WallpaperShader && other.code == code && other.image == image && other.framesPerSecond == framesPerSecond &&
+        other.colors == colors && other.values == values && other.fallback == fallback
     override fun hashCode() = code.hashCode() * 31 + (image?.hashCode() ?: 0)
     override fun toString() = "WallpaperShader(${code.length} characters${image?.let { ", $it" } ?: ""})"
 
@@ -162,6 +207,12 @@ class WallpaperShader private constructor(
         uniform float time;
         uniform vec2 size;
         uniform vec2 pointer;
+        uniform vec2 pointerPixels;
+        uniform vec2 pointerVelocity;
+        uniform vec4 clicks[4];
+        uniform int clickCount;
+        uniform vec4 colors[8];
+        uniform int colorCount;
         uniform float workspace;
         uniform float alpha;
         uniform sampler2D picture;
@@ -172,6 +223,7 @@ class WallpaperShader private constructor(
         uniform vec2 physicalSize;
         uniform vec2 desktopPointer;
         uniform vec4 view;
+        """ + values.keys.joinToString("") { "uniform float $it;\n" } + """
         out vec4 caulisColor;
         vec4 image(vec2 p) { return hasPicture ? texture(picture, p) : vec4(0.0); }
         vec2 unitsAt(vec2 p) { return monitor.xy + p * monitor.zw; }
@@ -182,6 +234,19 @@ class WallpaperShader private constructor(
         void main() { caulisColor = wallpaper(uv) * alpha; }"""
 
     companion object {
+        /** How many colours a wallpaper shader can be handed. */
+        const val MAX_COLORS = 8
+
+        // Names a shader value cannot have (Caulis's own uniforms and helpers).
+        private val RESERVED = setOf(
+            "time", "size", "pointer", "pointerPixels", "pointerVelocity", "clicks", "clickCount", "colors", "colorCount", "workspace", "alpha",
+            "picture", "hasPicture", "monitor", "desktop", "scale", "physicalSize", "desktopPointer", "view", "uv", "image", "unitsAt", "desktopAt",
+            "viewAt", "wallpaper", "main",
+        )
+        private val NAME = Regex("[A-Za-z_][A-Za-z0-9_]*")
+        private val TIME = Regex("""\btime\b""")
+        private val POINTER = Regex("""\b(pointer|pointerPixels|pointerVelocity|clicks|clickCount|desktopPointer)\b""")
+
         /**
          * A shader from a file (e.g. next to your configuration): read again whenever you
          * save it, and drawn at once — no restart, no reload of anything else.
@@ -189,7 +254,7 @@ class WallpaperShader private constructor(
         @JvmStatic
         @JvmOverloads
         fun file(path: Path, image: Path? = null, framesPerSecond: Int = 30): WallpaperShader =
-            WallpaperShader(null, WatchedText.of(path), image, framesPerSecond)
+            WallpaperShader(null, WatchedText.of(path), image, framesPerSecond, emptyList(), emptyMap(), null)
 
         /** A slow, soft play of colours — an example to start from. */
         @JvmField val AURORA = WallpaperShader(

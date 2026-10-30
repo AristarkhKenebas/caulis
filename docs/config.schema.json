@@ -4445,6 +4445,40 @@
           "maximum": 240,
           "description": "how often a moving shader is drawn"
         },
+        "colors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+          },
+          "minItems": 0,
+          "maxItems": 8,
+          "description": "colours handed to the shader (colors[0].., colorCount)"
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
+          },
+          "description": "the shader's settings: each a float of its name in its code (speed, intensity, ...)"
+        },
+        "fallback": {
+          "type": "string",
+          "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+          "description": "shown if the shader does not compile"
+        },
+        "fpsLimit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 240,
+          "description": "the most frames a second for any wallpaper shader (0: as each asks)"
+        },
+        "paused": {
+          "type": "boolean",
+          "description": "wallpaper shaders stand still"
+        },
         "changeMillis": {
           "type": "integer",
           "minimum": 0,

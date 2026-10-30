@@ -721,6 +721,11 @@ let
       "span" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "one picture over all monitors"; };
       "shader" = lib.mkOption { type = lib.types.nullOr (lib.types.either lib.types.str lib.types.path); default = null; description = "a wallpaper shader file (vec4 wallpaper(vec2 at))"; };
       "framesPerSecond" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (1) (240)); default = null; description = "how often a moving shader is drawn"; };
+      "colors" = lib.mkOption { type = lib.types.nullOr (lib.types.addCheck (lib.types.listOf (lib.types.strMatching "#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})")) (l: builtins.length l >= 0 && builtins.length l <= 8)); default = null; description = "colours handed to the shader (colors[0].., colorCount)"; };
+      "values" = lib.mkOption { type = lib.types.nullOr (lib.types.attrsOf (lib.types.addCheck lib.types.number (x: x >= -1000000 && x <= 1000000) // { description = "a number from -1000000 to 1000000"; })); default = null; description = "the shader's settings: each a float of its name in its code (speed, intensity, ...)"; };
+      "fallback" = lib.mkOption { type = lib.types.nullOr (lib.types.strMatching "#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})"); default = null; description = "shown if the shader does not compile"; };
+      "fpsLimit" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (240)); default = null; description = "the most frames a second for any wallpaper shader (0: as each asks)"; };
+      "paused" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "wallpaper shaders stand still"; };
       "changeMillis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (10000)); default = null; description = "how long one background melts into the next"; };
     }; }); default = null; description = "what shows behind everything"; };
     "notices" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {

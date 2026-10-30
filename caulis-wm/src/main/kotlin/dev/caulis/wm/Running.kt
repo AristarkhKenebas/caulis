@@ -813,6 +813,8 @@ internal class Running(
         desktop.background = config.background
         applyLooks()
         desktop.backgroundChangeMillis = config.backgroundChangeMillis
+        desktop.wallpaperShadersPaused = config.wallpaperShadersPaused
+        desktop.wallpaperFpsLimit = config.wallpaperFpsLimit
         desktop.overviewFill = config.overviewFill
         desktop.monitorEdges = config.monitorEdges
         desktop.resizeBorder = config.resizeBorder

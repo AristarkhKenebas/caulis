@@ -225,9 +225,18 @@ internal sealed class DrawItem {
 
     /**
      * Something that draws itself ([paint] gets its place in the target's pixels): the
-     * desktop's background. It looks different when [look] (what it shows) does.
+     * desktop's background. It looks different when [look] (what it shows) does. A
+     * [wallpaper] shader's item asks for [framesPerSecond] frames a second while it is seen
+     * (0: none now).
      */
-    class Custom(override val key: Any, override val rect: Rect, val look: Any, val paint: (Rect) -> Unit) : DrawItem()
+    class Custom(
+        override val key: Any,
+        override val rect: Rect,
+        val look: Any,
+        val framesPerSecond: Int = 0,
+        val wallpaper: WallpaperShader? = null,
+        val paint: (Rect) -> Unit,
+    ) : DrawItem()
 
     /** A window's shadow (cast by [box], blurred over [softness]; [rect] is all it touches). */
     data class Shadow(

@@ -146,6 +146,83 @@ class BackgroundTest {
         assertTrue(server.framesDrawn - frames <= 2, "no frames for a background nobody sees: ${server.framesDrawn - frames}")
     }
 
+    @Test
+    fun `a shader gets its colours and values, and shows its fallback when it does not compile`() = withServer { server, _ ->
+        val code = "vec4 wallpaper(vec2 at) { return vec4(colors[0].rgb * strength, 1.0); }"
+        server.onServer {
+            it.backgroundChangeMillis = 0
+            it.background = Background.shader(WallpaperShader(code).with(colors = listOf(Color.hex("#ff0000")), values = mapOf("strength" to 0.5f)))
+        }
+        assertNear(0xFF800000.toInt(), server.screenshot().at(10, 400), "colors[0] times the value strength")
+        server.onServer { it.background = Background.shader(WallpaperShader("not GLSL").with(fallback = Color.hex("#00ff00"))) }
+        server.screenshot()
+        assertNear(0xFF00FF00.toInt(), server.screenshot().at(10, 400), "its fallback colour")
+        val wrong = runCatching { WallpaperShader(code).with(values = mapOf("time" to 1f)) }
+        assertTrue(wrong.isFailure, "a value cannot take one of Caulis's own names")
+    }
+
+    @Test
+    fun `clicks and the pointer reach a shader, and it rests while the pointer does`() = withServer { server, _ ->
+        // Red while a left click is in the list, green otherwise; blue with the pointer's x.
+        val code = """
+            vec4 wallpaper(vec2 at) {
+                float clicked = clickCount > 0 && clicks[0].w == 1.0 ? 1.0 : 0.0;
+                return vec4(clicked, 1.0 - clicked, pointer.x, 1.0);
+            }
+        """.trimIndent()
+        server.onServer {
+            it.backgroundChangeMillis = 0
+            it.background = Background.shader(WallpaperShader(code, framesPerSecond = 60))
+            it.pointerMoved(0, width / 2.0, height / 2.0)
+        }
+        val before = server.screenshot().at(10, 400)
+        assertTrue((before shr 8 and 0xff) > 200 && (before and 0xff) in 120..135, "no click yet, the pointer in the middle: ${Integer.toHexString(before)}")
+        server.onServer { it.pointerButton(0, 272, true); it.pointerButton(0, 272, false) }
+        waitFor { (server.screenshot().at(10, 400) shr 16 and 0xff) > 200 } // (the click is there, at the shader's next frame)
+        // Resting: no frames for a shader that only follows the pointer.
+        Thread.sleep(800)
+        val frames = server.framesDrawn
+        Thread.sleep(600)
+        assertTrue(server.framesDrawn - frames <= 2, "no frames while the pointer rests: ${server.framesDrawn - frames}")
+    }
+
+    @Test
+    fun `paused shaders stand still, and a limit slows them`() = withServer { server, _ ->
+        server.onServer {
+            it.backgroundChangeMillis = 0
+            it.background = Background.shader(WallpaperShader("vec4 wallpaper(vec2 at) { return vec4(fract(time), 0.0, 0.0, 1.0); }", framesPerSecond = 60))
+            it.wallpaperShadersPaused = true
+        }
+        Thread.sleep(300)
+        val still = server.screenshot().at(10, 400)
+        val frames = server.framesDrawn
+        Thread.sleep(500)
+        assertEquals(still, server.screenshot().at(10, 400), "the same picture while paused")
+        assertTrue(server.framesDrawn - frames <= 2, "no frames while paused: ${server.framesDrawn - frames}")
+        server.onServer { it.wallpaperShadersPaused = false; it.wallpaperFpsLimit = 5 }
+        Thread.sleep(300)
+        val start = server.framesDrawn
+        Thread.sleep(1000)
+        val drawn = server.framesDrawn - start
+        assertTrue(drawn in 2..8, "about 5 frames a second with the limit: $drawn")
+        server.onServer { it.wallpaperFpsLimit = 0 }
+    }
+
+    @Test
+    fun `a drawing shows a wallpaper shader over a part bigger than the monitor`() = withServer { server, _ ->
+        server.onServer { d ->
+            d.addDrawing(DrawingLevel.WALLPAPER, object : Drawing {
+                override fun draw(monitor: Monitor, canvas: OverlayCanvas) {
+                    // Twice the monitor, its left half on screen: at.x goes 0..0.5 over the monitor.
+                    val a = monitor.area
+                    canvas.wallpaper(WallpaperShader("vec4 wallpaper(vec2 at) { return vec4(at.x, 0.0, 0.0, 1.0); }"), dev.caulis.geometry.Rect(a.x, a.y, a.width * 2, a.height))
+                }
+            })
+        }
+        val right = server.screenshot().at(width - 2, 400) shr 16 and 0xff
+        assertTrue(right in 120..135, "half way along the picture at the monitor's right edge: $right")
+    }
+
     private fun waitFor(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 5_000_000_000L
         while (!condition()) {

@@ -746,6 +746,11 @@ object Settings {
                         Field("span", FlagType, "one picture over all monitors"),
                         Field("shader", FileType("a file name, or \"aurora\""), "a wallpaper shader file (vec4 wallpaper(vec2 at))"),
                         Field("framesPerSecond", IntegerType(1, 240), "how often a moving shader is drawn"),
+                        Field("colors", ListType(ColorType, 0, WallpaperShader.MAX_COLORS), "colours handed to the shader (colors[0].., colorCount)"),
+                        Field("values", MapType(DecimalType(-1e6, 1e6), "value name"), "the shader's settings: each a float of its name in its code (speed, intensity, ...)"),
+                        Field("fallback", ColorType, "shown if the shader does not compile"),
+                        Field("fpsLimit", IntegerType(0, 240), "the most frames a second for any wallpaper shader (0: as each asks)"),
+                        Field("paused", FlagType, "wallpaper shaders stand still"),
                         Field("changeMillis", IntegerType(0, 10_000), "how long one background melts into the next"),
                     ),
                     "the background",
@@ -1224,6 +1229,8 @@ object Settings {
         }
         section("background")?.let { b ->
             (b["changeMillis"] as Int?)?.let { caulis.backgroundChangeMillis = it.toLong() }
+            (b["fpsLimit"] as Int?)?.let { caulis.wallpaperFpsLimit = it }
+            (b["paused"] as Boolean?)?.let { caulis.wallpaperShadersPaused = it }
             background(caulis, b)?.let { caulis.background = it }
         }
         section("notices")?.let { n -> caulis.noticeStyle = notices(caulis.noticeStyle, n) }
@@ -1588,8 +1595,15 @@ object Settings {
     private fun background(caulis: Caulis, b: Map<String, Any?>): Background? {
         (b["shader"] as String?)?.let { name ->
             val fps = b["framesPerSecond"] as Int? ?: 30
-            if (name == "aurora") return Background.shader(WallpaperShader.AURORA)
-            return Background.shader(WallpaperShader.file(caulis.file(name), (b["image"] as String?)?.let(caulis::file), fps))
+            val shader = if (name == "aurora") WallpaperShader.AURORA else WallpaperShader.file(caulis.file(name), (b["image"] as String?)?.let(caulis::file), fps)
+            return Background.shader(
+                shader.with(
+                    colors = b["colors"] as List<Color>? ?: emptyList(),
+                    values = (b["values"] as Map<String, Double>?)?.mapValues { it.value.toFloat() } ?: emptyMap(),
+                    fallback = b["fallback"] as Color?,
+                    framesPerSecond = fps,
+                ),
+            )
         }
         (b["image"] as String?)?.let { name ->
             val fit = (b["fit"] as String?)?.let { Background.Fit.valueOf(it.uppercase()) } ?: Background.Fit.FILL

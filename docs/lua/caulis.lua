@@ -812,6 +812,11 @@
 ---@field span? boolean one picture over all monitors
 ---@field shader? string a wallpaper shader file (vec4 wallpaper(vec2 at))
 ---@field framesPerSecond? integer how often a moving shader is drawn
+---@field colors? (string)[] colours handed to the shader (colors[0].., colorCount)
+---@field values? table<string, number> the shader's settings: each a float of its name in its code (speed, intensity, ...)
+---@field fallback? string shown if the shader does not compile
+---@field fpsLimit? integer the most frames a second for any wallpaper shader (0: as each asks)
+---@field paused? boolean wallpaper shaders stand still
 ---@field changeMillis? integer how long one background melts into the next
 
 ---@class caulis.Settings.notices

@@ -20,12 +20,26 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   (`lockInternally` without `hideDesktop`) shows programs' panels (a bar, a notification
   daemon's pop-ups), menus and tooltips, and X11's unmanaged windows behind it. Surfaces the
   lock's `allowSurface` lets in are drawn either way.
+- Wallpaper shaders that answer the mouse and match a look: besides `pointer` they read
+  `pointerPixels`, `pointerVelocity` (smoothed, in `at` units a second), the last four presses
+  `clicks[0..3]` (place, time, button) and `clickCount`, colours handed to them (`colors[0..7]`,
+  `colorCount`) and settings of their own by name (`WallpaperShader.with(colors, values,
+  fallback, framesPerSecond)`; config.json `background.colors`, `background.values`,
+  `background.fallback`). One that does not compile shows its `fallback` colour.
+- `OverlayCanvas.wallpaper(shader, rect, alpha, view)`: a drawing shows a wallpaper shader over
+  any rectangle (bigger than the monitor for a wallpaper moving with a view), paced and resting
+  under fullscreen windows like the background.
+- `wallpaperShadersPaused` and `wallpaperFpsLimit` (Caulis DSL, `Desktop`, config.json
+  `background.paused` and `background.fpsLimit`): every wallpaper shader stands still, or is
+  drawn at most so many times a second (a dimmed screen, a laptop on battery).
 
 ### Changed
 - Behind the compositor's own lock screen (`lockInternally` without `hideDesktop`) programs'
   panels, notification pop-ups, menus and X11's unmanaged windows are now hidden: what they show
   may be private. **To keep them drawn** as before, set `desktop.panelsShowWhileLocked = true`.
   (`hideDesktop` and locker programs showed none of them already.)
+- A wallpaper shader that follows only the pointer (no `time`) is drawn anew only while the
+  pointer moves or a click is fresh, not `framesPerSecond` times a second all the time.
 
 ### Fixed
 - CI on GitHub: the "CI" and "Release" workflows failed in "Build and test" since 0.1.3. A

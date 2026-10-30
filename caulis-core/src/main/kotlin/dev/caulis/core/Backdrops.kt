@@ -31,9 +31,10 @@ internal class Backdrops(
     private val changed: () -> Unit,
     /** A shader was drawn (problem null) or could not be (see Desktop.shaderWorks). */
     private val shaderWorks: (name: String, code: String, problem: String?) -> Unit = { _, _, _ -> },
+    /** What wallpaper shaders share: their clock, the pointer, their frames. */
+    private val shaders: ShaderWallpapers = ShaderWallpapers(loop, changed),
 ) {
     private val log = Logger("render")
-    private val start = System.nanoTime()
 
     var background: Background = Background.USUAL
         set(value) {
@@ -128,42 +129,14 @@ internal class Backdrops(
             }
             is Background.Shader -> {
                 val shader = background.shader
-                val seconds = (now - start) / 1e9
-                // A moving shader is a new picture every frame of its own (fewer is less work).
-                val frame = if (shader.moving) Math.floor(seconds * shader.framesPerSecond).toLong() else 0L
-                val inside = pointerX >= area.x && pointerX < area.right && pointerY >= area.y && pointerY < area.bottom
-                val pointer = if (inside) floatArrayOf(((pointerX - area.x) / area.width).toFloat(), ((pointerY - area.y) / area.height).toFloat()) else floatArrayOf(-1f, -1f)
-                val onDesktop = floatArrayOf(((pointerX - desktop.x) / desktop.width).toFloat(), ((pointerY - desktop.y) / desktop.height).toFloat())
-                val all = desktop
-                val physical = monitor.output?.let { floatArrayOf(it.physicalWidthMm.toFloat(), it.physicalHeightMm.toFloat()) } ?: floatArrayOf(0f, 0f)
                 val picture = shader.image?.let(::picture)
-                if (shader.moving) movingOn += monitor.name to shader.framesPerSecond
-                // One version of its code for drawing and for what is said about it (a file may change meanwhile).
-                val code = shader.code
-                val fileProblem = shader.fileProblem
-                val source = shader.source(code)
-                val shaderView = viewPart ?: floatArrayOf(0f, 0f, 1f, 1f)
-                DrawItem.Custom(key, area, listOf(background, source, frame, alpha, pixels, picture, all, view, if (shader.moving) pointer.toList() + onDesktop.toList() else null)) { r ->
-                    val drawn = renderer.drawShaded(
-                        r.x, r.y, r.width, r.height, source,
-                        floats = mapOf(
-                            "time" to floatArrayOf(seconds.toFloat()), "size" to floatArrayOf(r.width.toFloat(), r.height.toFloat()),
-                            "pointer" to pointer, "workspace" to floatArrayOf(workspace.toFloat()), "alpha" to floatArrayOf(alpha),
-                            "monitor" to floatArrayOf(area.x.toFloat(), area.y.toFloat(), area.width.toFloat(), area.height.toFloat()),
-                            "desktop" to floatArrayOf(all.x.toFloat(), all.y.toFloat(), all.width.toFloat(), all.height.toFloat()),
-                            "scale" to floatArrayOf(monitor.scale.toFloat()), "physicalSize" to physical, "desktopPointer" to onDesktop,
-                            "view" to shaderView,
-                        ),
-                        ints = mapOf("hasPicture" to if (picture != null) 1 else 0),
-                        texture = picture?.texture,
-                    )
-                    shaderWorks(shader.name, code, fileProblem ?: if (drawn) null else renderer.effectProblem(source) ?: "it does not compile")
-                    if (!drawn) fill(r, USUAL_COLOR, alpha)
-                }
+                shaders.item(
+                    key, renderer, monitor, area, shader, alpha, pointerX, pointerY, now, desktop, workspace, view, picture?.texture,
+                    look = listOf(background, pixels, desktop), works = shaderWorks,
+                )
             }
         }
     }
-
 
     private fun fill(r: Rect, color: Color, alpha: Float) = renderer.drawColor(r.x, r.y, r.width, r.height, color.red, color.green, color.blue, color.alpha * alpha)
 
@@ -324,31 +297,16 @@ internal class Backdrops(
         return texture
     }
 
-    // --- moving shaders: drawn again as often as they ask, only while seen ------------------------
+    // --- pictures not drawn for a while: let go -----------------------------------------------------
 
-    // Monitors with a moving shader in this scene (and how often it wants to be drawn).
-    private val movingOn = HashSet<Pair<String, Int>>()
-    private var tick: EventLoop.Timer? = null
-
-    /**
-     * The scene was built: [seen] are the monitors whose background is not covered (by a
-     * wallpaper program, or a fullscreen window). A moving shader there asks for its next frame.
-     */
-    fun sceneBuilt(seen: Set<String>) {
-        // Pictures not drawn for a while: let go (read again if they come back).
+    /** The scene was built: pictures not drawn for a while are let go (read again if they come back). */
+    fun sceneBuilt() {
         val now = System.nanoTime()
         for ((path, used) in lastUsed.toList()) {
             if (now - used < UNUSED_NANOS) continue
             lastUsed.remove(path)
             pictures.remove(path)?.texture?.close()
             followed.remove(path)?.close()
-        }
-        val fps = movingOn.filter { it.first in seen }.maxOfOrNull { it.second }
-        movingOn.clear()
-        if (fps == null || tick != null) return
-        tick = loop.after((1000L / fps).coerceAtLeast(1)) {
-            tick = null
-            changed()
         }
     }
 
@@ -360,7 +318,6 @@ internal class Backdrops(
     }
 
     fun close() {
-        tick?.cancel()
         pictures.values.forEach { it?.texture?.close() }
         followed.values.forEach { it.close() }
         paintings.values.forEach { it.second.close() }
