@@ -1,5 +1,6 @@
 package dev.caulis.core
 
+import dev.caulis.log.InternalCaulisApi
 import dev.caulis.protocol.Display
 import dev.caulis.protocol.serverdecoration.OrgKdeKwinServerDecoration
 import dev.caulis.protocol.serverdecoration.OrgKdeKwinServerDecorationManager
@@ -175,7 +176,29 @@ object DefaultTitleBarPainter : TitleBarPainter {
  * mpv, foot, ...) and the KDE protocol (GTK 3, older Qt). [desktop] decides by its settings;
  * programs that use neither always draw their own.
  */
-class ServerDecorations(display: Display, private val desktop: Desktop) {
+class ServerDecorations @InternalCaulisApi constructor(display: Display, private val desktop: Listener) {
+
+    /** For [desktop]: its title bar settings decide. */
+    constructor(display: Display, desktop: Desktop) : this(display, desktop.protocols)
+
+    /**
+     * What the decoration protocols ask of the window manager ([Desktop] is one). Internal to
+     * Caulis for now: the protocol objects are to move to a module of their own, below the desktop.
+     */
+    @InternalCaulisApi
+    interface Listener {
+        /** Who draws title bars by default (told to programs that ask before they have a window). */
+        val titleBars: TitleBars
+
+        /** Who draws [window]'s title bar now. */
+        fun titleBarsOf(window: Window): TitleBars
+
+        /** [window]'s title bar came or went: its place changes. */
+        fun decorationOfChanged(window: Window)
+
+        /** Runs [tellAll] whenever the settings change (the one listener: the latest set). */
+        fun onDecorationSettingsChanged(tellAll: () -> Unit)
+    }
 
     private val xdg = ArrayList<Pair<ZxdgToplevelDecorationV1, Window>>()
     private val kde = ArrayList<Pair<OrgKdeKwinServerDecoration, Surface>>()
@@ -241,7 +264,7 @@ class ServerDecorations(display: Display, private val desktop: Desktop) {
             }
             manager.sendDefaultMode(if (desktop.titleBars == TitleBars.PROGRAM) OrgKdeKwinServerDecorationManager.Mode.CLIENT else OrgKdeKwinServerDecorationManager.Mode.SERVER)
         }
-        desktop.decorationsChanged = ::tellAll
+        desktop.onDecorationSettingsChanged(::tellAll)
     }
 
     private fun wantsServer(window: Window?): Boolean = window != null && desktop.titleBarsOf(window) != TitleBars.PROGRAM

@@ -1,6 +1,7 @@
 package dev.caulis.core
 
 import dev.caulis.core.input.Seat
+import dev.caulis.log.InternalCaulisApi
 import dev.caulis.log.Logger
 import dev.caulis.protocol.Display
 import dev.caulis.protocol.wayland.WlSeat
@@ -16,7 +17,32 @@ import java.security.SecureRandom
  * to a program it starts) gets the focus, even on another workspace; any other one only
  * marks the window as wanting attention ([Window.urgent]), so nothing steals the focus.
  */
-class Activation(display: Display, private val seat: Seat, private val desktop: Desktop) {
+class Activation @InternalCaulisApi constructor(display: Display, private val seat: Seat, private val desktop: Listener) {
+
+    /** For [desktop]: windows are focused, or marked urgent, there. */
+    constructor(display: Display, seat: Seat, desktop: Desktop) : this(display, seat, desktop.protocols)
+
+    /**
+     * What activation asks of the window manager ([Desktop] is one). Internal to Caulis for
+     * now: the protocol objects are to move to a module of their own, below the desktop.
+     */
+    @InternalCaulisApi
+    interface Listener {
+        /** The window with the focus now, or null. */
+        val focusedWindow: Window?
+
+        /** When the focus last moved (System.nanoTime). */
+        val focusedAt: Long
+
+        /** True if [window]'s rules ignore its requests to be activated. */
+        fun ignoresActivation(window: Window): Boolean
+
+        /** Gives [window] the focus (showing its workspace). */
+        fun focus(window: Window)
+
+        /** Marks [window] as wanting attention, or not. */
+        fun setUrgent(window: Window, urgent: Boolean)
+    }
 
     private val log = Logger("focus")
     private val random = SecureRandom()
@@ -94,7 +120,7 @@ class Activation(display: Display, private val seat: Seat, private val desktop: 
 
                 override fun activate(resource: XdgActivationV1, token: String, surface: WlSurface) {
                     val window = surface.dataAs<Surface>()?.let(::surfaceOf)?.roleObject as? Window ?: return
-                    if (useToken(token) && focusOnActivate && WindowRequest.ACTIVATE !in desktop.behaviorOf(window).ignored) {
+                    if (useToken(token) && focusOnActivate && !desktop.ignoresActivation(window)) {
                         // A dialog taking the focus back from its window at once (JetBrains' and
                         // Java's do, without saying modal): it is modal — its window gives it the
                         // focus from now on, instead of the two taking it in turns (a flickering border).

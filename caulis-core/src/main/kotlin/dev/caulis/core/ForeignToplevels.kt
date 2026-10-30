@@ -1,6 +1,7 @@
 package dev.caulis.core
 
 import dev.caulis.geometry.Rect
+import dev.caulis.log.InternalCaulisApi
 import dev.caulis.protocol.Display
 import dev.caulis.protocol.extforeigntoplevellistv1.ExtForeignToplevelHandleV1
 import dev.caulis.protocol.extforeigntoplevellistv1.ExtForeignToplevelListV1
@@ -23,7 +24,42 @@ import java.nio.ByteOrder
  *
  * Whenever the windows change, each dock is told exactly what changed for each window.
  */
-class ForeignToplevels(private val display: Display, private val desktop: Desktop) {
+class ForeignToplevels @InternalCaulisApi constructor(private val display: Display, private val desktop: Listener) {
+
+    /** For [desktop]: its windows, and docks act on them there. */
+    constructor(display: Display, desktop: Desktop) : this(display, desktop.protocols)
+
+    /**
+     * What the window list protocols ask of the window manager ([Desktop] is one). Internal to
+     * Caulis for now: the protocol objects are to move to a module of their own, below the desktop.
+     */
+    @InternalCaulisApi
+    interface Listener {
+        /** Every window, on every workspace, minimized ones too. */
+        val allWindows: List<Window>
+
+        /** The window with the focus now, or null. */
+        val focusedWindow: Window?
+
+        /** True while the session is locked. */
+        val locked: Boolean
+
+        fun isMinimized(window: Window): Boolean
+
+        /** The output [window] is shown on (or would be, on its workspace), or null. */
+        fun outputOf(window: Window): Output?
+
+        fun focus(window: Window)
+        fun minimize(window: Window)
+        fun setMaximized(window: Window, maximized: Boolean)
+        fun setFullscreen(window: Window, fullscreen: Boolean)
+
+        /** Where a dock shows [window]'s icon ([rect] on [surface]; null: nowhere). */
+        fun setMinimizeTarget(window: Window, surface: Surface?, rect: Rect?)
+
+        /** Runs [listener] whenever windows come, go or change; close the result to stop. */
+        fun onWindowListChanged(listener: () -> Unit): AutoCloseable
+    }
 
     /**
      * Which programs may read the list of windows (titles and app ids of every window, also
@@ -93,7 +129,7 @@ class ForeignToplevels(private val display: Display, private val desktop: Deskto
             if (window === desktop.focusedWindow) add(STATE_ACTIVATED)
             if (window.fullscreen) add(STATE_FULLSCREEN)
         }
-        return Facts(window.title, window.appId, states, window.parent?.takeIf { it.surface.resource.isAlive }, desktop.monitorOf(window).output)
+        return Facts(window.title, window.appId, states, window.parent?.takeIf { it.surface.resource.isAlive }, desktop.outputOf(window))
     }
 
     /** Tells every dock what changed since it was last told. */

@@ -43,6 +43,9 @@ class Desktop(
     private val ownTitleBars = DesktopTitleBars(this)
     private val pointerGrab = DesktopPointerGrab(this, seat)
 
+    // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
+    internal val protocols = DesktopProtocols(this)
+
     // Our listener for saved shader files (taken away again in close).
     private var shaderSaved: (() -> Unit)? = null
 
