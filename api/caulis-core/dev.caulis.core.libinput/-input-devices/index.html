@@ -119,7 +119,22 @@
       </div>
       <div data-togglable="PROPERTY">
         <h2 class="tableheader">Properties</h2>
-        <div class="table"><a data-name="-85344646%2FProperties%2F-1526861317" anchor-label="hasTouchpad" id="-85344646%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+        <div class="table"><a data-name="-734458792%2FProperties%2F-1526861317" anchor-label="earlyPointer" id="-734458792%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="early-pointer.html"><span>early</span><wbr><span><span>Pointer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-734458792%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-volatile/index.html"><span class="token annotation builtin">Volatile</span></a></div></div><span class="token keyword">var </span><a href="early-pointer.html">earlyPointer</a><span class="token operator">: </span><a href="../../dev.caulis.core.input/-early-pointer/index.html">EarlyPointer</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Told on the input thread of each relative movement before the compositor's thread hears of it (only with <a href="own-thread.html">ownThread</a>): the desktop moves the cursor plane at once with it.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-85344646%2FProperties%2F-1526861317" anchor-label="hasTouchpad" id="-85344646%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
@@ -539,6 +554,21 @@
               </div>
             </div>
           </div>
+<a data-name="1264314360%2FProperties%2F-1526861317" anchor-label="ownThread" id="1264314360%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="own-thread.html"><span>own</span><wbr><span><span>Thread</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1264314360%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="own-thread.html">ownThread</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Input read on a thread of its own ("caulis-input"), not on the compositor's: libinput's events are read and turned into Caulis's there and queued for the compositor's thread, which handles them in the same order. A busy moment of the compositor's thread then holds no input back in the kernel, and the cursor (on a cursor plane) still moves: <a href="early-pointer.html">earlyPointer</a> is told of each movement on that thread. All of libinput is used on that thread only (device settings too); opening a device asks the compositor's thread (the session). False: everything on the compositor's thread, as before.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="-385306577%2FProperties%2F-1526861317" anchor-label="settings" id="-385306577%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
             <div class="main-subrow keyValue ">
@@ -549,7 +579,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="settings.html">settings</a><span class="token operator">: </span><a href="../../dev.caulis.core.input/-input-settings/index.html">InputSettings</a></div><div class="brief "><p class="paragraph">How pointers and touchpads behave; applied to those there are and those that come.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-volatile/index.html"><span class="token annotation builtin">Volatile</span></a></div></div><span class="token keyword">var </span><a href="settings.html">settings</a><span class="token operator">: </span><a href="../../dev.caulis.core.input/-input-settings/index.html">InputSettings</a></div><div class="brief "><p class="paragraph">How pointers and touchpads behave; applied to those there are and those that come.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -564,7 +594,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="touchpads-on.html">touchpadsOn</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Touchpads off by hand (a laptop's touchpad key), whatever the settings say; true again gives them back as the settings say.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-volatile/index.html"><span class="token annotation builtin">Volatile</span></a></div></div><span class="token keyword">var </span><a href="touchpads-on.html">touchpadsOn</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Touchpads off by hand (a laptop's touchpad key), whatever the settings say; true again gives them back as the settings say.</p></div></div></div>
                 </div>
               </div>
             </div>

@@ -393,6 +393,36 @@
               </div>
             </div>
           </div>
+<a data-name="-855943993%2FProperties%2F-1526861317" anchor-label="earlyCursorMoves" id="-855943993%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="early-cursor-moves.html"><span>early</span><wbr><span>Cursor</span><wbr><span><span>Moves</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-855943993%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-volatile/index.html"><span class="token annotation builtin">Volatile</span></a></div></div><span class="token keyword">var </span><a href="early-cursor-moves.html">earlyCursorMoves</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">The cursor plane moved straight from the input thread (with InputDevices.ownThread), as the pointer moves, even while this thread is busy — only its place, the same picture. Off: only from this thread (<a href="quick-cursor-moves.html">quickCursorMoves</a>). (Caulis turns it off while the configuration's onPointerMotion handlers keep the pointer where it is — a gesture — and on again when they let it move.)</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-47105098%2FProperties%2F-1526861317" anchor-label="earlyPointer" id="-47105098%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="early-pointer.html"><span>early</span><wbr><span><span>Pointer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-47105098%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="early-pointer.html">earlyPointer</a><span class="token operator">: </span><a href="../../dev.caulis.core.input/-early-pointer/index.html">EarlyPointer</a></div><div class="brief "><p class="paragraph">Told of the pointer's movement on the input thread before this thread handles it (see <a href="../../dev.caulis.core.input/-early-pointer/index.html">dev.caulis.core.input.EarlyPointer</a>): moves the cursor plane at once, where the pointer will be — worked out as <a href="pointer-moved-by.html">pointerMovedBy</a> does it (monitors touching), from where it was when this thread last caught up. Give it to InputDevices.earlyPointer.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="608205064%2FProperties%2F-1526861317" anchor-label="effects" id="608205064%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
             <div class="main-subrow keyValue ">
@@ -598,7 +628,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="last-pointer-move-nanos.html">lastPointerMoveNanos</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></div><div class="brief "><p class="paragraph">When the pointer last moved (System.nanoTime; 0: not yet): work that may wait (drawing ahead, tidying up) can wait until the user rests, so the pointer never stutters for it.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-volatile/index.html"><span class="token annotation builtin">Volatile</span></a></div></div><span class="token keyword">var </span><a href="last-pointer-move-nanos.html">lastPointerMoveNanos</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></div><div class="brief "><p class="paragraph">When the pointer last moved (System.nanoTime; 0: not yet): work that may wait (drawing ahead, tidying up) can wait until the user rests, so the pointer never stutters for it. (May be read from any thread.)</p></div></div></div>
                 </div>
               </div>
             </div>

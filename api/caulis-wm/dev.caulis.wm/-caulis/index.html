@@ -858,6 +858,21 @@
               </div>
             </div>
           </div>
+<a data-name="-626846684%2FProperties%2F-1748554126" anchor-label="glVendorByDriver" id="-626846684%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="gl-vendor-by-driver.html"><span>gl</span><wbr><span>Vendor</span><wbr><span>By</span><wbr><span><span>Driver</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-626846684%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="gl-vendor-by-driver.html">glVendorByDriver</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Only the EGL driver made for the GPU in use is loaded (NVIDIA's on nvidia-drm, Mesa's on the others), not every one installed: with NVIDIA's and Mesa's both installed, ~30-40 MB less memory. Only at the start. False: libglvnd loads them all.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="-1140256350%2FProperties%2F-1748554126" anchor-label="gtkThemes" id="-1140256350%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
             <div class="main-subrow keyValue ">
@@ -1004,6 +1019,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="input.html">input</a><span class="token operator">: </span><a href="../../../caulis-core/dev.caulis.core.input/-input-settings/index.html">InputSettings</a></div><div class="brief "><p class="paragraph">How mice, trackballs, touchpads and drawing tablets behave — all of them, touchpads, tablets, and single devices by name (<code class="lang-kotlin">my-compositor --devices</code> lists them):</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="954698742%2FProperties%2F-1748554126" anchor-label="inputThread" id="954698742%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="input-thread.html"><span>input</span><wbr><span><span>Thread</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="954698742%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="input-thread.html">inputThread</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Keyboards, mice and touchpads read on a thread of their own (with monitors driven directly; not nested or headless): a busy moment of the compositor's thread holds no input back, and the cursor on a cursor plane keeps moving meanwhile (moved from that thread, with <a href="quick-cursor-moves.html">quickCursorMoves</a>). The events are handled in the same order as before. Off: everything on the compositor's thread.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -1349,6 +1379,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="log-level.html">logLevel</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">How much the log says: 0 nearly nothing, 1 problems (the default), 2 what happens (windows, monitors, layouts, ...), 3 everything step by step. <code class="lang-kotlin">CAULIS_LOG</code> (e.g. <code class="lang-kotlin">CAULIS_LOG=3</code>) wins over this, so you can look closer without changing code. See <a href="../../../caulis-log/dev.caulis.log/-log/index.html">Log</a> and <a href="log.html">log</a> for single areas. Changed by a reload: at once.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1379344944%2FProperties%2F-1748554126" anchor-label="mallocMapAboveKb" id="-1379344944%2FProperties%2F-1748554126" data-filterable-set=":caulis-wm/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-wm/main" data-filterable-set=":caulis-wm/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="malloc-map-above-kb.html"><span>malloc</span><wbr><span>Map</span><wbr><span>Above</span><wbr><span><span>Kb</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1379344944%2FProperties%2F-1748554126"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="malloc-map-above-kb.html">mallocMapAboveKb</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">Blocks the C library hands out of this many kB or more get a mapping of their own and go back to the system the moment they are freed (glibc otherwise raises this limit by itself and keeps the pictures Skia and the GPU driver make and free each frame in its pools: 30-60 MB more within minutes). 0: glibc's own. Only at the start.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -2128,7 +2173,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="trim-memory-every-minutes.html">trimMemoryEveryMinutes</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">How often <a href="trim-memory.html">trimMemory</a> gives memory back after the start, in minutes (0: only after the start).</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="trim-memory-every-minutes.html">trimMemoryEveryMinutes</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">How often <a href="trim-memory.html">trimMemory</a> gives memory back after the start, in minutes (0: only after the start). 2: with programs drawing, glibc's pools kept 30-60 MB more within minutes, and giving it back takes a few milliseconds on a thread of its own.</p></div></div></div>
                 </div>
               </div>
             </div>

@@ -94,7 +94,7 @@
   <div class="cover ">
     <h1 class="cover"><span>trim</span><wbr><span>Memory</span><wbr><span>Every</span><wbr><span><span>Minutes</span></span></h1>
   </div>
-  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="trim-memory-every-minutes.html">trimMemoryEveryMinutes</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><p class="paragraph">How often <a href="trim-memory.html">trimMemory</a> gives memory back after the start, in minutes (0: only after the start).</p></div></div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-wm/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="trim-memory-every-minutes.html">trimMemoryEveryMinutes</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><p class="paragraph">How often <a href="trim-memory.html">trimMemory</a> gives memory back after the start, in minutes (0: only after the start). 2: with programs drawing, glibc's pools kept 30-60 MB more within minutes, and giving it back takes a few milliseconds on a thread of its own.</p></div></div>
 </div>
     <div class="footer">
         <div class="footer--container">
