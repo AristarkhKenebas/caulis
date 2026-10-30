@@ -9,7 +9,7 @@ A Wayland compositor made with Caulis.
 ```
 
 Inside your desktop it opens as a window; from a text console (Ctrl+Alt+F3) it takes the
-whole screen. Ctrl+Alt+Backspace quits at any time.
+whole screen. Ctrl+Alt+Backspace quits (not while the screen is locked).
 
 ## Change it
 

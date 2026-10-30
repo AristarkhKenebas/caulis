@@ -10,7 +10,7 @@ fun main() = caulis {
     rule { appId("firefox"); workspace = 2 }
 
     // These float above the tiled windows instead of taking a tile.
-    rule { appId("pavucontrol"); floating = true; size(700, 500); center() }
+    rule { program("pavucontrol"); floating = true; size(700, 500); center() }
     rule { title("Picture-in-Picture"); floating = true; size(480, 270); position(20, 20) }
 
     // Spotify sets its title after opening: the rule applies when it starts to fit.

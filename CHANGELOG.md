@@ -55,6 +55,12 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   Caulis logs in (keyboard, keys, monitors, overlay, idle, dbus, permissions, ipc, loop, lua, script,
   screenshot) are known areas now: the call stopped the compositor at its start ("there is no log
   area"), and `CAULIS_LOG=appearance=2` warned first. The guide lists them all.
+- Guide and examples: the pavucontrol rule matches pavucontrol 6 (`program("pavucontrol")`;
+  its app id is org.pulseaudio.pavucontrol now), `caulisctl` (which does not exist) is
+  `my-compositor --do` and where that script comes from is said, the troubleshooting messages are
+  quoted as the compositor prints them, `keyboard-layout` is in the actions table, the config.json
+  key example no longer lands on another key (Super+W), step numbers and the starter's "quits at
+  any time" are right.
 
 ### Security
 - A program can no longer freeze the compositor by sending a named pipe (FIFO) as its

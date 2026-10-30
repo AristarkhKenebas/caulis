@@ -10,7 +10,7 @@ import dev.caulis.wm.DisplayMode
 
 /**
  * Things to do, written as text — for keys in a configuration file, and for other programs
- * (`caulisctl`, scripts) — the same everywhere:
+ * (`--do`, scripts) — the same everywhere:
  *
  * ```
  * close · quit · lock · terminal · overview · next-window · dump-state
@@ -344,7 +344,7 @@ object Actions {
 }
 
 /**
- * More actions for text configurations (config.json, Lua, keys, caulisctl), from a module:
+ * More actions for text configurations (config.json, Lua, keys, --do), from a module:
  * listed in `META-INF/services/dev.caulis.wm.config.ActionProvider`, found when it is on the
  * classpath (as caulis-screenshot adds "screenshot").
  */

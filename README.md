@@ -63,7 +63,7 @@ with one line, or each by name with its time, curve and look: windows appearing,
 gliding, minimizing into the dock with a genie, workspaces sliding — made of building blocks
 (`fade() + scale(0.9)`), or your own function or shader. Rules say where windows
 open and how they look: `rule { appId("firefox"); workspace = 2 }`,
-`rule { appId("pavucontrol"); floating = true; size(700, 500); center() }`. Every usual key has a name
+`rule { program("pavucontrol"); floating = true; size(700, 500); center() }`. Every usual key has a name
 and can be changed or turned off (`keys { close = "Super+Shift+Q"; quit = null }`).
 
 Several monitors work, each with its own workspace (or one workspace over all), panels and

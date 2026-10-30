@@ -137,7 +137,7 @@ WAYLAND_DISPLAY=wayland-1 foot
 Each new window takes half of the previous one's space — that is the `Dwindle` layout.
 
 > Inside another desktop, keys with **Super** are usually taken by that desktop. Try them
-> when running on the real screen (step 7), or bind other keys while testing.
+> when running on the real screen (step 22), or bind other keys while testing.
 
 ### Change it while it runs
 
@@ -191,6 +191,10 @@ WAYLAND_DISPLAY=wayland-1 foot &                 # programs inside it
 WAYLAND_DISPLAY=wayland-1 grim shot.png          # what it shows
 my-compositor --state
 ```
+
+(`my-compositor` is your project's own start script: `./gradlew installDist` makes it, in
+`build/install/my-compositor/bin/` — named after your project. `--state`, `--do` and
+`--events` talk to the compositor that runs.)
 
 `headlessMonitors = 2` gives two; each is 1920x1080 unless `monitor("HEADLESS-1") { mode(2560, 1440) }`
 says otherwise. `CAULIS_MODE=nested` and `CAULIS_MODE=screen` choose the other modes the
@@ -338,7 +342,7 @@ rule { appId("spotify"); margin(top = 20, right = 0, bottom = 0, left = 0) }
 ```
 
 Some layouts take more settings, and messages while running (as Hyprland's `layoutmsg`) —
-the action `layout-message …`, on a key or from `caulisctl`:
+the action `layout-message …`, on a key or from `my-compositor --do`:
 
 ```kotlin
 layout = MasterLayout(ratio = 0.6, side = Side.LEFT, masters = 1, newWindow = NewWindow.STACK_TOP)
@@ -376,7 +380,7 @@ Rules say where windows open and how they look — one `rule { }` per kind of wi
 ```kotlin
 rule { appId("firefox"); workspace = 2 }                         // opens there; you stay where you are
 rule { appId("spotify"); workspace = 9; focus = false }          // and does not take the keyboard
-rule { appId("pavucontrol"); floating = true; size(700, 500); center() }
+rule { program("pavucontrol"); floating = true; size(700, 500); center() }
 rule { title("Picture-in-Picture"); floating = true; size(480, 270); position(20, 20) }
 rule { appId("mpv"); titleBars = TitleBars.NONE; opacity = 1f }  // looks: as long as it fits
 rule { program("steam"); monitor = "HDMI-A-1"; maximized = true }
@@ -491,7 +495,7 @@ rule { appId("spotify"); specialWorkspace = "music" }             // opens there
 specialWorkspaces = SpecialWorkspaces(dim = 0.5f, blur = Blur(6, 3), gap = 60)
 ```
 
-The same as actions (keys in config.json/Lua, `caulisctl`): `special-workspace toggle|show|hide [name]`,
+The same as actions (keys in config.json/Lua, `my-compositor --do`): `special-workspace toggle|show|hide [name]`,
 `move-to-special [name] [silent]`, `move-out-of-special`, and Hyprland's
 `move-to-workspace special:music [silent]`. In config.json: `"specialWorkspaces": { "dim": 0.5,
 "blur": { "size": 6 }, "gap": 60 }` and a rule's `"specialWorkspace": "music"`.
@@ -1662,7 +1666,7 @@ of what `Main.kt` says; what it does not mention stays as the code says.
   // Comments and trailing commas are fine.
   "layout": { "name": "master-stack", "ratio": 0.6, "gaps": { "inner": 8, "outer": 12, "top": 40 } },
   "scale": 1.25,
-  "keys": { "close": "Super+W", "quit": false },          // changed, and turned off
+  "keys": { "close": "Super+Shift+Q", "quit": false },          // changed, and turned off
   "bind": {
     "Super+B": "exec firefox --private-window",
     "Super+Shift+3": "move-to-workspace 3"
@@ -1702,6 +1706,7 @@ my-compositor --check-config other.json
 | `overview` · `next-window` · `dump-state` | |
 | `rotate` · `balance` · `column-width` · `split-beside` · `split-below` | layout commands |
 | `layout <name>` · `scale <x>` · `notify <text>` | |
+| `keyboard-layout next\|prev\|<n>` | the next keyboard layout, the one before, or one by its number (0: the first) |
 
 **Every setting**, with its limits and description, is in
 [`config.schema.json`](config.schema.json). Editors (VS Code, IntelliJ, Neovim with a JSON
@@ -1847,7 +1852,7 @@ caulis.bind("Super+M", function()
 end)
 
 -- Rules, as in config.json.
-caulis.rule { appId = "pavucontrol", floating = true, center = true }
+caulis.rule { program = "pavucontrol", floating = true, center = true }
 
 -- Events: start, reload, unload, window-opened, window-closed, window-changed, focus-changed,
 -- workspace-changed, monitor-added, monitor-removed, notice, lid, color-scheme, quit.
@@ -2282,8 +2287,8 @@ what you type — do not share one in which you typed a password.
 | --- | --- |
 | `... compiled by a more recent version of the Java Runtime` | Your `java` is older than 26 (Caulis is Java 26 bytecode). Run with `JAVA_HOME` pointing to a JDK 26 or newer (27 builds it). |
 | `Could not open the seat` | Running on the screen needs a text console (Ctrl+Alt+F3) of a logged-in user. |
-| `"xyz" could not be started: the program was not found` | `launch("xyz")`: that program is not installed. |
-| `Do not run ... as root` | Start it as your normal user — a compositor never needs root. |
+| `xyz is not installed` | `launch("xyz")`: that program is not installed. |
+| `Running as root.` | Start it as your normal user — a compositor never needs root. |
 | `The GPU driver lacks ...` | The graphics driver is too old or missing. |
 | `Xwayland could not be started` | X11 programs need Xwayland: install it (`xorg-xwayland` on Arch, `xwayland` elsewhere). |
 

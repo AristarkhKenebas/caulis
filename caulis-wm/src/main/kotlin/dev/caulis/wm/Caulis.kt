@@ -1818,7 +1818,7 @@ class Caulis {
      * ```
      * rule { appId("firefox"); workspace = 2 }
      * rule { appId("spotify"); workspace = 9; focus = false }
-     * rule { appId("pavucontrol"); floating = true; size(700, 500); center() }
+     * rule { program("pavucontrol"); floating = true; size(700, 500); center() }
      * rule { title("Picture-in-Picture"); floating = true; size(480, 270); position(20, 20) }
      * rule { appId("mpv"); titleBars = TitleBars.NONE; opacity = 1f }
      * ```

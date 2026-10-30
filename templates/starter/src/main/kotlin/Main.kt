@@ -45,7 +45,7 @@ fun main() = caulis {
     bind("Super+T") { layout = if (layout === Floating) Dwindle() else Floating }
 
     // Rules for some windows: where they open and how (see the guide, "Rules and events").
-    rule { appId("pavucontrol"); floating = true; size(700, 500); center() }
+    rule { program("pavucontrol"); floating = true; size(700, 500); center() }
 
     // What to start when the compositor is ready.
     onStart {

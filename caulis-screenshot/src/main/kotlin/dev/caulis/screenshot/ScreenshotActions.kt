@@ -5,7 +5,7 @@ import dev.caulis.wm.Caulis
 import dev.caulis.wm.config.ActionInfo
 import dev.caulis.wm.config.ActionProvider
 
-/** The "screenshot" action for config.json, Lua, keys and caulisctl (found on the classpath). */
+/** The "screenshot" action for config.json, Lua, keys and `--do` (found on the classpath). */
 class ScreenshotActions : ActionProvider {
 
     override val actions = listOf(
