@@ -32,6 +32,10 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   `post { again() }`) no longer freezes the compositor: the event loop runs only the tasks posted
   before it started on them, then goes on to input, programs and frames (before, it never left them
   and the watchdog ended the session after 10 s).
+- With input on its own thread, a mouse reporting faster than the compositor handles its
+  movements no longer holds back what programs are sent and the frames: each turn of the loop
+  handles the events that were waiting when it began. A movement whose handling failed no longer
+  leaves the cursor on the cursor plane jumping back after every warp.
 
 ### Security
 - A program can no longer freeze the compositor by sending a named pipe (FIFO) as its

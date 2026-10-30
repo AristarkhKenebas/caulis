@@ -73,14 +73,22 @@ internal class MainQueue(private val post: (() -> Unit) -> Unit) {
         }
     }
 
-    /** Runs what is queued now, in order (on the compositor's thread). One failing task does not stop the others. */
+    /**
+     * Runs what is queued now, in order (on the compositor's thread). One failing task does not
+     * stop the others. What is added meanwhile waits for the next turn of the loop (it posted
+     * its own run): a mouse reporting faster than its events are handled never keeps the loop
+     * from sending the programs what happened and drawing frames.
+     */
     fun runAll() {
-        while (true) {
-            val task = tasks.poll() ?: break
+        // (Only as many as wait now: what is added meanwhile has posted its own run.)
+        repeat(waiting.get()) {
+            val task = tasks.poll() ?: return
             waiting.decrementAndGet()
             try {
                 task()
-            } catch (e: Exception) {
+            } catch (e: VirtualMachineError) {
+                throw e
+            } catch (e: Throwable) {
                 Upcalls.report("input event", e)
             }
         }

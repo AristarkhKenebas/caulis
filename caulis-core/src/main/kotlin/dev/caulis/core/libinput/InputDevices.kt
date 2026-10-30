@@ -248,12 +248,17 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
 
         override fun run() {
             if (count > 1) log.trace { "$count pointer movements waited: handled as one" }
-            onPointerMotion(time, dx, dy, rawDx, rawDy)
-            if (early != null) {
-                try {
-                    early.caughtUp(count)
-                } catch (e: Exception) {
-                    Upcalls.report("early pointer", e)
+            // (Caught up even when handling the motion failed: else the early cursor never
+            // took the compositor's place again — it jumped back after each warp.)
+            try {
+                onPointerMotion(time, dx, dy, rawDx, rawDy)
+            } finally {
+                if (early != null) {
+                    try {
+                        early.caughtUp(count)
+                    } catch (e: Exception) {
+                        Upcalls.report("early pointer", e)
+                    }
                 }
             }
         }

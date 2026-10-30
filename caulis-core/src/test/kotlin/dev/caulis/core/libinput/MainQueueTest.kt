@@ -27,6 +27,25 @@ class MainQueueTest {
     }
 
     @Test
+    fun `events added while the queue runs wait for the next turn of the loop`() = EventLoop().use { loop ->
+        val queue = MainQueue(loop::post)
+        var timers = 0
+        var added = 0
+        // (A mouse faster than its events are handled: each one handled adds another.)
+        fun event() {
+            if (++added < 10_000) queue.add { event() }
+        }
+        queue.add { event() }
+        loop.after(0) { timers++ }
+        loop.dispatch(0)
+        assertTrue(added < 10, "one turn ran what was there, not everything added meanwhile ($added)")
+        assertEquals(1, timers, "the loop went on to its timers")
+        val until = System.nanoTime() + 10_000_000_000L
+        while (added < 10_000 && System.nanoTime() < until) loop.dispatch(10)
+        assertEquals(10_000, added, "the rest came in the next turns")
+    }
+
+    @Test
     fun `one failing event does not stop the others`() = EventLoop().use { loop ->
         val queue = MainQueue(loop::post)
         val seen = ArrayList<Int>()
