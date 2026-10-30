@@ -93,7 +93,7 @@
   <div class="breadcrumbs"><a href="../../index.html">caulis-core</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.core</a><span class="delimiter">/</span><span class="current">WallpaperShader</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Wallpaper</span><wbr><span><span>Shader</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">WallpaperShader</a></div><p class="paragraph">A background drawn by the GPU: GLSL (OpenGL ES 3) with one function that gets a point of the monitor (0 to 1, from the top left) and returns its colour:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">vec4 wallpaper(vec2 at) {<br>    // time: seconds since the start; size: the monitor in pixels; pointer: where the<br>    // pointer is (0..1, or -1 when it is on another monitor); workspace: its number;<br>    // image(uv): the picture of [image], if one is given.<br>    // Over several monitors: desktopAt(at) is the place on all of them together (0..1),<br>    // unitsAt(at) in desktop units (seamless whatever the scales), desktopPointer the<br>    // pointer on all of them; monitor and desktop are (x, y, width, height) in units,<br>    // scale its pixels per unit, physicalSize its size in millimetres (0 if unknown).<br>    float wave = 0.5 + 0.5 * sin(at.x * 10.0 + time);<br>    return vec4(0.1, 0.2 * wave, 0.4, 1.0);<br>}</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><p class="paragraph">A shader that uses <code class="lang-kotlin">time</code> or <code class="lang-kotlin">pointer</code> moves: it is drawn <a href="../../../caulis-core/dev.caulis.core/-wallpaper-shader/--root--.html">framesPerSecond</a> times a second (more costs more power; panels and windows above it are drawn again with it). One that does not compile is reported once in the log, and <a href="../-background/-companion/-u-s-u-a-l.html">Background.USUAL</a> shows.</p></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">WallpaperShader</a></div><p class="paragraph">A background drawn by the GPU: GLSL (OpenGL ES 3) with one function that gets a point of the monitor (0 to 1, from the top left) and returns its colour:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">vec4 wallpaper(vec2 at) {<br>    // time: seconds since the start; size: the monitor in pixels; pointer: where the<br>    // pointer is (0..1, or -1 when it is on another monitor); workspace: its number;<br>    // image(uv): the picture of [image], if one is given.<br>    // Over several monitors: desktopAt(at) is the place on all of them together (0..1),<br>    // unitsAt(at) in desktop units (seamless whatever the scales), desktopPointer the<br>    // pointer on all of them; monitor and desktop are (x, y, width, height) in units,<br>    // scale its pixels per unit, physicalSize its size in millimetres (0 if unknown).<br>    float wave = 0.5 + 0.5 * sin(at.x * 10.0 + time);<br>    return vec4(0.1, 0.2 * wave, 0.4, 1.0);<br>}</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><p class="paragraph">More it can read, for wallpapers that answer the pointer and match a look:</p><ul><li><p class="paragraph"><code class="lang-kotlin">vec2 pointerPixels</code> — the pointer in the picture's pixels from its top left (-1, -1 when elsewhere)</p></li><li><p class="paragraph"><code class="lang-kotlin">vec2 pointerVelocity</code> — how fast the pointer moves, in <code class="lang-kotlin">at</code> units (0..1 of the picture) a second, smoothed</p></li><li><p class="paragraph"><code class="lang-kotlin">vec4 clicks[4]</code>, <code class="lang-kotlin">int clickCount</code> — the last presses, newest first: x, y (as <code class="lang-kotlin">at</code>), the <code class="lang-kotlin">time</code> it was pressed at (so <code class="lang-kotlin">time - clicks[0].z</code> is its age) and the button (1 left, 2 middle, 3 right)</p></li><li><p class="paragraph"><code class="lang-kotlin">vec4 colors[8]</code>, <code class="lang-kotlin">int colorCount</code> — <span data-unresolved-link="dev.caulis.core/WallpaperShader//#kotlin.String?#dev.caulis.core.WatchedText?#java.nio.file.Path?#kotlin.Int#kotlin.collections.List[dev.caulis.render.Color]#kotlin.collections.Map[kotlin.String,kotlin.Float]#dev.caulis.render.Color?#kotlin.Float/PointingToCallableParameters(4)/">colors</span> given to it (plain, not premultiplied)</p></li><li><p class="paragraph">each of <span data-unresolved-link="dev.caulis.core/WallpaperShader//#kotlin.String?#dev.caulis.core.WatchedText?#java.nio.file.Path?#kotlin.Int#kotlin.collections.List[dev.caulis.render.Color]#kotlin.collections.Map[kotlin.String,kotlin.Float]#dev.caulis.render.Color?#kotlin.Float/PointingToCallableParameters(5)/">values</span> as a <code class="lang-kotlin">float</code> of its name (<code class="lang-kotlin">speed</code>, <code class="lang-kotlin">intensity</code>, ...): settings of the shader</p></li><li><p class="paragraph"><code class="lang-kotlin">vec4 view</code> — the part of the whole picture shown (a view moving and zooming over it); <code class="lang-kotlin">viewAt(at)</code></p></li></ul><p class="paragraph">A shader that uses <code class="lang-kotlin">time</code> moves: it is drawn <span data-unresolved-link="dev.caulis.core/WallpaperShader//#kotlin.String?#dev.caulis.core.WatchedText?#java.nio.file.Path?#kotlin.Int#kotlin.collections.List[dev.caulis.render.Color]#kotlin.collections.Map[kotlin.String,kotlin.Float]#dev.caulis.render.Color?#kotlin.Float/PointingToCallableParameters(3)/">framesPerSecond</span> times a second (more costs more power; panels and windows above it are drawn again with it), only while it is seen. One that uses only the pointer (<code class="lang-kotlin">pointer</code>, <code class="lang-kotlin">pointerPixels</code>, <code class="lang-kotlin">pointerVelocity</code>, <code class="lang-kotlin">clicks</code>, <code class="lang-kotlin">desktopPointer</code>) is drawn anew only while the pointer moves or a click is fresh. One that does not compile is reported once in the log, and <span data-unresolved-link="dev.caulis.core/WallpaperShader//#kotlin.String?#dev.caulis.core.WatchedText?#java.nio.file.Path?#kotlin.Int#kotlin.collections.List[dev.caulis.render.Color]#kotlin.collections.Map[kotlin.String,kotlin.Float]#dev.caulis.render.Color?#kotlin.Float/PointingToCallableParameters(6)/">fallback</span> (else <a href="../-background/-companion/-u-s-u-a-l.html">Background.USUAL</a>) shows. <a href="../-desktop/wallpaper-shaders-paused.html">Desktop.wallpaperShadersPaused</a> and <a href="../-desktop/wallpaper-fps-limit.html">Desktop.wallpaperFpsLimit</a> hold them all still or slower.</p></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
@@ -153,6 +153,36 @@
               </div>
             </div>
           </div>
+<a data-name="1567321355%2FProperties%2F-1526861317" anchor-label="colors" id="1567321355%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="colors.html"><span><span>colors</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1567321355%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="colors.html">colors</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Colours handed to it (<code class="lang-kotlin">colors[0]</code>.. and <code class="lang-kotlin">colorCount</code>), at most <a href="-companion/-m-a-x_-c-o-l-o-r-s.html">MAX_COLORS</a>: a look's accents.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="955936857%2FProperties%2F-1526861317" anchor-label="fallback" id="955936857%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="fallback.html"><span><span>fallback</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="955936857%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="fallback.html">fallback</a><span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">What shows if it does not compile (null: <a href="../-background/-companion/-u-s-u-a-l.html">Background.USUAL</a>'s colour).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="627378588%2FProperties%2F-1526861317" anchor-label="fileProblem" id="627378588%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
             <div class="main-subrow keyValue ">
@@ -208,7 +238,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="moving.html">moving</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">True if it changes by itself (it uses <code class="lang-kotlin">time</code>, <code class="lang-kotlin">pointer</code> or <code class="lang-kotlin">desktopPointer</code>).</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="moving.html">moving</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">True if it changes by itself (it uses <code class="lang-kotlin">time</code>, or the pointer: <code class="lang-kotlin">pointer</code>, <code class="lang-kotlin">pointerPixels</code>, <code class="lang-kotlin">pointerVelocity</code>, <code class="lang-kotlin">clicks</code>, <code class="lang-kotlin">desktopPointer</code>).</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -239,6 +269,66 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="path.html">path</a><span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/nio/file/Path.html">Path</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">The file it comes from (null: written in code).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="744619599%2FProperties%2F-1526861317" anchor-label="resolution" id="744619599%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="resolution.html"><span><span>resolution</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="744619599%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="resolution.html">resolution</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">How sharp it is drawn, 0.1..1 of the screen's pixels (1, the default: every pixel). Less is drawn smaller and stretched — a soft wallpaper costs a quarter at 0.5 — and kept: the shader runs only for its own frames, never again for a part of the screen drawn anew.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1815998990%2FProperties%2F-1526861317" anchor-label="usesPointer" id="1815998990%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="uses-pointer.html"><span>uses</span><wbr><span><span>Pointer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1815998990%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="uses-pointer.html">usesPointer</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">True if it follows the pointer or clicks: drawn anew while the pointer moves (and a click is fresh).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="345676386%2FProperties%2F-1526861317" anchor-label="usesTime" id="345676386%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="uses-time.html"><span>uses</span><wbr><span><span>Time</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="345676386%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="uses-time.html">usesTime</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">True if it uses <code class="lang-kotlin">time</code>: drawn <span data-unresolved-link="dev.caulis.core/WallpaperShader//#kotlin.String?#dev.caulis.core.WatchedText?#java.nio.file.Path?#kotlin.Int#kotlin.collections.List[dev.caulis.render.Color]#kotlin.collections.Map[kotlin.String,kotlin.Float]#dev.caulis.render.Color?#kotlin.Float/PointingToCallableParameters(3)/">framesPerSecond</span> times a second while seen.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1660339815%2FProperties%2F-1526861317" anchor-label="values" id="-1660339815%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="values.html"><span><span>values</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1660339815%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="values.html">values</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Settings of the shader by name, each a <code class="lang-kotlin">float</code> of that name in its code (<code class="lang-kotlin">speed</code>, <code class="lang-kotlin">intensity</code>, ...).</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -288,6 +378,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="to-string.html"><span class="token function">toString</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1803273198%2FFunctions%2F-1526861317" anchor-label="with" id="-1803273198%2FFunctions%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with.html"><span><span>with</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1803273198%2FFunctions%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-overloads/index.html"><span class="token annotation builtin">JvmOverloads</span></a></div></div><span class="token keyword">fun </span><a href="with.html"><span class="token function">with</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">colors<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator">&gt;</span><span class="token operator"> = </span>this.colors<span class="token punctuation">, </span></span><span class="parameter ">values<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator">&gt;</span><span class="token operator"> = </span>this.values<span class="token punctuation">, </span></span><span class="parameter ">fallback<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-color/index.html">Color</a><span class="token operator">?</span><span class="token operator"> = </span>this.fallback<span class="token punctuation">, </span></span><span class="parameter ">framesPerSecond<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>this.framesPerSecond<span class="token punctuation">, </span></span><span class="parameter ">resolution<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span>this.resolution</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">WallpaperShader</a></div><div class="brief "><p class="paragraph">The same shader with other <a href="with.html">colors</a>, <a href="with.html">values</a>, <a href="with.html">fallback</a>, <a href="with.html">framesPerSecond</a> or <a href="with.html">resolution</a> (the file, if any, is still followed: a saved change shows at once).</p></div></div></div>
                 </div>
               </div>
             </div>

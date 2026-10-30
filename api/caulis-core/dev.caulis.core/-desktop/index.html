@@ -343,7 +343,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="cursor-theme.html">cursorTheme</a><span class="token operator">: </span><a href="../../dev.caulis.core.cursor/-cursor-theme/index.html">CursorTheme</a></div><div class="brief "><p class="paragraph">The cursor theme and size, e.g. <code class="lang-kotlin">CursorTheme.load("Adwaita", 32)</code>. By default a theme that came with a library, else <code class="lang-kotlin">XCURSOR_THEME</code>, else Caulis's own sharp cursors.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="cursor-theme.html">cursorTheme</a><span class="token operator">: </span><a href="../../../caulis-cursor/dev.caulis.core.cursor/-cursor-theme/index.html">CursorTheme</a></div><div class="brief "><p class="paragraph">The cursor theme and size, e.g. <code class="lang-kotlin">CursorTheme.load("Adwaita", 32)</code>. By default a theme that came with a library, else <code class="lang-kotlin">XCURSOR_THEME</code>, else Caulis's own sharp cursors.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -813,6 +813,21 @@
               </div>
             </div>
           </div>
+<a data-name="1505149284%2FProperties%2F-1526861317" anchor-label="movingPaintsFps" id="1505149284%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="moving-paints-fps.html"><span>moving</span><wbr><span>Paints</span><wbr><span><span>Fps</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1505149284%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="moving-paints-fps.html">movingPaintsFps</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">How many times a second borders and shadows that move by themselves (a turning gradient, a shader using time) are drawn anew, at most (0, the default: every frame of the screen). 30 halves the work of an animated focus border on a 60 Hz screen and looks the same.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="-49103985%2FProperties%2F-1526861317" anchor-label="notices" id="-49103985%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
             <div class="main-subrow keyValue ">
@@ -944,6 +959,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="overview-fill.html">overviewFill</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a></div><div class="brief "><p class="paragraph">How much of the monitor the overview's windows take (0.3 to 1: the rest is a margin around them).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="813176955%2FProperties%2F-1526861317" anchor-label="panelsShowWhileLocked" id="813176955%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="panels-show-while-locked.html"><span>panels</span><wbr><span>Show</span><wbr><span>While</span><wbr><span><span>Locked</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="813176955%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="panels-show-while-locked.html">panelsShowWhileLocked</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Behind the compositor's own lock screen when it shows the desktop (<a href="lock-internally.html">lockInternally</a> without hideDesktop): whether programs' panels (layer shell: bars, a notification daemon's pop-ups), menus and tooltips, and X11's unmanaged windows are still drawn. False (the default) leaves them out — what a notification or a bar shows may be private — except the surfaces the lock's allowSurface lets in (a lock screen that is a panel program); true draws them as the rest of the desktop. Windows are yours to hide (a <a href="../-window-director/index.html">WindowDirector</a> fading them out, as newm does). A locker program's lock, and hideDesktop, show none of them either way.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -1368,6 +1398,36 @@
               </div>
             </div>
           </div>
+<a data-name="-842587754%2FProperties%2F-1526861317" anchor-label="wallpaperFpsLimit" id="-842587754%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="wallpaper-fps-limit.html"><span>wallpaper</span><wbr><span>Fps</span><wbr><span><span>Limit</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-842587754%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="wallpaper-fps-limit.html">wallpaperFpsLimit</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">The most frames a second any wallpaper shader is drawn at, whatever it asks (0, the default: as each asks, <a href="../-wallpaper-shader/frames-per-second.html">WallpaperShader.framesPerSecond</a>) — e.g. fewer on battery.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="667028534%2FProperties%2F-1526861317" anchor-label="wallpaperShadersPaused" id="667028534%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="wallpaper-shaders-paused.html"><span>wallpaper</span><wbr><span>Shaders</span><wbr><span><span>Paused</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="667028534%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="wallpaper-shaders-paused.html">wallpaperShadersPaused</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Every wallpaper shader (<a href="../-wallpaper-shader/index.html">WallpaperShader</a>, the background's or a drawing's) stands still: its time and the pointer as they were, nothing drawn anew for it — for a dimmed screen, a laptop saving its battery. False again: they go on from where they stopped.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="1222314213%2FProperties%2F-1526861317" anchor-label="widgetThreads" id="1222314213%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
             <div class="main-subrow keyValue ">
@@ -1667,7 +1727,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="capture-window.html"><span class="token function">captureWindow</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">window<span class="token operator">: </span><a href="../-window/index.html">Window</a><span class="token punctuation">, </span></span><span class="parameter ">target<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-gpu-target/index.html">GpuTarget</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Draws <a href="capture-window.html">window</a> alone into <a href="capture-window.html">target</a> (as big as the window), see-through around it — also when it is hidden or on another workspace. For sharing one window.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="capture-window.html"><span class="token function">captureWindow</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">window<span class="token operator">: </span><a href="../-window/index.html">Window</a><span class="token punctuation">, </span></span><span class="parameter ">target<span class="token operator">: </span><a href="../../../caulis-render/dev.caulis.render/-gpu-target/index.html">GpuTarget</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Draws <a href="capture-window.html">window</a> alone into <a href="capture-window.html">target</a> (as big as the window), see-through around it — also when it is hidden or on another workspace. For sharing one window. A window hidden from capture (<a href="../-window-behavior/hidden-from-capture.html">WindowBehavior.hiddenFromCapture</a>) is a black box, as on a shared screen.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -2372,7 +2432,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="move-out-of-special-workspace.html"><span class="token function">moveOutOfSpecialWorkspace</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-window/index.html">Window</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Moves a window out of a special workspace onto the workspace shown on the focused monitor (Hyprland's <code class="lang-kotlin">movetoworkspace +0</code> from a special one, for a key): the focused window if it is in one; else the one focused last in the special workspace shown on the focused monitor; else the one focused last in the special workspace used last, shown or hidden — so the key brings a window back with its special workspace hidden too. Returns the window moved, or null if there was none.</p></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="move-out-of-special-workspace.html"><span class="token function">moveOutOfSpecialWorkspace</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">window<span class="token operator">: </span><a href="../-window/index.html">Window</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Moves <a href="move-out-of-special-workspace.html">window</a> out of its special workspace (or scratchpad) onto the workspace shown on the focused monitor, tiled there as usual. False if it is in none.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="move-out-of-special-workspace.html"><span class="token function">moveOutOfSpecialWorkspace</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-window/index.html">Window</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Moves a window out of a special workspace onto the workspace shown on the focused monitor (Hyprland's <code class="lang-kotlin">movetoworkspace +0</code> from a special one, for a key): the focused window if it is in one; else the one focused last in the special workspace shown on the monitor worked on (<a href="../-window-director/work-monitor.html">WindowDirector.workMonitor</a>, by default the focused one); else the one focused last in the special workspace used last, shown or hidden — so the key brings a window back with its special workspace hidden too. Returns the window moved, or null if there was none.</p></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="move-out-of-special-workspace.html"><span class="token function">moveOutOfSpecialWorkspace</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">window<span class="token operator">: </span><a href="../-window/index.html">Window</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Moves <a href="move-out-of-special-workspace.html">window</a> out of its special workspace (or scratchpad) onto the workspace shown on the focused monitor, tiled there as usual. False if it is in none.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -3753,6 +3813,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="workspace-numbers.html"><span class="token function">workspaceNumbers</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Numbers of the workspaces there are (shown, with windows, or persistent) that Super+N reaches from the monitor with the focus, in order.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-993854005%2FFunctions%2F-1526861317" anchor-label="x11DragRequested" id="-993854005%2FFunctions%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="x11-drag-requested.html"><span>x11Drag</span><wbr><span><span>Requested</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-993854005%2FFunctions%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="x11-drag-requested.html"><span class="token function">x11DragRequested</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">window<span class="token operator">: </span><a href="../-window/index.html">Window</a><span class="token punctuation">, </span></span><span class="parameter ">edges<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">An X11 program asked to move its window (<a href="x11-drag-requested.html">edges</a> null) or resize it (_NET_WM_MOVERESIZE): as a Wayland program's request — only while the button the user holds was pressed in a window of the same client (X has no serials), and your <a href="../-window-director/index.html">WindowDirector</a> is asked first.</p></div></div></div>
                 </div>
               </div>
             </div>

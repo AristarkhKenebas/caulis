@@ -1,0 +1,269 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>DBusConnection</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-dbus/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-dbus/main" data-filter=":caulis-dbus/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-dbus::dev.caulis.core.dbus/DBusConnection///PointingToDeclaration//2036793848">
+  <div class="breadcrumbs"><a href="../../index.html">caulis-dbus</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.core.dbus</a><span class="delimiter">/</span><span class="current">DBusConnection</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>DBus</span><wbr><span><span>Connection</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-dbus/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">DBusConnection</a> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/AutoCloseable.html">AutoCloseable</a></div><p class="paragraph">A small client (and server) of D-Bus — the system bus (logind: sleep, brightness, the session's lock) or the session bus — on the compositor's event loop: no thread, no library. Enough of the wire format for what a compositor asks: the basic types, arrays, structs, file descriptors.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="-1202138753%2FClasslikes%2F2036793848" anchor-label="Companion" id="-1202138753%2FClasslikes%2F2036793848" data-filterable-set=":caulis-dbus/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-dbus/main" data-filterable-set=":caulis-dbus/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1202138753%2FClasslikes%2F2036793848"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-dbus/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="506306598%2FProperties%2F2036793848" anchor-label="uniqueName" id="506306598%2FProperties%2F2036793848" data-filterable-set=":caulis-dbus/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-dbus/main" data-filterable-set=":caulis-dbus/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="unique-name.html"><span>unique</span><wbr><span><span>Name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="506306598%2FProperties%2F2036793848"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-dbus/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="unique-name.html">uniqueName</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Our name on the bus (":1.42").</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="972613353%2FFunctions%2F2036793848" anchor-label="call" id="972613353%2FFunctions%2F2036793848" data-filterable-set=":caulis-dbus/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-dbus/main" data-filterable-set=":caulis-dbus/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="call.html"><span><span>call</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="972613353%2FFunctions%2F2036793848"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-dbus/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="call.html"><span class="token function">call</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">destination<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">path<span class="token operator">: </span><a href="../-object-path/index.html">ObjectPath</a><span class="token punctuation">, </span></span><span class="parameter ">iface<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">member<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">signature<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">""</span><span class="token punctuation">, </span></span><span class="parameter ">args<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">?</span><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyList()<span class="token punctuation">, </span></span><span class="parameter ">fds<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../../../caulis-native/dev.caulis.ffi/-fd/index.html">Fd</a><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyList()<span class="token punctuation">, </span></span><span class="parameter ">reply<span class="token operator">: </span><span class="token punctuation">(</span><a href="../-d-bus-message/index.html">DBusMessage</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Calls <a href="call.html">member</a> of <a href="call.html">iface</a> on <a href="call.html">path</a> at <a href="call.html">destination</a> with <a href="call.html">args</a> (as <a href="call.html">signature</a> says); <a href="call.html">reply</a> gets the answer (or the error) on the loop.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="799063744%2FFunctions%2F2036793848" anchor-label="close" id="799063744%2FFunctions%2F2036793848" data-filterable-set=":caulis-dbus/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-dbus/main" data-filterable-set=":caulis-dbus/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="close.html"><span><span>close</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="799063744%2FFunctions%2F2036793848"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-dbus/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="close.html"><span class="token function">close</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="502691679%2FFunctions%2F2036793848" anchor-label="emitSignal" id="502691679%2FFunctions%2F2036793848" data-filterable-set=":caulis-dbus/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-dbus/main" data-filterable-set=":caulis-dbus/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="emit-signal.html"><span>emit</span><wbr><span><span>Signal</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="502691679%2FFunctions%2F2036793848"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-dbus/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="emit-signal.html"><span class="token function">emitSignal</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">path<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">iface<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">member<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">signature<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">""</span><span class="token punctuation">, </span></span><span class="parameter ">args<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">?</span><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyList()</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sends the signal <a href="emit-signal.html">member</a> of <a href="emit-signal.html">iface</a> from <a href="emit-signal.html">path</a> with <a href="emit-signal.html">args</a> (as <a href="emit-signal.html">signature</a> says) to whoever listens.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1640275876%2FFunctions%2F2036793848" anchor-label="export" id="1640275876%2FFunctions%2F2036793848" data-filterable-set=":caulis-dbus/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-dbus/main" data-filterable-set=":caulis-dbus/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="export.html"><span><span>export</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1640275876%2FFunctions%2F2036793848"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-dbus/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="export.html"><span class="token function">export</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">path<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">iface<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">methods<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="../-d-bus-method/index.html">DBusMethod</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-auto-closeable/index.html">AutoCloseable</a></div><div class="brief "><p class="paragraph">Answers calls of <a href="export.html">iface</a> on <a href="export.html">path</a> with <a href="export.html">methods</a> (by name) from now on; close the result to stop. Introspection (busctl, gdbus, d-feet) and Ping are answered by themselves.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1910566508%2FFunctions%2F2036793848" anchor-label="keep" id="1910566508%2FFunctions%2F2036793848" data-filterable-set=":caulis-dbus/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-dbus/main" data-filterable-set=":caulis-dbus/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="keep.html"><span><span>keep</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1910566508%2FFunctions%2F2036793848"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-dbus/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="keep.html"><span class="token function">keep</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">fd<span class="token operator">: </span><a href="../../../caulis-native/dev.caulis.ffi/-fd/index.html">Fd</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">In a handler: <a href="keep.html">fd</a> from the message is yours now (else it is closed after the handler).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-319454662%2FFunctions%2F2036793848" anchor-label="onSignal" id="-319454662%2FFunctions%2F2036793848" data-filterable-set=":caulis-dbus/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-dbus/main" data-filterable-set=":caulis-dbus/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="on-signal.html"><span>on</span><wbr><span><span>Signal</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-319454662%2FFunctions%2F2036793848"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-dbus/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-overloads/index.html"><span class="token annotation builtin">JvmOverloads</span></a></div></div><span class="token keyword">fun </span><a href="on-signal.html"><span class="token function">onSignal</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">iface<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">member<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">path<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">sender<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">handler<span class="token operator">: </span><span class="token punctuation">(</span><a href="../-d-bus-message/index.html">DBusMessage</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-auto-closeable/index.html">AutoCloseable</a></div><div class="brief "><p class="paragraph">Runs <a href="on-signal.html">handler</a> for every signal <a href="on-signal.html">member</a> of <a href="on-signal.html">iface</a> (from <a href="on-signal.html">path</a>, if given). Asks the bus for them; close the result to stop (the bus is told it need not send them any more).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1747591464%2FFunctions%2F2036793848" anchor-label="requestName" id="-1747591464%2FFunctions%2F2036793848" data-filterable-set=":caulis-dbus/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-dbus/main" data-filterable-set=":caulis-dbus/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="request-name.html"><span>request</span><wbr><span><span>Name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1747591464%2FFunctions%2F2036793848"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-dbus/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="request-name.html"><span class="token function">requestName</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">done<span class="token operator">: </span><span class="token punctuation">(</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Asks the bus for the well-known <a href="request-name.html">name</a> ("org.example.Service"); <a href="request-name.html">done</a> hears whether we have it now (false: another program has it).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
