@@ -190,8 +190,11 @@ class EventLoop : AutoCloseable {
             val registration = handlers[fd]?.takeIf { it.since < batch } ?: return@wait
             guarded("the handler of descriptor $fd", registration.handler) { registration.handler(ready) }
         }
-        while (true) {
-            val task = posted.poll() ?: break
+        // Only the tasks posted before now: one that posts itself again (a coroutine yielding
+        // on this loop) runs again in the next turn, after input, clients and timers — never
+        // in this one for ever. (What is posted meanwhile woke the loop: the next wait is none.)
+        repeat(posted.size) {
+            val task = posted.poll() ?: return@repeat
             guarded("a posted task", task) { task() }
         }
         val now = System.nanoTime()

@@ -28,6 +28,10 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   stopped the test compile where the locale is not UTF-8. The CI scripts install dbus-daemon
   (so the tests' own session bus runs there too) and keep going after a failure to show every
   failing module at once.
+- A task that posts itself again (a Compose coroutine that yields, a configuration's
+  `post { again() }`) no longer freezes the compositor: the event loop runs only the tasks posted
+  before it started on them, then goes on to input, programs and frames (before, it never left them
+  and the watchdog ended the session after 10 s).
 
 ## [0.1.7] - 2026-10-30
 

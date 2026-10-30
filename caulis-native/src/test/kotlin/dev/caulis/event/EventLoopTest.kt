@@ -41,6 +41,35 @@ class EventLoopTest {
     }
 
     @Test
+    fun `a task that posts itself again does not hold off descriptors and timers`() {
+        EventLoop().use { loop ->
+            val (read, write) = dev.caulis.ffi.Fd.pipe()
+            read.use {
+                write.use {
+                    var readable = false
+                    var timer = false
+                    var turns = 0
+                    loop.add(read) { readable = true }
+                    fun again() {
+                        turns++
+                        loop.post { again() }
+                    }
+                    loop.post { again() }
+                    loop.after(0) { timer = true }
+                    write.write(java.lang.foreign.Arena.global().allocate(1))
+                    val start = System.nanoTime()
+                    // (Before: the first dispatch never returned.)
+                    while (!(readable && timer) && System.nanoTime() - start < 2_000_000_000) loop.dispatch(100)
+                    assertTrue(readable, "the descriptor was heard")
+                    assertTrue(timer, "the timer ran")
+                    assertTrue(turns < 1000, "a turn of the loop each time, not $turns at once")
+                    loop.remove(read)
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a task posted from another thread wakes the loop at once`() {
         EventLoop().use { loop ->
             var ran = false
