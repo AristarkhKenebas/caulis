@@ -72,7 +72,9 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
     private var serial = 1
     private val replies = HashMap<Int, (DBusMessage) -> Unit>()
     private val signals = ArrayList<Pair<(DBusMessage) -> Boolean, (DBusMessage) -> Unit>>()
-    private val incoming = ByteArrayOutputStream()
+    // What the bus sent and was not read yet: [incoming]'s first [incomingLength] bytes.
+    private var incoming = ByteArray(READ_SIZE.toInt())
+    private var incomingLength = 0
     private val incomingFds = ArrayDeque<Fd>()
 
     // Messages (or what is left of one) the bus has not taken yet, and their descriptors.
@@ -363,19 +365,29 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
                 close()
                 return
             }
-            incoming.write(buffer.asSlice(0, count).toArray(JAVA_BYTE))
+            val needed = incomingLength + count.toInt()
+            if (needed > incoming.size) incoming = incoming.copyOf(maxOf(needed, incoming.size * 2))
+            java.lang.foreign.MemorySegment.copy(buffer, JAVA_BYTE, 0L, incoming, incomingLength, count.toInt())
+            incomingLength = needed
         }
+        // Each whole message taken out once (not everything after it copied again for each:
+        // a burst of signals, or a big picture coming in many reads, cost that many times over).
+        var start = 0
         while (true) {
-            val all = incoming.toByteArray()
-            val length = messageLength(all) ?: break
-            if (all.size < length) break
-            incoming.reset()
-            incoming.write(all, length, all.size - length)
+            val length = messageLength(incoming, start, incomingLength - start) ?: break
+            if (length < 16) {
+                log.warn("The bus sent a message of $length bytes: the connection is closed")
+                close()
+                return
+            }
+            if (incomingLength - start < length) break
+            val message = incoming.copyOfRange(start, start + length)
+            start += length
             // The descriptors that came with this message (its header says how many).
             val fds = ArrayList<Fd>()
             try {
-                repeat(fdCount(all)) { incomingFds.removeFirstOrNull()?.let(fds::add) }
-                dispatch(parse(all.copyOf(length), fds))
+                repeat(fdCount(message)) { incomingFds.removeFirstOrNull()?.let(fds::add) }
+                dispatch(parse(message, fds))
             } catch (e: Throwable) {
                 e.rethrowIfFatal()
                 log.warn("A message from the bus could not be read: $e")
@@ -384,7 +396,14 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
                 for (fd in fds) if (fd !in taken) fd.close()
                 taken.clear()
             }
+            if (closed) return
         }
+        if (start > 0) {
+            System.arraycopy(incoming, start, incoming, 0, incomingLength - start)
+            incomingLength -= start
+        }
+        // (A big message read: its room given back once it is handled.)
+        if (incomingLength <= READ_SIZE && incoming.size > 4 * READ_SIZE) incoming = incoming.copyOf(READ_SIZE.toInt())
     }
 
     private fun dispatch(message: DBusMessage) {
@@ -419,14 +438,16 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
     }
 
     // The whole length of the message at the start of [data], or null if its header is not all there.
-    private fun messageLength(data: ByteArray): Int? {
-        if (data.size < 16) return null
-        val order = if (data[0] == 'l'.code.toByte()) ByteOrder.LITTLE_ENDIAN else ByteOrder.BIG_ENDIAN
+    // ([available] bytes of [data] from [start]; a length past Int's range counts as -1: refused.)
+    private fun messageLength(data: ByteArray, start: Int, available: Int): Int? {
+        if (available < 16) return null
+        val order = if (data[start] == 'l'.code.toByte()) ByteOrder.LITTLE_ENDIAN else ByteOrder.BIG_ENDIAN
         val b = ByteBuffer.wrap(data).order(order)
-        val bodyLength = b.getInt(4)
-        val fieldsLength = b.getInt(12)
+        val bodyLength = b.getInt(start + 4).toLong() and 0xFFFF_FFFFL
+        val fieldsLength = b.getInt(start + 12).toLong() and 0xFFFF_FFFFL
         val headerLength = 16 + fieldsLength
-        return ((headerLength + 7) and 7.inv()) + bodyLength
+        val length = ((headerLength + 7) and 7L.inv()) + bodyLength
+        return if (length > Int.MAX_VALUE) -1 else length.toInt()
     }
 
     // How many descriptors came with the message at the start of [data] (its UNIX_FDS field).
@@ -736,8 +757,16 @@ private class Reader(private val data: ByteBuffer, private val messageFds: List<
             val element = type.substring(1)
             val length = u32()
             align(alignment(element[0]))
-            val end = data.position() + length
-            buildList { while (data.position() < end) add(read(element)) }
+            if (element == "y") {
+                // Bytes (a picture, a file's contents: megabytes) kept as they came, one byte
+                // each — not a boxed number each, made on the compositor's thread.
+                val bytes = ByteArray(length)
+                data.get(bytes)
+                UnsignedBytes(bytes)
+            } else {
+                val end = data.position() + length
+                buildList<Any?> { while (data.position() < end) add(read(element)) }
+            }
         }
         '(', '{' -> {
             align(8)
@@ -761,6 +790,13 @@ private class Reader(private val data: ByteBuffer, private val messageFds: List<
         data.get()
         return String(bytes)
     }
+}
+
+// A D-Bus byte array as read: a List of the bytes (0 to 255, as a single byte reads) over
+// the bytes themselves.
+private class UnsignedBytes(private val bytes: ByteArray) : AbstractList<Int>(), RandomAccess {
+    override val size: Int get() = bytes.size
+    override fun get(index: Int): Int = bytes[index].toInt() and 0xff
 }
 
 // How a value of [type] is aligned.

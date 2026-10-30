@@ -87,6 +87,42 @@ class DBusTest {
     }
 
     @Test
+    fun `a big byte array and a burst of messages arrive whole, the bytes kept compact`() {
+        EventLoop().use { loop ->
+            val server = DBusConnection.session(loop)
+            assumeTrue(server != null, "no session bus")
+            val client = DBusConnection.session(loop)!!
+            server!!.use { client.use {
+                fun until(done: () -> Boolean) {
+                    val end = System.nanoTime() + 20_000_000_000
+                    while (!done() && System.nanoTime() < end) loop.dispatch(20)
+                    check(done()) { "timed out" }
+                }
+                until { server.uniqueName != null && client.uniqueName != null }
+                var received: List<*>? = null
+                var calls = 0
+                server.export("/dev/caulis/Test", "dev.caulis.Test", mapOf(
+                    "Picture" to DBusMethod("ay", "u") { call -> val bytes = call.body[0] as List<*>; received = bytes; listOf(bytes.size) },
+                    "Ping" to DBusMethod("u", "u") { call -> calls++; listOf(call.body[0]) },
+                ))
+                val name = server.uniqueName!!
+                // (A notification's screenshot: 4 MB, read in many pieces.)
+                val picture = List(4 shl 20) { (it * 7) and 0xff }
+                var answer: Int? = null
+                client.call(name, ObjectPath("/dev/caulis/Test"), "dev.caulis.Test", "Picture", "ay", listOf(picture)) { answer = it.body.firstOrNull() as Int? }
+                val answers = ArrayList<Int>()
+                repeat(100) { n -> client.call(name, ObjectPath("/dev/caulis/Test"), "dev.caulis.Test", "Ping", "u", listOf(n)) { answers += it.body.first() as Int } }
+                until { answer != null && answers.size == 100 }
+                assertEquals(picture.size, answer)
+                assertEquals(picture, received, "every byte as sent, 0 to 255")
+                assertTrue(received !is java.util.ArrayList<*>, "bytes, not a boxed number each")
+                assertEquals((0 until 100).toList(), answers, "in order")
+                assertEquals(100, calls)
+            } }
+        }
+    }
+
+    @Test
     fun `an exported object answers calls, says what it has, and sends signals`() {
         EventLoop().use { loop ->
             val server = DBusConnection.session(loop)

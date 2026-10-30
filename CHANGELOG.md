@@ -41,6 +41,10 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - A Compose widget that is placed but hidden by its look (a popup waiting to be measured)
   keeps its scene: it was let go after `keepHiddenSeconds` and composed anew at once, again every
   minute, on the compositor's thread.
+- D-Bus: a big message (a notification's picture sent along, megabytes) and bursts of
+  messages are read without copying what came after each message again; byte arrays (`ay`) are
+  kept as bytes, not as a boxed number each (a 2048x2048 picture made millions of objects on the
+  compositor's thread). They are still a `List` of numbers 0 to 255 for your code.
 
 ### Security
 - A program can no longer freeze the compositor by sending a named pipe (FIFO) as its
