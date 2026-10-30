@@ -6,6 +6,7 @@ import java.lang.foreign.ValueLayout.JAVA_LONG
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class SharedMemoryTest {
 
@@ -41,6 +42,29 @@ class SharedMemoryTest {
             assertFailsWith<SharedMemoryException> { SharedMemory.map(fd, 4096, writable = true) }
         } finally {
             java.nio.file.Files.deleteIfExists(file)
+        }
+    }
+
+    @Test
+    fun `a FIFO sent as shared memory is refused at once, not waited on`() {
+        val dir = java.nio.file.Files.createTempDirectory("fifo")
+        try {
+            val fifo = dir.resolve("f")
+            check(ProcessBuilder("mkfifo", fifo.toString()).start().waitFor() == 0) { "mkfifo failed" }
+            // (As a hostile client opens it: no writer, without waiting.)
+            val raw = java.lang.foreign.Arena.ofConfined().use { temp ->
+                Libc.open(temp.allocateFrom(fifo.toString()), LibC.O_NONBLOCK() or LibC.O_CLOEXEC(), 0)
+            }
+            val result = java.util.concurrent.CompletableFuture<Throwable?>()
+            val mapping = Thread {
+                result.complete(runCatching { SharedMemory.map(Fd.adopt(raw), 4096).close() }.exceptionOrNull())
+            }.apply { isDaemon = true }
+            mapping.start()
+            // (Before: open() of the FIFO waited for a writer for ever.)
+            val error = result.get(5, java.util.concurrent.TimeUnit.SECONDS)
+            assertTrue(error is SharedMemoryException, "refused: $error")
+        } finally {
+            dir.toFile().deleteRecursively()
         }
     }
 

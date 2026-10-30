@@ -110,6 +110,12 @@ class SharedMemory private constructor(
             require(size > 0) { "Size must be positive, got $size" }
             val arena = Arena.ofShared()
             try {
+                // Only a plain file (memfd, shm): opening a FIFO another process sent waits for
+                // a writer for ever, on the compositor's thread. (stat, unlike open, never waits.)
+                val path = Path.of("/proc/self/fd/${fd.value}")
+                if (!java.nio.file.Files.readAttributes(path, java.nio.file.attribute.BasicFileAttributes::class.java).isRegularFile) {
+                    throw SharedMemoryException("The descriptor is not a plain file (a pipe, a socket or a device)")
+                }
                 if (writable && Libc.fcntl(fd.value, LibC.F_GETFL()) and O_ACCMODE != LibC.O_RDWR()) {
                     throw SharedMemoryException("The descriptor is not open for writing")
                 }
@@ -119,7 +125,7 @@ class SharedMemory private constructor(
                 } else {
                     arrayOf(StandardOpenOption.READ)
                 }
-                val memory = FileChannel.open(Path.of("/proc/self/fd/${fd.value}"), *options).use { channel ->
+                val memory = FileChannel.open(path, *options).use { channel ->
                     if (channel.size() < size) {
                         throw SharedMemoryException("File has ${channel.size()} bytes, but $size were promised")
                     }

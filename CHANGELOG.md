@@ -33,6 +33,11 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   before it started on them, then goes on to input, programs and frames (before, it never left them
   and the watchdog ended the session after 10 s).
 
+### Security
+- A program can no longer freeze the compositor by sending a named pipe (FIFO) as its
+  shared memory (`wl_shm.create_pool`): only plain files are mapped, anything else is refused at
+  once. Before, opening it waited for a writer for ever on the compositor's thread.
+
 ## [0.1.7] - 2026-10-30
 
 ### Added
