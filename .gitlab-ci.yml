@@ -28,6 +28,14 @@ build:
     reports:
       junit: "**/build/test-results/test/*.xml"
 
+# newm, the biggest user of Caulis, built and tested against this commit's sources.
+newm:
+  stage: build
+  timeout: 30m
+  script:
+    - ci/install-deps-debian.sh
+    - ci/build-newm.sh
+
 # The API documentation website on GitLab Pages (from the main branch).
 pages:
   stage: release

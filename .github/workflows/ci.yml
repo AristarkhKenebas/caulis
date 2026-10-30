@@ -48,3 +48,39 @@ jobs:
         with:
           name: caulis
           path: caulis-*/build/libs/*.jar
+
+  # newm, the biggest user of Caulis, built and tested against this commit's sources: an API
+  # change that breaks it shows up here, before a release.
+  newm:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      # Side by side, the way newm's build finds Caulis's sources (../caulis).
+      - uses: actions/checkout@v7
+        with:
+          path: caulis
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 27
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - uses: actions/checkout@v7
+        with:
+          repository: AristarkhKenebas/newm
+          path: newm
+
+      - name: System libraries
+        run: caulis/ci/install-deps-debian.sh
+
+      - name: newm against this Caulis
+        run: caulis/ci/build-newm.sh
+
+      - name: Test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: newm-test-reports
+          path: newm/build/reports/tests/

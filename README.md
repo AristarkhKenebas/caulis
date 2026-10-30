@@ -123,6 +123,7 @@ compositor's settings in Nix (see the guide, step 25).
 ```sh
 ./gradlew build            # build and test everything
 ./gradlew dokkaGenerate    # API documentation: build/dokka/html/index.html
+ci/build-newm.sh           # newm (../newm, else a fresh clone) built and tested against these sources
 ```
 
 ## License
