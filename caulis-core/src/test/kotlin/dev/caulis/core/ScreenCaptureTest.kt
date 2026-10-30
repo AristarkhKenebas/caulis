@@ -286,6 +286,58 @@ class ScreenCaptureTest {
         sharer.connection.roundtrip()
     }
 
+    @Test
+    fun `a window hidden from capture is a black box when shared alone`() = withServer { server, apps, sharer ->
+        // A red window (its own picture: the usual test pictures are black).
+        val window = apps.window { it.setTitle("secret") }
+        val (red, redMemory) = apps.buffer(160, 120)
+        redMemory.write { m -> for (i in 0 until 160 * 120) m.setAtIndex(JAVA_INT, i.toLong(), 0x00FF0000) }
+        window.surface.attach(red, 0, 0)
+        window.surface.damageBuffer(0, 0, 160, 120)
+        window.surface.commit()
+        apps.connection.roundtrip()
+        sharer.waitFor { server.onServer { d -> d.windows.isNotEmpty() } }
+
+        var handle: ExtForeignToplevelHandleV1? = null
+        sharer.global("ext_foreign_toplevel_list_v1", ExtForeignToplevelListV1, 1).events = object : ExtForeignToplevelListV1.Events {
+            override fun toplevel(proxy: ExtForeignToplevelListV1, toplevel: ExtForeignToplevelHandleV1) { handle = toplevel }
+        }
+        sharer.waitFor { handle != null }
+        val sources = sharer.global("ext_foreign_toplevel_image_capture_source_manager_v1", ExtForeignToplevelImageCaptureSourceManagerV1, 1)
+        val copier = sharer.global("ext_image_copy_capture_manager_v1", ExtImageCopyCaptureManagerV1, 1)
+        val sharing = Sharing(copier.createSession(sources.createSource(handle!!), 0))
+        sharing.session.events = object : ExtImageCopyCaptureSessionV1.Events {
+            override fun bufferSize(proxy: ExtImageCopyCaptureSessionV1, width: Int, height: Int) { sharing.size = width to height }
+            override fun done(proxy: ExtImageCopyCaptureSessionV1) { sharing.constraintsDone = true }
+            override fun stopped(proxy: ExtImageCopyCaptureSessionV1) { sharing.stopped = true }
+        }
+        sharer.waitFor { sharing.constraintsDone }
+        val (buffer, memory) = sharer.buffer(160, 120, format = 0) // ARGB8888
+        fun take(): Int {
+            val picture = Picture(sharing.session.createFrame())
+            picture.frame.events = object : ExtImageCopyCaptureFrameV1.Events {
+                override fun ready(proxy: ExtImageCopyCaptureFrameV1) { picture.ready = true }
+                override fun failed(proxy: ExtImageCopyCaptureFrameV1, reason: Int) { picture.failed = reason }
+            }
+            picture.frame.attachBuffer(buffer)
+            picture.frame.damageBuffer(0, 0, 160, 120)
+            picture.frame.capture()
+            sharer.waitFor { picture.ready || picture.failed >= 0 }
+            assertTrue(picture.ready, "a picture (failed: ${picture.failed})")
+            return memory.pixel(80, 60, 160 * 4)
+        }
+        assertEquals(0xFFFF0000.toInt(), take(), "the window's own picture")
+        // A rule says it is hidden from capture (a password manager): black, as on a shared screen.
+        server.onServer { d -> d.behaviorFor = { WindowBehavior(hiddenFromCapture = true) } }
+        // (A new picture of it, for the capture to have something new.)
+        window.surface.attach(red, 0, 0)
+        window.surface.damageBuffer(0, 0, 160, 120)
+        window.surface.commit()
+        apps.connection.roundtrip()
+        assertEquals(BLACK, take(), "not its contents")
+        sharer.connection.roundtrip()
+    }
+
     private fun withServer(test: (ScreenTestServer, TestClient, TestClient) -> Unit) {
         assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
         ScreenTestServer().use { server ->

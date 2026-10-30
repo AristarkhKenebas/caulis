@@ -902,12 +902,17 @@ class Desktop(
 
     /**
      * Draws [window] alone into [target] (as big as the window), see-through around it —
-     * also when it is hidden or on another workspace. For sharing one window.
+     * also when it is hidden or on another workspace. For sharing one window. A window hidden
+     * from capture ([WindowBehavior.hiddenFromCapture]) is a black box, as on a shared screen.
      */
     fun captureWindow(window: Window, target: GpuTarget) {
         val visible = window.visibleRect
         val items = ArrayList<DrawItem>()
-        addTree(items, window.surface, -visible.x, -visible.y)
+        if (behaviorOf(window).hiddenFromCapture) {
+            items += DrawItem.Color(EffectKey("hidden from capture", window), Rect(0, 0, visible.width, visible.height), 0f, 0f, 0f)
+        } else {
+            addTree(items, window.surface, -visible.x, -visible.y)
+        }
         val scale = monitorOf(window).scale
         renderer.begin(target, 0f, 0f, 0f, alpha = 0f)
         draw(items, null, { rect -> pixelsOf(rect, scale) }, scale)

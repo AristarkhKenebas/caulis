@@ -59,6 +59,10 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   compositor's keys (keyboard-shortcuts-inhibit, which any program may ask for): before, it went to
   the program and the screen stayed open. `keys { lockWhileInhibited = false }` (config.json
   `keys.lockWhileInhibited`) gives it to the window as before.
+- A window hidden from capture (`hiddenFromCapture`, a password manager) is a black box when
+  shared alone too (a portal's or OBS's window source, ext-foreign-toplevel image capture);
+  before, only screenshots and screen sharing blacked it out. `Desktop.captureWindow` draws it
+  black for every caller.
 
 ## [0.1.7] - 2026-10-30
 
