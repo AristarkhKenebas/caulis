@@ -36,6 +36,11 @@ class Desktop(
     screenHeight: Int,
 ) : XdgShell.Listener, LayerShell.Listener, SessionLockManager.Listener, AutoCloseable {
 
+    // Parts of the desktop in classes of their own (in this module; they reach back into the
+    // desktop for what they need). First, so that nothing below finds them missing.
+    private val touch = DesktopTouch(this, seat)
+    private val pointerGrab = DesktopPointerGrab(this, seat)
+
     // Our listener for saved shader files (taken away again in close).
     private var shaderSaved: (() -> Unit)? = null
 
@@ -1396,7 +1401,7 @@ class Desktop(
             return
         }
         val before = activeWorkspace.number
-        endGrab()
+        pointerGrab.end()
         when (workspaceMode) {
             WorkspaceMode.SPANNING -> {
                 if (number == before) return
@@ -1528,7 +1533,7 @@ class Desktop(
         focus(window)
     }
 
-    private fun setFocusedMonitor(monitor: Monitor) {
+    internal fun setFocusedMonitor(monitor: Monitor) {
         if (focusedMonitor === monitor) return
         focusedMonitor = monitor
         compositor.outputScale = monitor.scale
@@ -1550,7 +1555,7 @@ class Desktop(
         moveToWorkspace(window, workspace(number, monitor))
     }
 
-    private fun moveToWorkspace(window: Window, to: Workspace) {
+    internal fun moveToWorkspace(window: Window, to: Workspace) {
         val from = workspaceOf(window) ?: return
         if (from === to) return
         layoutLog.info { "$window moves from workspace ${from.number} to ${to.number}" }
@@ -1588,7 +1593,7 @@ class Desktop(
         changed()
     }
 
-    private fun workspaceOf(window: Window): Workspace? =
+    internal fun workspaceOf(window: Window): Workspace? =
         workspaces.values.firstOrNull { window in it.windows || window in it.minimized }
 
     // --- panels, docks, bars, wallpapers (layer shell) -------------------------------------------
@@ -1931,7 +1936,7 @@ class Desktop(
         seat.forgetInput()
         grabs.toList().asReversed().forEach { it.dismiss() }
         grabs.clear()
-        endGrab()
+        pointerGrab.end()
         // Fingers on a program's window: the program forgets them (else they went on under the lock).
         if (touch.touchingPrograms) touchCancel((System.nanoTime() / 1_000_000).toInt())
         if (inOverview) {
@@ -2549,7 +2554,7 @@ class Desktop(
     private var cascade = 0
 
     // The free floating place of each window (also kept while it is tiled or maximized).
-    private val floatingRects = HashMap<Window, Rect>()
+    internal val floatingRects = HashMap<Window, Rect>()
 
     // New sizes asked for, positions applied together once every window has drawn in its
     // new size (or after a short wait): so neighbours never jump one after another.
@@ -2620,8 +2625,8 @@ class Desktop(
     // its tile is centred in it instead of being pushed off screen (R5).
     private fun fit(window: Window, place: Rect): Rect {
         val tile = withoutTitle(window, place) // the compositor's title bar takes the top of the tile
-        val w = limit(tile.width, window.minWidth, window.maxWidth)
-        val h = limit(tile.height, window.minHeight, window.maxHeight)
+        val w = limitSize(tile.width, window.minWidth, window.maxWidth)
+        val h = limitSize(tile.height, window.minHeight, window.maxHeight)
         return Rect(tile.x + (tile.width - w) / 2, tile.y + (tile.height - h) / 2, w, h)
     }
 
@@ -2693,7 +2698,7 @@ class Desktop(
     fun setOverview(on: Boolean) {
         if (on == inOverview || (on && locked)) return
         layoutLog.info { if (on) "Overview opens" else "Overview closes" }
-        endGrab()
+        pointerGrab.end()
         val now = System.nanoTime()
         cameraFrom = cameraAt(now)
         cameraTo = if (on) overviewCamera() else Camera.NONE
@@ -2998,7 +3003,7 @@ class Desktop(
         }
         closeOverlay()
         this.overlay = overlay
-        endGrab()
+        pointerGrab.end()
         overlayLog.info { "Open: $overlay" }
         seat.pointerMotion(0, null, 0.0, 0.0) // the program under the pointer loses it
         overlay.pointerMoved(pointerX, pointerY)
@@ -3682,6 +3687,11 @@ class Desktop(
 
     private val glides = HashMap<Window, Glide>()
 
+    // [window] stops gliding where it is (a drag takes it from there).
+    internal fun stopGlide(window: Window) {
+        glides -= window
+    }
+
     // Where each window was drawn last (with any glide), so a new glide starts there.
     private val shownRects = HashMap<Window, Rect>()
 
@@ -4016,7 +4026,7 @@ class Desktop(
         glides -= window
         shownRects -= window
         screenRects -= window
-        if (grab?.window === window) grab = null
+        pointerGrab.forget(window)
         if (hovered === window) hovered = null
         // (It had the focus even if a launcher, a widget or a panel has the keyboard now.)
         val hadFocus = window === lastFocused || window.activated || seat.keyboardFocus === window.surface
@@ -4066,7 +4076,7 @@ class Desktop(
         lastLooks.remove(window)?.target?.close() // it drew again: still here
         if (window in pending) applyWhenReady()
         // While resizing from the left or top, the opposite edge stays where it was.
-        val resize = grab as? Grab.Resize ?: return
+        val resize = grab as? DesktopPointerGrab.Grab.Resize ?: return
         if (resize.window !== window) return
         val visibleRect = window.visibleRect
         if (resize.edges and XdgToplevel.ResizeEdge.LEFT != 0) window.x = resize.start.right - visibleRect.width
@@ -4217,7 +4227,7 @@ class Desktop(
         changed()
     }
 
-    private fun currentRect(window: Window): Rect {
+    internal fun currentRect(window: Window): Rect {
         val visibleRect = window.visibleRect
         return Rect(window.x, window.y, visibleRect.width, visibleRect.height)
     }
@@ -4236,7 +4246,7 @@ class Desktop(
         window.setMinimized(true)
         dismissPopupsOf(window, "it was minimized")
         pending.remove(window)
-        if (grab?.window === window) grab = null
+        pointerGrab.forget(window)
         arrange(workspace)
         // (Only if it had the focus: a background window minimizing itself takes nothing away.)
         if (workspace === activeWorkspace && (window === lastFocused || window.activated)) {
@@ -4305,19 +4315,12 @@ class Desktop(
 
     // --- moving and resizing with the pointer ---------------------------------------------
 
-    internal sealed class Grab(val window: Window, val pointerX: Double, val pointerY: Double) {
-        class Move(window: Window, pointerX: Double, pointerY: Double, val startX: Int, val startY: Int) :
-            Grab(window, pointerX, pointerY)
+    // The window moved or resized with the pointer now, if any.
+    internal val grab: DesktopPointerGrab.Grab? get() = pointerGrab.current
 
-        class Resize(window: Window, pointerX: Double, pointerY: Double, val edges: Int, val start: Rect) :
-            Grab(window, pointerX, pointerY) {
-            var lastWidth = start.width
-            var lastHeight = start.height
-        }
-    }
-
-    internal var grab: Grab? = null
-    private var buttonsHeld = 0
+    // How many buttons are held now.
+    internal var buttonsHeld = 0
+        private set
 
     override fun moveRequested(window: Window, serial: Int) {
         if (!dragAllowed(window, serial, "move")) return
@@ -4366,36 +4369,10 @@ class Desktop(
      * Moves [window] with the pointer until the button is released. Only while a button is
      * held (an app cannot grab the pointer on its own). A tiled window starts floating.
      */
-    fun beginMove(window: Window) {
-        // A window of a shown special workspace: dragged over its tile, dropped outside it moves out.
-        if (!locked && buttonsHeld > 0 && scratchpadOf(window)?.let { it.isSpecial && it.shown && !it.leaving } == true) {
-            glides -= window
-            startGrab(Grab.Move(window, pointerX, pointerY, window.x, window.y))
-            return
-        }
-        if (locked || buttonsHeld == 0 || window !in windows || window.fullscreen) return
-        if (window.maximized) {
-            // Dragging a maximized window: it gets its old size back, under the pointer.
-            val floating = floatingRects[window] ?: currentRect(window)
-            floatingRects[window] = Rect((pointerX - floating.width / 2).toInt(), pointerY.toInt() - 10, floating.width, floating.height)
-            setMaximized(window, false)
-        }
-        if (window.tiled) {
-            floatingRects[window] = currentRect(window) // it floats from where it is now
-            setFloating(window, true)
-        }
-        startGrab(Grab.Move(window, pointerX, pointerY, window.x, window.y))
-    }
+    fun beginMove(window: Window) = pointerGrab.beginMove(window)
 
     /** Resizes [window] with the pointer at [edges] (XdgToplevel.ResizeEdge) until the button is released. */
-    fun beginResize(window: Window, edges: Int) {
-        if (locked || buttonsHeld == 0 || window !in windows || window.maximized || window.fullscreen) return
-        if (window.tiled) {
-            floatingRects[window] = currentRect(window)
-            setFloating(window, true)
-        }
-        startGrab(Grab.Resize(window, pointerX, pointerY, edges, currentRect(window)))
-    }
+    fun beginResize(window: Window, edges: Int) = pointerGrab.beginResize(window, edges)
 
     /** The resize edges nearest to the desktop point (for Super+right-drag). */
     fun nearestEdges(window: Window, x: Double, y: Double): Int {
@@ -4403,79 +4380,6 @@ class Desktop(
         val horizontal = if (x < rect.x + rect.width / 2) XdgToplevel.ResizeEdge.LEFT else XdgToplevel.ResizeEdge.RIGHT
         val vertical = if (y < rect.y + rect.height / 2) XdgToplevel.ResizeEdge.TOP else XdgToplevel.ResizeEdge.BOTTOM
         return horizontal or vertical
-    }
-
-    private fun startGrab(newGrab: Grab) {
-        grab = newGrab
-        focus(newGrab.window)
-        // The app under the pointer stops getting pointer events during the grab.
-        seat.pointerMotion((System.nanoTime() / 1_000_000).toInt(), null, 0.0, 0.0)
-    }
-
-    private fun continueGrab(current: Grab) {
-        val dx = (pointerX - current.pointerX).toInt()
-        val dy = (pointerY - current.pointerY).toInt()
-        when (current) {
-            is Grab.Move -> {
-                current.window.x = current.startX + dx
-                current.window.y = current.startY + dy
-                changed()
-            }
-            is Grab.Resize -> {
-                val window = current.window
-                val edges = current.edges
-                var newWidth = current.start.width
-                var newHeight = current.start.height
-                if (edges and XdgToplevel.ResizeEdge.LEFT != 0) newWidth -= dx
-                if (edges and XdgToplevel.ResizeEdge.RIGHT != 0) newWidth += dx
-                if (edges and XdgToplevel.ResizeEdge.TOP != 0) newHeight -= dy
-                if (edges and XdgToplevel.ResizeEdge.BOTTOM != 0) newHeight += dy
-                newWidth = limit(newWidth, window.minWidth, window.maxWidth)
-                newHeight = limit(newHeight, window.minHeight, window.maxHeight)
-                behaviorOf(window).limit(newWidth, newHeight).let { (w, h) -> newWidth = w; newHeight = h }
-                if (newWidth != current.lastWidth || newHeight != current.lastHeight) {
-                    current.lastWidth = newWidth
-                    current.lastHeight = newHeight
-                    window.resizing = true
-                    window.configure(newWidth, newHeight)
-                }
-            }
-        }
-    }
-
-    private fun endGrab() {
-        val ended = grab ?: return
-        grab = null
-        if (ended is Grab.Move && scratchpadOf(ended.window)?.isSpecial == true) {
-            dropFromSpecialWorkspace(ended.window, pointerX, pointerY)
-            return
-        }
-        if (ended is Grab.Move) {
-            floatingRects[ended.window] = currentRect(ended.window)
-            // Dropped on another monitor: it belongs to the workspace shown there now.
-            val rect = currentRect(ended.window)
-            val target = monitorAt(rect.x + rect.width / 2.0, rect.y + rect.height / 2.0)
-            val from = monitorOf(ended.window)
-            if (target !== from && workspaceOf(ended.window) != null) {
-                moveToWorkspace(ended.window, target.workspace)
-                setFocusedMonitor(target)
-                focus(ended.window)
-            }
-        }
-        if (ended is Grab.Resize) {
-            if (ended.window.resizing) {
-                ended.window.resizing = false
-                ended.window.configure()
-            }
-            floatingRects[ended.window] = currentRect(ended.window)
-        }
-    }
-
-    // A size within the app's limits (0 = no limit), never smaller than 1.
-    private fun limit(size: Int, min: Int, max: Int): Int {
-        var result = maxOf(size, min, 1)
-        if (max > 0) result = minOf(result, max)
-        return result
     }
 
     // --- popups and focus ------------------------------------------------------------------
@@ -4876,8 +4780,6 @@ class Desktop(
 
     // --- touch screens -----------------------------------------------------------------------------
 
-    private val touch = DesktopTouch(this, seat)
-
     /** A touch screen is there (programs are told they may get touches). */
     var touchScreen: Boolean
         get() = seat.touchScreen
@@ -5138,7 +5040,7 @@ class Desktop(
             return
         }
         grab?.let { current ->
-            continueGrab(current)
+            pointerGrab.pointerMoved(current)
             onChange()
             return
         }
@@ -5357,7 +5259,7 @@ class Desktop(
         if (grab != null) {
             // The button that started a move or resize ends it; the app does not see it.
             if (!pressed && buttonsHeld == 0) {
-                endGrab()
+                pointerGrab.end()
                 movePointer(timeMillis, pointerX, pointerY) // the app under the pointer gets it back
             }
             return
@@ -6653,8 +6555,8 @@ class Desktop(
     private fun cursorShapeNow(): String? {
         val current = grab
         return when {
-            current is Grab.Move -> "grabbing"
-            current is Grab.Resize -> resizeCursor(current.edges)
+            current is DesktopPointerGrab.Grab.Move -> "grabbing"
+            current is DesktopPointerGrab.Grab.Resize -> resizeCursor(current.edges)
             overlay != null && !locked -> overlay?.cursor ?: "default"
             (pressedWidget != null || hoveredWidget != null) && !inOverview -> userCode("Your widget (cursor)", "default") { (pressedWidget?.widget ?: hoveredWidget)!!.cursor }
             inOverview -> "default"
