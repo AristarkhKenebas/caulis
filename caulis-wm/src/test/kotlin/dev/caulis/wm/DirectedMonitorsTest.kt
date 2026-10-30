@@ -116,6 +116,41 @@ class DirectedMonitorsTest {
         }
     }
 
+    @Test
+    fun `the special workspace shows on the monitor the director says is worked on`() = with(harness) {
+        var work: dev.caulis.core.Monitor? = null
+        val director = object : WindowDirector {
+            override fun place(window: Window, now: Long): WindowPlace = WindowPlace(100.0, 100.0, 800.0, 600.0)
+            override fun workMonitor() = work
+        }
+        withCaulis({
+            headlessMonitors = 2
+            monitor("HEADLESS-1") { mode(1920, 1080); scale = 1.0 }
+            monitor("HEADLESS-2") { mode(2560, 1440); scale = 1.25 }
+            this.director = director
+        }, headless = true) { caulis, _ ->
+            caulis.onLoop { r ->
+                val d = r.desktop
+                // None said: the desktop's focused monitor (the first).
+                d.toggleSpecialWorkspace()
+                assertSame(d.monitors[0], d.shownSpecialOn(d.monitors[0])?.let { d.monitors[0] })
+                d.toggleSpecialWorkspace()
+                // The second said: there, and toggled there again it hides.
+                work = d.monitors[1]
+                assertTrue(d.toggleSpecialWorkspace(), "shown")
+                assertEquals("special", d.shownSpecialOn(d.monitors[1])?.name)
+                assertEquals(null, d.shownSpecialOn(d.monitors[0]))
+                assertFalse(d.toggleSpecialWorkspace(), "hidden")
+                // Shown on the first, then worked on the second: it comes over.
+                work = d.monitors[0]
+                d.toggleSpecialWorkspace()
+                work = d.monitors[1]
+                assertTrue(d.toggleSpecialWorkspace(), "came over")
+                assertEquals("special", d.shownSpecialOn(d.monitors[1])?.name)
+            }
+        }
+    }
+
     companion object {
         const val BTN_LEFT = 0x110
         const val KEY_A = 30

@@ -1615,7 +1615,8 @@ The size a program draws at is yours to ask for (`window.configure(width, height
 change of your own (a key, a gesture), `desktop.requestRedraw()`. `requested`,
 `moveRequested` and `resizeRequested` let you answer a program's fullscreen, maximize and move
 requests yourself. Where the pointer is over a stretched window, the program is told the
-point in its own size.
+point in its own size. With several monitors, `workMonitor()` tells the desktop which one the
+person works on (the one with your focused window, say): special workspaces show there.
 
 **Your own interface in Compose** (the module `io.github.aristarkhkenebas:caulis-compose`,
 with `google()` in your repositories): a bar, a dock, a launcher, a volume pill — any Compose

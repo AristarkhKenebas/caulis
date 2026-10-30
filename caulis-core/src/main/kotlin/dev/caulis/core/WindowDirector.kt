@@ -95,4 +95,12 @@ interface WindowDirector {
      * handled here; false: the desktop resizes it as it would its own.
      */
     fun resizeRequested(window: Window, edges: Int): Boolean = false
+
+    /**
+     * The monitor the person works on now, if this director knows better than the desktop
+     * (whose focused monitor is the one its own workspace with the focused window is on):
+     * special workspaces and scratchpads show there, and a window opening while one is shown
+     * there joins it. Null (the default): the desktop's focused monitor.
+     */
+    fun workMonitor(): Monitor? = null
 }

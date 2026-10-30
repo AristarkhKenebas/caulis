@@ -2142,7 +2142,7 @@ class Desktop(
             }
         }
         if (!specialWorkspaces.newWindowsJoin) return null
-        val shown = shownSpecialOn(focusedMonitor) ?: return null
+        val shown = shownSpecialOn(workMonitor) ?: return null
         // (A dialog of a window elsewhere stays with its window.)
         val parent = window.parent
         return if (parent == null || scratchpadOf(parent) === shown) shown else null
@@ -2203,7 +2203,7 @@ class Desktop(
         val pad = specialWorkspace(name)
         if (pad.shown && !pad.leaving) {
             // Shown on another monitor: it comes over here instead.
-            if (padMonitor(pad) !== focusedMonitor) return showSpecial(pad)
+            if (padMonitor(pad) !== workMonitor) return showSpecial(pad)
             hideScratchpad(pad)
             return false
         }
@@ -2214,7 +2214,7 @@ class Desktop(
     @JvmOverloads
     fun showSpecialWorkspace(name: String = SpecialWorkspaces.DEFAULT_NAME) {
         val pad = specialWorkspace(name)
-        if (!pad.shown || pad.leaving || padMonitor(pad) !== focusedMonitor) showSpecial(pad)
+        if (!pad.shown || pad.leaving || padMonitor(pad) !== workMonitor) showSpecial(pad)
     }
 
     /** Hides the special workspace [name] if it is shown. */
@@ -2232,10 +2232,10 @@ class Desktop(
             return false
         }
         // One special workspace per monitor: the one shown there goes.
-        for (other in shownPads.toList()) if (other !== pad && other.isSpecial && !other.leaving && padMonitor(other) === focusedMonitor) hideScratchpad(other, focusBack = false)
+        for (other in shownPads.toList()) if (other !== pad && other.isSpecial && !other.leaving && padMonitor(other) === workMonitor) hideScratchpad(other, focusBack = false)
         // Shown on another monitor: it moves over here (keeping the window to go back to there).
-        if (pad.shown && !pad.leaving && padMonitor(pad) !== focusedMonitor) pad.monitor = focusedMonitor
-        layoutLog.info { "Special workspace ${pad.name} shown on ${focusedMonitor.name}" }
+        if (pad.shown && !pad.leaving && padMonitor(pad) !== workMonitor) pad.monitor = workMonitor
+        layoutLog.info { "Special workspace ${pad.name} shown on ${workMonitor.name}" }
         lastSpecial = pad
         showScratchpad(pad, appearing = pad.windows.toSet())
         return true
@@ -2385,7 +2385,20 @@ class Desktop(
     }
 
     // The monitor a shown scratchpad is on.
-    private fun padMonitor(pad: Scratchpad): Monitor = pad.monitor?.takeIf { it in monitorList } ?: focusedMonitor
+    private fun padMonitor(pad: Scratchpad): Monitor = pad.monitor?.takeIf { it in monitorList } ?: workMonitor
+
+    // Where special workspaces and scratchpads show: the director's monitor worked on, if it says one.
+    private var lastWorkMonitor: Monitor? = null
+    private val workMonitor: Monitor
+        get() {
+            val d = director ?: return focusedMonitor
+            val m = userCode("Your WindowDirector (workMonitor)", null) { d.workMonitor() }?.takeIf { it in monitorList } ?: focusedMonitor
+            if (m !== lastWorkMonitor) {
+                lastWorkMonitor = m
+                layoutLog.info { "Monitor worked on (special workspaces): ${m.name}" }
+            }
+            return m
+        }
 
     // Shown special workspaces hide when the session locks (if the settings say so).
     private fun hideSpecialsForLock() {
@@ -2437,7 +2450,7 @@ class Desktop(
 
     private fun showScratchpad(pad: Scratchpad, appearing: Set<Window>, focusOn: Window? = null) {
         if (!pad.shown || pad.leaving) {
-            pad.monitor = focusedMonitor
+            pad.monitor = workMonitor
             if (pad.isSpecial) pad.focusBefore = focusedWindow?.takeIf { scratchpadOf(it) == null }?.let { java.lang.ref.WeakReference(it) }
         }
         pad.shown = true

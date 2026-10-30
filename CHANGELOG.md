@@ -39,6 +39,10 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - `movingPaintsFps` (Caulis DSL, `Desktop`, config.json `performance.movingPaintsFps`; 0, the
   default: every frame as before): borders and shadows that move by themselves are drawn anew at
   most so many times a second — an animated focus border at 30 costs half on a 60 Hz screen.
+- `WindowDirector.workMonitor()`: a compositor that places windows itself can say which
+  monitor the person works on; special workspaces and scratchpads then show there (and a
+  window opening while one is shown there joins it). The default (null) keeps the desktop's
+  focused monitor. Logged (layout, info) when that monitor changes.
 
 ### Changed
 - Behind the compositor's own lock screen (`lockInternally` without `hideDesktop`) programs'
