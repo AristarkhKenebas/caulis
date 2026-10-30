@@ -106,6 +106,27 @@ class ScreenCaptureTest {
     }
 
     @Test
+    fun `a buffer with rows far longer than the picture is refused`() = withServer { _, _, grim ->
+        val manager = grim.global("zwlr_screencopy_manager_v1", ZwlrScreencopyManagerV1, 3)
+        val part = shot(manager.captureOutputRegion(0, grim.output!!, 0, 0, 20, 20))
+        grim.waitFor { part.described }
+        // 1 MB a row for 20 pixels: our memory to read into would be as big, kept for good.
+        val stride = 1 shl 20
+        val memory = SharedMemory.create("wide", stride.toLong() * 20)
+        try {
+            val shm = grim.global("wl_shm", dev.caulis.protocol.client.wayland.WlShm, 1)
+            val pool = shm.createPool(memory.fd, stride * 20)
+            val buffer = pool.createBuffer(0, 20, 20, stride, dev.caulis.protocol.client.wayland.WlShm.Format.XRGB8888)
+            pool.destroy()
+            part.frame.copy(buffer)
+            grim.waitFor { part.ready || part.failed }
+            assertTrue(part.failed, "refused")
+        } finally {
+            memory.close()
+        }
+    }
+
+    @Test
     fun `a recording gets the next picture only when something changed, and what`() = withServer { server, apps, recorder ->
         server.onServer { it.layout = Floating }
         val window = apps.window()

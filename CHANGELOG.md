@@ -48,6 +48,9 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - Pasting a big text or picture copied in an X11 program into a Wayland program no longer
   stalls the desktop: it is written into the pipe a piece at a time instead of copying all that
   is left again for every write (a 64 MB answer cost about 128 MB of copying per write).
+- Screen capture refuses a buffer whose rows are far longer than the picture (more than 4 KB
+  over): its rows were read back into the compositor's own memory at that length and kept, up to
+  the 2 GB a pool may have.
 
 ### Security
 - A program can no longer freeze the compositor by sending a named pipe (FIFO) as its

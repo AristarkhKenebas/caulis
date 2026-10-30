@@ -231,6 +231,9 @@ class ScreenCapture(
                 if (shm.width != region.width || shm.height != region.height) return "the buffer is ${shm.width}x${shm.height}, not ${region.width}x${region.height}"
                 if (shm.format != SHM_ARGB8888 && shm.format != SHM_XRGB8888) return "the buffer format ${shm.format} is not ARGB8888 or XRGB8888"
                 if (shm.stride < region.width * 4) return "the buffer's rows are too short"
+                // (Read back into our memory at the buffer's stride: rows far longer than a picture
+                // needs — up to the pool's 2 GB — would keep that much of ours for good.)
+                if (shm.stride > region.width * 4 + MAX_STRIDE_PADDING) return "the buffer's rows are ${shm.stride} bytes, far more than ${region.width * 4}"
                 if (!shm.pool.writable) return "the buffer's memory is read-only"
                 val bytes = shm.stride.toLong() * (region.height - 1) + region.width * 4L
                 val memory = readBackMemory(bytes)
@@ -582,5 +585,7 @@ class ScreenCapture(
         const val WLR_VERSION = 3
         private const val SHM_ARGB8888 = 0
         private const val SHM_XRGB8888 = 1
+        // How much longer than its pixels a row of a client's buffer may be (alignment).
+        private const val MAX_STRIDE_PADDING = 4096
     }
 }
