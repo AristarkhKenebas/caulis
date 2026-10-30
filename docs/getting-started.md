@@ -90,7 +90,13 @@ dependencies {
 application {
     mainClass = "MainKt"
     // Caulis talks to C libraries (graphics, input) and needs this permission.
-    applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED", "-XX:+UseZGC", "--sun-misc-unsafe-memory-access=allow")
+    applicationDefaultJvmArgs = listOf(
+        "--enable-native-access=ALL-UNNAMED", "--sun-misc-unsafe-memory-access=allow",
+        // A small heap with short pauses: an idle compositor stays near 220 MB (ZGC: 300 MB).
+        "-XX:+UseG1GC", "-Xms16m", "-Xmx256m", "-XX:SoftMaxHeapSize=48m", "-XX:MaxNewSize=16m",
+        "-XX:ParallelGCThreads=2", "-XX:ConcGCThreads=1", "-XX:MarkStackSize=256k", "-XX:GCTimeRatio=2",
+        "-XX:MinHeapFreeRatio=10", "-XX:MaxHeapFreeRatio=20", "-XX:G1PeriodicGCInterval=30000",
+    )
 }
 
 // Only while developing with ./gradlew run: a change to Main.kt is compiled right inside the

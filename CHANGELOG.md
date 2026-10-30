@@ -22,6 +22,9 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   the compositor's lock screen with `hideDesktop = true`, never a window or a program's picture.
 
 ### Changed
+- The starter template, the examples and the getting-started guide now start Java with a small
+  G1 heap (-Xmx256m, aiming at 48 MB) instead of ZGC: an idle compositor takes ~220 MB, not ~300.
+  Existing projects keep what their build file says. `./gradlew run` gets 1 GB, for hot reload.
 - The desktop's background (picture, gradient, colour or shader) is no longer drawn under opaque windows,
   in any frame: fewer pixels drawn for the same picture. `fullRedraw` draws everything, as before. A program
   whose opaque region is not really opaque now shows the plain colour there instead of the wallpaper.
