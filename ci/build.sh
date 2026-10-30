@@ -10,7 +10,8 @@ cd "$(dirname "$0")/.."
 
 gradle_options=(--console=plain --stacktrace)
 # On CI machines, a daemon that outlives the job only costs memory.
-[[ -n "${CI:-}" ]] && gradle_options+=(--no-daemon)
+# (And --continue: one run shows every failing module, not just the first.)
+[[ -n "${CI:-}" ]] && gradle_options+=(--no-daemon --continue)
 # A release (CAULIS_VERSION=0.1.7): the jars carry that version, not the catalog's.
 [[ -n "${CAULIS_VERSION:-}" ]] && gradle_options+=(-Pcaulis.version="$CAULIS_VERSION")
 

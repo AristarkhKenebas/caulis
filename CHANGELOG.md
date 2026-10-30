@@ -15,6 +15,14 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+### Fixed
+- CI on GitHub: the "CI" and "Release" workflows failed in "Build and test" since 0.1.3. A
+  test handed descriptors numbered 10 and above to `sh`, which on Ubuntu is dash and cannot
+  redirect to them ("Bad fd number"); it uses bash now. A test name with a non-ASCII character
+  stopped the test compile where the locale is not UTF-8. The CI scripts install dbus-daemon
+  (so the tests' own session bus runs there too) and keep going after a failure to show every
+  failing module at once.
+
 ## [0.1.7] - 2026-10-30
 
 ### Added

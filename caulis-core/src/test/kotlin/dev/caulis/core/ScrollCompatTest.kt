@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 class ScrollCompatTest {
 
     @Test
-    fun `the old pointerAxis takes the wheel in 1·120 of a notch`() {
+    fun `the old pointerAxis takes the wheel in 1 in 120 of a notch`() {
         assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
         ScreenTestServer().use { server ->
             val heard = ArrayList<Double>()

@@ -14,7 +14,9 @@ class ChildProcessTest {
         val (b1, b2) = UnixSocket.pair()
         a1.use { b1.use {
             val child = a2.use { b2.use {
-                ChildProcess.start("sh", listOf("-c", "printf A >&${b2.fd.value}; printf B >&${a2.fd.value}"), System.getenv(),
+                // bash, not sh: the numbers can be 10 and above, and dash (sh on Debian and Ubuntu,
+                // e.g. on CI) only redirects to 0-9 ("Bad fd number").
+                ChildProcess.start("bash", listOf("-c", "printf A >&${b2.fd.value}; printf B >&${a2.fd.value}"), System.getenv(),
                     // a2 goes where b2 is now and the other way round.
                     mapOf(b2.fd.value to a2.fd, a2.fd.value to b2.fd))
             } }
