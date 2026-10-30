@@ -508,7 +508,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="full-redraw.html">fullRedraw</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Every frame drawn whole (not only what changed): slower, for finding out whether something flickers because of the partial redraws (CAULIS_FULL_REDRAW=1 sets it too).</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="full-redraw.html">fullRedraw</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Every frame drawn whole (not only what changed, the background under opaque windows too): slower, for finding out whether something flickers because of the partial redraws (CAULIS_FULL_REDRAW=1 sets it too).</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -689,6 +689,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="layout.html">layout</a><span class="token operator">: </span><a href="../../../caulis-tiling/dev.caulis.tiling/-layout/index.html">Layout</a></div><div class="brief "><p class="paragraph">The layout new workspaces start with. Setting it changes every workspace at once; windows move to their new places right away (see <a href="set-layout.html">setLayout</a> for one workspace).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1634462799%2FProperties%2F-1526861317" anchor-label="lockBackdrop" id="1634462799%2FProperties%2F-1526861317" data-filterable-set=":caulis-core/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-core/main" data-filterable-set=":caulis-core/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="lock-backdrop.html"><span>lock</span><wbr><span><span>Backdrop</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1634462799%2FProperties%2F-1526861317"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-core/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="lock-backdrop.html">lockBackdrop</a><span class="token operator">: </span><a href="../-lock-backdrop/index.html">LockBackdrop</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">What <a href="lock-internally.html">lockInternally</a> with hideDesktop = true shows behind the lock screen, besides <a href="lock-color.html">lockColor</a>: the desktop's own wallpaper, blurred and dimmed as it says. Null (the usual): the plain colour. Never any window, panel or program's picture (a wallpaper program's neither: only the wallpaper you set and your drawings at <a href="../-drawing-level/-w-a-l-l-p-a-p-e-r/index.html">DrawingLevel.WALLPAPER</a>). A locker program's lock always shows the plain colour.</p></div></div></div>
                 </div>
               </div>
             </div>
