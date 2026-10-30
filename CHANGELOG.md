@@ -51,6 +51,10 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - Screen capture refuses a buffer whose rows are far longer than the picture (more than 4 KB
   over): its rows were read back into the compositor's own memory at that length and kept, up to
   the 2 GB a pool may have.
+- `log("appearance", 2)` (as the guide shows), `log("compose", …)` and the other areas
+  Caulis logs in (keyboard, keys, monitors, overlay, idle, dbus, permissions, ipc, loop, lua, script,
+  screenshot) are known areas now: the call stopped the compositor at its start ("there is no log
+  area"), and `CAULIS_LOG=appearance=2` warned first. The guide lists them all.
 
 ### Security
 - A program can no longer freeze the compositor by sending a named pipe (FIFO) as its

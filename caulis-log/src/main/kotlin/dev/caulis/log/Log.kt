@@ -65,6 +65,21 @@ object Log {
         "autostart" to "programs started with the session: when each started, ended, was started again",
         "reveal" to "the start: the first frame, waiting until warm, the desktop fading in",
         "sound" to "the startup sound: made, played (by which player), or why not",
+        // (Areas Caulis logs in as well: each a name log(area, level) and CAULIS_LOG take.)
+        "keyboard" to "keyboard layouts and keymaps, what onKey handlers took",
+        "keys" to "key bindings, a window keeping the keys (shortcuts inhibited), the laptop's keys",
+        "monitors" to "displays: which monitors are used, mirrored or off (laptop and external screens)",
+        "overlay" to "the compositor's own overlays (a screenshot chooser) opening and closing",
+        "idle" to "idle: the screen going dark, what keeps it awake",
+        "appearance" to "light and dark, accent colours, what programs are told of them (portal, GSettings)",
+        "dbus" to "the compositor's D-Bus connections: names, calls, signals",
+        "permissions" to "which programs may use screencopy, the clipboard and other features",
+        "ipc" to "programs talking to the compositor over its socket (--do, scripts)",
+        "loop" to "the event loop: tasks and timers that took long",
+        "lua" to "a config.lua: loading it, its mistakes",
+        "script" to "a config.kts: compiling it, its mistakes",
+        "compose" to "Compose widgets: their scenes, drawing, failures",
+        "screenshot" to "the screenshot tool: what was taken, where it went",
     )
 
     /** The level of every area that has none of its own. */

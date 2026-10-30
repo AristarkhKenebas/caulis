@@ -24,6 +24,20 @@ class LogTest {
     }
 
     @Test
+    fun `every area Caulis logs in is a known one (log(area, level) takes it)`() {
+        // (The modules' sources, next to this one's folder: each Logger("name") they make.)
+        val root = java.nio.file.Path.of("..").toAbsolutePath().normalize()
+        val made = java.nio.file.Files.walk(root).use { paths ->
+            paths.filter { it.toString().endsWith(".kt") && "/src/main/" in it.toString() && "/build/" !in it.toString() }
+                .toList().flatMap { file -> Regex("""Logger\("([a-z-]+)"\)""").findAll(java.nio.file.Files.readString(file)).map { it.groupValues[1] }.toList() }
+                .toSortedSet()
+        }
+        assertTrue(made.isNotEmpty(), "sources found under $root")
+        val unknown = made - Log.AREAS.keys
+        assertTrue(unknown.isEmpty(), "areas logged in but not in Log.AREAS: $unknown")
+    }
+
+    @Test
     fun `each level shows its own lines and the ones below`() {
         val log = Logger("windows")
         var made = 0

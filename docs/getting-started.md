@@ -2228,7 +2228,9 @@ or in code: `logLevel = 2`, `log("windows", 3)`, `logFile = Path.of("/tmp/caulis
 The areas: `wayland`, `clients`, `windows`, `focus`, `input`, `gestures`, `layout`,
 `layers`, `lock`, `docks`, `cursor`, `capture`, `clipboard`, `render`, `drm`, `session`,
 `nested`, `xwayland`, `notices` (messages on screen), `reload` (changes taken on while
-running), `config` (your own code) and `native`. A line looks like this:
+running), `config` (your own code), `native`, `autostart`, `reveal`, `sound`, `keyboard`,
+`keys`, `monitors`, `overlay`, `idle`, `appearance`, `dbus`, `permissions`, `ipc`, `loop`,
+`lua`, `script`, `compose` and `screenshot`. A line looks like this:
 
 ```
 22:02:17.646     1,524 I focus    Focus: Window("foot", foot)
