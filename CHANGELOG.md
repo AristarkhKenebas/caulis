@@ -93,6 +93,11 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   quoted as the compositor prints them, `keyboard-layout` is in the actions table, the config.json
   key example no longer lands on another key (Super+W), step numbers and the starter's "quits at
   any time" are right.
+- Compose scenes no longer compose on two threads at once (the compositor's and a warm-up's
+  at the start): Compose keeps shared bookkeeping in plain maps, and composing in parallel could
+  corrupt them — a lookup then went round forever, holding the compositor's thread (a frozen
+  desktop at start) and three more cores. Scenes now compose, lay out and take input one at a
+  time; drawing what is laid out stays on any thread.
 
 ### Security
 - A program can no longer freeze the compositor by sending a named pipe (FIFO) as its

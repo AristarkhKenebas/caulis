@@ -62,7 +62,7 @@ internal class Scene(
         override fun setPointerIcon(pointerIcon: PointerIcon) = onPointerIcon(pointerIcon)
     }
 
-    private val scene = CanvasLayersComposeScene(frames, density, size = IntSize(width, height), platformContext = platform).also { it.setContent(content = content) }
+    private val scene = composing { CanvasLayersComposeScene(frames, density, size = IntSize(width, height), platformContext = platform).also { it.setContent(content = content) } }
 
     /** Text fields act on keys (arrows, Home, Ctrl+A) only in a focused window. */
     var focused: Boolean
@@ -74,7 +74,7 @@ internal class Scene(
     fun hasInvalidations(): Boolean = frames.hasPendingWork() || scene.hasInvalidations()
 
     /** Composes and lays it out (animations at [nanoTime]), without drawing it. */
-    fun layout(nanoTime: Long) {
+    fun layout(nanoTime: Long) = composing {
         frames.performFrame(nanoTime)
         scene.measureAndLayout()
     }
@@ -89,8 +89,10 @@ internal class Scene(
      */
     fun render(nanoTime: Long): MemorySegment? {
         surface.canvas.clear(Color.TRANSPARENT)
-        frames.performFrame(nanoTime)
-        scene.measureAndLayout()
+        composing {
+            frames.performFrame(nanoTime)
+            scene.measureAndLayout()
+        }
         scene.draw(surface.canvas.asComposeCanvas())
         if (!surface.peekPixels(pixmap) || pixmap.rowBytes != width * 4) return null
         return MemorySegment.ofAddress(pixmap.addr).reinterpret(width.toLong() * height * 4)
@@ -110,8 +112,10 @@ internal class Scene(
      * that, on any thread.
      */
     fun record(nanoTime: Long): org.jetbrains.skia.Picture {
-        frames.performFrame(nanoTime)
-        scene.measureAndLayout()
+        composing {
+            frames.performFrame(nanoTime)
+            scene.measureAndLayout()
+        }
         val canvas = recorder.beginRecording(org.jetbrains.skia.Rect.makeWH(width.toFloat(), height.toFloat()))
         scene.draw(canvas.asComposeCanvas())
         return recorder.finishRecordingAsPicture()
@@ -139,10 +143,10 @@ internal class Scene(
         modifiers: PointerKeyboardModifiers? = null,
         button: PointerButton? = null,
     ) {
-        scene.sendPointerEvent(type, position, scrollDelta, System.nanoTime() / 1_000_000, keyboardModifiers = modifiers, button = button)
+        composing { scene.sendPointerEvent(type, position, scrollDelta, System.nanoTime() / 1_000_000, keyboardModifiers = modifiers, button = button) }
     }
 
-    fun sendKeyEvent(event: KeyEvent): Boolean = scene.sendKeyEvent(event)
+    fun sendKeyEvent(event: KeyEvent): Boolean = composing { scene.sendKeyEvent(event) }
 
     override fun close() {
         try {
@@ -153,5 +157,23 @@ internal class Scene(
             pixmap.close()
             surface.close()
         }
+    }
+}
+
+/**
+ * Compose keeps some bookkeeping in plain maps shared by every scene (which modifier classes
+ * make which kinds of nodes): two threads composing at once — the compositor's and a warm-up's
+ * at the start — could corrupt them, and a lookup then went round forever, holding the
+ * compositor (and three cores) for good. So scenes compose, lay out and take input one at a
+ * time, whatever the thread; drawing what is laid out stays on any thread at once.
+ */
+private val COMPOSING = java.util.concurrent.locks.ReentrantLock()
+
+private inline fun <T> composing(action: () -> T): T {
+    COMPOSING.lock()
+    try {
+        return action()
+    } finally {
+        COMPOSING.unlock()
     }
 }
