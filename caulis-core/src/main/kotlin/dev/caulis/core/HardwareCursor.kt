@@ -24,3 +24,13 @@ interface HardwareCursor {
     /** No cursor on the plane (hidden, on another monitor, or in the frames). */
     fun hide()
 }
+
+/**
+ * A cursor plane that can also be moved from another thread than the compositor's (the input
+ * thread: Desktop.earlyPointer) — only its place, the picture it shows now. Returns false
+ * when it cannot now (not shown, the monitor off, another terminal in front, refused): the
+ * compositor's thread places it with the next frame as usual.
+ */
+internal interface MovableFromAnyThread {
+    fun moveFromAnyThread(x: Int, y: Int): Boolean
+}

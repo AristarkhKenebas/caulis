@@ -143,7 +143,19 @@ class ComposeWidget @JvmOverloads constructor(
         var busy = false
         // Let go while busy: closed once the worker is done.
         var dropped = false
+        // When it was last shown (System.nanoTime), for keepHiddenSeconds.
+        var lastShown = System.nanoTime()
+        // Drawn on another thread (prepareAhead): its pixels wait in the scene.
+        @Volatile var pixelsReady = false
     }
+
+    /**
+     * A scene not shown for this many seconds (a menu closed, cards gone) is let go: its
+     * memory — its pixels, what it composed, pictures it loaded — is freed, and it is made anew
+     * when it shows again (state kept with `remember` starts over, as when it first showed).
+     * Null: [ComposeScenes.keepHiddenSeconds] (60); 0: kept as long as the widget.
+     */
+    var keepHiddenSeconds: Int? = null
 
     private val parts = HashMap<String, Part>()
     private var keyboardLost by mutableIntStateOf(0)
@@ -169,6 +181,7 @@ class ComposeWidget @JvmOverloads constructor(
         if (closed) return
         val part = partFor(monitor, area) ?: return
         val look = appearance(monitor)
+        if (look.alpha > HIDDEN) part.lastShown = System.nanoTime()
         if (look.alpha <= HIDDEN) {
             // Not seen at all (a menu or pill hidden by its look): composed and laid out (what
             // waits for its size gets it) but not drawn, and no frames kept coming for it —
@@ -189,7 +202,7 @@ class ComposeWidget @JvmOverloads constructor(
         fun moved(r: Rect): Rect {
             val left = cx + (r.x - cx) * look.scale + look.dx
             val top = cy + (r.y - cy) * look.scale + look.dy
-            return Rect(Math.round(left).toInt(), Math.round(top).toInt(), Math.round(r.width * look.scale).toInt(), Math.round(r.height * look.scale).toInt())
+            return Rect(Math.round(left).toInt(), Math.round(top).toInt(), Math.round(r.width * look.scale), Math.round(r.height * look.scale))
         }
         canvas.imagePart(texture, moved(sceneRect), moved(shownPart(area, look)), look.alpha)
     }
@@ -198,8 +211,8 @@ class ComposeWidget @JvmOverloads constructor(
     private fun shownPart(area: Rect, look: WidgetLook): Rect {
         if (look.reveal >= 1f) return area
         val r = look.reveal.coerceIn(0f, 1f)
-        val w = Math.round(area.width * r).toInt().coerceAtLeast(1)
-        val h = Math.round(area.height * r).toInt().coerceAtLeast(1)
+        val w = Math.round(area.width * r).coerceAtLeast(1)
+        val h = Math.round(area.height * r).coerceAtLeast(1)
         return when (look.revealFrom) {
             Edge.TOP -> Rect(area.x, area.y, area.width, h)
             Edge.BOTTOM -> Rect(area.x, area.bottom - h, area.width, h)
@@ -214,10 +227,28 @@ class ComposeWidget @JvmOverloads constructor(
         if (closed || (desktop.locked && !showsWhileLocked && desktop.lockScreen !== this)) return false
         val shown = desktop.monitors.associateBy { it.name }
         for (name in parts.keys.filter { it !in shown }) drop(name)
+        letHiddenGo(shown)
         return parts.any { (name, part) ->
             val monitor = shown.getValue(name)
             !part.failed && part.scene.hasInvalidations() && place(monitor) != null && appearance(monitor).alpha > HIDDEN
         } || moving()
+    }
+
+    // Scenes not shown for keepHiddenSeconds are let go (made anew when shown again).
+    private fun letHiddenGo(shown: Map<String, Monitor>) {
+        val keep = (keepHiddenSeconds ?: ComposeScenes.keepHiddenSeconds).toLong()
+        if (keep <= 0 || parts.isEmpty()) return
+        val now = System.nanoTime()
+        for ((name, part) in parts.entries.toList()) {
+            val monitor = shown[name] ?: continue
+            if (part.busy || now - part.lastShown < keep * 1_000_000_000L) continue
+            if (place(monitor) != null && appearance(monitor).alpha > HIDDEN) {
+                part.lastShown = now // (shown, only not drawn meanwhile)
+                continue
+            }
+            log.info { "A Compose scene not shown for $keep s is let go (${part.width}x${part.height} on $name): made anew when it shows" }
+            drop(name)
+        }
     }
 
     // The scene for [monitor] in [area]'s size (made anew when the size or scale changes).
@@ -232,16 +263,8 @@ class ComposeWidget @JvmOverloads constructor(
         if (width <= 0 || height <= 0) return null
         parts[monitor.name]?.let { if (it.width == width && it.height == height && it.scale == scale) return it else drop(monitor.name) }
         val name = monitor.name
-        // (Its own coroutines fail into [failed], not into the thread's.)
-        val context = dispatcher + CoroutineExceptionHandler { _, e -> failed(name, e) }
         val scene = try {
-            Scene(width, height, Density(scale.toFloat()), context, ::pointerIcon) {
-                // The keyboard gone elsewhere: no text field keeps it (or its caret blinking).
-                val focus = LocalFocusManager.current
-                val lost = keyboardLost
-                LaunchedEffect(lost) { if (lost > 0) focus.clearFocus(force = true) }
-                if (compositorClipboard != null) CompositionLocalProvider(LocalClipboard provides compositorClipboard) { content(monitor) } else content(monitor)
-            }
+            newScene(monitor, width, height, scale)
         } catch (e: LinkageError) {
             broken = true
             log.error("Compose on the class path is not the version caulis-compose was built with (it needs exactly that one: see its dependencies) — Compose widgets are not shown", e)
@@ -257,6 +280,63 @@ class ComposeWidget @JvmOverloads constructor(
         return Part(scene, width, height, scale).also { parts[monitor.name] = it }
     }
 
+    // A scene for [monitor] (composed here, on the calling thread).
+    private fun newScene(monitor: Monitor, width: Int, height: Int, scale: Double): Scene {
+        val name = monitor.name
+        // (Its own coroutines fail into [failed], not into the thread's.)
+        val context = dispatcher + CoroutineExceptionHandler { _, e -> post(Runnable { failed(name, e) }) }
+        return Scene(width, height, Density(scale.toFloat()), context, ::pointerIcon) {
+            // The keyboard gone elsewhere: no text field keeps it (or its caret blinking).
+            val focus = LocalFocusManager.current
+            val lost = keyboardLost
+            LaunchedEffect(lost) { if (lost > 0) focus.clearFocus(force = true) }
+            if (compositorClipboard != null) CompositionLocalProvider(LocalClipboard provides compositorClipboard) { content(monitor) } else content(monitor)
+        }
+    }
+
+    /**
+     * Makes this widget's scene for [monitor] — its area [width] x [height] desktop units —
+     * on the calling thread, not the compositor's: composed, laid out and drawn into its pixels
+     * there, then handed over. The compositor's thread then only puts the pixels on the GPU at
+     * its first frame, instead of composing and drawing the scene the first time itself (a
+     * bar's took it ~0.2-0.3 s at the start: the pointer stood still). For a widget's first
+     * scene, from a thread of your own before it shows (a bar at the start); a scene the
+     * compositor's thread made meanwhile is kept (this one is let go). Its content is composed
+     * here once: it may read state; what its effects do runs on the compositor's thread as
+     * always (they are dispatched there).
+     */
+    fun prepareAhead(monitor: Monitor, width: Int, height: Int) {
+        if (closed || broken) return
+        val scale = monitor.scale
+        val size = sceneSize(monitor) ?: SceneSize(width, height)
+        val w = Math.round(size.width * scale).toInt()
+        val h = Math.round(size.height * scale).toInt()
+        if (w <= 0 || h <= 0) return
+        val name = monitor.name
+        val started = System.nanoTime()
+        val part = try {
+            Part(newScene(monitor, w, h, scale), w, h, scale)
+        } catch (e: Throwable) {
+            if (e is VirtualMachineError && e !is StackOverflowError) throw e
+            log.warn("Making a Compose scene ahead failed (it is made when it shows): $e")
+            return
+        }
+        // Drawn once here: its pixels wait in the scene for the compositor's first frame.
+        part.pixelsReady = try {
+            part.scene.render(started) != null
+        } catch (e: Throwable) {
+            if (e is VirtualMachineError && e !is StackOverflowError) throw e
+            false
+        }
+        log.info { "Compose scene on $name made ahead on ${Thread.currentThread().name}: ${w}x$h px in ${(System.nanoTime() - started) / 1_000_000} ms" }
+        post(Runnable {
+            if (closed || broken || parts[name] != null || name in restartAt) return@Runnable closePart(part)
+            part.scene.focused = hasKeyboard
+            parts[name] = part
+            desktop.requestRedraw()
+        })
+    }
+
     // Compose draws the scene (Skia, on the processor); its pixels go straight from Skia's
     // picture to ours on the GPU (no copy in between, nothing new made each frame).
     // With worker threads (Desktop.widgetThreads), the compositor's thread only composes and
@@ -264,6 +344,18 @@ class ComposeWidget @JvmOverloads constructor(
     // first picture of a scene at once, so nothing empty shows).
     private fun render(name: String, part: Part) {
         if (part.busy) return // (the frame after the worker is done draws it)
+        // Made and drawn ahead (prepareAhead): only its pixels onto the GPU, unless it changed since.
+        if (part.pixelsReady) {
+            part.pixelsReady = false
+            val ready = if (part.scene.hasInvalidations()) null else part.scene.pixels()
+            if (ready != null) {
+                part.drawnOnce = true
+                val texture = part.texture ?: desktop.renderer.createTexture(part.width, part.height).also { part.texture = it }
+                texture.upload(ready, 0, part.height)
+                log.trace { "Compose frame of ${part.width}x${part.height} px on $name: drawn ahead, only shown" }
+                return
+            }
+        }
         if (part.texture != null && desktop.widgetThreads > 0) return renderOnWorker(name, part)
         val started = System.nanoTime()
         part.drawnOnce = true
@@ -684,4 +776,20 @@ class ComposeWidget @JvmOverloads constructor(
             java.awt.Cursor.SE_RESIZE_CURSOR to "se-resize", java.awt.Cursor.SW_RESIZE_CURSOR to "sw-resize",
         )
     }
+}
+
+/** Settings for every [ComposeWidget]. */
+object ComposeScenes {
+    /**
+     * A widget's scene not shown for this many seconds is let go and made anew when it shows
+     * again ([ComposeWidget.keepHiddenSeconds] for one widget): menus opened once do not keep
+     * their memory (pixels, composition, icons) for the rest of the session. 0: kept. 60 by default.
+     */
+    @JvmStatic
+    @Volatile
+    var keepHiddenSeconds: Int = 60
+        set(value) {
+            require(value in 0..86_400) { "keepHiddenSeconds is 0 to 86400, not $value" }
+            field = value
+        }
 }

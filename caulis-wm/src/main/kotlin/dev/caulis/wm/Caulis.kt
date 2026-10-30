@@ -673,6 +673,22 @@ class Caulis {
     var quickCursorMoves = true
 
     /**
+     * Keyboards, mice and touchpads read on a thread of their own (with monitors driven
+     * directly; not nested or headless): a busy moment of the compositor's thread holds no
+     * input back, and the cursor on a cursor plane keeps moving meanwhile (moved from that
+     * thread, with [quickCursorMoves]). The events are handled in the same order as before.
+     * Off: everything on the compositor's thread.
+     */
+    var inputThread = true
+
+    /**
+     * Only the EGL driver made for the GPU in use is loaded (NVIDIA's on nvidia-drm, Mesa's on
+     * the others), not every one installed: with NVIDIA's and Mesa's both installed, ~30-40 MB
+     * less memory. Only at the start. False: libglvnd loads them all.
+     */
+    var glVendorByDriver = true
+
+    /**
      * Threads the compositor's own widgets (Compose: bars, menus) draw their pixels on — the
      * compositor's thread only composes them; spread over more cores. 0: all on the
      * compositor's thread.
@@ -683,8 +699,24 @@ class Caulis {
             field = value
         }
 
-    /** How often [trimMemory] gives memory back after the start, in minutes (0: only after the start). */
-    var trimMemoryEveryMinutes = 10
+    /**
+     * Blocks the C library hands out of this many kB or more get a mapping of their own and go
+     * back to the system the moment they are freed (glibc otherwise raises this limit by itself
+     * and keeps the pictures Skia and the GPU driver make and free each frame in its pools:
+     * 30-60 MB more within minutes). 0: glibc's own. Only at the start.
+     */
+    var mallocMapAboveKb = 256
+        set(value) {
+            require(value == 0 || value in 16..65_536) { "mallocMapAboveKb is 0 or 16 to 65536, not $value" }
+            field = value
+        }
+
+    /**
+     * How often [trimMemory] gives memory back after the start, in minutes (0: only after the
+     * start). 2: with programs drawing, glibc's pools kept 30-60 MB more within minutes, and
+     * giving it back takes a few milliseconds on a thread of its own.
+     */
+    var trimMemoryEveryMinutes = 2
         set(value) {
             require(value in 0..1440) { "trimMemoryEveryMinutes is 0 to 1440, not $value" }
             field = value
@@ -2587,6 +2619,8 @@ class Caulis {
         Reloader.startedFrom = Thread.currentThread().stackTrace.lastOrNull { it.methodName == "main" }?.className
         applyLogSettings()
         if (mallocPools > 0) dev.caulis.ffi.NativeMemory.limitPools(mallocPools)
+        if (mallocMapAboveKb > 0) dev.caulis.ffi.NativeMemory.mapBlocksAbove(mallocMapAboveKb)
+        dev.caulis.render.gles.GlesRenderer.vendorByDriver = glVendorByDriver
         // CAULIS_MODE=headless|nested|screen chooses without changing the code.
         val chosen = System.getenv("CAULIS_MODE")?.takeIf { it.isNotBlank() }?.let { value ->
             Backend.entries.firstOrNull { it.name.equals(value, ignoreCase = true) } ?: throw CannotStartException("CAULIS_MODE=$value: there are ${Backend.entries.joinToString { it.name.lowercase() }}")

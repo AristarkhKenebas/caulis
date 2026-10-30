@@ -41,18 +41,18 @@ class TitleBarsTest {
 
     private fun TestClient.decoratedWindow(manager: ZxdgDecorationManagerV1, appId: String = "app"): Decorated {
         var decoration: ZxdgToplevelDecorationV1? = null
-        var mode = 0
+        var chosen = 0
         val window = window { toplevel: XdgToplevel ->
             toplevel.setAppId(appId)
             decoration = manager.getToplevelDecoration(toplevel).also { d ->
                 d.events = object : ZxdgToplevelDecorationV1.Events {
-                    override fun configure(proxy: ZxdgToplevelDecorationV1, mode_: Int) { mode = mode_ }
+                    override fun configure(proxy: ZxdgToplevelDecorationV1, mode: Int) { chosen = mode }
                 }
                 d.setMode(ZxdgToplevelDecorationV1.Mode.SERVER_SIDE)
             }
         }
         connection.roundtrip()
-        return Decorated(window).also { it.mode = mode }
+        return Decorated(window).also { it.mode = chosen }
     }
 
     @Test

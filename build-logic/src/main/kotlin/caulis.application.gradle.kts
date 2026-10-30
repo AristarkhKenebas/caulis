@@ -17,7 +17,7 @@ application {
 }
 
 // Fast hot reload while developing with ./gradlew run (not in what installDist builds).
-val development by configurations.creating
+val development = configurations.create("development")
 dependencies {
     development(project(":caulis-reload"))
 }

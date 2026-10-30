@@ -203,15 +203,15 @@ internal class Running(
     internal var displays: Displays? = null
 
     /** The clipboard (programs' and ours); set in init. */
-    lateinit var clipboard: DataDeviceManager
+    var clipboard: DataDeviceManager
         private set
 
     /** Windows asking for the focus (xdg-activation); set in init. */
-    lateinit var activation: dev.caulis.core.Activation
+    var activation: dev.caulis.core.Activation
         private set
 
     /** Idle timers (ext-idle-notify, onIdle); set in init. */
-    lateinit var idle: dev.caulis.core.Idle
+    var idle: dev.caulis.core.Idle
         private set
 
     // When screens were last switched off (input right after it does not wake them).
@@ -304,7 +304,7 @@ internal class Running(
     }
 
     /** Programs that arrange monitors (kanshi, wlr-randr); set in init. */
-    lateinit var outputManagement: dev.caulis.core.OutputManagement
+    var outputManagement: dev.caulis.core.OutputManagement
         private set
 
     // The configuration's own idle timers (replaced on a reload).
@@ -389,7 +389,7 @@ internal class Running(
     }
 
     // keyboard-shortcuts-inhibit (set in init).
-    private lateinit var shortcutsInhibit: dev.caulis.core.input.ShortcutsInhibit
+    private var shortcutsInhibit: dev.caulis.core.input.ShortcutsInhibit
 
     // Takes on changed code while running (null when off or not started from a project).
     private var reloader: Reloader? = null
@@ -830,6 +830,7 @@ internal class Running(
         applyNumLock()
         applyAppearance()
         inputDevices?.settings = config.input
+        inputDevices?.ownThread = config.inputThread
         applyWorkspaces()
         desktop.primaryMonitorName = config.primaryMonitor
         applyScratchpads()
@@ -1385,7 +1386,12 @@ internal class Running(
     /** A key from the keyboard: the compositor's combination, or passed to the focused program. */
     /** The pointer moved by [dx], [dy] (units; raw: the mouse's own movement) — onPointerMotion first. */
     fun pointerMovedBy(timeMillis: Int, dx: Double, dy: Double, rawDx: Double = dx, rawDy: Double = dy) {
-        if (motionTaken(dx, dy)) return desktop.onUserActivity()
+        // (The input thread moves the cursor ahead only while the movement moves the pointer.)
+        if (motionTaken(dx, dy)) {
+            desktop.earlyCursorMoves = false
+            return desktop.onUserActivity()
+        }
+        desktop.earlyCursorMoves = true
         desktop.pointerMovedBy(timeMillis, dx, dy, rawDx, rawDy)
     }
 

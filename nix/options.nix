@@ -213,6 +213,9 @@ let
       "trimMemoryEveryMinutes" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (1440)); default = null; description = "how often after the start (0: only after the start)"; };
       "mallocPools" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (64)); default = null; description = "at most this many malloc pools for the compositor (0: glibc's own; only at the start)"; };
       "quickCursor" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "the cursor moves the moment the pointer does, not with the next frame"; };
+      "mallocMapAboveKb" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (65536)); default = null; description = "blocks of this many kB or more are given back to the system the moment they are freed (0: glibc's own; only at the start)"; };
+      "inputThread" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "keyboards, mice and touchpads are read on a thread of their own; the cursor keeps moving while the compositor is busy"; };
+      "glVendorByDriver" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "only the EGL driver for the GPU in use is loaded, not every one installed (only at the start)"; };
       "widgetThreads" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (16)); default = null; description = "threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)"; };
     }; }); default = null; description = "watching the main loop, giving memory back"; };
     "systemKeys" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {

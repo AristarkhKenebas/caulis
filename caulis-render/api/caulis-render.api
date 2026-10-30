@@ -338,9 +338,11 @@ public final class dev/caulis/render/gles/GlesRenderer : dev/caulis/render/Rende
 	public fun getDescription ()Ljava/lang/String;
 	public fun getDmabufFormats ()Ljava/util/List;
 	public fun getRenderNode ()Ljava/nio/file/Path;
+	public static final fun getVendorByDriver ()Z
 	public fun importDmabuf (Ldev/caulis/render/Dmabuf;)Ldev/caulis/render/GpuTexture;
 	public fun importDmabufTarget (Ldev/caulis/render/Dmabuf;)Ldev/caulis/render/GpuTarget;
 	public fun setClip (Ldev/caulis/geometry/Rect;)V
+	public static final fun setVendorByDriver (Z)V
 }
 
 public final class dev/caulis/render/gles/GlesRenderer$Companion {
@@ -348,5 +350,7 @@ public final class dev/caulis/render/gles/GlesRenderer$Companion {
 	public static synthetic fun create$default (Ldev/caulis/render/gles/GlesRenderer$Companion;Ljava/nio/file/Path;ILjava/lang/Object;)Ldev/caulis/render/gles/GlesRenderer;
 	public final fun createOn (Ldev/caulis/ffi/Fd;)Ldev/caulis/render/gles/GlesRenderer;
 	public final fun createOn (Ldev/caulis/ffi/Fd;Z)Ldev/caulis/render/gles/GlesRenderer;
+	public final fun getVendorByDriver ()Z
+	public final fun setVendorByDriver (Z)V
 }
 

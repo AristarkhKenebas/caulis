@@ -72,7 +72,7 @@ class AppearanceTest {
                     client.call(name, path, PortalSettings.INTERFACE, "Read", "ss", listOf("org.freedesktop.appearance", "no-such-key")) { reply -> missing = reply.errorName }
                     until { all != null && scheme != null && missing != null && nothing != null }
                     assertEquals(1, all!!["color-scheme"])
-                    assertEquals(listOf(0.20000000298023224, 0.4000000059604645, 1.0), all!!["accent-color"])
+                    assertEquals(listOf(0.20000000298023224, 0.4000000059604645, 1.0), all["accent-color"])
                     assertEquals(1, scheme)
                     assertEquals("org.freedesktop.portal.Error.NotFound", missing)
                     assertEquals(emptyList<Any?>(), nothing, "no namespace asked for")
@@ -84,8 +84,8 @@ class AppearanceTest {
                     appearance.colorScheme = ColorScheme.LIGHT
                     until { changed != null }
                     assertEquals("org.freedesktop.appearance", changed!![0])
-                    assertEquals("color-scheme", changed!![1])
-                    assertEquals(2, (changed!![2] as Variant).value)
+                    assertEquals("color-scheme", changed[1])
+                    assertEquals(2, (changed[2] as Variant).value)
                 }
             } }
         }

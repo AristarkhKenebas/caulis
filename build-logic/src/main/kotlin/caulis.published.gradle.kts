@@ -21,7 +21,7 @@ java {
 // Maven Central wants a javadoc jar. A small page saying where the documentation is goes into
 // it, not the Dokka pages (megabytes per module, against Central's size limit per month): IDEs
 // show the KDoc from the sources jar, and the pages are on the website (./gradlew dokkaGenerate).
-val javadocPage by tasks.registering {
+val javadocPage = tasks.register("javadocPage") {
     val name = project.name
     val description = provider { project.description.orEmpty() }
     val website = providers.gradleProperty("caulis.website")
@@ -44,7 +44,7 @@ val javadocPage by tasks.registering {
     }
 }
 
-val javadocJar by tasks.registering(Jar::class) {
+val javadocJar = tasks.register<Jar>("javadocJar") {
     archiveClassifier = "javadoc"
     from(javadocPage)
 }

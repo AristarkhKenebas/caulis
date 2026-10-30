@@ -59,6 +59,7 @@ class DrmOutput internal constructor(
     }
 
     /** The mode in use (null until [start] found one that works). */
+    @Volatile
     var mode: Mode? = null
         private set
 
@@ -100,7 +101,7 @@ class DrmOutput internal constructor(
 
     // A picture (or only the cursor's new place) is on its way to the screen; the next one waits for the flip.
     private val flipPending: Boolean get() = queued != null || queuedDirect != null || cursorOnlyPending
-    private var needsModeset = true
+    @Volatile private var needsModeset = true
 
     // Each commit has a serial that comes back with its flip: a flip of an old commit (from
     // before switching terminals) is not taken for the one awaited.
@@ -172,22 +173,53 @@ class DrmOutput internal constructor(
     // Two pictures: one shown, one to draw the next into.
     private var cursorSlots: List<Slot> = emptyList()
     private var cursorFront = 0
-    private var cursorX = 0
-    private var cursorY = 0
-    private var cursorVisible = false
+    // (Volatile: the input thread moves the cursor too — see moveFromAnyThread.)
+    @Volatile private var cursorX = 0
+    @Volatile private var cursorY = 0
+    @Volatile private var cursorVisible = false
     // The cursor's state changed and is not on screen yet.
     private var cursorDirty = false
     // Only the cursor changed: a commit of its own is on its way.
     private var cursorOnlyPending = false
     // The display refused the cursor plane: the cursor goes into the frames from now on.
-    private var cursorRefused = false
+    @Volatile private var cursorRefused = false
     // The display took the cursor plane once (before that, mode sets leave it out).
-    private var cursorTested = false
+    @Volatile private var cursorTested = false
 
     /** The cursor plane (null: none, or the display refused it). */
     val hardwareCursor: dev.caulis.core.HardwareCursor? get() = if (cursorPlaneId == 0 || cursorRefused) null else cursorPlane
 
-    private val cursorPlane = object : dev.caulis.core.HardwareCursor {
+    // The legacy cursor move works here (false once the driver refused it: then only the
+    // compositor's thread moves the cursor, with its commits). Closed: never again.
+    @Volatile private var quickMoves = true
+    @Volatile private var closed = false
+    // (The input thread's own count of refusals in a row.)
+    private var quickMoveFailures = 0
+
+    private val cursorPlane = object : dev.caulis.core.HardwareCursor, dev.caulis.core.MovableFromAnyThread {
+        // From the input thread: the same picture at another place, at once — not waiting for
+        // the compositor's thread (busy for a moment: the pointer would stand still). The next
+        // commit of the compositor's thread takes the same place along (cursorX, cursorY).
+        override fun moveFromAnyThread(x: Int, y: Int): Boolean {
+            if (!quickMoves || closed || cursorRefused || !cursorTested || !cursorVisible || !powered || needsModeset || mode == null || !isSessionActive()) return false
+            if (x == cursorX && y == cursorY) return true
+            val result = device.moveCursor(crtcId, x, y)
+            if (result == 0) {
+                cursorX = x
+                cursorY = y
+                quickMoveFailures = 0
+                return true
+            }
+            // Not ours just now (another terminal: EACCES/EPERM) or busy: the next time. Else,
+            // refused again and again, the driver cannot: from now on the compositor's thread
+            // alone moves it.
+            if (-result !in TRANSIENT_ERRNOS && ++quickMoveFailures >= 3) {
+                quickMoves = false
+                log.info { "$name: the cursor cannot be moved from the input thread (${errno(result)}); it moves with the compositor's thread" }
+            }
+            return false
+        }
+
         override val width: Int = device.capability(DRM_CAP_CURSOR_WIDTH).takeIf { it in 16..512 }?.toInt() ?: 64
         override val height: Int = device.capability(DRM_CAP_CURSOR_HEIGHT).takeIf { it in 16..512 }?.toInt() ?: 64
 
@@ -725,6 +757,7 @@ class DrmOutput internal constructor(
         }
 
     /** False while the screen is switched off (DPMS): nothing is drawn. */
+    @Volatile
     var powered = true
         private set
 
@@ -878,6 +911,7 @@ class DrmOutput internal constructor(
     }
 
     override fun close() {
+        closed = true
         device.removeFlipHandler(crtcId)
         flipWatchdog?.cancel()
         frameTimer?.cancel()
@@ -899,6 +933,8 @@ class DrmOutput internal constructor(
         const val DRM_CAP_CURSOR_WIDTH = 0x8
         const val DRM_CAP_CURSOR_HEIGHT = 0x9
         const val MAX_MODES_TO_TRY = 8
+        // EPERM, EACCES (another terminal has the screen), EBUSY, EINTR, EAGAIN: try again next time.
+        val TRANSIENT_ERRNOS = setOf(1, 13, 16, 4, 11)
         const val RETRY_MILLIS = 16L
         const val ERROR_RETRY_MILLIS = 1000L
 

@@ -30,8 +30,29 @@ object NativeMemory {
         linker.defaultLookup().find("mallopt").map { linker.downcallHandle(it, FunctionDescriptor.of(JAVA_INT, JAVA_INT, JAVA_INT)) }.orElse(null)
     }.getOrNull()
 
-    // glibc's M_ARENA_MAX.
+    // glibc's M_ARENA_MAX and M_MMAP_THRESHOLD.
     private const val M_ARENA_MAX = -8
+    private const val M_MMAP_THRESHOLD = -3
+
+    /**
+     * Blocks of [kb] kB or more get a mapping of their own and are given back to the system
+     * the moment they are freed. glibc starts at 128 kB but raises the limit by itself each
+     * time such a block is freed (up to 32 MB): from then on the pictures Skia draws into and
+     * the GPU driver's buffers (a few hundred kB to some MB, made and freed each frame) stayed
+     * in its pools, 30-60 MB more within minutes until the next [trim]. Set, the limit stays.
+     * Call it early. Returns false where it cannot (not glibc).
+     */
+    @JvmStatic
+    fun mapBlocksAbove(kb: Int): Boolean {
+        require(kb in 16..65_536) { "16 to 65536 kB, not $kb" }
+        val handle = mallopt ?: return false
+        return try {
+            (handle.invokeExact(M_MMAP_THRESHOLD, kb * 1024) as Int) == 1
+        } catch (e: Throwable) {
+            log.warn("mallopt failed: $e")
+            false
+        }.also { ok -> if (ok) log.info { "Blocks of $kb kB or more mapped of their own (given back when freed)" } }
+    }
 
     /**
      * At most [count] of glibc's pools for the threads that malloc from now on (glibc's own

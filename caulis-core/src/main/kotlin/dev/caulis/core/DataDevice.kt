@@ -290,8 +290,8 @@ class DataDeviceManager(private val display: Display, private val seat: Seat) {
                 cancel()
                 return
             }
-            log.info { "Dropped on ${over!!.resource.client.name}" }
-            devicesOf(over!!.resource.client).forEach { it.sendDrop() }
+            log.info { "Dropped on ${over.resource.client.name}" }
+            devicesOf(over.resource.client).forEach { it.sendDrop() }
             if (source != null && source.resource.isAlive && source.resource.version >= 3) source.resource.sendDndDropPerformed()
             target = null
         }

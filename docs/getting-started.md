@@ -84,7 +84,7 @@ kotlin {
 tasks.withType<JavaCompile>().configureEach { options.release = 26 }
 
 dependencies {
-    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.5")
+    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.6")
 }
 
 application {
@@ -95,9 +95,9 @@ application {
 
 // Only while developing with ./gradlew run: a change to Main.kt is compiled right inside the
 // running compositor, taken on in about a second (step "Change it while it runs").
-val development by configurations.creating
+val development = configurations.create("development")
 dependencies {
-    development("io.github.aristarkhkenebas:caulis-reload:0.1.5")
+    development("io.github.aristarkhkenebas:caulis-reload:0.1.6")
 }
 tasks.named<JavaExec>("run") {
     classpath += development
@@ -1799,7 +1799,7 @@ can also say *when* and *how* — functions on keys, on events, on timers. Add t
 your compositor:
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-lua:0.1.5")
+implementation("io.github.aristarkhkenebas:caulis-lua:0.1.6")
 ```
 
 Then it reads `~/.config/<configName>/config.lua` by itself (after `config.json`, on top of
@@ -1898,7 +1898,7 @@ no project: the compositor compiles it itself. Add the module (it contains the K
 compiler, so it makes your compositor bigger):
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-script:0.1.5")
+implementation("io.github.aristarkhkenebas:caulis-script:0.1.6")
 ```
 
 `~/.config/<configName>/config.kts` is then read after `config.json` and `config.lua`, as if
@@ -2230,13 +2230,20 @@ and 30 s after the start the longest of the start:
 ```
 
 The cursor on a monitor's cursor plane moves the moment the pointer does, before anything
-else the move causes (`quickCursorMoves`, on). Memory the C library freed (Skia, the GPU
-driver, fonts) is given back after the start and every `trimMemoryEveryMinutes` (10;
-`trimMemory`), and the compositor uses at most `mallocPools` (2) of glibc's malloc pools.
+else the move causes (`quickCursorMoves`, on). With monitors driven directly, keyboards, mice
+and touchpads are read on a thread of their own (`inputThread`, on): a busy moment of the loop
+holds no input back (the events wait, in order, for the loop), and the cursor keeps moving
+meanwhile — moved from that thread. Only the EGL driver made for the GPU in use is loaded
+(`glVendorByDriver`, on: NVIDIA's for nvidia-drm, Mesa's for the others — with both installed,
+the other one took ~35 MB for nothing). Memory the C library freed (Skia, the GPU
+driver, fonts) is given back after the start and every `trimMemoryEveryMinutes` (2;
+`trimMemory`), and the compositor uses at most `mallocPools` (2) of glibc's malloc pools;
+blocks of `mallocMapAboveKb` (256) kB or more go back to the system the moment they are freed
+(glibc otherwise kept the per-frame pictures of Skia and the GPU driver: 30-60 MB more).
 Compose widgets (bars, menus) are composed on the loop but drawn into pixels on
 `widgetThreads` (2) threads of their own (0: on the loop). In config.json they are in
 `"performance": { "stallReportMillis", "trimMemory", "trimMemoryEveryMinutes", "mallocPools",
-"quickCursor", "widgetThreads" }`.
+"mallocMapAboveKb", "quickCursor", "inputThread", "glVendorByDriver", "widgetThreads" }`.
 
 Keys are written at level 3 of `input` (as key numbers), never while the screen is locked;
 the Wayland log never shows which key was pressed. Still, a level 3 log of `input` records

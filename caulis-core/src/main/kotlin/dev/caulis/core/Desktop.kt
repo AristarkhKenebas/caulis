@@ -113,6 +113,7 @@ class Desktop(
     val monitors: List<Monitor> get() = monitorList
 
     /** The monitor with the focus: new windows open there, Super+N changes its workspace. */
+    @Suppress("UNNECESSARY_LATEINIT") // set in init below, but notices before that ask isInitialized
     lateinit var focusedMonitor: Monitor
         private set
 
@@ -202,7 +203,7 @@ class Desktop(
         }
         monitor.workspace.monitor = monitor
         monitorList += monitor
-        if (standIn != null || !::focusedMonitor.isInitialized || focusedMonitor === standIn) focusedMonitor = monitor
+        if (standIn != null) focusedMonitor = monitor
         // The primary monitor gets the focus when it comes before anything is open.
         if (monitor.name == primaryMonitorName && allWindows.isEmpty()) focusedMonitor = monitor
         output?.rescale(scale)
@@ -4468,7 +4469,7 @@ class Desktop(
             if (window !== lastFocused) {
                 lastFocused = window
                 focusedAt = System.nanoTime()
-                focusLog.info { "Focus: ${window ?: "nothing"}" }
+                focusLog.info { "Focus: $window" }
                 notify(focusListeners, window, "focus")
             }
             changed()
@@ -4964,7 +4965,9 @@ class Desktop(
         pointerX = x.coerceIn(on.area.x.toDouble(), on.area.right - 1.0)
         pointerY = y.coerceIn(on.area.y.toDouble(), on.area.bottom - 1.0)
         lastPointerMoveNanos = System.nanoTime()
-        if (quickCursorMoves) quickCursor()
+        // (Not while the input thread already showed movements after this one: it would go back.)
+        if (quickCursorMoves && earlyInFlight.get() <= 1) quickCursor()
+        publishEarly()
         if (!locked) noticeBoard.pointerAt(pointerX, pointerY)
         if (!locked && withOverlay { it.pointerMoved(pointerX, pointerY) }) {
             onChange()
@@ -5085,7 +5088,9 @@ class Desktop(
     /**
      * When the pointer last moved (System.nanoTime; 0: not yet): work that may wait (drawing
      * ahead, tidying up) can wait until the user rests, so the pointer never stutters for it.
+     * (May be read from any thread.)
      */
+    @Volatile
     var lastPointerMoveNanos = 0L
         private set
 
@@ -5703,6 +5708,107 @@ class Desktop(
     // does not hold the cursor up. Only its place, the same picture, worked out as
     // [placeHardwareCursor] does it; anything else (another shape, onto another monitor)
     // waits for the next frame, which places it as usual.
+    /**
+     * The cursor plane moved straight from the input thread (with InputDevices.ownThread), as
+     * the pointer moves, even while this thread is busy — only its place, the same picture.
+     * Off: only from this thread ([quickCursorMoves]). (Caulis turns it off while the
+     * configuration's onPointerMotion handlers keep the pointer where it is — a gesture — and
+     * on again when they let it move.)
+     */
+    @Volatile
+    var earlyCursorMoves = true
+
+    /**
+     * Told of the pointer's movement on the input thread before this thread handles it (see
+     * [dev.caulis.core.input.EarlyPointer]): moves the cursor plane at once, where the pointer
+     * will be — worked out as [pointerMovedBy] does it (monitors touching), from where it was
+     * when this thread last caught up. Give it to InputDevices.earlyPointer.
+     */
+    val earlyPointer: dev.caulis.core.input.EarlyPointer = Early()
+
+    // Movements the input thread read that this thread has not handled yet.
+    private val earlyInFlight = java.util.concurrent.atomic.AtomicInteger()
+
+    // What the input thread needs, as this thread last saw it (null: it moves nothing).
+    private class EarlyPlane(val area: Rect, val scale: Double, val plane: MovableFromAnyThread, val offset: Rect)
+    private class EarlyState(val x: Double, val y: Double, val areas: List<Rect>, val planes: List<EarlyPlane>)
+    @Volatile
+    private var earlyState: EarlyState? = null
+
+    // (Only once an input thread uses it: nothing made for each movement otherwise.)
+    @Volatile
+    private var earlyUsed = false
+
+    private fun publishEarly() {
+        if (!earlyUsed) return
+        earlyState = if (!earlyCursorMoves || !quickCursorMoves || monitorEdges != MonitorEdges.TOUCHING || monitorList.isEmpty() || constraintNow() != null) {
+            null
+        } else {
+            EarlyState(
+                pointerX, pointerY, monitorList.map { it.area },
+                views.mapNotNull { view ->
+                    val offset = view.planeCursorOffset ?: return@mapNotNull null
+                    val plane = view.hardwareCursor as? MovableFromAnyThread ?: return@mapNotNull null
+                    if (!view.cursorOnPlane || view.planeCursorKey == null || view.monitor.transform != Transform.NORMAL) return@mapNotNull null
+                    EarlyPlane(view.monitor.area, view.monitor.scale, plane, offset)
+                },
+            )
+        }
+    }
+
+    private inner class Early : dev.caulis.core.input.EarlyPointer {
+        // (The input thread's own: where it thinks the pointer is, and where it showed it.)
+        private var x = Double.NaN
+        private var y = Double.NaN
+        private var shownX = Double.NaN
+        private var shownY = Double.NaN
+
+        override fun movedEarly(dx: Double, dy: Double) {
+            // All before this one handled here: start from where this thread says it is.
+            val before = earlyInFlight.getAndIncrement()
+            earlyUsed = true
+            val state = earlyState
+            if (state == null) {
+                x = Double.NaN
+                return
+            }
+            if (before == 0 || x.isNaN()) {
+                x = state.x
+                y = state.y
+            }
+            val (nx, ny) = movedOver(state.areas, x, y, dx, dy)
+            x = nx
+            y = ny
+        }
+
+        override fun showEarly() {
+            val state = earlyState ?: return
+            if (x.isNaN() || (x == shownX && y == shownY)) return
+            shownX = x
+            shownY = y
+            val fx = Math.floor(x)
+            val fy = Math.floor(y)
+            for (p in state.planes) {
+                // (As quickCursor does it.)
+                val bounds = Rect(fx.toInt() + p.offset.x, fy.toInt() + p.offset.y, p.offset.width, p.offset.height)
+                if (bounds.intersect(p.area) == null) continue
+                val left = Math.round((bounds.x - p.area.x) * p.scale).toInt()
+                val top = Math.round((bounds.y - p.area.y) * p.scale).toInt()
+                val dx = Math.round((x - fx) * p.scale).toInt()
+                val dy = Math.round((y - fy) * p.scale).toInt()
+                if (p.plane.moveFromAnyThread(left + dx, top + dy)) inputLog.trace { "Cursor moved from the input thread to ${left + dx}, ${top + dy}" }
+            }
+        }
+
+        override fun caughtUp() {
+            publishEarly()
+            // The last one read so far: the cursor where this thread says (the same place
+            // unless the movement was taken — a gesture — or kept: then it goes back).
+            if (earlyInFlight.get() <= 1 && quickCursorMoves) quickCursor()
+            earlyInFlight.decrementAndGet()
+        }
+    }
+
     private fun quickCursor() {
         for (view in views) {
             val offset = view.planeCursorOffset ?: continue
@@ -6568,4 +6674,33 @@ private fun warmUpFonts() {
             log.warn("Fonts could not be read ahead: $e")
         }
     }
+}
+
+/**
+ * Where the pointer at ([x], [y]) is after moving by ([dx], [dy]) over monitors at [areas]
+ * that touch ([MonitorEdges.TOUCHING]): as [Desktop.pointerMovedBy] and its movePointer do it
+ * — onto the monitor there, else sliding along the edge — for the input thread's early cursor.
+ */
+internal fun movedOver(areas: List<Rect>, x: Double, y: Double, dx: Double, dy: Double): Pair<Double, Double> {
+    if (areas.isEmpty()) return (x + dx) to (y + dy)
+    fun Rect.has(px: Double, py: Double) = px >= this.x && px < right && py >= this.y && py < bottom
+    fun nearest(px: Double, py: Double): Rect = areas.firstOrNull { it.has(px, py) } ?: areas.minBy { a ->
+        val ox = maxOf(a.x - px, 0.0, px - (a.right - 1))
+        val oy = maxOf(a.y - py, 0.0, py - (a.bottom - 1))
+        ox * ox + oy * oy
+    }
+    val from = nearest(x, y)
+    var nx = x + dx
+    var ny = y + dy
+    if (!from.has(nx, ny) && areas.none { it.has(nx, ny) }) {
+        val alongX = nx.coerceIn(from.x.toDouble(), from.right - 1.0)
+        val alongY = ny.coerceIn(from.y.toDouble(), from.bottom - 1.0)
+        val sideways = areas.firstOrNull { it !== from && it.has(nx, alongY) }?.let { nx to alongY }
+            ?: areas.firstOrNull { it !== from && it.has(alongX, ny) }?.let { alongX to ny }
+        val (sx, sy) = sideways ?: (alongX to alongY)
+        nx = sx
+        ny = sy
+    }
+    val on = nearest(nx, ny)
+    return nx.coerceIn(on.x.toDouble(), on.right - 1.0) to ny.coerceIn(on.y.toDouble(), on.bottom - 1.0)
 }

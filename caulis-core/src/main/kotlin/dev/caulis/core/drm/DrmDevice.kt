@@ -43,6 +43,19 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
     /** A capability of the display (drmGetCap), or -1 if it does not say. */
     internal fun capability(capability: Int): Long = cap(capability)
 
+    /**
+     * Moves the cursor plane of [crtcId] to [x], [y] (its picture's top left, in pixels) with
+     * the legacy cursor call — which drivers take at any time, from any thread, without waiting
+     * for a picture or holding the next one back (an atomic commit of the cursor would). Returns
+     * 0 or -errno. (For the input thread: see Desktop.earlyPointer.)
+     */
+    internal fun moveCursor(crtcId: Int, x: Int, y: Int): Int = try {
+        legacyMoveCursor.invokeExact(fd, crtcId, x, y) as Int
+    } catch (e: Throwable) {
+        if (e is Error) throw e
+        -38 // ENOSYS: no such call here
+    }
+
     private fun cap(capability: Int): Long = Arena.ofConfined().use { temp ->
         val value = temp.allocate(JAVA_LONG)
         if (Drm.drmGetCap(fd, capability.toLong(), value) != 0) -1L else value.get(JAVA_LONG, 0)
@@ -288,6 +301,15 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
     private companion object {
         const val MODIFIER_LINEAR = 0L
         const val PROP_RANGE = 1 shl 1 // DRM_MODE_PROP_RANGE
+
+        // libdrm's drmModeMoveCursor(int fd, uint32_t crtcId, int x, int y): 0 or -errno.
+        // (Written by hand: the generated bindings have only what the atomic path needs.)
+        val legacyMoveCursor: java.lang.invoke.MethodHandle by lazy {
+            val linker = java.lang.foreign.Linker.nativeLinker()
+            val symbol = java.lang.foreign.SymbolLookup.libraryLookup("libdrm.so.2", Arena.global()).find("drmModeMoveCursor")
+                .orElseThrow { UnsatisfiedLinkError("drmModeMoveCursor not in libdrm") }
+            linker.downcallHandle(symbol, java.lang.foreign.FunctionDescriptor.of(JAVA_INT, JAVA_INT, JAVA_INT, JAVA_INT, JAVA_INT))
+        }
     }
 
     override fun close() {

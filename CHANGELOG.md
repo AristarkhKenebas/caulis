@@ -15,6 +15,47 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-10-30
+
+### Added
+- `inputThread` (on; config.json `performance.inputThread`): with monitors driven directly,
+  keyboards, mice and touchpads are read on a thread of their own. A busy moment of the main
+  loop no longer holds input back, the events reach the loop in the same order, and the cursor
+  on a cursor plane keeps moving meanwhile — moved straight from that thread with the legacy
+  cursor call, which the next frame agrees with. Safe across terminal switches (nothing moves
+  while another session has the screen), hot-plugged devices (opened through the loop's
+  session) and the lock screen. Underneath: `InputDevices.ownThread`,
+  `InputDevices.earlyPointer`, the `EarlyPointer` interface, `Desktop.earlyPointer` and
+  `Desktop.earlyCursorMoves`.
+- `mallocMapAboveKb` (256; `performance.mallocMapAboveKb`, `NativeMemory.mapBlocksAbove`):
+  malloc blocks that big or bigger go back to the system the moment they are freed. glibc
+  raised this limit by itself and kept the pictures Skia and the GPU driver make each frame:
+  headless with four terminals, 30-60 MB more within minutes. 0 keeps glibc's own.
+- `glVendorByDriver` (on; `performance.glVendorByDriver`, `GlesRenderer.vendorByDriver`): only
+  the EGL driver made for the GPU in use is loaded — NVIDIA's for nvidia-drm, Mesa's for amdgpu,
+  i915, nouveau and the others. With both installed, libglvnd loaded NVIDIA's EGL on an AMD
+  laptop just to hear "no": ~35 MB of memory for nothing. A `__EGL_VENDOR_LIBRARY_FILENAMES`
+  you set yourself is kept as it is; programs started later never see Caulis's choice.
+- `ComposeWidget.keepHiddenSeconds` and `ComposeScenes.keepHiddenSeconds` (60): a Compose
+  scene not shown for that long (a closed menu, notification cards that went) gives its memory
+  back — pixels, composition, icons — and is made anew when it shows again. 0 keeps it.
+- `ComposeWarmup.draw(width, height, frames, content)`: draws content ahead on the calling
+  thread (a compositor's own menus, one after another on a thread of its own).
+- `ComposeWidget.prepareAhead(monitor, width, height)` (and `ComposeHandle.prepareAhead`): a
+  widget's first scene made — composed and drawn — on a thread of your own and handed over; the
+  compositor's thread then only shows its pixels instead of holding the pointer for the first
+  composition (a bar's: ~0.2-0.3 s at the start).
+
+### Changed
+- `trimMemoryEveryMinutes` is 2 by default (was 10): with programs drawing, glibc's pools held
+  30-60 MB more within minutes. Giving it back takes a few milliseconds on a thread of its own.
+  Set it back to 10 if you prefer.
+
+- The starter template, the getting-started guide and caulis-reload's page declare the
+  `development` configuration with `configurations.create("development")`: Gradle 9.6
+  deprecated `val development by configurations.creating` (it goes in Gradle 10). Builds made
+  from the old template keep working until then; change that line the same way.
+
 ## [0.1.5] - 2026-10-29
 
 Work in progress, not described yet. Every change people would notice gets a line here
@@ -182,7 +223,8 @@ The first release on Maven Central.
 - A project template (`templates/new-compositor.sh`), examples, a getting-started guide, API docs,
   a Nix flake with NixOS and Home Manager modules.
 
-[Unreleased]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.2...v0.1.3

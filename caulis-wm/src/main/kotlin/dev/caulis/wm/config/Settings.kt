@@ -571,6 +571,9 @@ object Settings {
                         Field("trimMemoryEveryMinutes", IntegerType(0, 1440), "how often after the start (0: only after the start)"),
                         Field("mallocPools", IntegerType(0, 64), "at most this many malloc pools for the compositor (0: glibc's own; only at the start)"),
                         Field("quickCursor", FlagType, "the cursor moves the moment the pointer does, not with the next frame"),
+                        Field("mallocMapAboveKb", IntegerType(0, 65536), "blocks of this many kB or more are given back to the system the moment they are freed (0: glibc's own; only at the start)"),
+                        Field("inputThread", FlagType, "keyboards, mice and touchpads are read on a thread of their own; the cursor keeps moving while the compositor is busy"),
+                        Field("glVendorByDriver", FlagType, "only the EGL driver for the GPU in use is loaded, not every one installed (only at the start)"),
                         Field("widgetThreads", IntegerType(0, 16), "threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)"),
                     ),
                     "performance",
@@ -913,8 +916,6 @@ object Settings {
     @InternalCaulisApi
     class Added(val rules: List<dev.caulis.wm.WindowRule>, val bindings: List<Caulis.Binding>, val startup: List<Caulis.() -> Unit>)
 
-    /** Applies [values] (read by [root]) to [caulis]; what it adds to lists comes back. */
-    @Suppress("UNCHECKED_CAST")
     /**
      * [apply]s each setting on its own, in the usual order: one that cannot be applied (a
      * picture that cannot be read, a mistake in code it calls) is a problem, the rest still apply.
@@ -933,6 +934,8 @@ object Settings {
         return problems
     }
 
+    /** Applies [values] (read by [root]) to [caulis]; what it adds to lists comes back. */
+    @Suppress("UNCHECKED_CAST") // (the values were read by their types: the casts only name them)
     fun apply(caulis: Caulis, values: Map<String, Any?>): Added {
         fun section(name: String) = values[name] as? Map<String, Any?>
         val rules = ArrayList<dev.caulis.wm.WindowRule>()
@@ -986,6 +989,9 @@ object Settings {
             (p["trimMemoryEveryMinutes"] as Int?)?.let { caulis.trimMemoryEveryMinutes = it }
             (p["mallocPools"] as Int?)?.let { caulis.mallocPools = it }
             (p["quickCursor"] as Boolean?)?.let { caulis.quickCursorMoves = it }
+            (p["inputThread"] as Boolean?)?.let { caulis.inputThread = it }
+            (p["mallocMapAboveKb"] as Int?)?.let { caulis.mallocMapAboveKb = if (it in 1..15) 16 else it }
+            (p["glVendorByDriver"] as Boolean?)?.let { caulis.glVendorByDriver = it }
             (p["widgetThreads"] as Int?)?.let { caulis.widgetThreads = it }
         }
         section("cursor")?.let { c ->
@@ -1364,7 +1370,7 @@ object Settings {
         (d["clickMethod"] as String?)?.let { into.clickMethod = dev.caulis.core.input.ClickMethod.valueOf(it.uppercase()) }
         (d["monitor"] as String?)?.let { into.monitor = it }
         (d["keepAspect"] as Boolean?)?.let { into.keepAspect = it }
-        (d["area"] as Map<String, Any?>?)?.let { a ->
+        (d["area"] as Map<*, *>?)?.let { a ->
             val x = a["x"] as Double? ?: 0.0
             val y = a["y"] as Double? ?: 0.0
             try {

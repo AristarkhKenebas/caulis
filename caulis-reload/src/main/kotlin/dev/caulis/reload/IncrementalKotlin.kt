@@ -2,6 +2,7 @@ package dev.caulis.reload
 
 import dev.caulis.log.Logger
 import org.jetbrains.kotlin.buildtools.api.BaseCompilationOperation
+import org.jetbrains.kotlin.buildtools.api.BaseIncrementalCompilationConfiguration
 import org.jetbrains.kotlin.buildtools.api.CompilationResult
 import org.jetbrains.kotlin.buildtools.api.CompilerMessageRenderer
 import org.jetbrains.kotlin.buildtools.api.ExperimentalBuildToolsApi
@@ -11,7 +12,6 @@ import org.jetbrains.kotlin.buildtools.api.SourcesChanges
 import org.jetbrains.kotlin.buildtools.api.arguments.JvmCompilerArguments
 import org.jetbrains.kotlin.buildtools.api.arguments.enums.JvmTarget
 import org.jetbrains.kotlin.buildtools.api.jvm.JvmPlatformToolchain
-import org.jetbrains.kotlin.buildtools.api.jvm.JvmSnapshotBasedIncrementalCompilationConfiguration
 import org.jetbrains.kotlin.buildtools.api.jvm.operations.JvmCompilationOperation
 import java.nio.file.Files
 import java.nio.file.Path
@@ -84,11 +84,11 @@ internal class IncrementalKotlin(private val root: Path, private val moduleName:
             builder.compilerArguments[JvmCompilerArguments.NO_REFLECT] = true
             builder[BaseCompilationOperation.COMPILER_MESSAGE_RENDERER] = renderer
             val ic = builder.snapshotBasedIcConfigurationBuilder(caches, changes, classpath.map(::snapshotOf))
-            ic[JvmSnapshotBasedIncrementalCompilationConfiguration.ROOT_PROJECT_DIR] = root
-            ic[JvmSnapshotBasedIncrementalCompilationConfiguration.MODULE_BUILD_DIR] = root.resolve("build")
+            ic[BaseIncrementalCompilationConfiguration.ROOT_PROJECT_DIR] = root
+            ic[BaseIncrementalCompilationConfiguration.MODULE_BUILD_DIR] = root.resolve("build")
             // A compile that fails leaves the classes as they were.
-            ic[JvmSnapshotBasedIncrementalCompilationConfiguration.BACKUP_CLASSES] = true
-            ic[JvmSnapshotBasedIncrementalCompilationConfiguration.FORCE_RECOMPILATION] = force
+            ic[BaseIncrementalCompilationConfiguration.BACKUP_CLASSES] = true
+            ic[BaseIncrementalCompilationConfiguration.FORCE_RECOMPILATION] = force
             builder[JvmCompilationOperation.INCREMENTAL_COMPILATION] = ic.build()
             val result = session.executeOperation(builder.build(), toolchains.createInProcessExecutionPolicy(), logger)
             when (result) {

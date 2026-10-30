@@ -35,7 +35,7 @@ class DBusTest {
                 assertEquals(32, id?.length, "the bus's id: $id")
                 assertTrue(canSuspend in setOf("yes", "no", "challenge", "na"), "$canSuspend")
                 assertNotNull(lock, "a delay lock: $problem")
-                lock!!.close()
+                lock.close()
                 println("session: $session")
             }
         }

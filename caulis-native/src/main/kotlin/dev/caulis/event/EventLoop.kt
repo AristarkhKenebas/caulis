@@ -147,7 +147,7 @@ class EventLoop : AutoCloseable {
         add(read) {
             wakePending.set(false)
             try {
-                while (wakeRead.read(wakeBuffer) > 0) Unit
+                while (wakeRead.read(wakeBuffer) > 0) { /* keep emptying the pipe */ }
             } catch (_: dev.caulis.ffi.NativeException) {
                 // EAGAIN: all read
             }

@@ -86,9 +86,9 @@ class CaulisTest {
                 useConfigFile = false // never the config.json of whoever runs the tests
                 configure()
                 if (headless) {
-                    mode = Caulis.Mode.HEADLESS
+                    backend = Caulis.Backend.HEADLESS
                 } else {
-                    mode = Caulis.Mode.NESTED
+                    backend = Caulis.Backend.NESTED
                     nestedIn = outer.socketPath
                 }
                 this.socketDirectory = socketDirectory
@@ -129,7 +129,7 @@ class CaulisTest {
     internal fun Caulis.reloaded(configure: Caulis.() -> Unit): Caulis = Caulis().also { next ->
         next.useConfigFile = false
         next.configure()
-        next.mode = mode
+        next.backend = backend
         next.nestedIn = nestedIn
         next.socketDirectory = socketDirectory
         next.exitAfterSeconds = exitAfterSeconds

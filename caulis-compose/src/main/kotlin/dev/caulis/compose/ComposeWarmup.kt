@@ -67,7 +67,22 @@ object ComposeWarmup {
             }
         }
 
-    private fun run(frames: Int, content: @Composable () -> Unit) {
+    /**
+     * Draws [content] [frames] times in a scene of [width] x [height] pixels on the calling
+     * thread (not the compositor's: that is the point), then forgets it — for a compositor that
+     * draws its own menus ahead one after another on a thread of its own. The same rules as for
+     * [start]'s content: layout and drawing only; coroutines its effects start run on this
+     * thread between the frames. What [content] throws is passed on.
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun draw(width: Int, height: Int, frames: Int = 2, content: @Composable () -> Unit) {
+        val started = System.nanoTime()
+        run(frames, content, width.coerceIn(1, 8192), height.coerceIn(1, 8192))
+        log.trace { "Drawn ahead on ${Thread.currentThread().name}: ${width}x$height, $frames frames in ${(System.nanoTime() - started) / 1_000_000} ms" }
+    }
+
+    private fun run(frames: Int, content: @Composable () -> Unit, width: Int = WIDTH, height: Int = HEIGHT) {
         // Coroutines the scene starts (none that matter here) are kept and run on this thread
         // between frames — never on the compositor's.
         val tasks = ConcurrentLinkedQueue<Runnable>()
@@ -76,7 +91,7 @@ object ComposeWarmup {
                 tasks += block
             }
         }
-        Scene(WIDTH, HEIGHT, Density(1f), dispatcher, onPointerIcon = {}, content = content).use { scene ->
+        Scene(width, height, Density(1f), dispatcher, onPointerIcon = {}, content = content).use { scene ->
             repeat(frames.coerceAtLeast(1)) { frame ->
                 scene.render(System.nanoTime() + frame * 16_000_000L)
                 while (true) (tasks.poll() ?: break).run()

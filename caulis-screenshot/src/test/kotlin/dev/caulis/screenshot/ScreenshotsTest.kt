@@ -190,7 +190,7 @@ class ScreenshotsTest {
         val caulis = Caulis().apply {
             useConfigFile = false // never the config.json of whoever runs the tests
             setUp()
-            mode = Caulis.Mode.HEADLESS
+            backend = Caulis.Backend.HEADLESS
             socketDirectory = sockets
             exitAfterSeconds = 30 // never hang the test run
             screenshots {

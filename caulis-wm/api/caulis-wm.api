@@ -178,6 +178,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getFocusStealingRule ()Lkotlin/jvm/functions/Function2;
 	public final fun getFocusedWindow ()Ldev/caulis/core/Window;
 	public final fun getFullscreenKeepsAwake ()Z
+	public final fun getGlVendorByDriver ()Z
 	public final fun getGtkThemes ()Lkotlin/Pair;
 	public final fun getHardwareCursor ()Z
 	public final fun getHeadlessMonitors ()I
@@ -188,6 +189,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getIdleInhibitors ()Z
 	public final fun getIdleInhibitorsWhileLocked ()Z
 	public final fun getInput ()Ldev/caulis/core/input/InputSettings;
+	public final fun getInputThread ()Z
 	public final fun getIpc ()Z
 	public final fun getJavaUpdatedNotice ()Ljava/lang/String;
 	public final fun getKeyMode ()Ljava/lang/String;
@@ -210,6 +212,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getLockerShows ()Lkotlin/jvm/functions/Function1;
 	public final fun getLogFile ()Ljava/nio/file/Path;
 	public final fun getLogLevel ()I
+	public final fun getMallocMapAboveKb ()I
 	public final fun getMallocPools ()I
 	public final fun getMaxForwardedStringBytes ()I
 	public final fun getMaxRegionParts ()I
@@ -443,6 +446,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setFocusStealing (Ldev/caulis/wm/FocusStealing;)V
 	public final fun setFocusStealingRule (Lkotlin/jvm/functions/Function2;)V
 	public final fun setFullscreenKeepsAwake (Z)V
+	public final fun setGlVendorByDriver (Z)V
 	public final fun setGtkThemes (Lkotlin/Pair;)V
 	public final fun setHardwareCursor (Z)V
 	public final fun setHeadlessMonitors (I)V
@@ -451,6 +455,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setHotReload (Z)V
 	public final fun setIdleInhibitors (Z)V
 	public final fun setIdleInhibitorsWhileLocked (Z)V
+	public final fun setInputThread (Z)V
 	public final fun setIpc (Z)V
 	public final fun setJavaUpdatedNotice (Ljava/lang/String;)V
 	public final fun setKeyboardLayouts (Ljava/lang/String;)V
@@ -468,6 +473,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setLockerShows (Lkotlin/jvm/functions/Function1;)V
 	public final fun setLogFile (Ljava/nio/file/Path;)V
 	public final fun setLogLevel (I)V
+	public final fun setMallocMapAboveKb (I)V
 	public final fun setMallocPools (I)V
 	public final fun setMaxForwardedStringBytes (I)V
 	public final fun setMaxRegionParts (I)V

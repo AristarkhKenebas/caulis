@@ -70,7 +70,7 @@ public class WlDisplay private constructor(client: Client, id: Int, version: Int
      */
     public fun sendError(objectId: Resource, code: Int, message: String) {
         if (!isAlive || !client.isConnected) return
-        if (objectId != null && !objectId.isAlive) return
+        if (!objectId.isAlive) return
         if (Wire.tracing) Wire.event(this, "error", "object_id=${Wire.show(objectId)}, code=${Wire.show(code)}, message=${Wire.show(message)}")
         event(0).obj(objectId).uint(code).string(message).end()
     }

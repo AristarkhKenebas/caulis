@@ -32,12 +32,32 @@ class HardwareCursorTest {
         }
     }
 
-    private fun withDesktop(test: (ScreenTestServer, Desktop, DesktopView, Plane, GpuTarget) -> Unit) {
+    // A cursor plane the input thread may move too: remembers from which thread.
+    private class MovablePlane(width: Int, height: Int, picture: GpuTarget) : HardwareCursor, MovableFromAnyThread {
+        val inner = Plane(width, height, picture)
+        override val width get() = inner.width
+        override val height get() = inner.height
+        @Volatile var at: Pair<Int, Int>? = null
+        val movedFrom = java.util.Collections.synchronizedList(ArrayList<String>())
+
+        override fun show(x: Int, y: Int, draw: ((GpuTarget) -> Unit)?): Boolean = inner.show(x, y, draw).also { at = x to y }
+        override fun hide() = inner.hide().also { at = null }
+        override fun moveFromAnyThread(x: Int, y: Int): Boolean {
+            at = x to y
+            movedFrom += Thread.currentThread().name
+            return true
+        }
+    }
+
+    private fun withDesktop(movable: Boolean = false, test: (ScreenTestServer, Desktop, DesktopView, Plane, GpuTarget) -> Unit) =
+        withDesktopOf(movable) { server, d, view, plane, frame -> test(server, d, view, (plane as? MovablePlane)?.inner ?: plane as Plane, frame) }
+
+    private fun withDesktopOf(movable: Boolean, test: (ScreenTestServer, Desktop, DesktopView, HardwareCursor, GpuTarget) -> Unit) {
         assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
         ScreenTestServer().use { server ->
             val (view, plane, frame) = server.onServer { d ->
                 val renderer = d.javaClass.getDeclaredField("renderer").apply { isAccessible = true }.get(d) as dev.caulis.render.Renderer
-                val plane = Plane(64, 64, renderer.createTarget(64, 64))
+                val plane: HardwareCursor = if (movable) MovablePlane(64, 64, renderer.createTarget(64, 64)) else Plane(64, 64, renderer.createTarget(64, 64))
                 val view = d.createView(d.monitors[0]).also { it.hardwareCursor = plane }
                 Triple(view, plane, renderer.createTarget(ScreenTestServer.WIDTH, ScreenTestServer.HEIGHT))
             }
@@ -84,6 +104,98 @@ class HardwareCursorTest {
         assertEquals(quick, plane.at)
         d.frame(view, frame)
         assertTrue(plane.at != quick)
+    }
+
+    // The input thread (InputDevices.ownThread) reads a movement: the early pointer moves the
+    // plane there at once, before this thread handles it; handled, it stays (no going back).
+    private fun onInputThread(action: () -> Unit) {
+        val t = Thread(action, "test-input")
+        t.start()
+        t.join()
+    }
+
+    // The first movement read on an input thread (none moved yet: the desktop starts telling it then).
+    private fun firstMovement(d: Desktop) {
+        onInputThread { d.earlyPointer.movedEarly(0.0, 0.0) }
+        d.pointerMovedBy(0, 0.0, 0.0)
+        d.earlyPointer.caughtUp()
+    }
+
+    @Test
+    fun `the input thread moves the cursor before the compositor handles the movement`() = withDesktopOf(movable = true) { _, d, view, cursor, frame ->
+        val plane = cursor as MovablePlane
+        d.pointerMoved(0, 100.0, 100.0)
+        d.frame(view, frame)
+        firstMovement(d)
+        val start = plane.at!!
+        onInputThread {
+            d.earlyPointer.movedEarly(10.0, 5.0)
+            d.earlyPointer.showEarly()
+        }
+        assertEquals(start.first + 10 to start.second + 5, plane.at, "moved from the input thread at once")
+        assertEquals(listOf("test-input"), plane.movedFrom)
+        // Handled here: the same place.
+        d.pointerMovedBy(0, 10.0, 5.0)
+        d.earlyPointer.caughtUp()
+        assertEquals(start.first + 10 to start.second + 5, plane.at)
+        d.frame(view, frame)
+        assertEquals(start.first + 10 to start.second + 5, plane.at, "the frame agrees")
+    }
+
+    @Test
+    fun `movements queued while the compositor was busy are not undone as it catches up`() = withDesktopOf(movable = true) { _, d, view, cursor, frame ->
+        val plane = cursor as MovablePlane
+        d.pointerMoved(0, 200.0, 200.0)
+        d.frame(view, frame)
+        firstMovement(d)
+        val start = plane.at!!
+        // Three movements read while this thread was busy, each shown at once.
+        onInputThread {
+            for (i in 1..3) {
+                d.earlyPointer.movedEarly(4.0, 0.0)
+                d.earlyPointer.showEarly()
+            }
+        }
+        val ahead = start.first + 12 to start.second
+        assertEquals(ahead, plane.at, "the cursor where the last one put it")
+        // Handled one after another, in order: never back to an older place.
+        for (i in 1..3) {
+            d.pointerMovedBy(0, 4.0, 0.0)
+            d.earlyPointer.caughtUp()
+            assertEquals(ahead, plane.at, "after the ${i}th: still where the input thread put it")
+        }
+        // The next one starts from where this thread says the pointer is.
+        onInputThread {
+            d.earlyPointer.movedEarly(1.0, 1.0)
+            d.earlyPointer.showEarly()
+        }
+        assertEquals(start.first + 13 to start.second + 1, plane.at)
+    }
+
+    @Test
+    fun `a movement taken by a gesture is not shown early, and the cursor goes back`() = withDesktopOf(movable = true) { _, d, view, cursor, frame ->
+        val plane = cursor as MovablePlane
+        d.pointerMoved(0, 300.0, 300.0)
+        d.frame(view, frame)
+        firstMovement(d)
+        val start = plane.at!!
+        onInputThread {
+            d.earlyPointer.movedEarly(20.0, 0.0)
+            d.earlyPointer.showEarly()
+        }
+        assertEquals(start.first + 20, plane.at!!.first)
+        // The compositor's thread did not move the pointer (a gesture took it): back where it is.
+        d.earlyCursorMoves = false
+        d.earlyPointer.caughtUp()
+        assertEquals(start, plane.at, "back where the pointer is")
+        val moves = plane.movedFrom.size
+        onInputThread {
+            d.earlyPointer.movedEarly(20.0, 0.0)
+            d.earlyPointer.showEarly()
+        }
+        assertEquals(moves, plane.movedFrom.size, "not moved early while gestures take the movement")
+        d.earlyPointer.caughtUp()
+        d.earlyCursorMoves = true
     }
 
     @Test

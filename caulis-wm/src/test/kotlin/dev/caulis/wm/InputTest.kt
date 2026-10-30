@@ -20,12 +20,12 @@ class InputTest {
         val louder = AtomicInteger()
         withCaulis({
             configName = "inputtest"
-            repeatDelay = 150
+            repeatDelayMillis = 150
             repeatRate = 20
-            bind("Super+R") { enterMode("resize") }
-            mode("resize") {
+            bind("Super+R") { enterKeyMode("resize") }
+            keyMode("resize") {
                 bind("H") { inMode.incrementAndGet() }
-                bind("Escape") { enterMode(null) }
+                bind("Escape") { enterKeyMode(null) }
             }
             bind("MouseSide") { side.incrementAndGet() }
             bind("Super+WheelDown") { run("workspace 3") }
@@ -46,7 +46,7 @@ class InputTest {
                 assertEquals(1, inMode.get())
                 tap(ESC)
                 assertEquals("", ipc.nextEvent()!!.keyModeChanged)
-                assertNull(caulis.keyMode)
+                assertNull(caulis.keyModeNow)
             }
 
             caulis.onLoop { r ->

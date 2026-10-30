@@ -17,6 +17,7 @@ public final class dev/caulis/compose/ComposeHandle : java/lang/AutoCloseable {
 	public final fun focus (Z)V
 	public static synthetic fun focus$default (Ldev/caulis/compose/ComposeHandle;ZILjava/lang/Object;)V
 	public final fun getWidget ()Ldev/caulis/compose/ComposeWidget;
+	public final fun prepareAhead (Ldev/caulis/core/Monitor;II)V
 	public final fun prewarm (Ldev/caulis/core/Monitor;II)V
 	public final fun restart ()V
 }
@@ -50,9 +51,19 @@ public final class dev/caulis/compose/ComposeRecovery {
 public final class dev/caulis/compose/ComposeRecovery$Companion {
 }
 
+public final class dev/caulis/compose/ComposeScenes {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/caulis/compose/ComposeScenes;
+	public static final fun getKeepHiddenSeconds ()I
+	public static final fun setKeepHiddenSeconds (I)V
+}
+
 public final class dev/caulis/compose/ComposeWarmup {
 	public static final field $stable I
 	public static final field INSTANCE Ldev/caulis/compose/ComposeWarmup;
+	public static final fun draw (IIILkotlin/jvm/functions/Function2;)V
+	public static final fun draw (IILkotlin/jvm/functions/Function2;)V
+	public static synthetic fun draw$default (IIILkotlin/jvm/functions/Function2;ILjava/lang/Object;)V
 	public static final fun start ()Ljava/lang/Thread;
 	public static final fun start (I)Ljava/lang/Thread;
 	public static final fun start (ILkotlin/jvm/functions/Function2;)Ljava/lang/Thread;
@@ -80,6 +91,7 @@ public final class dev/caulis/compose/ComposeWidget : dev/caulis/core/Widget, ja
 	public fun draw (Ldev/caulis/core/Monitor;Ldev/caulis/core/OverlayCanvas;Ldev/caulis/geometry/Rect;)V
 	public fun getCursor ()Ljava/lang/String;
 	public final fun getHasKeyboard ()Z
+	public final fun getKeepHiddenSeconds ()Ljava/lang/Integer;
 	public fun getLevel ()Ldev/caulis/core/DrawingLevel;
 	public fun getShowsWhileLocked ()Z
 	public fun getTakesKeyboard ()Z
@@ -88,11 +100,13 @@ public final class dev/caulis/compose/ComposeWidget : dev/caulis/core/Widget, ja
 	public fun pointerButton (IZ)V
 	public fun pointerLeft ()V
 	public fun pointerMoved (Ldev/caulis/core/Monitor;DD)V
+	public final fun prepareAhead (Ldev/caulis/core/Monitor;II)V
 	public fun pressedOutside (IDDZ)Z
 	public final fun prewarm (Ldev/caulis/core/Monitor;II)V
 	public fun reserve (Ldev/caulis/core/Monitor;)Ldev/caulis/core/Reserve;
 	public final fun restart ()V
 	public fun scroll (DD)V
+	public final fun setKeepHiddenSeconds (Ljava/lang/Integer;)V
 	public fun toString ()Ljava/lang/String;
 }
 

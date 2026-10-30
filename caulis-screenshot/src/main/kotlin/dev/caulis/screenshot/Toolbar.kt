@@ -254,7 +254,7 @@ internal class Label(private val renderer: Renderer) : AutoCloseable {
     fun size(text: String, hint: String = "", style: ScreenshotStyle): Pair<Int, Int> {
         val font = labelFont(style)
         val w = textWidth(text, font) + if (hint.isEmpty()) 0 else style.labelPadding * 3 / 4 + textWidth(hint, font)
-        return (w + 2 * style.labelPadding) to Math.round(style.fontSize + 14).toInt()
+        return (w + 2 * style.labelPadding) to Math.round(style.fontSize + 14)
     }
 
     fun texture(text: String, hint: String, scale: Double, style: ScreenshotStyle): GpuTexture = made.getOrPut(Triple(text, hint, scale)) {

@@ -280,6 +280,9 @@
 ---@field trimMemoryEveryMinutes? integer how often after the start (0: only after the start)
 ---@field mallocPools? integer at most this many malloc pools for the compositor (0: glibc's own; only at the start)
 ---@field quickCursor? boolean the cursor moves the moment the pointer does, not with the next frame
+---@field mallocMapAboveKb? integer blocks of this many kB or more are given back to the system the moment they are freed (0: glibc's own; only at the start)
+---@field inputThread? boolean keyboards, mice and touchpads are read on a thread of their own; the cursor keeps moving while the compositor is busy
+---@field glVendorByDriver? boolean only the EGL driver for the GPU in use is loaded, not every one installed (only at the start)
 ---@field widgetThreads? integer threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)
 
 ---@class caulis.Settings.systemKeys

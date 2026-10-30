@@ -80,6 +80,7 @@ fun Caulis.compose(
 class ComposeHandle internal constructor(private val caulis: Caulis) : AutoCloseable {
 
     /** The widget, once the compositor runs (null before, and after [close]). */
+    @Volatile
     var widget: ComposeWidget? = null
         internal set
 
@@ -89,6 +90,11 @@ class ComposeHandle internal constructor(private val caulis: Caulis) : AutoClose
     /** Draws it once ahead, off screen (see [ComposeWidget.prewarm]). */
     fun prewarm(monitor: Monitor, width: Int, height: Int) {
         widget?.prewarm(monitor, width, height)
+    }
+
+    /** Makes its scene for [monitor] on the calling thread, a thread of your own (see [ComposeWidget.prepareAhead]). */
+    fun prepareAhead(monitor: Monitor, width: Int, height: Int) {
+        widget?.prepareAhead(monitor, width, height)
     }
 
     /** Starts its scenes over (see [ComposeWidget.restart]). */

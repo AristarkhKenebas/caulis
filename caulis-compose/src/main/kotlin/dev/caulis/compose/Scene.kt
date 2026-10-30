@@ -96,6 +96,12 @@ internal class Scene(
         return MemorySegment.ofAddress(pixmap.addr).reinterpret(width.toLong() * height * 4)
     }
 
+    /** Its pixels as last drawn (as [render] returns them), not drawn anew; null if they cannot be looked at so. */
+    fun pixels(): MemorySegment? {
+        if (!surface.peekPixels(pixmap) || pixmap.rowBytes != width * 4) return null
+        return MemorySegment.ofAddress(pixmap.addr).reinterpret(width.toLong() * height * 4)
+    }
+
     private val recorder = org.jetbrains.skia.PictureRecorder()
 
     /**

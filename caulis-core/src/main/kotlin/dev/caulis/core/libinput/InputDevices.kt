@@ -2,6 +2,7 @@ package dev.caulis.core.libinput
 
 import dev.caulis.core.input.AccelProfile
 import dev.caulis.core.input.ClickMethod
+import dev.caulis.core.input.EarlyPointer
 import dev.caulis.core.input.Gesture
 import dev.caulis.core.input.InputSettings
 import dev.caulis.core.input.Scroll
@@ -112,35 +113,185 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
     var onDevicesChanged: () -> Unit = {}
 
     /** How pointers and touchpads behave; applied to those there are and those that come. */
+    @Volatile
     var settings: InputSettings = InputSettings()
         set(value) {
             field = value
-            for (device in devices.values) configure(device)
+            onInputThread { for (device in devices.values) configure(device) }
         }
 
     /**
      * Touchpads off by hand (a laptop's touchpad key), whatever the settings say; true again
      * gives them back as the settings say.
      */
+    @Volatile
     var touchpadsOn = true
         set(value) {
             if (field == value) return
             field = value
             log.info { "Touchpads ${if (value) "on" else "off"}" }
-            for (device in devices.values) configure(device)
+            onInputThread { for (device in devices.values) configure(device) }
         }
 
     /** True if there is a touchpad at all. */
-    val hasTouchpad: Boolean get() = devices.values.any { InputDevice.Kind.TOUCHPAD in it.kinds }
+    val hasTouchpad: Boolean get() = published.any { InputDevice.Kind.TOUCHPAD in it.kinds }
 
     /** A touch screen is plugged in. */
-    val hasTouchScreen: Boolean get() = devices.values.any { InputDevice.Kind.TOUCHSCREEN in it.kinds }
+    val hasTouchScreen: Boolean get() = published.any { InputDevice.Kind.TOUCHSCREEN in it.kinds }
 
     /** The devices there are now. */
-    val list: List<InputDevice> get() = devices.values.toList()
+    val list: List<InputDevice> get() = published
 
-    // By the address of libinput's device.
+    // By the address of libinput's device. (Only on the thread that reads libinput.)
     private val devices = LinkedHashMap<Long, InputDevice>()
+
+    // The devices as the compositor's thread sees them (a copy made at each change).
+    @Volatile
+    private var published: List<InputDevice> = emptyList()
+
+    /**
+     * Input read on a thread of its own ("caulis-input"), not on the compositor's: libinput's
+     * events are read and turned into Caulis's there and queued for the compositor's thread,
+     * which handles them in the same order. A busy moment of the compositor's thread then
+     * holds no input back in the kernel, and the cursor (on a cursor plane) still moves:
+     * [earlyPointer] is told of each movement on that thread. All of libinput is used on that
+     * thread only (device settings too); opening a device asks the compositor's thread
+     * (the session). False: everything on the compositor's thread, as before.
+     */
+    var ownThread: Boolean
+        get() = thread != null
+        set(value) {
+            if (value == (thread != null)) return
+            if (value) startThread() else stopThread()
+        }
+
+    /**
+     * Told on the input thread of each relative movement before the compositor's thread hears
+     * of it (only with [ownThread]): the desktop moves the cursor plane at once with it.
+     */
+    @Volatile
+    var earlyPointer: EarlyPointer? = null
+
+    // --- the input thread ---------------------------------------------------------------------
+
+    private var thread: Thread? = null
+    private var inputLoop: EventLoop? = null
+
+    // What the compositor's thread is to do, in order: events for the callbacks, devices to
+    // open or close. One queue (FIFO), emptied by one task posted when it was empty.
+    private val forMain = MainQueue(loop::post)
+
+    // Runs [task] on the compositor's thread: at once there, else queued (in order).
+    private fun toMain(task: () -> Unit) {
+        if (Thread.currentThread() === thread) forMain.add(task) else task()
+    }
+
+    // Runs [task] where libinput is used: on the input thread (queued) or here.
+    private fun onInputThread(task: () -> Unit) {
+        val other = inputLoop
+        if (other != null && Thread.currentThread() !== thread) other.post(task) else task()
+    }
+
+    // Runs [task] on the input thread and waits for it (at most PAUSE_WAIT_MILLIS), doing what
+    // it hands to this thread meanwhile; here at once without one.
+    private fun onInputThreadAndWait(task: () -> Unit) {
+        val other = inputLoop
+        if (other == null || Thread.currentThread() === thread) return task()
+        val done = java.util.concurrent.CompletableFuture<Unit>()
+        other.post {
+            try {
+                task()
+            } finally {
+                done.complete(Unit)
+            }
+        }
+        val until = System.nanoTime() + PAUSE_WAIT_MILLIS * 1_000_000
+        while (!done.isDone && System.nanoTime() < until) {
+            forMain.runAll()
+            try {
+                done.get(5, java.util.concurrent.TimeUnit.MILLISECONDS)
+            } catch (_: java.util.concurrent.TimeoutException) {
+            }
+        }
+        if (!done.isDone) log.warn("The input thread did not let go of the devices in time")
+        forMain.runAll()
+    }
+
+    private fun motion(time: Int, dx: Double, dy: Double, rawDx: Double, rawDy: Double) {
+        if (Thread.currentThread() !== thread) return onPointerMotion(time, dx, dy, rawDx, rawDy)
+        val early = earlyPointer
+        if (early != null) {
+            try {
+                early.movedEarly(dx, dy)
+            } catch (e: Exception) {
+                Upcalls.report("early pointer", e)
+            }
+        }
+        forMain.add {
+            onPointerMotion(time, dx, dy, rawDx, rawDy)
+            if (early != null) {
+                try {
+                    early.caughtUp()
+                } catch (e: Exception) {
+                    Upcalls.report("early pointer", e)
+                }
+            }
+        }
+    }
+
+    private fun startThread() {
+        val other = EventLoop()
+        // (Its own stall reports would say "the main loop": it has none; errors are logged.)
+        other.stallMillis = 0
+        other.onError = { what, error -> log.error("Input thread: $what failed (it goes on): $error", error) }
+        loop.remove(fd)
+        other.add(fd) { dispatchBatch() }
+        inputLoop = other
+        val started = Thread.ofPlatform().name("caulis-input").daemon().unstarted {
+            log.info { "Input is read on a thread of its own" }
+            try {
+                other.run()
+            } catch (e: Throwable) {
+                log.error("The input thread ended: $e", e)
+            }
+        }
+        thread = started
+        started.start()
+        // (What came meanwhile: read there.)
+        other.post { dispatchBatch() }
+    }
+
+    private fun stopThread() {
+        val running = thread ?: return
+        val other = inputLoop ?: return
+        // Until it ended: what it waits for here (a device being opened) is done meanwhile.
+        // (Told again each time: it may not have begun to run when first told.)
+        while (running.isAlive) {
+            other.stop()
+            other.post {} // (wakes it to notice)
+            forMain.runAll()
+            running.join(10)
+        }
+        thread = null
+        inputLoop = null
+        forMain.runAll()
+        other.remove(fd)
+        other.close()
+        loop.add(fd) { dispatch() }
+        log.info { "Input is read on the compositor's thread" }
+        dispatch()
+    }
+
+    // Reads libinput on the input thread; then the cursor is shown where the pointer is now.
+    private fun dispatchBatch() {
+        dispatch()
+        val early = earlyPointer ?: return
+        try {
+            early.showEarly()
+        } catch (e: Exception) {
+            Upcalls.report("early pointer", e)
+        }
+    }
 
     private val log = dev.caulis.log.Logger("input")
 
@@ -183,7 +334,7 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
             Upcalls.guard("open_restricted", -1) { openDevice(CStrings.borrowed(path)) }
         }, arena))
         libinput_interface.close_restricted(callbacks, libinput_interface.close_restricted.allocate({ fd, _ ->
-            Upcalls.guard("close_restricted") { opened.remove(fd)?.let(session::closeDevice) }
+            Upcalls.guard("close_restricted") { toMain { opened.remove(fd)?.let(session::closeDevice) } }
         }, arena))
         context = Input.libinput_udev_create_context(callbacks, MemorySegment.NULL, udev)
         check(context != MemorySegment.NULL) { "libinput_udev_create_context failed" }
@@ -198,16 +349,40 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
         // While another virtual terminal is shown, the devices belong to it.
         session.onActiveChanged { active ->
             if (active) {
-                Input.libinput_resume(context)
+                onInputThread { Input.libinput_resume(context) }
             } else {
-                releaseEverything()
-                Input.libinput_suspend(context)
+                // Let go before the session tells the other one it may take over: done on the
+                // input thread, waited for here (the releases and the devices closed meanwhile).
+                onInputThreadAndWait {
+                    releaseEverything()
+                    Input.libinput_suspend(context)
+                }
             }
         }
     }
 
     private fun openDevice(path: String?): Int {
         if (path == null) return -1
+        // On the input thread: the session (libseat) is the compositor's thread's — asked there,
+        // waited for (at most OPEN_WAIT_SECONDS; then the device is skipped, and closed again
+        // when it was opened too late).
+        if (Thread.currentThread() === thread) {
+            val answer = java.util.concurrent.CompletableFuture<Int>()
+            forMain.add {
+                val fd = openDevice(path)
+                if (!answer.complete(fd) && fd >= 0) opened.remove(fd)?.let(session::closeDevice)
+            }
+            return try {
+                answer.get(OPEN_WAIT_SECONDS, java.util.concurrent.TimeUnit.SECONDS)
+            } catch (e: Exception) {
+                if (answer.complete(-1)) {
+                    log.warn("$path was not opened in time (the compositor's thread was busy): skipped")
+                    -1
+                } else {
+                    answer.get()
+                }
+            }
+        }
         val device = try {
             session.openDevice(Path.of(path))
         } catch (e: Exception) {
@@ -241,9 +416,10 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
                 val gone = devices.remove(device.address())
                 groups.remove(device.address())
                 gone?.let { log.info { "Device gone: ${it.name}" } }
-                gone?.tablet?.let(onTabletRemoved)
-                gone?.pad?.let(onPadRemoved)
-                onDevicesChanged()
+                published = devices.values.toList()
+                gone?.tablet?.let { t -> toMain { onTabletRemoved(t) } }
+                gone?.pad?.let { p -> toMain { onPadRemoved(p) } }
+                toMain { onDevicesChanged() }
             }
 
             Input.LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY(), Input.LIBINPUT_EVENT_TABLET_TOOL_AXIS(),
@@ -259,34 +435,34 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
                     Input.LIBINPUT_SWITCH_TABLET_MODE() -> Switch.TABLET_MODE
                     else -> null
                 }
-                if (which != null) onSwitch(which, Input.libinput_event_switch_get_switch_state(switch) == Input.LIBINPUT_SWITCH_STATE_ON())
+                val on = Input.libinput_event_switch_get_switch_state(switch) == Input.LIBINPUT_SWITCH_STATE_ON()
+                if (which != null) toMain { onSwitch(which, on) }
             }
 
             Input.LIBINPUT_EVENT_KEYBOARD_KEY() -> {
                 val key = Input.libinput_event_get_keyboard_event(event)
                 val code = Input.libinput_event_keyboard_get_key(key)
                 val pressed = Input.libinput_event_keyboard_get_key_state(key) == Input.LIBINPUT_KEY_STATE_PRESSED()
-                if (track(device, code, pressed)) onKey(Input.libinput_event_keyboard_get_time(key), code, pressed)
+                val time = Input.libinput_event_keyboard_get_time(key)
+                if (track(device, code, pressed)) toMain { onKey(time, code, pressed) }
             }
 
             Input.LIBINPUT_EVENT_POINTER_MOTION() -> {
                 val pointer = Input.libinput_event_get_pointer_event(event)
-                onPointerMotion(
-                    Input.libinput_event_pointer_get_time(pointer),
-                    Input.libinput_event_pointer_get_dx(pointer),
-                    Input.libinput_event_pointer_get_dy(pointer),
-                    Input.libinput_event_pointer_get_dx_unaccelerated(pointer),
-                    Input.libinput_event_pointer_get_dy_unaccelerated(pointer),
-                )
+                val time = Input.libinput_event_pointer_get_time(pointer)
+                val dx = Input.libinput_event_pointer_get_dx(pointer)
+                val dy = Input.libinput_event_pointer_get_dy(pointer)
+                val rawDx = Input.libinput_event_pointer_get_dx_unaccelerated(pointer)
+                val rawDy = Input.libinput_event_pointer_get_dy_unaccelerated(pointer)
+                motion(time, dx, dy, rawDx, rawDy)
             }
 
             Input.LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE() -> {
                 val pointer = Input.libinput_event_get_pointer_event(event)
-                onPointerMotionAbsolute(
-                    Input.libinput_event_pointer_get_time(pointer),
-                    Input.libinput_event_pointer_get_absolute_x_transformed(pointer, ABSOLUTE_RANGE) / ABSOLUTE_RANGE,
-                    Input.libinput_event_pointer_get_absolute_y_transformed(pointer, ABSOLUTE_RANGE) / ABSOLUTE_RANGE,
-                )
+                val time = Input.libinput_event_pointer_get_time(pointer)
+                val x = Input.libinput_event_pointer_get_absolute_x_transformed(pointer, ABSOLUTE_RANGE) / ABSOLUTE_RANGE
+                val y = Input.libinput_event_pointer_get_absolute_y_transformed(pointer, ABSOLUTE_RANGE) / ABSOLUTE_RANGE
+                toMain { onPointerMotionAbsolute(time, x, y) }
             }
 
             Input.LIBINPUT_EVENT_TOUCH_DOWN(), Input.LIBINPUT_EVENT_TOUCH_MOTION() -> {
@@ -298,9 +474,9 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
                 val y = Input.libinput_event_touch_get_y_transformed(touch, ABSOLUTE_RANGE) / ABSOLUTE_RANGE
                 if (type == Input.LIBINPUT_EVENT_TOUCH_DOWN()) {
                     touching.getOrPut(device.address()) { HashSet() } += id
-                    onTouchDown(time, id, x, y)
+                    toMain { onTouchDown(time, id, x, y) }
                 } else {
-                    onTouchMotion(time, id, x, y)
+                    toMain { onTouchMotion(time, id, x, y) }
                 }
             }
 
@@ -308,21 +484,24 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
                 val touch = Input.libinput_event_get_touch_event(event)
                 val id = Input.libinput_event_touch_get_seat_slot(touch).coerceAtLeast(0)
                 touching[device.address()]?.remove(id)
-                onTouchUp(Input.libinput_event_touch_get_time(touch), id)
+                val time = Input.libinput_event_touch_get_time(touch)
+                toMain { onTouchUp(time, id) }
             }
 
-            Input.LIBINPUT_EVENT_TOUCH_FRAME() -> onTouchFrame()
+            Input.LIBINPUT_EVENT_TOUCH_FRAME() -> toMain { onTouchFrame() }
 
             Input.LIBINPUT_EVENT_TOUCH_CANCEL() -> {
                 touching.remove(device.address())
-                onTouchCancel(Input.libinput_event_touch_get_time(Input.libinput_event_get_touch_event(event)))
+                val time = Input.libinput_event_touch_get_time(Input.libinput_event_get_touch_event(event))
+                toMain { onTouchCancel(time) }
             }
 
             Input.LIBINPUT_EVENT_POINTER_BUTTON() -> {
                 val pointer = Input.libinput_event_get_pointer_event(event)
                 val button = Input.libinput_event_pointer_get_button(pointer)
                 val pressed = Input.libinput_event_pointer_get_button_state(pointer) == Input.LIBINPUT_BUTTON_STATE_PRESSED()
-                if (track(device, button, pressed)) onPointerButton(Input.libinput_event_pointer_get_time(pointer), button, pressed)
+                val time = Input.libinput_event_pointer_get_time(pointer)
+                if (track(device, button, pressed)) toMain { onPointerButton(time, button, pressed) }
             }
 
             Input.LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN(), Input.LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE(),
@@ -354,7 +533,7 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
                     n.pressure = axes.pressure ?: 0.0
                     n.x = x
                     n.y = y
-                    onTabletProximity(time, tablet, tool, x, y, axes, true)
+                    toMain { onTabletProximity(time, tablet, tool, x, y, axes, true) }
                 } else {
                     away(time, tool)
                 }
@@ -366,7 +545,7 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
                 if (x != n.x || y != n.y || axes != TabletAxes.NONE) {
                     n.x = x
                     n.y = y
-                    onTabletMotion(time, tablet, tool, x, y, axes)
+                    toMain { onTabletMotion(time, tablet, tool, x, y, axes) }
                 }
                 // The tip: as libinput says, or as hard as the settings want.
                 val threshold = tablet.settings.tipPressure?.takeIf { TabletTool.Capability.PRESSURE in tool.capabilities }
@@ -377,14 +556,14 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
                 }
                 if (down != n.tip) {
                     n.tip = down
-                    onTabletTip(time, tablet, tool, down)
+                    toMain { onTabletTip(time, tablet, tool, down) }
                 }
             }
             Input.LIBINPUT_EVENT_TABLET_TOOL_BUTTON() -> {
                 val n = near[tool] ?: return
                 val button = Input.libinput_event_tablet_tool_get_button(e)
                 val pressed = Input.libinput_event_tablet_tool_get_button_state(e) == Input.LIBINPUT_BUTTON_STATE_PRESSED()
-                if (if (pressed) n.buttons.add(button) else n.buttons.remove(button)) onTabletButton(time, tablet, tool, button, pressed)
+                if (if (pressed) n.buttons.add(button) else n.buttons.remove(button)) toMain { onTabletButton(time, tablet, tool, button, pressed) }
             }
         }
     }
@@ -392,9 +571,12 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
     // [tool] went away (or its tablet did): its tip lifted and its buttons let go first.
     private fun away(time: Int, tool: TabletTool) {
         val n = near.remove(tool) ?: return
-        if (n.tip) onTabletTip(time, n.tablet, tool, false)
-        for (button in n.buttons) onTabletButton(time, n.tablet, tool, button, false)
-        onTabletProximity(time, n.tablet, tool, n.x, n.y, TabletAxes.NONE, false)
+        val tablet = n.tablet
+        val x = n.x
+        val y = n.y
+        if (n.tip) toMain { onTabletTip(time, tablet, tool, false) }
+        for (button in n.buttons.toList()) toMain { onTabletButton(time, tablet, tool, button, false) }
+        toMain { onTabletProximity(time, tablet, tool, x, y, TabletAxes.NONE, false) }
     }
 
     // The tool libinput means: the same object for the same physical tool. One with a serial is
@@ -455,24 +637,26 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
         val mode = Input.libinput_event_tablet_pad_get_mode(e)
         if (group in modes.indices && modes[group] != mode) {
             modes[group] = mode
-            onPadMode(time, pad, group, mode)
+            toMain { onPadMode(time, pad, group, mode) }
         }
         when (type) {
             Input.LIBINPUT_EVENT_TABLET_PAD_BUTTON() -> {
                 val button = Input.libinput_event_tablet_pad_get_button_number(e)
                 val pressed = Input.libinput_event_tablet_pad_get_button_state(e) == Input.LIBINPUT_BUTTON_STATE_PRESSED()
                 val buttons = padHeld.getOrPut(pad) { HashSet() }
-                if (if (pressed) buttons.add(button) else buttons.remove(button)) onPadButton(time, pad, button, pressed)
+                if (if (pressed) buttons.add(button) else buttons.remove(button)) toMain { onPadButton(time, pad, button, pressed) }
             }
             Input.LIBINPUT_EVENT_TABLET_PAD_RING() -> {
                 val position = Input.libinput_event_tablet_pad_get_ring_position(e)
                 val finger = Input.libinput_event_tablet_pad_get_ring_source(e) == Input.LIBINPUT_TABLET_PAD_RING_SOURCE_FINGER()
-                onPadRing(time, pad, Input.libinput_event_tablet_pad_get_ring_number(e), position.takeIf { it >= 0 }, finger)
+                val ring = Input.libinput_event_tablet_pad_get_ring_number(e)
+                toMain { onPadRing(time, pad, ring, position.takeIf { it >= 0 }, finger) }
             }
             Input.LIBINPUT_EVENT_TABLET_PAD_STRIP() -> {
                 val position = Input.libinput_event_tablet_pad_get_strip_position(e)
                 val finger = Input.libinput_event_tablet_pad_get_strip_source(e) == Input.LIBINPUT_TABLET_PAD_STRIP_SOURCE_FINGER()
-                onPadStrip(time, pad, Input.libinput_event_tablet_pad_get_strip_number(e), position.takeIf { it >= 0 }, finger)
+                val strip = Input.libinput_event_tablet_pad_get_strip_number(e)
+                toMain { onPadStrip(time, pad, strip, position.takeIf { it >= 0 }, finger) }
             }
         }
     }
@@ -549,7 +733,8 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
                 stops[index] = true
             }
         }
-        onPointerAxis(time, Scroll(source, values[0], values[1], steps[0], steps[1], stops[0], stops[1]))
+        val scroll = Scroll(source, values[0], values[1], steps[0], steps[1], stops[0], stops[1])
+        toMain { onPointerAxis(time, scroll) }
     }
 
     private fun gesture(event: MemorySegment) {
@@ -560,7 +745,7 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
         val cancelled by lazy { Input.libinput_event_gesture_get_cancelled(g) != 0 }
         val dx by lazy { Input.libinput_event_gesture_get_dx(g) }
         val dy by lazy { Input.libinput_event_gesture_get_dy(g) }
-        onGesture(
+        val gesture = (
             when (type) {
                 Input.LIBINPUT_EVENT_GESTURE_SWIPE_BEGIN() -> Gesture.SwipeBegin(time, fingers)
                 Input.LIBINPUT_EVENT_GESTURE_SWIPE_UPDATE() -> Gesture.SwipeUpdate(time, dx, dy)
@@ -571,8 +756,9 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
                 Input.LIBINPUT_EVENT_GESTURE_PINCH_END() -> Gesture.PinchEnd(time, cancelled)
                 Input.LIBINPUT_EVENT_GESTURE_HOLD_BEGIN() -> Gesture.HoldBegin(time, fingers)
                 else -> Gesture.HoldEnd(time, cancelled)
-            },
+            }
         )
+        toMain { onGesture(gesture) }
     }
 
     // A device came: what it is, and its settings.
@@ -596,9 +782,10 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
         log.info { "Device: $name (${kinds.joinToString { it.name.lowercase() }})" }
         configure(known)
         pairPads()
-        known.tablet?.let(onTabletAdded)
-        known.pad?.let(onPadAdded)
-        onDevicesChanged()
+        published = devices.values.toList()
+        known.tablet?.let { t -> toMain { onTabletAdded(t) } }
+        known.pad?.let { p -> toMain { onPadAdded(p) } }
+        toMain { onDevicesChanged() }
     }
 
     // Applies the settings that are for [device] (pointers, touchpads, tablets).
@@ -679,15 +866,15 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
         // Fingers on a touch screen that went (or whose terminal we left): programs forget them.
         if (touching.remove(device)?.isNotEmpty() == true) {
             log.info("A touch screen went away with fingers on it: the touches are cancelled")
-            onTouchCancel(time)
+            toMain { onTouchCancel(time) }
         }
         // Tools near the tablet, and pad buttons held.
         for ((tool, n) in near.toList()) if (n.device == device) away(time, tool)
-        devices[device]?.pad?.let { pad -> padHeld.remove(pad)?.forEach { onPadButton(time, pad, it, false) } }
+        devices[device]?.pad?.let { pad -> padHeld.remove(pad)?.forEach { button -> toMain { onPadButton(time, pad, button, false) } } }
         val keys = held.remove(device) ?: return
         for (code in keys) {
             // Pointer buttons are 0x110 (BTN_LEFT) and above; keys are below.
-            if (code >= BTN_MOUSE) onPointerButton(time, code, false) else onKey(time, code, false)
+            if (code >= BTN_MOUSE) toMain { onPointerButton(time, code, false) } else toMain { onKey(time, code, false) }
         }
     }
 
@@ -698,6 +885,7 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
     private fun now(): Int = (System.nanoTime() / 1_000_000).toInt()
 
     override fun close() {
+        stopThread()
         loop.remove(fd)
         Input.libinput_unref(context)
         Input.udev_unref(udev)
@@ -706,6 +894,8 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
 
     private companion object {
         const val ABSOLUTE_RANGE = 1_000_000
+        const val OPEN_WAIT_SECONDS = 5L
+        const val PAUSE_WAIT_MILLIS = 2000L
         const val BTN_MOUSE = 0x110
     }
 }

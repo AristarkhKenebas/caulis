@@ -81,8 +81,7 @@ class XwaylandTest {
                 program.x.setProperty(id, program.x.atom("_NET_WM_STATE"), Xcb.XCB_ATOM_ATOM(), intArrayOf(program.x.atom("_NET_WM_STATE_FULLSCREEN")))
             }
             val shown = waitFor { server.onServer { d -> d.windows.firstOrNull { it.title == "video" } } }
-            waitFor { server.onServer { d -> d.screenRect(shown)?.takeIf { shown.fullscreen && it.width == d.width && it.height == d.height } } }
-            Unit
+            waitFor<dev.caulis.geometry.Rect> { server.onServer { d -> d.screenRect(shown)?.takeIf { shown.fullscreen && it.width == d.width && it.height == d.height } } }
         }
     }
 
@@ -168,14 +167,13 @@ class XwaylandTest {
                     val units = server.onServer { d -> d.screenRect(oldShown) } ?: return@waitFor null
                     old.x.geometry(oldWindow)?.takeIf { it[2] == Math.round(units.width * 1.5).toInt() }
                 }
-                waitFor {
+                waitFor<IntArray> {
                     new.pump()
                     val units = server.onServer { d -> d.screenRect(newShown) } ?: return@waitFor null
                     new.x.geometry(newWindow)?.takeIf { it[2] == units.width }
                 }
             }
         }
-        Unit
     }
 
     @Test

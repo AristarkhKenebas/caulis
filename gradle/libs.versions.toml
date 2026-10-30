@@ -2,7 +2,7 @@
 
 [versions]
 # Version of Caulis itself (what compositors built with it depend on).
-caulis = "0.1.5"
+caulis = "0.1.6"
 # The JDK that compiles, tests and runs Caulis.
 java = "27"
 # Bytecode version of the compiled classes. Kotlin 2.4 can produce at most 26;
@@ -20,7 +20,9 @@ junit = "6.1.3"
 compose = "1.12.2"
 # Skia for Compose; the same version as Compose's own (its native part for Linux).
 skiko = "0.150.2"
-# Builds the API documentation website from the code comments.
+# Builds the API documentation website from the code comments. (2.2.0 calls the deprecated
+# Configuration.setVisible, a Gradle warning with --warning-mode all; fixed in Dokka after
+# 2.3.0-Beta: raise it once a release has the fix.)
 dokka = "2.2.0"
 
 # jextract turns C headers into Java FFM bindings. It is only needed to regenerate

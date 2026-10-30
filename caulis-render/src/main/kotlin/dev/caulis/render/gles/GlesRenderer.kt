@@ -444,6 +444,17 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         // How many compiled shaders of each kind are kept.
         private const val MAX_PROGRAMS = 64
 
+        /**
+         * Only the EGL driver made for the GPU's kernel driver is loaded (NVIDIA's for
+         * nvidia-drm, Mesa's for amdgpu, i915, nouveau and the others), not every one installed:
+         * tens of MB less memory where both are installed. Set before the first renderer is
+         * made; `__EGL_VENDOR_LIBRARY_FILENAMES` set by you is used as it is. False: libglvnd
+         * loads them all, as by itself.
+         */
+        @JvmStatic
+        @Volatile
+        var vendorByDriver = true
+
         /** Opens the GPU (the first render node, or [renderNode]) and prepares drawing. */
         fun create(renderNode: java.nio.file.Path = EglContext.findRenderNode()): GlesRenderer =
             GlesRenderer(EglContext.create(renderNode))

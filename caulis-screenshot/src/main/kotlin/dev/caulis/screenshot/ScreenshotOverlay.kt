@@ -181,7 +181,7 @@ internal class ScreenshotOverlay(
     }
 
     private fun drawToolbar(canvas: OverlayCanvas, monitor: Monitor, appear: Float) {
-        val at = toolbarRect().let { r -> Rect(r.x, r.y + Math.round((1 - appear) * behaviour.rise).toInt(), r.width, r.height) }
+        val at = toolbarRect().let { r -> Rect(r.x, r.y + Math.round((1 - appear) * behaviour.rise), r.width, r.height) }
         val radius = style.cornerRadius.coerceAtMost(toolbar.height / 2f)
         canvas.shadow(at, style.shadowSize, Paint.Solid(style.shadow), radius = radius, alpha = appear)
         val look = Toolbar.Look(kind, selection, pointer, delay, hovered, monitor.scale, style, pointerIdle = !pointerApplies())

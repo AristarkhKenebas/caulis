@@ -25,7 +25,8 @@ class Session private constructor(private val loop: EventLoop) : AutoCloseable {
     private val seat: MemorySegment
     private val fd: Fd
 
-    /** True while this session is in front (its virtual terminal is shown). */
+    /** True while this session is in front (its virtual terminal is shown). May be read from any thread. */
+    @Volatile
     var active = false
         private set
 

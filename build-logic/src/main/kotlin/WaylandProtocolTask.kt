@@ -260,8 +260,8 @@ internal class KotlinWriter(
         // An object the client destroyed meanwhile is never named in an event (its id may be another's now).
         for (arg in event.args.filter { it.type == "object" }) {
             val name = paramName(arg.name)
-            val nullable = arg.allowNull || arg.interfaceName == null
-            line(if (nullable) "        if ($name != null && !$name.isAlive) return" else "        if (!$name.isAlive) return")
+            // (Nullable exactly when its Kotlin type is: see kotlinType.)
+            line(if (arg.allowNull) "        if ($name != null && !$name.isAlive) return" else "        if (!$name.isAlive) return")
         }
         val shown = traceArgs(event.args.map { it.name to paramName(it.name) })
         line("        if (Wire.tracing) Wire.event(this, \"${event.name}\", \"$shown\")")

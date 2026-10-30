@@ -10,8 +10,8 @@ Add it to the `run` task only (the starter project does), not to what you instal
 contains the Kotlin compiler (about 60 MB) and an installed compositor watches no sources.
 
 ```kotlin
-val development by configurations.creating
-dependencies { development("io.github.aristarkhkenebas:caulis-reload:0.1.5") }
+val development = configurations.create("development")
+dependencies { development("io.github.aristarkhkenebas:caulis-reload:0.1.6") }
 tasks.named<JavaExec>("run") {
     classpath += development
     jvmArgumentProviders += CommandLineArgumentProvider { listOf("--sun-misc-unsafe-memory-access=allow") }

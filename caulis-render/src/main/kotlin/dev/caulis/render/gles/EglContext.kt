@@ -81,10 +81,13 @@ internal class EglContext private constructor(
             var display: MemorySegment = MemorySegment.NULL
             var context: MemorySegment = MemorySegment.NULL
             try {
-                display = Arena.ofConfined().use { arena ->
-                    // EGLAttrib list (64-bit values): just "end".
-                    val attributes = arena.allocateFrom(JAVA_LONG, Egl.EGL_NONE().toLong())
-                    Egl.eglGetPlatformDisplay(Egl.EGL_PLATFORM_GBM_KHR(), gbm, attributes)
+                // (Only the EGL vendor for this GPU's driver is loaded: see EglVendors.)
+                display = EglVendors.withVendorFor(deviceFd) {
+                    Arena.ofConfined().use { arena ->
+                        // EGLAttrib list (64-bit values): just "end".
+                        val attributes = arena.allocateFrom(JAVA_LONG, Egl.EGL_NONE().toLong())
+                        Egl.eglGetPlatformDisplay(Egl.EGL_PLATFORM_GBM_KHR(), gbm, attributes)
+                    }
                 }
                 check(display != MemorySegment.NULL) { "eglGetPlatformDisplay failed: ${eglError()}" }
                 check(Egl.eglInitialize(display, MemorySegment.NULL, MemorySegment.NULL) == Egl.EGL_TRUE()) {

@@ -13,7 +13,7 @@ fun library(name: String) = libs.findLibrary(name).get()
 
 fun version(name: String) = libs.findVersion(name).get().requiredVersion.toInt()
 
-// How other builds name these modules, e.g. io.github.aristarkhkenebas:caulis-core:0.1.5.
+// How other builds name these modules, e.g. io.github.aristarkhkenebas:caulis-core:0.1.6.
 group = "io.github.aristarkhkenebas"
 version = libs.findVersion("caulis").get().requiredVersion
 
@@ -21,16 +21,24 @@ kotlin {
     // Gradle finds and uses this JDK for compiling, testing and running.
     jvmToolchain(version("java"))
     compilerOptions {
+        // Set explicitly: the toolchain is JDK 27, but Kotlin cannot write JDK 27 bytecode yet and
+        // would fall back to 26 with a warning on every compile. Raise "java-bytecode" in
+        // libs.versions.toml to the toolchain's version once Kotlin supports it.
         jvmTarget = JvmTarget.fromTarget(version("java-bytecode").toString())
+        // Any compiler warning fails the build (to keep the log clean); -Pcaulis.strictWarnings=false to allow them.
+        allWarningsAsErrors = providers.gradleProperty("caulis.strictWarnings").map { it != "false" }.orElse(true)
         // Caulis's own modules may use each other's internals (dev.caulis.log.InternalCaulisApi);
-        // other code may not. (Modules below caulis-log do not know the annotation.)
-        if (project.name !in setOf("caulis-geometry", "caulis-tiling", "caulis-ipc")) optIn.add("dev.caulis.log.InternalCaulisApi")
+        // other code may not. (Modules below caulis-log, and tools that do not use Caulis, do
+        // not know the annotation.)
+        if (project.path !in setOf(":caulis-geometry", ":caulis-tiling", ":caulis-ipc", ":tools:cursors")) optIn.add("dev.caulis.log.InternalCaulisApi")
     }
 }
 
 // Java sources (if a module has any) produce the same bytecode version as Kotlin.
 tasks.withType<JavaCompile>().configureEach {
     options.release = version("java-bytecode")
+    // javac's warnings fail the build too (-Pcaulis.strictWarnings=false: not).
+    if (providers.gradleProperty("caulis.strictWarnings").orNull != "false") options.compilerArgs.add("-Werror")
 }
 
 dependencies {

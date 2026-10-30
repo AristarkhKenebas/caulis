@@ -140,14 +140,14 @@ class WindowManagementTest {
 
     // The serial of the last button press the client got (a move or resize must name it).
     private fun buttonSerials(client: TestClient): IntArray {
-        val serial = IntArray(1)
+        val serials = IntArray(1)
         client.seat.getPointer().events = object : dev.caulis.protocol.client.wayland.WlPointer.Events {
-            override fun button(proxy: dev.caulis.protocol.client.wayland.WlPointer, serialArg: Int, time: Int, button: Int, state: Int) {
-                serial[0] = serialArg
+            override fun button(proxy: dev.caulis.protocol.client.wayland.WlPointer, serial: Int, time: Int, button: Int, state: Int) {
+                serials[0] = serial
             }
         }
         client.connection.roundtrip()
-        return serial
+        return serials
     }
 
     private fun withServer(test: (ScreenTestServer, TestClient) -> Unit) {

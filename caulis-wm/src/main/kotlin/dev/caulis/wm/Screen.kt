@@ -194,6 +194,9 @@ internal fun runOnScreen(config: Caulis) {
                 }
                 running.inputDevices = input
                 input.onGesture = running::gesture
+                // Input read on a thread of its own (inputThread), the cursor moved from there.
+                input.earlyPointer = desktop.earlyPointer
+                input.ownThread = running.config.inputThread
 
                 backend.start()
                 // With the reveal, the first picture (dark) goes to the monitors at once — not

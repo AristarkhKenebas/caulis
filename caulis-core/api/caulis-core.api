@@ -563,6 +563,8 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getDefaultScale ()D
 	public final fun getDirector ()Ldev/caulis/core/WindowDirector;
 	public final fun getDoubleClickMillis ()J
+	public final fun getEarlyCursorMoves ()Z
+	public final fun getEarlyPointer ()Ldev/caulis/core/input/EarlyPointer;
 	public final fun getEffects ()Ldev/caulis/core/Effects;
 	public final fun getFloatRule ()Lkotlin/jvm/functions/Function1;
 	public final fun getFocusFollowsMouse ()Z
@@ -732,6 +734,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun setDefaultScale (D)V
 	public final fun setDirector (Ldev/caulis/core/WindowDirector;)V
 	public final fun setDoubleClickMillis (J)V
+	public final fun setEarlyCursorMoves (Z)V
 	public final fun setEffects (Ldev/caulis/core/Effects;)V
 	public final fun setFloatRule (Lkotlin/jvm/functions/Function1;)V
 	public final fun setFloating (Ldev/caulis/core/Window;Z)V
@@ -3224,6 +3227,12 @@ public final class dev/caulis/core/input/DeviceSettings {
 	public final fun setUpperButton (Ljava/lang/Integer;)V
 }
 
+public abstract interface class dev/caulis/core/input/EarlyPointer {
+	public abstract fun caughtUp ()V
+	public abstract fun movedEarly (DD)V
+	public abstract fun showEarly ()V
+}
+
 public abstract interface class dev/caulis/core/input/Gesture {
 	public abstract fun getTimeMillis ()I
 }
@@ -3835,6 +3844,7 @@ public final class dev/caulis/core/libinput/InputDevice$Kind : java/lang/Enum {
 public final class dev/caulis/core/libinput/InputDevices : java/lang/AutoCloseable {
 	public fun <init> (Ldev/caulis/event/EventLoop;Ldev/caulis/core/session/Session;)V
 	public fun close ()V
+	public final fun getEarlyPointer ()Ldev/caulis/core/input/EarlyPointer;
 	public final fun getHasTouchScreen ()Z
 	public final fun getHasTouchpad ()Z
 	public final fun getList ()Ljava/util/List;
@@ -3864,8 +3874,10 @@ public final class dev/caulis/core/libinput/InputDevices : java/lang/AutoCloseab
 	public final fun getOnTouchFrame ()Lkotlin/jvm/functions/Function0;
 	public final fun getOnTouchMotion ()Lkotlin/jvm/functions/Function4;
 	public final fun getOnTouchUp ()Lkotlin/jvm/functions/Function2;
+	public final fun getOwnThread ()Z
 	public final fun getSettings ()Ldev/caulis/core/input/InputSettings;
 	public final fun getTouchpadsOn ()Z
+	public final fun setEarlyPointer (Ldev/caulis/core/input/EarlyPointer;)V
 	public final fun setOnDevicesChanged (Lkotlin/jvm/functions/Function0;)V
 	public final fun setOnGesture (Lkotlin/jvm/functions/Function1;)V
 	public final fun setOnKey (Lkotlin/jvm/functions/Function3;)V
@@ -3892,6 +3904,7 @@ public final class dev/caulis/core/libinput/InputDevices : java/lang/AutoCloseab
 	public final fun setOnTouchFrame (Lkotlin/jvm/functions/Function0;)V
 	public final fun setOnTouchMotion (Lkotlin/jvm/functions/Function4;)V
 	public final fun setOnTouchUp (Lkotlin/jvm/functions/Function2;)V
+	public final fun setOwnThread (Z)V
 	public final fun setSettings (Ldev/caulis/core/input/InputSettings;)V
 	public final fun setTouchpadsOn (Z)V
 }

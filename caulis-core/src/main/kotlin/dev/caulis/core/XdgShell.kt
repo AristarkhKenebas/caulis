@@ -329,18 +329,18 @@ class XdgWindow internal constructor(val resource: XdgToplevel, val shell: Shell
                 this@XdgWindow.parent = wanted
             }
 
-            override fun setTitle(resource: XdgToplevel, wanted: String) {
+            override fun setTitle(resource: XdgToplevel, title: String) {
                 // (Passed on to panels and docks: cut to what any program can take.)
-                val title = resource.client.server.capForwarded(wanted)
-                if (title == this@XdgWindow.title) return
-                this@XdgWindow.title = title
+                val capped = resource.client.server.capForwarded(title)
+                if (capped == this@XdgWindow.title) return
+                this@XdgWindow.title = capped
                 shell.shell.listener.windowInfoChanged(this@XdgWindow)
             }
 
-            override fun setAppId(resource: XdgToplevel, wanted: String) {
-                val appId = resource.client.server.capForwarded(wanted)
-                if (appId == this@XdgWindow.appId) return
-                this@XdgWindow.appId = appId
+            override fun setAppId(resource: XdgToplevel, appId: String) {
+                val capped = resource.client.server.capForwarded(appId)
+                if (capped == this@XdgWindow.appId) return
+                this@XdgWindow.appId = capped
                 shell.shell.listener.windowInfoChanged(this@XdgWindow)
             }
 

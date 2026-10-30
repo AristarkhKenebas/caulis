@@ -86,6 +86,7 @@ public final class dev/caulis/ffi/NativeMemory {
 	public static final field INSTANCE Ldev/caulis/ffi/NativeMemory;
 	public static final fun getCanTrim ()Z
 	public static final fun limitPools (I)Z
+	public static final fun mapBlocksAbove (I)Z
 	public static final fun residentKb ()J
 	public static final fun trim ()J
 }

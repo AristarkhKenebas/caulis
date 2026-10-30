@@ -95,7 +95,7 @@ class ScreenCaptureTest {
         assertEquals(BACKGROUND, memory.pixel(2, 2, whole.stride), "the desktop's background")
         assertEquals(BLACK, memory.pixel(window.x + 10, window.y + 10, whole.stride), "the window")
 
-        val part = shot(manager.captureOutputRegion(0, grim.output!!, window.x - 5, window.y - 5, 20, 20))
+        val part = shot(manager.captureOutputRegion(0, grim.output, window.x - 5, window.y - 5, 20, 20))
         grim.waitFor { part.described }
         assertEquals(20 to 20, part.size)
         val (small, smallMemory) = grim.buffer(20, 20)
@@ -120,7 +120,7 @@ class ScreenCaptureTest {
         first.frame.copyWithDamage(buffer)
         recorder.waitFor { first.ready }
 
-        val second = shot(manager.captureOutput(0, recorder.output!!))
+        val second = shot(manager.captureOutput(0, recorder.output))
         recorder.waitFor { second.described }
         second.frame.copyWithDamage(buffer)
         repeat(20) { recorder.connection.roundtrip(); Thread.sleep(15) }
@@ -189,7 +189,7 @@ class ScreenCaptureTest {
         grim.global("zxdg_output_manager_v1", ZxdgOutputManagerV1, 3).getXdgOutput(grim.output!!).events = object : ZxdgOutputV1.Events {
             override fun logicalSize(proxy: ZxdgOutputV1, width: Int, height: Int) { logical = width to height }
         }
-        grim.output!!.events = object : WlOutput.Events {
+        grim.output.events = object : WlOutput.Events {
             override fun done(proxy: WlOutput) { described = true }
         }
         grim.waitFor { described }
@@ -197,7 +197,7 @@ class ScreenCaptureTest {
 
         val sources = grim.global("ext_output_image_capture_source_manager_v1", ExtOutputImageCaptureSourceManagerV1, 1)
         val copier = grim.global("ext_image_copy_capture_manager_v1", ExtImageCopyCaptureManagerV1, 1)
-        val sharing = Sharing(copier.createSession(sources.createSource(grim.output!!), 0))
+        val sharing = Sharing(copier.createSession(sources.createSource(grim.output), 0))
         sharing.session.events = object : ExtImageCopyCaptureSessionV1.Events {
             override fun bufferSize(proxy: ExtImageCopyCaptureSessionV1, width: Int, height: Int) { sharing.size = width to height }
             override fun done(proxy: ExtImageCopyCaptureSessionV1) { sharing.constraintsDone = true }

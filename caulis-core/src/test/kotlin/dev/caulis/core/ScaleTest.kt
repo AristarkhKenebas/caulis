@@ -51,7 +51,7 @@ class ScaleTest {
         client.output!!.events = object : WlOutput.Events {
             override fun scale(proxy: WlOutput, factor: Int) { outputScale = factor }
         }
-        client.global("zxdg_output_manager_v1", ZxdgOutputManagerV1, 3).getXdgOutput(client.output!!).events = object : ZxdgOutputV1.Events {
+        client.global("zxdg_output_manager_v1", ZxdgOutputManagerV1, 3).getXdgOutput(client.output).events = object : ZxdgOutputV1.Events {
             override fun logicalSize(proxy: ZxdgOutputV1, width: Int, height: Int) { logical = width to height }
         }
         val window = client.window()

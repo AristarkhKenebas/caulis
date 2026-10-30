@@ -317,7 +317,7 @@ object Actions {
                 "auto" -> ({ _ -> switchColorScheme(null) })
                 else -> throw IllegalArgumentException("\"$word\" is not dark, light, default, toggle or auto")
             }
-            "mode" -> needs("a mode name, or reset").let { mode -> { _ -> enterMode(mode.takeIf { it != "reset" && it != "default" }) } }
+            "mode" -> needs("a mode name, or reset").let { mode -> { _ -> enterKeyMode(mode.takeIf { it != "reset" && it != "default" }) } }
             else -> {
                 for (provider in providers) provider.parse(name, argument)?.let { return it }
                 // A compositor's own: run by the configuration of the moment.
