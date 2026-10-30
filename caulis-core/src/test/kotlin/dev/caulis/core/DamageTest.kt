@@ -23,6 +23,20 @@ class DamageTest {
     }
 
     @Test
+    fun `a moving glow redraws its ring, not the window inside`() {
+        val view = DesktopView(Monitor("TEST", null, 1920, 1080, 1.0))
+        view.takeRepaintParts(0, bounds) // the first frame: everything
+        val box = Rect(100, 100, 1000, 800)
+        val glow = DrawItem.Shadow("glow", box, 12f, 16f, dev.caulis.render.Paint.rainbow(), box, 12f, 1f, 3f)
+        glow.areas.forEach(view::damage)
+        val parts = view.takeRepaintParts(1, bounds)!!
+        assertTrue(parts.all { it.x < 100 + 12 || it.y < 100 + 12 || it.right > 1100 - 12 || it.bottom > 900 - 12 }, "$parts")
+        val area = parts.sumOf { it.width.toLong() * it.height }
+        assertTrue(area < 1000L * 800 / 5, "a thin ring: $area of ${1000 * 800}")
+        assertTrue(parts.any { it.x <= 100 - 16 } && parts.any { it.bottom >= 900 + 16 }, "all of its reach: $parts")
+    }
+
+    @Test
     fun `overlapping changes become one, far ones stay apart`() {
         val view = DesktopView(Monitor("TEST", null, 1920, 1080, 1.0))
         view.takeRepaintParts(0, bounds)
