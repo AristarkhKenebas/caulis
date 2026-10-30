@@ -108,6 +108,18 @@ interface Renderer : AutoCloseable {
         floats: Map<String, FloatArray>, ints: Map<String, Int> = emptyMap(), texture: GpuTexture? = null,
     ): Boolean = false
 
+    /**
+     * The same as [drawShaded], filling all of [target] instead of the frame being drawn —
+     * which goes on afterwards as it was (its target and clip kept): a wallpaper drawn smaller
+     * and stretched, or drawn once and shown in many parts. [part] is the part of the shader's
+     * picture (its `uv`, 0..1: x, y, width, height) the target shows. Returns false (drawing
+     * nothing) if it does not compile, or if this renderer cannot.
+     */
+    fun drawShadedInto(
+        target: GpuTarget, fragment: String, floats: Map<String, FloatArray>, ints: Map<String, Int> = emptyMap(),
+        texture: GpuTexture? = null, part: FloatArray = floatArrayOf(0f, 0f, 1f, 1f),
+    ): Boolean = false
+
     /** From now on, draws only inside [clip] (pixels; null: everywhere) — for a frame redrawn in parts. */
     fun setClip(clip: Rect?) {}
 

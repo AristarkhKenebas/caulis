@@ -272,6 +272,8 @@ public abstract interface class dev/caulis/render/Renderer : java/lang/AutoClose
 	public static synthetic fun drawRoundedRect$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFFILjava/lang/Object;)Z
 	public fun drawShaded (IIIILjava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;)Z
 	public static synthetic fun drawShaded$default (Ldev/caulis/render/Renderer;IIIILjava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;ILjava/lang/Object;)Z
+	public fun drawShadedInto (Ldev/caulis/render/GpuTarget;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;[F)Z
+	public static synthetic fun drawShadedInto$default (Ldev/caulis/render/Renderer;Ldev/caulis/render/GpuTarget;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;[FILjava/lang/Object;)Z
 	public abstract fun drawShadow (Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Color;Ldev/caulis/geometry/Rect;F)V
 	public fun drawShadow (Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Paint;Ldev/caulis/geometry/Rect;FFF)Z
 	public static synthetic fun drawShadow$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Color;Ldev/caulis/geometry/Rect;FILjava/lang/Object;)V
@@ -300,6 +302,8 @@ public final class dev/caulis/render/Renderer$DefaultImpls {
 	public static synthetic fun drawRoundedRect$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFFILjava/lang/Object;)Z
 	public static fun drawShaded (Ldev/caulis/render/Renderer;IIIILjava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;)Z
 	public static synthetic fun drawShaded$default (Ldev/caulis/render/Renderer;IIIILjava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;ILjava/lang/Object;)Z
+	public static fun drawShadedInto (Ldev/caulis/render/Renderer;Ldev/caulis/render/GpuTarget;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;[F)Z
+	public static synthetic fun drawShadedInto$default (Ldev/caulis/render/Renderer;Ldev/caulis/render/GpuTarget;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;[FILjava/lang/Object;)Z
 	public static fun drawShadow (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Paint;Ldev/caulis/geometry/Rect;FFF)Z
 	public static synthetic fun drawShadow$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Color;Ldev/caulis/geometry/Rect;FILjava/lang/Object;)V
 	public static synthetic fun drawShadow$default (Ldev/caulis/render/Renderer;Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Paint;Ldev/caulis/geometry/Rect;FFFILjava/lang/Object;)Z
@@ -328,6 +332,7 @@ public final class dev/caulis/render/gles/GlesRenderer : dev/caulis/render/Rende
 	public fun drawRoundedRect (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFF)Z
 	public fun drawRoundedRect (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Paint;FFFLdev/caulis/render/PaintState;)Z
 	public fun drawShaded (IIIILjava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;)Z
+	public fun drawShadedInto (Ldev/caulis/render/GpuTarget;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ldev/caulis/render/GpuTexture;[F)Z
 	public fun drawShadow (Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Color;Ldev/caulis/geometry/Rect;F)V
 	public fun drawShadow (Ldev/caulis/geometry/Rect;FFLdev/caulis/render/Paint;Ldev/caulis/geometry/Rect;FFF)Z
 	public fun drawTexture (Ldev/caulis/render/GpuTexture;IIIIZFLdev/caulis/geometry/Rect;F[FI)V

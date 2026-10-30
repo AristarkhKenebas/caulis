@@ -4469,6 +4469,12 @@
           "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
           "description": "shown if the shader does not compile"
         },
+        "resolution": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 1,
+          "description": "how sharp the shader is drawn (0.5: half the pixels each way, a quarter of the work)"
+        },
         "fpsLimit": {
           "type": "integer",
           "minimum": 0,

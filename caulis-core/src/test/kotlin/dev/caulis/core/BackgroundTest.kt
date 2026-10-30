@@ -223,6 +223,21 @@ class BackgroundTest {
         assertTrue(right in 120..135, "half way along the picture at the monitor's right edge: $right")
     }
 
+    @Test
+    fun `a shader drawn smaller is stretched over the screen`() = withServer { server, _ ->
+        server.onServer {
+            it.backgroundChangeMillis = 0
+            it.background = Background.shader(WallpaperShader("vec4 wallpaper(vec2 at) { return vec4(at.x, 0.0, 1.0 - at.x, 1.0); }").with(resolution = 0.25f))
+        }
+        val shot = server.screenshot()
+        val left = shot.at(4, 300)
+        val right = shot.at(width - 4, 300)
+        assertTrue((left and 0xff) > 230 && (left shr 16 and 0xff) < 25, "blue at the left: ${Integer.toHexString(left)}")
+        assertTrue((right shr 16 and 0xff) > 230 && (right and 0xff) < 25, "red at the right: ${Integer.toHexString(right)}")
+        val middle = shot.at(width / 2, 300) shr 16 and 0xff
+        assertTrue(middle in 115..140, "half way in the middle: $middle")
+    }
+
     private fun waitFor(condition: () -> Boolean) {
         val deadline = System.nanoTime() + 5_000_000_000L
         while (!condition()) {

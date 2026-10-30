@@ -166,6 +166,11 @@ internal class ShaderWallpapers(
         // Asks for frames: one using time at its pace; one following the pointer while it moves.
         val wants = if (paused) 0 else if (usesTime || (usesPointer && pointerBusy(now))) fps else 0
         val fallback = shader.fallback ?: USUAL_COLOR
+        // The part of [rect] on the monitor (0..1 of it): only that is drawn when drawn smaller.
+        val shown = rect.intersect(monitor.area)?.let { s ->
+            floatArrayOf(((s.x - rect.x) / w).toFloat(), ((s.y - rect.y) / h).toFloat(), (s.width / w).toFloat(), (s.height / h).toFloat())
+        }
+        val frameLook = look + listOf(source, frame, rect, picture, viewPart.toList(), pointerLook, workspace, shown?.toList(), shader.resolution)
         return DrawItem.Custom(key, rect, look + listOf(source, frame, alpha, rect, picture, viewPart.toList(), pointerLook, workspace), framesPerSecond = wants, wallpaper = shader) { r ->
             val floats = HashMap<String, FloatArray>(32)
             floats["time"] = floatArrayOf(seconds.toFloat())
@@ -185,10 +190,54 @@ internal class ShaderWallpapers(
             for ((i, c) in shader.colors.withIndex()) floats["colors[$i]"] = floatArrayOf(c.red, c.green, c.blue, c.alpha)
             for ((name, value) in shader.values) floats[name] = floatArrayOf(value)
             val ints = mapOf("hasPicture" to if (picture != null) 1 else 0, "clickCount" to clickList.size, "colorCount" to shader.colors.size)
-            val drawn = renderer.drawShaded(r.x, r.y, r.width, r.height, source, floats, ints, picture)
+            val drawn = if (shader.resolution < 1f && shown != null) {
+                drawSmaller(key, r, shown, frameLook, shader.resolution, source, floats, ints, picture, alpha, renderer)
+            } else {
+                renderer.drawShaded(r.x, r.y, r.width, r.height, source, floats, ints, picture)
+            }
             works(shader.name, code, fileProblem ?: if (drawn) null else renderer.effectProblem(source) ?: "it does not compile")
             if (!drawn) renderer.drawColor(r.x, r.y, r.width, r.height, fallback.red, fallback.green, fallback.blue, fallback.alpha * alpha)
         }
+    }
+
+    // --- drawn smaller, kept: by item key, its picture and what it shows -------------------------
+
+    private class Kept(val target: dev.caulis.render.GpuTarget, var look: Any?, var used: Long)
+
+    private val kept = HashMap<Any, Kept>()
+
+    // Draws the shader into a picture [resolution] as sharp as the part [shown] of [r] (pixels of
+    // the frame), once per look of its own, and stretches that over its place. False: it does not compile.
+    private fun drawSmaller(
+        key: Any, r: Rect, shown: FloatArray, look: Any?, resolution: Float, source: String, floats: Map<String, FloatArray>, ints: Map<String, Int>,
+        picture: GpuTexture?, alpha: Float, renderer: Renderer,
+    ): Boolean {
+        val px = Rect(
+            r.x + Math.round(shown[0] * r.width), r.y + Math.round(shown[1] * r.height),
+            Math.round(shown[2] * r.width).coerceAtLeast(1), Math.round(shown[3] * r.height).coerceAtLeast(1),
+        )
+        val tw = Math.round(px.width * resolution).coerceAtLeast(1)
+        val th = Math.round(px.height * resolution).coerceAtLeast(1)
+        var entry = kept[key]
+        if (entry != null && (entry.target.width != tw || entry.target.height != th)) {
+            entry.target.close()
+            kept -= key
+            entry = null
+        }
+        if (entry == null) entry = Kept(renderer.createTarget(tw, th), null, 0L).also { kept[key] = it }
+        entry.used = System.nanoTime()
+        if (entry.look != look) {
+            // (Its own size: the shader's size uniform says the whole place, in the frame's pixels.)
+            // (Drawn whole; its strength is the stretching's.)
+            if (!renderer.drawShadedInto(entry.target, source, floats + ("alpha" to floatArrayOf(1f)), ints, picture, shown)) {
+                entry.look = null
+                return false
+            }
+            entry.look = look
+        }
+        val texture = entry.target.texture ?: return renderer.drawShaded(r.x, r.y, r.width, r.height, source, floats, ints, picture)
+        renderer.drawTexture(texture, px.x, px.y, px.width, px.height, opaque = false, alpha = alpha)
+        return true
     }
 
     private fun effectiveFps(shader: WallpaperShader): Int = if (fpsLimit > 0) minOf(fpsLimit, shader.framesPerSecond) else shader.framesPerSecond
@@ -202,6 +251,11 @@ internal class ShaderWallpapers(
 
     /** The scene was built: [kept] is what is seen of it. The fastest shader seen asks for its next frame. */
     fun sceneBuilt(kept: List<DrawItem>) {
+        // Pictures drawn smaller that nothing drew for a while: let go.
+        if (this.kept.isNotEmpty()) {
+            val now = System.nanoTime()
+            this.kept.entries.removeIf { (_, entry) -> (now - entry.used > KEPT_NANOS).also { if (it) entry.target.close() } }
+        }
         var fps = 0
         var pointer = 0
         for (item in kept) {
@@ -242,6 +296,8 @@ internal class ShaderWallpapers(
     fun close() {
         tick?.cancel()
         tick = null
+        kept.values.forEach { it.target.close() }
+        kept.clear()
     }
 
     internal companion object {
@@ -256,6 +312,9 @@ internal class ShaderWallpapers(
 
         // How long a click is fresh (a ripple from it plays meanwhile).
         const val CLICK_SECONDS = 4.0
+
+        // How long a picture drawn smaller is kept while nothing draws it.
+        const val KEPT_NANOS = 5_000_000_000L
 
         private val NO_CLICK = floatArrayOf(-1f, -1f, -1000f, 0f)
 

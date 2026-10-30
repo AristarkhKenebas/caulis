@@ -749,6 +749,7 @@ object Settings {
                         Field("colors", ListType(ColorType, 0, WallpaperShader.MAX_COLORS), "colours handed to the shader (colors[0].., colorCount)"),
                         Field("values", MapType(DecimalType(-1e6, 1e6), "value name"), "the shader's settings: each a float of its name in its code (speed, intensity, ...)"),
                         Field("fallback", ColorType, "shown if the shader does not compile"),
+                        Field("resolution", DecimalType(0.1, 1.0), "how sharp the shader is drawn (0.5: half the pixels each way, a quarter of the work)"),
                         Field("fpsLimit", IntegerType(0, 240), "the most frames a second for any wallpaper shader (0: as each asks)"),
                         Field("paused", FlagType, "wallpaper shaders stand still"),
                         Field("changeMillis", IntegerType(0, 10_000), "how long one background melts into the next"),
@@ -1602,6 +1603,7 @@ object Settings {
                     values = (b["values"] as Map<String, Double>?)?.mapValues { it.value.toFloat() } ?: emptyMap(),
                     fallback = b["fallback"] as Color?,
                     framesPerSecond = fps,
+                    resolution = (b["resolution"] as Double?)?.toFloat() ?: 1f,
                 ),
             )
         }

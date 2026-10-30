@@ -305,6 +305,27 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
     override fun drawShaded(
         x: Int, y: Int, width: Int, height: Int, fragment: String,
         floats: Map<String, FloatArray>, ints: Map<String, Int>, texture: GpuTexture?,
+    ): Boolean = shaded(x, y, width, height, fragment, floats, ints, texture, null)
+
+    override fun drawShadedInto(
+        target: GpuTarget, fragment: String, floats: Map<String, FloatArray>, ints: Map<String, Int>, texture: GpuTexture?, part: FloatArray,
+    ): Boolean {
+        target as? GlesFramebuffer ?: throw notOurs(target)
+        require(part.size == 4) { "a part is x, y, width and height, not ${part.size} numbers" }
+        // Into the target, whole and cleared; then the frame being drawn goes on where it was.
+        bindTarget(target, null)
+        Gles.glClearColor(0f, 0f, 0f, 0f)
+        Gles.glClear(Gles.GL_COLOR_BUFFER_BIT())
+        try {
+            return shaded(0, 0, target.width, target.height, fragment, floats, ints, texture, part)
+        } finally {
+            this.target?.let { bindTarget(it, clip) }
+        }
+    }
+
+    private fun shaded(
+        x: Int, y: Int, width: Int, height: Int, fragment: String,
+        floats: Map<String, FloatArray>, ints: Map<String, Int>, texture: GpuTexture?, part: FloatArray?,
     ): Boolean {
         val program = shaded.compiledOnce(fragment) {
             try {
@@ -316,7 +337,7 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         } ?: return false
         program.use()
         setRect(program, x, y, width, height)
-        Gles.glUniform4f(program.uniform("source"), 0f, 0f, 1f, 1f)
+        if (part != null) Gles.glUniform4f(program.uniform("source"), part[0], part[1], part[2], part[3]) else Gles.glUniform4f(program.uniform("source"), 0f, 0f, 1f, 1f)
         if (texture != null) {
             texture as? GlTexture ?: throw notOurs(texture)
             Gles.glActiveTexture(Gles.GL_TEXTURE0())

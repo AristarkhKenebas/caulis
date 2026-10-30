@@ -32,6 +32,10 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - `wallpaperShadersPaused` and `wallpaperFpsLimit` (Caulis DSL, `Desktop`, config.json
   `background.paused` and `background.fpsLimit`): every wallpaper shader stands still, or is
   drawn at most so many times a second (a dimmed screen, a laptop on battery).
+- `WallpaperShader.with(resolution = 0.5f)` (config.json `background.resolution`): a wallpaper
+  shader drawn smaller into a picture of its own and stretched, a quarter of the GPU's work at
+  0.5, and kept — the shader runs only for its own frames, not again for each part of the
+  screen drawn anew. Underneath: `Renderer.drawShadedInto(target, ...)`.
 
 ### Changed
 - Behind the compositor's own lock screen (`lockInternally` without `hideDesktop`) programs'

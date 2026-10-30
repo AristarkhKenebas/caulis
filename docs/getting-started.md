@@ -635,11 +635,17 @@ background = Background.shader(
         values = mapOf("speed" to 0.6f, "intensity" to 1.2f),           // float speed, intensity
         fallback = Color.hex("#0c110f"),                                 // if it does not compile
         framesPerSecond = 30,
+        resolution = 0.5f,                                               // drawn at half the pixels each way, stretched
     ),
 )
 wallpaperFpsLimit = 15          // never more than 15 a second, whatever a shader asks (battery)
 wallpaperShadersPaused = true   // all stand still (a dimmed screen); false: on from where they stopped
 ```
+
+`resolution` below 1 draws the shader smaller into a picture of its own and stretches it —
+a soft wallpaper looks the same at 0.5 for a quarter of the work (on a 4K screen most of all) —
+and keeps that picture: the shader runs only for its own frames, never again because a window
+next to it changed.
 
 A `Drawing` (`desktop.addDrawing`) draws one too, over any rectangle — bigger than
 the monitor for a wallpaper that moves and zooms with your own view:

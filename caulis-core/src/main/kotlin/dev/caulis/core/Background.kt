@@ -134,10 +134,16 @@ class WallpaperShader private constructor(
     val values: Map<String, Float>,
     /** What shows if it does not compile (null: [Background.USUAL]'s colour). */
     val fallback: Color?,
+    /**
+     * How sharp it is drawn, 0.1..1 of the screen's pixels (1, the default: every pixel). Less
+     * is drawn smaller and stretched — a soft wallpaper costs a quarter at 0.5 — and kept: the
+     * shader runs only for its own frames, never again for a part of the screen drawn anew.
+     */
+    val resolution: Float,
 ) {
     /** A shader written in your code. */
     @JvmOverloads
-    constructor(code: String, image: Path? = null, framesPerSecond: Int = 30) : this(code, null, image, framesPerSecond, emptyList(), emptyMap(), null)
+    constructor(code: String, image: Path? = null, framesPerSecond: Int = 30) : this(code, null, image, framesPerSecond, emptyList(), emptyMap(), null, 1f)
 
     init {
         require(framesPerSecond in 1..240) { "framesPerSecond must be 1 to 240" }
@@ -147,12 +153,13 @@ class WallpaperShader private constructor(
                 "\"$name\" cannot be a shader value's name (letters, digits and _, not one of Caulis's own: ${RESERVED.joinToString()})"
             }
         }
+        require(resolution in 0.1f..1f) { "a wallpaper shader's resolution is 0.1 to 1, not $resolution" }
         require(values.values.all { it.isFinite() }) { "a shader value is a number, not ${values.values.firstOrNull { !it.isFinite() }}" }
     }
 
     /**
-     * The same shader with other [colors], [values], [fallback] or [framesPerSecond] (the
-     * file, if any, is still followed: a saved change shows at once).
+     * The same shader with other [colors], [values], [fallback], [framesPerSecond] or
+     * [resolution] (the file, if any, is still followed: a saved change shows at once).
      */
     @JvmOverloads
     fun with(
@@ -160,7 +167,8 @@ class WallpaperShader private constructor(
         values: Map<String, Float> = this.values,
         fallback: Color? = this.fallback,
         framesPerSecond: Int = this.framesPerSecond,
-    ): WallpaperShader = WallpaperShader(inline, file, image, framesPerSecond, colors.toList(), LinkedHashMap(values), fallback)
+        resolution: Float = this.resolution,
+    ): WallpaperShader = WallpaperShader(inline, file, image, framesPerSecond, colors.toList(), LinkedHashMap(values), fallback, resolution)
 
     /** The GLSL code with the `wallpaper` function (and any helpers it needs); a file's as it is now. */
     val code: String get() = inline ?: file!!.text
@@ -196,7 +204,7 @@ class WallpaperShader private constructor(
 
     // The same code, picture and settings is the same shader (compiled once, a mistake said once).
     override fun equals(other: Any?) = other is WallpaperShader && other.code == code && other.image == image && other.framesPerSecond == framesPerSecond &&
-        other.colors == colors && other.values == values && other.fallback == fallback
+        other.colors == colors && other.values == values && other.fallback == fallback && other.resolution == resolution
     override fun hashCode() = code.hashCode() * 31 + (image?.hashCode() ?: 0)
     override fun toString() = "WallpaperShader(${code.length} characters${image?.let { ", $it" } ?: ""})"
 
@@ -254,7 +262,7 @@ class WallpaperShader private constructor(
         @JvmStatic
         @JvmOverloads
         fun file(path: Path, image: Path? = null, framesPerSecond: Int = 30): WallpaperShader =
-            WallpaperShader(null, WatchedText.of(path), image, framesPerSecond, emptyList(), emptyMap(), null)
+            WallpaperShader(null, WatchedText.of(path), image, framesPerSecond, emptyList(), emptyMap(), null, 1f)
 
         /** A slow, soft play of colours — an example to start from. */
         @JvmField val AURORA = WallpaperShader(
