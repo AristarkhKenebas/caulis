@@ -1,0 +1,116 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-tiling",
+    "version": "0.1.6",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-geometry",
+          "version": {
+            "requires": "0.1.6"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-tiling-0.1.6.jar",
+          "url": "caulis-tiling-0.1.6.jar",
+          "size": 144729,
+          "sha512": "5fde3c8f0a80b8817adea5573cec4dadd5da47d13f5a6c4b1411661c9ff998e4fac0db2ea668c17261af52cb6be5c2be303241ca4e7ea4509909165afcfe4300",
+          "sha256": "65062cd83d9ad492c7bccbcfd8107d112c4146d7ed1af124cff649d1cc1fb3ec",
+          "sha1": "4ccf5a1fba01eac567f9091370a87e5f3a40a3e6",
+          "md5": "34924eab7b34146fb07bef97fb1b1a2a"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-geometry",
+          "version": {
+            "requires": "0.1.6"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-tiling-0.1.6.jar",
+          "url": "caulis-tiling-0.1.6.jar",
+          "size": 144729,
+          "sha512": "5fde3c8f0a80b8817adea5573cec4dadd5da47d13f5a6c4b1411661c9ff998e4fac0db2ea668c17261af52cb6be5c2be303241ca4e7ea4509909165afcfe4300",
+          "sha256": "65062cd83d9ad492c7bccbcfd8107d112c4146d7ed1af124cff649d1cc1fb3ec",
+          "sha1": "4ccf5a1fba01eac567f9091370a87e5f3a40a3e6",
+          "md5": "34924eab7b34146fb07bef97fb1b1a2a"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-tiling-0.1.6-sources.jar",
+          "url": "caulis-tiling-0.1.6-sources.jar",
+          "size": 31326,
+          "sha512": "a40348cc86cec5adeacd45c4cb62d4d39d6125425ec6127fcc4336bd323f878997a276ec3ad8cc18869472368471c47a2a385ae6f6055d1e9935ec327b4b6993",
+          "sha256": "7b67c175ac1c9f1f32ff0ccd208fd30b7878a48d2b53d79929028d1b517bf231",
+          "sha1": "7840b453ec7424eeb01d381372ab393ce56b53dc",
+          "md5": "3d8114a075f74b258c284db01ec8ed53"
+        }
+      ]
+    }
+  ]
+}

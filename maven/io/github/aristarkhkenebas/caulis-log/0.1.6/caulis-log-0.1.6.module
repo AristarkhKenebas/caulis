@@ -1,0 +1,102 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-log",
+    "version": "0.1.6",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-log-0.1.6.jar",
+          "url": "caulis-log-0.1.6.jar",
+          "size": 23239,
+          "sha512": "28c6760585fb2ad34ac16c8d9ac18e48b5337d5b8a38436b6e5087c2762de97536836e4198b1c6bd68ac33d0a056fbaab8b92741f39b30f7c37f3817f4c98888",
+          "sha256": "0f54bb28dd2720cb059ca371e13f3bc0d98eb1d216e8ec20da7dd44dee227826",
+          "sha1": "8ab6ec33cf136490be7ee32243b87ed33a77d111",
+          "md5": "708015b12a221d25130b69f8af2dc3ae"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-log-0.1.6.jar",
+          "url": "caulis-log-0.1.6.jar",
+          "size": 23239,
+          "sha512": "28c6760585fb2ad34ac16c8d9ac18e48b5337d5b8a38436b6e5087c2762de97536836e4198b1c6bd68ac33d0a056fbaab8b92741f39b30f7c37f3817f4c98888",
+          "sha256": "0f54bb28dd2720cb059ca371e13f3bc0d98eb1d216e8ec20da7dd44dee227826",
+          "sha1": "8ab6ec33cf136490be7ee32243b87ed33a77d111",
+          "md5": "708015b12a221d25130b69f8af2dc3ae"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-log-0.1.6-sources.jar",
+          "url": "caulis-log-0.1.6-sources.jar",
+          "size": 12697,
+          "sha512": "1b57151f76e57c8fee1dd89ecf4abd73cf0d9c3138904920adc26e2b644806a84ebb8d252a248845432914c8e8e15f3d36742f98bedc0bcc88cf48efbc01112a",
+          "sha256": "c37cfaedd709d1af60ab8041ff0c3146a60a371f0dc094a3d73d63500d76679c",
+          "sha1": "302ee56c99abffa8f1cea120557a9120a37ab0c0",
+          "md5": "d17d595289f2bc5e70d7320acd2b935b"
+        }
+      ]
+    }
+  ]
+}

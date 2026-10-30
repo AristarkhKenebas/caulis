@@ -1,0 +1,123 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-lua",
+    "version": "0.1.6",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-wm",
+          "version": {
+            "requires": "0.1.6"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-lua-0.1.6.jar",
+          "url": "caulis-lua-0.1.6.jar",
+          "size": 68503,
+          "sha512": "8976b618163a2a186a123dcf6daf5f501b1aa79a3a2fdb8ff42b2a22d8b84f9b99291c608a85617a8e625be61f76bc47c80f0a9234660accbe92d1295f6d1458",
+          "sha256": "53241119ab50b3e775b60950e4550bcb31ae9671989283d3d14c74adb047bf8f",
+          "sha1": "9d3cafda7e654cd4843af0ed3d9f78238532118b",
+          "md5": "dcf6af8a86fb8537620677c1d81f3227"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.luaj",
+          "module": "luaj-jse",
+          "version": {
+            "requires": "3.0.1"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-wm",
+          "version": {
+            "requires": "0.1.6"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-lua-0.1.6.jar",
+          "url": "caulis-lua-0.1.6.jar",
+          "size": 68503,
+          "sha512": "8976b618163a2a186a123dcf6daf5f501b1aa79a3a2fdb8ff42b2a22d8b84f9b99291c608a85617a8e625be61f76bc47c80f0a9234660accbe92d1295f6d1458",
+          "sha256": "53241119ab50b3e775b60950e4550bcb31ae9671989283d3d14c74adb047bf8f",
+          "sha1": "9d3cafda7e654cd4843af0ed3d9f78238532118b",
+          "md5": "dcf6af8a86fb8537620677c1d81f3227"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-lua-0.1.6-sources.jar",
+          "url": "caulis-lua-0.1.6-sources.jar",
+          "size": 24349,
+          "sha512": "91d557d6d03d1ba70ab7166fa067dae66d73988ff8739215a03e5a69975a8b6311db85d80a3ba4a6d566099cd472384310b77cb0cc8adc9b5e7f15d5cdaacd87",
+          "sha256": "2966f2a59c00fdaf5239a3e01d7af51fe86752709df6991884fea2b3327fb728",
+          "sha1": "9f957fa99c294c62d9cd313ea6bbbfaf38682943",
+          "md5": "b05f10404c8d8df1173597a810d447eb"
+        }
+      ]
+    }
+  ]
+}

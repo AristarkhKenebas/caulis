@@ -1,0 +1,116 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-ipc",
+    "version": "0.1.6",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "com.google.protobuf",
+          "module": "protobuf-javalite",
+          "version": {
+            "requires": "4.36.2"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-ipc-0.1.6.jar",
+          "url": "caulis-ipc-0.1.6.jar",
+          "size": 177586,
+          "sha512": "1f68b5891b60d3f16c3c6ed83b793e019a4c6f7aa49ab1098dfe486f70ff975d80288a034c91fa392ff7d1100379c6c7a112e351950721c03121aa5b1515daad",
+          "sha256": "c38b9393509d523da25268f0d0cdf80a4aa7a4b98d4fccc03a878cc17cff0c92",
+          "sha1": "e75529f6c68077b5b35ae4e5fd8381edbcb35bc5",
+          "md5": "7ea8d85f121fcc879c13fd024f05a492"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "com.google.protobuf",
+          "module": "protobuf-javalite",
+          "version": {
+            "requires": "4.36.2"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-ipc-0.1.6.jar",
+          "url": "caulis-ipc-0.1.6.jar",
+          "size": 177586,
+          "sha512": "1f68b5891b60d3f16c3c6ed83b793e019a4c6f7aa49ab1098dfe486f70ff975d80288a034c91fa392ff7d1100379c6c7a112e351950721c03121aa5b1515daad",
+          "sha256": "c38b9393509d523da25268f0d0cdf80a4aa7a4b98d4fccc03a878cc17cff0c92",
+          "sha1": "e75529f6c68077b5b35ae4e5fd8381edbcb35bc5",
+          "md5": "7ea8d85f121fcc879c13fd024f05a492"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-ipc-0.1.6-sources.jar",
+          "url": "caulis-ipc-0.1.6-sources.jar",
+          "size": 97391,
+          "sha512": "4f94c9448ea240dc6b4a33c0876b97c6b2baf991c7a53c7291a8e26bc00418ff79e86d5055f1a6239fba08b33c25d95ab2d18c19b859990fb793388031d8c9cd",
+          "sha256": "7d0a1f456b488123fc0046561801e1ac5dfb93c9d1961fc9f56701fd6972e71e",
+          "sha1": "8a1a321e79f24bd613e320af761ad4ac235b04a4",
+          "md5": "f3ad74b01a6c51dec29da0cd366e2084"
+        }
+      ]
+    }
+  ]
+}

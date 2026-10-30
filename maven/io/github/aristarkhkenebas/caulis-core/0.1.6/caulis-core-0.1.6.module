@@ -1,0 +1,144 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-core",
+    "version": "0.1.6",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-protocol",
+          "version": {
+            "requires": "0.1.6"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-render",
+          "version": {
+            "requires": "0.1.6"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-tiling",
+          "version": {
+            "requires": "0.1.6"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-core-0.1.6.jar",
+          "url": "caulis-core-0.1.6.jar",
+          "size": 2321271,
+          "sha512": "509ee2741e65d23c39999c95c1036570ba18f9591cfc31aac297d9945faf7c906b05b2e623fcb31201223f2628e001a9e3d5ff1fe8c2bfe3c5005f198d315abd",
+          "sha256": "4f386d6a3bee14a173d703df86190b6d478f18b0d289a26cad1866f1a03516ad",
+          "sha1": "481cd4b0247ddcde92a8e87aa90a80737f01101d",
+          "md5": "dae420e4eaed25e64598ebb4579d6132"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-protocol",
+          "version": {
+            "requires": "0.1.6"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-render",
+          "version": {
+            "requires": "0.1.6"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-tiling",
+          "version": {
+            "requires": "0.1.6"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-core-0.1.6.jar",
+          "url": "caulis-core-0.1.6.jar",
+          "size": 2321271,
+          "sha512": "509ee2741e65d23c39999c95c1036570ba18f9591cfc31aac297d9945faf7c906b05b2e623fcb31201223f2628e001a9e3d5ff1fe8c2bfe3c5005f198d315abd",
+          "sha256": "4f386d6a3bee14a173d703df86190b6d478f18b0d289a26cad1866f1a03516ad",
+          "sha1": "481cd4b0247ddcde92a8e87aa90a80737f01101d",
+          "md5": "dae420e4eaed25e64598ebb4579d6132"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-core-0.1.6-sources.jar",
+          "url": "caulis-core-0.1.6-sources.jar",
+          "size": 1086913,
+          "sha512": "6db34016c767a0fd0d732fa756180345f1a39f32dd18b8b6c5c3fb2d77d7afd155c256da6e2c0c43cf7c26c514a594f6dcdf14c16755ee93253ba89b23a7c589",
+          "sha256": "0a08a9f60976366d156cc041b191cd722e723a40240d2d4eece6747ee60550d7",
+          "sha1": "b3494fde9bf64252d17e3cda5358f8627a0ccd53",
+          "md5": "68fd0ab2f50bb27c2aa9ab0cf01922f0"
+        }
+      ]
+    }
+  ]
+}
