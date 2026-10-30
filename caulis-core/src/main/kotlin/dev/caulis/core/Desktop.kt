@@ -1127,7 +1127,7 @@ class Desktop(
     private val log = Logger("config")
     private val windowsLog = Logger("windows")
     private val focusLog = Logger("focus")
-    private val inputLog = Logger("input")
+    internal val inputLog = Logger("input")
     private val layoutLog = Logger("layout")
     private val layersLog = Logger("layers")
     private val lockLog = Logger("lock")
@@ -1933,7 +1933,7 @@ class Desktop(
         grabs.clear()
         endGrab()
         // Fingers on a program's window: the program forgets them (else they went on under the lock).
-        if (touchPoints.values.any { it.surface != null }) touchCancel((System.nanoTime() / 1_000_000).toInt())
+        if (touch.touchingPrograms) touchCancel((System.nanoTime() / 1_000_000).toInt())
         if (inOverview) {
             inOverview = false
             cameraFrom = Camera.NONE
@@ -4305,7 +4305,7 @@ class Desktop(
 
     // --- moving and resizing with the pointer ---------------------------------------------
 
-    private sealed class Grab(val window: Window, val pointerX: Double, val pointerY: Double) {
+    internal sealed class Grab(val window: Window, val pointerX: Double, val pointerY: Double) {
         class Move(window: Window, pointerX: Double, pointerY: Double, val startX: Int, val startY: Int) :
             Grab(window, pointerX, pointerY)
 
@@ -4316,7 +4316,7 @@ class Desktop(
         }
     }
 
-    private var grab: Grab? = null
+    internal var grab: Grab? = null
     private var buttonsHeld = 0
 
     override fun moveRequested(window: Window, serial: Int) {
@@ -4484,7 +4484,7 @@ class Desktop(
     private val popups = ArrayList<Popup>()
 
     /** Popups that asked for a grab: a click outside them closes them. */
-    private val grabs = ArrayList<Popup>()
+    internal val grabs = ArrayList<Popup>()
 
     /** Pointer position on the output. */
     var pointerX = width / 2.0
@@ -4876,11 +4876,7 @@ class Desktop(
 
     // --- touch screens -----------------------------------------------------------------------------
 
-    // Each finger down: the surface it touches and where that surface is (desktop units), or
-    // null: the finger is the pointer (on our widgets, a menu, programs without touch).
-    private class TouchPoint(val surface: Surface?, val x: Double, val y: Double, val scaleX: Double, val scaleY: Double)
-
-    private val touchPoints = HashMap<Int, TouchPoint>()
+    private val touch = DesktopTouch(this, seat)
 
     /** A touch screen is there (programs are told they may get touches). */
     var touchScreen: Boolean
@@ -4890,68 +4886,25 @@ class Desktop(
             seat.touchScreen = value
         }
 
-    // The finger that is the pointer now, if any (only one at a time).
-    private var pointerFinger: Int? = null
-
     /**
      * A finger [id] touches the screen at ([x], [y]) (desktop units). On a program's window
      * that listens to touches it is a touch (the window gets the focus); elsewhere — the
      * compositor's bars and menus, programs without touch, the lock screen — it is the pointer
      * pressing the left button.
      */
-    fun touchDown(timeMillis: Int, id: Int, x: Double, y: Double) {
-        onUserActivity()
-        val plain = !locked && overlay == null && !inOverview && grab == null && grabs.isEmpty()
-        val hit = if (plain) (pointedAt(x, y, widgetsToo = true) as? Pointed.AtSurface)?.hit else null
-        if (hit != null && seat.takesTouch(hit.surface)) {
-            (hit.root.roleObject as? Window)?.let { if (it !== focusedWindow) focus(it) }
-            touchPoints[id] = TouchPoint(hit.surface, x - hit.localX * hit.scaleX, y - hit.localY * hit.scaleY, hit.scaleX, hit.scaleY)
-            inputLog.trace { "Touch $id on ${hit.root.roleObject ?: hit.surface}" }
-            seat.touchDown(timeMillis, hit.surface, id, hit.localX, hit.localY)
-            return
-        }
-        if (pointerFinger != null) return
-        pointerFinger = id
-        touchPoints[id] = TouchPoint(null, 0.0, 0.0, 1.0, 1.0)
-        inputLog.trace { "Touch $id as the pointer" }
-        pointerMoved(timeMillis, x, y)
-        pointerButton(timeMillis, BTN_LEFT, true)
-    }
+    fun touchDown(timeMillis: Int, id: Int, x: Double, y: Double) = touch.down(timeMillis, id, x, y)
 
     /** Finger [id] moved to ([x], [y]). */
-    fun touchMotion(timeMillis: Int, id: Int, x: Double, y: Double) {
-        val point = touchPoints[id] ?: return
-        onUserActivity()
-        if (point.surface == null) {
-            if (pointerFinger == id) pointerMoved(timeMillis, x, y)
-            return
-        }
-        seat.touchMotion(timeMillis, id, (x - point.x) / point.scaleX, (y - point.y) / point.scaleY)
-    }
+    fun touchMotion(timeMillis: Int, id: Int, x: Double, y: Double) = touch.motion(timeMillis, id, x, y)
 
     /** Finger [id] lifted. */
-    fun touchUp(timeMillis: Int, id: Int) {
-        val point = touchPoints.remove(id) ?: return
-        if (point.surface == null) {
-            if (pointerFinger == id) {
-                pointerFinger = null
-                pointerButton(timeMillis, BTN_LEFT, false)
-            }
-            return
-        }
-        seat.touchUp(timeMillis, id)
-    }
+    fun touchUp(timeMillis: Int, id: Int) = touch.up(timeMillis, id)
 
     /** The end of a group of touch events (fingers that moved together). */
     fun touchFrame() = seat.touchFrame()
 
     /** The touches are cancelled (the device went away): programs forget them, the pointer's button is let go. */
-    fun touchCancel(timeMillis: Int) {
-        seat.touchCancel()
-        if (pointerFinger != null) pointerButton(timeMillis, BTN_LEFT, false)
-        pointerFinger = null
-        touchPoints.clear()
-    }
+    fun touchCancel(timeMillis: Int) = touch.cancel(timeMillis)
 
     // --- drawing tablets -------------------------------------------------------------------------
 
@@ -5578,12 +5531,12 @@ class Desktop(
 
     // What the pointer at ([x], [y]) is over: a program's surface or (with [widgetsToo]) one of
     // our widgets — topmost first, in the order they are drawn.
-    private sealed interface Pointed {
+    internal sealed interface Pointed {
         class AtSurface(val hit: Hit) : Pointed
         class AtWidget(val widget: Widget, val area: Rect, val level: DrawingLevel) : Pointed
     }
 
-    private fun pointedAt(x: Double, y: Double, widgetsToo: Boolean): Pointed? {
+    internal fun pointedAt(x: Double, y: Double, widgetsToo: Boolean): Pointed? {
         fun Hit?.at(): Pointed? = this?.let(Pointed::AtSurface)
         fun widget(level: DrawingLevel): Pointed? =
             if (widgetsToo && widgets.isNotEmpty()) widgetAt(x, y, level)?.let { (widget, area) -> Pointed.AtWidget(widget, area, level) } else null
