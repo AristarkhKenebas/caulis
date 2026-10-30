@@ -1046,6 +1046,12 @@
           "minimum": 0,
           "maximum": 16,
           "description": "threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)"
+        },
+        "movingPaintsFps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 240,
+          "description": "borders and shadows that move by themselves (turning gradients, shaders) drawn anew at most this often a second (0: every frame)"
         }
       },
       "description": "watching the main loop, giving memory back"

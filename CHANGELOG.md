@@ -36,6 +36,9 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   shader drawn smaller into a picture of its own and stretched, a quarter of the GPU's work at
   0.5, and kept — the shader runs only for its own frames, not again for each part of the
   screen drawn anew. Underneath: `Renderer.drawShadedInto(target, ...)`.
+- `movingPaintsFps` (Caulis DSL, `Desktop`, config.json `performance.movingPaintsFps`; 0, the
+  default: every frame as before): borders and shadows that move by themselves are drawn anew at
+  most so many times a second — an animated focus border at 30 costs half on a 60 Hz screen.
 
 ### Changed
 - Behind the compositor's own lock screen (`lockInternally` without `hideDesktop`) programs'

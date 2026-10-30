@@ -205,6 +205,18 @@ class Caulis {
             running?.desktop?.wallpaperFpsLimit = value
         }
 
+    /**
+     * Borders and shadows that move by themselves (a turning gradient, a shader using time)
+     * are drawn anew at most this many times a second (0, the default: every frame). 30 halves
+     * an animated focus border's work on a 60 Hz screen.
+     */
+    var movingPaintsFps = 0
+        set(value) {
+            require(value in 0..240) { "movingPaintsFps is 0 (every frame) to 240" }
+            field = value
+            running?.desktop?.movingPaintsFps = value
+        }
+
     /** How long one background melts into the next (milliseconds). */
     var backgroundChangeMillis = 400L
         set(value) {

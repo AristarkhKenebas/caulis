@@ -286,6 +286,7 @@
 ---@field inputThread? boolean keyboards, mice and touchpads are read on a thread of their own; the cursor keeps moving while the compositor is busy
 ---@field glVendorByDriver? boolean only the EGL driver for the GPU in use is loaded, not every one installed (only at the start)
 ---@field widgetThreads? integer threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)
+---@field movingPaintsFps? integer borders and shadows that move by themselves (turning gradients, shaders) drawn anew at most this often a second (0: every frame)
 
 ---@class caulis.Settings.systemKeys
 ---@field volumeStep? integer percent per press of the volume keys

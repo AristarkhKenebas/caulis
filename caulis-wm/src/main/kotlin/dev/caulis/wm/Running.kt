@@ -815,6 +815,7 @@ internal class Running(
         desktop.backgroundChangeMillis = config.backgroundChangeMillis
         desktop.wallpaperShadersPaused = config.wallpaperShadersPaused
         desktop.wallpaperFpsLimit = config.wallpaperFpsLimit
+        desktop.movingPaintsFps = config.movingPaintsFps
         desktop.overviewFill = config.overviewFill
         desktop.monitorEdges = config.monitorEdges
         desktop.resizeBorder = config.resizeBorder

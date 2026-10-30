@@ -741,6 +741,10 @@ is a colour, Hyprland's text, or `{ "gradient": [...], "degrees": 45 }`, `{ "con
 `{ "rainbow": 6 }`, `{ "shader": "glow.glsl" }`; `"animate": false` stops moving ones; a
 rule's `"borderPaint": { "focused": ..., "unfocused": ..., "urgent": ... }`.
 
+A moving border is drawn anew every frame of the screen while it is seen; `movingPaintsFps = 30`
+(config.json `performance.movingPaintsFps`) draws moving borders and shadows at most 30 times a
+second — on a 60 Hz screen half the work, and a slow gradient looks the same.
+
 #### Border shaders
 
 A shader paint is GLSL (OpenGL ES 3) with `vec4 paint(vec2 at)` returning a plain colour.

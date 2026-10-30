@@ -595,6 +595,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getMinimized ()Ljava/util/List;
 	public final fun getMonitorEdges ()Ldev/caulis/core/MonitorEdges;
 	public final fun getMonitors ()Ljava/util/List;
+	public final fun getMovingPaintsFps ()I
 	public final fun getNoticeStyle ()Ldev/caulis/core/NoticeStyle;
 	public final fun getNotices ()Ljava/util/List;
 	public final fun getOnChange ()Lkotlin/jvm/functions/Function0;
@@ -760,6 +761,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun setMaximized (Ldev/caulis/core/Window;Z)V
 	public final fun setMinimizeTarget (Ldev/caulis/core/Window;Ldev/caulis/core/Surface;Ldev/caulis/geometry/Rect;)V
 	public final fun setMonitorEdges (Ldev/caulis/core/MonitorEdges;)V
+	public final fun setMovingPaintsFps (I)V
 	public final fun setNoticeStyle (Ldev/caulis/core/NoticeStyle;)V
 	public final fun setOnChange (Lkotlin/jvm/functions/Function0;)V
 	public final fun setOnUserActivity (Lkotlin/jvm/functions/Function0;)V

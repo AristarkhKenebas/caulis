@@ -218,6 +218,7 @@ let
       "inputThread" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "keyboards, mice and touchpads are read on a thread of their own; the cursor keeps moving while the compositor is busy"; };
       "glVendorByDriver" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "only the EGL driver for the GPU in use is loaded, not every one installed (only at the start)"; };
       "widgetThreads" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (16)); default = null; description = "threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)"; };
+      "movingPaintsFps" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (240)); default = null; description = "borders and shadows that move by themselves (turning gradients, shaders) drawn anew at most this often a second (0: every frame)"; };
     }; }); default = null; description = "watching the main loop, giving memory back"; };
     "systemKeys" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
       "volumeStep" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (1) (100)); default = null; description = "percent per press of the volume keys"; };

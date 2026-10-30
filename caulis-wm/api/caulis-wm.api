@@ -220,6 +220,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getMaxRegionParts ()I
 	public final fun getMode ()Ldev/caulis/wm/Caulis$Mode;
 	public final fun getMonitorEdges ()Ldev/caulis/core/MonitorEdges;
+	public final fun getMovingPaintsFps ()I
 	public final fun getNestedIn ()Ljava/nio/file/Path;
 	public final fun getNestedMonitors ()I
 	public final fun getNoticeStyle ()Ldev/caulis/core/NoticeStyle;
@@ -485,6 +486,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setMaxRegionParts (I)V
 	public final fun setMode (Ldev/caulis/wm/Caulis$Mode;)V
 	public final fun setMonitorEdges (Ldev/caulis/core/MonitorEdges;)V
+	public final fun setMovingPaintsFps (I)V
 	public final fun setNestedIn (Ljava/nio/file/Path;)V
 	public final fun setNestedMonitors (I)V
 	public final fun setNoticeStyle (Ldev/caulis/core/NoticeStyle;)V

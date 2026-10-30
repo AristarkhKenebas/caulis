@@ -83,6 +83,7 @@ class Desktop(
         appearingPictures.clear()
         backdrops.close()
         wallpaperShaders.close()
+        paintsTimer?.cancel()
         osd.close()
     }
 
@@ -3341,6 +3342,41 @@ class Desktop(
     private var focusChanging = false
     private val paintStart = System.nanoTime()
 
+    /**
+     * How many times a second borders and shadows that move by themselves (a turning gradient,
+     * a shader using time) are drawn anew, at most (0, the default: every frame of the screen).
+     * 30 halves the work of an animated focus border on a 60 Hz screen and looks the same.
+     */
+    var movingPaintsFps = 0
+        set(value) {
+            require(value in 0..240) { "movingPaintsFps is 0 (every frame) to 240, not $value" }
+            if (field == value) return
+            field = value
+            renderLog.info { if (value == 0) "Moving borders and shadows: every frame" else "Moving borders and shadows: at most $value frames a second" }
+        }
+
+    // When moving paints last moved on, and the frame asked for when they are due next.
+    private var paintsMovedAt = 0L
+    private var paintsTimer: dev.caulis.event.EventLoop.Timer? = null
+
+    // True if moving paints are due to move on now ([movingPaintsFps]); if not, a frame is asked for when they are.
+    private fun paintsDue(now: Long): Boolean {
+        val fps = movingPaintsFps
+        if (fps <= 0) return true
+        val interval = 1_000_000_000L / fps
+        if (now - paintsMovedAt >= interval) {
+            paintsMovedAt = now
+            return true
+        }
+        if (paintsTimer == null) {
+            paintsTimer = compositor.display.loop.after(((interval - (now - paintsMovedAt)) / 1_000_000).coerceAtLeast(1)) {
+                paintsTimer = null
+                changed()
+            }
+        }
+        return false
+    }
+
     // The time a moving paint is drawn at (0 for one that does not move, or must not: [animate] false).
     private fun paintTime(paint: dev.caulis.render.Paint, animate: Boolean = true): Float {
         if (!animate || !paint.moving) return 0f
@@ -5704,11 +5740,12 @@ class Desktop(
         var movingThing: Any? = null
         for (list in drawings.values) for (d in list) if (userCode("Your drawing (animating)", false) { d.animating(now) }) { directorMoving = true; movingThing = d }
         for (w in widgets.toList()) if (userCode("Your widget (animating)", false) { w.animating(now) }) { directorMoving = true; movingThing = w }
-        if (glides.isNotEmpty() || cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsMoving || focusChanging || directorMoving) {
+        val paintsNow = paintsMoving && paintsDue(now)
+        if (glides.isNotEmpty() || cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsNow || focusChanging || directorMoving) {
             // Windows are gliding (or the overview zooms): the scene changes every frame until done.
             if (renderLog.level >= 2) {
                 val why = listOfNotNull("glides".takeIf { glides.isNotEmpty() }, "camera".takeIf { cameraMoving(System.nanoTime()) }, "fading".takeIf { fadingNow },
-                    "notices".takeIf { noticesMoving }, "animating".takeIf { animatingNow }, "backdrops".takeIf { backdropsChanging }, "paints".takeIf { paintsMoving },
+                    "notices".takeIf { noticesMoving }, "animating".takeIf { animatingNow }, "backdrops".takeIf { backdropsChanging }, "paints".takeIf { paintsNow },
                     "focus".takeIf { focusChanging }, "director".takeIf { directorAnimating }, movingThing?.let { "drawing or widget $it" })
                 renderLog.trace { "Moving: ${why.joinToString()}" }
                 busy.moving(why)

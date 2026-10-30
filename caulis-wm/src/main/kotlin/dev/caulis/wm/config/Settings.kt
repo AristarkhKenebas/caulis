@@ -577,6 +577,7 @@ object Settings {
                         Field("inputThread", FlagType, "keyboards, mice and touchpads are read on a thread of their own; the cursor keeps moving while the compositor is busy"),
                         Field("glVendorByDriver", FlagType, "only the EGL driver for the GPU in use is loaded, not every one installed (only at the start)"),
                         Field("widgetThreads", IntegerType(0, 16), "threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)"),
+                        Field("movingPaintsFps", IntegerType(0, 240), "borders and shadows that move by themselves (turning gradients, shaders) drawn anew at most this often a second (0: every frame)"),
                     ),
                     "performance",
                 ),
@@ -1002,6 +1003,7 @@ object Settings {
             (p["mallocMapAboveKb"] as Int?)?.let { caulis.mallocMapAboveKb = if (it in 1..15) 16 else it }
             (p["glVendorByDriver"] as Boolean?)?.let { caulis.glVendorByDriver = it }
             (p["widgetThreads"] as Int?)?.let { caulis.widgetThreads = it }
+            (p["movingPaintsFps"] as Int?)?.let { caulis.movingPaintsFps = it }
         }
         section("cursor")?.let { c ->
             (c["theme"] as String?)?.let { caulis.cursorTheme = it }

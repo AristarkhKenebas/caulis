@@ -47,6 +47,28 @@ class PaintTest {
     }
 
     @Test
+    fun `a turning border is drawn at most movingPaintsFps times a second`() = withServer { server, client ->
+        server.onServer { d ->
+            d.layout = Floating
+            d.effects = Effects(border = Border(6, focused = Paint.conic(Color.hex("#ff0000"), Color.hex("#0000ff"), turnsPerSecond = 0.5)))
+        }
+        client.window().draw(200, 150)
+        rectOf(server, client)
+        Thread.sleep(300)
+        var start = server.framesDrawn
+        Thread.sleep(1000)
+        val everyFrame = server.framesDrawn - start
+        server.onServer { d -> d.movingPaintsFps = 10 }
+        Thread.sleep(300)
+        start = server.framesDrawn
+        Thread.sleep(1000)
+        val limited = server.framesDrawn - start
+        assertTrue(everyFrame > 40, "every frame of the 60 Hz screen: $everyFrame")
+        assertTrue(limited in 5..15, "about 10 a second: $limited")
+        server.onServer { d -> d.movingPaintsFps = 0 }
+    }
+
+    @Test
     fun `the border changes smoothly when the focus moves`() = withServer { server, client ->
         server.onServer { d ->
             d.layout = Floating
