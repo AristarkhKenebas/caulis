@@ -439,3 +439,13 @@ internal fun cullHidden(items: List<DrawItem>, bounds: Rect): List<DrawItem> {
     kept.reverse()
     return kept
 }
+
+/** The shadows among [items] from [from] on go below the rest there, each keeping its order. */
+internal fun shadowsFirst(items: MutableList<DrawItem>, from: Int) {
+    val part = items.subList(from, items.size)
+    val (shadows, rest) = part.toList().partition { it is DrawItem.Shadow }
+    if (shadows.isEmpty() || rest.isEmpty()) return
+    part.clear()
+    part += shadows
+    part += rest
+}

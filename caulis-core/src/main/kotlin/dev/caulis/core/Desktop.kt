@@ -6062,7 +6062,10 @@ class Desktop(
                 all += DrawItem.Color("dim ${pad.name}", padArea(pad), 0f, 0f, 0f, alpha = overlay.dim)
             }
             val fade = if (pad.isSpecial && specialWorkspaces.look.fade) amount else 1f
+            val first = all.size
             for (window in pad.windows) addWindow(all, window, now, leaving = pad.leaving, fade = fade)
+            // A special workspace's windows lie side by side: one's shadow or glow goes under the others too.
+            if (pad.isSpecial) shadowsFirst(all, first)
         }
         addLayers(all, LayerShell.Layer.OVERLAY)
         for (popup in popups) {

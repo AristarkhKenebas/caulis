@@ -37,6 +37,15 @@ class DamageTest {
     }
 
     @Test
+    fun `shadows go below the rest from a point on, in their order`() {
+        fun tint(key: String) = DrawItem.Tint(key, Rect(0, 0, 10, 10), 0f, 0f, 0f, 0f, 1f)
+        fun shadow(key: String) = DrawItem.Shadow(key, Rect(0, 0, 10, 10), 0f, 4f, dev.caulis.render.Paint.rainbow(), Rect(0, 0, 10, 10), 0f)
+        val items = mutableListOf<DrawItem>(tint("below"), tint("a"), shadow("s1"), tint("b"), shadow("s2"))
+        shadowsFirst(items, 1)
+        assertTrue(items.map { it.key } == listOf("below", "s1", "s2", "a", "b"), "${items.map { it.key }}")
+    }
+
+    @Test
     fun `overlapping changes become one, far ones stay apart`() {
         val view = DesktopView(Monitor("TEST", null, 1920, 1080, 1.0))
         view.takeRepaintParts(0, bounds)

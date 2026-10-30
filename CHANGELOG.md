@@ -27,6 +27,7 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   whose opaque region is not really opaque now shows the plain colour there instead of the wallpaper.
 
 ### Fixed
+- A special workspace: the shadow or glow of a window no longer falls over the windows beside it.
 - CI on GitHub runners with a /dev/dri but no usable GPU: the GPU tests failed there instead
   of being skipped, because they only looked whether /dev/dri exists (the runners now have
   one, with a virtual display card and no render node). Every GPU test, and the test servers
