@@ -39,6 +39,7 @@ class Desktop(
     // Parts of the desktop in classes of their own (in this module; they reach back into the
     // desktop for what they need). First, so that nothing below finds them missing.
     private val touch = DesktopTouch(this, seat)
+    private val pens = DesktopPens(this, seat)
     private val pointerGrab = DesktopPointerGrab(this, seat)
 
     // Our listener for saved shader files (taken away again in close).
@@ -4826,28 +4827,6 @@ class Desktop(
         override fun button(timeMillis: Int, button: Int, pressed: Boolean) = pointerButton(timeMillis, button, pressed)
     }
 
-    // Each tool near a tablet: its tablet, where it is, its tip, and the program's surface it is
-    // over (null: it is the pointer there). While its tip or a button is down it stays where
-    // that began — a program's surface, or the pointer — as a mouse with a button held does.
-    private class Pen(val tablet: Tablet) {
-        var x = 0.0
-        var y = 0.0
-        var tip = false
-        var surface: Surface? = null
-        var window: Window? = null
-        // Where that surface's top left corner is (desktop units), and how stretched it is drawn.
-        var originX = 0.0
-        var originY = 0.0
-        var scaleX = 1.0
-        var scaleY = 1.0
-        // Buttons held: each one's code as it was passed on (the pointer's button, or the pen's own).
-        val buttons = HashMap<Int, Int>()
-        // The tip went down only to close a menu of ours: its lifting is nobody's either.
-        var swallowed = false
-    }
-
-    private val pens = HashMap<TabletTool, Pen>()
-
     /**
      * A [tool] of [tablet] came near it ([near]) at ([x], [y]) (desktop units) with its [axes],
      * or went away. Over a program that takes tablet events ([tablets]) that program gets the
@@ -4855,113 +4834,21 @@ class Desktop(
      * overview, a program that does not, a [Tablet] set to [dev.caulis.core.input.DeviceSettings.pointerOnly])
      * the pen is the pointer: its tip the left button, its buttons as its settings say.
      */
-    fun tabletProximity(timeMillis: Int, tablet: Tablet, tool: TabletTool, x: Double, y: Double, axes: TabletAxes, near: Boolean) {
-        onUserActivity()
-        if (near) {
-            val pen = pens.getOrPut(tool) {
-                inputLog.trace { "The $tool came near ${tablet.name}" }
-                Pen(tablet)
-            }
-            penMoved(timeMillis, tool, pen, x, y, axes)
-            return
-        }
-        val pen = pens[tool] ?: return
-        if (pen.tip) tabletTip(timeMillis, tool, false)
-        for (button in pen.buttons.keys.toList()) tabletButton(timeMillis, tool, button, false)
-        pens.remove(tool)
-        if (pen.surface != null) tablets?.proximityOut(timeMillis, tool)
-        inputLog.trace { "The $tool went away" }
-    }
+    fun tabletProximity(timeMillis: Int, tablet: Tablet, tool: TabletTool, x: Double, y: Double, axes: TabletAxes, near: Boolean) =
+        pens.proximity(timeMillis, tablet, tool, x, y, axes, near)
 
     /** [tool] (near a tablet: [tabletProximity]) moved to ([x], [y]) (desktop units), and its [axes] changed. */
-    fun tabletMotion(timeMillis: Int, tool: TabletTool, x: Double, y: Double, axes: TabletAxes) {
-        val pen = pens[tool] ?: return
-        onUserActivity()
-        penMoved(timeMillis, tool, pen, x, y, axes)
-    }
+    fun tabletMotion(timeMillis: Int, tool: TabletTool, x: Double, y: Double, axes: TabletAxes) = pens.motion(timeMillis, tool, x, y, axes)
 
     /** [tool]'s tip touched the tablet ([down]) or lifted off it. */
-    fun tabletTip(timeMillis: Int, tool: TabletTool, down: Boolean) {
-        val pen = pens[tool] ?: return
-        if (pen.tip == down) return
-        onUserActivity()
-        pen.tip = down
-        if (pen.surface == null) return penPointer.button(timeMillis, BTN_LEFT, down)
-        if (down) {
-            // A touch outside our open menus closes them, as a click does (and only that).
-            if (penPressedOutside(pen)) {
-                pen.swallowed = true
-                return
-            }
-            pen.window?.let { if (it !== focusedWindow) focus(it) }
-        } else if (pen.swallowed) {
-            pen.swallowed = false
-            return
-        }
-        tablets?.tip(timeMillis, tool, down)
-    }
+    fun tabletTip(timeMillis: Int, tool: TabletTool, down: Boolean) = pens.tip(timeMillis, tool, down)
 
     /** A [button] of [tool] (a Linux code: 0x14b the pen's lower one, 0x14c the upper one) was pressed or let go. */
-    fun tabletButton(timeMillis: Int, tool: TabletTool, button: Int, pressed: Boolean) {
-        val pen = pens[tool] ?: return
-        onUserActivity()
-        if (pressed) {
-            if (button in pen.buttons) return
-            if (pen.surface != null) {
-                pen.buttons[button] = button
-                tablets?.button(timeMillis, tool, button, true)
-            } else {
-                val asPointer = pen.tablet.settings.pointerButtonOf(button)
-                pen.buttons[button] = asPointer
-                if (asPointer != 0) penPointer.button(timeMillis, asPointer, true)
-            }
-            return
-        }
-        val sent = pen.buttons.remove(button) ?: return
-        if (pen.surface != null) tablets?.button(timeMillis, tool, button, false) else if (sent != 0) penPointer.button(timeMillis, sent, false)
-    }
-
-    private fun penMoved(timeMillis: Int, tool: TabletTool, pen: Pen, x: Double, y: Double, axes: TabletAxes) {
-        pen.x = x
-        pen.y = y
-        if (pen.tip || pen.buttons.isNotEmpty()) {
-            val surface = pen.surface ?: return penPointer.moved(timeMillis, x, y)
-            if (surface.resource.isAlive && seat.allowed(surface) && tablets?.surfaceOf(tool) === surface) {
-                showPenAt(x, y)
-                tablets?.motion(timeMillis, tool, (x - pen.originX) / pen.scaleX, (y - pen.originY) / pen.scaleY, axes)
-                return
-            }
-            // The surface went away (or the screen was locked) under the pen: what it held is let go.
-            inputLog.trace { "The $tool lost the surface it touched" }
-            pen.tip = false
-            pen.swallowed = false
-            pen.buttons.clear()
-        }
-        val hit = tabletTarget(pen.tablet, x, y)
-        if (hit == null) {
-            if (pen.surface != null) {
-                tablets?.proximityOut(timeMillis, tool)
-                pen.surface = null
-                pen.window = null
-            }
-            penPointer.moved(timeMillis, x, y)
-            return
-        }
-        // Onto a program's surface: the pointer leaves whatever it was over (programs, our widgets and bars).
-        if (pen.surface == null) pointerAway(timeMillis)
-        pen.surface = hit.surface
-        pen.window = hit.root.roleObject as? Window
-        pen.originX = x - hit.localX * hit.scaleX
-        pen.originY = y - hit.localY * hit.scaleY
-        pen.scaleX = hit.scaleX
-        pen.scaleY = hit.scaleY
-        showPenAt(x, y)
-        tablets?.proximityIn(timeMillis, pen.tablet, tool, hit.surface, hit.localX, hit.localY, axes)
-    }
+    fun tabletButton(timeMillis: Int, tool: TabletTool, button: Int, pressed: Boolean) = pens.button(timeMillis, tool, button, pressed)
 
     // The program's surface at ([x], [y]) that gets the pen as a pen, or null: there the pen is
     // the pointer (our own things, programs without tablet events, and while the pointer is busy).
-    private fun tabletTarget(tablet: Tablet, x: Double, y: Double): Hit? {
+    internal fun tabletTarget(tablet: Tablet, x: Double, y: Double): Hit? {
         val tablets = tablets ?: return null
         if (tablet.settings.pointerOnly == true) return null
         if ((overlay != null && !locked) || inOverview || grab != null || grabs.isNotEmpty() || buttonsHeld > 0) return null
@@ -4974,7 +4861,7 @@ class Desktop(
     }
 
     // The pen took over from the pointer: what the pointer was over hears that it left.
-    private fun pointerAway(timeMillis: Int) {
+    internal fun pointerAway(timeMillis: Int) {
         hoverWidget(timeMillis, null, moved = false)
         if (titleHover != null) {
             titleHover = null
@@ -4985,7 +4872,7 @@ class Desktop(
     }
 
     // The cursor is where the pen is (over a program that takes the pen as a pen).
-    private fun showPenAt(x: Double, y: Double) {
+    internal fun showPenAt(x: Double, y: Double) {
         cursorActive()
         val on = monitorAt(x, y)
         pointerX = x.coerceIn(on.area.x.toDouble(), on.area.right - 1.0)
@@ -4995,11 +4882,11 @@ class Desktop(
 
     // The pen's tip touched a program: our widgets it is not on hear of it (an open menu
     // closes, a text field gives the keyboard back). True if one took it (the program does not get it).
-    private fun penPressedOutside(pen: Pen): Boolean {
+    internal fun penPressedOutside(x: Double, y: Double): Boolean {
         if (keyboardWidget != null) focusWidget(null)
         var taken = false
         for (other in widgets.toList().asReversed()) {
-            if (userCode("Your widget (pressedOutside)", false) { other.pressedOutside(BTN_LEFT, pen.x, pen.y, false) }) taken = true
+            if (userCode("Your widget (pressedOutside)", false) { other.pressedOutside(BTN_LEFT, x, y, false) }) taken = true
         }
         return taken
     }
@@ -5123,7 +5010,7 @@ class Desktop(
         if (pointerCheckedVersion == version) return
         pointerCheckedVersion = version
         if (overlay != null || grab != null || inOverview || buttonsHeld > 0) return
-        if (pens.values.any { it.surface != null }) return // (the pen has it: the program under it gets the pen)
+        if (pens.onPrograms) return // (the pen has it: the program under it gets the pen)
         val time = (System.nanoTime() / 1_000_000).toInt()
         val under = pointedAt(pointerX, pointerY, widgetsToo = true)
         val overWidget = under as? Pointed.AtWidget
