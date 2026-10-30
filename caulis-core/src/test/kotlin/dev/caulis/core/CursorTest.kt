@@ -113,6 +113,35 @@ class CursorTest {
     }
 
     @Test
+    fun `an X11 move request needs the button held in a window of its own client`() = withServer { server, client, _ ->
+        client.window().draw(200, 200)
+        client.waitFor { server.onServer { d -> d.windows.isNotEmpty() } }
+        TestClient(Connection.connect(server.socketPath)).use { other ->
+            other.window().draw(200, 200)
+            other.waitFor { server.onServer { d -> d.windows.size == 2 } }
+            val (mine, theirs) = server.onServer { d -> d.windows[0] to d.windows[1] }
+            // The button held in the other program's window: the drag is not taken over.
+            server.onServer { d ->
+                val r = d.screenRect(theirs)!!
+                d.pointerMoved(0, r.x + 10.0, r.y + 10.0)
+                d.pointerButton(0, BTN_LEFT, true)
+                d.x11DragRequested(mine, null)
+            }
+            assertTrue(server.onServer { it.cursorShape } != "grabbing", "refused")
+            server.onServer { d -> d.pointerButton(0, BTN_LEFT, false) }
+            // Held in its own window: it moves.
+            server.onServer { d ->
+                val r = d.screenRect(mine)!!
+                d.pointerMoved(0, r.x + 10.0, r.y + 10.0)
+                d.pointerButton(0, BTN_LEFT, true)
+                d.x11DragRequested(mine, null)
+            }
+            assertEquals("grabbing", server.onServer { it.cursorShape })
+            server.onServer { d -> d.pointerButton(0, BTN_LEFT, false) }
+        }
+    }
+
+    @Test
     fun `moving and resizing a window show the compositor's own cursors`() = withServer { server, client, _ ->
         client.window().draw(200, 200)
         client.waitFor { server.onServer { d -> d.windows.isNotEmpty() } }

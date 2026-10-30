@@ -70,6 +70,9 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   whoever put them on the clipboard: an X11 program could offer thousands of names or one of
   kilobytes, and each program it was offered to (the focused one, clipboard managers, Xwayland
   itself) lost its connection.
+- An X11 program can no longer take over a drag you started elsewhere: its move or resize
+  request (`_NET_WM_MOVERESIZE`) counts only while the button is held in a window of the same
+  client, and your `WindowDirector` is asked first, as for Wayland programs.
 
 ## [0.1.7] - 2026-10-30
 

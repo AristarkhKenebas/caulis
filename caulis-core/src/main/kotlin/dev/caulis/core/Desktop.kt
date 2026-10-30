@@ -4246,6 +4246,27 @@ class Desktop(
         beginResize(window, edges)
     }
 
+    /**
+     * An X11 program asked to move its window ([edges] null) or resize it (_NET_WM_MOVERESIZE):
+     * as a Wayland program's request — only while the button the user holds was pressed in a
+     * window of the same client (X has no serials), and your [WindowDirector] is asked first.
+     */
+    @dev.caulis.log.InternalCaulisApi
+    fun x11DragRequested(window: Window, edges: Int?) {
+        val what = if (edges == null) "move" else "resize"
+        if (buttonsHeld == 0 || pressedIn?.surface?.resource?.client !== window.surface.resource.client) {
+            windowsLog.info { "$window asked to $what without a button held in it: refused" }
+            return
+        }
+        if (edges == null) {
+            if (directed(window) && userCode("Your WindowDirector (moveRequested)", false) { director!!.moveRequested(window) }) return
+            beginMove(window)
+        } else {
+            if (directed(window) && userCode("Your WindowDirector (resizeRequested)", false) { director!!.resizeRequested(window, edges) }) return
+            beginResize(window, edges)
+        }
+    }
+
     // A program may start dragging its window only with the button the user holds in it: the
     // press went to that program ([serial] is the press's, or a later event of it), not to another.
     private fun dragAllowed(window: Window, serial: Int, what: String): Boolean {

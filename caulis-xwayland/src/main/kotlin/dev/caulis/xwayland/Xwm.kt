@@ -539,8 +539,9 @@ class Xwm internal constructor(
             }
             atom("_NET_WM_MOVERESIZE") -> window?.takeIf { it.inDesktop && !it.unmanaged }?.let { w ->
                 when (val direction = data[2]) {
-                    MOVERESIZE_MOVE -> desktop.beginMove(w)
-                    in 0..7 -> desktop.beginResize(w, RESIZE_EDGES[direction])
+                    // (As a Wayland program's request: the button held in its window, the director asked.)
+                    MOVERESIZE_MOVE -> desktop.x11DragRequested(w, null)
+                    in 0..7 -> desktop.x11DragRequested(w, RESIZE_EDGES[direction])
                     else -> log.trace { "Move/resize $direction of $w ignored" }
                 }
             }
