@@ -20,6 +20,34 @@ class SpecialWorkspaceTest {
     private val height = ScreenTestServer.HEIGHT
 
     @Test
+    fun `its look says where its windows come from`() {
+        val r = Rect(100, 100, 1000, 500).let { SpecialLook(fade = true, scale = 0.94, rise = 10).hidden(it) }
+        assertEquals(Rect(130, 125, 940, 470), r)
+        assertFailsWith<IllegalArgumentException> { SpecialLook(scale = 0.0) }
+    }
+
+    @Test
+    fun `with animations it fades in and out, and hides at once for the lock`() = withServer { server, client ->
+        client.window { it.setTitle("special one") }.also { it.draw() }
+        client.waitFor { server.onServer { d -> d.windows.size } == 1 }
+        server.onServer { d ->
+            d.specialWorkspaces = SpecialWorkspaces(look = SpecialLook(fade = true, scale = 0.9))
+            d.animations = Animations(entries = mapOf("scratchpads" to AnimationEntry(enabled = true, millis = 2000)))
+            d.moveToSpecialWorkspace(d.windows.single())
+        }
+        // Hiding takes its time; shown again meanwhile it stays; the lock ends it at once.
+        assertFalse(server.onServer { d -> d.toggleSpecialWorkspace() })
+        assertTrue(server.onServer { d -> d.specialWorkspace().shown }, "still going")
+        assertTrue(server.onServer { d -> d.toggleSpecialWorkspace() }, "back while going")
+        server.onServer { d -> d.lockInternally(object : Widget {
+            override fun area(monitor: Monitor) = null
+            override fun draw(monitor: Monitor, canvas: OverlayCanvas, area: Rect) {}
+        }, hideDesktop = true) }
+        assertFalse(server.onServer { d -> d.specialWorkspace().shown }, "gone at once for the lock")
+        server.onServer { d -> d.unlockInternally() }
+    }
+
+    @Test
     fun `toggled it shows over the workspace with the focus in it, and hides with the focus back`() = withServer { server, client ->
         val normal = client.window { it.setTitle("normal") }.also { it.draw() }
         val other = client.window { it.setTitle("special one") }.also { it.draw() }

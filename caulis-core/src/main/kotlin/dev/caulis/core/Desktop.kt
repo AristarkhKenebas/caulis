@@ -2431,7 +2431,8 @@ class Desktop(
         if (!specialWorkspaces.hideOnLock) return
         for (pad in shownPads.toList()) if (pad.isSpecial && !pad.leaving) {
             layoutLog.info { "Special workspace ${pad.name} hidden: the screen locks" }
-            hideScratchpad(pad, focusBack = false)
+            // (At once: nothing of the session goes on showing on a lock.)
+            hideScratchpad(pad, focusBack = false, atOnce = true)
         }
     }
 
@@ -2471,11 +2472,37 @@ class Desktop(
         return Rect(area.x + (area.width - w) / 2, area.y + (area.height - h) / 2, w, h)
     }
 
+    // Where a window of [pad] comes from and goes to.
+    private fun padHidden(pad: Scratchpad, rect: Rect): Rect = if (pad.isSpecial) specialWorkspaces.look.hidden(rect) else pad.hiddenRect(rect, padArea(pad))
+
+    // How far a special workspace is shown now (0: gone, 1: there): for its windows' fading and its dim.
+    private fun padAmount(pad: Scratchpad, now: Long): Float {
+        val start = pad.changedAt ?: return if (pad.leaving) 0f else 1f
+        val picked = pick(padAnimation(pad), animations.windowMove)
+        val t = animationProgress(start, picked.millis, now)
+        if (t == null) {
+            pad.changedAt = null
+            return if (pad.leaving) 0f else 1f
+        }
+        val c = picked.curve.safeAt(t).toFloat().coerceIn(0f, 1f)
+        return if (pad.leaving) pad.amountFrom * (1f - c) else pad.amountFrom + (1f - pad.amountFrom) * c
+    }
+
+    // It begins coming or going now, from how far it is shown.
+    private fun padChanges(pad: Scratchpad, from: Float, now: Long) {
+        pad.amountFrom = from
+        pad.changedAt = if (pick(padAnimation(pad), animations.windowMove).millis > 0) now else null
+    }
+
     // The animation a scratchpad's windows come and go with.
     private fun padAnimation(pad: Scratchpad?): String = if (pad?.isSpecial == true) specialWorkspaces.animation else "scratchpads"
 
     private fun showScratchpad(pad: Scratchpad, appearing: Set<Window>, focusOn: Window? = null) {
+        // (Coming back while going: it goes on from where it is, it does not start again.)
+        val coming = pad.shown && pad.leaving
         if (!pad.shown || pad.leaving) {
+            val now = System.nanoTime()
+            padChanges(pad, if (coming) padAmount(pad, now) else 0f, now)
             pad.monitor = workMonitor
             if (pad.isSpecial) pad.focusBefore = focusedWindow?.takeIf { scratchpadOf(it) == null }?.let { java.lang.ref.WeakReference(it) }
         }
@@ -2484,13 +2511,15 @@ class Desktop(
         padTimers.remove(pad)?.cancel()
         shownPads -= pad
         shownPads += pad
-        placeScratchpad(pad, appearing)
+        placeScratchpad(pad, appearing, fromShown = coming)
         (focusOn ?: pad.windows.lastOrNull())?.let(::focus)
     }
 
     private val padTimers = HashMap<Scratchpad, EventLoop.Timer>()
 
-    private fun hideScratchpad(pad: Scratchpad, focusBack: Boolean = true) {
+    private fun hideScratchpad(pad: Scratchpad, focusBack: Boolean = true, atOnce: Boolean = false) {
+        val began = System.nanoTime()
+        padChanges(pad, padAmount(pad, began), began)
         pad.leaving = true
         if (pad.isSpecial) layoutLog.info { "Special workspace ${pad.name} hidden" }
         // A special workspace gives the focus back to the window that had it before (if it is still there).
@@ -2499,7 +2528,7 @@ class Desktop(
         val now = System.nanoTime()
         for (window in pad.windows) {
             val from = shownRects[window] ?: currentRect(window)
-            glides[window] = Glide(from, now, to = pad.hiddenRect(from, padArea(pad)), name = padAnimation(pad))
+            glides[window] = Glide(from, now, to = padHidden(pad, from), name = padAnimation(pad))
         }
         // (A hide before this one, shown again in between, must not end this one early.)
         padTimers.remove(pad)?.cancel()
@@ -2516,7 +2545,7 @@ class Desktop(
         }
         // (Without the animation: gone at once, not drawn where it was meanwhile.)
         val millis = pick(padAnimation(pad), animations.windowMove).millis
-        if (millis <= 0) gone() else padTimers[pad] = compositor.display.loop.after(millis) { gone() }
+        if (millis <= 0 || atOnce) gone() else padTimers[pad] = compositor.display.loop.after(millis) { gone() }
         if (padFocus != null && padFocus in pad.windows) focus(back ?: windows.lastOrNull())
         changed()
     }
@@ -2548,7 +2577,7 @@ class Desktop(
     }
 
     // Sizes and places the scratchpad's windows; [appearing] ones grow or slide into place.
-    private fun placeScratchpad(pad: Scratchpad, appearing: Set<Window>) {
+    private fun placeScratchpad(pad: Scratchpad, appearing: Set<Window>, fromShown: Boolean = false) {
         val now = System.nanoTime()
         for ((window, rect) in padTargets(pad)) {
             window.tiled = pad.style is Scratchpad.Overlay && !(pad.isSpecial && specialLayout() === Floating)
@@ -2558,7 +2587,7 @@ class Desktop(
             window.x = rect.x
             window.y = rect.y
             if (window in appearing && pick(padAnimation(pad), animations.windowMove).millis > 0) {
-                glides[window] = Glide(pad.hiddenRect(rect, padArea(pad)), now, name = padAnimation(pad))
+                glides[window] = Glide(shownRects[window].takeIf { fromShown } ?: padHidden(pad, rect), now, name = padAnimation(pad))
             }
         }
         changed()
@@ -5384,7 +5413,7 @@ class Desktop(
         for (list in drawings.values) for (d in list) if (userCode("Your drawing (animating)", false) { d.animating(now) }) { directorMoving = true; movingThing = d }
         for (w in widgets.toList()) if (userCode("Your widget (animating)", false) { w.animating(now) }) { directorMoving = true; movingThing = w }
         val paintsNow = paintsMoving && paintsDue(now)
-        if (glides.isNotEmpty() || cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsNow || focusChanging || directorMoving) {
+        if (glides.isNotEmpty() || shownPads.any { it.changedAt != null } || cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsNow || focusChanging || directorMoving) {
             // Windows are gliding (or the overview zooms): the scene changes every frame until done.
             if (renderLog.level >= 2) {
                 val why = listOfNotNull("glides".takeIf { glides.isNotEmpty() }, "camera".takeIf { cameraMoving(System.nanoTime()) }, "fading".takeIf { fadingNow },
@@ -6023,15 +6052,17 @@ class Desktop(
         // Shown scratchpads above every workspace, the last shown on top.
         for (pad in shownPads) {
             val overlay = pad.style as? Scratchpad.Overlay
-            if (pad.isSpecial && !pad.leaving) {
-                // A special workspace: what is behind it blurred and dimmed, as its settings say.
+            val amount = if (pad.isSpecial) padAmount(pad, now) else 1f
+            if (pad.isSpecial) {
+                // A special workspace: what is behind it blurred and dimmed, as its settings say (the dim fading with it).
                 val settings = specialWorkspaces
-                settings.blur?.let { blur -> all += DrawItem.Blur(EffectKey("blur special", pad), padArea(pad), 0f, blur.size, blur.passes, blur.tone) }
-                if (settings.dim > 0f) all += DrawItem.Color("dim special ${pad.name}", padArea(pad), 0f, 0f, 0f, alpha = settings.dim)
+                if (!pad.leaving) settings.blur?.let { blur -> all += DrawItem.Blur(EffectKey("blur special", pad), padArea(pad), 0f, blur.size, blur.passes, blur.tone) }
+                if (settings.dim > 0f && amount > 0f) all += DrawItem.Color("dim special ${pad.name}", padArea(pad), 0f, 0f, 0f, alpha = settings.dim * amount)
             } else if (overlay != null && !pad.leaving) {
                 all += DrawItem.Color("dim ${pad.name}", padArea(pad), 0f, 0f, 0f, alpha = overlay.dim)
             }
-            for (window in pad.windows) addWindow(all, window, now, leaving = pad.leaving)
+            val fade = if (pad.isSpecial && specialWorkspaces.look.fade) amount else 1f
+            for (window in pad.windows) addWindow(all, window, now, leaving = pad.leaving, fade = fade)
         }
         addLayers(all, LayerShell.Layer.OVERLAY)
         for (popup in popups) {
@@ -6138,7 +6169,7 @@ class Desktop(
     }
 
     // A window where it is (or on its way, see glides); a leaving one only while it moves.
-    private fun addWindow(all: MutableList<DrawItem>, window: Window, now: Long, leaving: Boolean = false, camera: Camera = Camera.NONE, plain: Boolean = false) {
+    private fun addWindow(all: MutableList<DrawItem>, window: Window, now: Long, leaving: Boolean = false, camera: Camera = Camera.NONE, plain: Boolean = false, fade: Float = 1f) {
         // Coming back out of the dock: its picture flies (see flights) until it is there.
         if (!plain && flights.any { it.window === window && it.kind == FlightKind.RESTORE }) {
             shownRects[window] = currentRect(window)
@@ -6157,7 +6188,7 @@ class Desktop(
         }
         shownRects[window] = world
         // Appearing: as the open animation says (only its picture: the window itself is in place).
-        var alpha = 1f
+        var alpha = fade
         val appearSince = if (plain) null else appearing[window]
         if (appearSince != null) {
             val picked = pick("windowsIn", animations.windowOpen)
@@ -6186,7 +6217,7 @@ class Desktop(
                 }
             } else {
                 world = frame.rect
-                alpha = frame.alpha
+                alpha = frame.alpha * fade
             }
         }
         val rect = if (camera === Camera.NONE) world else camera.apply(world)

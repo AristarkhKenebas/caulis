@@ -1913,6 +1913,25 @@ public final class dev/caulis/core/ShmPool {
 	public final fun write (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
 }
 
+public final class dev/caulis/core/SpecialLook {
+	public fun <init> ()V
+	public fun <init> (Z)V
+	public fun <init> (ZD)V
+	public fun <init> (ZDI)V
+	public synthetic fun <init> (ZDIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()D
+	public final fun component3 ()I
+	public final fun copy (ZDI)Ldev/caulis/core/SpecialLook;
+	public static synthetic fun copy$default (Ldev/caulis/core/SpecialLook;ZDIILjava/lang/Object;)Ldev/caulis/core/SpecialLook;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFade ()Z
+	public final fun getRise ()I
+	public final fun getScale ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/caulis/core/SpecialWorkspaces {
 	public static final field Companion Ldev/caulis/core/SpecialWorkspaces$Companion;
 	public static final field DEFAULT_NAME Ljava/lang/String;
@@ -1928,9 +1947,11 @@ public final class dev/caulis/core/SpecialWorkspaces {
 	public fun <init> (FLdev/caulis/core/Blur;IDLjava/lang/String;ZZZ)V
 	public fun <init> (FLdev/caulis/core/Blur;IDLjava/lang/String;ZZZZ)V
 	public fun <init> (FLdev/caulis/core/Blur;IDLjava/lang/String;ZZZZLdev/caulis/tiling/Layout;)V
-	public synthetic fun <init> (FLdev/caulis/core/Blur;IDLjava/lang/String;ZZZZLdev/caulis/tiling/Layout;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (FLdev/caulis/core/Blur;IDLjava/lang/String;ZZZZLdev/caulis/tiling/Layout;Ldev/caulis/core/SpecialLook;)V
+	public synthetic fun <init> (FLdev/caulis/core/Blur;IDLjava/lang/String;ZZZZLdev/caulis/tiling/Layout;Ldev/caulis/core/SpecialLook;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()F
 	public final fun component10 ()Ldev/caulis/tiling/Layout;
+	public final fun component11 ()Ldev/caulis/core/SpecialLook;
 	public final fun component2 ()Ldev/caulis/core/Blur;
 	public final fun component3 ()I
 	public final fun component4 ()D
@@ -1939,8 +1960,8 @@ public final class dev/caulis/core/SpecialWorkspaces {
 	public final fun component7 ()Z
 	public final fun component8 ()Z
 	public final fun component9 ()Z
-	public final fun copy (FLdev/caulis/core/Blur;IDLjava/lang/String;ZZZZLdev/caulis/tiling/Layout;)Ldev/caulis/core/SpecialWorkspaces;
-	public static synthetic fun copy$default (Ldev/caulis/core/SpecialWorkspaces;FLdev/caulis/core/Blur;IDLjava/lang/String;ZZZZLdev/caulis/tiling/Layout;ILjava/lang/Object;)Ldev/caulis/core/SpecialWorkspaces;
+	public final fun copy (FLdev/caulis/core/Blur;IDLjava/lang/String;ZZZZLdev/caulis/tiling/Layout;Ldev/caulis/core/SpecialLook;)Ldev/caulis/core/SpecialWorkspaces;
+	public static synthetic fun copy$default (Ldev/caulis/core/SpecialWorkspaces;FLdev/caulis/core/Blur;IDLjava/lang/String;ZZZZLdev/caulis/tiling/Layout;Ldev/caulis/core/SpecialLook;ILjava/lang/Object;)Ldev/caulis/core/SpecialWorkspaces;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAnimation ()Ljava/lang/String;
 	public final fun getBlur ()Ldev/caulis/core/Blur;
@@ -1950,6 +1971,7 @@ public final class dev/caulis/core/SpecialWorkspaces {
 	public final fun getHideOnLock ()Z
 	public final fun getHideWhenEmpty ()Z
 	public final fun getLayout ()Ldev/caulis/tiling/Layout;
+	public final fun getLook ()Ldev/caulis/core/SpecialLook;
 	public final fun getNewWindowsJoin ()Z
 	public final fun getSize ()D
 	public fun hashCode ()I
@@ -1962,6 +1984,7 @@ public final class dev/caulis/core/SpecialWorkspaces {
 	public final fun withHideOnLock (Z)Ldev/caulis/core/SpecialWorkspaces;
 	public final fun withHideWhenEmpty (Z)Ldev/caulis/core/SpecialWorkspaces;
 	public final fun withLayout (Ldev/caulis/tiling/Layout;)Ldev/caulis/core/SpecialWorkspaces;
+	public final fun withLook (Ldev/caulis/core/SpecialLook;)Ldev/caulis/core/SpecialWorkspaces;
 	public final fun withNewWindowsJoin (Z)Ldev/caulis/core/SpecialWorkspaces;
 	public final fun withSize (D)Ldev/caulis/core/SpecialWorkspaces;
 }

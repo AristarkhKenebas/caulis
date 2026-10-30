@@ -62,6 +62,10 @@ class Scratchpad internal constructor(
     // Hiding: still drawn while its windows glide away.
     internal var leaving = false
 
+    // How far it was shown (0..1) when it last began coming or going, and when (null: at rest).
+    internal var amountFrom = 1f
+    internal var changedAt: Long? = null
+
     // A special workspace: the window that had the focus before it was shown (it gets it back).
     internal var focusBefore: java.lang.ref.WeakReference<Window>? = null
 
