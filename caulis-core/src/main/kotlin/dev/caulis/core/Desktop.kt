@@ -636,9 +636,12 @@ class Desktop(
     }
 
     // The drawings of [level], on every monitor.
-    private fun addDrawings(all: MutableList<DrawItem>, level: DrawingLevel) {
+    private fun addDrawings(all: MutableList<DrawItem>, level: DrawingLevel, withWidgets: Boolean = true) {
         val list = drawings[level].orEmpty()
-        if (list.isEmpty()) return addWidgets(all, level)
+        if (list.isEmpty()) {
+            if (withWidgets) addWidgets(all, level)
+            return
+        }
         val seconds = ((System.nanoTime() - paintStart) / 1e9).toFloat()
         val scene = wallpaperScene()
         for (monitor in monitorList) {
@@ -655,7 +658,7 @@ class Desktop(
                 all += canvas.items
             }
         }
-        addWidgets(all, level)
+        if (withWidgets) addWidgets(all, level)
     }
 
     // What wallpaper shaders drawn on canvases need now (the pointer, the clock, all monitors).
@@ -1847,6 +1850,19 @@ class Desktop(
 
     /** True while the compositor's own lock screen is up ([lockInternally]; a locker program may have locked on top of it). */
     val lockedInternally: Boolean get() = ownLock != null
+
+    /**
+     * What [lockInternally] with hideDesktop = true shows behind the lock screen, besides
+     * [lockColor]: the desktop's own wallpaper, blurred and dimmed as it says. Null (the usual):
+     * the plain colour. Never any window, panel or program's picture (a wallpaper program's
+     * neither: only the wallpaper you set and your drawings at [DrawingLevel.WALLPAPER]). A
+     * locker program's lock always shows the plain colour.
+     */
+    var lockBackdrop: LockBackdrop? = null
+        set(value) {
+            field = value
+            changed()
+        }
 
     /** The widget showing the compositor's own lock screen ([lockInternally]), or null. */
     val lockScreen: Widget? get() = ownLock?.screen
@@ -5929,6 +5945,7 @@ class Desktop(
             for (monitor in monitorList) {
                 all += DrawItem.Color("$LOCK_BACKGROUND ${monitor.name}", monitor.area, color.red, color.green, color.blue, covers = listOf(monitor.area))
             }
+            lockBackdrop?.takeIf { !sessionLocked }?.let { addLockBackdrop(all, it) }
             for (lockSurface in lockSurfaces()) lockMonitor(lockSurface).area.let { addTree(all, lockSurface.surface, it.x, it.y) }
             for (level in DrawingLevel.entries) addWidgets(all, level, onLockScreen = true)
             sceneVisible.clear()
@@ -6089,6 +6106,21 @@ class Desktop(
     private fun stacking(workspace: Workspace): List<Window> {
         val (fullscreen, others) = workspace.windows.partition { it.fullscreen }
         return others.filter { it.tiled } + others.filter { !it.tiled } + fullscreen
+    }
+
+    // The wallpaper behind the lock screen: nothing else of the desktop (see [lockBackdrop]).
+    private fun addLockBackdrop(all: MutableList<DrawItem>, backdrop: LockBackdrop) {
+        val now = System.nanoTime()
+        if (backdrop.wallpaper) {
+            wallpaperShaders.sample(pointerX, pointerY, now)
+            val allMonitors = desktopBounds()
+            for (monitor in monitorList) all += backdrops.items(monitor, monitor.workspace.number, pointerX, pointerY, now, allMonitors, largestScale)
+            addDrawings(all, DrawingLevel.WALLPAPER, withWidgets = false)
+        }
+        for (monitor in monitorList) {
+            backdrop.blur?.let { b -> all += DrawItem.Blur(EffectKey("blur lock", monitor), monitor.area, 0f, b.size, b.passes, b.tone) }
+            if (backdrop.dim > 0f) all += DrawItem.Color("dim lock ${monitor.name}", monitor.area, 0f, 0f, 0f, alpha = backdrop.dim)
+        }
     }
 
     private fun addLayers(all: MutableList<DrawItem>, layer: LayerShell.Layer) {

@@ -253,6 +253,28 @@ class InternalLockTest {
     }
 
     @Test
+    fun `the lock's backdrop shows the wallpaper and no window`() = withServer { server, client ->
+        val width = ScreenTestServer.WIDTH
+        val height = ScreenTestServer.HEIGHT
+        val at = { server.screenshot()[(height - 1) * width + width - 1] }
+        val window = client.window { it.setTitle("private") }.also { it.draw() }
+        client.waitFor { server.onServer { d -> d.windows.size } == 1 }
+        val shownWithWindow = at()
+        server.onServer { d ->
+            d.lockColor = dev.caulis.render.Color(1f, 0f, 0f)
+            d.lockInternally(Panel(Rect(0, 0, 20, 20)), hideDesktop = true)
+        }
+        client.waitFor { at() == RED }
+        // The backdrop off the plain colour (dimmed black over it, no wallpaper): darker red; no window ever.
+        server.onServer { d -> d.lockBackdrop = LockBackdrop(wallpaper = false, dim = 0.5f) }
+        client.waitFor { at() != RED }
+        assertTrue(at() != shownWithWindow, "not the desktop's picture")
+        server.onServer { d -> d.lockBackdrop = null; d.unlockInternally() }
+        client.waitFor { at() == shownWithWindow }
+        window.toString()
+    }
+
+    @Test
     fun `panels behind the own lock screen are left out unless panelsShowWhileLocked`() = withServer { server, client ->
         val width = ScreenTestServer.WIDTH
         // A notification daemon's pop-up: black, 40 x 40, in the top right corner (the overlay layer).

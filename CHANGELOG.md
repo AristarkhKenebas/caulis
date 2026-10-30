@@ -15,6 +15,12 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+### Added
+- `SpecialWorkspaces.look` (`SpecialLook`: fade, scale, rise): how a special workspace comes and
+  goes. The dim behind it fades with it; hiding for the lock is always at once.
+- `Desktop.lockBackdrop` (`LockBackdrop`: wallpaper, blur, dim): the desktop's own wallpaper behind
+  the compositor's lock screen with `hideDesktop = true`, never a window or a program's picture.
+
 ### Changed
 - The desktop's background (picture, gradient, colour or shader) is no longer drawn under opaque windows,
   in any frame: fewer pixels drawn for the same picture. `fullRedraw` draws everything, as before. A program
