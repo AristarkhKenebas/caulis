@@ -59,6 +59,10 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   the last one, not after the scene was drawn (30 frames a second came out as about 20). The
   render log's report (`CAULIS_LOG=render=2`) names "wallpaper shader" among what keeps a screen
   drawn.
+- The D-Bus client (`dev.caulis.core.dbus`) is a module of its own, `caulis-dbus`, for code
+  that wants the bus without the whole compositor. Nothing changes for users: `caulis-core`
+  depends on it (as an `api` dependency), the package and classes are the same, and
+  `rethrowIfFatal` moved to `caulis-log` with its package unchanged.
 
 ### Fixed
 - CI on GitHub: the "CI" and "Release" workflows failed in "Build and test" since 0.1.3. A

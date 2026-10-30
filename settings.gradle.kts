@@ -21,6 +21,7 @@ dependencyResolutionManagement {
 include(
     "caulis-log",
     "caulis-native",
+    "caulis-dbus",
     "caulis-geometry",
     "caulis-tiling",
     "caulis-protocol",

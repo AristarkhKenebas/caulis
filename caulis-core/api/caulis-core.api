@@ -961,10 +961,6 @@ public final class dev/caulis/core/Effects {
 public final class dev/caulis/core/Effects$Companion {
 }
 
-public final class dev/caulis/core/FatalKt {
-	public static final fun rethrowIfFatal (Ljava/lang/Throwable;)V
-}
-
 public final class dev/caulis/core/FileWatch {
 	public static final field INSTANCE Ldev/caulis/core/FileWatch;
 	public static final fun watch (Ljava/nio/file/Path;Lkotlin/jvm/functions/Function0;)Ljava/lang/AutoCloseable;
@@ -2966,109 +2962,6 @@ public class dev/caulis/core/cursor/ZipCursorThemes : dev/caulis/core/cursor/Cur
 	public fun file (Ljava/lang/String;Ljava/lang/String;)[B
 	public fun files (Ljava/lang/String;)Ljava/util/List;
 	public final fun getThemes ()Ljava/util/List;
-}
-
-public final class dev/caulis/core/dbus/DBusConnection : java/lang/AutoCloseable {
-	public static final field Companion Ldev/caulis/core/dbus/DBusConnection$Companion;
-	public final fun call-9JzuL0k (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;)V
-	public static synthetic fun call-9JzuL0k$default (Ldev/caulis/core/dbus/DBusConnection;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
-	public fun close ()V
-	public final fun emitSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V
-	public static synthetic fun emitSignal$default (Ldev/caulis/core/dbus/DBusConnection;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)V
-	public final fun export (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)Ljava/lang/AutoCloseable;
-	public final fun getUniqueName ()Ljava/lang/String;
-	public final fun keep (Ldev/caulis/ffi/Fd;)V
-	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
-	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
-	public final synthetic fun onSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
-	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
-	public static synthetic fun onSignal$default (Ldev/caulis/core/dbus/DBusConnection;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/AutoCloseable;
-	public static synthetic fun onSignal$default (Ldev/caulis/core/dbus/DBusConnection;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
-	public static final fun open (Ldev/caulis/event/EventLoop;Ljava/lang/String;)Ldev/caulis/core/dbus/DBusConnection;
-	public final fun requestName (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
-	public static synthetic fun requestName$default (Ldev/caulis/core/dbus/DBusConnection;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
-	public static final fun session (Ldev/caulis/event/EventLoop;)Ldev/caulis/core/dbus/DBusConnection;
-	public static final fun system (Ldev/caulis/event/EventLoop;)Ldev/caulis/core/dbus/DBusConnection;
-}
-
-public final class dev/caulis/core/dbus/DBusConnection$Companion {
-	public final fun open (Ldev/caulis/event/EventLoop;Ljava/lang/String;)Ldev/caulis/core/dbus/DBusConnection;
-	public final fun session (Ldev/caulis/event/EventLoop;)Ldev/caulis/core/dbus/DBusConnection;
-	public final fun system (Ldev/caulis/event/EventLoop;)Ldev/caulis/core/dbus/DBusConnection;
-}
-
-public final class dev/caulis/core/dbus/DBusError : java/lang/Exception {
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
-	public final fun getName ()Ljava/lang/String;
-}
-
-public final class dev/caulis/core/dbus/DBusMessage {
-	public final fun getBody ()Ljava/util/List;
-	public final fun getErrorName ()Ljava/lang/String;
-	public final fun getIface ()Ljava/lang/String;
-	public final fun getMember ()Ljava/lang/String;
-	public final fun getPath ()Ljava/lang/String;
-	public final fun getReplySerial ()I
-	public final fun getSender ()Ljava/lang/String;
-	public final fun getSerial ()I
-	public final fun getSignature ()Ljava/lang/String;
-	public final fun getType ()I
-	public final fun isError ()Z
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class dev/caulis/core/dbus/DBusMethod {
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
-	public final fun getHandler ()Lkotlin/jvm/functions/Function1;
-	public final fun getInSignature ()Ljava/lang/String;
-	public final fun getOutSignature ()Ljava/lang/String;
-}
-
-public final class dev/caulis/core/dbus/DBusScope : java/lang/AutoCloseable {
-	public fun <init> (Ldev/caulis/core/dbus/DBusConnection;)V
-	public final fun call-9JzuL0k (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;)V
-	public static synthetic fun call-9JzuL0k$default (Ldev/caulis/core/dbus/DBusScope;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
-	public final fun call-A0VVwqo (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V
-	public final fun call-FiuOQ0Y (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;)V
-	public final fun call-aBNV3UU (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
-	public final fun call-zWVWxrM (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
-	public fun close ()V
-	public final fun emitSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
-	public final fun emitSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
-	public final fun emitSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V
-	public static synthetic fun emitSignal$default (Ldev/caulis/core/dbus/DBusScope;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)V
-	public final fun export (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)Ljava/lang/AutoCloseable;
-	public final fun getConnection ()Ldev/caulis/core/dbus/DBusConnection;
-	public final fun getUniqueName ()Ljava/lang/String;
-	public final fun keep (Ldev/caulis/ffi/Fd;)V
-	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
-	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
-	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
-	public static synthetic fun onSignal$default (Ldev/caulis/core/dbus/DBusScope;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/AutoCloseable;
-	public final fun requestName (Ljava/lang/String;)V
-	public final fun requestName (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
-	public static synthetic fun requestName$default (Ldev/caulis/core/dbus/DBusScope;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
-}
-
-public final class dev/caulis/core/dbus/ObjectPath {
-	public static final synthetic fun box-impl (Ljava/lang/String;)Ldev/caulis/core/dbus/ObjectPath;
-	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
-	public fun equals (Ljava/lang/Object;)Z
-	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
-	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
-	public final fun getValue ()Ljava/lang/String;
-	public fun hashCode ()I
-	public static fun hashCode-impl (Ljava/lang/String;)I
-	public fun toString ()Ljava/lang/String;
-	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
-	public final synthetic fun unbox-impl ()Ljava/lang/String;
-}
-
-public final class dev/caulis/core/dbus/Variant {
-	public fun <init> (Ljava/lang/String;Ljava/lang/Object;)V
-	public final fun getSignature ()Ljava/lang/String;
-	public final fun getValue ()Ljava/lang/Object;
-	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/caulis/core/drm/DrmBackend : java/lang/AutoCloseable {

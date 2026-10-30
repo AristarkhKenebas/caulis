@@ -10,6 +10,8 @@ plugins {
 description = "The core of Caulis, a Wayland compositor library: protocols, window management, effects, DRM and nested backends."
 
 dependencies {
+    // Parts of the core in modules of their own (packages unchanged): this one brings them.
+    api(project(":caulis-dbus"))
     api(project(":caulis-protocol"))
     api(project(":caulis-render"))
     api(project(":caulis-tiling"))

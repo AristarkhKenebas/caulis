@@ -1,3 +1,7 @@
+public final class dev/caulis/core/FatalKt {
+	public static final fun rethrowIfFatal (Ljava/lang/Throwable;)V
+}
+
 public abstract interface annotation class dev/caulis/log/InternalCaulisApi : java/lang/annotation/Annotation {
 }
 
