@@ -280,9 +280,12 @@ internal class ShaderWallpapers(
         ask(((1000L / fps) - waited).coerceAtLeast(1))
     }
 
+    // The next frame one frame's time after the last one asked for (not after this scene was
+    // built: drawing took time already, and 30 a second came out as 20).
     private fun schedule(fps: Int) {
         if (tick != null) return
-        ask((1000L / fps).coerceAtLeast(1))
+        val waited = (System.nanoTime() - askedAt) / 1_000_000
+        ask(((1000L / fps) - waited).coerceAtLeast(1))
     }
 
     private fun ask(millis: Long) {

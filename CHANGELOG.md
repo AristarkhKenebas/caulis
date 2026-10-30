@@ -48,6 +48,10 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   are cut out of what a frame redraws, and a blurred bar beside it no longer turns a strip of
   wallpaper into a whole screen redrawn — a blur's reach is redrawn first as a part of its own
   (fresh before the blur reads it), the other parts stay apart.
+- A moving wallpaper shader keeps its pace: the next frame is asked for one frame's time after
+  the last one, not after the scene was drawn (30 frames a second came out as about 20). The
+  render log's report (`CAULIS_LOG=render=2`) names "wallpaper shader" among what keeps a screen
+  drawn.
 
 ### Fixed
 - CI on GitHub: the "CI" and "Release" workflows failed in "Build and test" since 0.1.3. A

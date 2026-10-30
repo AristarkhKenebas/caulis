@@ -92,6 +92,8 @@ class Desktop(
 
     // What wallpaper shaders share (their clock, the pointer, their frames), wherever drawn.
     private val wallpaperShaders = ShaderWallpapers(compositor.display.loop) {
+        // (Said in the render log's report of what keeps the screens drawn.)
+        if (renderLog.level >= 2) busy.moving(WALLPAPER_SHADERS)
         version++
         onChange()
     }
@@ -1131,6 +1133,7 @@ class Desktop(
     private val cursorLog = Logger("cursor")
     private val renderLog = Logger("render")
     private val BUSY_REPORT_NANOS = 10_000_000_000L
+    private val WALLPAPER_SHADERS = listOf("wallpaper shader")
     private val overlayLog = Logger("overlay")
     private var lastFocused: Window? = null
 
