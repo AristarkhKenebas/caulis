@@ -94,7 +94,7 @@ class PrimarySelection(display: Display, private val seat: Seat, private val cli
             override fun destroy(resource: ZwpPrimarySelectionOfferV1) {}
         }
         device.sendDataOffer(offer)
-        data.mimeTypes.forEach(offer::sendOffer)
+        offerable(data.mimeTypes, offer.client).forEach(offer::sendOffer)
         device.sendSelection(offer)
     }
 

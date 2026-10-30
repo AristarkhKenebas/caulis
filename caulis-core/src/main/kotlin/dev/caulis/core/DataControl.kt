@@ -120,7 +120,7 @@ class DataControl(display: Display, private val clipboard: DataDeviceManager) {
                                         override fun destroy(resource: ExtDataControlOfferV1) {}
                                     }
                                     id.sendDataOffer(offer)
-                                    data.mimeTypes.forEach(offer::sendOffer)
+                                    offerable(data.mimeTypes, offer.client).forEach(offer::sendOffer)
                                 }
                             }
                             if (primary) id.sendPrimarySelection(offer) else id.sendSelection(offer)
@@ -174,7 +174,7 @@ class DataControl(display: Display, private val clipboard: DataDeviceManager) {
                                         override fun destroy(resource: ZwlrDataControlOfferV1) {}
                                     }
                                     id.sendDataOffer(offer)
-                                    data.mimeTypes.forEach(offer::sendOffer)
+                                    offerable(data.mimeTypes, offer.client).forEach(offer::sendOffer)
                                 }
                             }
                             if (primary) id.sendPrimarySelection(offer) else id.sendSelection(offer)

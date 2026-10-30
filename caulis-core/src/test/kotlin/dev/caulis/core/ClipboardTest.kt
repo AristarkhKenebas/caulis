@@ -26,6 +26,24 @@ class ClipboardTest {
     }
 
     @Test
+    fun `formats too many or too long (an X11 program's) are not offered, and nobody is disconnected`() = withServer { server, client ->
+        // (An X11 program's TARGETS: an atom name may be 64 KB, and there may be thousands.)
+        val types = listOf(TestClipboard.TEXT, "a/" + "x".repeat(5000)) + List(200) { "x-test/type-$it" }
+        server.onServer {
+            server.clipboard.setClipboard(object : ClipboardData {
+                override val mimeTypes = types
+                override fun send(mimeType: String, fd: Fd) = fd.use { TestClipboard.writeAll(it, "still here".toByteArray()) }
+            })
+        }
+        val clipboard = TestClipboard(client)
+        client.waitFor { TestClipboard.TEXT in clipboard.offered }
+        repeat(3) { client.connection.roundtrip() }
+        assertEquals(64, clipboard.offered.size, "at most 64 formats")
+        assertTrue(clipboard.offered.all { it.length < 4096 }, "none too long to send")
+        assertEquals("still here", clipboard.paste().decodeToString(), "the program is still connected")
+    }
+
+    @Test
     fun `the compositor can put something on the clipboard`() = withServer { server, client ->
         var cancelled = false
         server.onServer {

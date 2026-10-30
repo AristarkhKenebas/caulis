@@ -63,6 +63,10 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   shared alone too (a portal's or OBS's window source, ext-foreign-toplevel image capture);
   before, only screenshots and screen sharing blacked it out. `Desktop.captureWindow` draws it
   black for every caller.
+- Clipboard formats offered to programs are capped (64, each short enough to send),
+  whoever put them on the clipboard: an X11 program could offer thousands of names or one of
+  kilobytes, and each program it was offered to (the focused one, clipboard managers, Xwayland
+  itself) lost its connection.
 
 ## [0.1.7] - 2026-10-30
 

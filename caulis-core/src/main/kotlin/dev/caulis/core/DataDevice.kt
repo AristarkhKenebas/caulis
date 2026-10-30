@@ -268,7 +268,7 @@ class DataDeviceManager(private val display: Display, private val seat: Seat) {
             }
             offers += offer
             device.sendDataOffer(offer)
-            source.mimeTypes.forEach(offer::sendOffer)
+            offerable(source.mimeTypes, offer.client).forEach(offer::sendOffer)
             if (offer.version >= 3) offer.sendSourceActions(source.actions)
             return offer
         }
@@ -352,7 +352,7 @@ class DataDeviceManager(private val display: Display, private val seat: Seat) {
             override fun setActions(resource: WlDataOffer, dndActions: Int, preferredAction: Int) {}
         }
         device.sendDataOffer(offer)
-        source.mimeTypes.forEach(offer::sendOffer)
+        offerable(source.mimeTypes, offer.client).forEach(offer::sendOffer)
         device.sendSelection(offer)
     }
 
@@ -364,6 +364,20 @@ class DataDeviceManager(private val display: Display, private val seat: Seat) {
         private const val ALL_ACTIONS = 7
     }
 }
+
+/**
+ * The formats of something on the clipboard that may be offered to [client]: at most
+ * [MAX_OFFERED_TYPES], each short enough to send (whoever put it there — an X11 program, your
+ * code — a name past what libwayland takes would make every program it is offered to drop
+ * its connection).
+ */
+internal fun offerable(mimeTypes: List<String>, client: dev.caulis.protocol.Client): List<String> {
+    if (mimeTypes.size <= MAX_OFFERED_TYPES && mimeTypes.all { client.server.fitsForwarded(it) }) return mimeTypes
+    return mimeTypes.asSequence().filter { client.server.fitsForwarded(it) }.take(MAX_OFFERED_TYPES).toList()
+}
+
+// Formats offered at most (programs' own sources keep as many).
+internal const val MAX_OFFERED_TYPES = 64
 
 /**
  * Something on the clipboard: the formats it can be had in (MIME types such as
