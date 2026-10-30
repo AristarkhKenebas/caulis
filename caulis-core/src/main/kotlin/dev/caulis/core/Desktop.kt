@@ -6022,10 +6022,10 @@ class Desktop(
         view.showsLock = lockHidesDesktop
         var parts = view.takeRepaintParts(if (fullRedraw) 0 else age, bounds) ?: return
         // Blur reads around its area: a change near it (within its reach, not only under it)
-        // changes it too — one part with all it needs (else a bar's blur stayed stale while a
-        // program drew next to it, and flashed when it caught up).
+        // changes it too — its whole reach redrawn first, in one part (else a bar's blur stayed
+        // stale while a program drew next to it, and flashed when it caught up).
         if (items.any { it is DrawItem.Blur && parts.any { part -> it.reachRect().intersect(part) != null } }) {
-            parts = listOf(withBlurReach(items, parts.reduce(Rect::union), bounds))
+            parts = withBlurParts(items.filterIsInstance<DrawItem.Blur>().map { it.reachRect() }, parts, bounds)
         }
         // In pixels, one more around each: a fractional scale must not leave a half-drawn edge.
         // Where those overlap, each pixel belongs to one part only (nothing is drawn twice).
@@ -6109,23 +6109,6 @@ class Desktop(
             changed()
         }
 
-    private fun withBlurReach(items: List<DrawItem>, repaint: Rect, bounds: Rect): Rect {
-        var result = repaint
-        var grew = true
-        while (grew) {
-            grew = false
-            for (item in items) {
-                if (item !is DrawItem.Blur) continue
-                val reach = item.reach
-                val around = Rect(item.rect.x - reach, item.rect.y - reach, item.rect.width + 2 * reach, item.rect.height + 2 * reach).intersect(bounds) ?: continue
-                if (around.intersect(result) == null || result.contains(around)) continue
-                result = result.union(around)
-                grew = true
-            }
-        }
-        return result
-    }
-
     /**
      * The buffer of a fullscreen window that is the only thing on screen (no menus, no
      * cursor drawn by us, nothing above it), if it is a GPU buffer exactly as big as the
@@ -6171,8 +6154,9 @@ class Desktop(
                 old.value.areas.forEach(view::damage)
                 why?.add("gone $key")
             } else if (new.index != old.index || new.value.differsFrom(old.value)) {
-                old.value.areas.forEach(view::damage)
-                new.value.areas.forEach(view::damage)
+                // (A moving wallpaper: only where it shows — not under the windows over it.)
+                uncoveredAreas(old.value, view.shown, old.index).forEach(view::damage)
+                uncoveredAreas(new.value, items, new.index).forEach(view::damage)
                 why?.add("changed $key ${new.value.rect}")
             }
         }

@@ -44,6 +44,10 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   (`hideDesktop` and locker programs showed none of them already.)
 - A wallpaper shader that follows only the pointer (no `time`) is drawn anew only while the
   pointer moves or a click is fresh, not `framesPerSecond` times a second all the time.
+- A moving wallpaper shader redraws only what windows leave of it: the opaque windows over it
+  are cut out of what a frame redraws, and a blurred bar beside it no longer turns a strip of
+  wallpaper into a whole screen redrawn — a blur's reach is redrawn first as a part of its own
+  (fresh before the blur reads it), the other parts stay apart.
 
 ### Fixed
 - CI on GitHub: the "CI" and "Release" workflows failed in "Build and test" since 0.1.3. A

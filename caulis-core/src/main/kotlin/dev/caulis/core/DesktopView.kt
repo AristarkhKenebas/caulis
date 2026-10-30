@@ -328,6 +328,67 @@ internal sealed class DrawItem {
     }
 }
 
+/**
+ * The parts of [item] (at [index] in [list], bottom to top) a change of it shows on: its
+ * [DrawItem.areas], less what opaque things above it cover — for a moving wallpaper shader
+ * only (a window over most of it: only the rest is drawn anew). Careful: when cutting would
+ * leave more than [MAX_UNCOVERED] pieces, all of its areas.
+ */
+internal fun uncoveredAreas(item: DrawItem, list: List<DrawItem>, index: Int): List<Rect> {
+    if (item !is DrawItem.Custom || item.wallpaper == null) return item.areas
+    var parts = item.areas
+    for (i in index + 1 until list.size) {
+        val above = list[i]
+        if (above.only != null) continue // (a sliding workspace hides nothing on the monitor beside)
+        for (cover in above.covers) {
+            if (parts.none { it.intersect(cover) != null }) continue
+            parts = parts.flatMap { it.minus(cover) }
+            if (parts.size > MAX_UNCOVERED) return item.areas
+            if (parts.isEmpty()) return parts
+        }
+    }
+    return parts
+}
+
+private const val MAX_UNCOVERED = 6
+
+/**
+ * [parts] (what a frame redraws) with what blurs near them need: a blur reads the pixels
+ * within its reach, so the reach of each blur touching a part (and of each blur touching
+ * those) comes first, whole — drawn before the blur in the same pass, its pixels are all fresh
+ * when the blur reads them — and the parts stay apart otherwise (one box around everything
+ * would redraw a whole screen for a strip of wallpaper beside a blurred bar).
+ */
+internal fun withBlurParts(blurs: List<Rect>, parts: List<Rect>, bounds: Rect): List<Rect> {
+    val reaches = blurs.mapNotNull { it.intersect(bounds) }
+    val taken = ArrayList<Rect>()
+    var grew = true
+    while (grew) {
+        grew = false
+        for (reach in reaches) {
+            if (taken.any { it.contains(reach) }) continue
+            if (parts.any { it.intersect(reach) != null } || taken.any { it.intersect(reach) != null }) {
+                taken += reach
+                grew = true
+            }
+        }
+        // Reaches that overlap become one (a blur reads across both).
+        var merged = true
+        while (merged) {
+            merged = false
+            loop@ for (a in taken.indices) for (b in a + 1 until taken.size) {
+                if (taken[a].intersect(taken[b]) != null) {
+                    taken[a] = taken[a].union(taken[b])
+                    taken.removeAt(b)
+                    merged = true
+                    break@loop
+                }
+            }
+        }
+    }
+    return taken + parts.filter { part -> taken.none { it.contains(part) } }
+}
+
 /** Identifies an effect of [owner] (a window or panel) from frame to frame. */
 internal data class EffectKey(val kind: String, val owner: Any)
 
