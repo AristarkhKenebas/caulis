@@ -1,0 +1,116 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-protocol",
+    "version": "0.1.8",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-native",
+          "version": {
+            "requires": "0.1.8"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-protocol-0.1.8.jar",
+          "url": "caulis-protocol-0.1.8.jar",
+          "size": 1421336,
+          "sha512": "b8292d92a40c849d21f647e28dd15777e27f6c78c94ef312686c6cadebf172f5324ade0c7e4eafe39c7c884a8b36d719703732733b6c1db391f6747b26e0929b",
+          "sha256": "aaee0a4161d94c0548746e14e1901e4b4faff793c9197da8f6d9718181e7612e",
+          "sha1": "c051792987aff0e3b973ca2cc513d72bd67bc486",
+          "md5": "4af05485f8a5f23193ce31fffd57d140"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-native",
+          "version": {
+            "requires": "0.1.8"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-protocol-0.1.8.jar",
+          "url": "caulis-protocol-0.1.8.jar",
+          "size": 1421336,
+          "sha512": "b8292d92a40c849d21f647e28dd15777e27f6c78c94ef312686c6cadebf172f5324ade0c7e4eafe39c7c884a8b36d719703732733b6c1db391f6747b26e0929b",
+          "sha256": "aaee0a4161d94c0548746e14e1901e4b4faff793c9197da8f6d9718181e7612e",
+          "sha1": "c051792987aff0e3b973ca2cc513d72bd67bc486",
+          "md5": "4af05485f8a5f23193ce31fffd57d140"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-protocol-0.1.8-sources.jar",
+          "url": "caulis-protocol-0.1.8-sources.jar",
+          "size": 550068,
+          "sha512": "9d46d69f06b587cae4cc7d813401b52e55f3e7af837a47d8cf1c954c3b92804bdb707e68018934c064d9a5e8f44a2b43f45791d060b299d4609771399ceae4bd",
+          "sha256": "d7f7d2d8994a34384c1bf97acc2c9eefa39289a324a2cecd229e1c3800b73d4e",
+          "sha1": "fe07df6c17e2c53e8f12ab4c5d631b2a78b69cb3",
+          "md5": "d128d8c919656e6fe8550cea138b3926"
+        }
+      ]
+    }
+  ]
+}
