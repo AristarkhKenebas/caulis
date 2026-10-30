@@ -40,6 +40,7 @@ class Desktop(
     // desktop for what they need). First, so that nothing below finds them missing.
     private val touch = DesktopTouch(this, seat)
     private val pens = DesktopPens(this, seat)
+    private val ownTitleBars = DesktopTitleBars(this)
     private val pointerGrab = DesktopPointerGrab(this, seat)
 
     // Our listener for saved shader files (taken away again in close).
@@ -78,8 +79,7 @@ class Desktop(
     override fun close() {
         shaderSaved?.let { WatchedText.anyChange -= it }
         shaderSaved = null
-        titleTextures.values.forEach { it.second.close() }
-        titleTextures.clear()
+        ownTitleBars.close()
         fades.keys.toList().forEach(::dropFade)
         flights.forEach { it.target.close() }
         flights.clear()
@@ -612,7 +612,7 @@ class Desktop(
         }
 
     // True if the director places [window] itself.
-    private fun directed(window: Window): Boolean {
+    internal fun directed(window: Window): Boolean {
         val d = director ?: return false
         return userCode("Your WindowDirector (manages)", false) { d.manages(window) }
     }
@@ -820,7 +820,8 @@ class Desktop(
 
     // Where the director showed each of its windows in the frame last built (what is on screen
     // now: drawn there, and found there by the pointer).
-    private var places: Map<Window, WindowPlace> = emptyMap()
+    internal var places: Map<Window, WindowPlace> = emptyMap()
+        private set
 
     override fun windowInfoChanged(window: Window) {
         windowsLog.trace { "Now called $window" }
@@ -969,7 +970,7 @@ class Desktop(
     }
 
     // A rectangle in units (from 0, 0) as pixels of [scale].
-    private fun pixelsOf(rect: Rect, scale: Double): Rect {
+    internal fun pixelsOf(rect: Rect, scale: Double): Rect {
         fun p(v: Int) = Math.round(v * scale).toInt()
         return Rect(p(rect.x), p(rect.y), p(rect.right) - p(rect.x), p(rect.bottom) - p(rect.y))
     }
@@ -1130,7 +1131,7 @@ class Desktop(
     }
 
     // The log, by area (see dev.caulis.log.Log.AREAS): CAULIS_LOG="1,focus=3" and so on.
-    private val log = Logger("config")
+    internal val log = Logger("config")
     private val windowsLog = Logger("windows")
     private val focusLog = Logger("focus")
     internal val inputLog = Logger("input")
@@ -2901,8 +2902,7 @@ class Desktop(
     var titleBarStyle: TitleBarStyle = TitleBarStyle()
         set(value) {
             field = value
-            for ((_, cached) in titleTextures) cached.second.close()
-            titleTextures.clear()
+            ownTitleBars.close()
             for (window in allWindows) decorationOfChanged(window)
         }
 
@@ -3140,135 +3140,6 @@ class Desktop(
         val workspace = workspaceOf(window) ?: return
         if (window.maximized && !window.fullscreen) applyState(window) else arrange(workspace)
         changed()
-    }
-
-    // Each window's drawn title bar and what it showed (redrawn only when that changes).
-    private val titleTextures = HashMap<Window, Pair<Any, GpuTexture>>()
-    private var titleHover: Pair<Window, TitleButton?>? = null
-    private var titlePressed: Pair<Window, TitleButton>? = null
-
-    private fun titleTexture(window: Window, bar: Rect): GpuTexture {
-        // At the scale of the window's monitor.
-        val scale = monitorOf(window).scale
-        fun px(value: Int) = Math.round(value * scale).toInt()
-        val pixels = pixelsOf(Rect(0, 0, bar.width, titleBarStyle.height), scale)
-        val hovered = titleHover?.takeIf { it.first === window }?.second
-        val pressed = titlePressed?.takeIf { it.first === window }?.second
-        val key = listOf(window.title, window.appId, window === focusedWindow, window.maximized, hovered, pressed, pixels.width, pixels.height, scale)
-        titleTextures[window]?.let { (shown, texture) -> if (shown == key) return texture else texture.close() }
-        val look = TitleBarLook(
-            pixels.width, pixels.height, scale, window.title, window.appId, window === focusedWindow, window.maximized, hovered, pressed,
-            titleBarStyle.buttonPlaces(bar.width).map { (button, range) -> button to (px(range.first) until px(range.last + 1)) },
-            titleBarStyle,
-        )
-        val image = java.awt.image.BufferedImage(pixels.width.coerceAtLeast(1), pixels.height.coerceAtLeast(1), java.awt.image.BufferedImage.TYPE_INT_ARGB_PRE)
-        val g = image.createGraphics()
-        try {
-            titleBarStyle.painter.paint(g, look)
-        } catch (e: Throwable) {
-            e.rethrowIfFatal()
-            log.error("Drawing a title bar failed (your TitleBarPainter?)", e)
-        } finally {
-            g.dispose()
-        }
-        val texture = renderer.createTexture(image.width, image.height)
-        java.lang.foreign.Arena.ofConfined().use { arena ->
-            val data = (image.raster.dataBuffer as java.awt.image.DataBufferInt).data
-            texture.upload(arena.allocateFrom(java.lang.foreign.ValueLayout.JAVA_INT, *data), 0, image.height)
-        }
-        titleTextures[window] = key to texture
-        return texture
-    }
-
-    // What of a compositor title bar (or a floating window's edge) is at a point.
-    private sealed class Decoration(val window: Window) {
-        class Bar(window: Window, val button: TitleButton?) : Decoration(window)
-        class Edge(window: Window, val edges: Int) : Decoration(window)
-    }
-
-    private fun barAt(window: Window, x: Double, y: Double): Decoration? {
-        val content = screenRects[window] ?: return null
-        val height = titleHeight(window)
-        if (height > 0 && x >= content.x && x < content.right && y >= content.y - height && y < content.y) {
-            val button = titleBarStyle.buttonPlaces(content.width).firstOrNull { (_, range) -> (x - content.x).toInt() in range }?.first
-            return Decoration.Bar(window, button)
-        }
-        // Floating windows with our title bar can be resized at their edges.
-        if (height > 0 && !window.tiled && !window.maximized) {
-            val frame = Rect(content.x, content.y - height, content.width, content.height + height)
-            val b = resizeBorder
-            if (x >= frame.x - b && x < frame.right + b && y >= frame.y - b && y < frame.bottom + b && !(x >= frame.x && x < frame.right && y >= frame.y && y < frame.bottom)) {
-                var edges = 0
-                if (x < frame.x) edges = edges or XdgToplevel.ResizeEdge.LEFT
-                if (x >= frame.right) edges = edges or XdgToplevel.ResizeEdge.RIGHT
-                if (y < frame.y) edges = edges or XdgToplevel.ResizeEdge.TOP
-                if (y >= frame.bottom) edges = edges or XdgToplevel.ResizeEdge.BOTTOM
-                return Decoration.Edge(window, edges)
-            }
-        }
-        return null
-    }
-
-    private var lastBarClick = 0L
-
-    // A press or release on a title bar: buttons, dragging, double click. True if it was ours.
-    private fun barButton(button: Int, pressed: Boolean): Boolean {
-        val held = titlePressed
-        if (!pressed) {
-            if (held == null) return false
-            titlePressed = null
-            // A button acts when let go over it.
-            val over = decorationAt(pointerX, pointerY) as? Decoration.Bar
-            if (over != null && over.window === held.first && over.button == held.second) {
-                when (held.second) {
-                    TitleButton.CLOSE -> held.first.close()
-                    TitleButton.MAXIMIZE -> setMaximized(held.first, !held.first.maximized)
-                    TitleButton.MINIMIZE -> minimize(held.first)
-                }
-            }
-            changed()
-            return true
-        }
-        if (button != BTN_LEFT) return decorationAt(pointerX, pointerY) != null
-        when (val at = decorationAt(pointerX, pointerY) ?: return false) {
-            is Decoration.Bar -> {
-                focus(at.window)
-                val tapped = at.button
-                if (tapped != null) {
-                    titlePressed = at.window to tapped
-                } else {
-                    val now = System.nanoTime()
-                    if (now - lastBarClick < doubleClickMillis * 1_000_000) {
-                        setMaximized(at.window, !at.window.maximized)
-                        lastBarClick = 0
-                    } else {
-                        lastBarClick = now
-                        beginMove(at.window)
-                    }
-                }
-            }
-            is Decoration.Edge -> {
-                focus(at.window)
-                beginResize(at.window, at.edges)
-            }
-        }
-        changed()
-        return true
-    }
-
-    // The topmost title bar or edge at a point, if no program's window is above it there.
-    private fun decorationAt(x: Double, y: Double): Decoration? {
-        if (locked || inOverview) return null
-        val (fullscreen, normal) = stackingOrder().partition { it.fullscreen }
-        if (fullscreen.any { !directed(it) && windowHit(it, x, y) != null }) return null
-        // A director's windows are where it draws them, with no bars or edges of ours.
-        for ((window, place) in places.entries.reversed()) if (window.mapped && place.takesInput && place.alpha > 0f && directedHit(window, place, x, y) != null) return null
-        for (window in normal.asReversed()) {
-            if (directed(window)) continue
-            if (windowHit(window, x, y) != null) return null // the window's own picture is on top
-            barAt(window, x, y)?.let { return it }
-        }
-        return null
     }
 
     // --- effects ---------------------------------------------------------------------------
@@ -3697,7 +3568,7 @@ class Desktop(
     private val shownRects = HashMap<Window, Rect>()
 
     // Where each window appears on screen (with the overview's zoom).
-    private val screenRects = HashMap<Window, Rect>()
+    internal val screenRects = HashMap<Window, Rect>()
 
     /** Where [window] appears on screen right now, also zoomed out in the overview (null = not drawn yet). */
     fun screenRect(window: Window): Rect? = screenRects[window]
@@ -4017,9 +3888,7 @@ class Desktop(
         stopFlights(window)
         appearingPictures.remove(window)?.close()
         (lastLooks.remove(window) ?: lastLookOf(window))?.let { flights += it }
-        titleTextures.remove(window)?.second?.close()
-        if (titleHover?.first === window) titleHover = null
-        if (titlePressed?.first === window) titlePressed = null
+        ownTitleBars.forget(window)
         minimizeTargets -= window
         // What every closed window leaves behind (a scratchpad's too).
         pending.remove(window)
@@ -4306,7 +4175,7 @@ class Desktop(
 
     // Windows bottom to top as drawn, on every monitor: tiled ones, floating ones above
     // them, fullscreen on top.
-    private fun stackingOrder(): List<Window> = shownWorkspaces().flatMap { workspace ->
+    internal fun stackingOrder(): List<Window> = shownWorkspaces().flatMap { workspace ->
         val (fullscreen, others) = workspace.windows.partition { it.fullscreen }
         others.filter { it.tiled } + others.filter { !it.tiled } + fullscreen
     }
@@ -4855,7 +4724,7 @@ class Desktop(
         if (!locked && noticeBoard.at(x, y) != null) return null
         val hit = (pointedAt(x, y, widgetsToo = true) as? Pointed.AtSurface)?.hit ?: return null
         // (Our title bars and window edges are above what is under them.)
-        if (!locked && decorationAt(x, y) != null) return null
+        if (!locked && ownTitleBars.at(x, y) != null) return null
         if (!hit.surface.resource.isAlive || !seat.allowed(hit.surface) || !tablets.takes(hit.surface)) return null
         return hit
     }
@@ -4863,8 +4732,8 @@ class Desktop(
     // The pen took over from the pointer: what the pointer was over hears that it left.
     internal fun pointerAway(timeMillis: Int) {
         hoverWidget(timeMillis, null, moved = false)
-        if (titleHover != null) {
-            titleHover = null
+        if (ownTitleBars.hover != null) {
+            ownTitleBars.hover = null
             changed()
         }
         decorationCursor = null
@@ -4958,16 +4827,16 @@ class Desktop(
         val under = pointedAt(pointerX, pointerY, widgetsToo = true)
         val overWidget = under as? Pointed.AtWidget
         // (Behind a lock no title bar lights up and no edge shows a resize cursor.)
-        val decoration = if (locked || (overWidget != null && overWidget.level != DrawingLevel.BELOW_WINDOWS)) null else decorationAt(pointerX, pointerY)
+        val decoration = if (locked || (overWidget != null && overWidget.level != DrawingLevel.BELOW_WINDOWS)) null else ownTitleBars.at(pointerX, pointerY)
         if (hoverWidget(timeMillis, overWidget.takeIf { decoration == null }, moved = true)) {
             onChange()
             return
         }
         // Over one of our title bars: the program does not see the pointer, the bar may light up.
-        val hover = (decoration as? Decoration.Bar)?.let { it.window to it.button }
-        decorationCursor = (decoration as? Decoration.Edge)?.let { resizeCursor(it.edges) }
-        if (hover != titleHover) {
-            titleHover = hover
+        val hover = (decoration as? DesktopTitleBars.Decoration.Bar)?.let { it.window to it.button }
+        decorationCursor = (decoration as? DesktopTitleBars.Decoration.Edge)?.let { resizeCursor(it.edges) }
+        if (hover != ownTitleBars.hover) {
+            ownTitleBars.hover = hover
             changed()
         }
         // The keyboard follows the pointer: onto another window, it gets the focus (once, so
@@ -4975,7 +4844,7 @@ class Desktop(
         // (Not while one of our widgets has the keyboard — a launcher, a menu: the pointer
         // passing over a window took the keys from it.)
         if (focusFollowsMouse && !locked && keyboardWidget == null) {
-            val under = windowAt(pointerX, pointerY) ?: (decoration as? Decoration.Bar)?.window ?: (decoration as? Decoration.Edge)?.window
+            val under = windowAt(pointerX, pointerY) ?: (decoration as? DesktopTitleBars.Decoration.Bar)?.window ?: (decoration as? DesktopTitleBars.Decoration.Edge)?.window
             if (under !== hovered) {
                 hovered = under
                 if (under != null && under !== focusedWindow && exclusiveLayer() == null && !behindSpecial(under)) focus(under)
@@ -5014,7 +4883,7 @@ class Desktop(
         val time = (System.nanoTime() / 1_000_000).toInt()
         val under = pointedAt(pointerX, pointerY, widgetsToo = true)
         val overWidget = under as? Pointed.AtWidget
-        val onBar = (overWidget == null || overWidget.level == DrawingLevel.BELOW_WINDOWS) && decorationAt(pointerX, pointerY) != null
+        val onBar = (overWidget == null || overWidget.level == DrawingLevel.BELOW_WINDOWS) && ownTitleBars.at(pointerX, pointerY) != null
         if (hoverWidget(time, overWidget.takeIf { !onBar }, moved = false) || onBar) return
         val hit = (under as? Pointed.AtSurface)?.hit
         if (hit?.surface === seat.pointerFocus) return
@@ -5152,7 +5021,7 @@ class Desktop(
             return
         }
         // Title bars and edges of our own (no program sees these clicks).
-        if (grabs.isEmpty() && barButton(button, pressed)) return
+        if (grabs.isEmpty() && ownTitleBars.button(button, pressed)) return
         if (pressed) {
             val hit = surfaceAt(pointerX, pointerY)
             // A click outside the open menus closes them (and is not passed to the window below).
@@ -5383,7 +5252,7 @@ class Desktop(
     }
 
     // [place] is where the picture is; the program is told the point in its own size.
-    private fun directedHit(window: Window, place: WindowPlace, x: Double, y: Double): Hit? {
+    internal fun directedHit(window: Window, place: WindowPlace, x: Double, y: Double): Hit? {
         if (x < place.x || y < place.y || x >= place.x + place.width || y >= place.y + place.height) return null
         place.clip?.let { c -> if (x < c.x || y < c.y || x >= c.right || y >= c.bottom) return null }
         val visible = window.visibleRect
@@ -5393,7 +5262,7 @@ class Desktop(
         return Hit(hit.surface, hit.localX, hit.localY, hit.root, scaleX, scaleY)
     }
 
-    private fun windowHit(window: Window, x: Double, y: Double): Hit? {
+    internal fun windowHit(window: Window, x: Double, y: Double): Hit? {
         val visible = window.visibleRect
         return hitTree(window.surface, x - (window.x - visible.x), y - (window.y - visible.y), window.surface)
     }
@@ -6265,7 +6134,7 @@ class Desktop(
         val bar = titleHeight(window).let { if (it > 0) Rect(rect.x, rect.y - (it * scaleY).roundToInt(), rect.width, (it * scaleY).roundToInt()) else null }
         val frame = bar?.union(rect) ?: rect
         val look = addEffects(all, window, window.surface, visibleRect, frame, minOf(scaleX, scaleY), fx, focused = window === focusedWindow)
-        if (bar != null) all += DrawItem.Image(EffectKey("title", window), titleTexture(window, bar), bar, look.clip, look.radius, alpha = alpha)
+        if (bar != null) all += DrawItem.Image(EffectKey("title", window), ownTitleBars.texture(window, bar), bar, look.clip, look.radius, alpha = alpha)
         addTree(all, window.surface, rect.x - (visibleRect.x * scaleX).roundToInt(), rect.y - (visibleRect.y * scaleY).roundToInt(), scaleX, scaleY, look)
         if (look.dim > 0f) all += DrawItem.Tint(EffectKey("dim", window), frame, look.radius, 0f, 0f, 0f, look.dim * alpha)
     }
