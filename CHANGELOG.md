@@ -16,10 +16,16 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 ## [Unreleased]
 
 ### Added
-- `Desktop.panelsShowWhileLocked` (true, as before): set to false, the compositor's own lock
-  screen ([`lockInternally`] without `hideDesktop`) no longer shows programs' panels (a bar, a
-  notification daemon's pop-ups), menus and tooltips, or X11's unmanaged windows behind it —
-  what they show may be private. Surfaces the lock's `allowSurface` lets in are still drawn.
+- `Desktop.panelsShowWhileLocked` (default false): whether the compositor's own lock screen
+  (`lockInternally` without `hideDesktop`) shows programs' panels (a bar, a notification
+  daemon's pop-ups), menus and tooltips, and X11's unmanaged windows behind it. Surfaces the
+  lock's `allowSurface` lets in are drawn either way.
+
+### Changed
+- Behind the compositor's own lock screen (`lockInternally` without `hideDesktop`) programs'
+  panels, notification pop-ups, menus and X11's unmanaged windows are now hidden: what they show
+  may be private. **To keep them drawn** as before, set `desktop.panelsShowWhileLocked = true`.
+  (`hideDesktop` and locker programs showed none of them already.)
 
 ### Fixed
 - CI on GitHub: the "CI" and "Release" workflows failed in "Build and test" since 0.1.3. A

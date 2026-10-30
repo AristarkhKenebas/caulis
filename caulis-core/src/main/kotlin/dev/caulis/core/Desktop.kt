@@ -1743,14 +1743,14 @@ class Desktop(
     /**
      * Behind the compositor's own lock screen when it shows the desktop ([lockInternally]
      * without hideDesktop): whether programs' panels (layer shell: bars, a notification
-     * daemon's pop-ups), menus and tooltips, and X11's unmanaged windows are still drawn. True
-     * (the default) draws them as the rest of the desktop; false leaves them out — what a
-     * notification or a bar shows may be private — except the surfaces the lock's allowSurface
-     * lets in (a lock screen that is a panel program). Windows are yours to hide (a
+     * daemon's pop-ups), menus and tooltips, and X11's unmanaged windows are still drawn. False
+     * (the default) leaves them out — what a notification or a bar shows may be private —
+     * except the surfaces the lock's allowSurface lets in (a lock screen that is a panel
+     * program); true draws them as the rest of the desktop. Windows are yours to hide (a
      * [WindowDirector] fading them out, as newm does). A locker program's lock, and
      * hideDesktop, show none of them either way.
      */
-    var panelsShowWhileLocked: Boolean = true
+    var panelsShowWhileLocked: Boolean = false
         set(value) {
             if (value != field) lockLog.info { "Panels, menus and unmanaged windows behind the own lock screen: ${if (value) "drawn" else "hidden"}" }
             field = value

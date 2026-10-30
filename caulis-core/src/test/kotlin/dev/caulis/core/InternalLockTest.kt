@@ -255,7 +255,7 @@ class InternalLockTest {
     }
 
     @Test
-    fun `panels behind the own lock screen are left out when panelsShowWhileLocked is off`() = withServer { server, client ->
+    fun `panels behind the own lock screen are left out unless panelsShowWhileLocked`() = withServer { server, client ->
         val width = ScreenTestServer.WIDTH
         // A notification daemon's pop-up: black, 40 x 40, in the top right corner (the overlay layer).
         val surface = client.compositor.createSurface()
@@ -272,9 +272,12 @@ class InternalLockTest {
         val black = 0xff000000.toInt()
         client.waitFor { popup() == black }
         val screen = Panel(Rect(0, 0, 20, 20))
-        // By default the desktop behind the own lock screen keeps its panels.
+        // By default the desktop behind the own lock screen leaves its panels out.
         server.onServer { d -> d.lockInternally(screen) }
-        assertEquals(black, popup(), "drawn as before by default")
+        client.waitFor { popup() != black }
+        // Turned on: drawn behind the lock screen, off again: hidden.
+        server.onServer { d -> d.panelsShowWhileLocked = true }
+        client.waitFor { popup() == black }
         server.onServer { d -> d.panelsShowWhileLocked = false }
         client.waitFor { popup() != black }
         // One the lock allows is drawn (a lock screen that is a panel program).
