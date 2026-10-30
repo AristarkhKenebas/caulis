@@ -1,0 +1,151 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-script",
+    "version": "0.1.9",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-wm",
+          "version": {
+            "requires": "0.1.9"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-scripting-common",
+          "version": {
+            "requires": "2.4.21"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-scripting-jvm",
+          "version": {
+            "requires": "2.4.21"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-script-0.1.9.jar",
+          "url": "caulis-script-0.1.9.jar",
+          "size": 38893,
+          "sha512": "b20faa806f838a263b5db3fe509884b6333ec014187cfdba074ef3252d9addb63d04442d18983a6bf8248f02b8f5a75a0c4146f40edcd99f3f8cb1f586e0f549",
+          "sha256": "4f690341674499dc4cbe5318c27131fa6378f3ab8c3bf73f3297ae1fe8110864",
+          "sha1": "09c161e988ceb7009367d5c8605707f4d6d0cd80",
+          "md5": "6ac05188285b719c570a4f4237e8aafc"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-scripting-jvm-host",
+          "version": {
+            "requires": "2.4.21"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-wm",
+          "version": {
+            "requires": "0.1.9"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-scripting-common",
+          "version": {
+            "requires": "2.4.21"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-scripting-jvm",
+          "version": {
+            "requires": "2.4.21"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-script-0.1.9.jar",
+          "url": "caulis-script-0.1.9.jar",
+          "size": 38893,
+          "sha512": "b20faa806f838a263b5db3fe509884b6333ec014187cfdba074ef3252d9addb63d04442d18983a6bf8248f02b8f5a75a0c4146f40edcd99f3f8cb1f586e0f549",
+          "sha256": "4f690341674499dc4cbe5318c27131fa6378f3ab8c3bf73f3297ae1fe8110864",
+          "sha1": "09c161e988ceb7009367d5c8605707f4d6d0cd80",
+          "md5": "6ac05188285b719c570a4f4237e8aafc"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-script-0.1.9-sources.jar",
+          "url": "caulis-script-0.1.9-sources.jar",
+          "size": 12966,
+          "sha512": "cfbb3056ae94be008b7e358b60f556595f5b90af044f11ced7a6cd836145312ab1cae714be4e9794532faec532e13b18a40c8c674e3043177ab57cda9389d5f7",
+          "sha256": "acc22d8418185340ba1ff15dc809a8d4802e64c60000427f58e5b6cd6d74511a",
+          "sha1": "d8ed840c278fac00f2358d8873e8cbfbe475cafb",
+          "md5": "9e9d20e18d3fc2bd4a39bbb3f0d30934"
+        }
+      ]
+    }
+  ]
+}

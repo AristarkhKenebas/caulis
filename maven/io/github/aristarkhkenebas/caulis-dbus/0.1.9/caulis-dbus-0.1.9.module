@@ -1,0 +1,116 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-dbus",
+    "version": "0.1.9",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-native",
+          "version": {
+            "requires": "0.1.9"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-dbus-0.1.9.jar",
+          "url": "caulis-dbus-0.1.9.jar",
+          "size": 60078,
+          "sha512": "37964498f113c95cadf937d38594b71aba522bd7bf91e139f57c4487fecadd0b69206af8de7144341bf646c0731ee2728b1ac5f1c230828d8794c56a301e5e67",
+          "sha256": "c21d1d0618ab3443b19a2f3ac69acc4c5c5d2efbb8313955989c8972932ff17d",
+          "sha1": "96ca8ab0cd5a5107300591c267156db8b884a495",
+          "md5": "fdd1ba9ed12e59f35e556e86d80aa5b7"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-native",
+          "version": {
+            "requires": "0.1.9"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-dbus-0.1.9.jar",
+          "url": "caulis-dbus-0.1.9.jar",
+          "size": 60078,
+          "sha512": "37964498f113c95cadf937d38594b71aba522bd7bf91e139f57c4487fecadd0b69206af8de7144341bf646c0731ee2728b1ac5f1c230828d8794c56a301e5e67",
+          "sha256": "c21d1d0618ab3443b19a2f3ac69acc4c5c5d2efbb8313955989c8972932ff17d",
+          "sha1": "96ca8ab0cd5a5107300591c267156db8b884a495",
+          "md5": "fdd1ba9ed12e59f35e556e86d80aa5b7"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-dbus-0.1.9-sources.jar",
+          "url": "caulis-dbus-0.1.9-sources.jar",
+          "size": 19240,
+          "sha512": "704cfa0044db71f26e01c61d77ce405e033ecd3f58e9eab5676d5cdfa00544bd93c0d0da77960a7ee5ecc5dd0aff694594a7ed5e41a2c1856082e38a7b651263",
+          "sha256": "84aba39a8f5663e1b0edccc9f0630ef1534eff8153c15c58e670cc5089a4b158",
+          "sha1": "2abb994b8b68a9183bc9d27e873229144f9c4035",
+          "md5": "e1f15a08550bb27f5d30f6d9def3dde2"
+        }
+      ]
+    }
+  ]
+}

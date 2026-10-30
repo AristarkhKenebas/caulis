@@ -1,0 +1,192 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-compose",
+    "version": "0.1.9",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-core",
+          "version": {
+            "requires": "0.1.9"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-wm",
+          "version": {
+            "requires": "0.1.9"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime-desktop",
+          "version": {
+            "strictly": "1.12.2",
+            "requires": "1.12.2"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-desktop",
+          "version": {
+            "strictly": "1.12.2",
+            "requires": "1.12.2"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-desktop",
+          "version": {
+            "strictly": "1.12.2",
+            "requires": "1.12.2"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-compose-0.1.9.jar",
+          "url": "caulis-compose-0.1.9.jar",
+          "size": 105514,
+          "sha512": "1c42d70182091dc919508adc5dc03eb577ee818a457eb0b3fc1269ab131abcd74050da38b53ffc094b6c08018621741031e93656e10b3ca807aae404a673547d",
+          "sha256": "628540234107b6a7d09a6a69c31a2310ad7d55e45323771936e72e6047df36c0",
+          "sha1": "d5887f802d2d110ad74edb46bd9c0a876ba5f6cb",
+          "md5": "6fce9a08073442dbf0805fefe78b8c31"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-core",
+          "version": {
+            "requires": "0.1.9"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-wm",
+          "version": {
+            "requires": "0.1.9"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime-desktop",
+          "version": {
+            "strictly": "1.12.2",
+            "requires": "1.12.2"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-desktop",
+          "version": {
+            "strictly": "1.12.2",
+            "requires": "1.12.2"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-desktop",
+          "version": {
+            "strictly": "1.12.2",
+            "requires": "1.12.2"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        },
+        {
+          "group": "org.jetbrains.skiko",
+          "module": "skiko-awt-runtime-linux-x64",
+          "version": {
+            "requires": "0.150.2"
+          }
+        },
+        {
+          "group": "org.jetbrains.skiko",
+          "module": "skiko-awt-runtime-linux-arm64",
+          "version": {
+            "requires": "0.150.2"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-compose-0.1.9.jar",
+          "url": "caulis-compose-0.1.9.jar",
+          "size": 105514,
+          "sha512": "1c42d70182091dc919508adc5dc03eb577ee818a457eb0b3fc1269ab131abcd74050da38b53ffc094b6c08018621741031e93656e10b3ca807aae404a673547d",
+          "sha256": "628540234107b6a7d09a6a69c31a2310ad7d55e45323771936e72e6047df36c0",
+          "sha1": "d5887f802d2d110ad74edb46bd9c0a876ba5f6cb",
+          "md5": "6fce9a08073442dbf0805fefe78b8c31"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-compose-0.1.9-sources.jar",
+          "url": "caulis-compose-0.1.9-sources.jar",
+          "size": 31437,
+          "sha512": "fa6e34f61f8b5a6bbf38f34423b67f48d4fe9eea2a25a999ed8c5ca145c48d11fa0c2050ad5561d68e0efd9723392affa2ef11ba62c191b281363035221e5600",
+          "sha256": "43c433ef71fd79c4e0d374c552a37eb1a39cd471253d2b4c625d579a4f4551b6",
+          "sha1": "abc55ec58f6c52b2c0a20ef3f1d6459b81f9fd5a",
+          "md5": "6cdf665396346fec5c35e8a2f56c659d"
+        }
+      ]
+    }
+  ]
+}

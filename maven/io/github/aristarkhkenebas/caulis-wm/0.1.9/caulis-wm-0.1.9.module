@@ -1,0 +1,144 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-wm",
+    "version": "0.1.9",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-core",
+          "version": {
+            "requires": "0.1.9"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-xwayland",
+          "version": {
+            "requires": "0.1.9"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-ipc",
+          "version": {
+            "requires": "0.1.9"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-wm-0.1.9.jar",
+          "url": "caulis-wm-0.1.9.jar",
+          "size": 793067,
+          "sha512": "03d9187218e8b6ff38305bdd003155dcf5d4ed9936f2231b868e618fd74d50aa26554d8cfc68a70aa8d801ff03eecd337f19001dad64eb7207d04969554d79d9",
+          "sha256": "a9f872477149fccc86cdf990e97e8fa92abeb9539eca24a68b4bcfced4e259b6",
+          "sha1": "e1ac2002d6520dd75d222ce58ec3630cd4c0aabb",
+          "md5": "6f8f3b589117bbaa3f83a2cd09393273"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-core",
+          "version": {
+            "requires": "0.1.9"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-xwayland",
+          "version": {
+            "requires": "0.1.9"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-ipc",
+          "version": {
+            "requires": "0.1.9"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-wm-0.1.9.jar",
+          "url": "caulis-wm-0.1.9.jar",
+          "size": 793067,
+          "sha512": "03d9187218e8b6ff38305bdd003155dcf5d4ed9936f2231b868e618fd74d50aa26554d8cfc68a70aa8d801ff03eecd337f19001dad64eb7207d04969554d79d9",
+          "sha256": "a9f872477149fccc86cdf990e97e8fa92abeb9539eca24a68b4bcfced4e259b6",
+          "sha1": "e1ac2002d6520dd75d222ce58ec3630cd4c0aabb",
+          "md5": "6f8f3b589117bbaa3f83a2cd09393273"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-wm-0.1.9-sources.jar",
+          "url": "caulis-wm-0.1.9-sources.jar",
+          "size": 206193,
+          "sha512": "eeb16414450c72231399fe59feb7917e05b084235753ad7d81368d8cce993d5710aac01e2a240a3b9be4984550988b49fcc840bbc0e9159c6c43c7880ee7a7f4",
+          "sha256": "86b03f28d24fb81ac45d77f4626deff090188a6cc348652f9213d2fb9328d6e4",
+          "sha1": "82a63828029e9a5413e2bd91cd2832f44fcfe1eb",
+          "md5": "44b8193c23c60867739e61f4bd9f6d6d"
+        }
+      ]
+    }
+  ]
+}
