@@ -59,7 +59,7 @@ object FileWatch {
  * The text of a file, read again when it changes (see [FileWatch]); [onChange] runs after.
  * Until the file can be read, [text] is empty and [problem] says why.
  */
-internal class WatchedText(val path: Path) {
+internal class WatchedText private constructor(val path: Path) {
     @Volatile
     var text: String = ""
         private set

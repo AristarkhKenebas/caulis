@@ -18,6 +18,15 @@ class ShaderFileTest {
     private val folder: Path = Files.createTempDirectory("caulis-shaders")
 
     @Test
+    fun `screen shaders of one file share one watch, however often made (each reload makes one)`() {
+        val file = folder.resolve("screen.glsl")
+        file.writeText("vec4 effect(vec4 c, vec2 at) { return c; }")
+        fun watchOf(shader: ScreenShader) = ScreenShader::class.java.getDeclaredField("watched").apply { isAccessible = true }.get(shader)
+        val first = watchOf(ScreenShader.file(file))
+        repeat(5) { assertTrue(watchOf(ScreenShader.file(file)) === first, "the same watched file, not one more each time") }
+    }
+
+    @Test
     fun `a saved shader is used at once, a mistake is shown with its line and goes when fixed`() = withServer { server ->
         val file = folder.resolve("sky.glsl")
         file.writeText(shader("1.0, 0.0, 0.0"))

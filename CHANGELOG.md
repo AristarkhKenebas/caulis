@@ -36,6 +36,8 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   movements no longer holds back what programs are sent and the frames: each turn of the loop
   handles the events that were waiting when it began. A movement whose handling failed no longer
   leaves the cursor on the cursor plane jumping back after every warp.
+- `ScreenShader.file(path)` no longer adds a file watch each time it is made (each
+  configuration reload): every save of the shader read it once per reload since the start.
 
 ### Security
 - A program can no longer freeze the compositor by sending a named pipe (FIFO) as its

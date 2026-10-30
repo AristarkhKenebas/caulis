@@ -43,7 +43,7 @@ class ScreenShader private constructor(
         @JvmStatic
         @JvmOverloads
         fun file(path: Path, moving: Boolean = false): ScreenShader =
-            ScreenShader(null, WatchedText(path.toAbsolutePath().normalize()), moving, path.fileName.toString())
+            ScreenShader(null, WatchedText.of(path), moving, path.fileName.toString())
 
         /** Shades of grey. */
         @JvmField
