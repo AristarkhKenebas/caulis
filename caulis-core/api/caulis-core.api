@@ -8,11 +8,13 @@ public final class dev/caulis/core/Activation {
 	public final fun getFocusOnActivate ()Z
 	public final fun getModalDialogWithinMillis ()J
 	public final fun getTokenLifetimeMillis ()J
+	public final fun getTokensNeedFocus ()Z
 	public final fun issue ()Ljava/lang/String;
 	public final fun setDialogsTakingFocusBackAreModal (Z)V
 	public final fun setFocusOnActivate (Z)V
 	public final fun setModalDialogWithinMillis (J)V
 	public final fun setTokenLifetimeMillis (J)V
+	public final fun setTokensNeedFocus (Z)V
 }
 
 public final class dev/caulis/core/Activation$Companion {

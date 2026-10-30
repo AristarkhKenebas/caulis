@@ -161,6 +161,38 @@ class DailyProtocolsTest {
     }
 
     @Test
+    fun `a token a program asked for while it had the keyboard is no good once it lost it`() = with(harness) {
+        withCaulis({}) { caulis, client ->
+            val socket = caulis.socketDirectory!!.resolve(caulis.onLoop { it.socket })
+            dev.caulis.core.TestClient(dev.caulis.protocol.client.Connection.connect(socket)).use { thief ->
+                val own = thief.window { it.setAppId("thief") }.also { it.draw() }
+                thief.waitFor { caulis.onLoop { r -> r.desktop.focusedWindow?.appId } == "thief" }
+                val activation = thief.bind("xdg_activation_v1", XdgActivationV1, 1)
+                fun token(): String {
+                    var received: String? = null
+                    val request = activation.getActivationToken()
+                    request.events = object : XdgActivationTokenV1.Events {
+                        override fun done(proxy: XdgActivationTokenV1, token: String) {
+                            received = token
+                        }
+                    }
+                    request.commit()
+                    thief.waitFor { received != null }
+                    return received!!
+                }
+                // Asked for while it had the keyboard (no input needed), kept for later.
+                val saved = token()
+                // You move on to another program.
+                client.window { it.setAppId("yours") }.also { it.draw() }
+                client.waitFor { caulis.onLoop { r -> r.desktop.focusedWindow?.appId } == "yours" }
+                activation.activate(saved, own.surface)
+                thief.waitFor { caulis.onLoop { r -> r.desktop.allWindows.single { it.appId == "thief" }.urgent } }
+                assertEquals("yours", caulis.onLoop { r -> r.desktop.focusedWindow?.appId }, "the focus stays where you are")
+            }
+        }
+    }
+
+    @Test
     fun `idle - told after a while without input, and when someone is back, unless a window keeps it awake`() = with(harness) {
         withCaulis({}) { caulis, client ->
             val notifier = client.bind("ext_idle_notifier_v1", ExtIdleNotifierV1, 1)

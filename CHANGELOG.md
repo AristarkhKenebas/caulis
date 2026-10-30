@@ -50,6 +50,11 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - A program can no longer freeze the compositor by sending a named pipe (FIFO) as its
   shared memory (`wl_shm.create_pool`): only plain files are mapped, anything else is refused at
   once. Before, opening it waited for a writer for ever on the compositor's thread.
+- xdg-activation: a token a program asked for is good only while that program still has
+  the keyboard (`Activation.tokensNeedFocus`, on). A program could ask for tokens while you
+  used it and take the focus back up to 30 s after you moved to another window (in the middle of a
+  password typed there). Programs asking for many tokens no longer push out the ones the
+  compositor gave programs it started.
 
 ## [0.1.7] - 2026-10-30
 

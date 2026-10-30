@@ -21,8 +21,22 @@ class Activation(display: Display, private val seat: Seat, private val desktop: 
     private val log = Logger("focus")
     private val random = SecureRandom()
 
-    // Good tokens, with when they were given out (they last a while, and once).
-    private val tokens = LinkedHashMap<String, Long>()
+    // A good token: when it was given out (they last a while, and once), and the program that
+    // asked for it (null: the compositor gave it to a program it started).
+    private class Token(val at: Long, val owner: dev.caulis.protocol.Client?)
+
+    // Good tokens, oldest first.
+    private val tokens = LinkedHashMap<String, Token>()
+
+    /**
+     * A token a program asked for (to hand to the program it opens: a link clicked in a chat)
+     * is good only while that program still has the keyboard (true, the default): one that
+     * asked while it had it cannot take the focus later, after you moved on — up to
+     * [tokenLifetimeMillis] — and its window is only marked urgent then. False: good for the
+     * whole [tokenLifetimeMillis]. Tokens the compositor gives programs it starts are not
+     * affected.
+     */
+    var tokensNeedFocus = true
 
     /** Activation requests with a good token focus the window (false: they only mark it urgent). */
     var focusOnActivate = true
@@ -70,7 +84,7 @@ class Activation(display: Display, private val seat: Seat, private val desktop: 
                             val focus = seat.keyboardFocus
                             val good = focus != null && focus.resource.client === resource.client
                             val token = newToken()
-                            if (good) keep(token)
+                            if (good) keep(token, resource.client)
                             resource.sendDone(token)
                         }
 
@@ -114,22 +128,23 @@ class Activation(display: Display, private val seat: Seat, private val desktop: 
     }
 
     /** A good token for a program the compositor starts (it is told it in XDG_ACTIVATION_TOKEN). */
-    fun issue(): String = newToken().also(::keep)
+    fun issue(): String = newToken().also { keep(it, null) }
 
     // Keeps a good token: old ones go first, and never more than MAX_TOKENS are kept (a
-    // program asking for tokens without end would otherwise fill the memory).
-    private fun keep(token: String) {
+    // program asking for tokens without end would otherwise fill the memory). Programs' own
+    // go first: asking for many never pushes out those the compositor gave programs it started.
+    private fun keep(token: String, owner: dev.caulis.protocol.Client?) {
         dropExpired(System.nanoTime())
         while (tokens.size >= MAX_TOKENS) {
-            val oldest = tokens.keys.first()
+            val oldest = tokens.entries.firstOrNull { it.value.owner != null }?.key ?: tokens.keys.first()
             tokens.remove(oldest)
             log.trace("An old activation token was dropped: too many waiting")
         }
-        tokens[token] = System.nanoTime()
+        tokens[token] = Token(System.nanoTime(), owner)
     }
 
     private fun dropExpired(now: Long) {
-        tokens.entries.removeIf { now - it.value > tokenLifetimeMillis * 1_000_000L }
+        tokens.entries.removeIf { now - it.value.at > tokenLifetimeMillis * 1_000_000L }
     }
 
     private fun newToken(): String {
@@ -138,9 +153,14 @@ class Activation(display: Display, private val seat: Seat, private val desktop: 
     }
 
     // A good token is used once, within a while of being given out.
+    // (One a program asked for: while that program still has the keyboard, see tokensNeedFocus.)
     private fun useToken(token: String): Boolean {
         dropExpired(System.nanoTime())
-        return tokens.remove(token) != null
+        val kept = tokens.remove(token) ?: return false
+        val owner = kept.owner ?: return true
+        if (!tokensNeedFocus || seat.keyboardFocus?.resource?.client === owner) return true
+        log.info { "An activation token of ${owner.program}, which has not got the keyboard any more: not good" }
+        return false
     }
 
     companion object {
