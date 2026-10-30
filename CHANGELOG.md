@@ -45,6 +45,9 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   messages are read without copying what came after each message again; byte arrays (`ay`) are
   kept as bytes, not as a boxed number each (a 2048x2048 picture made millions of objects on the
   compositor's thread). They are still a `List` of numbers 0 to 255 for your code.
+- Pasting a big text or picture copied in an X11 program into a Wayland program no longer
+  stalls the desktop: it is written into the pipe a piece at a time instead of copying all that
+  is left again for every write (a 64 MB answer cost about 128 MB of copying per write).
 
 ### Security
 - A program can no longer freeze the compositor by sending a named pipe (FIFO) as its

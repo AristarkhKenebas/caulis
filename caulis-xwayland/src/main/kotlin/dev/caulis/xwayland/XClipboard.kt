@@ -504,12 +504,15 @@ internal class XClipboard(
         private fun flush() {
             if (!fd.isOpen) return
             Arena.ofConfined().use { arena ->
+                // (One piece at a time, as much as a pipe takes: not all that is left of a
+                // 64 MB answer copied anew for each write.)
+                val piece = arena.allocate(PIECE.toLong())
                 while (pending.isNotEmpty()) {
                     val head = pending.first()
-                    val chunk = arena.allocate((head.size - offset).toLong())
-                    MemorySegment.copy(head, offset, chunk, JAVA_BYTE, 0, head.size - offset)
+                    val size = minOf(head.size - offset, PIECE)
+                    MemorySegment.copy(head, offset, piece, JAVA_BYTE, 0, size)
                     val n = try {
-                        fd.write(chunk)
+                        fd.write(piece.asSlice(0, size.toLong()))
                     } catch (e: NativeException) {
                         if (e.errno == Errno.EINTR) continue
                         if (e.errno == Errno.EAGAIN) return@use waitForRoom()
