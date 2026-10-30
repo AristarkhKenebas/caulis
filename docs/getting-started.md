@@ -84,7 +84,7 @@ kotlin {
 tasks.withType<JavaCompile>().configureEach { options.release = 26 }
 
 dependencies {
-    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.8")
+    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.9")
 }
 
 application {
@@ -103,7 +103,7 @@ application {
 // running compositor, taken on in about a second (step "Change it while it runs").
 val development = configurations.create("development")
 dependencies {
-    development("io.github.aristarkhkenebas:caulis-reload:0.1.8")
+    development("io.github.aristarkhkenebas:caulis-reload:0.1.9")
 }
 tasks.named<JavaExec>("run") {
     classpath += development
@@ -1874,7 +1874,7 @@ can also say *when* and *how* — functions on keys, on events, on timers. Add t
 your compositor:
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-lua:0.1.8")
+implementation("io.github.aristarkhkenebas:caulis-lua:0.1.9")
 ```
 
 Then it reads `~/.config/<configName>/config.lua` by itself (after `config.json`, on top of
@@ -1973,7 +1973,7 @@ no project: the compositor compiles it itself. Add the module (it contains the K
 compiler, so it makes your compositor bigger):
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-script:0.1.8")
+implementation("io.github.aristarkhkenebas:caulis-script:0.1.9")
 ```
 
 `~/.config/<configName>/config.kts` is then read after `config.json` and `config.lua`, as if

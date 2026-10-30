@@ -43,7 +43,7 @@ repositories {
     }
     google() // (only for caulis-compose's Compose)
 }
-dependencies { implementation("io.github.aristarkhkenebas:caulis-wm:0.1.8") }
+dependencies { implementation("io.github.aristarkhkenebas:caulis-wm:0.1.9") }
 ```
 
 See `examples/` (`minimal`, `minimal-java`, `custom-layout`, `window-rules`, `desktop`, `ipc`).

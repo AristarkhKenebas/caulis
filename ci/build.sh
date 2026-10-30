@@ -12,7 +12,7 @@ gradle_options=(--console=plain --stacktrace)
 # On CI machines, a daemon that outlives the job only costs memory.
 # (And --continue: one run shows every failing module, not just the first.)
 [[ -n "${CI:-}" ]] && gradle_options+=(--no-daemon --continue)
-# A release (CAULIS_VERSION=0.1.8): the jars carry that version, not the catalog's.
+# A release (CAULIS_VERSION=0.1.9): the jars carry that version, not the catalog's.
 [[ -n "${CAULIS_VERSION:-}" ]] && gradle_options+=(-Pcaulis.version="$CAULIS_VERSION")
 
 echo "== Caulis: build and test"

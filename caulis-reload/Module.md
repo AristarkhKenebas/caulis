@@ -11,7 +11,7 @@ contains the Kotlin compiler (about 60 MB) and an installed compositor watches n
 
 ```kotlin
 val development = configurations.create("development")
-dependencies { development("io.github.aristarkhkenebas:caulis-reload:0.1.8") }
+dependencies { development("io.github.aristarkhkenebas:caulis-reload:0.1.9") }
 tasks.named<JavaExec>("run") {
     classpath += development
     jvmArgumentProviders += CommandLineArgumentProvider { listOf("--sun-misc-unsafe-memory-access=allow") }
