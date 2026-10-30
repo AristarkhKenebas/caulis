@@ -602,6 +602,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getOsdHandler ()Lkotlin/jvm/functions/Function3;
 	public final fun getOverlay ()Ldev/caulis/core/Overlay;
 	public final fun getOverviewFill ()D
+	public final fun getPanelsShowWhileLocked ()Z
 	public final fun getPenPointer ()Ldev/caulis/core/input/PenPointer;
 	public final fun getPixelHeight ()I
 	public final fun getPixelWidth ()I
@@ -762,6 +763,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun setOverview (Z)V
 	public final fun setOverviewFill (D)V
 	public final fun setOverviewProgress (D)V
+	public final fun setPanelsShowWhileLocked (Z)V
 	public final fun setPenPointer (Ldev/caulis/core/input/PenPointer;)V
 	public final fun setPinned (Ldev/caulis/core/Window;Z)V
 	public final fun setPlacementFor (Lkotlin/jvm/functions/Function1;)V

@@ -15,6 +15,12 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+### Added
+- `Desktop.panelsShowWhileLocked` (true, as before): set to false, the compositor's own lock
+  screen ([`lockInternally`] without `hideDesktop`) no longer shows programs' panels (a bar, a
+  notification daemon's pop-ups), menus and tooltips, or X11's unmanaged windows behind it —
+  what they show may be private. Surfaces the lock's `allowSurface` lets in are still drawn.
+
 ### Fixed
 - CI on GitHub: the "CI" and "Release" workflows failed in "Build and test" since 0.1.3. A
   test handed descriptors numbered 10 and above to `sh`, which on Ubuntu is dash and cannot

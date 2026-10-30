@@ -255,6 +255,39 @@ class InternalLockTest {
     }
 
     @Test
+    fun `panels behind the own lock screen are left out when panelsShowWhileLocked is off`() = withServer { server, client ->
+        val width = ScreenTestServer.WIDTH
+        // A notification daemon's pop-up: black, 40 x 40, in the top right corner (the overlay layer).
+        val surface = client.compositor.createSurface()
+        val layer = client.layerShell!!.getLayerSurface(surface, null, 3, "notifications")
+        layer.events = object : dev.caulis.protocol.client.wlrlayershellunstablev1.ZwlrLayerSurfaceV1.Events {
+            override fun configure(proxy: dev.caulis.protocol.client.wlrlayershellunstablev1.ZwlrLayerSurfaceV1, serial: Int, width: Int, height: Int) = proxy.ackConfigure(serial)
+        }
+        layer.setSize(40, 40)
+        layer.setAnchor(1 or 8) // top, right
+        surface.commit()
+        client.connection.roundtrip()
+        client.draw(surface, 40, 40)
+        val popup = { server.screenshot()[20 * width + width - 20] }
+        val black = 0xff000000.toInt()
+        client.waitFor { popup() == black }
+        val screen = Panel(Rect(0, 0, 20, 20))
+        // By default the desktop behind the own lock screen keeps its panels.
+        server.onServer { d -> d.lockInternally(screen) }
+        assertEquals(black, popup(), "drawn as before by default")
+        server.onServer { d -> d.panelsShowWhileLocked = false }
+        client.waitFor { popup() != black }
+        // One the lock allows is drawn (a lock screen that is a panel program).
+        server.onServer { d -> d.lockInternally(screen, allowSurface = { it.roleObject is LayerSurface }) }
+        client.waitFor { popup() == black }
+        server.onServer { d -> d.lockInternally(screen) }
+        client.waitFor { popup() != black }
+        // Unlocked: there again.
+        server.onServer { d -> d.unlockInternally() }
+        client.waitFor { popup() == black }
+    }
+
+    @Test
     fun `a locker program on top of the own lock screen, unlocking or crashing, leaves the own lock in charge`() = withServer { server, client ->
         client.window().draw()
         client.waitFor { server.onServer { d -> d.keyboardFocus?.roleObject is Window } }

@@ -1305,7 +1305,9 @@ LockFailure.NOTICE` only says so (and sleeps unlocked).
 
 A lock screen of your own drawn by the compositor (no locker program):
 `locker { desktop.lockInternally(myLockWidget) }` — your widget checks the password and calls
-`desktop.unlockInternally()`.
+`desktop.unlockInternally()`. The desktop stays drawn behind it (`hideDesktop = true`: only
+`lockColor`); `desktop.panelsShowWhileLocked = false` leaves programs' panels (a bar, a
+notification daemon's pop-ups), menus and X11's unmanaged windows out meanwhile.
 
 Idle inhibitors (a video playing) count for nothing while the screen is locked, so a locked
 screen still goes dark; `idleInhibitorsWhileLocked = true` lets them keep it on.

@@ -1735,6 +1735,27 @@ class Desktop(
     /** The colour behind the locker (and all there is until it has drawn). */
     var lockColor: Color = Color(0f, 0f, 0f)
 
+    /**
+     * Behind the compositor's own lock screen when it shows the desktop ([lockInternally]
+     * without hideDesktop): whether programs' panels (layer shell: bars, a notification
+     * daemon's pop-ups), menus and tooltips, and X11's unmanaged windows are still drawn. True
+     * (the default) draws them as the rest of the desktop; false leaves them out — what a
+     * notification or a bar shows may be private — except the surfaces the lock's allowSurface
+     * lets in (a lock screen that is a panel program). Windows are yours to hide (a
+     * [WindowDirector] fading them out, as newm does). A locker program's lock, and
+     * hideDesktop, show none of them either way.
+     */
+    var panelsShowWhileLocked: Boolean = true
+        set(value) {
+            if (value != field) lockLog.info { "Panels, menus and unmanaged windows behind the own lock screen: ${if (value) "drawn" else "hidden"}" }
+            field = value
+            changed()
+        }
+
+    // Behind our own lock screen: whether [surface] (a panel's, a menu's, an unmanaged one's) is drawn.
+    private fun drawnBehindLock(surface: Surface): Boolean =
+        panelsShowWhileLocked || ownLock == null || lockAllows(surface)
+
     /** The colour shown when the locker crashed: start a new one (e.g. from a text console). */
     var abandonedLockColor: Color = Color(0.35f, 0.05f, 0.05f)
 
@@ -6254,11 +6275,11 @@ class Desktop(
         addLayers(all, LayerShell.Layer.OVERLAY)
         for (popup in popups) {
             if (camera !== Camera.NONE) break // menus are not part of the overview
-            if (!popupShown(popup)) continue
+            if (!popupShown(popup) || !drawnBehindLock(popup.surface)) continue
             val (x, y) = popupOrigin(popup)
             addTree(all, popup.surface, x, y)
         }
-        if (camera === Camera.NONE) for ((surface, place) in unmanaged) addTree(all, surface, place.first, place.second)
+        if (camera === Camera.NONE) for ((surface, place) in unmanaged) if (drawnBehindLock(surface)) addTree(all, surface, place.first, place.second)
         addDrawings(all, DrawingLevel.ON_TOP)
         // Our own notices above everything (not on a locked screen: what they say is private).
         if (!locked) for (monitor in monitorList) all += noticeBoard.items(monitor, monitorList, noticeFallback(monitor))
@@ -6329,6 +6350,7 @@ class Desktop(
         for (layerSurface in layerSurfaces) {
             if (!layerSurface.mapped || layerSurface.current.layer != layer) continue
             val surface = layerSurface.surface
+            if (!drawnBehindLock(surface)) continue
             val rect = Rect(layerSurface.x, layerSurface.y, surface.width, surface.height)
             // Everything behind it darker (a launcher in front of the desktop).
             val dim = layerBehaviorOf(layerSurface).dimAround
