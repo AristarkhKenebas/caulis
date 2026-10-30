@@ -39,6 +39,8 @@ internal class XClipboard(
     private val clipboard: DataDeviceManager?,
     // Windows whose property changes we hear anyway (managed windows: we must not change their event mask).
     private val hearsPropertiesOf: (window: Int) -> Boolean,
+    // True while the session is locked: X programs neither read nor replace the clipboard then.
+    private val locked: () -> Boolean = { false },
 ) : AutoCloseable {
 
     private val log = Logger("clipboard")
@@ -126,6 +128,11 @@ internal class XClipboard(
         val property = xcb_selection_request_event_t.property(event).takeIf { it != XConnection.NONE } ?: target
         val data = offered
         if (xcb_selection_request_event_t.selection(event) != selection || data == null) return answer(requestor, target, XConnection.NONE, time)
+        // (Locked: what was copied before is nobody's business; a Wayland program would not get it either.)
+        if (locked()) {
+            log.info { "An X11 program asked for the clipboard while the screen is locked: refused" }
+            return answer(requestor, target, XConnection.NONE, time)
+        }
         when (target) {
             targets -> {
                 val atoms = (listOf(targets, timestamp) + data.mimeTypes.flatMap(::atomsFor)).distinct()
@@ -141,6 +148,11 @@ internal class XClipboard(
                 log.trace { "An X11 program pastes $mime" }
                 // A new request replaces an unfinished one into the same place.
                 sending.filter { it.requestor == requestor && it.property == property }.forEach { it.stop("asked again") }
+                // (Each holds a pipe and asks the copying program: never without end.)
+                if (sending.size >= MAX_SENDING || sending.count { it.requestor == requestor } >= MAX_SENDING_EACH) {
+                    log.info { "An X11 program asked for the clipboard again and again (${sending.size} pastes running): refused" }
+                    return answer(requestor, target, XConnection.NONE, time)
+                }
                 sending += Sending(requestor, property, target, time, data, mime)
             }
         }
@@ -296,6 +308,8 @@ internal class XClipboard(
             if (isOurs(clipboard?.clipboard)) clipboard?.setClipboard(null)
             return
         }
+        // (Locked: no program behind the lock changes what will be pasted after it.)
+        if (locked()) return log.info { "An X11 program copied while the screen is locked: not taken" }
         // An X program copied: what can it give?
         x.convertSelection(window, selection, targets, targetsProperty, xcb_xfixes_selection_notify_event_t.selection_timestamp(event))
         x.flush()
@@ -606,6 +620,9 @@ internal class XClipboard(
         // The largest single answer an X program may give (with BIG-REQUESTS).
         const val MAX_READ = 1 shl 26 // (64 MB in one piece; bigger comes in parts, INCR)
         const val TIMEOUT_MILLIS = 5000L
+        // Pastes by X programs running at once, in all and for one window.
+        const val MAX_SENDING = 8
+        const val MAX_SENDING_EACH = 2
         const val WRITE_TIMEOUT_MILLIS = 60_000L
         val TEXT_TYPES = listOf("text/plain;charset=utf-8", "UTF8_STRING", "text/plain", "STRING", "TEXT")
     }

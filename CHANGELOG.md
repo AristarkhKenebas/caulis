@@ -73,6 +73,9 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - An X11 program can no longer take over a drag you started elsewhere: its move or resize
   request (`_NET_WM_MOVERESIZE`) counts only while the button is held in a window of the same
   client, and your `WindowDirector` is asked first, as for Wayland programs.
+- X11 programs can no longer read the clipboard or replace it while the screen is locked
+  (as Wayland programs cannot), and no X11 program can start pastes without end (each held a pipe
+  and asked the copying program, a password manager, again).
 
 ## [0.1.7] - 2026-10-30
 

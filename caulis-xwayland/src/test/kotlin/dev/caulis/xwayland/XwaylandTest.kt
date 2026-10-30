@@ -219,6 +219,30 @@ class XwaylandTest {
         }
     }
 
+    @Test
+    fun `while the screen is locked X11 programs neither read nor replace the clipboard`() = withX { server, xwayland, client ->
+        val wayland = TestClipboard(client)
+        XProgram(xwayland.displayName).use { program ->
+            val secret = "copied before locking".toByteArray()
+            wayland.copy(secret)
+            waitFor { program.paste(client)?.takeIf { it.size == secret.size } }
+            val screen = object : dev.caulis.core.Widget {
+                override fun area(monitor: dev.caulis.core.Monitor) = dev.caulis.geometry.Rect(0, 0, 10, 10)
+                override fun draw(monitor: dev.caulis.core.Monitor, canvas: dev.caulis.core.OverlayCanvas, area: dev.caulis.geometry.Rect) {}
+            }
+            server.onServer { d -> d.lockInternally(screen) }
+            assertEquals(null, program.paste(client), "refused while locked")
+            program.copy("swapped behind the lock".toByteArray())
+            repeat(10) { program.pump(); client.connection.roundtrip(); Thread.sleep(30) }
+            assertEquals(String(secret), String(wayland.paste { program.pump() }), "the clipboard is as it was")
+            server.onServer { d -> d.unlockInternally() }
+            // Unlocked: copied in Wayland, pasted in X11 as before.
+            val after = "copied after unlocking".toByteArray()
+            wayland.copy(after)
+            assertContentEquals(after, waitFor { program.paste(client)?.takeIf { it.size == after.size } }, "unlocked: pasted again")
+        }
+    }
+
     // More than X takes in one request: it must go in pieces (INCR), streamed (8 MB is far more than is ever held).
     private fun bigText() = ByteArray(8_000_000) { ('a' + it % 26).code.toByte() }
 

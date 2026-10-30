@@ -110,7 +110,7 @@ class Xwm internal constructor(
         }
 
         xfixesEvent = x.xfixesFirstEvent()
-        this.clipboard = XClipboard(x, loop, clipboard) { it in windows }
+        this.clipboard = XClipboard(x, loop, clipboard, hearsPropertiesOf = { it in windows }, locked = { desktop.locked })
         updateCursor()
         tellResources()
         x.flush()
