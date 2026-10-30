@@ -47,6 +47,54 @@ class DamageTest {
     }
 
     @Test
+    fun `a still background too redraws only what windows leave of it`() {
+        val background = DrawItem.Custom("background", bounds, "look", background = true) {}
+        val window = DrawItem.Color("window", Rect(0, 0, 1200, 1080), 0f, 0f, 0f, covers = listOf(Rect(0, 0, 1200, 1080)))
+        assertEquals(listOf(Rect(1200, 0, 720, 1080)), uncoveredAreas(background, listOf(background, window), 0))
+    }
+
+    @Test
+    fun `what does not hide the background is not cut out of it`() {
+        val background = DrawItem.Custom("background", bounds, "look", background = true) {}
+        // A see-through or moving picture covers nothing (it says so itself), nor a shadow or a tint.
+        val faded = DrawItem.Color("faded", Rect(0, 0, 500, 500), 0f, 0f, 0f, alpha = 0.5f)
+        val tint = DrawItem.Tint("tint", bounds, 0f, 0f, 0f, 0f, 0.5f)
+        assertEquals(listOf(bounds), uncovered(listOf(bounds), listOf(background, faded, tint), 0, 8))
+        // A window sliding with its workspace: not for sure on this monitor.
+        val sliding = DrawItem.Color("sliding", bounds, 0f, 0f, 0f, covers = listOf(bounds)).also { it.only = Monitor("OTHER", null, 1920, 1080, 1.0) }
+        assertEquals(listOf(bounds), uncovered(listOf(bounds), listOf(background, sliding), 0, 8))
+    }
+
+    @Test
+    fun `round corners stay drawn behind a window`() {
+        // (As Desktop.coversOf gives them: everything but the 12 x 12 corners.)
+        val covers = listOf(Rect(100, 112, 800, 576), Rect(112, 100, 776, 600))
+        val window = DrawItem.Color("window", Rect(100, 100, 800, 600), 0f, 0f, 0f, covers = covers)
+        val left = uncovered(listOf(Rect(100, 100, 800, 600)), listOf(window, window), 0, 16)!!
+        assertEquals(setOf(Rect(100, 100, 12, 12), Rect(888, 100, 12, 12), Rect(100, 688, 12, 12), Rect(888, 688, 12, 12)), left.toSet())
+    }
+
+    @Test
+    fun `what a blur reads stays drawn though a window above the blur covers it`() {
+        val background = DrawItem.Custom("background", bounds, "look", background = true) {}
+        val blur = DrawItem.Blur("blur", Rect(0, 0, 1920, 40), 0f, 10, 2)
+        val reach = blur.reachRect()
+        val window = DrawItem.Color("window", bounds, 0f, 0f, 0f, covers = listOf(bounds))
+        // Window under the blur: it is what the blur reads, the background is hidden whole.
+        assertEquals(emptyList(), uncovered(listOf(bounds), listOf(background, window, blur), 0, 8))
+        // Window over the blur: the blur is drawn first and reads the background there.
+        assertEquals(listOfNotNull(reach.intersect(bounds)), uncovered(listOf(bounds), listOf(background, blur, window), 0, 8))
+    }
+
+    @Test
+    fun `too many pieces of background - left whole`() {
+        val tiny = List(30) { DrawItem.Color("w$it", Rect(it * 60, 500, 10, 10), 0f, 0f, 0f, covers = listOf(Rect(it * 60, 500, 10, 10))) }
+        val background = DrawItem.Custom("background", bounds, "look", background = true) {}
+        assertEquals(listOf(bounds), uncoveredAreas(background, listOf<DrawItem>(background) + tiny, 0))
+        assertEquals(null, uncovered(listOf(bounds), listOf<DrawItem>(background) + tiny, 0, 8))
+    }
+
+    @Test
     fun `a blur's reach is redrawn whole first, the other parts stay apart`() {
         // A blurred bar at the top; the wallpaper changed in a strip on the left and one on the right.
         val reach = Rect(0, 0, 1920, 60)

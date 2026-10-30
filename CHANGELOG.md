@@ -15,6 +15,11 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+### Changed
+- The desktop's background (picture, gradient, colour or shader) is no longer drawn under opaque windows,
+  in any frame: fewer pixels drawn for the same picture. `fullRedraw` draws everything, as before. A program
+  whose opaque region is not really opaque now shows the plain colour there instead of the wallpaper.
+
 ### Fixed
 - CI on GitHub runners with a /dev/dri but no usable GPU: the GPU tests failed there instead
   of being skipped, because they only looked whether /dev/dri exists (the runners now have

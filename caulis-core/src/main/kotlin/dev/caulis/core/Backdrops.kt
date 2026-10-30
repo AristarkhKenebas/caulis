@@ -107,10 +107,10 @@ internal class Backdrops(
         val view = views[monitor.name]
         val viewPart = view?.let { floatArrayOf(it.x.toFloat(), it.y.toFloat(), it.width.toFloat(), it.height.toFloat()) }
         return when (background) {
-            is Background.Solid -> DrawItem.Custom(key, area, listOf(background, alpha)) { r -> fill(r, background.color, alpha) }
+            is Background.Solid -> DrawItem.Custom(key, area, listOf(background, alpha), background = true) { r -> fill(r, background.color, alpha) }
             is Background.Gradient, is Background.Painted -> {
                 val texture = painted(background, monitor, workspace)
-                DrawItem.Custom(key, area, listOf(background, texture, alpha, view)) { r ->
+                DrawItem.Custom(key, area, listOf(background, texture, alpha, view), background = true) { r ->
                     if (texture != null) renderer.drawTexture(texture, r.x, r.y, r.width, r.height, opaque = false, alpha = alpha, source = viewPart) else fill(r, USUAL_COLOR, alpha)
                 }
             }
@@ -120,11 +120,11 @@ internal class Backdrops(
                 val unitScale = if (background.span) largestScale else monitor.scale
                 if (view != null) {
                     // The view's part of the whole picture, over the monitor.
-                    DrawItem.Custom(key, area, listOf(background, picture, alpha, pixels, view)) { r ->
+                    DrawItem.Custom(key, area, listOf(background, picture, alpha, pixels, view), background = true) { r ->
                         if (picture == null) fill(r, background.behind, alpha) else renderer.drawTexture(picture.texture, r.x, r.y, r.width, r.height, opaque = false, alpha = alpha, source = viewPart)
                     }
                 } else {
-                    DrawItem.Custom(key, area, listOf(background, picture, alpha, pixels, over, unitScale)) { r -> drawImage(r, area, over, unitScale, background, picture, alpha) }
+                    DrawItem.Custom(key, area, listOf(background, picture, alpha, pixels, over, unitScale), background = true) { r -> drawImage(r, area, over, unitScale, background, picture, alpha) }
                 }
             }
             is Background.Shader -> {

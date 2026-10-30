@@ -5688,6 +5688,8 @@ class Desktop(
         val bounds = monitor.area
         view.showsLock = lockHidesDesktop
         var parts = view.takeRepaintParts(if (fullRedraw) 0 else age, bounds) ?: return
+        backgroundAsked = 0
+        backgroundDrawn = 0
         // Blur reads around its area: a change near it (within its reach, not only under it)
         // changes it too — its whole reach redrawn first, in one part (else a bar's blur stayed
         // stale while a program drew next to it, and flashed when it caught up).
@@ -5716,16 +5718,49 @@ class Desktop(
                 renderer.setClip(pixels)
                 renderer.drawColor(pixels.x, pixels.y, pixels.width, pixels.height, backgroundColor.red, backgroundColor.green, backgroundColor.blue)
             }
-            draw(items, near, monitor::toPixels, monitor.scale, monitor)
+            draw(items, near, monitor::toPixels, monitor.scale, monitor, pixels)
         }
         renderer.end()
+        renderLog.trace { "Frame of ${monitor.name}: background $backgroundDrawn of $backgroundAsked pixels drawn (the rest under opaque windows)" }
     }
+
+    // In this frame: the background's pixels in the parts redrawn, and those really drawn.
+    private var backgroundAsked = 0L
+    private var backgroundDrawn = 0L
+
+    // Draws background [item] (at [index] of [items]) within [repaint]: only where nothing opaque
+    // is above it (else every window drawing would draw the wallpaper under itself first). Each
+    // piece one pixel bigger: a fractional scale must not leave an edge undrawn; the window above
+    // is drawn over it. [clip]: the part's pixels. Too many pieces (or fullRedraw): as a whole.
+    private fun drawBackground(item: DrawItem.Custom, items: List<DrawItem>, index: Int, repaint: Rect, clip: Rect, r: Rect, toPixels: (Rect) -> Rect) {
+        val asked = clip.intersect(r)
+        backgroundAsked += asked?.area() ?: 0L
+        val whole = item.rect.intersect(repaint)
+        val pieces = if (whole == null || fullRedraw) null else uncovered(listOf(whole), items, index, MAX_BACKGROUND_PIECES)
+        if (pieces == null || pieces == listOf(whole)) {
+            item.paint(r)
+            backgroundDrawn += asked?.area() ?: 0L
+            return
+        }
+        for (piece in pieces) {
+            val px = toPixels(piece)
+            val scissor = Rect(px.x - 1, px.y - 1, px.width + 2, px.height + 2).intersect(clip) ?: continue
+            renderer.setClip(scissor)
+            item.paint(r)
+            backgroundDrawn += scissor.intersect(r)?.area() ?: 0L
+        }
+        renderer.setClip(clip)
+    }
+
+    private fun Rect.area() = width.toLong() * height
 
     // Draws [items] (only those touching [repaint]) into the frame begun; [p] turns desktop
     // units into the target's pixels, at [scale].
-    private fun draw(items: List<DrawItem>, repaint: Rect?, p: (Rect) -> Rect, scale: Double, monitor: Monitor? = null) {
+    // [clip]: the pixels the frame is cut to now (a part of the monitor), when known.
+    private fun draw(items: List<DrawItem>, repaint: Rect?, p: (Rect) -> Rect, scale: Double, monitor: Monitor? = null, clip: Rect? = null) {
         val s = scale.toFloat()
-        for (item in items) {
+        for (index in items.indices) {
+            val item = items[index]
             if (repaint != null && item.rect.intersect(repaint) == null) continue
             if (monitor != null && item.only != null && item.only !== monitor) continue // (a sliding workspace of another monitor)
             val r = p(item.rect)
@@ -5744,7 +5779,7 @@ class Desktop(
                 }
                 is DrawItem.Blur -> renderer.drawBlur(r, item.radius * s, Math.round(item.size * s).coerceAtLeast(1), item.passes, item.tone)
                 is DrawItem.Image -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, opaque = false, alpha = item.alpha, clip = item.clip?.let(p), cornerRadius = item.radius * s)
-                is DrawItem.Custom -> item.paint(r)
+                is DrawItem.Custom -> if (item.background && repaint != null && clip != null) drawBackground(item, items, index, repaint, clip, r, p) else item.paint(r)
                 is DrawItem.Tint -> renderer.drawRoundedRect(r, item.radius * s, dev.caulis.render.Color(item.red, item.green, item.blue, item.alpha))
                 is DrawItem.Effect -> {
                     val code = item.shader.code
@@ -5760,14 +5795,9 @@ class Desktop(
     }
 
     /**
-     * Blur reads the pixels around its area, so they must be fresh in this frame: if anything
-     * near a blurred area is redrawn, the whole area and its surroundings are redrawn.
-     */
-    private fun DrawItem.Blur.reachRect() = Rect(rect.x - reach, rect.y - reach, rect.width + 2 * reach, rect.height + 2 * reach)
-
-    /**
-     * Every frame drawn whole (not only what changed): slower, for finding out whether
-     * something flickers because of the partial redraws (CAULIS_FULL_REDRAW=1 sets it too).
+     * Every frame drawn whole (not only what changed, the background under opaque windows too):
+     * slower, for finding out whether something flickers because of the partial redraws
+     * (CAULIS_FULL_REDRAW=1 sets it too).
      */
     var fullRedraw = System.getenv("CAULIS_FULL_REDRAW") == "1"
         set(value) {
@@ -5821,7 +5851,7 @@ class Desktop(
                 old.value.areas.forEach(view::damage)
                 why?.add("gone $key")
             } else if (new.index != old.index || new.value.differsFrom(old.value)) {
-                // (A moving wallpaper: only where it shows — not under the windows over it.)
+                // (The background: only where it shows — not under the windows over it.)
                 uncoveredAreas(old.value, view.shown, old.index).forEach(view::damage)
                 uncoveredAreas(new.value, items, new.index).forEach(view::damage)
                 why?.add("changed $key ${new.value.rect}")

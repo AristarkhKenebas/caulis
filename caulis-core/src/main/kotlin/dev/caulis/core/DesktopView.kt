@@ -235,6 +235,8 @@ internal sealed class DrawItem {
         val look: Any,
         val framesPerSecond: Int = 0,
         val wallpaper: WallpaperShader? = null,
+        /** The desktop's background: nothing of it need be drawn where something opaque is above it. */
+        val background: Boolean = wallpaper != null,
         val paint: (Rect) -> Unit,
     ) : DrawItem()
 
@@ -300,6 +302,9 @@ internal sealed class DrawItem {
         val tone: dev.caulis.render.BlurTone = dev.caulis.render.BlurTone.NONE,
     ) : DrawItem() {
         val reach: Int get() = dev.caulis.render.blurReach(size, passes)
+
+        /** All the pixels it reads. */
+        fun reachRect() = Rect(rect.x - reach, rect.y - reach, rect.width + 2 * reach, rect.height + 2 * reach)
     }
 
     protected fun ring(outer: Rect, hole: Rect, corner: Int): List<Rect> {
@@ -330,27 +335,50 @@ internal sealed class DrawItem {
 
 /**
  * The parts of [item] (at [index] in [list], bottom to top) a change of it shows on: its
- * [DrawItem.areas], less what opaque things above it cover — for a moving wallpaper shader
- * only (a window over most of it: only the rest is drawn anew). Careful: when cutting would
- * leave more than [MAX_UNCOVERED] pieces, all of its areas.
+ * [DrawItem.areas], less what opaque things above it cover — for the desktop's background only
+ * (a window over most of it: only the rest is drawn anew). Careful: when cutting would leave more
+ * than [MAX_UNCOVERED] pieces, all of its areas.
  */
 internal fun uncoveredAreas(item: DrawItem, list: List<DrawItem>, index: Int): List<Rect> {
-    if (item !is DrawItem.Custom || item.wallpaper == null) return item.areas
-    var parts = item.areas
+    if (item !is DrawItem.Custom || !item.background) return item.areas
+    return uncovered(item.areas, list, index, MAX_UNCOVERED) ?: item.areas
+}
+
+/**
+ * [parts] less what the things above [index] of [list] hide for sure (their [DrawItem.covers]:
+ * opaque regions, without round corners; nothing of see-through or moving pictures). Not counted:
+ * a sliding workspace's (it hides nothing on the monitor beside), and the part of a cover within
+ * the reach of a blur under it — the blur reads those pixels before the cover is drawn over them.
+ * Null: more than [limit] pieces.
+ */
+internal fun uncovered(parts: List<Rect>, list: List<DrawItem>, index: Int, limit: Int): List<Rect>? {
+    var left = parts
+    var blurs: ArrayList<Rect>? = null
     for (i in index + 1 until list.size) {
         val above = list[i]
-        if (above.only != null) continue // (a sliding workspace hides nothing on the monitor beside)
+        if (above is DrawItem.Blur) {
+            (blurs ?: ArrayList<Rect>().also { blurs = it }) += above.reachRect()
+            continue
+        }
+        if (above.only != null) continue
         for (cover in above.covers) {
-            if (parts.none { it.intersect(cover) != null }) continue
-            parts = parts.flatMap { it.minus(cover) }
-            if (parts.size > MAX_UNCOVERED) return item.areas
-            if (parts.isEmpty()) return parts
+            if (left.none { it.intersect(cover) != null }) continue
+            var pieces = listOf(cover)
+            blurs?.forEach { reach -> pieces = pieces.flatMap { it.minus(reach) } }
+            for (piece in pieces) {
+                left = left.flatMap { it.minus(piece) }
+                if (left.size > limit) return null
+            }
+            if (left.isEmpty()) return left
         }
     }
-    return parts
+    return left
 }
 
 private const val MAX_UNCOVERED = 6
+
+// At most so many pieces of background drawn in a part (a few windows with round corners).
+internal const val MAX_BACKGROUND_PIECES = 32
 
 /**
  * [parts] (what a frame redraws) with what blurs near them need: a blur reads the pixels
