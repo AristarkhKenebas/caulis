@@ -727,6 +727,7 @@ public final class dev/caulis/wm/Keys {
 	public final fun getFocusRight ()Ljava/lang/String;
 	public final fun getFullscreen ()Ljava/lang/String;
 	public final fun getLock ()Ljava/lang/String;
+	public final fun getLockWhileInhibited ()Z
 	public final fun getMaximize ()Ljava/lang/String;
 	public final fun getMediaNext ()Ljava/lang/String;
 	public final fun getMediaPlay ()Ljava/lang/String;
@@ -768,6 +769,7 @@ public final class dev/caulis/wm/Keys {
 	public final fun setFocusRight (Ljava/lang/String;)V
 	public final fun setFullscreen (Ljava/lang/String;)V
 	public final fun setLock (Ljava/lang/String;)V
+	public final fun setLockWhileInhibited (Z)V
 	public final fun setMaximize (Ljava/lang/String;)V
 	public final fun setMediaNext (Ljava/lang/String;)V
 	public final fun setMediaPlay (Ljava/lang/String;)V

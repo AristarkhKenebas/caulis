@@ -953,6 +953,8 @@ internal class Running(
             val run = { safely(combination) { action(config) } }
             keys.bind(combination, options, run)
             if (config.keys.whileLocked(name)) lockedKeys.bind(combination, options, run)
+            // (A program that keeps the keys for itself never keeps the screen from locking.)
+            if (name == "lock" && config.keys.lockWhileInhibited) inhibitedKeys.bind(combination, options, run)
         }
         modeKeys.clear()
         for (name in config.modeNames) modeKeys[name] = KeyBindings()

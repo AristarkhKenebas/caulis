@@ -55,6 +55,10 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   used it and take the focus back up to 30 s after you moved to another window (in the middle of a
   password typed there). Programs asking for many tokens no longer push out the ones the
   compositor gave programs it started.
+- The lock key (`keys.lock`, Super+L) locks the screen even while a window keeps the
+  compositor's keys (keyboard-shortcuts-inhibit, which any program may ask for): before, it went to
+  the program and the screen stayed open. `keys { lockWhileInhibited = false }` (config.json
+  `keys.lockWhileInhibited`) gives it to the window as before.
 
 ## [0.1.7] - 2026-10-30
 

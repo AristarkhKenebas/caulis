@@ -358,6 +358,7 @@
 ---@field mediaPrevious? false|string the mediaPrevious key (false: off)
 ---@field windowDrag? false|string the windowDrag key (false: off)
 ---@field quitWhileLocked? boolean the quit key works on a locked screen too (default false: it would get round the lock)
+---@field lockWhileInhibited? boolean the lock key locks while a window keeps the keys (shortcuts inhibited; default true)
 
 ---@class caulis.Settings.rules
 ---@field appId? string windows with this app id (case does not matter)

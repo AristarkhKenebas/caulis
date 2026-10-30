@@ -131,6 +131,14 @@ class Keys internal constructor() {
      */
     var restoreShortcuts by key("Super+Escape")
 
+    /**
+     * True (the default): [lock] locks the screen even while a window keeps the compositor's
+     * keys (keyboard-shortcuts-inhibit; any program may ask for that) — else your lock key went
+     * to the program and the screen stayed open while you thought it locked. False: the window
+     * gets it too (a virtual machine or a nested desktop with a lock key of its own).
+     */
+    var lockWhileInhibited: Boolean = true
+
     // --- a laptop's keys (they work on a locked screen too; volume and brightness repeat) --------
 
     /** Louder, quieter, sound off or on (PipeWire's wpctl). */
@@ -189,6 +197,7 @@ class Keys internal constructor() {
     internal fun copyInto(other: Keys) {
         other.values.putAll(values)
         other.quitWhileLocked = quitWhileLocked
+        other.lockWhileInhibited = lockWhileInhibited
     }
 
     /** True if the key [name] was changed (or turned off) from what it is by default. */

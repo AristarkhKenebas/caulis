@@ -1798,6 +1798,10 @@
         "quitWhileLocked": {
           "type": "boolean",
           "description": "the quit key works on a locked screen too (default false: it would get round the lock)"
+        },
+        "lockWhileInhibited": {
+          "type": "boolean",
+          "description": "the lock key locks while a window keeps the keys (shortcuts inhibited; default true)"
         }
       },
       "description": "the usual keys, changed or turned off"

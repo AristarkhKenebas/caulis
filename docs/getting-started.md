@@ -231,12 +231,17 @@ keys {
     workspace = "Alt"         // Alt+1 … 9; for groups you give only the modifiers
     quit = "Ctrl+Alt+Delete"  // or null: no key quits
     quitWhileLocked = false   // the default: on a locked screen the quit key does nothing
+    lockWhileInhibited = true // the default: the lock key locks even while a window keeps the keys
 }
 ```
 
 On a locked screen the quit key does nothing by default: anyone at the keyboard could quit
 the compositor (and with a compositor started from a text console, land in your logged-in
 shell). `quitWhileLocked = true` lets it work there too.
+
+A window may keep the compositor's keys for itself (a virtual machine, a compositor running in a
+window: keyboard-shortcuts-inhibit; `restoreShortcuts`, Super+Escape, takes them back). The lock
+key still locks then; `lockWhileInhibited = false` gives it to the window too.
 
 Write keys however you like — case, spaces and order do not matter: `"Super+Shift+Q"`,
 `"super shift q"`, `"wIn+Q"`, `"Mod4+Q"`, or in parts: `combo("super", "shift", "q")`. Media

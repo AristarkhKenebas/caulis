@@ -295,6 +295,7 @@ let
       "mediaPrevious" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the mediaPrevious key (false: off)"; };
       "windowDrag" = lib.mkOption { type = lib.types.nullOr (lib.types.either (lib.types.enum [ false ]) lib.types.str); default = null; description = "the windowDrag key (false: off)"; };
       "quitWhileLocked" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "the quit key works on a locked screen too (default false: it would get round the lock)"; };
+      "lockWhileInhibited" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "the lock key locks while a window keeps the keys (shortcuts inhibited; default true)"; };
     }; }); default = null; description = "the usual keys, changed or turned off"; };
     "bind" = lib.mkOption { type = lib.types.nullOr (lib.types.attrsOf (lib.types.either lib.types.str (lib.types.submodule { options = {
         "action" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "what it does (\"exec firefox\", \"workspace 3\", ...)"; };

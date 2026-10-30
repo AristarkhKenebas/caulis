@@ -42,7 +42,34 @@ class ShortcutsInhibitTest {
         }
     }
 
+    @Test
+    fun `the lock key locks while a window keeps the keys, unless keys lockWhileInhibited is off`() = with(harness) {
+        for (lockWins in listOf(true, false)) {
+            val locks = AtomicInteger()
+            withCaulis({ keys.lockWhileInhibited = lockWins; locker { locks.incrementAndGet() } }) { caulis, client ->
+                val window = client.window().also { it.draw() }
+                client.waitFor { caulis.onLoop { r -> r.desktop.focusedWindow != null } }
+                var active = false
+                val inhibitor = client.bind("zwp_keyboard_shortcuts_inhibit_manager_v1", ZwpKeyboardShortcutsInhibitManagerV1, 1)
+                    .inhibitShortcuts(window.surface, client.seat)
+                inhibitor.events = object : ZwpKeyboardShortcutsInhibitorV1.Events {
+                    override fun active(proxy: ZwpKeyboardShortcutsInhibitorV1) { active = true }
+                    override fun inactive(proxy: ZwpKeyboardShortcutsInhibitorV1) { active = false }
+                }
+                client.waitFor { active }
+                caulis.onLoop { r ->
+                    r.key(0, KEY_SUPER, true)
+                    r.key(0, KEY_L, true)
+                    r.key(0, KEY_L, false)
+                    r.key(0, KEY_SUPER, false)
+                }
+                assertEquals(if (lockWins) 1 else 0, locks.get(), "Super+L with lockWhileInhibited = $lockWins")
+            }
+        }
+    }
+
     private companion object {
+        const val KEY_L = 38
         const val KEY_SUPER = 125
         const val KEY_B = 48
         const val KEY_ESC = 1

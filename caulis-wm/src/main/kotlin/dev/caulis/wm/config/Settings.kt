@@ -257,7 +257,8 @@ object Settings {
     private val keys = Keys().let { usual ->
         SectionType(
             usual.all().keys.map { name -> Field(name, OffOrType(CombinationType(usual.isGroup(name))), "the $name key (false: off)") } +
-                Field("quitWhileLocked", FlagType, "the quit key works on a locked screen too (default false: it would get round the lock)"),
+                Field("quitWhileLocked", FlagType, "the quit key works on a locked screen too (default false: it would get round the lock)") +
+                Field("lockWhileInhibited", FlagType, "the lock key locks while a window keeps the keys (shortcuts inhibited; default true)"),
             "keys",
         )
     }
@@ -1061,6 +1062,7 @@ object Settings {
         section("keys")?.let { k ->
             for ((name, value) in k) {
                 if (name == "quitWhileLocked") caulis.keys.quitWhileLocked = value as Boolean
+                else if (name == "lockWhileInhibited") caulis.keys.lockWhileInhibited = value as Boolean
                 else caulis.keys[name] = if (value === OffOrType.Off) null else value as String
             }
         }
