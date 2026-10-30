@@ -1,5 +1,5 @@
 // Draws Caulis's own cursor themes ("Caulis", white, and "Caulis-Black") and writes them as
-// Xcursor files into caulis-core's resources. Run after changing a cursor:
+// Xcursor files into caulis-cursor's resources. Run after changing a cursor:
 //
 //     ./gradlew :tools:cursors:run
 //
@@ -374,7 +374,7 @@ fun xcursor(design: Design): ByteArray {
 
 fun main(args: Array<String>) {
     System.setProperty("java.awt.headless", "true")
-    val out = Path.of(args.getOrElse(0) { "caulis-core/src/main/resources/dev/caulis/core/cursor" })
+    val out = Path.of(args.getOrElse(0) { "caulis-cursor/src/main/resources/dev/caulis/core/cursor" })
     Files.createDirectories(out)
     for (style in STYLES) {
         val all = designs(style)

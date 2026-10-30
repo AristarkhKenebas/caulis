@@ -1,0 +1,71 @@
+public final class dev/caulis/core/cursor/Cursor {
+	public fun <init> (Ljava/lang/String;Ljava/util/List;)V
+	public final fun frameAt (J)Lkotlin/Pair;
+	public final fun getAnimated ()Z
+	public final fun getFrames ()Ljava/util/List;
+	public final fun getShape ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/cursor/CursorImage {
+	public fun <init> (IIIIII[I)V
+	public final fun getDelayMillis ()I
+	public final fun getHeight ()I
+	public final fun getHotspotX ()I
+	public final fun getHotspotY ()I
+	public final fun getNominalSize ()I
+	public final fun getPixels ()[I
+	public final fun getWidth ()I
+}
+
+public final class dev/caulis/core/cursor/CursorTheme {
+	public static final field BLACK Ljava/lang/String;
+	public static final field Companion Ldev/caulis/core/cursor/CursorTheme$Companion;
+	public static final field DEFAULT Ljava/lang/String;
+	public static final field SHAPES Ljava/util/List;
+	public static final fun available ()Ljava/util/List;
+	public final fun cursor (Ljava/lang/String;)Ldev/caulis/core/cursor/Cursor;
+	public final fun cursor (Ljava/lang/String;I)Ldev/caulis/core/cursor/Cursor;
+	public final fun exportTo (Ljava/nio/file/Path;)Z
+	public final fun getFound ()Z
+	public final fun getName ()Ljava/lang/String;
+	public final fun getSize ()I
+	public static final fun load ()Ldev/caulis/core/cursor/CursorTheme;
+	public static final fun load (Ljava/lang/String;)Ldev/caulis/core/cursor/CursorTheme;
+	public static final fun load (Ljava/lang/String;Ljava/lang/Integer;)Ldev/caulis/core/cursor/CursorTheme;
+	public static final fun searchPath ()Ljava/util/List;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/cursor/CursorTheme$Companion {
+	public final fun available ()Ljava/util/List;
+	public final fun load ()Ldev/caulis/core/cursor/CursorTheme;
+	public final fun load (Ljava/lang/String;)Ldev/caulis/core/cursor/CursorTheme;
+	public final fun load (Ljava/lang/String;Ljava/lang/Integer;)Ldev/caulis/core/cursor/CursorTheme;
+	public static synthetic fun load$default (Ldev/caulis/core/cursor/CursorTheme$Companion;Ljava/lang/String;Ljava/lang/Integer;ILjava/lang/Object;)Ldev/caulis/core/cursor/CursorTheme;
+	public final fun searchPath ()Ljava/util/List;
+}
+
+public abstract interface class dev/caulis/core/cursor/CursorThemeProvider {
+	public fun aliases (Ljava/lang/String;)Ljava/util/Map;
+	public abstract fun file (Ljava/lang/String;Ljava/lang/String;)[B
+	public abstract fun files (Ljava/lang/String;)Ljava/util/List;
+	public abstract fun getThemes ()Ljava/util/List;
+}
+
+public final class dev/caulis/core/cursor/CursorThemeProvider$DefaultImpls {
+	public static fun aliases (Ldev/caulis/core/cursor/CursorThemeProvider;Ljava/lang/String;)Ljava/util/Map;
+}
+
+public final class dev/caulis/core/cursor/XCursor {
+	public static final field INSTANCE Ldev/caulis/core/cursor/XCursor;
+	public final fun read ([BI)Ljava/util/List;
+}
+
+public class dev/caulis/core/cursor/ZipCursorThemes : dev/caulis/core/cursor/CursorThemeProvider {
+	public fun <init> (Ljava/lang/Class;Ljava/util/List;)V
+	public fun aliases (Ljava/lang/String;)Ljava/util/Map;
+	public fun file (Ljava/lang/String;Ljava/lang/String;)[B
+	public fun files (Ljava/lang/String;)Ljava/util/List;
+	public final fun getThemes ()Ljava/util/List;
+}
+

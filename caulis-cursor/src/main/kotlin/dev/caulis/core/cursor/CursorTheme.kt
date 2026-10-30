@@ -1,5 +1,6 @@
 package dev.caulis.core.cursor
 
+import dev.caulis.log.InternalCaulisApi
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.ServiceLoader
@@ -147,8 +148,9 @@ class CursorTheme private constructor(
         @JvmOverloads
         fun load(name: String? = null, size: Int? = null): CursorTheme = load(name, size, searchPath())
 
-        // The same with the folders given (for tests).
-        internal fun load(name: String?, size: Int?, folders: List<Path>): CursorTheme {
+        // The same with the folders given (for tests, also caulis-core's).
+        @InternalCaulisApi
+        fun load(name: String?, size: Int?, folders: List<Path>): CursorTheme {
             val providers = providers()
             val sources = (providers + BUILT_IN).map(::Provided) + Folders(folders)
             val chosen = name ?: providers.firstNotNullOfOrNull { it.themes.firstOrNull() }

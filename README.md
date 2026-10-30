@@ -95,6 +95,7 @@ Wayland way when they can, and through X11 when that fails.
 | `caulis-protocol` | the Wayland protocol (server and client side), generated from XML |
 | `caulis-render` | drawing on the GPU (OpenGL ES; Vulkan later) |
 | `caulis-geometry` | rectangles |
+| `caulis-cursor` | cursor themes: XCursor files, installed and built-in themes (brought by `caulis-core`) |
 | `caulis-tiling` | the layout language and the built-in layouts (pure Kotlin) |
 | `caulis-core` | surfaces, windows, input, outputs, the nested and screen backends |
 | `caulis-xwayland` | X11 programs: Xwayland started on demand, their window manager, the shared clipboard |

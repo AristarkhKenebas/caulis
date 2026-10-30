@@ -63,6 +63,10 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
   that wants the bus without the whole compositor. Nothing changes for users: `caulis-core`
   depends on it (as an `api` dependency), the package and classes are the same, and
   `rethrowIfFatal` moved to `caulis-log` with its package unchanged.
+- Cursor themes (`dev.caulis.core.cursor`: `CursorTheme`, `XCursor`, `CursorThemeProvider` and
+  the built-in "Caulis" themes) are a module of their own, `caulis-cursor`, plain Kotlin with
+  no native code. Nothing changes for users: `caulis-core` depends on it (as an `api`
+  dependency), and the package, classes and resources are the same.
 
 ### Fixed
 - CI on GitHub: the "CI" and "Release" workflows failed in "Build and test" since 0.1.3. A

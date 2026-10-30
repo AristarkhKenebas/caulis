@@ -12,6 +12,7 @@ description = "The core of Caulis, a Wayland compositor library: protocols, wind
 dependencies {
     // Parts of the core in modules of their own (packages unchanged): this one brings them.
     api(project(":caulis-dbus"))
+    api(project(":caulis-cursor"))
     api(project(":caulis-protocol"))
     api(project(":caulis-render"))
     api(project(":caulis-tiling"))
