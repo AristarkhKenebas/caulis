@@ -2315,13 +2315,13 @@ class Desktop(
      * Moves a window out of a special workspace onto the workspace shown on the focused
      * monitor (Hyprland's `movetoworkspace +0` from a special one, for a key): the focused
      * window if it is in one; else the one focused last in the special workspace shown on the
-     * focused monitor; else the one focused last in the special workspace used last, shown or
+     * monitor worked on ([WindowDirector.workMonitor], by default the focused one); else the one focused last in the special workspace used last, shown or
      * hidden — so the key brings a window back with its special workspace hidden too. Returns
      * the window moved, or null if there was none.
      */
     fun moveOutOfSpecialWorkspace(): Window? {
         val focused = focusedWindow?.takeIf { scratchpadOf(it)?.isSpecial == true }
-        val pad = shownSpecialOn(focusedMonitor) ?: lastSpecial?.takeIf { it in specials.values }
+        val pad = shownSpecialOn(workMonitor) ?: lastSpecial?.takeIf { it in specials.values }
         // (Its windows are oldest first, the one focused last at the end.)
         val window = focused ?: pad?.windows?.lastOrNull()
         if (window == null) {
