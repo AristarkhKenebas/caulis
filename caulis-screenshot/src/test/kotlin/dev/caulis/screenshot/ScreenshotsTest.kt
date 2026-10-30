@@ -4,6 +4,7 @@ import dev.caulis.core.Background
 import dev.caulis.core.Effects
 import dev.caulis.core.TestClient
 import dev.caulis.core.TitleBars
+import dev.caulis.geometry.Rect
 import dev.caulis.ffi.SharedMemory
 import dev.caulis.log.InternalCaulisApi
 import dev.caulis.protocol.client.Connection
@@ -72,6 +73,122 @@ class ScreenshotsTest {
             assertEquals(ShotKind.SCREEN, shots.kind, "the kind used last (rememberKind on)")
         }
         waitForFiles(folder, 2)
+    }
+
+    @Test
+    fun `the part chosen last is there again and is taken without a drag`() = withShots { caulis, folder, _ ->
+        caulis.onLoop {
+            Screenshots.of(caulis).choose(ShotKind.REGION)
+            drag(caulis, 101.0, 101.0, 301.0, 251.0)
+            key(caulis, KEY_ENTER)
+        }
+        val first = waitForFiles(folder, 1).single()
+        val (part, clear) = caulis.onLoop {
+            Screenshots.of(caulis).choose()
+            val overlay = desktop.overlay as ScreenshotOverlay
+            val shown = overlay.part to overlay.placeOf(ChooserButton.CLEAR)
+            key(caulis, KEY_ENTER)
+            assertNull(desktop.overlay, "taken at once")
+            shown
+        }
+        assertEquals(Rect(101, 101, 200, 150), part, "the same part again")
+        assertNotNull(clear, "the clear button is there with it")
+        val second = image(waitForFiles(folder, 2).first { it != first })
+        assertEquals(250, second.width)
+        assertEquals(188, second.height)
+    }
+
+    @Test
+    fun `Escape clears the part shown, a second Escape closes, and it is not offered again`() = withShots { caulis, folder, _ ->
+        caulis.onLoop {
+            Screenshots.of(caulis).choose(ShotKind.REGION)
+            drag(caulis, 101.0, 101.0, 301.0, 251.0)
+            key(caulis, KEY_ENTER)
+        }
+        waitForFiles(folder, 1)
+        caulis.onLoop {
+            val shots = Screenshots.of(caulis)
+            shots.choose()
+            val overlay = desktop.overlay as ScreenshotOverlay
+            assertNotNull(overlay.part)
+            key(caulis, KEY_ESC)
+            assertTrue(desktop.overlay === overlay, "still open")
+            assertNull(overlay.part, "the part cleared")
+            assertNull(overlay.placeOf(ChooserButton.CLEAR), "the clear button gone with it")
+            key(caulis, KEY_ESC)
+            assertNull(desktop.overlay, "the second Escape closes")
+            shots.choose()
+            assertNull((desktop.overlay as ScreenshotOverlay).part, "not offered again")
+            key(caulis, KEY_ENTER)
+            assertEquals(shots.style.words.dragFirst, desktop.onScreenDisplay, "nothing to take")
+            key(caulis, KEY_ESC)
+            assertNull(desktop.overlay)
+            // Without escapeClearsSelection: Escape closes at once, and forgets the part.
+            shots.chooser = shots.chooser.copy(escapeClearsSelection = false)
+            shots.choose()
+            drag(caulis, 101.0, 101.0, 301.0, 251.0)
+            key(caulis, KEY_ESC)
+            assertNull(desktop.overlay, "closed at once")
+            assertNull(shots.remembered, "and forgotten")
+        }
+    }
+
+    @Test
+    fun `the clear button clears the part, and it is kept across restarts if told to`() = withShots { caulis, folder, _ ->
+        val state = Files.createTempDirectory("screenshot-state")
+        try {
+            val file = state.resolve("selection")
+            caulis.onLoop {
+                val shots = Screenshots.of(caulis)
+                shots.chooser = shots.chooser.copy(rememberAcrossRestarts = true)
+                shots.selectionFile = file
+                shots.choose(ShotKind.REGION)
+                drag(caulis, 101.0, 101.0, 301.0, 251.0)
+                key(caulis, KEY_ENTER)
+            }
+            waitForFiles(folder, 1)
+            assertTrue(Files.isRegularFile(file), "kept in its file")
+            caulis.onLoop {
+                val shots = Screenshots.of(caulis)
+                // As after a restart: only the file knows it.
+                shots.asAfterRestart()
+                shots.choose()
+                val overlay = desktop.overlay as ScreenshotOverlay
+                assertEquals(Rect(101, 101, 200, 150), overlay.part, "offered again from the file")
+                val (bx, by) = assertNotNull(overlay.placeOf(ChooserButton.CLEAR))
+                desktop.pointerMoved(0, bx, by)
+                desktop.pointerButton(0, BTN_LEFT, true)
+                desktop.pointerButton(0, BTN_LEFT, false)
+                assertNull(overlay.part, "cleared by its button")
+                assertNull(overlay.placeOf(ChooserButton.CLEAR), "the button gone with it")
+                assertTrue(desktop.overlay === overlay, "still open")
+                assertNull(shots.remembered)
+                key(caulis, KEY_ESC)
+                assertNull(desktop.overlay)
+            }
+            assertTrue(!Files.exists(file), "the file gone with it")
+        } finally {
+            state.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `the part chosen last is dropped when the monitors change`() = withShots { caulis, folder, _ ->
+        caulis.onLoop {
+            Screenshots.of(caulis).choose(ShotKind.REGION)
+            drag(caulis, 101.0, 101.0, 301.0, 251.0)
+            key(caulis, KEY_ENTER)
+        }
+        waitForFiles(folder, 1)
+        caulis.onLoop {
+            val shots = Screenshots.of(caulis)
+            assertNotNull(shots.remembered)
+            desktop.setScale(desktop.monitors.first { it.name == "HEADLESS-1" }, 1.0)
+            shots.choose()
+            assertNull((desktop.overlay as ScreenshotOverlay).part, "not offered on other monitors")
+            assertNull(shots.remembered, "dropped")
+            key(caulis, KEY_ESC)
+        }
     }
 
     @Test
@@ -278,5 +395,6 @@ class ScreenshotsTest {
         const val RED = 0xFF0000
         const val BTN_LEFT = 272
         const val KEY_ENTER = 28
+        const val KEY_ESC = 1
     }
 }

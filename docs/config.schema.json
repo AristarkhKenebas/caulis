@@ -4712,6 +4712,10 @@
       "enum": ["xkb", "physical"],
       "description": "modifiers in bindings as the keyboard layout says, or the physical keys"
     },
+    "bindingsUseFirstLatinLayout": {
+      "type": "boolean",
+      "description": "letters in bindings follow the layout, on Russian or Greek the first Latin layout's (default true); false: physical keys"
+    },
     "xwaylandRestart": {
       "type": "object",
       "additionalProperties": false,

@@ -14,8 +14,10 @@ package dev.caulis.core.input
  * Feed every key press and release to [key]; it returns true when a combination was
  * used. Such keys are not passed to programs — neither the press nor its release.
  *
- * Keys are physical (Linux key codes), so combinations work the same with every
- * keyboard layout (Super+Q stays on the same key with a Russian layout). Mouse buttons
+ * Keys are physical (Linux key codes) by default, so combinations work the same with every
+ * keyboard layout (Super+Q stays on the same key with a Russian layout); [keyOf] makes them
+ * follow the layout instead (as GNOME and KDE do: Super+Z is the key printed Z on a German
+ * keyboard, and still that key on the Russian layout). Mouse buttons
  * ("Super+MouseSide", "mouse:276"), the wheel ("Super+WheelUp") and a drawing tablet's pad
  * buttons ("Pad1", the first) are keys too, and a modifier alone ("Super") is a tap of it:
  * pressed and let go with nothing else in between.
@@ -56,6 +58,21 @@ class KeyBindings {
         modifierOf(code)
     } catch (e: Exception) {
         Modifier.of(code)
+    }
+
+    /**
+     * Which key of the combinations [evdevCode] is when pressed. By default the physical key
+     * itself (the places of a US keyboard); give `seat::bindingKeyOf` to follow the keyboard
+     * layout instead: the key that types D is Super+D's key, and on a layout of another script
+     * (Russian, Greek) the key that types D in the first Latin layout (see [Seat.bindingKeyOf]).
+     * Only looked up when a key goes down: what is held and let go stays by the physical key.
+     */
+    var keyOf: (evdevCode: Int) -> Int = { it }
+
+    private fun bindingKey(code: Int): Int = try {
+        keyOf(code)
+    } catch (e: Exception) {
+        code
     }
 
     private val bindings = ArrayList<Binding>()
@@ -100,7 +117,8 @@ class KeyBindings {
     /** True if some combination is the key or button [code] with the modifiers held now (wheel: [WHEEL_UP], ...). */
     fun has(code: Int): Boolean {
         val active = heldModifiers()
-        return bindings.any { it.key == code && it.modifiers == active }
+        val key = bindingKey(code)
+        return bindings.any { it.key == key && it.modifiers == active }
     }
 
     /** True while [modifier] is held down (e.g. for Super+drag to move windows). */
@@ -133,7 +151,8 @@ class KeyBindings {
         tapCandidate = if (isModifier != null && held.values.all { it != null }) active else null
         if (isModifier != null) return false
         // Exact match: Super+Q does not also fire for Super+Shift+Q.
-        val binding = bindings.lastOrNull { it.key == evdevCode && it.modifiers == active } ?: return false
+        val key = bindingKey(evdevCode)
+        val binding = bindings.lastOrNull { it.key == key && it.modifiers == active } ?: return false
         swallowed += evdevCode
         when {
             binding.options.release -> onRelease[evdevCode] = binding

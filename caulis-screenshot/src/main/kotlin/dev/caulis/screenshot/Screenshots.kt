@@ -179,8 +179,31 @@ class Screenshots internal constructor(private val caulis: Caulis) {
     /** A command run with each file saved ({file} is the file; else it is added at the end): an editor, an uploader. */
     var then: String? = null
 
-    // The part chosen last (the chooser offers it again), per monitor.
-    internal val lastRegion = HashMap<String, Rect>()
+    /**
+     * Where the part chosen last is kept across restarts (with
+     * [ChooserBehaviour.rememberAcrossRestarts]); null: `$XDG_STATE_HOME/<configName>/screenshot-selection`
+     * (`~/.local/state/...`).
+     */
+    var selectionFile: Path? = null
+
+    // The part chosen last: on which monitor, and the monitors then ([monitorsNow]): offered
+    // again while they are the same.
+    internal data class Remembered(val monitors: String, val monitor: String, val part: Rect)
+
+    // It, and whether its file was read: kept with the desktop, so a reload of the
+    // configuration (a new Caulis, new screenshots) keeps it too.
+    internal class PartMemory {
+        var remembered: Remembered? = null
+        var loaded = false
+    }
+
+    private val memory: PartMemory get() = synchronized(memories) { memories.getOrPut(caulis.desktop) { PartMemory() } }
+
+    internal var remembered: Remembered?
+        get() = memory.remembered
+        set(value) {
+            memory.remembered = value
+        }
 
     internal val log = Logger("screenshot")
 
@@ -220,6 +243,9 @@ class Screenshots internal constructor(private val caulis: Caulis) {
 
     init {
         warmUpDrawing(style)
+        // (Held by its Caulis while that lives — the map of them holds it weakly only, and its
+        // settings would go with it.)
+        caulis.onUnload { log.trace { "The screenshots' configuration is unloaded" } }
     }
 
     /** Takes the monitor with the pointer now (after [delaySeconds]). */
@@ -229,6 +255,94 @@ class Screenshots internal constructor(private val caulis: Caulis) {
     fun takeFocused() = later {
         val window = caulis.focusedWindow
         if (window == null) caulis.desktop.showLevel(style.words.noFocusedWindow) else takeWindow(window)
+    }
+
+    // --- the part chosen last ----------------------------------------------------------------
+
+    // The monitors as they are now, as one line: their names and places (desktop units).
+    internal fun monitorsNow(): String = caulis.desktop.monitors.sortedBy { it.name }
+        .joinToString("; ") { m -> m.area.let { "${m.name} ${it.x},${it.y} ${it.width}x${it.height}" } }
+
+    private fun selectionPath(): Path = selectionFile ?: run {
+        val home = System.getenv("HOME")?.takeIf { it.startsWith("/") } ?: System.getProperty("user.home")
+        val state = System.getenv("XDG_STATE_HOME")?.takeIf { it.startsWith("/") } ?: "$home/.local/state"
+        Path.of(state, caulis.configName, "screenshot-selection")
+    }
+
+    /**
+     * The part chosen last and its monitor, to be offered again (see
+     * [ChooserBehaviour.rememberSelection]), clamped to the monitor; null when there is none or
+     * the monitors changed since (then it is dropped).
+     */
+    internal fun rememberedPart(): Pair<Monitor, Rect>? {
+        if (!chooser.rememberSelection) return null
+        if (!memory.loaded && chooser.rememberAcrossRestarts) {
+            memory.loaded = true
+            if (remembered == null) remembered = loadPart()
+        }
+        val last = remembered ?: return null
+        val monitor = caulis.desktop.monitors.firstOrNull { it.name == last.monitor }
+        val part = if (last.monitors == monitorsNow()) monitor?.let { last.part.intersect(it.area) } else null
+        if (monitor == null || part == null) {
+            log.info { "The part chosen last is not offered again: the monitors changed" }
+            forgetPart()
+            return null
+        }
+        return monitor to part
+    }
+
+    // (For tests: the part remembered only in its file, as after a restart.)
+    internal fun asAfterRestart() {
+        memory.remembered = null
+        memory.loaded = false
+    }
+
+    // Remembers [part] of [monitor] to offer it again (and keeps it across restarts, if told to).
+    internal fun rememberPart(monitor: Monitor, part: Rect) {
+        if (!chooser.rememberSelection) return
+        val now = Remembered(monitorsNow(), monitor.name, part)
+        if (now == remembered) return
+        remembered = now
+        log.trace { "The part chosen is remembered: ${part.width}x${part.height} on ${monitor.name}" }
+        if (chooser.rememberAcrossRestarts) savePart(now)
+    }
+
+    // Forgets the part chosen last (none is offered next time).
+    internal fun forgetPart() {
+        if (remembered == null) return
+        remembered = null
+        log.trace { "The part chosen last is forgotten" }
+        if (chooser.rememberAcrossRestarts) {
+            try {
+                Files.deleteIfExists(selectionPath())
+            } catch (e: Exception) {
+                log.warn("Could not delete ${selectionPath()}: ${e.message}")
+            }
+        }
+    }
+
+    // The file: the monitors, the monitor, "x y width height" — a line each.
+    private fun savePart(part: Remembered) {
+        val file = selectionPath()
+        try {
+            Files.createDirectories(file.parent)
+            Files.writeString(file, "${part.monitors}\n${part.monitor}\n${part.part.x} ${part.part.y} ${part.part.width} ${part.part.height}\n")
+        } catch (e: Exception) {
+            log.warn("Could not keep the part chosen in $file: ${e.message}")
+        }
+    }
+
+    private fun loadPart(): Remembered? {
+        val file = selectionPath()
+        if (!Files.isRegularFile(file)) return null
+        return try {
+            val lines = Files.readAllLines(file)
+            val n = lines.getOrNull(2)?.trim()?.split(' ')?.map(String::toInt)
+            if (lines.size < 3 || n == null || n.size != 4 || n[2] <= 0 || n[3] <= 0) null
+            else Remembered(lines[0], lines[1], Rect(n[0], n[1], n[2], n[3]))
+        } catch (e: Exception) {
+            null
+        }.also { log.trace { if (it != null) "The part chosen before the restart is offered again" else "$file is not a part chosen: ignored" } }
     }
 
     // --- taking -----------------------------------------------------------------------------
@@ -443,6 +557,8 @@ class Screenshots internal constructor(private val caulis: Caulis) {
         private val TIME = DateTimeFormatter.ofPattern("HH-mm-ss")
         // (Held weakly both ways: the screenshots refer to their Caulis, which must still go away.)
         private val installed = WeakHashMap<Caulis, java.lang.ref.WeakReference<Screenshots>>()
+        // The part chosen last, per desktop (it outlives reloads; nothing in it refers back).
+        private val memories = WeakHashMap<dev.caulis.core.Desktop, PartMemory>()
 
         // Caulis 0.1.1's keys(...) with defaults left out (it had no selective key yet): what
         // Kotlin code built against it calls — the defaults' mask as Kotlin passes it. (It

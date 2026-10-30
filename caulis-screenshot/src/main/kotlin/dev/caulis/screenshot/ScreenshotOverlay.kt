@@ -43,9 +43,11 @@ internal class ScreenshotOverlay(
     private var x = desktop.pointerX
     private var y = desktop.pointerY
 
-    // The part chosen (desktop units) and the monitor it is on: the last one offered again.
-    private var region: Rect? = shots.lastRegion[home.name]?.takeIf { home.area.contains(it) }
-    private var regionOn: Monitor = home
+    // The part chosen (desktop units) and the monitor it is on: the last one offered again
+    // (ChooserBehaviour.rememberSelection), while the monitors are as they were.
+    private val offered = shots.rememberedPart()
+    private var region: Rect? = offered?.second
+    private var regionOn: Monitor = offered?.first ?: home
 
     // The windows chosen (WINDOWS), and those a frame being dragged goes over.
     private val picked = LinkedHashSet<Window>()
@@ -76,17 +78,32 @@ internal class ScreenshotOverlay(
 
     init {
         hover()
-        shots.log.trace { "The chooser: ${kind.name.lowercase()}, choosing a part: ${selection.name.lowercase()}" }
+        shots.log.trace { "The chooser: ${kind.name.lowercase()}, choosing a part: ${selection.name.lowercase()}${if (offered != null) ", the part chosen last offered again" else ""}" }
     }
 
     override fun toString() = "the screenshot chooser"
+
+    // (For tests: the part chosen, and where a button of the toolbar is — its middle — if it is there.)
+    internal val part: Rect? get() = region
+    internal fun placeOf(button: ChooserButton): Pair<Double, Double>? {
+        val at = toolbarRect()
+        val range = toolbar.places(clearShown())[button] ?: return null
+        return at.x + (range.first + range.last + 1) / 2.0 to at.y + at.height / 2.0
+    }
 
     // --- drawing ----------------------------------------------------------------------------
 
     private fun toolbarRect(): Rect {
         val area = home.usableArea
-        return Rect(area.x + (area.width - toolbar.width) / 2, area.bottom - toolbar.height - style.toolbarMargin, toolbar.width, toolbar.height)
+        val width = toolbar.width(clearShown())
+        return Rect(area.x + (area.width - width) / 2, area.bottom - toolbar.height - style.toolbarMargin, width, toolbar.height)
     }
+
+    // True if a part is shown (choosing a part, one chosen).
+    private fun partShown(): Boolean = kind == ShotKind.REGION && region != null
+
+    // True if the clear button is on the toolbar: a part is shown (or being drawn).
+    private fun clearShown(): Boolean = ChooserButton.CLEAR in toolbar.buttons && (partShown() || (kind == ShotKind.REGION && drag == Drag.NEW))
 
     // 0..1 while coming in (along the curve of the desktop's animation "screenshot"), then 1; off: 1 at once.
     private fun shown(): Float {
@@ -184,11 +201,11 @@ internal class ScreenshotOverlay(
         val at = toolbarRect().let { r -> Rect(r.x, r.y + Math.round((1 - appear) * behaviour.rise), r.width, r.height) }
         val radius = style.cornerRadius.coerceAtMost(toolbar.height / 2f)
         canvas.shadow(at, style.shadowSize, Paint.Solid(style.shadow), radius = radius, alpha = appear)
-        val look = Toolbar.Look(kind, selection, pointer, delay, hovered, monitor.scale, style, pointerIdle = !pointerApplies())
+        val look = Toolbar.Look(kind, selection, pointer, delay, hovered, monitor.scale, style, pointerIdle = !pointerApplies(), clear = clearShown())
         canvas.image(toolbar.texture(look), at, alpha = appear, radius = radius)
         // The name of the button under the pointer (and its key) above it.
         val button = hovered ?: return
-        val range = toolbar.places[button] ?: return
+        val range = toolbar.places(clearShown())[button] ?: return
         val (text, key) = tipOf(button)
         val (w, h) = tip.size(text, key, style)
         val cx = at.x + (range.first + range.last + 1) / 2
@@ -205,6 +222,8 @@ internal class ScreenshotOverlay(
             ChooserButton.SCREEN -> words.screen to key(keys.screen)
             ChooserButton.WINDOWS -> words.windows to key(keys.windows)
             ChooserButton.SELECTION -> (if (selection == Screenshots.Selection.ADJUST) words.adjustArea else words.newArea) to key(keys.selection)
+            // (Escape clears it first, with escapeClearsSelection.)
+            ChooserButton.CLEAR -> words.clearSelection to (if (behaviour.escapeClearsSelection) key(keys.close) else "")
             ChooserButton.POINTER -> (if (!pointerApplies()) words.pointerNotHere else if (pointer) words.pointerIn else words.pointerOut) to key(keys.pointer)
             ChooserButton.TIMER -> (if (delay > 0) words.timer.with(delay) else words.timerOff) to key(keys.timer)
             ChooserButton.TAKE -> words.capture to key(keys.capture)
@@ -308,7 +327,7 @@ internal class ScreenshotOverlay(
 
     // What is under the pointer: a button, a window, a monitor.
     private fun hover() {
-        hovered = toolbar.buttonAt(toolbarRect(), x, y).takeIf { desktop.monitorAt(x, y) === home }
+        hovered = toolbar.buttonAt(toolbarRect(), x, y, clearShown()).takeIf { desktop.monitorAt(x, y) === home }
         if (hovered != null || drag != Drag.NONE) return
         screen = desktop.monitorAt(x, y)
         // (Where the windows were drawn when it opened: the topmost there.)
@@ -410,12 +429,22 @@ internal class ScreenshotOverlay(
             ChooserButton.SCREEN -> kind = ShotKind.SCREEN
             ChooserButton.WINDOWS -> kind = ShotKind.WINDOWS
             ChooserButton.SELECTION -> toggleSelection()
+            ChooserButton.CLEAR -> clearPart()
             ChooserButton.POINTER -> pointer = !pointer
             ChooserButton.TIMER -> nextDelay()
             ChooserButton.TAKE -> return take(kind)
             ChooserButton.CLOSE -> return cancel()
         }
+        // (The toolbar may have changed its width: the clear button in or out.)
+        hover()
         desktop.redrawOverlay()
+    }
+
+    // The part chosen is cleared, and not offered again.
+    private fun clearPart() {
+        region = null
+        shots.forgetPart()
+        shots.log.trace { "The part chosen was cleared" }
     }
 
     // The timer's next step (after the last: the first).
@@ -452,7 +481,13 @@ internal class ScreenshotOverlay(
                     region = dragFrom
                     drag = Drag.NONE
                 }
-                else -> return cancel()
+                // A part shown: cleared first (a second Escape closes), with escapeClearsSelection.
+                behaviour.escapeClearsSelection && partShown() -> clearPart()
+                else -> {
+                    // (Else Escape closes and the part is forgotten.)
+                    if (!behaviour.escapeClearsSelection && region != null) clearPart()
+                    return cancel()
+                }
             }
             ctrl && keys.copy.has(name) -> return take(kind, copyOnly = true)
             ctrl && kind == ShotKind.WINDOWS && keys.all.has(name) -> {
@@ -493,7 +528,9 @@ internal class ScreenshotOverlay(
         shots.selection = selection
         shots.pointer = pointer
         shots.delaySeconds = delay
-        region?.let { shots.lastRegion[regionOn.name] = it }
+        // The part, to be offered again (none: none next time either).
+        val part = region
+        if (part != null) shots.rememberPart(regionOn, part) else shots.forgetPart()
     }
 
     private fun take(what: ShotKind, copyOnly: Boolean = false) {

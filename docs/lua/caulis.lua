@@ -64,6 +64,7 @@
 ---@field primarySelection? boolean middle-click paste (default true; only at the start)
 ---@field adaptiveSync? boolean variable refresh rate on every monitor that has it, unless its own says otherwise (default false)
 ---@field bindingModifiers? "xkb"|"physical" modifiers in bindings as the keyboard layout says, or the physical keys
+---@field bindingsUseFirstLatinLayout? boolean letters in bindings follow the layout, on Russian or Greek the first Latin layout's (default true); false: physical keys
 ---@field xwaylandRestart? caulis.Settings.xwaylandRestart when Xwayland fails to start
 ---@field startup? (string)[] programs started with the compositor
 ---@field autostart? caulis.Settings.autostart programs started with the session, one after another, once per session (a reload starts only new entries)

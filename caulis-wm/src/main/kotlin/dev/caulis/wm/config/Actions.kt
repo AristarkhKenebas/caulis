@@ -71,7 +71,7 @@ object Actions {
         ActionInfo("move-to-workspace", "number|next|prev|back|empty|special[:name] [silent]", "moves the focused window to a workspace (special:name: into a special workspace, as move-to-special)"),
         ActionInfo("special-workspace", "toggle|show|hide [name]", "shows the special workspace (\"special\" without a name) over the current one, or hides it"),
         ActionInfo("move-to-special", "[name] [silent]", "moves the focused window into a special workspace, shown with it (silent: it waits there unseen)"),
-        ActionInfo("move-out-of-special", "", "moves the focused window out of its special workspace onto the workspace on screen"),
+        ActionInfo("move-out-of-special", "", "moves the focused window out of its special workspace onto the workspace on screen (none focused there: the one focused last in it)"),
         ActionInfo("focus-monitor", "left|right|up|down|next|primary|connector", "gives the focus to another monitor"),
         ActionInfo("move-to-monitor", "left|right|up|down|next|primary|connector", "moves the focused window to another monitor"),
         ActionInfo("focus", "left|right", "focuses the window beside"),
@@ -221,7 +221,8 @@ object Actions {
                 val special = names.firstOrNull() ?: dev.caulis.core.SpecialWorkspaces.DEFAULT_NAME
                 window { w -> desktop.moveToSpecialWorkspace(w, special, silent) }
             }
-            "move-out-of-special" -> window { w -> desktop.moveOutOfSpecialWorkspace(w) }
+            // (No window of a special workspace focused: the one focused last in it comes out.)
+            "move-out-of-special" -> { given -> if (given != null) desktop.moveOutOfSpecialWorkspace(given) else desktop.moveOutOfSpecialWorkspace() }
             "focus-monitor" -> monitorTarget().let { target -> { _ -> target()?.let(desktop::focusMonitor) } }
             "move-to-monitor" -> monitorTarget().let { target -> window { w -> target()?.let { desktop.moveToMonitor(w, it) } } }
             "focus" -> direction().let { d ->

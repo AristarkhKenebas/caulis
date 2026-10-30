@@ -16,6 +16,14 @@ class KeyInput(
     val locked: Boolean,
     val timeMillis: Int,
 ) {
+    /**
+     * The key's symbol in the layout in use, as typed ("Cyrillic_ve" for the key of "в" on the
+     * Russian layout, where [keysym] is "d"): for bindings on a symbol of another script, which
+     * should win over the Latin one.
+     */
+    var layoutKeysym: String = keysym
+        internal set
+
     /** True if this key is a modifier itself (Shift, Ctrl, Alt, AltGr, Super). */
     val isModifier: Boolean get() = Modifiers.of(evdevCode) != 0
 

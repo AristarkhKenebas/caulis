@@ -16,4 +16,12 @@ interface EarlyPointer {
 
     /** On the compositor's thread, right after one movement was handled (in order). */
     fun caughtUp()
+
+    /**
+     * On the compositor's thread, right after [count] movements were handled as one (they
+     * waited together and were summed). By default [caughtUp] [count] times.
+     */
+    fun caughtUp(count: Int) {
+        repeat(count) { caughtUp() }
+    }
 }

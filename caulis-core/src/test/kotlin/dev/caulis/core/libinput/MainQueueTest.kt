@@ -52,4 +52,58 @@ class MainQueueTest {
         assertEquals(42, answer.get())
         assertEquals(0, queue.size)
     }
+
+    // A movement as the input thread queues them: summed with the next ones still waiting.
+    private class Move(var dx: Int, val handled: MutableList<Pair<Int, Int>>) : MainQueue.Merging() {
+        override fun take(next: MainQueue.Merging): Boolean {
+            if (next !is Move) return false
+            dx += next.dx
+            return true
+        }
+
+        override fun run() {
+            // (Each handled movement costs as much as a pointer's hit test on a busy desktop.)
+            Thread.sleep(1)
+            handled += dx to count
+        }
+    }
+
+    @Test
+    fun `10 000 movements queued while the compositor's thread is busy are handled in bounded time, summed, in order with keys`() = EventLoop().use { loop ->
+        val queue = MainQueue(loop::post)
+        val handled = ArrayList<Pair<Int, Int>>()
+        val keys = ArrayList<Int>()
+        // (Queued from the input thread while this thread does not run the loop: busy.)
+        val producer = Thread {
+            for (i in 0 until 5_000) queue.add(Move(1, handled))
+            queue.add { keys += handled.sumOf { it.first } }
+            for (i in 0 until 5_000) queue.add(Move(1, handled))
+        }
+        producer.start()
+        producer.join()
+        assertTrue(queue.size <= 3, "movements waiting together are one: ${queue.size} queued")
+        val started = System.nanoTime()
+        while (queue.size > 0) loop.dispatch(10)
+        val millis = (System.nanoTime() - started) / 1_000_000
+        assertTrue(millis < 1_000, "handled in $millis ms (10 000 one by one: over 10 s)")
+        assertEquals(10_000, handled.sumOf { it.first }, "no movement lost")
+        assertEquals(10_000, handled.sumOf { it.second }, "each counted (the early cursor catches up by as many)")
+        assertEquals(listOf(5_000), keys, "the key comes after the movements before it, before those after it")
+    }
+
+    @Test
+    fun `a movement already running takes no more in - the next one waits on its own`() = EventLoop().use { loop ->
+        val queue = MainQueue(loop::post)
+        val handled = ArrayList<Pair<Int, Int>>()
+        queue.add(object : MainQueue.Merging() {
+            override fun take(next: MainQueue.Merging) = true
+            override fun run() {
+                // (The input thread adds one meanwhile: not merged into this one, it runs after.)
+                queue.add(Move(7, handled))
+                handled += 1 to count
+            }
+        })
+        while (queue.size > 0) loop.dispatch(10)
+        assertEquals(listOf(1 to 1, 7 to 1), handled)
+    }
 }

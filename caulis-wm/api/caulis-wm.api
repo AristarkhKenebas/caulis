@@ -148,6 +148,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getBackgroundChangeMillis ()J
 	public final fun getBackgroundColor ()Ldev/caulis/render/Color;
 	public final fun getBindingModifiers ()Ldev/caulis/wm/BindingModifiers;
+	public final fun getBindingsUseFirstLatinLayout ()Z
 	public final fun getBuiltInConnectors ()Ljava/util/List;
 	public final fun getCapsLockOn ()Z
 	public final fun getClipboard ()Ldev/caulis/core/DataDeviceManager;
@@ -424,6 +425,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setBackgroundChangeMillis (J)V
 	public final fun setBackgroundColor (Ldev/caulis/render/Color;)V
 	public final fun setBindingModifiers (Ldev/caulis/wm/BindingModifiers;)V
+	public final fun setBindingsUseFirstLatinLayout (Z)V
 	public final fun setColorSchedule (Ldev/caulis/core/appearance/ColorSchedule;)V
 	public final fun setColorScheme (Ldev/caulis/core/appearance/ColorScheme;)V
 	public final fun setCommandLine (Z)V
@@ -688,6 +690,7 @@ public final class dev/caulis/wm/KeyInput {
 	public fun <init> (IZLjava/lang/String;IIZI)V
 	public final fun getEvdevCode ()I
 	public final fun getKeysym ()Ljava/lang/String;
+	public final fun getLayoutKeysym ()Ljava/lang/String;
 	public final fun getLocked ()Z
 	public final fun getModifiers ()I
 	public final fun getModifiersBefore ()I

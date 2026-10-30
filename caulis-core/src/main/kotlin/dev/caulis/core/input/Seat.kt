@@ -434,6 +434,24 @@ class Seat(private val display: Display, keymap: Keymap) : AutoCloseable {
     /** The name of the symbol [evdevCode] means for shortcuts: Latin whatever the layout ("d" for the key of "в"; see [KeyboardState.shortcutSymbol]). */
     fun shortcutName(evdevCode: Int): String = keySymbolName(keyboardState.shortcutSymbol(evdevCode, layoutCount))
 
+    /**
+     * The key of [KeyBindings] combinations [evdevCode] stands for now, for [KeyBindings.keyOf]:
+     * a key that types a Latin letter, digit or punctuation mark (see [shortcutName]: on the
+     * Russian layout what it types in the first Latin layout) is the key of that name in
+     * [KeyBindings] — on a German keyboard the key printed Z is Super+Z's — and every other key
+     * (F1, Return, the arrows, é) is itself. The row of digits stays where it is (on AZERTY its
+     * keys type "&", "é", "'" without Shift: Super+1..9 are still those keys).
+     */
+    fun bindingKeyOf(evdevCode: Int): Int {
+        if (evdevCode !in 1..0xff) return evdevCode
+        val symbol = keyboardState.shortcutSymbol(evdevCode, layoutCount)
+        // (Latin symbols are their characters: "d", "D", "/".)
+        if (symbol !in 0x21..0x7e) return evdevCode
+        val letter = symbol in 0x41..0x5a || symbol in 0x61..0x7a
+        if (!letter && evdevCode in DIGIT_ROW) return evdevCode
+        return KeyBindings.keyCode(symbol.toChar().toString()) ?: evdevCode
+    }
+
     /** The name of the symbol [evdevCode] gives now ("h", "H", "Return", "XF86AudioMute"). */
     fun keysymName(evdevCode: Int): String = keySymbolName(keyboardState.symbol(evdevCode))
 
@@ -748,6 +766,9 @@ class Seat(private val display: Display, keymap: Keymap) : AutoCloseable {
         // How many of a program's last input serials still count (see isInputSerial): enough
         // for a program that answers a little late, after a few more keys.
         private const val INPUT_SERIALS = 16
+
+        // The keys 1 to 0, minus and equal (see bindingKeyOf).
+        private val DIGIT_ROW = 2..13
 
         /** Key repeat by default: characters per second and delay before repeating, in milliseconds. */
         const val REPEAT_RATE = 30

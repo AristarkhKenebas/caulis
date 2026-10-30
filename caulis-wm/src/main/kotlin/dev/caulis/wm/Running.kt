@@ -983,8 +983,12 @@ internal class Running(
         // Which keys are modifiers: as the keymap says (caps:super, altwin:swap_lalt_lwin), or the physical ones.
         val modifierOf: (Int) -> KeyBindings.Modifier? =
             if (config.bindingModifiers == BindingModifiers.XKB) seat::modifierOfKey else { code -> KeyBindings.Modifier.of(code) }
+        // Which key a combination's letter is: as the layout says (the first Latin one for Russian), or the physical key.
+        val keyOf: (Int) -> Int = if (config.bindingsUseFirstLatinLayout) seat::bindingKeyOf else { code -> code }
+        keyboardLog.trace { "Bindings by ${if (config.bindingsUseFirstLatinLayout) "the layout (the first Latin one for other scripts)" else "the physical keys"}" }
         for (bindings in allKeys()) {
             bindings.modifierOf = modifierOf
+            bindings.keyOf = keyOf
             bindings.schedule = { millis, task -> loop.after(millis) { task() }.let { timer -> AutoCloseable { timer.cancel() } } }
             bindings.repeatDelay = config.repeatDelayMillis.toInt()
             bindings.repeatRate = config.repeatRate
@@ -1438,6 +1442,7 @@ internal class Running(
         }
         if (pressed) handlersSawDown += evdevCode
         val input = KeyInput(evdevCode, pressed, keysym, modifiersHeld, before, locked, timeMillis)
+        input.layoutKeysym = seat.keysymName(evdevCode)
         return config.keyHandlers.asReversed().any { handler -> safely("onKey", false) { handler(config, input) } }
     }
 

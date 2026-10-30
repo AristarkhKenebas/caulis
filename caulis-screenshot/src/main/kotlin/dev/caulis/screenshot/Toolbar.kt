@@ -34,6 +34,8 @@ internal class Toolbar(private val renderer: Renderer, val buttons: List<Chooser
         val style: ScreenshotStyle,
         /** The pointer means nothing for what would be taken now (greyed out). */
         val pointerIdle: Boolean = false,
+        /** The clear button is there (a part is chosen). */
+        val clear: Boolean = false,
     )
 
     // The looks made (a few: the buttons gone over), the oldest let go.
@@ -50,11 +52,17 @@ internal class Toolbar(private val renderer: Renderer, val buttons: List<Chooser
         if (button != ChooserButton.TAKE) style.buttonWidth
         else maxOf(style.buttonWidth, textWidth(style.words.capture, captureFont(style)) + 2 * style.capturePadding)
 
-    /** Where each button is, from the toolbar's left edge (units). */
-    val places: Map<ChooserButton, IntRange> = buildMap {
+    // Where each button is with the clear button and without it.
+    private val withClear = placesOf(buttons)
+    private val withoutClear = placesOf(buttons - ChooserButton.CLEAR)
+
+    /** Where each button is, from the toolbar's left edge (units), with the clear button ([clear]) or without it. */
+    fun places(clear: Boolean): Map<ChooserButton, IntRange> = if (clear) withClear else withoutClear
+
+    private fun placesOf(shown: List<ChooserButton>): Map<ChooserButton, IntRange> = buildMap {
         var x = style.toolbarPadding
         var last: ChooserButton? = null
-        for (button in buttons) {
+        for (button in shown) {
             // A gap between the groups: the kinds, the options, Capture.
             if (last != null && (last.isKind != button.isKind || button == ChooserButton.TAKE)) x += style.groupGap
             val w = widthOf(button)
@@ -64,20 +72,21 @@ internal class Toolbar(private val renderer: Renderer, val buttons: List<Chooser
         }
     }
 
-    /** Its size in desktop units. */
-    val width = (places.values.maxOfOrNull { it.last + 1 } ?: 0) + style.toolbarPadding
+    /** Its width in desktop units (with the clear button or without it), and its height. */
+    fun width(clear: Boolean) = (places(clear).values.maxOfOrNull { it.last + 1 } ?: 0) + style.toolbarPadding
     val height = style.toolbarHeight
 
     /** The button at [x], [y] of a toolbar at [at] (desktop units), or null. */
-    fun buttonAt(at: dev.caulis.geometry.Rect, x: Double, y: Double): ChooserButton? {
+    fun buttonAt(at: dev.caulis.geometry.Rect, x: Double, y: Double, clear: Boolean): ChooserButton? {
         if (y < at.y + 4 || y >= at.bottom - 4) return null
         val local = (x - at.x).toInt()
-        return places.entries.firstOrNull { local in it.value }?.key
+        return places(clear).entries.firstOrNull { local in it.value }?.key
     }
 
     /** Its picture for [look]. */
     fun texture(look: Look): GpuTexture = made.getOrPut(look) {
         val s = look.scale
+        val width = width(look.clear)
         picture(Math.round(width * s).toInt(), Math.round(height * s).toInt(), renderer) { g ->
             g.scale(s, s)
             paint(g, look)
@@ -86,6 +95,7 @@ internal class Toolbar(private val renderer: Renderer, val buttons: List<Chooser
 
     private fun paint(g: Graphics2D, look: Look) {
         val st = look.style
+        val width = width(look.clear)
         // A panel with soft corners and square-ish tiles on it (as a phone's quick settings).
         val r = (2.0 * st.cornerRadius).coerceAtMost(height.toDouble())
         g.color = st.background.awt()
@@ -95,7 +105,7 @@ internal class Toolbar(private val renderer: Renderer, val buttons: List<Chooser
         g.draw(RoundRectangle2D.Double(0.5, 0.5, width - 1.0, height - 1.0, r, r))
         val tile = 2.0 * st.buttonRadius
         val inset = st.buttonInset.toDouble()
-        for ((button, range) in places) {
+        for ((button, range) in places(look.clear)) {
             val x = range.first.toDouble()
             val w = (range.last + 1 - range.first).toDouble()
             val cx = x + w / 2
@@ -205,6 +215,14 @@ internal class Toolbar(private val renderer: Renderer, val buttons: List<Chooser
                 g.stroke = plain
                 g.draw(Line2D.Double(cx + 6.5, cy + 1.5, cx + 6.5, cy + 10.5))
                 g.draw(Line2D.Double(cx + 2, cy + 6, cx + 11, cy + 6))
+            }
+            ChooserButton.CLEAR -> {
+                // A part with a cross: chosen no more.
+                g.stroke = dashed
+                g.draw(Rectangle2D.Double(cx - 10, cy - 8, 14.0, 11.0))
+                g.stroke = plain
+                g.draw(Line2D.Double(cx + 3, cy + 2.5, cx + 10, cy + 9.5))
+                g.draw(Line2D.Double(cx + 10, cy + 2.5, cx + 3, cy + 9.5))
             }
             ChooserButton.POINTER -> {
                 val arrow = Path2D.Double().apply {

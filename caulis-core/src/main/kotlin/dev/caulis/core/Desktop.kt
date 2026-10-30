@@ -2048,6 +2048,9 @@ class Desktop(
     // The scratchpad window with the keyboard, if any.
     private var padFocus: Window? = null
 
+    // The special workspace used last (shown, moved into, a window of it focused).
+    private var lastSpecial: Scratchpad? = null
+
     /**
      * A special workspace named [name]: windows for which [match] is true (e.g. a certain
      * app id) live in it, shown and hidden with [toggleScratchpad] above any workspace.
@@ -2170,6 +2173,7 @@ class Desktop(
         // Shown on another monitor: it moves over here (keeping the window to go back to there).
         if (pad.shown && !pad.leaving && padMonitor(pad) !== focusedMonitor) pad.monitor = focusedMonitor
         layoutLog.info { "Special workspace ${pad.name} shown on ${focusedMonitor.name}" }
+        lastSpecial = pad
         showScratchpad(pad, appearing = pad.windows.toSet())
         return true
     }
@@ -2200,6 +2204,7 @@ class Desktop(
             arrange(from)
         }
         pad.windows += window
+        lastSpecial = pad
         layoutLog.info { "$window moved into the special workspace ${pad.name}${if (silent) " (silently)" else ""}" }
         val hadFocus = window === focusedWindow
         if (pad.shown && !pad.leaving) {
@@ -2241,6 +2246,68 @@ class Desktop(
         windowListChanged()
         changed()
         return true
+    }
+
+    /**
+     * Moves a window out of a special workspace onto the workspace shown on the focused
+     * monitor (Hyprland's `movetoworkspace +0` from a special one, for a key): the focused
+     * window if it is in one; else the one focused last in the special workspace shown on the
+     * focused monitor; else the one focused last in the special workspace used last, shown or
+     * hidden — so the key brings a window back with its special workspace hidden too. Returns
+     * the window moved, or null if there was none.
+     */
+    fun moveOutOfSpecialWorkspace(): Window? {
+        val focused = focusedWindow?.takeIf { scratchpadOf(it)?.isSpecial == true }
+        val pad = shownSpecialOn(focusedMonitor) ?: lastSpecial?.takeIf { it in specials.values }
+        // (Its windows are oldest first, the one focused last at the end.)
+        val window = focused ?: pad?.windows?.lastOrNull()
+        if (window == null) {
+            layoutLog.info { "Nothing to move out of a special workspace (${pad?.let { "${it.name} is empty" } ?: "none used yet"})" }
+            return null
+        }
+        if (focused == null) layoutLog.info { "No window of a special workspace focused: $window (focused last in ${pad?.name}) moves out" }
+        return window.takeIf { moveOutOfSpecialWorkspace(it) }
+    }
+
+    /**
+     * Where the special workspace shown on [monitor] tiles its windows (inside its gap, as big
+     * as [SpecialWorkspaces.size] says; desktop units), or null if none is shown there. Around
+     * it the dimmed workspace shows: a window dragged there leaves the special workspace.
+     */
+    fun specialWorkspaceArea(monitor: Monitor): Rect? = shownSpecialOn(monitor)?.let(::specialArea)
+
+    /**
+     * A window of a shown special workspace dragged by ([dx], [dy]) from its tile (desktop
+     * units), drawn there until [dropFromSpecialWorkspace]. For a window manager's own drag
+     * (newm's Super+drag); [beginMove] does the same with the pointer.
+     */
+    fun dragInSpecialWorkspace(window: Window, dx: Int, dy: Int) {
+        val pad = scratchpadOf(window)?.takeIf { it.isSpecial && it.shown && !it.leaving } ?: return
+        val tile = padTargets(pad)[window] ?: return
+        glides -= window
+        window.x = tile.x + dx
+        window.y = tile.y + dy
+        changed()
+    }
+
+    /**
+     * The drag of [window] (of a special workspace) ends with the pointer at ([x], [y]): over
+     * the dimmed workspace around the special workspace it moves out onto the workspace there
+     * (as [moveOutOfSpecialWorkspace]), focused; within it, it goes back to its tile. Returns
+     * true if it moved out.
+     */
+    fun dropFromSpecialWorkspace(window: Window, x: Double, y: Double): Boolean {
+        val pad = scratchpadOf(window)?.takeIf { it.isSpecial } ?: return false
+        val area = specialArea(pad)
+        val inside = x >= area.x && x < area.right && y >= area.y && y < area.bottom
+        if (inside || !pad.shown || pad.leaving) {
+            if (pad.shown && !pad.leaving) placeScratchpad(pad, appearing = emptySet())
+            return false
+        }
+        layoutLog.info { "$window dragged out of the special workspace ${pad.name}" }
+        val there = monitorAt(x, y)
+        if (there !== focusedMonitor) setFocusedMonitor(there)
+        return moveOutOfSpecialWorkspace(window)
     }
 
     // [window] leaves [pad]: the others take its place; an empty special workspace may hide.
@@ -4168,6 +4235,12 @@ class Desktop(
      * held (an app cannot grab the pointer on its own). A tiled window starts floating.
      */
     fun beginMove(window: Window) {
+        // A window of a shown special workspace: dragged over its tile, dropped outside it moves out.
+        if (!locked && buttonsHeld > 0 && scratchpadOf(window)?.let { it.isSpecial && it.shown && !it.leaving } == true) {
+            glides -= window
+            startGrab(Grab.Move(window, pointerX, pointerY, window.x, window.y))
+            return
+        }
         if (locked || buttonsHeld == 0 || window !in windows || window.fullscreen) return
         if (window.maximized) {
             // Dragging a maximized window: it gets its old size back, under the pointer.
@@ -4241,6 +4314,10 @@ class Desktop(
     private fun endGrab() {
         val ended = grab ?: return
         grab = null
+        if (ended is Grab.Move && scratchpadOf(ended.window)?.isSpecial == true) {
+            dropFromSpecialWorkspace(ended.window, pointerX, pointerY)
+            return
+        }
         if (ended is Grab.Move) {
             floatingRects[ended.window] = currentRect(ended.window)
             // Dropped on another monitor: it belongs to the workspace shown there now.
@@ -4458,6 +4535,7 @@ class Desktop(
         }
         if (pad != null) {
             for (other in activeWorkspace.windows) other.setActivated(false)
+            if (pad.isSpecial) lastSpecial = pad
             pad.windows -= window
             pad.windows += window
             window.setActivated(true)
@@ -5025,7 +5103,7 @@ class Desktop(
             val under = windowAt(pointerX, pointerY) ?: (decoration as? Decoration.Bar)?.window ?: (decoration as? Decoration.Edge)?.window
             if (under !== hovered) {
                 hovered = under
-                if (under != null && under !== focusedWindow && exclusiveLayer() == null) focus(under)
+                if (under != null && under !== focusedWindow && exclusiveLayer() == null && !behindSpecial(under)) focus(under)
             }
         }
         if (decoration != null) {
@@ -5036,6 +5114,15 @@ class Desktop(
         val hit = (under as? Pointed.AtSurface)?.hit
         seat.pointerMotion(timeMillis, hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
         onChange() // only the cursor moved: the rest of the scene stays as it is
+    }
+
+    // [window] is behind a special workspace shown on the pointer's monitor that a click
+    // outside hides (SpecialWorkspaces.clickOutsideHides): the pointer passing over it there
+    // does not take the focus away from the special workspace (a key meant for its window —
+    // moving it out — went to the window behind). Clicking there hides it, as before.
+    private fun behindSpecial(window: Window): Boolean {
+        if (scratchpadOf(window) != null || !specialWorkspaces.clickOutsideHides) return false
+        return shownSpecialOn(monitorAt(pointerX, pointerY)) != null
     }
 
     // The version of the scene the pointer's program was last checked against.
@@ -5800,30 +5887,42 @@ class Desktop(
             }
         }
 
-        override fun caughtUp() {
+        override fun caughtUp() = caughtUp(1)
+
+        override fun caughtUp(count: Int) {
             publishEarly()
             // The last one read so far: the cursor where this thread says (the same place
             // unless the movement was taken — a gesture — or kept: then it goes back).
-            if (earlyInFlight.get() <= 1 && quickCursorMoves) quickCursor()
-            earlyInFlight.decrementAndGet()
+            if (earlyInFlight.get() <= count && quickCursorMoves) quickCursor()
+            earlyInFlight.addAndGet(-count)
         }
     }
 
+    // Moves the cursor plane with the pointer. Run for every movement: it makes nothing (no
+    // rectangles, no iterator), all in plain numbers — as Monitor.toPixels would round them.
     private fun quickCursor() {
-        for (view in views) {
+        for (i in views.indices) {
+            val view = views[i]
             val offset = view.planeCursorOffset ?: continue
             val plane = view.hardwareCursor ?: continue
             if (!view.cursorOnPlane || view.planeCursorKey == null) continue
             val monitor = view.monitor
+            val area = monitor.area
             val fx = Math.floor(pointerX)
             val fy = Math.floor(pointerY)
-            val bounds = Rect(fx.toInt() + offset.x, fy.toInt() + offset.y, offset.width, offset.height)
-            if (bounds.intersect(monitor.area) == null) continue
-            val whole = monitor.toPixels(bounds)
-            if (whole.width > plane.width || whole.height > plane.height) continue
+            // The cursor's picture, in desktop units: off this monitor, not shown here.
+            val left = fx.toInt() + offset.x
+            val top = fy.toInt() + offset.y
+            val right = left + offset.width
+            val bottom = top + offset.height
+            if (minOf(right, area.right) <= maxOf(left, area.x) || minOf(bottom, area.bottom) <= maxOf(top, area.y)) continue
+            // In the monitor's pixels.
+            val pxLeft = monitor.px(left - area.x)
+            val pxTop = monitor.px(top - area.y)
+            if (monitor.px(right - area.x) - pxLeft > plane.width || monitor.px(bottom - area.y) - pxTop > plane.height) continue
             val dx = Math.round((pointerX - fx) * monitor.scale).toInt()
             val dy = Math.round((pointerY - fy) * monitor.scale).toInt()
-            plane.show(whole.x + dx, whole.y + dy, null)
+            plane.show(pxLeft + dx, pxTop + dy, null)
         }
     }
 

@@ -15,6 +15,60 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-10-30
+
+### Added
+- The screenshot chooser offers the part chosen last again (as on a Mac): open it, and the same
+  part is there — Enter or Capture takes it at once, or move and resize it. It is dropped when
+  the monitors change, and clamped to its monitor. A new toolbar button (`ChooserButton.CLEAR`,
+  its tip `ScreenshotWords.clearSelection`) clears it; it shows only while there is a part.
+  Settings: `ChooserBehaviour.rememberSelection` (on), `ChooserBehaviour.rememberAcrossRestarts`
+  (off; kept in `Screenshots.selectionFile`, by default
+  `~/.local/state/<configName>/screenshot-selection`) and `ChooserBehaviour.escapeClearsSelection`.
+- `KeyInput.layoutKeysym`: the key's symbol in the layout in use ("Cyrillic_ve"), beside
+  `keysym`, which stays Latin whatever the layout ("d"); for bindings on another script's letters.
+- `KeyBindings.keyOf` and `Seat.bindingKeyOf`: which key of the combinations a pressed key is
+  (by default the physical key; `seat::bindingKeyOf` follows the layout, see below).
+- `Desktop.moveOutOfSpecialWorkspace()` (no window): the focused window if it is in a special
+  workspace, else the one focused last in the special workspace shown (or used last, even
+  hidden) moves out — `Caulis.moveOutOfSpecialWorkspace(null)` and the action
+  `move-out-of-special` use it, so the key works with the special workspace hidden too.
+- Windows of a shown special workspace can be dragged (Super+drag, `Desktop.beginMove`): dropped
+  on the dimmed workspace around it they move out onto that workspace, dropped inside they go
+  back to their tile. For a window manager's own drag: `Desktop.dragInSpecialWorkspace`,
+  `Desktop.dropFromSpecialWorkspace` and `Desktop.specialWorkspaceArea`.
+- `EarlyPointer.caughtUp(count)`: several movements handled as one (by default `caughtUp()` that
+  many times).
+
+### Changed
+- In the screenshot chooser the first Escape clears a part shown (it is not offered again) and a
+  second one closes. `ChooserBehaviour(escapeClearsSelection = false)` brings back one Escape
+  that closes (now forgetting the part). The close button and a right click still close at once.
+- A toolbar listing its buttons itself (`ChooserBehaviour(buttons = ...)`) gets the clear button
+  only when `ChooserButton.CLEAR` is added to the list; the default list has it.
+- Letters and punctuation in bindings now follow the keyboard layout, as in GNOME and KDE:
+  `Super+Z` is the key printed Z on a German keyboard, and on a layout of another script
+  (Russian, Ukrainian, Greek, Hebrew) the key that types the letter in the first Latin layout
+  of `keyboardLayouts` — Super+D, Super+Shift+M and Ctrl+Alt+T work on every layout of "us,ru"
+  or "us,ua,gr". With "us,ru" and the like nothing changes. The row of digits, F-keys and arrows
+  stay physical. New setting `bindingsUseFirstLatinLayout` (Kotlin, config.json, Lua, Nix;
+  default true); **to keep the old physical keys** on a non-US Latin layout (Dvorak, AZERTY,
+  QWERTZ), set it to false.
+- Pointer movements waiting for the compositor's thread are merged: consecutive relative
+  movements are summed, absolute ones keep the last place (keys and buttons between them keep
+  their order). A busy moment no longer leaves thousands of movements to be handled one by one
+  afterwards. Over 1000 input events waiting is logged once.
+- With `focusFollowsMouse`, the pointer passing over the dimmed windows behind a shown special
+  workspace no longer takes the focus away from it (when `clickOutsideHides`, the default: a
+  click there hides it, as before). A key meant for the special workspace's window — moving it
+  out — went to the window behind.
+
+### Fixed
+- The screenshots' settings could go back to their defaults after a while when nothing but the
+  `screenshot` action used them (they were held weakly only); they now live as long as their
+  configuration.
+- The cursor plane's quick move (on every pointer movement) makes no objects any more.
+
 ## [0.1.6] - 2026-10-30
 
 ### Added
@@ -223,7 +277,8 @@ The first release on Maven Central.
 - A project template (`templates/new-compositor.sh`), examples, a getting-started guide, API docs,
   a Nix flake with NixOS and Home Manager modules.
 
-[Unreleased]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.3...v0.1.4

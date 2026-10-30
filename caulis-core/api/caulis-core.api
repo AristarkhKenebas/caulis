@@ -533,8 +533,10 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun cycleFocus ()V
 	public final fun describe ()Ljava/lang/String;
 	public final fun dismiss (Ldev/caulis/core/Notice;)V
+	public final fun dragInSpecialWorkspace (Ldev/caulis/core/Window;II)V
 	public final fun dragView (DD)V
 	public final fun drawnNow (Ldev/caulis/core/Window;)Z
+	public final fun dropFromSpecialWorkspace (Ldev/caulis/core/Window;DD)Z
 	public final fun endOverviewGesture (Z)V
 	public final fun endViewDrag ()V
 	public final fun firstEmptyWorkspace ()Ljava/lang/Integer;
@@ -668,6 +670,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun monitorOf (Ldev/caulis/core/Output;)Ldev/caulis/core/Monitor;
 	public final fun monitorOf (Ldev/caulis/core/Window;)Ldev/caulis/core/Monitor;
 	public final fun moveMonitor (Ldev/caulis/core/Monitor;Ljava/lang/Integer;Ljava/lang/Integer;)V
+	public final fun moveOutOfSpecialWorkspace ()Ldev/caulis/core/Window;
 	public final fun moveOutOfSpecialWorkspace (Ldev/caulis/core/Window;)Z
 	public fun moveRequested (Ldev/caulis/core/Window;I)V
 	public final fun moveToMonitor (Ldev/caulis/core/Window;Ldev/caulis/core/Monitor;)V
@@ -800,6 +803,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun specialWorkspace ()Ldev/caulis/core/Scratchpad;
 	public final fun specialWorkspace (Ljava/lang/String;)Ldev/caulis/core/Scratchpad;
 	public static synthetic fun specialWorkspace$default (Ldev/caulis/core/Desktop;Ljava/lang/String;ILjava/lang/Object;)Ldev/caulis/core/Scratchpad;
+	public final fun specialWorkspaceArea (Ldev/caulis/core/Monitor;)Ldev/caulis/geometry/Rect;
 	public final fun switchTo (I)V
 	public final fun tabletButton (ILdev/caulis/core/input/TabletTool;IZ)V
 	public final fun tabletMotion (ILdev/caulis/core/input/TabletTool;DDLdev/caulis/core/input/TabletAxes;)V
@@ -3229,8 +3233,13 @@ public final class dev/caulis/core/input/DeviceSettings {
 
 public abstract interface class dev/caulis/core/input/EarlyPointer {
 	public abstract fun caughtUp ()V
+	public fun caughtUp (I)V
 	public abstract fun movedEarly (DD)V
 	public abstract fun showEarly ()V
+}
+
+public final class dev/caulis/core/input/EarlyPointer$DefaultImpls {
+	public static fun caughtUp (Ldev/caulis/core/input/EarlyPointer;I)V
 }
 
 public abstract interface class dev/caulis/core/input/Gesture {
@@ -3377,6 +3386,7 @@ public final class dev/caulis/core/input/KeyBindings {
 	public final fun clear ()V
 	public final fun described ()Ljava/util/List;
 	public final fun forget (I)V
+	public final fun getKeyOf ()Lkotlin/jvm/functions/Function1;
 	public final fun getModifierOf ()Lkotlin/jvm/functions/Function1;
 	public final fun getRepeatDelay ()I
 	public final fun getRepeatRate ()I
@@ -3389,6 +3399,7 @@ public final class dev/caulis/core/input/KeyBindings {
 	public static final fun nameOf (I)Ljava/lang/String;
 	public static final fun padButton (I)I
 	public final fun releaseAll ()V
+	public final fun setKeyOf (Lkotlin/jvm/functions/Function1;)V
 	public final fun setModifierOf (Lkotlin/jvm/functions/Function1;)V
 	public final fun setRepeatDelay (I)V
 	public final fun setRepeatRate (I)V
@@ -3576,6 +3587,7 @@ public final class dev/caulis/core/input/Seat : java/lang/AutoCloseable {
 	public static final field REPEAT_RATE I
 	public static final field VERSION I
 	public fun <init> (Ldev/caulis/protocol/Display;Ldev/caulis/core/input/Keymap;)V
+	public final fun bindingKeyOf (I)I
 	public fun close ()V
 	public final fun focusKeyboard (Ldev/caulis/core/Surface;)V
 	public final fun getCapsLock ()Z

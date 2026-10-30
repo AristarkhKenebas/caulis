@@ -84,7 +84,7 @@ kotlin {
 tasks.withType<JavaCompile>().configureEach { options.release = 26 }
 
 dependencies {
-    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.6")
+    implementation("io.github.aristarkhkenebas:caulis-wm:0.1.7")
 }
 
 application {
@@ -97,7 +97,7 @@ application {
 // running compositor, taken on in about a second (step "Change it while it runs").
 val development = configurations.create("development")
 dependencies {
-    development("io.github.aristarkhkenebas:caulis-reload:0.1.6")
+    development("io.github.aristarkhkenebas:caulis-reload:0.1.7")
 }
 tasks.named<JavaExec>("run") {
     classpath += development
@@ -243,6 +243,15 @@ Write keys however you like — case, spaces and order do not matter: `"Super+Sh
 keys (`XF86AudioRaiseVolume`, `XF86MonBrightnessUp`, ...), the number block (`KP_1`) and
 F13…F24 work too, and with a Russian layout `Super+Й` is the same key as `Super+Q`. A typo
 is reported with a guess: `Unknown key "Retrun" (did you mean Return?)`.
+
+Letters and punctuation follow the keyboard layout, as in GNOME and KDE: `Super+Z` is the key
+printed Z on a German keyboard, and on a layout of another script (Russian, Ukrainian, Greek,
+Hebrew) it is the key that types the letter in the first Latin layout — with `"us,ru"`,
+`Super+D` works on the Russian layout too (Super+Shift+M, Ctrl+Alt+T likewise), whichever
+layout is on. `bindingsUseFirstLatinLayout = false` makes every key physical instead (the
+places of a US keyboard). The row of digits, F-keys and arrows are physical either way.
+Programs get the full keymap and the layout in use, so their own shortcuts (Ctrl+V) are theirs
+to match: GTK, Qt, Firefox, Chromium and foot fall back to the first layout themselves.
 
 `keys { off() }` turns all of them off except `quit` and `consoles` (turn those off yourself
 if you mean it — the log then warns that only ssh or the power button gets you out of a
@@ -1316,6 +1325,7 @@ backgroundColor = Color(0.1f, 0.1f, 0.12f)    // under everything, where no wind
 focusStealing = FocusStealing.SAME_PROGRAM    // or ALWAYS, NEVER: who may take the keyboard by itself
 focusStealingRule = { window, why -> window.appId == "mpv" }   // or decide yourself
 bindingModifiers = BindingModifiers.XKB       // caps:super and the like count in bindings; PHYSICAL: the printed keys
+bindingsUseFirstLatinLayout = true            // Super+D follows the layout; on Russian the key of D in the first Latin one (false: physical keys)
 windowListPrograms = mutableSetOf("waybar")   // only these see the window list (default: privileged programs)
 permissions {                                 // as Hyprland's permissions: by the program's path or name (regular expressions)
     rule("/usr/bin/grim", "screencopy", "allow")  // features: screencopy, window-list, clipboard, panels, lock, monitors, gamma
@@ -1379,6 +1389,14 @@ their order, the timer's steps, the keys and the timings are `chooser = ChooserB
 each time; a window is chosen with its key (W) or button. `ChooserBehaviour(rememberKind = true)`
 starts with the kind used last instead, `clickPicksWindow = true` makes a click (not a drag)
 take the window under the pointer as the part.
+
+The part chosen last is there again the next time the chooser opens (as on a Mac): Enter or
+Capture takes it at once, or move it, or clear it — with the toolbar's clear button (shown
+while there is a part) or Escape. The first Escape clears a part shown, a second one closes;
+`escapeClearsSelection = false` makes Escape close at once and forget the part (the close
+button and a right click close at once and keep it). The part is dropped when the monitors
+change. `rememberSelection = false` offers none; `rememberAcrossRestarts = true` keeps it
+across restarts too, in `Screenshots.selectionFile` (`~/.local/state/<configName>/screenshot-selection`).
 
 With the module in the compositor, config.json and Lua have the action too: `"Print":
 "screenshot"` (the chooser), `screenshot region`, `screenshot window`, `screenshot screen`,
@@ -1799,7 +1817,7 @@ can also say *when* and *how* — functions on keys, on events, on timers. Add t
 your compositor:
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-lua:0.1.6")
+implementation("io.github.aristarkhkenebas:caulis-lua:0.1.7")
 ```
 
 Then it reads `~/.config/<configName>/config.lua` by itself (after `config.json`, on top of
@@ -1898,7 +1916,7 @@ no project: the compositor compiles it itself. Add the module (it contains the K
 compiler, so it makes your compositor bigger):
 
 ```kotlin
-implementation("io.github.aristarkhkenebas:caulis-script:0.1.6")
+implementation("io.github.aristarkhkenebas:caulis-script:0.1.7")
 ```
 
 `~/.config/<configName>/config.kts` is then read after `config.json` and `config.lua`, as if

@@ -44,6 +44,43 @@ class SpecialWorkspacesTest {
     }
 
     @Test
+    fun `out by key with it hidden, out by a drag onto the wall, and the pointer over the wall keeps the focus`() = with(harness) {
+        withCaulis({ specialWorkspaces = SpecialWorkspaces(gap = 100); focusFollowsMouse = true }) { caulis, client ->
+            client.window { it.setTitle("wall") }.draw()
+            client.window { it.setTitle("chat") }.draw()
+            client.waitFor { caulis.onLoop { it.desktop.windows.size } == 2 }
+            caulis.onLoop { Actions.parse("move-to-special music")(caulis) }
+            val chat = caulis.onLoop { it.desktop.specialWorkspace("music").windows.single() }
+            assertEquals("chat", chat.title)
+            assertTrue(caulis.onLoop { it.desktop.focusedWindow === chat })
+
+            // The pointer over the dimmed wall (on the wall's window): the focus stays in there.
+            caulis.onLoop { it.desktop.pointerMoved(0, 20.0, 20.0) }
+            assertTrue(caulis.onLoop { it.desktop.focusedWindow === chat }, "the special workspace keeps the focus")
+
+            // Hidden: the key still brings its window back.
+            caulis.onLoop { Actions.parse("special-workspace toggle music")(caulis) }
+            assertEquals("wall", caulis.onLoop { it.desktop.focusedWindow?.title })
+            caulis.onLoop { Actions.parse("move-out-of-special")(caulis) }
+            assertTrue(caulis.onLoop { it.desktop.scratchpadOf(chat) == null && chat in it.desktop.windows })
+            assertTrue(caulis.onLoop { it.desktop.focusedWindow === chat }, "focused")
+
+            // In again, dragged within: back to its tile; dragged onto the wall: out.
+            caulis.onLoop { it.desktop.moveToSpecialWorkspace(chat, "music") }
+            val tile = caulis.onLoop { chat.x to chat.y }
+            caulis.onLoop { it.desktop.dragInSpecialWorkspace(chat, 30, 20) }
+            assertEquals(tile.first + 30 to tile.second + 20, caulis.onLoop { chat.x to chat.y }, "it follows")
+            val area = caulis.onLoop { it.desktop.specialWorkspaceArea(it.desktop.focusedMonitor)!! }
+            assertFalse(caulis.onLoop { it.desktop.dropFromSpecialWorkspace(chat, area.x + 10.0, area.y + 10.0) })
+            assertEquals(tile, caulis.onLoop { chat.x to chat.y }, "back to its tile")
+            assertTrue(caulis.onLoop { it.desktop.dropFromSpecialWorkspace(chat, area.x - 20.0, area.y + 10.0) })
+            assertTrue(caulis.onLoop { it.desktop.scratchpadOf(chat) == null && chat in it.desktop.windows }, "out on the wall")
+            // Nothing in any special workspace: nothing moves.
+            assertEquals(null, caulis.onLoop { it.desktop.moveOutOfSpecialWorkspace() })
+        }
+    }
+
+    @Test
     fun `a rule sends an app there`() = with(harness) {
         withCaulis({ rule { appId("player"); specialWorkspace = "music" } }) { caulis, client ->
             client.window { it.setAppId("player") }.draw()

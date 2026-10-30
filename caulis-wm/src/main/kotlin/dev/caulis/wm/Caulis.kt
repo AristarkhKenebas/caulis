@@ -354,6 +354,20 @@ class Caulis {
         }
 
     /**
+     * True (the default): letters and punctuation in your bindings follow the keyboard layout, as
+     * in GNOME and KDE — Super+Z is the key printed Z on a German keyboard, and on a layout of
+     * another script (Russian, Greek, Hebrew) the key that types the letter in the first Latin
+     * layout of [keyboardLayouts]: with "us,ru" Super+D is the key of "в". False: the physical
+     * keys, the places of a US keyboard, whatever the layouts (as Caulis did up to 0.1.6). The
+     * row of digits, F-keys, arrows and the rest are physical either way.
+     */
+    var bindingsUseFirstLatinLayout = true
+        set(value) {
+            field = value
+            running?.rebindKeys()
+        }
+
+    /**
      * How windows look: rounded corners, a border, shadows, blur, transparency. Off by
      * default; e.g. `effects = Effects.MODERN` or
      * `effects = Effects(cornerRadius = 10, shadow = Shadow(), blur = Blur(), inactiveOpacity = 0.9f)`.
@@ -1948,11 +1962,15 @@ class Caulis {
         (window ?: desktop.focusedWindow)?.let { desktop.moveToSpecialWorkspace(it, name, silent) }
     }
 
-    /** Moves [window] (null: the focused one) out of its special workspace onto the workspace on screen. */
+    /**
+     * Moves [window] out of its special workspace onto the workspace on screen. Null: the
+     * focused window if it is in one, else the one focused last in the special workspace shown
+     * (or used last, even hidden) — see [dev.caulis.core.Desktop.moveOutOfSpecialWorkspace].
+     */
     @JvmOverloads
     fun moveOutOfSpecialWorkspace(window: Window? = null) {
         val desktop = live().desktop
-        (window ?: desktop.focusedWindow)?.let { desktop.moveOutOfSpecialWorkspace(it) }
+        if (window != null) desktop.moveOutOfSpecialWorkspace(window) else desktop.moveOutOfSpecialWorkspace()
     }
 
     /** Runs [action] when a window appears, e.g. to move it to a workspace. */

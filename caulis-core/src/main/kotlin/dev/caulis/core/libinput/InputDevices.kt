@@ -227,16 +227,50 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
                 Upcalls.report("early pointer", e)
             }
         }
-        forMain.add {
+        forMain.add(Motion(time, dx, dy, rawDx, rawDy, early))
+    }
+
+    // A relative movement waiting for the compositor's thread; the next ones still waiting
+    // are summed into it (one handled, the cursor where all of them took it).
+    private inner class Motion(
+        private var time: Int, private var dx: Double, private var dy: Double,
+        private var rawDx: Double, private var rawDy: Double, private val early: EarlyPointer?,
+    ) : MainQueue.Merging() {
+        override fun take(next: MainQueue.Merging): Boolean {
+            if (next !is Motion || next.early !== early) return false
+            time = next.time
+            dx += next.dx
+            dy += next.dy
+            rawDx += next.rawDx
+            rawDy += next.rawDy
+            return true
+        }
+
+        override fun run() {
+            if (count > 1) log.trace { "$count pointer movements waited: handled as one" }
             onPointerMotion(time, dx, dy, rawDx, rawDy)
             if (early != null) {
                 try {
-                    early.caughtUp()
+                    early.caughtUp(count)
                 } catch (e: Exception) {
                     Upcalls.report("early pointer", e)
                 }
             }
         }
+    }
+
+    // An absolute movement (a tablet, a virtual machine's pointer) waiting: the next ones
+    // still waiting replace its place (only the last place counts).
+    private inner class AbsoluteMotion(private var time: Int, private var x: Double, private var y: Double) : MainQueue.Merging() {
+        override fun take(next: MainQueue.Merging): Boolean {
+            if (next !is AbsoluteMotion) return false
+            time = next.time
+            x = next.x
+            y = next.y
+            return true
+        }
+
+        override fun run() = onPointerMotionAbsolute(time, x, y)
     }
 
     private fun startThread() {
@@ -462,7 +496,7 @@ class InputDevices(private val loop: EventLoop, private val session: Session) : 
                 val time = Input.libinput_event_pointer_get_time(pointer)
                 val x = Input.libinput_event_pointer_get_absolute_x_transformed(pointer, ABSOLUTE_RANGE) / ABSOLUTE_RANGE
                 val y = Input.libinput_event_pointer_get_absolute_y_transformed(pointer, ABSOLUTE_RANGE) / ABSOLUTE_RANGE
-                toMain { onPointerMotionAbsolute(time, x, y) }
+                if (Thread.currentThread() === thread) forMain.add(AbsoluteMotion(time, x, y)) else onPointerMotionAbsolute(time, x, y)
             }
 
             Input.LIBINPUT_EVENT_TOUCH_DOWN(), Input.LIBINPUT_EVENT_TOUCH_MOTION() -> {

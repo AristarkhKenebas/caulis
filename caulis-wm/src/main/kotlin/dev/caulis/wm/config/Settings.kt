@@ -841,6 +841,7 @@ object Settings {
             Field("primarySelection", FlagType, "middle-click paste (default true; only at the start)"),
             Field("adaptiveSync", FlagType, "variable refresh rate on every monitor that has it, unless its own says otherwise (default false)"),
             Field("bindingModifiers", ChoiceType(listOf("xkb", "physical")), "modifiers in bindings as the keyboard layout says, or the physical keys"),
+            Field("bindingsUseFirstLatinLayout", FlagType, "letters in bindings follow the layout, on Russian or Greek the first Latin layout's (default true); false: physical keys"),
             Field(
                 "xwaylandRestart",
                 SectionType(
@@ -1271,6 +1272,7 @@ object Settings {
         (values["primarySelection"] as Boolean?)?.let { caulis.primarySelection = it }
         (values["adaptiveSync"] as Boolean?)?.let { caulis.adaptiveSync = it }
         (values["bindingModifiers"] as String?)?.let { caulis.bindingModifiers = dev.caulis.wm.BindingModifiers.valueOf(it.uppercase()) }
+        (values["bindingsUseFirstLatinLayout"] as Boolean?)?.let { caulis.bindingsUseFirstLatinLayout = it }
         section("xwaylandRestart")?.let { x ->
             (x["millis"] as Int?)?.let { caulis.xwaylandRestartMillis = it.toLong() }
             (x["maxMillis"] as Int?)?.let { caulis.xwaylandRestartMaxMillis = it.toLong() }

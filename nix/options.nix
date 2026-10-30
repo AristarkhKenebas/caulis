@@ -775,6 +775,7 @@ let
     "primarySelection" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "middle-click paste (default true; only at the start)"; };
     "adaptiveSync" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "variable refresh rate on every monitor that has it, unless its own says otherwise (default false)"; };
     "bindingModifiers" = lib.mkOption { type = lib.types.nullOr (lib.types.enum [ "xkb" "physical" ]); default = null; description = "modifiers in bindings as the keyboard layout says, or the physical keys"; };
+    "bindingsUseFirstLatinLayout" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "letters in bindings follow the layout, on Russian or Greek the first Latin layout's (default true); false: physical keys"; };
     "xwaylandRestart" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
       "millis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (600000)); default = null; description = "wait after a failed start (doubled each time)"; };
       "maxMillis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (3600000)); default = null; description = "the longest wait"; };
