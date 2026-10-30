@@ -2,10 +2,8 @@ package dev.caulis.core
 
 import dev.caulis.core.nested.NestedWindow
 import dev.caulis.event.EventLoop
+import dev.caulis.render.assumeGpu
 import dev.caulis.render.gles.GlesRenderer
-import org.junit.jupiter.api.Assumptions.assumeTrue
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -34,7 +32,7 @@ class NestedWindowTest {
 
     // Opens a nested window inside a test server and draws a few frames into it.
     private fun showFrames(outerHasGpu: Boolean): Pair<Boolean, List<String>> {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         TestServer(gpu = outerHasGpu).use { outer ->
             EventLoop().use { loop ->
                 GlesRenderer.create().use { renderer ->

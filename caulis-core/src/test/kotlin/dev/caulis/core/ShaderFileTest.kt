@@ -1,7 +1,7 @@
 package dev.caulis.core
 
 import dev.caulis.protocol.client.Connection
-import org.junit.jupiter.api.Assumptions.assumeTrue
+import dev.caulis.render.assumeGpu
 import java.awt.image.BufferedImage
 import java.nio.file.Files
 import java.nio.file.Path
@@ -97,7 +97,7 @@ class ShaderFileTest {
     private fun IntArray.at(x: Int, y: Int) = this[y * width + x]
 
     private fun withServer(test: (ScreenTestServer) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         try {
             ScreenTestServer().use { server -> TestClient(Connection.connect(server.socketPath)).use { test(server) } }
         } finally {

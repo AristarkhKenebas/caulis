@@ -7,11 +7,10 @@ import dev.caulis.protocol.client.fractionalscalev1.WpFractionalScaleV1
 import dev.caulis.protocol.client.wayland.WlOutput
 import dev.caulis.protocol.client.wayland.WlSurface
 import dev.caulis.protocol.client.wlrlayershellunstablev1.ZwlrLayerSurfaceV1
+import dev.caulis.render.assumeGpu
 import dev.caulis.tiling.Columns
 import dev.caulis.tiling.Gaps
-import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -235,7 +234,7 @@ class MonitorsTest {
     }
 
     private fun withServer(mode: WorkspaceMode = WorkspaceMode.PER_MONITOR, test: (ScreenTestServer, TestClient) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer(monitorCount = 2, workspaceMode = mode).use { server ->
             TestClient(Connection.connect(server.socketPath)).use { test(server, it) }
         }

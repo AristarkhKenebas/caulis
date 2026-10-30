@@ -9,6 +9,7 @@ import dev.caulis.ffi.c.xcb.xcb_property_notify_event_t
 import dev.caulis.ffi.c.xcb.xcb_selection_notify_event_t
 import dev.caulis.ffi.c.xcb.xcb_selection_request_event_t
 import dev.caulis.protocol.client.Connection
+import dev.caulis.render.assumeGpu
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.io.ByteArrayOutputStream
 import java.lang.foreign.Arena
@@ -250,7 +251,7 @@ class XwaylandTest {
 
     // (The test process draws with Java2D, so it looks like a Java program: by default none is.)
     private fun withX(scale: Double = 1.0, wholeScaleOf: (Int) -> Int? = { null }, test: (ScreenTestServer, Xwayland, TestClient) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         assumeTrue(System.getenv("PATH").orEmpty().split(':').any { Files.isExecutable(Path.of(it, "Xwayland")) }, "Xwayland is not installed")
         ScreenTestServer().use { server ->
             if (scale != 1.0) server.setScale(scale)

@@ -1,11 +1,8 @@
 package dev.caulis.render
 
 import dev.caulis.render.gles.GlesRenderer
-import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.lang.foreign.Arena
 import java.lang.foreign.ValueLayout.JAVA_INT
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -14,7 +11,7 @@ class RenderTest {
 
     @Test
     fun `rectangles and textures land on the right pixels`() {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         val renderer: Renderer = GlesRenderer.create()
         renderer.use {
             renderer.createTarget(64, 32).use { target ->

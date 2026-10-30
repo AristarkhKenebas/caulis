@@ -4,9 +4,7 @@ import dev.caulis.geometry.Rect
 import dev.caulis.protocol.client.Connection
 import dev.caulis.render.Color
 import dev.caulis.render.Paint
-import org.junit.jupiter.api.Assumptions.assumeTrue
-import java.nio.file.Files
-import java.nio.file.Path
+import dev.caulis.render.assumeGpu
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -51,7 +49,7 @@ class DrawingTest {
     }
 
     private fun withServer(test: (ScreenTestServer, TestClient) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server -> TestClient(Connection.connect(server.socketPath)).use { test(server, it) } }
     }
 

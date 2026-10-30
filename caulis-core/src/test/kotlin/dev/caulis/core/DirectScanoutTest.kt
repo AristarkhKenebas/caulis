@@ -5,10 +5,8 @@ import dev.caulis.protocol.client.wayland.WlPointer
 import dev.caulis.protocol.client.wayland.WlSurface
 import dev.caulis.render.Dmabuf
 import dev.caulis.render.GpuBuffer
+import dev.caulis.render.assumeGpu
 import dev.caulis.render.gles.GlesRenderer
-import org.junit.jupiter.api.Assumptions.assumeTrue
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -28,7 +26,7 @@ class DirectScanoutTest {
 
     // A "game": a fullscreen window drawing GPU buffers of the screen's size, a few frames.
     private fun withFullscreenGame(hideCursor: Boolean, check: (ScreenTestServer, TestClient) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server ->
             TestClient(Connection.connect(server.socketPath)).use { client ->
                 GlesRenderer.create().use { renderer ->

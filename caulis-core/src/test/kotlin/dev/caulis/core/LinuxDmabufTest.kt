@@ -9,12 +9,11 @@ import dev.caulis.protocol.client.linuxdmabufv1.ZwpLinuxDmabufV1
 import dev.caulis.protocol.client.wayland.WlCompositor
 import dev.caulis.protocol.client.wayland.WlRegistry
 import dev.caulis.render.Dmabuf
+import dev.caulis.render.assumeGpu
 import dev.caulis.render.gles.GlesRenderer
-import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -75,7 +74,7 @@ class LinuxDmabufTest {
     @Test
     fun `a plane outside its memory is refused`() {
         // Skipping must happen outside assertFailsWith, or the skip counts as the wrong error.
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         assertFailsWith<ConnectionException> {
             withGpuClient { _, connection, dmabuf, _ ->
                 GlesRenderer.create().use { renderer ->
@@ -102,7 +101,7 @@ class LinuxDmabufTest {
 
     // Starts a GPU server, connects, and binds linux-dmabuf v4 and wl_compositor.
     private fun withGpuClient(test: (TestServer, Connection, ZwpLinuxDmabufV1, WlCompositor) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         TestServer(gpu = true).use { server ->
             Connection.connect(server.socketPath).use { connection ->
                 val globals = HashMap<String, Int>()

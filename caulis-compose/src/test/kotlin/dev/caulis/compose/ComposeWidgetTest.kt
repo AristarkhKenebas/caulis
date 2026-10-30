@@ -22,9 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.caulis.core.ScreenTestServer
 import dev.caulis.geometry.Rect
-import org.junit.jupiter.api.Assumptions.assumeTrue
-import java.nio.file.Files
-import java.nio.file.Path
+import dev.caulis.render.assumeGpu
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -37,7 +35,7 @@ class ComposeWidgetTest {
 
     @Test
     fun `a Compose bar is drawn, clicks reach it, and its text field gets typed text`() {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server ->
             var clicks by mutableIntStateOf(0)
             var field by mutableStateOf(TextFieldValue(""))
@@ -102,7 +100,7 @@ class ComposeWidgetTest {
 
     @Test
     fun `content that throws is logged and starts over instead of staying dead`() {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server ->
             var boom by mutableStateOf(false)
             var effectBoom by mutableStateOf(false)
@@ -145,7 +143,7 @@ class ComposeWidgetTest {
 
     @Test
     fun `a widget shown fully see-through is not drawn and keeps no frames coming`() {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server ->
             var shown by mutableStateOf(false)
             var ticks = 0
@@ -171,7 +169,7 @@ class ComposeWidgetTest {
 
     @Test
     fun `a lock screen in Compose gets the keys while locked, another widget no clicks`() {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server ->
             var field by mutableStateOf(TextFieldValue(""))
             var clicks = 0
@@ -204,7 +202,7 @@ class ComposeWidgetTest {
 
     @Test
     fun `a widget placed but hidden by its look keeps its scene, not made anew again and again`() {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server ->
             val made = java.util.concurrent.atomic.AtomicInteger()
             server.onServer { d ->

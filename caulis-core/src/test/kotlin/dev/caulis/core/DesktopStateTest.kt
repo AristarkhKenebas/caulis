@@ -1,9 +1,7 @@
 package dev.caulis.core
 
 import dev.caulis.protocol.client.Connection
-import org.junit.jupiter.api.Assumptions.assumeTrue
-import java.nio.file.Files
-import java.nio.file.Path
+import dev.caulis.render.assumeGpu
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -65,7 +63,7 @@ class DesktopStateTest {
     }
 
     private fun withServer(test: (ScreenTestServer, TestClient) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server -> TestClient(Connection.connect(server.socketPath)).use { test(server, it) } }
     }
 }

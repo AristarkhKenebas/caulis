@@ -1,11 +1,9 @@
 package dev.caulis.core
 
 import dev.caulis.render.GpuTarget
-import org.junit.jupiter.api.Assumptions.assumeTrue
+import dev.caulis.render.assumeGpu
 import java.lang.foreign.Arena
 import java.lang.foreign.ValueLayout
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -53,7 +51,7 @@ class HardwareCursorTest {
         withDesktopOf(movable) { server, d, view, plane, frame -> test(server, d, view, (plane as? MovablePlane)?.inner ?: plane as Plane, frame) }
 
     private fun withDesktopOf(movable: Boolean, test: (ScreenTestServer, Desktop, DesktopView, HardwareCursor, GpuTarget) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server ->
             val (view, plane, frame) = server.onServer { d ->
                 val renderer = d.javaClass.getDeclaredField("renderer").apply { isAccessible = true }.get(d) as dev.caulis.render.Renderer

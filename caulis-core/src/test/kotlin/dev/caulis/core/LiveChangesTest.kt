@@ -1,9 +1,8 @@
 package dev.caulis.core
 
 import dev.caulis.protocol.client.Connection
-import org.junit.jupiter.api.Assumptions.assumeTrue
+import dev.caulis.render.assumeGpu
 import java.nio.file.Files
-import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -21,7 +20,7 @@ class LiveChangesTest {
     fun `nor with animations off (the default), changes at once without a flash`() = settingsChange(animated = false)
 
     private fun settingsChange(animated: Boolean) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         // (The picture below is made before any Desktop exists: as Desktop would have it.)
         System.setProperty("java.awt.headless", "true")
         val picture = Files.createTempFile("caulis-wall", ".png")

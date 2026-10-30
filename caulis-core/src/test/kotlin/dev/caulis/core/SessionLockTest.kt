@@ -6,9 +6,7 @@ import dev.caulis.protocol.client.extsessionlockv1.ExtSessionLockSurfaceV1
 import dev.caulis.protocol.client.extsessionlockv1.ExtSessionLockV1
 import dev.caulis.protocol.client.wayland.WlSurface
 import dev.caulis.render.Color
-import org.junit.jupiter.api.Assumptions.assumeTrue
-import java.nio.file.Files
-import java.nio.file.Path
+import dev.caulis.render.assumeGpu
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -148,7 +146,7 @@ class SessionLockTest {
 
     @Test
     fun `the locker on the second monitor gets the pointer there`() {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer(monitorCount = 2).use { server ->
             TestClient(Connection.connect(server.socketPath)).use { client ->
                 val locker = client.lock()
@@ -183,7 +181,7 @@ class SessionLockTest {
     }
 
     private fun withServer(test: (ScreenTestServer, TestClient) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server -> TestClient(Connection.connect(server.socketPath)).use { test(server, it) } }
     }
 

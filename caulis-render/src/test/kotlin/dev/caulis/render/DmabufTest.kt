@@ -1,11 +1,8 @@
 package dev.caulis.render
 
 import dev.caulis.render.gles.GlesRenderer
-import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.lang.foreign.Arena
 import java.lang.foreign.ValueLayout.JAVA_INT
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -16,7 +13,7 @@ class DmabufTest {
 
     @Test
     fun `a buffer drawn on the GPU can be exported and shown again`() {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         GlesRenderer.create().use { renderer ->
             assertTrue(DmabufFormat(Dmabuf.XRGB8888, Dmabuf.MODIFIER_LINEAR) in renderer.dmabufFormats,
                 "every GPU can read XRGB8888 in plain rows")

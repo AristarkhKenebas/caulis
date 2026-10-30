@@ -9,7 +9,7 @@ import dev.caulis.protocol.client.cursorshapev1.WpCursorShapeManagerV1
 import dev.caulis.protocol.client.wayland.WlPointer
 import dev.caulis.protocol.client.wayland.WlRegistry
 import dev.caulis.protocol.client.wayland.WlSurface
-import org.junit.jupiter.api.Assumptions.assumeTrue
+import dev.caulis.render.assumeGpu
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.file.Files
@@ -172,7 +172,7 @@ class CursorTest {
     private fun IntArray.at(x: Int, y: Int) = this[y * width + x]
 
     private fun withServer(test: (ScreenTestServer, TestClient, Path) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         val root = Files.createTempDirectory("cursor-test")
         try {
             ScreenTestServer().use { server -> TestClient(Connection.connect(server.socketPath)).use { test(server, it, root) } }

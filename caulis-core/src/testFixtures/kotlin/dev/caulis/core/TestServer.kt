@@ -2,6 +2,7 @@ package dev.caulis.core
 
 import dev.caulis.event.EventLoop
 import dev.caulis.protocol.Display
+import dev.caulis.render.assumeGpu
 import dev.caulis.render.gles.GlesRenderer
 import java.nio.file.Files
 import java.nio.file.Path
@@ -14,6 +15,11 @@ import java.util.concurrent.TimeUnit
  * With [gpu] it draws with the GPU and accepts clients' GPU buffers.
  */
 class TestServer(gpu: Boolean = false) : AutoCloseable {
+
+    init {
+        // Without a GPU to draw on, a test that wants one is skipped (not failed).
+        if (gpu) assumeGpu()
+    }
 
     val runtimeDir: Path = Files.createTempDirectory("caulis-test-runtime")
 

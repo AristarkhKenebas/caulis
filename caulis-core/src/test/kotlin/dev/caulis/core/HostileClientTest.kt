@@ -4,9 +4,7 @@ import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.ConnectionException
 import dev.caulis.protocol.client.wayland.WlSubcompositor
 import dev.caulis.protocol.client.xdgshell.XdgPopup
-import org.junit.jupiter.api.Assumptions.assumeTrue
-import java.nio.file.Files
-import java.nio.file.Path
+import dev.caulis.render.assumeGpu
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -128,7 +126,7 @@ class HostileClientTest {
     }
 
     private fun withServer(test: (ScreenTestServer) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use(test)
     }
 }

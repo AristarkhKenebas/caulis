@@ -5,6 +5,7 @@ import dev.caulis.core.input.Seat
 import dev.caulis.event.EventLoop
 import dev.caulis.protocol.Display
 import dev.caulis.protocol.presentationtime.WpPresentationFeedback
+import dev.caulis.render.assumeGpu
 import dev.caulis.render.gles.GlesRenderer
 import java.nio.file.Files
 import java.nio.file.Path
@@ -22,6 +23,11 @@ class ScreenTestServer(
     /** How workspaces behave on them (set before they come). */
     private val workspaceMode: WorkspaceMode = WorkspaceMode.PER_MONITOR,
 ) : AutoCloseable {
+
+    init {
+        // Without a GPU to draw on, the test using this server is skipped (not failed).
+        assumeGpu()
+    }
 
     val runtimeDir: Path = Files.createTempDirectory("caulis-screen-test")
     private val started = CompletableFuture<String>()

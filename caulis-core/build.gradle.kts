@@ -16,4 +16,7 @@ dependencies {
     api(project(":caulis-protocol"))
     api(project(":caulis-render"))
     api(project(":caulis-tiling"))
+
+    // assumeGpu(), for these test helpers and every module that uses them.
+    testFixturesApi(testFixtures(project(":caulis-render")))
 }

@@ -3,12 +3,10 @@ package dev.caulis.core
 import dev.caulis.geometry.Rect
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.xdgshell.XdgToplevel
+import dev.caulis.render.assumeGpu
 import dev.caulis.tiling.Dwindle
 import dev.caulis.tiling.Gaps
 import dev.caulis.tiling.Side
-import org.junit.jupiter.api.Assumptions.assumeTrue
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -82,7 +80,7 @@ class ScratchpadTest {
     }
 
     private fun withServer(test: (ScreenTestServer, TestClient) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server -> TestClient(Connection.connect(server.socketPath)).use { test(server, it) } }
     }
 }

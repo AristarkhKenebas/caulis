@@ -1,11 +1,9 @@
 package dev.caulis.core
 
+import dev.caulis.render.assumeGpu
 import dev.caulis.render.gles.GlesRenderer
-import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.lang.foreign.Arena
 import java.lang.foreign.ValueLayout
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -14,7 +12,7 @@ class MirrorTest {
 
     @Test
     fun `a square picture on a wide screen is as tall as the screen, centred`() {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         GlesRenderer.create().use { renderer ->
             val screen = renderer.createTarget(200, 100)
             val source = Monitor("eDP-1", null, 100, 100, 1.0)

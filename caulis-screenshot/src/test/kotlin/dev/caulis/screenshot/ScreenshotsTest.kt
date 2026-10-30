@@ -9,8 +9,8 @@ import dev.caulis.ffi.SharedMemory
 import dev.caulis.log.InternalCaulisApi
 import dev.caulis.protocol.client.Connection
 import dev.caulis.render.Color
+import dev.caulis.render.assumeGpu
 import dev.caulis.wm.Caulis
-import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.awt.image.BufferedImage
 import java.lang.foreign.ValueLayout
 import java.nio.file.Files
@@ -301,7 +301,7 @@ class ScreenshotsTest {
 
     // A compositor with screenshots saved in a folder of the test's own, not copied, not said.
     private fun withShots(test: (Caulis, Path, TestClient) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         val sockets = Files.createTempDirectory("caulis-screenshot-test")
         val folder = Files.createTempDirectory("screenshots")
         val caulis = Caulis().apply {

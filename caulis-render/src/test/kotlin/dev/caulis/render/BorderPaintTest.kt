@@ -2,12 +2,9 @@ package dev.caulis.render
 
 import dev.caulis.geometry.Rect
 import dev.caulis.render.gles.GlesRenderer
-import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout.JAVA_INT
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -134,7 +131,7 @@ class BorderPaintTest {
 
     // Draws [scene] on a black SIZE x SIZE target, reads it back, runs [checks].
     private fun draw(scene: (Renderer) -> Unit, checks: () -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         GlesRenderer.create().use { renderer ->
             renderer.createTarget(SIZE, SIZE).use { target ->
                 Arena.ofConfined().use { arena ->

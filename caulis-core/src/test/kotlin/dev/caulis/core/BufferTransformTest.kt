@@ -2,10 +2,8 @@ package dev.caulis.core
 
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.wayland.WlOutput
-import org.junit.jupiter.api.Assumptions.assumeTrue
+import dev.caulis.render.assumeGpu
 import java.lang.foreign.ValueLayout
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -18,7 +16,7 @@ class BufferTransformTest {
 
     @Test
     fun `a buffer turned 90 degrees is shown upright, its sides traded`() {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server ->
             TestClient(Connection.connect(server.socketPath)).use { client ->
                 val window = client.window()

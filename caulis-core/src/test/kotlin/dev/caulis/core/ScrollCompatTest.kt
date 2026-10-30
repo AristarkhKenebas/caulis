@@ -1,8 +1,6 @@
 package dev.caulis.core
 
-import org.junit.jupiter.api.Assumptions.assumeTrue
-import java.nio.file.Files
-import java.nio.file.Path
+import dev.caulis.render.assumeGpu
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -11,7 +9,7 @@ class ScrollCompatTest {
 
     @Test
     fun `the old pointerAxis takes the wheel in 1 in 120 of a notch`() {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server ->
             val heard = ArrayList<Double>()
             server.onServer { d ->

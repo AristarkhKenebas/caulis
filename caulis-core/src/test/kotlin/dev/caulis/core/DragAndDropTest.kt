@@ -7,9 +7,7 @@ import dev.caulis.protocol.client.wayland.WlDataOffer
 import dev.caulis.protocol.client.wayland.WlDataSource
 import dev.caulis.protocol.client.wayland.WlPointer
 import dev.caulis.protocol.client.wayland.WlSurface
-import org.junit.jupiter.api.Assumptions.assumeTrue
-import java.nio.file.Files
-import java.nio.file.Path
+import dev.caulis.render.assumeGpu
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -263,7 +261,7 @@ class DragAndDropTest {
     }
 
     private fun withServer(test: (ScreenTestServer, TestClient) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server -> TestClient(Connection.connect(server.socketPath)).use { test(server, it) } }
     }
 

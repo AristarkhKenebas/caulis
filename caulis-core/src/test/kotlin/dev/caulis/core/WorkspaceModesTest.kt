@@ -1,10 +1,8 @@
 package dev.caulis.core
 
 import dev.caulis.protocol.client.Connection
+import dev.caulis.render.assumeGpu
 import dev.caulis.tiling.Columns
-import org.junit.jupiter.api.Assumptions.assumeTrue
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotSame
@@ -100,7 +98,7 @@ class WorkspaceModesTest {
     }
 
     private fun withServer(mode: WorkspaceMode, test: (ScreenTestServer, TestClient) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer(monitorCount = 2, workspaceMode = mode).use { server ->
             TestClient(Connection.connect(server.socketPath)).use { test(server, it) }
         }

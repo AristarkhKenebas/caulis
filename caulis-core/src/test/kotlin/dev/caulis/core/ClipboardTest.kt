@@ -2,9 +2,7 @@ package dev.caulis.core
 
 import dev.caulis.ffi.Fd
 import dev.caulis.protocol.client.Connection
-import org.junit.jupiter.api.Assumptions.assumeTrue
-import java.nio.file.Files
-import java.nio.file.Path
+import dev.caulis.render.assumeGpu
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.Test
@@ -76,7 +74,7 @@ class ClipboardTest {
     }
 
     private fun withServer(test: (ScreenTestServer, TestClient) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server ->
             TestClient(Connection.connect(server.socketPath)).use { client ->
                 // The clipboard is offered to the focused program: give it a window.

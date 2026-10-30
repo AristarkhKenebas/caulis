@@ -4,17 +4,16 @@ import dev.caulis.core.TestClient
 import dev.caulis.core.TestServer
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.xdgshell.XdgToplevel
+import dev.caulis.render.assumeGpu
 import dev.caulis.tiling.Dwindle
 import dev.caulis.tiling.Gaps
 import java.nio.file.Files
-import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.Assumptions.assumeTrue
 
 /** `caulis { }` as a user writes it, running nested inside a test server. */
 class CaulisTest {
@@ -79,7 +78,7 @@ class CaulisTest {
     // Runs [configure]d Caulis nested in a test server until [test] is done.
     // [headless]: on monitors of its own that are nowhere on screen (they can change mode, turn, switch off).
     internal fun withCaulis(configure: Caulis.() -> Unit, headless: Boolean = false, test: (Caulis, TestClient) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         val socketDirectory = Files.createTempDirectory("caulis-wm-test")
         TestServer(gpu = true).use { outer ->
             val caulis = Caulis().apply {

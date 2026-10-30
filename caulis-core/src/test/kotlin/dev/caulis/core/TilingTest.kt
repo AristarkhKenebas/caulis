@@ -3,15 +3,13 @@ package dev.caulis.core
 import dev.caulis.geometry.Rect
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.xdgshell.XdgToplevel
+import dev.caulis.render.assumeGpu
 import dev.caulis.tiling.Dwindle
 import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Gaps
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.Assumptions.assumeTrue
 
 /** Real windows in tiling layouts and workspaces. */
 class TilingTest {
@@ -80,7 +78,7 @@ class TilingTest {
     }
 
     private fun withServer(test: (ScreenTestServer, TestClient) -> Unit) {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server -> TestClient(Connection.connect(server.socketPath)).use { test(server, it) } }
     }
 }
@@ -90,7 +88,7 @@ class GlideTest {
 
     @Test
     fun `switching the layout moves windows smoothly`() {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server ->
             TestClient(Connection.connect(server.socketPath)).use { client ->
                 server.onServer {
@@ -128,7 +126,7 @@ class RememberingDesktopTest {
 
     @Test
     fun `on a canvas, focusing a far window brings it into view - like activating it from a dock`() {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server ->
             TestClient(Connection.connect(server.socketPath)).use { client ->
                 server.onServer {
@@ -159,7 +157,7 @@ class OverviewTest {
 
     @Test
     fun `the overview shows windows beyond the edges, a click there goes to them`() {
-        assumeTrue(Files.isDirectory(Path.of("/dev/dri")), "no GPU")
+        assumeGpu()
         ScreenTestServer().use { server ->
             TestClient(Connection.connect(server.socketPath)).use { client ->
                 server.onServer {
