@@ -13,6 +13,7 @@
 ---@field input? caulis.Settings.input mice, touchpads, tablets, focus
 ---@field idle? (caulis.Settings.idle)[] what happens when nobody uses the computer
 ---@field focusOnActivate? boolean a window asking for the focus with a good token gets it (false: only marked urgent)
+---@field activationTokensNeedFocus? boolean a program's activation token is good only while that program has the keyboard (default true)
 ---@field fullscreenKeepsAwake? boolean a fullscreen window keeps idle timers off
 ---@field wakeScreensOnInput? boolean input switches dark screens on again
 ---@field wakeScreensAfterMillis? integer input this soon after screens went dark does not wake them

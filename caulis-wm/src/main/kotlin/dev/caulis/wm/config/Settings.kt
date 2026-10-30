@@ -501,6 +501,7 @@ object Settings {
                 "what happens when nobody uses the computer",
             ),
             Field("focusOnActivate", FlagType, "a window asking for the focus with a good token gets it (false: only marked urgent)"),
+            Field("activationTokensNeedFocus", FlagType, "a program's activation token is good only while that program has the keyboard (default true)"),
             Field("fullscreenKeepsAwake", FlagType, "a fullscreen window keeps idle timers off"),
             Field("wakeScreensOnInput", FlagType, "input switches dark screens on again"),
             Field("wakeScreensAfterMillis", IntegerType(0, 60_000), "input this soon after screens went dark does not wake them"),
@@ -1089,6 +1090,7 @@ object Settings {
             caulis.onIdle(after.toLong(), resume = resume, idle = action)
         }
         (values["focusOnActivate"] as Boolean?)?.let { caulis.focusOnActivate = it }
+        (values["activationTokensNeedFocus"] as Boolean?)?.let { caulis.activationTokensNeedFocus = it }
         (values["fullscreenKeepsAwake"] as Boolean?)?.let { caulis.fullscreenKeepsAwake = it }
         (values["wakeScreensOnInput"] as Boolean?)?.let { caulis.wakeScreensOnInput = it }
         (values["wakeScreensAfterMillis"] as Int?)?.let { caulis.wakeScreensAfterMillis = it.toLong() }

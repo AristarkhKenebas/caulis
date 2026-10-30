@@ -823,6 +823,7 @@ internal class Running(
         desktop.widgetThreads = config.widgetThreads
         desktop.osdHandler = config.osdHandler
         activation.focusOnActivate = config.focusOnActivate
+        activation.tokensNeedFocus = config.activationTokensNeedFocus
         idle.fullscreenInhibits = config.fullscreenKeepsAwake
         applyIdleWatches()
         applyKeyRepeat()

@@ -2114,6 +2114,7 @@ onIdle(300, resume = { run("dpms on") }) { run("dpms off") }   // screens off af
 onIdle(600) { lock() }                                           // locked after 10
 fullscreenKeepsAwake = true        // a fullscreen window keeps it awake too (videos, games)
 focusOnActivate = false            // focus requests only mark windows urgent
+activationTokensNeedFocus = true   // a program's token is good only while it has the keyboard (the default)
 wakeScreensOnInput = true          // a key or the mouse switches dark screens on (the default)
 monitor("DP-2") { transform = Transform.ROTATE_90 }   // a screen standing on its side
 ```

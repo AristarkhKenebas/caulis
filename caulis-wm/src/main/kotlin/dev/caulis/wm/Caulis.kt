@@ -1571,6 +1571,13 @@ class Caulis {
     var focusOnActivate = true
 
     /**
+     * A token a program asked for (to hand to the program it opens) is good only while that
+     * program still has the keyboard (true): one asked for while it had it cannot take the focus
+     * after you moved on. False: good for its whole lifetime (30 s). See [Activation.tokensNeedFocus].
+     */
+    var activationTokensNeedFocus = true
+
+    /**
      * A key, a click or the pointer moving switches screens on again that were switched off
      * (dpms off) — after [wakeScreensAfterMillis], so the key that switched them off does not.
      */

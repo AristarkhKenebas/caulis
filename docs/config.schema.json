@@ -790,6 +790,10 @@
       "type": "boolean",
       "description": "a window asking for the focus with a good token gets it (false: only marked urgent)"
     },
+    "activationTokensNeedFocus": {
+      "type": "boolean",
+      "description": "a program's activation token is good only while that program has the keyboard (default true)"
+    },
     "fullscreenKeepsAwake": {
       "type": "boolean",
       "description": "a fullscreen window keeps idle timers off"

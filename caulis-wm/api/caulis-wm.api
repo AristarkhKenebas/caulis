@@ -136,6 +136,7 @@ public final class dev/caulis/wm/Caulis {
 	public final synthetic fun floatWhen (Lkotlin/jvm/functions/Function1;)V
 	public final fun focusStealingRule (Ljava/util/function/BiPredicate;)Ldev/caulis/wm/Caulis;
 	public final fun getAccentColor ()Ldev/caulis/render/Color;
+	public final fun getActivationTokensNeedFocus ()Z
 	public final fun getAdaptiveSync ()Z
 	public final fun getAnimationMillis ()J
 	public final fun getAnimations ()Ldev/caulis/core/Animations;
@@ -414,6 +415,7 @@ public final class dev/caulis/wm/Caulis {
 	public final synthetic fun scratchpad (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/caulis/core/Scratchpad$Style;Lkotlin/jvm/functions/Function1;)V
 	public static synthetic fun scratchpad$default (Ldev/caulis/wm/Caulis;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/caulis/core/Scratchpad$Style;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 	public final fun setAccentColor (Ldev/caulis/render/Color;)V
+	public final fun setActivationTokensNeedFocus (Z)V
 	public final fun setAdaptiveSync (Z)V
 	public final fun setAnimationMillis (J)V
 	public final fun setAnimations (Ldev/caulis/core/Animations;)V

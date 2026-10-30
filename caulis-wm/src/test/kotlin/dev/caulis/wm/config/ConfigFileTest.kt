@@ -271,6 +271,7 @@ class ConfigFileTest {
               "monitors": { "DP-2": { "transform": "90" }, "eDP-1": { "transform": "flipped-180" } },
               "idle": [ { "after": 300, "action": "dpms off", "resume": "dpms on" }, { "after": 600, "action": "lock" } ],
               "focusOnActivate": false,
+              "activationTokensNeedFocus": false,
               "fullscreenKeepsAwake": true,
               "bind": { "Super+U": "focus-urgent", "Super+Shift+I": "keep-awake toggle" }
             }
@@ -286,6 +287,7 @@ class ConfigFileTest {
         assertEquals(dev.caulis.core.Transform.FLIPPED_180, monitors.getValue("eDP-1").transform)
         assertEquals(2, caulis.idleWatches.size)
         assertEquals(false to true, caulis.focusOnActivate to caulis.fullscreenKeepsAwake)
+        assertEquals(false, caulis.activationTokensNeedFocus)
         assertTrue("it needs \"after\"" in problems("{ \"idle\": [ { \"action\": \"lock\" } ] }").single())
         assertTrue("is not on, off or toggle" in problems("{ \"bind\": { \"Super+D\": \"dpms sideways\" } }").single())
     }

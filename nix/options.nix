@@ -165,6 +165,7 @@ let
       "resume" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "what happens when someone is back"; };
     }; })); default = null; description = "what happens when nobody uses the computer"; };
     "focusOnActivate" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "a window asking for the focus with a good token gets it (false: only marked urgent)"; };
+    "activationTokensNeedFocus" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "a program's activation token is good only while that program has the keyboard (default true)"; };
     "fullscreenKeepsAwake" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "a fullscreen window keeps idle timers off"; };
     "wakeScreensOnInput" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "input switches dark screens on again"; };
     "wakeScreensAfterMillis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (60000)); default = null; description = "input this soon after screens went dark does not wake them"; };

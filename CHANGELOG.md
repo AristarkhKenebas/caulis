@@ -66,11 +66,6 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - A program can no longer freeze the compositor by sending a named pipe (FIFO) as its
   shared memory (`wl_shm.create_pool`): only plain files are mapped, anything else is refused at
   once. Before, opening it waited for a writer for ever on the compositor's thread.
-- xdg-activation: a token a program asked for is good only while that program still has
-  the keyboard (`Activation.tokensNeedFocus`, on). A program could ask for tokens while you
-  used it and take the focus back up to 30 s after you moved to another window (in the middle of a
-  password typed there). Programs asking for many tokens no longer push out the ones the
-  compositor gave programs it started.
 - The lock key (`keys.lock`, Super+L) locks the screen even while a window keeps the
   compositor's keys (keyboard-shortcuts-inhibit, which any program may ask for): before, it went to
   the program and the screen stayed open. `keys { lockWhileInhibited = false }` (config.json
@@ -89,6 +84,11 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - X11 programs can no longer read the clipboard or replace it while the screen is locked
   (as Wayland programs cannot), and no X11 program can start pastes without end (each held a pipe
   and asked the copying program, a password manager, again).
+- xdg-activation: a token a program asked for is good only while that program still has
+  the keyboard (`activationTokensNeedFocus`, on; config.json `activationTokensNeedFocus`; `Activation.tokensNeedFocus` for caulis-core alone). A program could ask for tokens while you
+  used it and take the focus back up to 30 s after you moved to another window (in the middle of a
+  password typed there). Programs asking for many tokens no longer push out the ones the
+  compositor gave programs it started.
 
 ## [0.1.7] - 2026-10-30
 
