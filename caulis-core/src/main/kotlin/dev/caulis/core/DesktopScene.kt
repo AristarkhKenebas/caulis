@@ -182,7 +182,10 @@ internal class DesktopScene(private val desktop: Desktop) {
         desktop.widgetHost.addDrawings(all, DrawingLevel.BELOW_WINDOWS)
         // A monitor changing its workspace: how the old and the new one are drawn now. The new
         // one's windows (and the old one's) show only on that monitor while they move.
-        class Change(val monitor: Monitor, val frame: WorkspaceFrame)
+        class Change(val monitor: Monitor, val frame: WorkspaceFrame, workspace: Workspace) {
+            // (Asked for each window: not a walk through the workspace's list each time.)
+            val windows = HashSet<Window>(workspace.windows).apply { addAll(workspace.minimized) }
+        }
         val changes = HashMap<Workspace, Change>()
         for ((monitor, slide) in desktop.animator.slides.toList()) {
             val picked = desktop.animator.pick("workspaces", desktop.animations.workspaceSwitch)
@@ -200,7 +203,7 @@ internal class DesktopScene(private val desktop: Desktop) {
                 desktop.animator.slides -= monitor
                 continue
             }
-            changes[slide.to] = Change(monitor, frame)
+            changes[slide.to] = Change(monitor, frame, slide.to)
             // The workspace before, on its way out (unless another monitor shows it now).
             if (desktop.monitorList.none { it.workspace === slide.from }) {
                 val start = all.size
@@ -209,7 +212,7 @@ internal class DesktopScene(private val desktop: Desktop) {
                 fade(all, start, frame.outgoingAlpha, monitor)
             }
         }
-        fun changeOf(window: Window) = changes.entries.firstOrNull { (workspace, _) -> window in workspace.windows || window in workspace.minimized }?.value
+        fun changeOf(window: Window) = changes.values.firstOrNull { window in it.windows }
         // The overview's camera is on the monitor with the focus only; a changing workspace moves.
         fun cameraFor(window: Window): DesktopOverview.Camera {
             if (camera !== DesktopOverview.Camera.NONE) return if (window in desktop.activeWorkspace.windows || window in desktop.activeWorkspace.minimized) camera else DesktopOverview.Camera.NONE
