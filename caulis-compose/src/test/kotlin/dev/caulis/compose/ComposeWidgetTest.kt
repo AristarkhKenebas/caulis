@@ -99,6 +99,39 @@ class ComposeWidgetTest {
     }
 
     @Test
+    fun `at rest its pixels go, and the picture stays right, also when it changes`() {
+        assumeGpu()
+        val before = ComposeScenes.keepPixelsSeconds
+        ComposeScenes.keepPixelsSeconds = 1
+        try {
+            ScreenTestServer().use { server ->
+                var color by mutableStateOf(Color.Red)
+                val logged = java.util.concurrent.CopyOnWriteArrayList<String>()
+                dev.caulis.log.Log.setLevel("compose", dev.caulis.log.Log.EVERYTHING)
+                dev.caulis.log.Log.listener = { logged += it }
+                server.onServer { d ->
+                    d.addWidget(ComposeWidget(d, post = { server.loop.post(it::run) }, place = { m -> Rect(m.area.x, m.area.y, 100, 40) }) {
+                        Box(Modifier.fillMaxWidth().height(40.dp).background(color))
+                    })
+                }
+                waitFor(server, 10, 10, RED)
+                val deadline = System.nanoTime() + 5_000_000_000
+                while (logged.none { "lets go of its pixels" in it } && System.nanoTime() < deadline) Thread.sleep(50)
+                assertTrue(logged.any { "lets go of its pixels" in it }, "its pixels went")
+                // Still on the screen, from the GPU's copy.
+                waitFor(server, 10, 10, RED)
+                color = Color.Blue
+                waitFor(server, 10, 10, BLUE)
+                assertEquals(0, server.screenshot().count { it == RED }, "and nothing of the old picture")
+            }
+        } finally {
+            ComposeScenes.keepPixelsSeconds = before
+            dev.caulis.log.Log.listener = null
+            dev.caulis.log.Log.clearLevel("compose")
+        }
+    }
+
+    @Test
     fun `content that throws is logged and starts over instead of staying dead`() {
         assumeGpu()
         ScreenTestServer().use { server ->

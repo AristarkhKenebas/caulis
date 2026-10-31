@@ -27,6 +27,7 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - The login session (`Session`, `Logind`) is a module of its own, `caulis-session`. Nothing changes for users: `caulis-core` depends on it (as an `api` dependency), and the packages and classes are the same.
 - The plain input types (`InputSettings`, `Gesture`, `Scroll`, `EarlyPointer`, the tablet value types) are a module of their own, `caulis-input`. Nothing changes for users: `caulis-core` depends on it (as an `api` dependency), and the packages and classes are the same.
 ### Added
+- `ComposeScenes.keepPixelsSeconds` (2): a Compose scene not drawn for this long lets go of its pixels in memory, the GPU keeps the picture. `0`: kept, as before.
 - More project templates: `templates/new-compositor.sh --template <name>` with `tiling` (like i3), `floating`
   (like Openbox), `scrolling` (like niri), `kiosk` (one program, fullscreen), `desktop` (a bar of your own in
   Compose) and `lua` (only a `config.lua`); `--list` shows them. Each is a small commented project with the

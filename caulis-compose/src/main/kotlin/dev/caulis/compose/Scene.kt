@@ -46,7 +46,24 @@ internal class Scene(
     content: @Composable () -> Unit,
 ) : AutoCloseable {
 
-    private val surface = Surface.makeRasterN32Premul(width, height)
+    // Where it is drawn. Let go when it stays still for a while ([releasePixels]): the texture
+    // has the picture, and a new drawing clears all of this anyway.
+    private var surface: Surface? = Surface.makeRasterN32Premul(width, height)
+
+    private fun surfaceNow(): Surface = surface ?: Surface.makeRasterN32Premul(width, height).also { surface = it }
+
+    /** When it was last drawn into pixels (System.nanoTime). */
+    @Volatile
+    var drawnAt = System.nanoTime()
+        private set
+
+    /** Lets go of its pixels ([width] * [height] * 4 bytes), until it is drawn again. Never while it is being drawn. */
+    fun releasePixels() {
+        surface?.close()
+        surface = null
+    }
+
+    val holdsPixels: Boolean get() = surface != null
 
     // The "window" it is in: as big as the picture; focused while the widget has the keyboard.
     private val window = object : WindowInfo {
@@ -88,6 +105,8 @@ internal class Scene(
      * or closed. Null if they cannot be looked at so.
      */
     fun render(nanoTime: Long): MemorySegment? {
+        val surface = surfaceNow()
+        drawnAt = System.nanoTime()
         surface.canvas.clear(Color.TRANSPARENT)
         composing {
             frames.performFrame(nanoTime)
@@ -100,6 +119,7 @@ internal class Scene(
 
     /** Its pixels as last drawn (as [render] returns them), not drawn anew; null if they cannot be looked at so. */
     fun pixels(): MemorySegment? {
+        val surface = surface ?: return null
         if (!surface.peekPixels(pixmap) || pixmap.rowBytes != width * 4) return null
         return MemorySegment.ofAddress(pixmap.addr).reinterpret(width.toLong() * height * 4)
     }
@@ -126,6 +146,8 @@ internal class Scene(
      * Any thread, one at a time, never while [render] runs. Closes [picture].
      */
     fun play(picture: org.jetbrains.skia.Picture): MemorySegment? {
+        val surface = surfaceNow()
+        drawnAt = System.nanoTime()
         try {
             surface.canvas.clear(Color.TRANSPARENT)
             surface.canvas.drawPicture(picture)
@@ -155,7 +177,7 @@ internal class Scene(
             frames.close()
             recorder.close()
             pixmap.close()
-            surface.close()
+            surface?.close()
         }
     }
 }

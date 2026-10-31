@@ -515,6 +515,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public static synthetic fun addMonitor$default (Ldev/caulis/core/Desktop;Ljava/lang/String;Ldev/caulis/core/Output;IIDLjava/lang/Integer;Ljava/lang/Integer;ILjava/lang/Object;)Ldev/caulis/core/Monitor;
 	public final fun addScratchpad (Ljava/lang/String;Ldev/caulis/core/Scratchpad$Style;Lkotlin/jvm/functions/Function1;)Ldev/caulis/core/Scratchpad;
 	public final fun addWidget (Ldev/caulis/core/Widget;)Ljava/lang/AutoCloseable;
+	public final fun after (JLkotlin/jvm/functions/Function0;)Ldev/caulis/event/EventLoop$Timer;
 	public final fun animation (Ljava/lang/String;)Ldev/caulis/core/ResolvedAnimation;
 	public final fun animation (Ljava/lang/String;Ljava/lang/Long;)Ldev/caulis/core/ResolvedAnimation;
 	public final fun animation (Ljava/lang/String;Ljava/lang/Long;Ldev/caulis/core/Curve;)Ldev/caulis/core/ResolvedAnimation;

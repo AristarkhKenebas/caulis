@@ -177,6 +177,7 @@ class ComposeWidget @JvmOverloads constructor(
     override fun draw(monitor: Monitor, canvas: OverlayCanvas, area: Rect) {
         if (closed) return
         val part = partFor(monitor, area) ?: return
+        watchPixels()
         val look = appearance(monitor)
         if (look.alpha > HIDDEN) part.lastShown = System.nanoTime()
         if (look.alpha <= HIDDEN) {
@@ -230,12 +231,38 @@ class ComposeWidget @JvmOverloads constructor(
         if (now - hiddenLookedAt >= HIDDEN_LOOK_NANOS) {
             hiddenLookedAt = now
             letHiddenGo(monitors.associateBy { it.name })
+            letPixelsGo(now)
         }
         for (monitor in monitors) {
             val part = parts[monitor.name] ?: continue
             if (!part.failed && part.scene.hasInvalidations() && place(monitor) != null && appearance(monitor).alpha > HIDDEN) return true
         }
         return moving()
+    }
+
+    private var pixelsWatch: dev.caulis.event.EventLoop.Timer? = null
+
+    // (A desktop at rest draws no frames: a timer of its own, only while pixels are held.)
+    private fun watchPixels() {
+        val keep = ComposeScenes.keepPixelsSeconds
+        if (keep <= 0 || pixelsWatch != null || closed) return
+        pixelsWatch = desktop.after(keep * 1000L + 100) {
+            pixelsWatch = null
+            if (closed) return@after
+            letPixelsGo(System.nanoTime())
+            if (parts.values.any { it.scene.holdsPixels }) watchPixels()
+        }
+    }
+
+    // A scene that stays still does not need its pixels in memory besides the GPU's copy.
+    private fun letPixelsGo(now: Long) {
+        val keep = ComposeScenes.keepPixelsSeconds
+        if (keep <= 0) return
+        for (part in parts.values) {
+            if (part.busy || part.pixelsReady || !part.scene.holdsPixels || part.texture == null || now - part.scene.drawnAt < keep * 1_000_000_000L) continue
+            log.trace { "A Compose scene at rest lets go of its pixels (${part.width}x${part.height})" }
+            part.scene.releasePixels()
+        }
     }
 
     // When scenes not shown were last looked for.
@@ -581,6 +608,19 @@ object ComposeScenes {
     var keepHiddenSeconds: Int = 60
         set(value) {
             require(value in 0..86_400) { "keepHiddenSeconds is 0 to 86400, not $value" }
+            field = value
+        }
+
+    /**
+     * A scene not drawn for this many seconds keeps its picture on the GPU only, not also in the
+     * computer's memory (width x height x 4 bytes: 33 MB for a 4K launcher). The next change
+     * draws it anew, as every change does. 0: kept. 2 by default.
+     */
+    @JvmStatic
+    @Volatile
+    var keepPixelsSeconds: Int = 2
+        set(value) {
+            require(value in 0..86_400) { "keepPixelsSeconds is 0 to 86400, not $value" }
             field = value
         }
 }

@@ -323,6 +323,9 @@ class Desktop(
         events.windowListChanged()
     }
 
+    /** Runs [action] on the compositor's thread in [millis] milliseconds (cancel it with what comes back). */
+    fun after(millis: Long, action: () -> Unit): dev.caulis.event.EventLoop.Timer = compositor.display.loop.after(millis, action)
+
     /** Something your rules depend on changed (a window's tags): looks and effects are asked again. */
     fun requestRedraw() = changed()
 

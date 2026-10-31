@@ -55,7 +55,9 @@ public final class dev/caulis/compose/ComposeScenes {
 	public static final field $stable I
 	public static final field INSTANCE Ldev/caulis/compose/ComposeScenes;
 	public static final fun getKeepHiddenSeconds ()I
+	public static final fun getKeepPixelsSeconds ()I
 	public static final fun setKeepHiddenSeconds (I)V
+	public static final fun setKeepPixelsSeconds (I)V
 }
 
 public final class dev/caulis/compose/ComposeWarmup {
@@ -108,6 +110,10 @@ public final class dev/caulis/compose/ComposeWidget : dev/caulis/core/Widget, ja
 	public fun scroll (DD)V
 	public final fun setKeepHiddenSeconds (Ljava/lang/Integer;)V
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/compose/ComposeWidgetKt {
+	public static final field HIDDEN_LOOK_NANOS J
 }
 
 public final class dev/caulis/compose/SceneSize {
