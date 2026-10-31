@@ -15,6 +15,8 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-10-31
+
 ### Fixed
 - A window with a turned buffer (`wl_surface.set_buffer_transform`) is drawn turned while its workspace fades too; a change of the turn alone counts as a change of the picture.
 - `onPointerButton` handlers hear the release of every press they saw, whatever opened in between (a screenshot chooser, a lock): one holding a button no longer thinks it is held for good.
@@ -463,7 +465,8 @@ The first release on Maven Central.
 - A project template (`templates/new-compositor.sh`), examples, a getting-started guide, API docs,
   a Nix flake with NixOS and Home Manager modules.
 
-[Unreleased]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.9...HEAD
+[Unreleased]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.10...HEAD
+[0.1.10]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.6...v0.1.7
