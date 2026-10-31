@@ -152,7 +152,7 @@ internal class DesktopArrange(private val desktop: Desktop) {
             untile(window)
         } else {
             pinned -= window // (tiled: in one workspace's layout)
-            floatingRects[window] = desktop.currentRect(window)
+            floatingRects[window] = desktop.windowRoles.currentRect(window)
             workspace.floating -= window
         }
         arrange(workspace)

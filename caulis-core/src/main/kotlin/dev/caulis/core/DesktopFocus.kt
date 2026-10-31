@@ -43,10 +43,10 @@ internal class DesktopFocus(private val desktop: Desktop) {
             if (beside != null) desktop.focusMonitor(beside) else focus(desktop.windows.lastOrNull())
             return
         }
-        val origin = desktop.currentRect(from)
+        val origin = desktop.windowRoles.currentRect(from)
         // Windows on every monitor count: past the last one here comes the next monitor.
         val shown = desktop.stackingOrder()
-        val candidates = shown.filter { it !== from }.map { it to desktop.currentRect(it) }.filter { (_, rect) ->
+        val candidates = shown.filter { it !== from }.map { it to desktop.windowRoles.currentRect(it) }.filter { (_, rect) ->
             (dx > 0 && rect.x >= origin.right - 1) || (dx < 0 && rect.right <= origin.x + 1) ||
                 (dy > 0 && rect.y >= origin.bottom - 1) || (dy < 0 && rect.bottom <= origin.y + 1)
         }
@@ -177,7 +177,7 @@ internal class DesktopFocus(private val desktop: Desktop) {
                 // Back out of its dock icon (or up from below), as the restore animation says.
                 desktop.animator.stopFlights(window)
                 desktop.animator.glides -= window
-                desktop.animator.flightOf(window, DesktopAnimations.FlightKind.RESTORE, "restore", desktop.animations.restore, to = desktop.events.minimizedRect(window, desktop.currentRect(window)))?.let { desktop.animator.flights += it }
+                desktop.animator.flightOf(window, DesktopAnimations.FlightKind.RESTORE, "restore", desktop.animations.restore, to = desktop.events.minimizedRect(window, desktop.windowRoles.currentRect(window)))?.let { desktop.animator.flights += it }
             }
         }
         val list = desktop.activeWorkspace.windowList

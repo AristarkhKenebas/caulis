@@ -39,7 +39,7 @@ class Desktop(
     // desktop for what they need). First, so that nothing below finds them missing.
     internal val touch = DesktopTouch(this, seat)
     private val pens = DesktopPens(this, seat)
-    private val ownTitleBars = DesktopTitleBars(this)
+    internal val ownTitleBars = DesktopTitleBars(this)
     internal val pointerGrab = DesktopPointerGrab(this, seat)
 
     internal val cursors = DesktopCursorLook(this)
@@ -77,6 +77,8 @@ class Desktop(
     internal val arranger = DesktopArrange(this)
 
     internal val focuser = DesktopFocus(this)
+
+    internal val windowRoles = DesktopWindows(this)
 
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
@@ -589,13 +591,9 @@ class Desktop(
     // Where the director showed each of its windows in the frame last built (what is on screen
     // now: drawn there, and found there by the pointer).
     internal var places: Map<Window, WindowPlace> = emptyMap()
-        private set
+        internal set
 
-    override fun windowInfoChanged(window: Window) {
-        windowsLog.trace { "Now called $window" }
-        events.windowListChanged()
-        if (window.mapped) notifyEach(events.windowInfoListeners, window, "window-info-changed")
-    }
+    override fun windowInfoChanged(window: Window) = windowRoles.windowInfoChanged(window)
 
     /**
      * Everything the window manager knows right now, as text: the screen, the focus, every
@@ -988,7 +986,7 @@ class Desktop(
         val dy = monitor.area.y - from.area.y
         for (window in workspace.windows + workspace.minimized) {
             when {
-                window.fullscreen || window.maximized -> if (window.configured) applyState(window)
+                window.fullscreen || window.maximized -> if (window.configured) windowRoles.applyState(window)
                 !window.tiled -> {
                     window.x = (window.x + dx).coerceIn(monitor.area.x, (monitor.area.right - 50).coerceAtLeast(monitor.area.x))
                     window.y = (window.y + dy).coerceIn(monitor.area.y, (monitor.area.bottom - 50).coerceAtLeast(monitor.area.y))
@@ -999,7 +997,7 @@ class Desktop(
     }
 
     // An empty workspace nobody sees goes away (unless it always exists), as one left empty does.
-    private fun dropIfEmpty(workspace: Workspace) {
+    internal fun dropIfEmpty(workspace: Workspace) {
         if (workspace.isEmpty && workspace.number > 0 && ruleOf(workspace.number)?.persistent != true && monitorList.none { it.workspace === workspace }) {
             workspaces.values.remove(workspace)
         }
@@ -1063,7 +1061,7 @@ class Desktop(
             window.y = monitor.area.y + (window.y - from.area.y).coerceIn(0, (monitor.area.height - 50).coerceAtLeast(0))
         }
         moveToWorkspace(window, monitor.workspace)
-        if (window.fullscreen || window.maximized) applyState(window)
+        if (window.fullscreen || window.maximized) windowRoles.applyState(window)
         focusMonitor(monitor)
         focus(window)
     }
@@ -1748,7 +1746,7 @@ class Desktop(
     // A window's title bar came or went: its place changes.
     internal fun decorationOfChanged(window: Window) {
         val workspace = workspaceOf(window) ?: return
-        if (window.maximized && !window.fullscreen) applyState(window) else arranger.arrange(workspace)
+        if (window.maximized && !window.fullscreen) windowRoles.applyState(window) else arranger.arrange(workspace)
         changed()
     }
 
@@ -1925,181 +1923,17 @@ class Desktop(
 
     // The layout decides the size before the first frame, so a new window never shows up
     // in a wrong size first (R1). Maximized/fullscreen apps get the whole desktop.
-    override fun initialSize(window: Window): Pair<Int, Int> {
-        if (directed(window)) return userCode("Your WindowDirector (initialSize)", 0 to 0) { director!!.initialSize(window) }
-        pads.scratchpadFor(window)?.let { pad ->
-            window.tiled = pad.style is Scratchpad.Overlay // told in the very first configure
-            return pads.padTargets(pad, extra = window)[window]?.let { it.width to it.height } ?: (0 to 0)
-        }
-        // Where it goes (rules), told in the very first configure too.
-        val placement = arranger.placementOf(window)
-        placement.maximized?.let { window.maximized = it }
-        placement.fullscreen?.let { window.fullscreen = it }
-        val workspace = arranger.workspaceFor(placement)
-        val monitor = workspace.monitor ?: focusedMonitor
-        if (window.maximized && !window.fullscreen) return withoutTitle(window, monitor.usableArea).let { it.width to it.height }
-        if (window.fullscreen) return monitor.area.let { it.width to it.height }
-        if (placement.floating ?: (placement.pinned == true || arranger.floats(window))) return (placement.width ?: 0) to (placement.height ?: 0)
-        val target = arranger.arrange(workspace, extra = window)[window] ?: return 0 to 0
-        window.tiled = true
-        return target.width to target.height
-    }
+    override fun initialSize(window: Window): Pair<Int, Int> = windowRoles.initialSize(window)
 
-    override fun windowMapped(window: Window) {
-        lockHost.mapNumbers[window] = ++lockHost.mapCount
-        pads.scratchpadFor(window)?.let { pad ->
-            // Its program was just started (usually by the scratchpad's key): show it. A special
-            // workspace's rule sends it there silently (unless goToWorkspace), or it is shown already.
-            val placement = arranger.placementOf(window)
-            arranger.placements -= window
-            pad.windows += window
-            if (pad.isSpecial && (!pad.shown || pad.leaving) && !placement.goToWorkspace) {
-                layoutLog.info { "$window opened in the special workspace ${pad.name} (hidden)" }
-                events.windowListChanged()
-                changed()
-            } else if (pad.isSpecial && (!pad.shown || pad.leaving)) {
-                pads.showSpecial(pad)
-            } else {
-                pads.showScratchpad(pad, appearing = setOf(window))
-            }
-            windowsLog.info { "Opened $window (workspace ${workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
-            notifyEach(events.windowOpenedListeners, window, "window-opened")
-            return
-        }
-        val placement = arranger.placementOf(window)
-        arranger.placements -= window
-        val workspace = arranger.workspaceFor(placement)
-        if (directed(window)) {
-            // Its place is the director's: it only joins a workspace (focus, the window list).
-            workspace.add(window)
-            window.tiled = false
-            if (placement.goToWorkspace || placement.focus) focus(window) else changed()
-            windowsLog.info { "Opened $window (placed by the director)" }
-            notifyEach(events.windowOpenedListeners, window, "window-opened")
-            return
-        }
-        val monitor = workspace.monitor ?: focusedMonitor
-        val visibleRect = window.visibleRect
-        // Its place when floating: its own size, or (if the layout sized it) 2/3 of the monitor.
-        val floatingPlace = if (window.tiled) arranger.floatingPlace(window, placement, monitor, monitor.area.width * 2 / 3, monitor.area.height * 2 / 3)
-            else arranger.floatingPlace(window, placement, monitor, visibleRect.width, visibleRect.height)
-        arranger.floatingRects[window] = floatingPlace
-        workspace.add(window)
-        val floats = placement.floating ?: (placement.pinned == true || arranger.floats(window))
-        if (floats || workspace.layout === Floating) {
-            if (floats) workspace.floating += window
-            window.tiled = false
-            window.x = floatingPlace.x
-            window.y = floatingPlace.y
-        }
-        if (window.maximized || window.fullscreen) {
-            // Started maximized: if it is ever restored, it gets a sensible floating place.
-            if (placement.width == null) arranger.floatingRects[window] = Rect(floatingPlace.x, floatingPlace.y, monitor.area.width * 2 / 3, monitor.area.height * 2 / 3)
-            window.x = if (window.fullscreen) monitor.area.x else monitor.usableArea.x
-            window.y = if (window.fullscreen) monitor.area.y else monitor.usableArea.y + titleHeight(window)
-        }
-        // Floating: within the size limits of its rules (it draws itself anew in that size).
-        val behavior = behaviorOf(window)
-        if (!window.tiled && !window.maximized && !window.fullscreen) {
-            val (w, h) = behavior.limit(visibleRect.width, visibleRect.height)
-            if (w != visibleRect.width || h != visibleRect.height) {
-                arranger.floatingRects[window] = Rect(window.x, window.y, w, h)
-                window.configure(w, h)
-            }
-        }
-        if (placement.pinned == true && !window.tiled) arranger.pinned += window
-        // Its own tile was decided before the first frame: it appears there right away.
-        val targets = arranger.arrange(workspace)
-        targets[window]?.let { window.x = it.x; window.y = it.y }
-        // The keyboard: if it is on screen (or should be shown) and may take it.
-        val shown = monitorList.any { it.workspace === workspace }
-        if ((shown || placement.goToWorkspace) && animator.pick("windowsIn", animations.windowOpen).millis > 0 && !locked && behavior.animated) {
-            animator.appearing[window] = System.nanoTime()
-        }
-        if (placement.goToWorkspace || (shown && placement.focus)) focus(window) else changed()
-        windowsLog.info { "Opened $window (workspace ${workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
-        notifyEach(events.windowOpenedListeners, window, "window-opened")
-    }
+    override fun windowMapped(window: Window) = windowRoles.windowMapped(window)
 
-    override fun windowUnmapped(window: Window) {
-        windowsLog.info { "Closed $window" }
-        popupHost.dismissPopupsOf(window, "it closed")
-        // Its dialogs belong to its own parent now (or to nobody).
-        for (child in allWindows) if (child.parent === window) child.parentGone(window)
-        arranger.placements -= window
-        animator.appearing -= window
-        arranger.pinned -= window
-        // Where the director drew it last: gone too (the pointer looked there before the next frame).
-        if (window in places) places = places - window
-        // Its last look goes away smoothly (taken just before its picture went, or now).
-        animator.stopFlights(window)
-        animator.appearingPictures.remove(window)?.close()
-        (animator.lastLooks.remove(window) ?: animator.lastLookOf(window))?.let { animator.flights += it }
-        ownTitleBars.forget(window)
-        events.minimizeTargets -= window
-        // What every closed window leaves behind (a scratchpad's too).
-        arranger.pending.remove(window)
-        arranger.floatingRects -= window
-        animator.glides -= window
-        animator.shownRects -= window
-        animator.screenRects -= window
-        pointerGrab.forget(window)
-        if (hovered === window) hovered = null
-        // (It had the focus even if a launcher, a widget or a panel has the keyboard now.)
-        val hadFocus = window === focuser.lastFocused || window.activated || seat.keyboardFocus === window.surface
-        if (focuser.lastFocused === window) focuser.lastFocused = null
-        events.windowListChanged()
-        scratchpadOf(window)?.let { pad ->
-            pad.windows -= window
-            pad.workspace.model.forget(window)
-            // (A special workspace may stay shown empty, if its settings say so; new windows then open in it.)
-            val back = pad.focusBefore?.get()?.takeIf { it in windows }
-            if (pad.windows.isEmpty() && (!pad.isSpecial || specialWorkspaces.hideWhenEmpty)) {
-                if (pad.isSpecial && pad.shown) layoutLog.info { "Special workspace ${pad.name} hidden: its last window closed" }
-                pad.shown = false
-                pad.leaving = false
-                pad.focusBefore = null
-                pads.shownPads -= pad
-                pads.padTimers.remove(pad)?.cancel()
-            } else if (pad.shown) {
-                pads.placeScratchpad(pad, appearing = emptySet())
-            }
-            if (pads.padFocus === window || hadFocus) focuser.passFocusOn(pad.windows.lastOrNull()?.takeIf { pad.shown } ?: back ?: windows.lastOrNull())
-            changed()
-            notifyEach(events.windowClosedListeners, window, "window-closed")
-            return
-        }
-        val workspace = workspaceOf(window)
-        workspace?.remove(window)
-        workspace?.model?.forget(window) // closed for good: its place is free now
-        if (workspace != null) {
-            arranger.arrange(workspace)
-            dropIfEmpty(workspace)
-        }
-        if (hadFocus) focuser.passFocusOn(windows.lastOrNull())
-        changed()
-        notifyEach(events.windowClosedListeners, window, "window-closed")
-    }
+    override fun windowUnmapped(window: Window) = windowRoles.windowUnmapped(window)
 
     // Also for a window that never appeared: its placement (asked before its first frame) and
     // its place in a remembering layout (given to learn its size) go.
-    override fun windowDestroyed(window: Window) {
-        arranger.placements -= window
-        for (workspace in workspaces.values) workspace.model.forget(window)
-        pads.allPads.forEach { it.windows -= window }
-    }
+    override fun windowDestroyed(window: Window) = windowRoles.windowDestroyed(window)
 
-    override fun windowCommitted(window: Window) {
-        animator.lastLooks.remove(window)?.target?.close() // it drew again: still here
-        if (window in arranger.pending) arranger.applyWhenReady()
-        // While resizing from the left or top, the opposite edge stays where it was.
-        val resize = grab as? DesktopPointerGrab.Grab.Resize ?: return
-        if (resize.window !== window) return
-        val visibleRect = window.visibleRect
-        if (resize.edges and XdgToplevel.ResizeEdge.LEFT != 0) window.x = resize.start.right - visibleRect.width
-        if (resize.edges and XdgToplevel.ResizeEdge.TOP != 0) window.y = resize.start.bottom - visibleRect.height
-        changed()
-    }
+    override fun windowCommitted(window: Window) = windowRoles.windowCommitted(window)
 
     override fun bounds(window: Window): Pair<Int, Int> = monitorOf(window).area.let { it.width to it.height }
 
@@ -2121,34 +1955,9 @@ class Desktop(
     /** The window that has the keyboard, if any. */
     val focusedWindow: Window? get() = pads.padFocus?.takeIf { it.activated } ?: windows.lastOrNull()?.takeIf { it.activated }
 
-    // A request its rules say is not done: the program only hears how its window is.
-    private fun refuses(window: Window, request: WindowRequest): Boolean {
-        if (request !in behaviorOf(window).ignored) return false
-        windowsLog.info { "$window asked for ${request.name.lowercase()}: not done (its rules say so)" }
-        return true
-    }
+    override fun maximizeRequested(window: Window, maximized: Boolean) = windowRoles.maximizeRequested(window, maximized)
 
-    // The director handles [request] of [window] itself (true), or leaves it to us.
-    private fun directorTakes(window: Window, request: WindowRequest, on: Boolean): Boolean =
-        directed(window) && userCode("Your WindowDirector (requested)", false) { director!!.requested(window, request, on) }
-
-    override fun maximizeRequested(window: Window, maximized: Boolean) {
-        if (directorTakes(window, WindowRequest.MAXIMIZE, maximized)) return
-        // A scratchpad window already has its place; it only gets an answer.
-        if (scratchpadOf(window) != null || refuses(window, WindowRequest.MAXIMIZE)) window.configure() else setMaximized(window, maximized)
-    }
-
-    override fun fullscreenRequested(window: Window, fullscreen: Boolean) {
-        if (directorTakes(window, WindowRequest.FULLSCREEN, fullscreen)) return
-        if (scratchpadOf(window) != null || refuses(window, WindowRequest.FULLSCREEN)) {
-            window.configure()
-            return
-        }
-        // Fullscreen, but the focus only as the rule against focus stealing says (a window on
-        // a hidden workspace took the keyboard while the user typed elsewhere).
-        applyFullscreen(window, fullscreen, takeFocus = false)
-        if (fullscreen && window.mapped) focusRequested(window, WindowRequest.FULLSCREEN)
-    }
+    override fun fullscreenRequested(window: Window, fullscreen: Boolean) = windowRoles.fullscreenRequested(window, fullscreen)
 
     /**
      * Whether a program's own request ([WindowRequest.FULLSCREEN], [WindowRequest.RESTORE],
@@ -2166,111 +1975,19 @@ class Desktop(
      * A program asked for the focus for [window] by itself ([why]): it gets it if
      * [programMayTakeFocus] says so, else the window is marked urgent. Nothing while [locked].
      */
-    fun focusRequested(window: Window, why: WindowRequest) {
-        if (locked) {
-            focusLog.info { "$window asked for the focus ($why) while locked: ignored" }
-            return
-        }
-        if (window === focusedWindow && seat.keyboardFocus === window.surface) return
-        if (userCode("programMayTakeFocus", false) { programMayTakeFocus(window, why) }) {
-            focusLog.info { "$window takes the focus ($why)" }
-            focus(window)
-        } else if (window !== focusedWindow) {
-            focusLog.info { "$window asked for the focus ($why); marked urgent instead" }
-            setUrgent(window, true)
-        }
-    }
+    fun focusRequested(window: Window, why: WindowRequest) = windowRoles.focusRequested(window, why)
 
     // Minimizing a scratchpad window hides its scratchpad.
-    override fun minimizeRequested(window: Window) {
-        if (directorTakes(window, WindowRequest.MINIMIZE, true)) return
-        if (refuses(window, WindowRequest.MINIMIZE)) return
-        val pad = scratchpadOf(window)
-        if (pad != null) pads.hideScratchpad(pad) else minimize(window)
-    }
+    override fun minimizeRequested(window: Window) = windowRoles.minimizeRequested(window)
 
     /** Makes [window] fill the desktop (or brings it back to its earlier place and size). */
-    fun setMaximized(window: Window, maximized: Boolean) {
-        windowsLog.info { "$window: ${if (maximized) "maximized" else "not maximized"}" }
-        if (!window.configured) {
-            window.maximized = maximized // sent with the first configure (see initialSize)
-            return
-        }
-        if (window.maximized == maximized) {
-            window.configure() // the app expects an answer anyway
-            return
-        }
-        window.maximized = maximized
-        applyState(window)
-    }
+    fun setMaximized(window: Window, maximized: Boolean) = windowRoles.setMaximized(window, maximized)
 
     /** Shows [window] on the whole screen, above everything (or back as before); it gets the focus. */
-    fun setFullscreen(window: Window, fullscreen: Boolean) = applyFullscreen(window, fullscreen, takeFocus = true)
-
-    private fun applyFullscreen(window: Window, fullscreen: Boolean, takeFocus: Boolean) {
-        windowsLog.info { "$window: ${if (fullscreen) "fullscreen" else "not fullscreen"}" }
-        if (!window.configured) {
-            window.fullscreen = fullscreen
-            return
-        }
-        if (window.fullscreen == fullscreen) {
-            window.configure()
-            return
-        }
-        window.fullscreen = fullscreen
-        applyState(window)
-        if (takeFocus && fullscreen && window.mapped) focus(window)
-    }
-
-    // Puts a window where its states say: full desktop, its tile, or its floating place.
-    private fun applyState(window: Window) {
-        arranger.pending.remove(window)
-        val workspace = workspaceOf(window)
-        if (window.maximized || window.fullscreen) {
-            if (!window.tiled && window.mapped) arranger.floatingRects[window] = currentRect(window)
-            // Fullscreen covers its monitor; maximized leaves panels and docks free.
-            val monitor = monitorOf(window)
-            val area = if (window.fullscreen) monitor.area else withoutTitle(window, monitor.usableArea)
-            animator.moveSmoothly(window, area.x, area.y)
-            window.configure(area.width, area.height)
-        } else if (workspace != null && window in workspace.tiledWindows()) {
-            window.tiled = false // makes arrange send the tile size again
-        } else {
-            val floating = arranger.floatingRects[window] ?: currentRect(window)
-            animator.moveSmoothly(window, floating.x, floating.y)
-            window.configure(floating.width, floating.height)
-        }
-        workspace?.let { arranger.arrange(it) }
-        changed()
-    }
-
-    internal fun currentRect(window: Window): Rect {
-        val visibleRect = window.visibleRect
-        return Rect(window.x, window.y, visibleRect.width, visibleRect.height)
-    }
+    fun setFullscreen(window: Window, fullscreen: Boolean) = windowRoles.applyFullscreen(window, fullscreen, takeFocus = true)
 
     /** Hides [window]; it comes back with [focus] or [cycleFocus] (Alt+Tab). */
-    fun minimize(window: Window) {
-        val workspace = workspaceOf(window) ?: return
-        if (window !in workspace.windows) return
-        windowsLog.info { "$window: minimized${if (window in events.minimizeTargets) " (into its dock icon)" else ""}" }
-        // Into its dock icon (or down out of sight), as the minimize animation says.
-        val shown = animator.shownRects[window]
-        animator.stopFlights(window)
-        if (shown != null) animator.flightOf(window, DesktopAnimations.FlightKind.MINIMIZE, "minimize", animations.minimize, to = events.minimizedRect(window, shown))?.let { animator.flights += it }
-        workspace.windowList -= window
-        workspace.minimizedList += window
-        window.setMinimized(true)
-        popupHost.dismissPopupsOf(window, "it was minimized")
-        arranger.pending.remove(window)
-        pointerGrab.forget(window)
-        arranger.arrange(workspace)
-        // (Only if it had the focus: a background window minimizing itself takes nothing away.)
-        if (workspace === activeWorkspace && (window === focuser.lastFocused || window.activated)) {
-            window.setActivated(false)
-            focuser.passFocusOn(windows.lastOrNull())
-        }
-    }
+    fun minimize(window: Window) = windowRoles.minimize(window)
 
     /**
      * Brings the window at the bottom of the stack to the front; pressed repeatedly, it
@@ -2312,17 +2029,9 @@ class Desktop(
     internal var buttonsHeld = 0
         private set
 
-    override fun moveRequested(window: Window, serial: Int) {
-        if (!dragAllowed(window, serial, "move")) return
-        if (directed(window) && userCode("Your WindowDirector (moveRequested)", false) { director!!.moveRequested(window) }) return
-        beginMove(window)
-    }
+    override fun moveRequested(window: Window, serial: Int) = windowRoles.moveRequested(window, serial)
 
-    override fun resizeRequested(window: Window, serial: Int, edges: Int) {
-        if (!dragAllowed(window, serial, "resize")) return
-        if (directed(window) && userCode("Your WindowDirector (resizeRequested)", false) { director!!.resizeRequested(window, edges) }) return
-        beginResize(window, edges)
-    }
+    override fun resizeRequested(window: Window, serial: Int, edges: Int) = windowRoles.resizeRequested(window, serial, edges)
 
     /**
      * An X11 program asked to move its window ([edges] null) or resize it (_NET_WM_MOVERESIZE):
@@ -2330,30 +2039,7 @@ class Desktop(
      * window of the same client (X has no serials), and your [WindowDirector] is asked first.
      */
     @dev.caulis.log.InternalCaulisApi
-    fun x11DragRequested(window: Window, edges: Int?) {
-        val what = if (edges == null) "move" else "resize"
-        if (buttonsHeld == 0 || pressedIn?.surface?.resource?.client !== window.surface.resource.client) {
-            windowsLog.info { "$window asked to $what without a button held in it: refused" }
-            return
-        }
-        if (edges == null) {
-            if (directed(window) && userCode("Your WindowDirector (moveRequested)", false) { director!!.moveRequested(window) }) return
-            beginMove(window)
-        } else {
-            if (directed(window) && userCode("Your WindowDirector (resizeRequested)", false) { director!!.resizeRequested(window, edges) }) return
-            beginResize(window, edges)
-        }
-    }
-
-    // A program may start dragging its window only with the button the user holds in it: the
-    // press went to that program ([serial] is the press's, or a later event of it), not to another.
-    private fun dragAllowed(window: Window, serial: Int, what: String): Boolean {
-        val client = window.surface.resource.client
-        val pressed = pressedIn?.surface?.resource?.client
-        if (buttonsHeld > 0 && pressed === client && seat.isInputSerial(client, serial)) return true
-        windowsLog.info { "$window asked to $what without a button held in it: refused" }
-        return false
-    }
+    fun x11DragRequested(window: Window, edges: Int?) = windowRoles.x11DragRequested(window, edges)
 
     /**
      * Moves [window] with the pointer until the button is released. Only while a button is
@@ -2365,12 +2051,7 @@ class Desktop(
     fun beginResize(window: Window, edges: Int) = pointerGrab.beginResize(window, edges)
 
     /** The resize edges nearest to the desktop point (for Super+right-drag). */
-    fun nearestEdges(window: Window, x: Double, y: Double): Int {
-        val rect = currentRect(window)
-        val horizontal = if (x < rect.x + rect.width / 2) XdgToplevel.ResizeEdge.LEFT else XdgToplevel.ResizeEdge.RIGHT
-        val vertical = if (y < rect.y + rect.height / 2) XdgToplevel.ResizeEdge.TOP else XdgToplevel.ResizeEdge.BOTTOM
-        return horizontal or vertical
-    }
+    fun nearestEdges(window: Window, x: Double, y: Double): Int = windowRoles.nearestEdges(window, x, y)
 
     // --- popups and focus ------------------------------------------------------------------
 
@@ -2402,28 +2083,13 @@ class Desktop(
     override fun popupGrab(popup: Popup, serial: Int) = popupHost.popupGrab(popup, serial)
 
     /** Marks [window] as wanting attention (or not); bars and the IPC socket show it, the focus clears it. */
-    fun setUrgent(window: Window, urgent: Boolean) {
-        if (window.urgent == urgent) return
-        window.urgent = urgent
-        focusLog.info { "$window ${if (urgent) "wants attention" else "no longer wants attention"}" }
-        if (window.mapped) notifyEach(events.windowInfoListeners, window, "window-info-changed")
-        events.windowListChanged()
-        changed()
-    }
+    fun setUrgent(window: Window, urgent: Boolean) = windowRoles.setUrgent(window, urgent)
 
     /** The windows that want attention, oldest first. */
     val urgentWindows: List<Window> get() = allWindows.filter { it.urgent }
 
     /** The modal dialog [window] waits for (the newest, a dialog's own dialog first), or null. */
-    fun modalDialogOf(window: Window): Window? {
-        var dialog = allWindows.lastOrNull { it.modal && it.parent === window && it !== window } ?: return null
-        // (A dialog's own dialog, and so on — a few levels; parents that point at each other end it.)
-        repeat(8) {
-            val next = allWindows.lastOrNull { it.modal && it.parent === dialog && it !== dialog && it !== window } ?: return dialog
-            dialog = next
-        }
-        return dialog
-    }
+    fun modalDialogOf(window: Window): Window? = windowRoles.modalDialogOf(window)
 
     /**
      * Raises [window], marks it active and gives it the keyboard (null = nothing focused).
@@ -2835,7 +2501,7 @@ class Desktop(
         private set
 
     // The window the pointer was over last (for focusFollowsMouse).
-    private var hovered: Window? = null
+    internal var hovered: Window? = null
 
     // The button that closed a notice: its release is ours too.
     private var noticeButton: Int? = null
@@ -2978,9 +2644,9 @@ class Desktop(
 
     // The surface the held buttons were pressed in, and where its top left corner was (desktop
     // units): pointer moves go to it until they are let go (Wayland's implicit grab).
-    private var pressedIn: PressedIn? = null
+    internal var pressedIn: PressedIn? = null
 
-    private class PressedIn(val surface: Surface, val x: Double, val y: Double, val scaleX: Double, val scaleY: Double)
+    internal class PressedIn(val surface: Surface, val x: Double, val y: Double, val scaleX: Double, val scaleY: Double)
 
     /**
      * Scrolling as 0.1.1 had it: [value] units along one axis, [value120] the wheel's steps in
@@ -3669,11 +3335,11 @@ class Desktop(
     internal fun addWindow(all: MutableList<DrawItem>, window: Window, now: Long, leaving: Boolean = false, camera: DesktopOverview.Camera = DesktopOverview.Camera.NONE, plain: Boolean = false, fade: Float = 1f) {
         // Coming back out of the dock: its picture flies (see flights) until it is there.
         if (!plain && animator.flights.any { it.window === window && it.kind == DesktopAnimations.FlightKind.RESTORE }) {
-            animator.shownRects[window] = currentRect(window)
+            animator.shownRects[window] = windowRoles.currentRect(window)
             return
         }
         val visibleRect = window.visibleRect
-        val target = currentRect(window)
+        val target = windowRoles.currentRect(window)
         val glide = if (plain) null else animator.glides[window]
         val shown = glide?.let { animator.glidePosition(it, target, now) }
         if (glide != null && shown == null) animator.glides -= window

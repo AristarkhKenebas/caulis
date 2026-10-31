@@ -26,7 +26,7 @@ internal class DesktopReport(private val desktop: Desktop) {
 
     private fun describe(window: Window, workspace: Workspace): String = buildString {
         append(window).append(" from ").append(window.surface.resource.client.name)
-        append(" at ").append(desktop.animator.screenRects[window] ?: desktop.currentRect(window))
+        append(" at ").append(desktop.animator.screenRects[window] ?: desktop.windowRoles.currentRect(window))
         append(if (window in workspace.floating || !window.tiled) ", floating" else ", tiled")
         if (window.maximized) append(", maximized")
         if (window.fullscreen) append(", fullscreen")

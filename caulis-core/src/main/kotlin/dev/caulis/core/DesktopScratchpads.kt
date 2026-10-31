@@ -329,7 +329,7 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
         pad.focusBefore = null
         val now = System.nanoTime()
         for (window in pad.windows) {
-            val from = desktop.animator.shownRects[window] ?: desktop.currentRect(window)
+            val from = desktop.animator.shownRects[window] ?: desktop.windowRoles.currentRect(window)
             desktop.animator.glides[window] = DesktopAnimations.Glide(from, now, to = padHidden(pad, from), name = padAnimation(pad))
         }
         // (A hide before this one, shown again in between, must not end this one early.)

@@ -41,12 +41,12 @@ internal class DesktopPointerGrab(private val desktop: Desktop, private val seat
         if (desktop.locked || desktop.buttonsHeld == 0 || window !in desktop.windows || window.fullscreen) return
         if (window.maximized) {
             // Dragging a maximized window: it gets its old size back, under the pointer.
-            val floating = desktop.arranger.floatingRects[window] ?: desktop.currentRect(window)
+            val floating = desktop.arranger.floatingRects[window] ?: desktop.windowRoles.currentRect(window)
             desktop.arranger.floatingRects[window] = Rect((desktop.pointerX - floating.width / 2).toInt(), desktop.pointerY.toInt() - 10, floating.width, floating.height)
             desktop.setMaximized(window, false)
         }
         if (window.tiled) {
-            desktop.arranger.floatingRects[window] = desktop.currentRect(window) // it floats from where it is now
+            desktop.arranger.floatingRects[window] = desktop.windowRoles.currentRect(window) // it floats from where it is now
             desktop.setFloating(window, true)
         }
         start(Grab.Move(window, desktop.pointerX, desktop.pointerY, window.x, window.y))
@@ -55,10 +55,10 @@ internal class DesktopPointerGrab(private val desktop: Desktop, private val seat
     fun beginResize(window: Window, edges: Int) {
         if (desktop.locked || desktop.buttonsHeld == 0 || window !in desktop.windows || window.maximized || window.fullscreen) return
         if (window.tiled) {
-            desktop.arranger.floatingRects[window] = desktop.currentRect(window)
+            desktop.arranger.floatingRects[window] = desktop.windowRoles.currentRect(window)
             desktop.setFloating(window, true)
         }
-        start(Grab.Resize(window, desktop.pointerX, desktop.pointerY, edges, desktop.currentRect(window)))
+        start(Grab.Resize(window, desktop.pointerX, desktop.pointerY, edges, desktop.windowRoles.currentRect(window)))
     }
 
     private fun start(newGrab: Grab) {
@@ -109,9 +109,9 @@ internal class DesktopPointerGrab(private val desktop: Desktop, private val seat
             return
         }
         if (ended is Grab.Move) {
-            desktop.arranger.floatingRects[ended.window] = desktop.currentRect(ended.window)
+            desktop.arranger.floatingRects[ended.window] = desktop.windowRoles.currentRect(ended.window)
             // Dropped on another monitor: it belongs to the workspace shown there now.
-            val rect = desktop.currentRect(ended.window)
+            val rect = desktop.windowRoles.currentRect(ended.window)
             val target = desktop.monitorAt(rect.x + rect.width / 2.0, rect.y + rect.height / 2.0)
             val from = desktop.monitorOf(ended.window)
             if (target !== from && desktop.workspaceOf(ended.window) != null) {
@@ -125,7 +125,7 @@ internal class DesktopPointerGrab(private val desktop: Desktop, private val seat
                 ended.window.resizing = false
                 ended.window.configure()
             }
-            desktop.arranger.floatingRects[ended.window] = desktop.currentRect(ended.window)
+            desktop.arranger.floatingRects[ended.window] = desktop.windowRoles.currentRect(ended.window)
         }
     }
 }

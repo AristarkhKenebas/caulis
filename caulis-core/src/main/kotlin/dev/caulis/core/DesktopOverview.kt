@@ -65,7 +65,7 @@ internal class DesktopOverview(private val desktop: Desktop) {
     private fun overviewCamera(): Camera {
         val area = desktop.focusedMonitor.area
         var box = area
-        for (window in desktop.activeWorkspace.windows) box = box.union(desktop.currentRect(window))
+        for (window in desktop.activeWorkspace.windows) box = box.union(desktop.windowRoles.currentRect(window))
         val scale = minOf(1.0, area.width * desktop.overviewFill / box.width, area.height * desktop.overviewFill / box.height)
         return Camera(
             scale,
@@ -124,7 +124,7 @@ internal class DesktopOverview(private val desktop: Desktop) {
         desktop.arranger.arrange(workspace)
         val screen = desktop.focusedMonitor.area
         fun visibleShare(window: Window): Double {
-            val target = desktop.arranger.pending[window] ?: desktop.currentRect(window)
+            val target = desktop.arranger.pending[window] ?: desktop.windowRoles.currentRect(window)
             val inView = target.intersect(screen) ?: return 0.0
             return inView.width.toDouble() * inView.height / (target.width.toDouble() * target.height)
         }
@@ -139,7 +139,7 @@ internal class DesktopOverview(private val desktop: Desktop) {
     internal fun overviewClick() {
         val camera = cameraAt(System.nanoTime())
         val point = Rect(desktop.pointerX.toInt(), desktop.pointerY.toInt(), 1, 1)
-        val chosen = desktop.stackingOrder().asReversed().firstOrNull { camera.apply(desktop.currentRect(it)).contains(point) }
+        val chosen = desktop.stackingOrder().asReversed().firstOrNull { camera.apply(desktop.windowRoles.currentRect(it)).contains(point) }
         setOverview(false)
         if (chosen != null) desktop.focus(chosen)
     }
