@@ -19,6 +19,7 @@ import java.nio.ByteOrder
  * keys and modifiers, motion, buttons and scrolling.
  */
 class Seat(internal val display: Display, keymap: Keymap) : AutoCloseable {
+    internal val touchSide = SeatTouch(this)
     internal val pointerSide = SeatPointer(this)
 
     /**
@@ -33,7 +34,7 @@ class Seat(internal val display: Display, keymap: Keymap) : AutoCloseable {
 
     private val keyboards = ArrayList<WlKeyboard>()
     internal val pointers = ArrayList<WlPointer>()
-    private val touches = ArrayList<WlTouch>()
+    internal val touches = ArrayList<WlTouch>()
     private val seats = ArrayList<WlSeat>()
 
     /** A touch screen is there: programs are told the seat can touch (and get [touchDown] and the rest). */
@@ -554,59 +555,23 @@ class Seat(internal val display: Display, keymap: Keymap) : AutoCloseable {
      */
     fun pointerAxis(timeMillis: Int, scroll: Scroll) = pointerSide.pointerAxis(timeMillis, scroll)
 
-    // --- touch screens: each finger by its [id], at a place of the surface it went down on
-
     /** The program of [surface] listens to touches (else the compositor lets the finger be the pointer). */
     fun takesTouch(surface: Surface): Boolean = touches.any { it.client === surface.resource.client }
 
-    // The surface each finger went down on.
-    private val touchSurfaces = HashMap<Int, Surface>()
-
     /** A finger [id] touches [surface] at ([unitX], [unitY]) of it. */
-    fun touchDown(timeMillis: Int, surface: Surface, id: Int, unitX: Double, unitY: Double) {
-        if (!surface.resource.isAlive) return
-        touchSurfaces[id] = surface
-        val pixels = surface.nativeScale ?: 1.0
-        val serial = display.nextSerial()
-        framePending += surface.resource.client
-        touchesOf(surface.resource.client).forEach { it.sendDown(serial, timeMillis, surface.resource, id, unitX * pixels, unitY * pixels) }
-        inputSent(surface.resource.client, serial)
-    }
+    fun touchDown(timeMillis: Int, surface: Surface, id: Int, unitX: Double, unitY: Double) = touchSide.touchDown(timeMillis, surface, id, unitX, unitY)
 
     /** Finger [id] moved to ([unitX], [unitY]) of the surface it went down on. */
-    fun touchMotion(timeMillis: Int, id: Int, unitX: Double, unitY: Double) {
-        val surface = touchSurfaces[id]?.takeIf { it.resource.isAlive } ?: return
-        val pixels = surface.nativeScale ?: 1.0
-        framePending += surface.resource.client
-        touchesOf(surface.resource.client).forEach { it.sendMotion(timeMillis, id, unitX * pixels, unitY * pixels) }
-    }
+    fun touchMotion(timeMillis: Int, id: Int, unitX: Double, unitY: Double) = touchSide.touchMotion(timeMillis, id, unitX, unitY)
 
     /** Finger [id] lifted. */
-    fun touchUp(timeMillis: Int, id: Int) {
-        val surface = touchSurfaces.remove(id)?.takeIf { it.resource.isAlive } ?: return
-        val serial = display.nextSerial()
-        framePending += surface.resource.client
-        touchesOf(surface.resource.client).forEach { it.sendUp(serial, timeMillis, id) }
-        inputSent(surface.resource.client, serial)
-    }
+    fun touchUp(timeMillis: Int, id: Int) = touchSide.touchUp(timeMillis, id)
 
     /** The end of a group of touch events (sent to the programs that had some). */
-    fun touchFrame() {
-        framePending.forEach { client -> touchesOf(client).forEach { it.sendFrame() } }
-        framePending.clear()
-    }
-
-    // Programs sent touch events since the last frame.
-    private val framePending = LinkedHashSet<Client>()
+    fun touchFrame() = touchSide.touchFrame()
 
     /** The touches are not the programs' any more (a gesture of the compositor took them). */
-    fun touchCancel() {
-        touchSurfaces.values.map { it.resource.client }.distinct().forEach { client -> touchesOf(client).forEach { it.sendCancel() } }
-        touchSurfaces.clear()
-        framePending.clear()
-    }
-
-    private fun touchesOf(client: Client) = touches.filter { it.client === client && it.isAlive }
+    fun touchCancel() = touchSide.touchCancel()
 
     override fun close() {
         keyboardState.close()
