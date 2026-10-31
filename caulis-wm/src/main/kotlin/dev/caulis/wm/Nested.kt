@@ -57,7 +57,7 @@ private fun connect(window: NestedWindow, monitor: Monitor, view: DesktopView, r
     window.onPointerMotion = { time, x, y -> running.rinput.pointerMovedTo(time, monitor.area.x + x / monitor.scale, monitor.area.y + y / monitor.scale) }
     window.onPointerButton = running.rinput::pointerButton
     window.onPointerAxis = running.rinput::pointerAxis
-    window.onGesture = running::gesture
+    window.onGesture = running.rgest::gesture
     window.onKey = running.rinput::key
     window.onKeyboardLeave = {
         running.rinput.releaseKeys()

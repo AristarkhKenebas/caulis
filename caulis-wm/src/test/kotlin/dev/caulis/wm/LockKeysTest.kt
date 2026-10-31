@@ -34,9 +34,9 @@ class LockKeysTest {
                 r.rinput.key(0, KEY_Q, true) // Super+Q: would close the window
                 r.rinput.key(0, KEY_Q, false)
                 r.rinput.key(0, KEY_SUPER, false)
-                r.gesture(Gesture.PinchBegin(0, 4)) // would open the overview
-                r.gesture(Gesture.PinchUpdate(0, 0.0, 0.0, 0.3, 0.0))
-                r.gesture(Gesture.PinchEnd(0, cancelled = false))
+                r.rgest.gesture(Gesture.PinchBegin(0, 4)) // would open the overview
+                r.rgest.gesture(Gesture.PinchUpdate(0, 0.0, 0.0, 0.3, 0.0))
+                r.rgest.gesture(Gesture.PinchEnd(0, cancelled = false))
             }
             assertEquals(1, caulis.onLoop { it.desktop.windows.size }, "the window is still open")
             assertFalse(caulis.onLoop { it.desktop.inOverview }, "no overview behind the lock")

@@ -25,7 +25,6 @@ import dev.caulis.core.XdgOutputManager
 import dev.caulis.core.XdgShell
 import dev.caulis.core.cursor.CursorTheme
 import dev.caulis.core.input.CursorShape
-import dev.caulis.core.input.Gesture
 import dev.caulis.core.input.KeyBindings
 import dev.caulis.core.input.Keymap
 import dev.caulis.core.input.PointerGestures
@@ -36,7 +35,6 @@ import dev.caulis.event.EventLoop
 import dev.caulis.protocol.Display
 import dev.caulis.render.GpuTarget
 import dev.caulis.render.Renderer
-import dev.caulis.tiling.Direction
 import dev.caulis.tiling.RememberingLayout
 
 /**
@@ -107,7 +105,7 @@ internal class Running(
     // The permission rules at work, and the person's answers.
     private val permissions = PermissionKeeper({ config }, { capture?.answered() }, { client -> display.privileged(client) })
     private val cursorLog = Logger("cursor")
-    private val gesturesLog = Logger("gestures")
+    internal val gesturesLog = Logger("gestures")
     internal val inputLog = Logger("input")
 
     // Lines of the log that become notices (from any thread; shown on ours). Watched from the
@@ -145,6 +143,7 @@ internal class Running(
     val seat = Seat(display, Keymap.fromNames(layouts = config.keyboardLayouts, variants = config.keyboardVariants, options = config.keyboardOptions, model = config.keyboardModel))
     private val compositor = Compositor(display, renderer)
     val desktop = Desktop(renderer, seat, compositor, width, height)
+    internal val rgest = RunningGestures(this)
     internal val rinput = RunningInput(this)
     internal val renv = RunningEnvironment(this)
     internal val rrules = RunningRules(this)
@@ -162,7 +161,7 @@ internal class Running(
 
     /** Numbers for windows (the IPC socket, scripts). */
     val windowIds = WindowIds(desktop, loop)
-    private val pointerGestures = PointerGestures(display, seat)
+    internal val pointerGestures = PointerGestures(display, seat)
 
     /** Drawing tablets for programs that understand pens (tablet-v2). */
     val tablets = Tablets(display, seat)
@@ -1107,114 +1106,6 @@ internal class Running(
     }
 
     internal fun safely(what: String, action: () -> Unit) = safely(what, Unit, action)
-
-    // --- touchpad gestures --------------------------------------------------------------------
-
-    // What the gesture going on does: drag the view, open the overview, a swipe action, or
-    // nothing of ours (then it goes to the program under the pointer).
-    private enum class GestureUse { NONE, DRAG, SWIPE, PINCH, PROGRAM, CLAIMED }
-
-    // The configuration's handler that took the gesture going on (onGesture).
-    private var gestureClaimedBy: (Caulis.(Gesture) -> Boolean)? = null
-
-    private var gestureUse = GestureUse.NONE
-    private var gestureFingers = 0
-    private var swipeX = 0.0
-    private var swipeY = 0.0
-    private var pinchStartedOpen = false
-    private var pinchProgress = 0.0
-
-    private val swipes: List<Triple<Int, Direction, Caulis.() -> Unit>> get() = buildList {
-        val fingers = config.workspaceSwipeFingers
-        if (fingers > 0) {
-            add(Triple(fingers, Direction.LEFT) { desktop.switchTo(desktop.activeWorkspace.number + 1) })
-            add(Triple(fingers, Direction.RIGHT) { desktop.switchTo((desktop.activeWorkspace.number - 1).coerceAtLeast(1)) })
-        }
-        addAll(config.swipes) // the user's own win (the last one fits)
-    }
-
-    /** A touchpad gesture: the compositor's own (see [Caulis.dragViewFingers] ...) or the program's. */
-    fun gesture(gesture: Gesture) = safely("gesture") {
-        userActive()
-        gesturesLog.trace { "$gesture (fingers ${gestureFingers}, use $gestureUse)" }
-        val begins = gesture is Gesture.SwipeBegin || gesture is Gesture.PinchBegin || gesture is Gesture.HoldBegin
-        val ends = gesture is Gesture.SwipeEnd || gesture is Gesture.PinchEnd || gesture is Gesture.HoldEnd
-        // A gesture of the configuration's own: asked at its start, then it has all of it.
-        if (begins && !desktop.locked) {
-            gestureClaimedBy = config.gestureHandlers.asReversed().firstOrNull { handler -> safely("onGesture", false) { handler(config, gesture) } }
-            if (gestureClaimedBy != null) {
-                gesturesLog.info { "$gesture: taken by onGesture" }
-                gestureUse = GestureUse.CLAIMED
-                return@safely
-            }
-        }
-        if (gestureUse == GestureUse.CLAIMED) {
-            gestureClaimedBy?.let { handler -> safely("onGesture", false) { handler(config, gesture) } }
-            if (ends) {
-                gestureUse = GestureUse.NONE
-                gestureClaimedBy = null
-            }
-            return@safely
-        }
-        when (gesture) {
-            is Gesture.SwipeBegin -> {
-                gestureFingers = gesture.fingers
-                swipeX = 0.0
-                swipeY = 0.0
-                gestureUse = when {
-                    desktop.locked -> GestureUse.PROGRAM // the locker's
-                    gesture.fingers == config.dragViewFingers -> GestureUse.DRAG
-                    swipes.any { it.first == gesture.fingers } -> GestureUse.SWIPE
-                    else -> GestureUse.PROGRAM
-                }
-            }
-            is Gesture.SwipeUpdate -> when (gestureUse) {
-                GestureUse.DRAG -> desktop.dragView(gesture.dx, gesture.dy)
-                GestureUse.SWIPE -> {
-                    swipeX += gesture.dx
-                    swipeY += gesture.dy
-                }
-                else -> {}
-            }
-            is Gesture.SwipeEnd -> when (gestureUse) {
-                GestureUse.DRAG -> desktop.endViewDrag()
-                GestureUse.SWIPE -> if (!gesture.cancelled) swipeDirection()?.let { direction ->
-                    swipes.lastOrNull { it.first == gestureFingers && it.second == direction }?.let { (_, _, action) -> action(config) }
-                }
-                else -> {}
-            }
-            is Gesture.PinchBegin -> {
-                gestureFingers = gesture.fingers
-                gestureUse = if (gesture.fingers == config.overviewPinchFingers && !desktop.locked) GestureUse.PINCH else GestureUse.PROGRAM
-                pinchStartedOpen = desktop.inOverview
-                pinchProgress = if (pinchStartedOpen) 1.0 else 0.0
-            }
-            is Gesture.PinchUpdate -> if (gestureUse == GestureUse.PINCH) {
-                // Fingers half as far apart = fully open; twice as far = fully closed again.
-                pinchProgress = if (pinchStartedOpen) 1 - (gesture.scale - 1) / 1.0 else (1 - gesture.scale) / 0.5
-                desktop.setOverviewProgress(pinchProgress)
-            }
-            is Gesture.PinchEnd -> if (gestureUse == GestureUse.PINCH) {
-                desktop.endOverviewGesture(open = if (gesture.cancelled) pinchStartedOpen else pinchProgress > 0.5)
-            }
-            else -> {}
-        }
-        if (gestureUse == GestureUse.PROGRAM || gesture is Gesture.HoldBegin || gesture is Gesture.HoldEnd) pointerGestures.send(gesture)
-        if (gesture is Gesture.SwipeEnd || gesture is Gesture.PinchEnd) gestureUse = GestureUse.NONE
-    }
-
-    // The main direction of a finished swipe, if it went far enough to mean something.
-    private fun swipeDirection(): Direction? {
-        val horizontal = Math.abs(swipeX) >= Math.abs(swipeY)
-        val distance = if (horizontal) Math.abs(swipeX) else Math.abs(swipeY)
-        if (distance < config.swipeDistance) return null
-        return when {
-            horizontal && swipeX < 0 -> Direction.LEFT
-            horizontal -> Direction.RIGHT
-            swipeY < 0 -> Direction.UP
-            else -> Direction.DOWN
-        }
-    }
 
     /** Wraps a backend's `present` so drawing is timed by [stats] (if measuring is on). */
     fun timed(stats: FrameStats?, present: ((GpuTarget, Int) -> Unit) -> Unit): ((GpuTarget, Int) -> Unit) -> Unit {

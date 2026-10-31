@@ -193,7 +193,7 @@ internal fun runOnScreen(config: Caulis) {
                     desktop.touchScreen = input.hasTouchScreen
                 }
                 running.inputDevices = input
-                input.onGesture = running::gesture
+                input.onGesture = running.rgest::gesture
                 // Input read on a thread of its own (inputThread), the cursor moved from there.
                 input.earlyPointer = desktop.earlyPointer
                 input.ownThread = running.config.inputThread

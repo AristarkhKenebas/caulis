@@ -31,12 +31,12 @@ class GestureTest {
             val width = caulis.onLoop { it.desktop.width }
             // Fingers move a whole screen to the left: the view goes right by two cells.
             caulis.onLoop { r ->
-                r.gesture(Gesture.SwipeBegin(0, 3))
-                repeat(10) { r.gesture(Gesture.SwipeUpdate(0, -width / 10.0, 0.0)) }
+                r.rgest.gesture(Gesture.SwipeBegin(0, 3))
+                repeat(10) { r.rgest.gesture(Gesture.SwipeUpdate(0, -width / 10.0, 0.0)) }
             }
             // (Where it is drawn follows a frame later: waited for, not read at once.)
             client.waitFor { caulis.onLoop { r -> r.desktop.windows.first { it.title == "w1" }.let { r.desktop.shownRect(it)?.x ?: 0 } } < 0 }
-            caulis.onLoop { r -> r.gesture(Gesture.SwipeEnd(0, cancelled = false)) }
+            caulis.onLoop { r -> r.rgest.gesture(Gesture.SwipeEnd(0, cancelled = false)) }
             client.waitFor { caulis.onLoop { r -> r.desktop.windows.first { it.title == "w3" }.x } == 0 } // two cells: w3 at the left edge
             assertEquals("w3", caulis.onLoop { it.desktop.focusedWindow?.title }, "w1 left the screen, so the window in view got the focus")
         }
@@ -48,9 +48,9 @@ class GestureTest {
             client.window().draw()
             client.waitFor { caulis.onLoop { it.desktop.windows.size } == 1 }
             caulis.onLoop { r ->
-                r.gesture(Gesture.PinchBegin(0, 4))
-                r.gesture(Gesture.PinchUpdate(0, 0.0, 0.0, scale = 0.6, rotation = 0.0))
-                r.gesture(Gesture.PinchEnd(0, cancelled = false))
+                r.rgest.gesture(Gesture.PinchBegin(0, 4))
+                r.rgest.gesture(Gesture.PinchUpdate(0, 0.0, 0.0, scale = 0.6, rotation = 0.0))
+                r.rgest.gesture(Gesture.PinchEnd(0, cancelled = false))
             }
             assertTrue(caulis.onLoop { it.desktop.inOverview })
         }
@@ -69,13 +69,13 @@ class GestureTest {
             client.window().draw()
             client.waitFor { caulis.onLoop { it.desktop.windows.size } == 1 }
             caulis.onLoop { r ->
-                r.gesture(Gesture.SwipeBegin(0, 3))
-                r.gesture(Gesture.SwipeUpdate(0, 10.0, 0.0))
-                r.gesture(Gesture.SwipeEnd(0, cancelled = false))
+                r.rgest.gesture(Gesture.SwipeBegin(0, 3))
+                r.rgest.gesture(Gesture.SwipeUpdate(0, 10.0, 0.0))
+                r.rgest.gesture(Gesture.SwipeEnd(0, cancelled = false))
                 // Not taken: the built-in pinch opens the overview as always.
-                r.gesture(Gesture.PinchBegin(0, 4))
-                r.gesture(Gesture.PinchUpdate(0, 0.0, 0.0, scale = 0.6, rotation = 0.0))
-                r.gesture(Gesture.PinchEnd(0, cancelled = false))
+                r.rgest.gesture(Gesture.PinchBegin(0, 4))
+                r.rgest.gesture(Gesture.PinchUpdate(0, 0.0, 0.0, scale = 0.6, rotation = 0.0))
+                r.rgest.gesture(Gesture.PinchEnd(0, cancelled = false))
             }
             assertEquals(4, seen.size, "the swipe (begin, update, end) and the pinch's start")
             assertTrue(seen[1] is Gesture.SwipeUpdate && seen[2] is Gesture.SwipeEnd)
@@ -115,9 +115,9 @@ class GestureTest {
             caulis.onLoop { r ->
                 val w = r.desktop.windows.single()
                 r.desktop.pointerMoved(0, w.x + 10.0, w.y + 10.0)
-                r.gesture(Gesture.SwipeBegin(0, 5)) // five fingers: nothing of ours
-                r.gesture(Gesture.SwipeUpdate(0, 1.0, 2.0))
-                r.gesture(Gesture.SwipeEnd(0, cancelled = false))
+                r.rgest.gesture(Gesture.SwipeBegin(0, 5)) // five fingers: nothing of ours
+                r.rgest.gesture(Gesture.SwipeUpdate(0, 1.0, 2.0))
+                r.rgest.gesture(Gesture.SwipeEnd(0, cancelled = false))
             }
             client.waitFor { received.size == 3 }
             assertEquals(listOf("begin 5", "update", "end"), received)
