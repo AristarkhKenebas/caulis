@@ -20,9 +20,9 @@ import java.lang.foreign.ValueLayout.JAVA_BYTE
  */
 class DrmOutput internal constructor(
     private val loop: EventLoop,
-    private val device: DrmDevice,
+    internal val device: DrmDevice,
     private val renderer: Renderer,
-    private val isSessionActive: () -> Boolean,
+    internal val isSessionActive: () -> Boolean,
     internal val connectorId: Int,
     internal val crtcId: Int,
     internal val planeId: Int,
@@ -40,8 +40,8 @@ class DrmOutput internal constructor(
     /** Its cursor plane (0: none). */
     internal val cursorPlaneId: Int = 0,
 ) : AutoCloseable {
-    private val log = dev.caulis.log.Logger("drm")
-
+    internal val gammaSide = DrmGamma(this)
+    internal val log = dev.caulis.log.Logger("drm")
 
     /** A resolution and refresh rate. [info] is the kernel's description of it. */
     class Mode internal constructor(
@@ -79,7 +79,7 @@ class DrmOutput internal constructor(
     val refreshNanos: Long get() = 1_000_000_000_000L / (mode?.refreshMillihertz ?: 60_000).coerceAtLeast(1_000)
 
     private val connectorProps = device.properties(connectorId, Drm.DRM_MODE_OBJECT_CONNECTOR())
-    private val crtcProps = device.properties(crtcId, Drm.DRM_MODE_OBJECT_CRTC())
+    internal val crtcProps = device.properties(crtcId, Drm.DRM_MODE_OBJECT_CRTC())
     private val planeProps = device.properties(planeId, Drm.DRM_MODE_OBJECT_PLANE())
 
     private class Slot(val buffer: GpuBuffer, val framebuffer: Int) {
@@ -113,7 +113,7 @@ class DrmOutput internal constructor(
     private var flipWatchdog: dev.caulis.event.EventLoop.Timer? = null
 
     // A picture was refused: the next one is drawn whole (what changed was used up).
-    private var redrawAll = false
+    internal var redrawAll = false
     private var modesetFailures = 0
 
     // The previous mode's buffers and mode: kept until the new mode is on screen.
@@ -425,7 +425,7 @@ class DrmOutput internal constructor(
         // Our settings and the reset of what others left (see extras).
         for (extra in extras) request.setIfPresent(extra.objectId, extra.props, extra.property, extra.value)
         // Our gamma table (a night light), also after switching terminals.
-        request.setIfPresent(crtcId, crtcProps, "GAMMA_LUT", (pendingGamma ?: gammaBlob).toLong())
+        request.setIfPresent(crtcId, crtcProps, "GAMMA_LUT", (gammaSide.pendingGamma ?: gammaSide.gammaBlob).toLong())
         showOnPlane(request, slot, mode)
         cursorState(request)
         for (plane in strayPlanes()) {
@@ -479,7 +479,7 @@ class DrmOutput internal constructor(
         slot.drawnInFrame = frameNumber
 
         val serial = ++commitSerial
-        val gamma = pendingGamma
+        val gamma = gammaSide.pendingGamma
         val result = if (needsModeset) {
             if (extrasChanged) {
                 // maxBpc or adaptiveSync changed: tested first (a refused one is left out).
@@ -505,7 +505,7 @@ class DrmOutput internal constructor(
             needsModeset = false
             redrawAll = false
             modesetFailures = 0
-            gammaApplied(gamma)
+            gammaSide.gammaApplied(gamma)
             queued = slot
             awaitFlip(serial)
         } else {
@@ -583,7 +583,7 @@ class DrmOutput internal constructor(
             return false
         }
         val serial = ++commitSerial
-        val gamma = pendingGamma
+        val gamma = gammaSide.pendingGamma
         val withCursor = cursorDirty
         val result = device.commit(Drm.DRM_MODE_ATOMIC_NONBLOCK() or Drm.DRM_MODE_PAGE_FLIP_EVENT(), serial) { request ->
             request.set(planeId, planeProps, "FB_ID", id.toLong())
@@ -593,7 +593,7 @@ class DrmOutput internal constructor(
         }
         if (result != 0) return false
         if (withCursor) cursorDirty = false
-        gammaApplied(gamma)
+        gammaSide.gammaApplied(gamma)
         buffer.startShowing()
         queuedDirect = buffer
         awaitFlip(serial)
@@ -708,7 +708,7 @@ class DrmOutput internal constructor(
         scheduleFrame(0)
     }
 
-    private fun scheduleFrame(delayMillis: Long) {
+    internal fun scheduleFrame(delayMillis: Long) {
         val delay = if (dark) maxOf(delayMillis, DARK_HEARTBEAT_MILLIS) else delayMillis
         val due = System.nanoTime() + delay * 1_000_000
         // One frame at a time; an earlier one replaces a later (the screen came back on).
@@ -806,53 +806,9 @@ class DrmOutput internal constructor(
      * Uses the gamma table [red], [green], [blue] ([gammaSize] each); null: the monitor's own.
      * It goes with the next picture (tested now), and stays across mode sets and terminals.
      */
-    fun setGamma(red: ShortArray?, green: ShortArray?, blue: ShortArray?): Boolean {
-        if (crtcProps["GAMMA_LUT"] == null) return false
-        val blob = if (red == null || green == null || blue == null) {
-            0
-        } else {
-            val size = red.size
-            if (size != gammaSize || green.size != size || blue.size != size) return false
-            // struct drm_color_lut { u16 red, green, blue, reserved }
-            Arena.ofConfined().use { temp ->
-                val table = temp.allocate(size * 8L)
-                for (i in 0 until size) {
-                    table.set(java.lang.foreign.ValueLayout.JAVA_SHORT, i * 8L, red[i])
-                    table.set(java.lang.foreign.ValueLayout.JAVA_SHORT, i * 8L + 2, green[i])
-                    table.set(java.lang.foreign.ValueLayout.JAVA_SHORT, i * 8L + 4, blue[i])
-                    table.set(java.lang.foreign.ValueLayout.JAVA_SHORT, i * 8L + 6, 0)
-                }
-                device.createBlob(table)
-            }
-        }
-        if (isSessionActive()) {
-            val result = device.commit(Drm.DRM_MODE_ATOMIC_TEST_ONLY()) { request -> request.set(crtcId, crtcProps, "GAMMA_LUT", blob.toLong()) }
-            if (result != 0) {
-                log.warn("$name: the gamma table was refused (${errno(result)})")
-                if (blob != 0) device.destroyBlob(blob)
-                return false
-            }
-        }
-        pendingGamma?.let { if (it != 0 && it != gammaBlob) device.destroyBlob(it) }
-        pendingGamma = blob
-        redrawAll = true
-        scheduleFrame(0)
-        return true
-    }
+    fun setGamma(red: ShortArray?, green: ShortArray?, blue: ShortArray?): Boolean = gammaSide.setGamma(red, green, blue)
 
-    // The gamma table on screen, and one waiting for the next picture.
-    private var gammaBlob = 0
-    private var pendingGamma: Int? = null
-
-    // [gamma] reached the screen with a picture: the one before is no longer needed.
-    private fun gammaApplied(gamma: Int?) {
-        if (gamma == null || pendingGamma != gamma) return
-        if (gammaBlob != 0 && gammaBlob != gamma) device.destroyBlob(gammaBlob)
-        gammaBlob = gamma
-        pendingGamma = null
-    }
-
-    private fun errno(result: Int): String = when (-result) {
+    internal fun errno(result: Int): String = when (-result) {
         16 -> "busy"
         22 -> "invalid"
         28 -> "no room (bandwidth)"
@@ -920,27 +876,10 @@ class DrmOutput internal constructor(
         freeRetired()
         cursorSlots.forEach(::freeSlot)
         cursorSlots = emptyList()
-        pendingGamma?.let { if (it != 0) device.destroyBlob(it) }
-        if (gammaBlob != 0) device.destroyBlob(gammaBlob)
+        gammaSide.pendingGamma?.let { if (it != 0) device.destroyBlob(it) }
+        if (gammaSide.gammaBlob != 0) device.destroyBlob(gammaSide.gammaBlob)
     }
 
-    private companion object {
-        /** Two buffers: one on screen (or on its way there), one being drawn — only one picture is ever on its way. */
-        const val BUFFERS = 2
-        const val MAX_MODESET_FAILURES = 5
-        const val FLIP_TIMEOUT_MILLIS = 1000L
-        const val LINK_STATUS_GOOD = 0L
-        const val DRM_CAP_CURSOR_WIDTH = 0x8
-        const val DRM_CAP_CURSOR_HEIGHT = 0x9
-        const val MAX_MODES_TO_TRY = 8
-        // EPERM, EACCES (another terminal has the screen), EBUSY, EINTR, EAGAIN: try again next time.
-        val TRANSIENT_ERRNOS = setOf(1, 13, 16, 4, 11)
-        const val RETRY_MILLIS = 16L
-        const val ERROR_RETRY_MILLIS = 1000L
-
-        // How often frames come while nothing reaches the screen (see dark).
-        const val DARK_HEARTBEAT_MILLIS = 1000L
-    }
 }
 
 /**
@@ -957,3 +896,19 @@ internal fun <T> takenAlong(extras: List<T>, works: (List<T>) -> Boolean, refuse
     taken.forEach { refused(it, false) }
     return emptyList()
 }
+
+/** Two buffers: one on screen (or on its way there), one being drawn — only one picture is ever on its way. */
+internal const val BUFFERS = 2
+internal const val MAX_MODESET_FAILURES = 5
+internal const val FLIP_TIMEOUT_MILLIS = 1000L
+internal const val LINK_STATUS_GOOD = 0L
+internal const val DRM_CAP_CURSOR_WIDTH = 0x8
+internal const val DRM_CAP_CURSOR_HEIGHT = 0x9
+internal const val MAX_MODES_TO_TRY = 8
+// EPERM, EACCES (another terminal has the screen), EBUSY, EINTR, EAGAIN: try again next time.
+internal val TRANSIENT_ERRNOS = setOf(1, 13, 16, 4, 11)
+internal const val RETRY_MILLIS = 16L
+internal const val ERROR_RETRY_MILLIS = 1000L
+
+// How often frames come while nothing reaches the screen (see dark).
+internal const val DARK_HEARTBEAT_MILLIS = 1000L
