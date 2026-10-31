@@ -110,7 +110,7 @@ internal class DesktopLock(private val desktop: Desktop) {
     // Nothing may go on behind a lock: no menus, no overview, no dragging, no overlay, our
     // widgets lose the pointer and the keyboard (unless they may be used while locked).
     private fun nothingBehindTheLock() {
-        desktop.hideSpecialsForLock()
+        desktop.pads.hideSpecialsForLock()
         desktop.seat.cancelDrag()
         desktop.seat.forgetInput()
         desktop.popupHost.grabs.toList().asReversed().forEach { it.dismiss() }

@@ -45,7 +45,7 @@ internal class DesktopHitTest(private val desktop: Desktop) {
             hitTree(popup.surface, x - px, y - py, popup.surface)?.let { return it.at() }
         }
         layerAt(LayerShell.Layer.OVERLAY, x, y)?.let { return it.at() }
-        for (pad in desktop.shownPads.asReversed()) {
+        for (pad in desktop.pads.shownPads.asReversed()) {
             if (pad.leaving) continue
             for (window in pad.windows.asReversed()) {
                 val visible = window.visibleRect

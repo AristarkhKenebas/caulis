@@ -14,7 +14,7 @@ internal class DesktopReport(private val desktop: Desktop) {
             for (window in workspace.windows) appendLine("    ${describe(window, workspace)}")
             for (window in workspace.minimized) appendLine("    ${describe(window, workspace)} [minimized]")
         }
-        for (pad in desktop.allPads) {
+        for (pad in desktop.pads.allPads) {
             appendLine("  ${if (pad.isSpecial) "special workspace" else "scratchpad"} ${pad.name} (${if (pad.shown) "shown" else "hidden"}): ${pad.windows.joinToString { it.toString() }.ifEmpty { "no window" }}")
         }
         for (layer in desktop.layerHost.layerSurfaces) {

@@ -67,6 +67,8 @@ class Desktop(
 
     internal val lockHost = DesktopLock(this)
 
+    internal val pads = DesktopScratchpads(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -296,10 +298,10 @@ class Desktop(
         for (view in views + capturing.captureViews) if (view.monitor === monitor) view.monitor = home
         // Scratchpads shown on it come over to [home]; a special workspace only if none is shown
         // there (one a monitor: else two dimmings and two sets of windows on top of each other).
-        for (pad in shownPads.toList()) if (pad.monitor === monitor && !pad.leaving) {
-            if (pad.isSpecial && shownPads.any { it !== pad && it.isSpecial && !it.leaving && it.monitor === home }) {
+        for (pad in pads.shownPads.toList()) if (pad.monitor === monitor && !pad.leaving) {
+            if (pad.isSpecial && pads.shownPads.any { it !== pad && it.isSpecial && !it.leaving && it.monitor === home }) {
                 layoutLog.info { "Special workspace ${pad.name} hidden: its monitor is gone and ${home.name} shows another one" }
-                hideScratchpad(pad, focusBack = false)
+                pads.hideScratchpad(pad, focusBack = false)
             } else {
                 pad.monitor = home
             }
@@ -536,7 +538,7 @@ class Desktop(
     // A monitor changed size: maximized and fullscreen windows on it follow, layouts re-arrange.
     internal fun refitWindows(monitor: Monitor) {
         lockHost.lock?.surfaces?.filter { lockMonitor(it) === monitor }?.forEach { it.configure(monitor.area.width, monitor.area.height) }
-        for (pad in shownPads) if (pad.monitor === monitor) placeScratchpad(pad, appearing = emptySet())
+        for (pad in pads.shownPads) if (pad.monitor === monitor) pads.placeScratchpad(pad, appearing = emptySet())
         for (workspace in workspaces.values) {
             if ((workspace.monitor ?: focusedMonitor) !== monitor) continue
             for (window in workspace.windows + workspace.minimized) {
@@ -711,7 +713,7 @@ class Desktop(
 
     /** Every window: on all workspaces (minimized ones too) and in scratchpads. */
     val allWindows: List<Window>
-        get() = workspaces.values.flatMap { it.windows + it.minimized } + allPads.flatMap { it.windows }
+        get() = workspaces.values.flatMap { it.windows + it.minimized } + pads.allPads.flatMap { it.windows }
 
     /** True if [window] is minimized (on any workspace). */
     fun isMinimized(window: Window): Boolean = workspaces.values.any { window in it.minimized }
@@ -749,11 +751,11 @@ class Desktop(
 
     // A layout's places for [windows] (fewer: the rest are not placed, as Floating does); one
     // that fails leaves every window the whole [area] meanwhile.
-    private fun arrangeSafely(workspace: Workspace, windows: List<Window>, area: Rect, focused: Window?): List<Rect> =
+    internal fun arrangeSafely(workspace: Workspace, windows: List<Window>, area: Rect, focused: Window?): List<Rect> =
         userCode("The layout ${workspace.layout.name}", null) { workspace.model.arrange(windows, area, focused) } ?: windows.map { area }
 
     // Floats or not: your floatRule, or (if it fails) the usual answer.
-    private fun floats(window: Window): Boolean =
+    internal fun floats(window: Window): Boolean =
         userCode("Your floatRule", window.parent != null || window.fixedSize || window.prefersFloating) { floatRule(window) }
 
     // The log, by area (see dev.caulis.log.Log.AREAS): CAULIS_LOG="1,focus=3" and so on.
@@ -1359,57 +1361,19 @@ class Desktop(
 
     // --- scratchpads (special workspaces) -----------------------------------------------------
 
-    private val scratchpads = LinkedHashMap<String, Scratchpad>()
-
-    // Scratchpads on screen (or leaving it), the last shown on top.
-    internal val shownPads = ArrayList<Scratchpad>()
-
-    // The scratchpad window with the keyboard, if any.
-    private var padFocus: Window? = null
-
-    // The special workspace used last (shown, moved into, a window of it focused).
-    private var lastSpecial: Scratchpad? = null
-
     /**
      * A special workspace named [name]: windows for which [match] is true (e.g. a certain
      * app id) live in it, shown and hidden with [toggleScratchpad] above any workspace.
      */
-    fun addScratchpad(name: String, style: Scratchpad.Style, match: (Window) -> Boolean): Scratchpad {
-        require(name !in scratchpads) { "There is already a scratchpad named \"$name\"" }
-        return Scratchpad(name, style, match).also { scratchpads[name] = it }
-    }
+    fun addScratchpad(name: String, style: Scratchpad.Style, match: (Window) -> Boolean): Scratchpad = pads.addScratchpad(name, style, match)
 
     /** The scratchpad named [name], if there is one. */
-    fun scratchpad(name: String): Scratchpad? = scratchpads[name]
+    fun scratchpad(name: String): Scratchpad? = pads.scratchpads[name]
 
     /** The scratchpad (or special workspace, see [Scratchpad.isSpecial]) [window] lives in, if any. */
-    fun scratchpadOf(window: Window): Scratchpad? = allPads.firstOrNull { window in it.windows }
-
-    // The scratchpad a new window belongs to: by the scratchpads' rules, a rule sending it to a
-    // special workspace, or the special workspace shown where it opens.
-    private fun scratchpadFor(window: Window): Scratchpad? {
-        scratchpads.values.firstOrNull { pad -> userCode("Your scratchpad ${pad.name}'s match", false) { pad.match(window) } }?.let { return it }
-        placementOf(window).specialWorkspace?.let { name ->
-            // (A bad name from a rule: logged, and the window opens as usual — not refused.)
-            try {
-                return specialWorkspace(name)
-            } catch (e: IllegalArgumentException) {
-                layoutLog.warn("$window: your rule's special workspace is no good (${e.message}); it opens as usual")
-            }
-        }
-        if (!specialWorkspaces.newWindowsJoin) return null
-        val shown = shownSpecialOn(workMonitor) ?: return null
-        // (A dialog of a window elsewhere stays with its window.)
-        val parent = window.parent
-        return if (parent == null || scratchpadOf(parent) === shown) shown else null
-    }
+    fun scratchpadOf(window: Window): Scratchpad? = pads.allPads.firstOrNull { window in it.windows }
 
     // --- special workspaces (Hyprland's "special", on the scratchpads' machinery) ----------
-
-    private val specials = LinkedHashMap<String, Scratchpad>()
-
-    // Scratchpads and special workspaces together.
-    internal val allPads: List<Scratchpad> get() = scratchpads.values + specials.values
 
     /**
      * How special workspaces look and behave: dimming and blur behind them, their size, their
@@ -1419,35 +1383,19 @@ class Desktop(
         set(value) {
             field = value
             layoutLog.info { "Special workspaces: $value" }
-            for (pad in shownPads) if (pad.isSpecial && !pad.leaving) placeScratchpad(pad, appearing = emptySet())
+            for (pad in pads.shownPads) if (pad.isSpecial && !pad.leaving) pads.placeScratchpad(pad, appearing = emptySet())
             changed()
         }
 
     /** The special workspaces made so far (each the first time it was named), by name. */
-    val specialWorkspaceNames: List<String> get() = specials.keys.toList()
+    val specialWorkspaceNames: List<String> get() = pads.specials.keys.toList()
 
     /** The special workspace [name] ("special" for the one without a name), made now if it is new. */
     @JvmOverloads
-    fun specialWorkspace(name: String = SpecialWorkspaces.DEFAULT_NAME): Scratchpad {
-        val key = specialName(name)
-        return specials.getOrPut(key) {
-            layoutLog.info { "Special workspace $key made" }
-            Scratchpad(key, Scratchpad.Overlay(specialLayout(), specialWorkspaces.dim), { false }, isSpecial = true)
-        }
-    }
-
-    // "special:music" (Hyprland's way) and "music" are the same; "" or "special" the one without a name.
-    private fun specialName(name: String): String {
-        val plain = name.trim().removePrefix("special:").trim()
-        require(plain.none { it.isWhitespace() }) { "a special workspace's name is one word, not \"$name\"" }
-        return plain.ifEmpty { SpecialWorkspaces.DEFAULT_NAME }
-    }
-
-    // The layout its windows are tiled with now.
-    private fun specialLayout(): dev.caulis.tiling.Layout = specialWorkspaces.layout ?: layout
+    fun specialWorkspace(name: String = SpecialWorkspaces.DEFAULT_NAME): Scratchpad = pads.specialWorkspace(name)
 
     /** The special workspace shown on [monitor] (null: none). */
-    fun shownSpecialOn(monitor: Monitor): Scratchpad? = shownPads.lastOrNull { it.isSpecial && !it.leaving && padMonitor(it) === monitor }
+    fun shownSpecialOn(monitor: Monitor): Scratchpad? = pads.shownPads.lastOrNull { it.isSpecial && !it.leaving && pads.padMonitor(it) === monitor }
 
     /**
      * Shows the special workspace [name] over the workspace on the focused monitor (hiding
@@ -1455,47 +1403,15 @@ class Desktop(
      * It shows even without windows (new ones then open in it). Returns true if it is shown now.
      */
     @JvmOverloads
-    fun toggleSpecialWorkspace(name: String = SpecialWorkspaces.DEFAULT_NAME): Boolean {
-        val pad = specialWorkspace(name)
-        if (pad.shown && !pad.leaving) {
-            // Shown on another monitor: it comes over here instead.
-            if (padMonitor(pad) !== workMonitor) return showSpecial(pad)
-            hideScratchpad(pad)
-            return false
-        }
-        return showSpecial(pad)
-    }
+    fun toggleSpecialWorkspace(name: String = SpecialWorkspaces.DEFAULT_NAME): Boolean = pads.toggleSpecialWorkspace(name)
 
     /** Shows the special workspace [name] on the focused monitor (nothing if it is shown there already). */
     @JvmOverloads
-    fun showSpecialWorkspace(name: String = SpecialWorkspaces.DEFAULT_NAME) {
-        val pad = specialWorkspace(name)
-        if (!pad.shown || pad.leaving || padMonitor(pad) !== workMonitor) showSpecial(pad)
-    }
+    fun showSpecialWorkspace(name: String = SpecialWorkspaces.DEFAULT_NAME) = pads.showSpecialWorkspace(name)
 
     /** Hides the special workspace [name] if it is shown. */
     @JvmOverloads
-    fun hideSpecialWorkspace(name: String = SpecialWorkspaces.DEFAULT_NAME) {
-        val pad = specials[specialName(name)] ?: return
-        if (pad.shown && !pad.leaving) hideScratchpad(pad)
-    }
-
-    // Shows [pad] on the focused monitor (moving it here if it is shown on another one).
-    // Not while locked if special workspaces hide on the lock: returns false then.
-    private fun showSpecial(pad: Scratchpad): Boolean {
-        if (locked && specialWorkspaces.hideOnLock) {
-            layoutLog.info { "Special workspace ${pad.name} not shown: the session is locked" }
-            return false
-        }
-        // One special workspace per monitor: the one shown there goes.
-        for (other in shownPads.toList()) if (other !== pad && other.isSpecial && !other.leaving && padMonitor(other) === workMonitor) hideScratchpad(other, focusBack = false)
-        // Shown on another monitor: it moves over here (keeping the window to go back to there).
-        if (pad.shown && !pad.leaving && padMonitor(pad) !== workMonitor) pad.monitor = workMonitor
-        layoutLog.info { "Special workspace ${pad.name} shown on ${workMonitor.name}" }
-        lastSpecial = pad
-        showScratchpad(pad, appearing = pad.windows.toSet())
-        return true
-    }
+    fun hideSpecialWorkspace(name: String = SpecialWorkspaces.DEFAULT_NAME) = pads.hideSpecialWorkspace(name)
 
     /**
      * Moves [window] into the special workspace [name] (made if new). It shows there, with
@@ -1503,69 +1419,13 @@ class Desktop(
      * as Hyprland's `movetoworkspacesilent special:name`.
      */
     @JvmOverloads
-    fun moveToSpecialWorkspace(window: Window, name: String = SpecialWorkspaces.DEFAULT_NAME, silent: Boolean = false) {
-        val pad = specialWorkspace(name)
-        val before = scratchpadOf(window)
-        if (before === pad) {
-            if (!silent && (!pad.shown || pad.leaving)) showSpecial(pad)
-            return
-        }
-        if (before != null) {
-            leavePad(before, window)
-        } else {
-            val from = workspaceOf(window) ?: return
-            if (window.fullscreen) setFullscreen(window, false)
-            if (window.maximized) setMaximized(window, false)
-            pinned -= window
-            from.remove(window)
-            from.model.forget(window)
-            pending.remove(window)
-            arrange(from)
-        }
-        pad.windows += window
-        lastSpecial = pad
-        layoutLog.info { "$window moved into the special workspace ${pad.name}${if (silent) " (silently)" else ""}" }
-        val hadFocus = window === focusedWindow
-        if (pad.shown && !pad.leaving) {
-            placeScratchpad(pad, appearing = emptySet())
-            if (!silent || hadFocus) focus(window)
-        } else if (!silent) {
-            showSpecial(pad)
-            focus(window)
-        } else {
-            // Waiting there unseen: drawn nowhere, the focus goes on.
-            glides -= window
-            if (hadFocus) passFocusOn(windows.lastOrNull())
-        }
-        events.windowListChanged()
-        changed()
-    }
+    fun moveToSpecialWorkspace(window: Window, name: String = SpecialWorkspaces.DEFAULT_NAME, silent: Boolean = false) = pads.moveToSpecialWorkspace(window, name, silent)
 
     /**
      * Moves [window] out of its special workspace (or scratchpad) onto the workspace shown on
      * the focused monitor, tiled there as usual. False if it is in none.
      */
-    fun moveOutOfSpecialWorkspace(window: Window): Boolean {
-        val pad = scratchpadOf(window) ?: return false
-        leavePad(pad, window)
-        val workspace = focusedMonitor.workspace
-        workspace.add(window)
-        window.tiled = workspace.layout !== dev.caulis.tiling.Floating && !floats(window)
-        if (!window.tiled) {
-            workspace.floating += window
-            val visible = window.visibleRect
-            val place = floatingRects[window] ?: cascadeRect(visible.width, visible.height, focusedMonitor.area)
-            window.x = place.x
-            window.y = place.y
-            window.configure(place.width, place.height)
-        }
-        arrange(workspace)
-        layoutLog.info { "$window moved out of ${pad.name} onto workspace ${workspace.number}" }
-        focus(window)
-        events.windowListChanged()
-        changed()
-        return true
-    }
+    fun moveOutOfSpecialWorkspace(window: Window): Boolean = pads.moveOutOfSpecialWorkspace(window)
 
     /**
      * Moves a window out of a special workspace onto the workspace shown on the focused
@@ -1575,39 +1435,21 @@ class Desktop(
      * hidden — so the key brings a window back with its special workspace hidden too. Returns
      * the window moved, or null if there was none.
      */
-    fun moveOutOfSpecialWorkspace(): Window? {
-        val focused = focusedWindow?.takeIf { scratchpadOf(it)?.isSpecial == true }
-        val pad = shownSpecialOn(workMonitor) ?: lastSpecial?.takeIf { it in specials.values }
-        // (Its windows are oldest first, the one focused last at the end.)
-        val window = focused ?: pad?.windows?.lastOrNull()
-        if (window == null) {
-            layoutLog.info { "Nothing to move out of a special workspace (${pad?.let { "${it.name} is empty" } ?: "none used yet"})" }
-            return null
-        }
-        if (focused == null) layoutLog.info { "No window of a special workspace focused: $window (focused last in ${pad?.name}) moves out" }
-        return window.takeIf { moveOutOfSpecialWorkspace(it) }
-    }
+    fun moveOutOfSpecialWorkspace(): Window? = pads.moveOutOfSpecialWorkspace()
 
     /**
      * Where the special workspace shown on [monitor] tiles its windows (inside its gap, as big
      * as [SpecialWorkspaces.size] says; desktop units), or null if none is shown there. Around
      * it the dimmed workspace shows: a window dragged there leaves the special workspace.
      */
-    fun specialWorkspaceArea(monitor: Monitor): Rect? = shownSpecialOn(monitor)?.let(::specialArea)
+    fun specialWorkspaceArea(monitor: Monitor): Rect? = shownSpecialOn(monitor)?.let(pads::specialArea)
 
     /**
      * A window of a shown special workspace dragged by ([dx], [dy]) from its tile (desktop
      * units), drawn there until [dropFromSpecialWorkspace]. For a window manager's own drag
      * (newm's Super+drag); [beginMove] does the same with the pointer.
      */
-    fun dragInSpecialWorkspace(window: Window, dx: Int, dy: Int) {
-        val pad = scratchpadOf(window)?.takeIf { it.isSpecial && it.shown && !it.leaving } ?: return
-        val tile = padTargets(pad)[window] ?: return
-        glides -= window
-        window.x = tile.x + dx
-        window.y = tile.y + dy
-        changed()
-    }
+    fun dragInSpecialWorkspace(window: Window, dx: Int, dy: Int) = pads.dragInSpecialWorkspace(window, dx, dy)
 
     /**
      * The drag of [window] (of a special workspace) ends with the pointer at ([x], [y]): over
@@ -1615,214 +1457,16 @@ class Desktop(
      * (as [moveOutOfSpecialWorkspace]), focused; within it, it goes back to its tile. Returns
      * true if it moved out.
      */
-    fun dropFromSpecialWorkspace(window: Window, x: Double, y: Double): Boolean {
-        val pad = scratchpadOf(window)?.takeIf { it.isSpecial } ?: return false
-        val area = specialArea(pad)
-        val inside = x >= area.x && x < area.right && y >= area.y && y < area.bottom
-        if (inside || !pad.shown || pad.leaving) {
-            if (pad.shown && !pad.leaving) placeScratchpad(pad, appearing = emptySet())
-            return false
-        }
-        layoutLog.info { "$window dragged out of the special workspace ${pad.name}" }
-        val there = monitorAt(x, y)
-        if (there !== focusedMonitor) setFocusedMonitor(there)
-        return moveOutOfSpecialWorkspace(window)
-    }
-
-    // [window] leaves [pad]: the others take its place; an empty special workspace may hide.
-    private fun leavePad(pad: Scratchpad, window: Window) {
-        pad.windows -= window
-        pad.workspace.model.forget(window)
-        glides -= window
-        if (padFocus === window) padFocus = null
-        if (!pad.shown || pad.leaving) return
-        if (pad.windows.isEmpty() && (!pad.isSpecial || specialWorkspaces.hideWhenEmpty)) hideScratchpad(pad, focusBack = false)
-        else placeScratchpad(pad, appearing = emptySet())
-    }
-
-    // The monitor a shown scratchpad is on.
-    private fun padMonitor(pad: Scratchpad): Monitor = pad.monitor?.takeIf { it in monitorList } ?: workMonitor
-
-    // Where special workspaces and scratchpads show: the director's monitor worked on, if it says one.
-    private var lastWorkMonitor: Monitor? = null
-    private val workMonitor: Monitor
-        get() {
-            val d = director ?: return focusedMonitor
-            val m = userCode("Your WindowDirector (workMonitor)", null) { d.workMonitor() }?.takeIf { it in monitorList } ?: focusedMonitor
-            if (m !== lastWorkMonitor) {
-                lastWorkMonitor = m
-                layoutLog.info { "Monitor worked on (special workspaces): ${m.name}" }
-            }
-            return m
-        }
-
-    // Shown special workspaces hide when the session locks (if the settings say so).
-    internal fun hideSpecialsForLock() {
-        if (!specialWorkspaces.hideOnLock) return
-        for (pad in shownPads.toList()) if (pad.isSpecial && !pad.leaving) {
-            layoutLog.info { "Special workspace ${pad.name} hidden: the screen locks" }
-            // (At once: nothing of the session goes on showing on a lock.)
-            hideScratchpad(pad, focusBack = false, atOnce = true)
-        }
-    }
+    fun dropFromSpecialWorkspace(window: Window, x: Double, y: Double): Boolean = pads.dropFromSpecialWorkspace(window, x, y)
 
     /**
      * Shows the scratchpad [name], or hides it if it is shown. Returns false if it has no
      * windows yet — then start its program; its window appears as soon as it opens.
      */
-    fun toggleScratchpad(name: String): Boolean {
-        val pad = scratchpads[name] ?: return false
-        if (pad.windows.isEmpty()) return false
-        if (pad.shown && !pad.leaving) hideScratchpad(pad) else showScratchpad(pad, appearing = pad.windows.toSet())
-        return true
-    }
+    fun toggleScratchpad(name: String): Boolean = pads.toggleScratchpad(name)
 
     /** Moves [window] from its workspace into the scratchpad [name] (and shows it). */
-    fun moveToScratchpad(window: Window, name: String) {
-        val pad = scratchpads[name] ?: return
-        val from = workspaceOf(window) ?: return
-        from.remove(window)
-        from.model.forget(window)
-        pending.remove(window)
-        arrange(from)
-        pad.windows += window
-        showScratchpad(pad, appearing = emptySet())
-    }
-
-    // The monitor area a scratchpad is shown in.
-    private fun padArea(pad: Scratchpad): Rect = padMonitor(pad).area
-
-    // Where a special workspace's windows are tiled: inside its gap, as big as its size says.
-    private fun specialArea(pad: Scratchpad): Rect {
-        val area = padMonitor(pad).usableArea
-        val settings = specialWorkspaces
-        val gap = settings.gap.coerceAtMost(minOf(area.width, area.height) / 4)
-        val w = ((area.width - 2 * gap) * settings.size).roundToInt().coerceAtLeast(1)
-        val h = ((area.height - 2 * gap) * settings.size).roundToInt().coerceAtLeast(1)
-        return Rect(area.x + (area.width - w) / 2, area.y + (area.height - h) / 2, w, h)
-    }
-
-    // Where a window of [pad] comes from and goes to.
-    private fun padHidden(pad: Scratchpad, rect: Rect): Rect = if (pad.isSpecial) specialWorkspaces.look.hidden(rect) else pad.hiddenRect(rect, padArea(pad))
-
-    // How far a special workspace is shown now (0: gone, 1: there): for its windows' fading and its dim.
-    private fun padAmount(pad: Scratchpad, now: Long): Float {
-        val start = pad.changedAt ?: return if (pad.leaving) 0f else 1f
-        val picked = pick(padAnimation(pad), animations.windowMove)
-        val t = animationProgress(start, picked.millis, now)
-        if (t == null) {
-            pad.changedAt = null
-            return if (pad.leaving) 0f else 1f
-        }
-        val c = picked.curve.safeAt(t).toFloat().coerceIn(0f, 1f)
-        return if (pad.leaving) pad.amountFrom * (1f - c) else pad.amountFrom + (1f - pad.amountFrom) * c
-    }
-
-    // It begins coming or going now, from how far it is shown.
-    private fun padChanges(pad: Scratchpad, from: Float, now: Long) {
-        pad.amountFrom = from
-        pad.changedAt = if (pick(padAnimation(pad), animations.windowMove).millis > 0) now else null
-    }
-
-    // The animation a scratchpad's windows come and go with.
-    private fun padAnimation(pad: Scratchpad?): String = if (pad?.isSpecial == true) specialWorkspaces.animation else "scratchpads"
-
-    private fun showScratchpad(pad: Scratchpad, appearing: Set<Window>, focusOn: Window? = null) {
-        // (Coming back while going: it goes on from where it is, it does not start again.)
-        val coming = pad.shown && pad.leaving
-        if (!pad.shown || pad.leaving) {
-            val now = System.nanoTime()
-            padChanges(pad, if (coming) padAmount(pad, now) else 0f, now)
-            pad.monitor = workMonitor
-            if (pad.isSpecial) pad.focusBefore = focusedWindow?.takeIf { scratchpadOf(it) == null }?.let { java.lang.ref.WeakReference(it) }
-        }
-        pad.shown = true
-        pad.leaving = false
-        padTimers.remove(pad)?.cancel()
-        shownPads -= pad
-        shownPads += pad
-        placeScratchpad(pad, appearing, fromShown = coming)
-        (focusOn ?: pad.windows.lastOrNull())?.let(::focus)
-    }
-
-    private val padTimers = HashMap<Scratchpad, EventLoop.Timer>()
-
-    private fun hideScratchpad(pad: Scratchpad, focusBack: Boolean = true, atOnce: Boolean = false) {
-        val began = System.nanoTime()
-        padChanges(pad, padAmount(pad, began), began)
-        pad.leaving = true
-        pad.focusedAsItWent = focusedWindow?.takeIf { it in pad.windows }?.let { java.lang.ref.WeakReference(it) }
-        if (pad.isSpecial) layoutLog.info { "Special workspace ${pad.name} hidden" }
-        // A special workspace gives the focus back to the window that had it before (if it is still there).
-        val back = pad.focusBefore?.get()?.takeIf { focusBack && it in windows }
-        pad.focusBefore = null
-        val now = System.nanoTime()
-        for (window in pad.windows) {
-            val from = shownRects[window] ?: currentRect(window)
-            glides[window] = Glide(from, now, to = padHidden(pad, from), name = padAnimation(pad))
-        }
-        // (A hide before this one, shown again in between, must not end this one early.)
-        padTimers.remove(pad)?.cancel()
-        fun gone() {
-            padTimers -= pad
-            if (!pad.leaving) return // shown again meanwhile
-            pad.leaving = false
-            pad.shown = false
-            shownPads -= pad
-            for (window in pad.windows) glides -= window
-            popupHost.dismissHiddenGrabs("their scratchpad is hidden")
-            if (padFocus != null && padFocus in pad.windows) focus(back ?: windows.lastOrNull())
-            changed()
-        }
-        // (Without the animation: gone at once, not drawn where it was meanwhile.)
-        val millis = pick(padAnimation(pad), animations.windowMove).millis
-        if (millis <= 0 || atOnce) gone() else padTimers[pad] = compositor.display.loop.after(millis) { gone() }
-        if (padFocus != null && padFocus in pad.windows) focus(back ?: windows.lastOrNull())
-        changed()
-    }
-
-    // Where the scratchpad's windows go: its edge, the middle, or its own layout.
-    private fun padTargets(pad: Scratchpad, extra: Window? = null): Map<Window, Rect> {
-        val windows = pad.windows + listOfNotNull(extra)
-        if (windows.isEmpty()) return emptyMap()
-        if (pad.isSpecial) {
-            // The compositor's layout (or its own), inside its gap.
-            val layout = specialLayout()
-            val area = specialArea(pad)
-            if (layout === Floating) {
-                // No tiling: each window in the middle, two thirds of it as big.
-                val w = area.width * 2 / 3
-                val h = area.height * 2 / 3
-                return windows.associateWith { fit(it, Rect(area.x + (area.width - w) / 2, area.y + (area.height - h) / 2, w, h)) }
-            }
-            if (pad.workspace.layout != layout) pad.workspace.layout = layout
-            val rects = arrangeSafely(pad.workspace, windows, area, windows.lastOrNull())
-            return windows.associateWith { window -> fit(window, rects.getOrNull(windows.indexOf(window)) ?: area) }
-        }
-        if (pad.style is Scratchpad.Overlay) {
-            val rects = arrangeSafely(pad.workspace, windows, padArea(pad), windows.lastOrNull())
-            return windows.zip(rects).associate { (window, rect) -> window to fit(window, rect) }
-        }
-        val rect = pad.shownRect(padArea(pad))
-        return windows.associateWith { fit(it, rect) }
-    }
-
-    // Sizes and places the scratchpad's windows; [appearing] ones grow or slide into place.
-    private fun placeScratchpad(pad: Scratchpad, appearing: Set<Window>, fromShown: Boolean = false) {
-        val now = System.nanoTime()
-        for ((window, rect) in padTargets(pad)) {
-            window.tiled = pad.style is Scratchpad.Overlay && !(pad.isSpecial && specialLayout() === Floating)
-            val visibleRect = window.visibleRect
-            // (Asked for by the size it was asked last too: it may not have drawn that one yet.)
-            if (visibleRect.width != rect.width || visibleRect.height != rect.height || window.configuredSize != rect.width to rect.height) window.configure(rect.width, rect.height)
-            window.x = rect.x
-            window.y = rect.y
-            if (window in appearing && pick(padAnimation(pad), animations.windowMove).millis > 0) {
-                glides[window] = Glide(shownRects[window].takeIf { fromShown } ?: padHidden(pad, rect), now, name = padAnimation(pad))
-            }
-        }
-        changed()
-    }
+    fun moveToScratchpad(window: Window, name: String) = pads.moveToScratchpad(window, name)
 
     // --- placing windows: layouts and transactions ---------------------------------------
 
@@ -1904,7 +1548,7 @@ class Desktop(
 
     // Respects the program's own size limits: a window that cannot be as big (or small) as
     // its tile is centred in it instead of being pushed off screen (R5).
-    private fun fit(window: Window, place: Rect): Rect {
+    internal fun fit(window: Window, place: Rect): Rect {
         val tile = withoutTitle(window, place) // the compositor's title bar takes the top of the tile
         val w = limitSize(tile.width, window.minWidth, window.maxWidth)
         val h = limitSize(tile.height, window.minHeight, window.maxHeight)
@@ -2517,12 +2161,12 @@ class Desktop(
     }
 
     // A window's animation by [name]: the code's look (or the one its settings name), its time and curve.
-    private class Picked<T>(val look: T, val millis: Long, val curve: Curve)
+    internal class Picked<T>(val look: T, val millis: Long, val curve: Curve)
 
     // Window looks by their names, made once (asked every frame).
     private val namedLooks = HashMap<String, WindowAnimation?>()
 
-    private fun pick(name: String, code: WindowAnimation): Picked<WindowAnimation> {
+    internal fun pick(name: String, code: WindowAnimation): Picked<WindowAnimation> {
         val resolved = animation(name, code.millis, code.curve)
         val style = resolved.style?.takeIf { it != "default" }
         val look = when {
@@ -2533,14 +2177,14 @@ class Desktop(
         return Picked(look, if (look === WindowAnimation.NONE) 0L else resolved.effectiveMillis, resolved.curve)
     }
 
-    private fun pick(name: String, code: WorkspaceAnimation): Picked<WorkspaceAnimation> {
+    internal fun pick(name: String, code: WorkspaceAnimation): Picked<WorkspaceAnimation> {
         val resolved = animation(name, code.millis, code.curve)
         val look = resolved.style?.takeIf { it != "default" }?.let(WorkspaceAnimation::named) ?: code
         return Picked(look, if (look === WorkspaceAnimation.NONE) 0L else resolved.effectiveMillis, resolved.curve)
     }
 
     // How much of an animation's time has passed (0 to 1), or null once it is over (or off).
-    private fun animationProgress(start: Long, millis: Long, now: Long): Double? {
+    internal fun animationProgress(start: Long, millis: Long, now: Long): Double? {
         if (millis <= 0) return null
         val t = (now - start) / (millis * 1_000_000.0)
         return if (t >= 1.0) null else t.coerceAtLeast(0.0)
@@ -2715,7 +2359,7 @@ class Desktop(
     }
 
     // Where each window was drawn last (with any glide), so a new glide starts there.
-    private val shownRects = HashMap<Window, Rect>()
+    internal val shownRects = HashMap<Window, Rect>()
 
     // Where each window appears on screen (with the overview's zoom).
     internal val screenRects = HashMap<Window, Rect>()
@@ -2737,7 +2381,7 @@ class Desktop(
         val shown = shownRects[window]
         window.x = x
         window.y = y
-        val name = scratchpadOf(window)?.let(::padAnimation) ?: "windowsMove"
+        val name = scratchpadOf(window)?.let(pads::padAnimation) ?: "windowsMove"
         if (shown != null && (window in activeWorkspace.windows || scratchpadOf(window) != null) && behaviorOf(window).animated && pick(name, animations.windowMove).millis > 0) {
             glides[window] = Glide(shown, System.nanoTime(), name = name)
         }
@@ -2770,7 +2414,7 @@ class Desktop(
     }
 
     // The next free spot of the cascade (top left, stepping down and right).
-    private fun cascadeRect(windowWidth: Int, windowHeight: Int, area: Rect = focusedMonitor.area): Rect {
+    internal fun cascadeRect(windowWidth: Int, windowHeight: Int, area: Rect = focusedMonitor.area): Rect {
         val step = 32
         val x = (40 + cascade * step).coerceAtMost((area.width - windowWidth).coerceAtLeast(0))
         val y = (40 + cascade * step).coerceAtMost((area.height - windowHeight).coerceAtLeast(0))
@@ -2827,7 +2471,7 @@ class Desktop(
 
     // --- pinned windows: floating, on whichever workspace their monitor shows --------------------
 
-    private val pinned = HashSet<Window>()
+    internal val pinned = HashSet<Window>()
 
     /** True if [window] is pinned: it floats and stays on screen when its monitor shows another workspace. */
     fun isPinned(window: Window): Boolean = window in pinned
@@ -2853,7 +2497,7 @@ class Desktop(
     // What placementFor said, from a window's first configure until it appears.
     private val placements = HashMap<Window, WindowPlacement>()
 
-    private fun placementOf(window: Window): WindowPlacement = placements.getOrPut(window) {
+    internal fun placementOf(window: Window): WindowPlacement = placements.getOrPut(window) {
         try {
             placementFor(window) ?: WindowPlacement.USUAL
         } catch (e: Throwable) {
@@ -2930,9 +2574,9 @@ class Desktop(
     // in a wrong size first (R1). Maximized/fullscreen apps get the whole desktop.
     override fun initialSize(window: Window): Pair<Int, Int> {
         if (directed(window)) return userCode("Your WindowDirector (initialSize)", 0 to 0) { director!!.initialSize(window) }
-        scratchpadFor(window)?.let { pad ->
+        pads.scratchpadFor(window)?.let { pad ->
             window.tiled = pad.style is Scratchpad.Overlay // told in the very first configure
-            return padTargets(pad, extra = window)[window]?.let { it.width to it.height } ?: (0 to 0)
+            return pads.padTargets(pad, extra = window)[window]?.let { it.width to it.height } ?: (0 to 0)
         }
         // Where it goes (rules), told in the very first configure too.
         val placement = placementOf(window)
@@ -2950,7 +2594,7 @@ class Desktop(
 
     override fun windowMapped(window: Window) {
         lockHost.mapNumbers[window] = ++lockHost.mapCount
-        scratchpadFor(window)?.let { pad ->
+        pads.scratchpadFor(window)?.let { pad ->
             // Its program was just started (usually by the scratchpad's key): show it. A special
             // workspace's rule sends it there silently (unless goToWorkspace), or it is shown already.
             val placement = placementOf(window)
@@ -2961,9 +2605,9 @@ class Desktop(
                 events.windowListChanged()
                 changed()
             } else if (pad.isSpecial && (!pad.shown || pad.leaving)) {
-                showSpecial(pad)
+                pads.showSpecial(pad)
             } else {
-                showScratchpad(pad, appearing = setOf(window))
+                pads.showScratchpad(pad, appearing = setOf(window))
             }
             windowsLog.info { "Opened $window (workspace ${workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
             notifyEach(events.windowOpenedListeners, window, "window-opened")
@@ -3062,12 +2706,12 @@ class Desktop(
                 pad.shown = false
                 pad.leaving = false
                 pad.focusBefore = null
-                shownPads -= pad
-                padTimers.remove(pad)?.cancel()
+                pads.shownPads -= pad
+                pads.padTimers.remove(pad)?.cancel()
             } else if (pad.shown) {
-                placeScratchpad(pad, appearing = emptySet())
+                pads.placeScratchpad(pad, appearing = emptySet())
             }
-            if (padFocus === window || hadFocus) passFocusOn(pad.windows.lastOrNull()?.takeIf { pad.shown } ?: back ?: windows.lastOrNull())
+            if (pads.padFocus === window || hadFocus) passFocusOn(pad.windows.lastOrNull()?.takeIf { pad.shown } ?: back ?: windows.lastOrNull())
             changed()
             notifyEach(events.windowClosedListeners, window, "window-closed")
             return
@@ -3089,7 +2733,7 @@ class Desktop(
     override fun windowDestroyed(window: Window) {
         placements -= window
         for (workspace in workspaces.values) workspace.model.forget(window)
-        allPads.forEach { it.windows -= window }
+        pads.allPads.forEach { it.windows -= window }
     }
 
     override fun windowCommitted(window: Window) {
@@ -3122,7 +2766,7 @@ class Desktop(
     }
 
     /** The window that has the keyboard, if any. */
-    val focusedWindow: Window? get() = padFocus?.takeIf { it.activated } ?: windows.lastOrNull()?.takeIf { it.activated }
+    val focusedWindow: Window? get() = pads.padFocus?.takeIf { it.activated } ?: windows.lastOrNull()?.takeIf { it.activated }
 
     // A request its rules say is not done: the program only hears how its window is.
     private fun refuses(window: Window, request: WindowRequest): Boolean {
@@ -3189,7 +2833,7 @@ class Desktop(
         if (directorTakes(window, WindowRequest.MINIMIZE, true)) return
         if (refuses(window, WindowRequest.MINIMIZE)) return
         val pad = scratchpadOf(window)
-        if (pad != null) hideScratchpad(pad) else minimize(window)
+        if (pad != null) pads.hideScratchpad(pad) else minimize(window)
     }
 
     /** Makes [window] fill the desktop (or brings it back to its earlier place and size). */
@@ -3461,17 +3105,17 @@ class Desktop(
     // The focused window went (closed, minimized): [next] gets the focus — the keyboard too if
     // a window had it; a launcher, a widget or a panel that has it keeps it (and gives it to
     // [next] when done). Nothing while locked (unlocking gives the top window the focus).
-    private fun passFocusOn(next: Window?) {
+    internal fun passFocusOn(next: Window?) {
         if (locked) return
         if (keyboardWidget == null && layerHost.exclusiveLayer() == null && layerHost.layerFocus == null) return focus(next)
         val pad = next?.let(::scratchpadOf)
         for (other in activeWorkspace.windowList) if (other !== next) other.setActivated(false)
-        for (other in allPads.flatMap { it.windows }) if (other !== next) other.setActivated(false)
+        for (other in pads.allPads.flatMap { it.windows }) if (other !== next) other.setActivated(false)
         if (next != null) {
             if (pad == null && activeWorkspace.windowList.remove(next)) activeWorkspace.windowList += next
             next.setActivated(true)
         }
-        padFocus = next?.takeIf { pad != null }
+        pads.padFocus = next?.takeIf { pad != null }
         if (next !== lastFocused) {
             lastFocused = next
             focusedAt = System.nanoTime()
@@ -3516,19 +3160,19 @@ class Desktop(
         if (window != null && window.urgent) setUrgent(window, false)
         val pad = window?.let(::scratchpadOf)
         // Everything else loses the "active" look.
-        for (other in allPads.flatMap { it.windows }) if (other !== window) other.setActivated(false)
+        for (other in pads.allPads.flatMap { it.windows }) if (other !== window) other.setActivated(false)
         // A window of a hidden special workspace (from a task bar): the special workspace shows.
         if (pad != null && pad.isSpecial && (!pad.shown || pad.leaving)) {
-            showScratchpad(pad, appearing = pad.windows.toSet(), focusOn = window)
+            pads.showScratchpad(pad, appearing = pad.windows.toSet(), focusOn = window)
             return
         }
         if (pad != null) {
             for (other in activeWorkspace.windows) other.setActivated(false)
-            if (pad.isSpecial) lastSpecial = pad
+            if (pad.isSpecial) pads.lastSpecial = pad
             pad.windows -= window
             pad.windows += window
             window.setActivated(true)
-            padFocus = window
+            pads.padFocus = window
             if (layerHost.exclusiveLayer() == null) {
                 layerHost.layerFocus = null
                 widgetHost.keyboardTo(window.surface)
@@ -3542,7 +3186,7 @@ class Desktop(
             changed()
             return
         }
-        padFocus = null
+        pads.padFocus = null
         if (window != null) {
             val workspace = workspaceOf(window)
             if (workspace != null && workspace !== activeWorkspace) {
@@ -4111,9 +3755,9 @@ class Desktop(
                 return
             }
             // A click on the dimmed area around an overlay scratchpad (or a special workspace) hides it.
-            val overlay = shownPads.lastOrNull { it.style is Scratchpad.Overlay && !it.leaving && (!it.isSpecial || specialWorkspaces.clickOutsideHides) }
+            val overlay = pads.shownPads.lastOrNull { it.style is Scratchpad.Overlay && !it.leaving && (!it.isSpecial || specialWorkspaces.clickOutsideHides) }
             if (overlay != null && (hit == null || (hit.root.roleObject as? Window)?.let(::scratchpadOf) !== overlay)) {
-                hideScratchpad(overlay)
+                pads.hideScratchpad(overlay)
                 return
             }
             // A click on a panel that wants the keyboard on demand gives it the keyboard.
@@ -4267,7 +3911,7 @@ class Desktop(
         for (list in widgetHost.drawings.values) for (d in list) if (userCode("Your drawing (animating)", false) { d.animating(now) }) { directorMoving = true; movingThing = d }
         for (w in widgetHost.widgets.toList()) if (userCode("Your widget (animating)", false) { w.animating(now) }) { directorMoving = true; movingThing = w }
         val paintsNow = paintsMoving && paintsDue(now)
-        if (glides.isNotEmpty() || shownPads.any { it.changedAt != null } || overview.cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsNow || focusChanging || directorMoving) {
+        if (glides.isNotEmpty() || pads.shownPads.any { it.changedAt != null } || overview.cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsNow || focusChanging || directorMoving) {
             // Windows are gliding (or the overview zooms): the scene changes every frame until done.
             if (renderLog.level >= 2) {
                 val why = listOfNotNull("glides".takeIf { glides.isNotEmpty() }, "camera".takeIf { overview.cameraMoving(System.nanoTime()) }, "fading".takeIf { fadingNow },
@@ -4734,16 +4378,16 @@ class Desktop(
         // Fullscreen windows cover panels and bars (not notifications on the overlay layer).
         for (window in fullscreen) addWindowNow(window)
         // Shown scratchpads above every workspace, the last shown on top.
-        for (pad in shownPads) {
+        for (pad in pads.shownPads) {
             val overlay = pad.style as? Scratchpad.Overlay
-            val amount = if (pad.isSpecial) padAmount(pad, now) else 1f
+            val amount = if (pad.isSpecial) pads.padAmount(pad, now) else 1f
             if (pad.isSpecial) {
                 // A special workspace: what is behind it blurred and dimmed, as its settings say (the dim fading with it).
                 val settings = specialWorkspaces
-                if (!pad.leaving) settings.blur?.let { blur -> all += DrawItem.Blur(EffectKey("blur special", pad), padArea(pad), 0f, blur.size, blur.passes, blur.tone) }
-                if (settings.dim > 0f && amount > 0f) all += DrawItem.Color("dim special ${pad.name}", padArea(pad), 0f, 0f, 0f, alpha = settings.dim * amount)
+                if (!pad.leaving) settings.blur?.let { blur -> all += DrawItem.Blur(EffectKey("blur special", pad), pads.padArea(pad), 0f, blur.size, blur.passes, blur.tone) }
+                if (settings.dim > 0f && amount > 0f) all += DrawItem.Color("dim special ${pad.name}", pads.padArea(pad), 0f, 0f, 0f, alpha = settings.dim * amount)
             } else if (overlay != null && !pad.leaving) {
-                all += DrawItem.Color("dim ${pad.name}", padArea(pad), 0f, 0f, 0f, alpha = overlay.dim)
+                all += DrawItem.Color("dim ${pad.name}", pads.padArea(pad), 0f, 0f, 0f, alpha = overlay.dim)
             }
             val fade = if (pad.isSpecial && specialWorkspaces.look.fade) amount else 1f
             val first = all.size
