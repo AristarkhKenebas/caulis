@@ -118,6 +118,7 @@ class XdgWindow internal constructor(val resource: XdgToplevel, val shell: Shell
         if (maximized) states += XdgToplevel.State.MAXIMIZED
         if (fullscreen) states += XdgToplevel.State.FULLSCREEN
         if (resizing) states += XdgToplevel.State.RESIZING
+        if (suspended && resource.version >= 6) states += XdgToplevel.State.SUSPENDED
         if (tiled && resource.version >= 2) {
             states += listOf(XdgToplevel.State.TILED_LEFT, XdgToplevel.State.TILED_RIGHT, XdgToplevel.State.TILED_TOP, XdgToplevel.State.TILED_BOTTOM)
         }

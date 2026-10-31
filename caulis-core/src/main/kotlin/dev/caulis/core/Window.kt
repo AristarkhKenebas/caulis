@@ -147,6 +147,22 @@ abstract class Window : LayoutWindow {
     /** Asks the program to use this size (0 = its own choice) and tells it its states. */
     abstract fun configure(width: Int = configuredSize.first, height: Int = configuredSize.second)
 
+    /**
+     * True while the window cannot be seen for a while (on a workspace nobody looks at): programs
+     * told so ([XdgToplevel] "suspended", from version 6 of xdg-shell) may stop drawing and working
+     * for it. The compositor decides when; see [setSuspended].
+     */
+    var suspended = false
+        private set
+
+    /** Tells the program whether it is [suspended]; nothing happens when it knows already. */
+    fun setSuspended(on: Boolean) {
+        if (suspended == on) return
+        suspended = on
+        windowsLog.info { "$this is ${if (on) "suspended: nobody can see it" else "seen again"}" }
+        if (mapped) configure()
+    }
+
     /** Marks the window as active or not (programs draw active windows a bit differently). */
     open fun setActivated(active: Boolean) {
         if (activated == active) return

@@ -167,7 +167,7 @@ internal sealed class DrawItem {
 
     /** The same, [alpha] as strong (a workspace fading out); its monitor stays. */
     fun fadedBy(alpha: Float): DrawItem = when (this) {
-        is Picture -> Picture(surface, texture, rect, opaque, emptyList(), this.alpha * alpha, clip, radius, source)
+        is Picture -> Picture(surface, texture, rect, opaque, emptyList(), this.alpha * alpha, clip, radius, source, transform)
         is Color -> Color(key, rect, red, green, blue, emptyList(), this.alpha * alpha)
         is Image -> Image(key, texture, rect, clip, radius, this.alpha * alpha)
         is Effect -> Effect(key, texture, rect, this.alpha * alpha, shader, from, to, progress, fallback)
@@ -325,7 +325,7 @@ internal sealed class DrawItem {
         this is Image && other is Image -> texture !== other.texture || uploads != other.uploads || alpha != other.alpha
         this is Custom && other is Custom -> look != other.look
         this is Effect && other is Effect -> texture !== other.texture || alpha != other.alpha || progress != other.progress || shader != other.shader
-        this is Picture && other is Picture -> opaque != other.opaque || alpha != other.alpha || clip != other.clip || radius != other.radius ||
+        this is Picture && other is Picture -> opaque != other.opaque || alpha != other.alpha || clip != other.clip || radius != other.radius || transform != other.transform ||
             !java.util.Arrays.equals(source, other.source)
         this is Color && other is Color -> red != other.red || green != other.green || blue != other.blue || alpha != other.alpha
         this is Shadow || this is Border || this is Blur -> this != other

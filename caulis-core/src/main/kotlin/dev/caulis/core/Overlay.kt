@@ -64,7 +64,19 @@ class OverlayCanvas internal constructor(
 
     private fun next(kind: String) = listOf(key, kind, items.size)
 
-    private fun <T : DrawItem> add(item: T): T = item.also { it.only = monitor; items += it }
+    // Where what is drawn from now on shows ([onlyOn]; at first: the canvas's monitor).
+    private var shownOn: Monitor? = monitor
+
+    /**
+     * What is drawn from now on shows on [monitor] only, however far it reaches (null: wherever it
+     * lies). For a window's decorations ([monitor] of the canvas is null there): a border around a
+     * window sliding off its monitor must not show on the neighbour, as the clipped window does not.
+     */
+    fun onlyOn(monitor: Monitor?) {
+        shownOn = monitor
+    }
+
+    private fun <T : DrawItem> add(item: T): T = item.also { it.only = shownOn; items += it }
 
     /** [texture] stretched over [rect], [alpha] as strong, its corners rounded by [radius]. */
     @JvmOverloads

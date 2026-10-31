@@ -1595,6 +1595,7 @@ public final class dev/caulis/core/OverlayCanvas {
 	public final fun imagePart (Ldev/caulis/render/GpuTexture;Ldev/caulis/geometry/Rect;Ldev/caulis/geometry/Rect;)V
 	public final fun imagePart (Ldev/caulis/render/GpuTexture;Ldev/caulis/geometry/Rect;Ldev/caulis/geometry/Rect;F)V
 	public static synthetic fun imagePart$default (Ldev/caulis/core/OverlayCanvas;Ldev/caulis/render/GpuTexture;Ldev/caulis/geometry/Rect;Ldev/caulis/geometry/Rect;FILjava/lang/Object;)V
+	public final fun onlyOn (Ldev/caulis/core/Monitor;)V
 	public final fun roundedFill (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;)V
 	public final fun roundedFill (Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;F)V
 	public static synthetic fun roundedFill$default (Ldev/caulis/core/OverlayCanvas;Ldev/caulis/geometry/Rect;FLdev/caulis/render/Color;FILjava/lang/Object;)V
@@ -2297,6 +2298,7 @@ public abstract class dev/caulis/core/Window : dev/caulis/tiling/LayoutWindow {
 	public final fun getResizing ()Z
 	public final fun getServerDecorated ()Z
 	public abstract fun getSurface ()Ldev/caulis/core/Surface;
+	public final fun getSuspended ()Z
 	public final fun getTiled ()Z
 	public fun getTitle ()Ljava/lang/String;
 	public final fun getUrgent ()Z
@@ -2319,6 +2321,7 @@ public abstract class dev/caulis/core/Window : dev/caulis/tiling/LayoutWindow {
 	protected final fun setParent (Ldev/caulis/core/Window;)V
 	public final fun setResizing (Z)V
 	public final fun setServerDecorated (Z)V
+	public final fun setSuspended (Z)V
 	public final fun setTiled (Z)V
 	protected fun setTitle (Ljava/lang/String;)V
 	public final fun setX (I)V
@@ -2426,6 +2429,7 @@ public abstract interface class dev/caulis/core/WindowDirector {
 	public fun initialSize (Ldev/caulis/core/Window;)Lkotlin/Pair;
 	public fun manages (Ldev/caulis/core/Window;)Z
 	public fun moveRequested (Ldev/caulis/core/Window;)Z
+	public fun onScreen (Ldev/caulis/core/Window;)Z
 	public abstract fun place (Ldev/caulis/core/Window;J)Ldev/caulis/core/WindowPlace;
 	public fun requested (Ldev/caulis/core/Window;Ldev/caulis/core/WindowRequest;Z)Z
 	public fun resizeRequested (Ldev/caulis/core/Window;I)Z
@@ -2438,6 +2442,7 @@ public final class dev/caulis/core/WindowDirector$DefaultImpls {
 	public static fun initialSize (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;)Lkotlin/Pair;
 	public static fun manages (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;)Z
 	public static fun moveRequested (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;)Z
+	public static fun onScreen (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;)Z
 	public static fun requested (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;Ldev/caulis/core/WindowRequest;Z)Z
 	public static fun resizeRequested (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;I)Z
 	public static fun workMonitor (Ldev/caulis/core/WindowDirector;)Ldev/caulis/core/Monitor;

@@ -68,6 +68,14 @@ interface WindowDirector {
     fun place(window: Window, now: Long): WindowPlace?
 
     /**
+     * False when [window] is surely not shown now (on a workspace nobody sees): it is not [place]d
+     * in this scene, which saves asking for every window of every hidden workspace. True (the
+     * default, and whenever in doubt): [place] says. A window that is opening must answer true,
+     * so it gets placed at all; one still animating away too.
+     */
+    fun onScreen(window: Window): Boolean = true
+
+    /**
      * Pictures of your own with [window] at [place]: below it ([above] false: a blur of what is
      * behind it, a shadow) or above it (a border, a title bar of your own) — between it and
      * the windows above, so they stay in order.

@@ -371,6 +371,7 @@ internal class DesktopScene(private val desktop: Desktop) {
         for (window in desktop.allWindows) {
             if (!window.mapped || !desktop.directed(window)) continue
             val place = try {
+                if (!d.onScreen(window)) continue
                 d.place(window, now)
             } catch (e: Throwable) {
                 e.rethrowIfFatal()
