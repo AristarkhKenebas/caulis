@@ -15,6 +15,13 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+### Added
+
+- Wallpaper shaders can say which part of them moves: `WallpaperShader.with(movingArea = MovingArea(x, y, width, height, restFps, burstEvery, burstFor))` (JSON/Lua: `background.movingArea`, `movingRestFps`, `movingBurst`). The whole picture is drawn once into one screen-sized picture kept on the GPU (4 bytes a pixel, drawn again when its size, colours or values change, let go 30 s after it stops being drawn); each frame draws only that part anew, damages only that part, and none are asked for while it is under windows or off the monitor. The shader reads `movingFade(at, width)`, `movingDeclared`, `movingWhole` and `movingSince` to keep still outside it and to leave out pixels that did not change. Without one nothing changes and nothing is kept. Shaders using these names for themselves must rename them.
+- `Renderer.redrawShadedInto`: a shader drawn into a part of a target, replacing what is there.
+- `Desktop.wallpaperShadersClock`: reads or sets the `time` wallpaper shaders see.
+- `WallpaperShader.source()` is public.
+
 ## [0.1.10] - 2026-10-31
 
 ### Fixed

@@ -638,6 +638,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getUsableArea ()Ldev/caulis/geometry/Rect;
 	public final fun getWaitForClientGpu ()Z
 	public final fun getWallpaperFpsLimit ()I
+	public final fun getWallpaperShadersClock ()D
 	public final fun getWallpaperShadersPaused ()Z
 	public final fun getWidgetThreads ()I
 	public final fun getWidth ()I
@@ -797,6 +798,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun setUrgent (Ldev/caulis/core/Window;Z)V
 	public final fun setWaitForClientGpu (Z)V
 	public final fun setWallpaperFpsLimit (I)V
+	public final fun setWallpaperShadersClock (D)V
 	public final fun setWallpaperShadersPaused (Z)V
 	public final fun setWidgetThreads (I)V
 	public final fun setWindowEffects (Lkotlin/jvm/functions/Function1;)V
@@ -1289,6 +1291,33 @@ public final class dev/caulis/core/Motion {
 
 public final class dev/caulis/core/Motion$Companion {
 	public final fun mix (Ldev/caulis/geometry/Rect;Ldev/caulis/geometry/Rect;D)Ldev/caulis/geometry/Rect;
+}
+
+public final class dev/caulis/core/MovingArea {
+	public fun <init> (DDDD)V
+	public fun <init> (DDDDI)V
+	public fun <init> (DDDDID)V
+	public fun <init> (DDDDIDD)V
+	public synthetic fun <init> (DDDDIDDILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()D
+	public final fun component2 ()D
+	public final fun component3 ()D
+	public final fun component4 ()D
+	public final fun component5 ()I
+	public final fun component6 ()D
+	public final fun component7 ()D
+	public final fun copy (DDDDIDD)Ldev/caulis/core/MovingArea;
+	public static synthetic fun copy$default (Ldev/caulis/core/MovingArea;DDDDIDDILjava/lang/Object;)Ldev/caulis/core/MovingArea;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBurstEvery ()D
+	public final fun getBurstFor ()D
+	public final fun getHeight ()D
+	public final fun getRestFps ()I
+	public final fun getWidth ()D
+	public final fun getX ()D
+	public final fun getY ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/caulis/core/Notice {
@@ -2204,6 +2233,7 @@ public final class dev/caulis/core/WallpaperShader {
 	public final fun getFramesPerSecond ()I
 	public final fun getImage ()Ljava/nio/file/Path;
 	public final fun getMoving ()Z
+	public final fun getMovingArea ()Ldev/caulis/core/MovingArea;
 	public final fun getName ()Ljava/lang/String;
 	public final fun getPath ()Ljava/nio/file/Path;
 	public final fun getResolution ()F
@@ -2211,6 +2241,8 @@ public final class dev/caulis/core/WallpaperShader {
 	public final fun getUsesTime ()Z
 	public final fun getValues ()Ljava/util/Map;
 	public fun hashCode ()I
+	public final fun source (Ljava/lang/String;)Ljava/lang/String;
+	public static synthetic fun source$default (Ldev/caulis/core/WallpaperShader;Ljava/lang/String;ILjava/lang/Object;)Ljava/lang/String;
 	public fun toString ()Ljava/lang/String;
 	public final fun with ()Ldev/caulis/core/WallpaperShader;
 	public final fun with (Ljava/util/List;)Ldev/caulis/core/WallpaperShader;
@@ -2218,7 +2250,8 @@ public final class dev/caulis/core/WallpaperShader {
 	public final fun with (Ljava/util/List;Ljava/util/Map;Ldev/caulis/render/Color;)Ldev/caulis/core/WallpaperShader;
 	public final fun with (Ljava/util/List;Ljava/util/Map;Ldev/caulis/render/Color;I)Ldev/caulis/core/WallpaperShader;
 	public final fun with (Ljava/util/List;Ljava/util/Map;Ldev/caulis/render/Color;IF)Ldev/caulis/core/WallpaperShader;
-	public static synthetic fun with$default (Ldev/caulis/core/WallpaperShader;Ljava/util/List;Ljava/util/Map;Ldev/caulis/render/Color;IFILjava/lang/Object;)Ldev/caulis/core/WallpaperShader;
+	public final fun with (Ljava/util/List;Ljava/util/Map;Ldev/caulis/render/Color;IFLdev/caulis/core/MovingArea;)Ldev/caulis/core/WallpaperShader;
+	public static synthetic fun with$default (Ldev/caulis/core/WallpaperShader;Ljava/util/List;Ljava/util/Map;Ldev/caulis/render/Color;IFLdev/caulis/core/MovingArea;ILjava/lang/Object;)Ldev/caulis/core/WallpaperShader;
 }
 
 public final class dev/caulis/core/WallpaperShader$Companion {

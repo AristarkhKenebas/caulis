@@ -647,6 +647,20 @@ drawn anew while the pointer moves (at most `framesPerSecond` times a second) an
 it. One that does not compile is said once in the log and its `fallback` colour (else the
 usual background) shows.
 
+**A big picture of which only a part moves.** Say which part, and all of it is drawn once and
+kept (one screen-sized picture on the GPU, about 9 MB at 1920x1200, again when its size, colours
+or values change); each frame draws only that part anew. Outside it the picture must not depend
+on `time` or the pointer: multiply what moves by `movingFade(at, width)`, which is 1 well inside
+the part and exactly 0 at its edge. A pixel that did not change since the last drawing
+(`movingSince`) can be left out with `discard` unless `movingWhole` is set. `restFps` is the pace
+while the pointer rests; `burstEvery`, `burstFor` give full pace for a moment (a blink).
+
+```kotlin
+background = Background.shader(
+    WallpaperShader.file(file("eye.glsl")).with(movingArea = MovingArea(0.2, 0.2, 0.6, 0.6, restFps = 10)),
+)
+```
+
 **Wallpapers that answer the mouse and match your look.** Besides `pointer`, a shader can read
 `pointerPixels` (the pointer in pixels), `pointerVelocity` (how fast it moves, in `at` units a
 second, smoothed — a trail, a wake), the last four presses `clicks[0..3]` (x, y as `at`, the

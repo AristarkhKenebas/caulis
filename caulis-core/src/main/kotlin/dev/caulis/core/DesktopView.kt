@@ -228,7 +228,8 @@ internal sealed class DrawItem {
      * Something that draws itself ([paint] gets its place in the target's pixels): the
      * desktop's background. It looks different when [look] (what it shows) does. A
      * [wallpaper] shader's item asks for [framesPerSecond] frames a second while it is seen
-     * (0: none now).
+     * (0: none now). When only [changing] differs from the last frame (and [look] and [rect] do
+     * not), only [changingArea] of it looks different: only that is drawn anew.
      */
     class Custom(
         override val key: Any,
@@ -238,6 +239,8 @@ internal sealed class DrawItem {
         val wallpaper: WallpaperShader? = null,
         /** The desktop's background: nothing of it need be drawn where something opaque is above it. */
         val background: Boolean = wallpaper != null,
+        val changing: Any? = null,
+        val changingArea: Rect? = null,
         val paint: (Rect) -> Unit,
     ) : DrawItem()
 
@@ -324,7 +327,7 @@ internal sealed class DrawItem {
     fun differsFrom(other: DrawItem): Boolean = when {
         rect != other.rect -> true
         this is Image && other is Image -> texture !== other.texture || uploads != other.uploads || alpha != other.alpha
-        this is Custom && other is Custom -> look != other.look
+        this is Custom && other is Custom -> look != other.look || changing != other.changing
         this is Effect && other is Effect -> texture !== other.texture || alpha != other.alpha || progress != other.progress || shader != other.shader
         this is Picture && other is Picture -> opaque != other.opaque || alpha != other.alpha || clip != other.clip || radius != other.radius || transform != other.transform ||
             !java.util.Arrays.equals(source, other.source)
@@ -343,6 +346,24 @@ internal sealed class DrawItem {
 internal fun uncoveredAreas(item: DrawItem, list: List<DrawItem>, index: Int): List<Rect> {
     if (item !is DrawItem.Custom || !item.background) return item.areas
     return uncovered(item.areas, list, index, MAX_UNCOVERED) ?: item.areas
+}
+
+/**
+ * What of [item] and [before] (the same thing in the frame before) must be drawn anew, the
+ * first in [list], the second in [listBefore]: their [uncoveredAreas] — for one whose only
+ * change is what moves in a part of it ([DrawItem.Custom.changing]), only that part.
+ */
+internal fun changedAreas(item: DrawItem, list: List<DrawItem>, index: Int, before: DrawItem, listBefore: List<DrawItem>, indexBefore: Int): List<Rect> {
+    if (item is DrawItem.Custom && before is DrawItem.Custom && item.rect == before.rect && item.look == before.look) {
+        val area = item.changingArea
+        // (Where it moved from is the same place, or none: nothing moved there before.)
+        val old = before.changingArea
+        if (area != null && old != null) {
+            val parts = if (area == old) listOf(area) else listOf(area, old)
+            return uncovered(parts, list, index, MAX_UNCOVERED) ?: parts
+        }
+    }
+    return uncoveredAreas(before, listBefore, indexBefore) + uncoveredAreas(item, list, index)
 }
 
 /**

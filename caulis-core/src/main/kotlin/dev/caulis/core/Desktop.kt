@@ -148,6 +148,16 @@ class Desktop(
         }
 
     /**
+     * The seconds on wallpaper shaders' clock (their `time`). Set it to show a chosen moment
+     * (they go on from there; with [wallpaperShadersPaused], they stand there).
+     */
+    var wallpaperShadersClock: Double
+        get() = wallpaperShaders.seconds(System.nanoTime())
+        set(value) {
+            wallpaperShaders.setSeconds(value)
+        }
+
+    /**
      * The most frames a second any wallpaper shader is drawn at, whatever it asks (0, the
      * default: as each asks, [WallpaperShader.framesPerSecond]) — e.g. fewer on battery.
      */

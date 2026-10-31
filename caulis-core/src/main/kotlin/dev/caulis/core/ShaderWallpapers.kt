@@ -52,6 +52,13 @@ internal class ShaderWallpapers(
     /** Seconds on their clock at [now] (System.nanoTime). */
     fun seconds(now: Long): Double = ((if (paused) pausedSince else now) - start - pausedNanos) / 1e9
 
+    /** Sets their clock to [seconds] (they go on from there, or stand there if [paused]). */
+    fun setSeconds(seconds: Double) {
+        pausedNanos += ((seconds(System.nanoTime()) - seconds) * 1e9).toLong()
+        log.info { "Wallpaper shaders' clock set to $seconds s" }
+        changed()
+    }
+
     // --- the pointer: where it is, how fast, the last presses -------------------------------------
 
     private var sampleX = Double.NaN
@@ -144,9 +151,13 @@ internal class ShaderWallpapers(
         val code = shader.code
         val usesTime = shader.usesTime
         val usesPointer = shader.usesPointer
-        val fps = effectiveFps(shader)
+        val moving = shader.movingArea
+        val fullFps = effectiveFps(shader)
+        val busy = usesPointer && pointerBusy(now)
+        val fps = if (moving != null) baked.pace(moving, seconds, busy, fullFps) else fullFps
         // A moving shader is a new picture every frame of its own (fewer is less work).
-        val frame = if (usesTime && !paused) floor(seconds * fps).toLong() else 0L
+        // (Standing still its clock does too: the same frame, unless the clock is set.)
+        val frame = if (usesTime) floor(seconds * fps).toLong() else 0L
         val px = pointerX(pointerX)
         val py = pointerY(pointerY)
         val area = monitor.area
@@ -164,31 +175,44 @@ internal class ShaderWallpapers(
         val source = shader.source(code)
         val pointerLook: Any? = if (usesPointer) listOf(pointer.toList(), velocity.toList(), onDesktop.toList(), clickList.map { it.toList() }) else null
         // Asks for frames: one using time at its pace; one following the pointer while it moves.
-        val wants = if (paused) 0 else if (usesTime || (usesPointer && pointerBusy(now))) fps else 0
+        val wants = if (paused) 0 else if (usesTime || busy) fps else 0
         val fallback = shader.fallback ?: USUAL_COLOR
         // The part of [rect] on the monitor (0..1 of it): only that is drawn when drawn smaller.
         val shown = rect.intersect(monitor.area)?.let { s ->
             floatArrayOf(((s.x - rect.x) / w).toFloat(), ((s.y - rect.y) / h).toFloat(), (s.width / w).toFloat(), (s.height / h).toFloat())
         }
+        if (moving != null) {
+            // Its moving part on the monitor, in desktop units: all that a frame of its own changes.
+            val movingRect = rect.partAt(moving).intersect(monitor.area)
+            val seen = movingRect != null && !baked.isHidden(key)
+            val changing = baked.changing(key, seen, listOf(frame, pointerLook))
+            val settled = baked.settled(key, rect, now)
+            // What the kept picture depends on (where it is only if it reads that).
+            val stillLook = listOf(
+                look, source, picture, viewPart.toList(), shader.resolution, if (shader.usesWorkspace) workspace else null,
+                if (shader.usesPlace) listOf(rect.x, rect.y) else null,
+            )
+            val itemLook = listOf(stillLook, alpha, settled)
+            return DrawItem.Custom(key, rect, itemLook, framesPerSecond = if (seen) wants else 0, wallpaper = shader, changing = changing, changingArea = movingRect) { r ->
+                val floats = floats(r, seconds, pointer, pointerPixels, velocity, workspace, rect, desktop, monitor, physical, onDesktop, viewPart, clickList, shader)
+                val still = floats(r, 0.0, NOWHERE, NOWHERE, floatArrayOf(0f, 0f), workspace, rect, desktop, monitor, physical, NOWHERE, viewPart, emptyList(), shader)
+                val ints = mapOf("hasPicture" to if (picture != null) 1 else 0, "clickCount" to clickList.size, "colorCount" to shader.colors.size, "movingDeclared" to 1)
+                val area = floatArrayOf(moving.x.toFloat(), moving.y.toFloat(), moving.width.toFloat(), moving.height.toFloat())
+                val pixelWide = Math.round(monitor.pixelWidth * MAX_KEPT_SIZE).toInt()
+                val pixelHigh = Math.round(monitor.pixelHeight * MAX_KEPT_SIZE).toInt()
+                val drawn = baked.draw(
+                    key, r, moving, shown, shader.resolution, pixelWide, pixelHigh, stillLook, settled, changing, seconds.toFloat(), source,
+                    floats + ("alpha" to floatArrayOf(1f)) + ("movingArea" to area), still + ("alpha" to floatArrayOf(1f)) + ("movingArea" to area) + ("movingSince" to floatArrayOf(0f)),
+                    ints, ints + ("clickCount" to 0), picture, alpha, renderer,
+                )
+                works(shader.name, code, fileProblem ?: if (drawn) null else renderer.effectProblem(source) ?: "it does not compile")
+                if (!drawn) renderer.drawColor(r.x, r.y, r.width, r.height, fallback.red, fallback.green, fallback.blue, fallback.alpha * alpha)
+            }
+        }
         val frameLook = look + listOf(source, frame, rect, picture, viewPart.toList(), pointerLook, workspace, shown?.toList(), shader.resolution)
         return DrawItem.Custom(key, rect, look + listOf(source, frame, alpha, rect, picture, viewPart.toList(), pointerLook, workspace), framesPerSecond = wants, wallpaper = shader) { r ->
-            val floats = HashMap<String, FloatArray>(32)
-            floats["time"] = floatArrayOf(seconds.toFloat())
-            floats["size"] = floatArrayOf(r.width.toFloat(), r.height.toFloat())
-            floats["pointer"] = pointer
-            floats["pointerPixels"] = pointerPixels
-            floats["pointerVelocity"] = velocity
-            floats["workspace"] = floatArrayOf(workspace.toFloat())
+            val floats = floats(r, seconds, pointer, pointerPixels, velocity, workspace, rect, desktop, monitor, physical, onDesktop, viewPart, clickList, shader)
             floats["alpha"] = floatArrayOf(alpha)
-            floats["monitor"] = floatArrayOf(rect.x.toFloat(), rect.y.toFloat(), rect.width.toFloat(), rect.height.toFloat())
-            floats["desktop"] = floatArrayOf(desktop.x.toFloat(), desktop.y.toFloat(), desktop.width.toFloat(), desktop.height.toFloat())
-            floats["scale"] = floatArrayOf(monitor.scale.toFloat())
-            floats["physicalSize"] = physical
-            floats["desktopPointer"] = onDesktop
-            floats["view"] = viewPart
-            for (i in 0 until MAX_CLICKS) floats["clicks[$i]"] = clickList.getOrNull(i) ?: NO_CLICK
-            for ((i, c) in shader.colors.withIndex()) floats["colors[$i]"] = floatArrayOf(c.red, c.green, c.blue, c.alpha)
-            for ((name, value) in shader.values) floats[name] = floatArrayOf(value)
             val ints = mapOf("hasPicture" to if (picture != null) 1 else 0, "clickCount" to clickList.size, "colorCount" to shader.colors.size)
             val drawn = if (shader.resolution < 1f && shown != null) {
                 drawSmaller(key, r, shown, frameLook, shader.resolution, source, floats, ints, picture, alpha, renderer)
@@ -199,6 +223,46 @@ internal class ShaderWallpapers(
             if (!drawn) renderer.drawColor(r.x, r.y, r.width, r.height, fallback.red, fallback.green, fallback.blue, fallback.alpha * alpha)
         }
     }
+
+    // What a shader reads (all but alpha).
+    private fun floats(
+        r: Rect, seconds: Double, pointer: FloatArray, pointerPixels: FloatArray, velocity: FloatArray, workspace: Int, rect: Rect, desktop: Rect, monitor: Monitor,
+        physical: FloatArray, onDesktop: FloatArray, viewPart: FloatArray, clickList: List<FloatArray>, shader: WallpaperShader,
+    ): HashMap<String, FloatArray> {
+        val floats = HashMap<String, FloatArray>(40)
+        floats["time"] = floatArrayOf(seconds.toFloat())
+        floats["size"] = floatArrayOf(r.width.toFloat(), r.height.toFloat())
+        floats["pointer"] = pointer
+        floats["pointerPixels"] = pointerPixels
+        floats["pointerVelocity"] = velocity
+        floats["workspace"] = floatArrayOf(workspace.toFloat())
+        floats["monitor"] = floatArrayOf(rect.x.toFloat(), rect.y.toFloat(), rect.width.toFloat(), rect.height.toFloat())
+        floats["desktop"] = floatArrayOf(desktop.x.toFloat(), desktop.y.toFloat(), desktop.width.toFloat(), desktop.height.toFloat())
+        floats["scale"] = floatArrayOf(monitor.scale.toFloat())
+        floats["physicalSize"] = physical
+        floats["desktopPointer"] = onDesktop
+        floats["view"] = viewPart
+        for (i in 0 until MAX_CLICKS) floats["clicks[$i]"] = clickList.getOrNull(i) ?: NO_CLICK
+        for ((i, c) in shader.colors.withIndex()) floats["colors[$i]"] = floatArrayOf(c.red, c.green, c.blue, c.alpha)
+        for ((name, value) in shader.values) floats[name] = floatArrayOf(value)
+        return floats
+    }
+
+    // [area]'s part of this rectangle, whole units around it.
+    private fun Rect.partAt(area: MovingArea): Rect {
+        val left = floor(x + area.x * width).toInt()
+        val top = floor(y + area.y * height).toInt()
+        val right = kotlin.math.ceil(x + (area.x + area.width) * width).toInt()
+        val bottom = kotlin.math.ceil(y + (area.y + area.height) * height).toInt()
+        return Rect(left, top, right - left, bottom - top)
+    }
+
+    // --- with a moving area: all of it kept, only that part drawn anew -----------------------------
+
+    private val baked = BakedWallpapers(loop, changed)
+
+    /** GPU memory kept for shaders with a moving area. */
+    internal val bakedBytes: Long get() = baked.bytes
 
     // --- drawn smaller, kept: by item key, its picture and what it shows -------------------------
 
@@ -256,11 +320,15 @@ internal class ShaderWallpapers(
             val now = System.nanoTime()
             this.kept.entries.removeIf { (_, entry) -> (now - entry.used > KEPT_NANOS).also { if (it) entry.target.close() } }
         }
+        baked.letGo(System.nanoTime())
         var fps = 0
         var pointer = 0
-        for (item in kept) {
+        for ((index, item) in kept.withIndex()) {
             if (item !is DrawItem.Custom) continue
             val shader = item.wallpaper ?: continue
+            // (A moving part under windows wants no frames; one coming out of them does, at once.)
+            if (baked.look(item, kept, index)) fps = maxOf(fps, effectiveFps(shader))
+            if (shader.movingArea != null && (baked.isHidden(item.key) || item.changingArea == null)) continue
             fps = maxOf(fps, item.framesPerSecond)
             if (shader.usesPointer) pointer = maxOf(pointer, effectiveFps(shader))
         }
@@ -301,6 +369,7 @@ internal class ShaderWallpapers(
         tick = null
         kept.values.forEach { it.target.close() }
         kept.clear()
+        baked.close()
     }
 
     internal companion object {
@@ -320,6 +389,11 @@ internal class ShaderWallpapers(
         const val KEPT_NANOS = 5_000_000_000L
 
         private val NO_CLICK = floatArrayOf(-1f, -1f, -1000f, 0f)
+        private val NOWHERE = floatArrayOf(-1f, -1f)
+
+        // A kept picture is at most this many times the monitor's pixels each way (a view zoomed
+        // in further stretches it: memory stays bounded, 4 bytes a pixel).
+        const val MAX_KEPT_SIZE = 2.0
 
         val USUAL_COLOR = (Background.USUAL as Background.Solid).color
     }

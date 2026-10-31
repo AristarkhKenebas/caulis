@@ -429,8 +429,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
                 why?.add("gone $key")
             } else if (new.index != old.index || new.value.differsFrom(old.value)) {
                 // (The background: only where it shows — not under the windows over it.)
-                uncoveredAreas(old.value, view.shown, old.index).forEach(view::damage)
-                uncoveredAreas(new.value, items, new.index).forEach(view::damage)
+                changedAreas(new.value, items, new.index, old.value, view.shown, old.index).forEach(view::damage)
                 why?.add("changed $key ${new.value.rect}")
             }
         }
@@ -453,8 +452,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
             val old = shown[i]
             val new = items[i]
             if (old === new || !new.differsFrom(old)) continue
-            uncoveredAreas(old, shown, i).forEach(view::damage)
-            uncoveredAreas(new, items, i).forEach(view::damage)
+            changedAreas(new, items, i, old, shown, i).forEach(view::damage)
             if (trace) desktop.renderLog.trace { "${view.monitor.name} changed: ${new.key} ${new.rect}" }
         }
         view.shown = items
