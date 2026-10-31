@@ -55,7 +55,7 @@ internal class DesktopCursorPlanes(private val desktop: Desktop) {
             desktop.cursors.cursorVersion, if (cursor.any { it is DrawItem.Picture }) desktop.version else 0L)
         val draw: ((GpuTarget) -> Unit)? = if (key == view.planeCursorKey) null else { target ->
             desktop.renderer.begin(target, 0f, 0f, 0f, alpha = 0f)
-            desktop.draw(cursor, null, { r -> monitor.toPixels(r).let { Rect(it.x - whole.x, it.y - whole.y, it.width, it.height) } }, monitor.scale, monitor)
+            desktop.frames.draw(cursor, null, { r -> monitor.toPixels(r).let { Rect(it.x - whole.x, it.y - whole.y, it.width, it.height) } }, monitor.scale, monitor)
             desktop.renderer.end()
         }
         if (!plane.show(pixels.x, pixels.y, draw)) return intoFrames()

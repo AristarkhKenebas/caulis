@@ -29,7 +29,7 @@ internal class DesktopCapture(private val desktop: Desktop) {
      * time), or null if nothing did. Counts as given: the next call starts from now.
      */
     internal fun captureChanges(view: DesktopView, cursor: Boolean): Rect? {
-        desktop.compare(view, captureItems(cursor))
+        desktop.frames.compare(view, captureItems(cursor))
         return view.takeRepaint(1, view.monitor.area)
     }
 
@@ -79,7 +79,7 @@ internal class DesktopCapture(private val desktop: Desktop) {
     fun capture(target: GpuTarget, cursor: Boolean, monitor: Monitor = desktop.monitorList.first()) {
         val items = captureItems(cursor)
         desktop.renderer.begin(target, desktop.backgroundColor.red, desktop.backgroundColor.green, desktop.backgroundColor.blue)
-        desktop.draw(items, monitor.area, monitor::toPixels, monitor.scale, monitor)
+        desktop.frames.draw(items, monitor.area, monitor::toPixels, monitor.scale, monitor)
         desktop.renderer.end()
     }
 
@@ -93,7 +93,7 @@ internal class DesktopCapture(private val desktop: Desktop) {
         }
         val scale = desktop.monitorOf(window).scale
         desktop.renderer.begin(target, 0f, 0f, 0f, alpha = 0f)
-        desktop.draw(items, null, { rect -> pixelsOf(rect, scale) }, scale)
+        desktop.frames.draw(items, null, { rect -> pixelsOf(rect, scale) }, scale)
         desktop.renderer.end()
     }
 

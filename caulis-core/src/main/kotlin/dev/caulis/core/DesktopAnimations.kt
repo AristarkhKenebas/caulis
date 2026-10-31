@@ -101,7 +101,7 @@ internal class DesktopAnimations(private val desktop: Desktop) {
                 return null
             }
             desktop.renderer.begin(target, 0f, 0f, 0f, alpha = 0f)
-            desktop.draw(parts, null, { r -> Rect(px(r.x - box.x), px(r.y - box.y), px(r.width).coerceAtLeast(1), px(r.height).coerceAtLeast(1)) }, scale)
+            desktop.frames.draw(parts, null, { r -> Rect(px(r.x - box.x), px(r.y - box.y), px(r.width).coerceAtLeast(1), px(r.height).coerceAtLeast(1)) }, scale)
             desktop.renderer.end()
             Triple(target, texture, box)
         } catch (e: Throwable) {

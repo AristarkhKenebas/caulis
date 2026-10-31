@@ -287,7 +287,7 @@ class ScreenCaptureTest {
         sharer.waitFor { first.ready || first.failed >= 0 }
         assertTrue(first.ready, "a picture of the hidden window (failed: ${first.failed})")
         assertEquals(BLACK, memory.pixel(80, 60, 160 * 4), "the window's picture")
-        assertTrue(server.onServer { d -> d.allWindows.first().surface.let { s -> d.isKeptUpdating(s) } }, "it keeps running while shared")
+        assertTrue(server.onServer { d -> d.allWindows.first().surface.let { s -> d.frames.isKeptUpdating(s) } }, "it keeps running while shared")
 
         // Locked: no window is given out.
         val lock = sharer.sessionLock!!.lock()

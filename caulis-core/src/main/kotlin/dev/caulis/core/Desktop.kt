@@ -9,7 +9,6 @@ import dev.caulis.core.input.Tablet
 import dev.caulis.core.input.TabletAxes
 import dev.caulis.core.input.TabletTool
 import dev.caulis.core.input.Tablets
-import dev.caulis.event.EventLoop
 import dev.caulis.geometry.Rect
 import dev.caulis.protocol.xdgshell.XdgToplevel
 import dev.caulis.render.Color
@@ -83,6 +82,8 @@ class Desktop(
 
     internal val sceneBuilder = DesktopScene(this)
 
+    internal val frames = DesktopFrames(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -143,7 +144,7 @@ class Desktop(
     // What wallpaper shaders share (their clock, the pointer, their frames), wherever drawn.
     internal val wallpaperShaders = ShaderWallpapers(compositor.display.loop) {
         // (Said in the render log's report of what keeps the screens drawn.)
-        if (renderLog.level >= 2) busy.moving(WALLPAPER_SHADERS)
+        if (renderLog.level >= 2) frames.busy.moving(frames.WALLPAPER_SHADERS)
         version++
         onChange()
     }
@@ -508,8 +509,8 @@ class Desktop(
     init {
         // Every commit may change what is on screen.
         compositor.onNewSurface { surface ->
-            surface.onCommit { surfaceCommitted(surface) }
-            surface.resource.onDestroy { keptUpdating.remove(surface) }
+            surface.onCommit { frames.surfaceCommitted(surface) }
+            surface.resource.onDestroy { frames.keptUpdating.remove(surface) }
         }
         seat.onCursorChange = ::changed
         // A subsurface gone at once (destroyed, taken off): its picture is not drawn any more.
@@ -664,8 +665,6 @@ class Desktop(
     internal val lockLog = Logger("lock")
     internal val cursorLog = Logger("cursor")
     internal val renderLog = Logger("render")
-    private val BUSY_REPORT_NANOS = 10_000_000_000L
-    private val WALLPAPER_SHADERS = listOf("wallpaper shader")
     internal val overlayLog = Logger("overlay")
 
     // --- workspaces -----------------------------------------------------------------------
@@ -2202,33 +2201,6 @@ class Desktop(
 
     // --- drawing ----------------------------------------------------------------------
 
-    // A program drew something: mark those parts as changed where the surface is shown.
-    private fun surfaceCommitted(surface: Surface) {
-        val changes = surface.takeChanges()
-        if (changes.isNotEmpty()) {
-            for (view in views + capturing.captureViews) {
-                // Everywhere it is drawn, at the size it is drawn (smaller in the overview,
-                // stretched while it glides): rounded outwards, so no changed pixel is missed.
-                for (item in view.shown) {
-                    if (item !is DrawItem.Picture || item.surface !== surface) continue
-                    val shownAt = item.rect
-                    val sx = if (surface.width > 0) shownAt.width.toDouble() / surface.width else 1.0
-                    val sy = if (surface.height > 0) shownAt.height.toDouble() / surface.height else 1.0
-                    for (change in changes) {
-                        val left = Math.floor(change.x * sx).toInt()
-                        val top = Math.floor(change.y * sy).toInt()
-                        val right = Math.ceil(change.right * sx).toInt()
-                        val bottom = Math.ceil(change.bottom * sy).toInt()
-                        view.damage(Rect(shownAt.x + left, shownAt.y + top, right - left, bottom - top))
-                    }
-                }
-            }
-        }
-        for (listener in capturing.commitListeners.toList()) listener(surface)
-        changed()
-        scheduleHiddenRefresh()
-    }
-
     /**
      * One refresh of a screen: draws a frame with [present] if something changed on [view]
      * (or if [force] is set, e.g. while the monitor is being set up), and tells programs
@@ -2245,137 +2217,19 @@ class Desktop(
          * or null. Used for a fullscreen window alone on screen; returns false if not possible.
          */
         presentDirect: ((DmabufBuffer) -> Boolean)? = null,
-    ): Boolean {
-        if (brokenOverlay != null && brokenOverlay === overlay) closeOverlay()
-        // Each asked every time (they move their animations on, and let go of what faded away:
-        // none may be skipped because another already said yes).
-        val now = System.nanoTime()
-        val noticesMoving = noticeBoard.animating() or osd.animating(now)
-        val fadingNow = scaleFade.fading()
-        val animatingNow = animator.animating()
-        val backdropsChanging = backdrops.changing()
-        val directorAnimating = director?.let { d -> userCode("Your WindowDirector (animating)", false) { d.animating(now) } } == true
-        var directorMoving = directorAnimating
-        var movingThing: Any? = null
-        for (list in widgetHost.drawings.values) for (d in list) if (userCode("Your drawing (animating)", false) { d.animating(now) }) { directorMoving = true; movingThing = d }
-        for (w in widgetHost.widgets.toList()) if (userCode("Your widget (animating)", false) { w.animating(now) }) { directorMoving = true; movingThing = w }
-        val paintsNow = looks.paintsMoving && looks.paintsDue(now)
-        if (animator.glides.isNotEmpty() || pads.shownPads.any { it.changedAt != null } || overview.cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsNow || looks.focusChanging || directorMoving) {
-            // Windows are gliding (or the overview zooms): the scene changes every frame until done.
-            if (renderLog.level >= 2) {
-                val why = listOfNotNull("glides".takeIf { animator.glides.isNotEmpty() }, "camera".takeIf { overview.cameraMoving(System.nanoTime()) }, "fading".takeIf { fadingNow },
-                    "notices".takeIf { noticesMoving }, "animating".takeIf { animatingNow }, "backdrops".takeIf { backdropsChanging }, "paints".takeIf { paintsNow },
-                    "focus".takeIf { looks.focusChanging }, "director".takeIf { directorAnimating }, movingThing?.let { "drawing or widget $it" })
-                renderLog.trace { "Moving: ${why.joinToString()}" }
-                busy.moving(why)
-            }
-            version++
-            onChange()
-        }
-        // (What is under the pointer may fail on a window going away: the frame is drawn all the same.)
-        try {
-            pointerInput.pointerOntoWhatIsThere()
-        } catch (e: Exception) {
-            log.error("Finding what is under the pointer failed (the frame is drawn anyway)", e)
-        }
-        planes.placeHardwareCursor(view)
-        // A moving screen shader: every frame anew (and the next one asked for).
-        val shaderMoves = screenShader?.moving == true
-        if (shaderMoves) onChange()
-        val draw = force || needsRedraw(view) || shaderMoves
-        val direct = if (draw && !force && presentDirect != null) directCandidate(view) else null
-        if (direct != null && presentDirect!!(direct)) {
-            // Nothing drawn: the program's own picture is on screen.
-            view.shownWithoutDrawing()
-            takeFeedbacks(view)
-        } else if (draw) {
-            var drawn = false
-            present { target, age ->
-                drawn = true
-                try {
-                    render(view, target, age)
-                } catch (e: Throwable) {
-                    // Half a frame: the next one is drawn whole, so nothing stale stays on screen.
-                    view.damageEverything()
-                    throw e
-                }
-            }
-            // Nothing reached the screen (it is off, or another terminal is shown): what changed
-            // stays to be drawn, and the backend's slow heartbeat still gives programs their frames.
-            if (!drawn) renderLog.trace { "${view.monitor.name}: nothing drawn (the screen is dark)" }
-        } else {
-            // Nothing new to show: whatever programs committed is on screen already.
-            takeFeedbacks(view)
-            presented(view, System.nanoTime(), refreshNanos = 0, sequence = 0, flags = 0)
-        }
-        frameShown(view, (System.nanoTime() / 1_000_000).toInt())
-        for (listener in capturing.frameListeners.toList()) listener()
-        if (draw && renderLog.level >= 2) busy.drawn(view.monitor.name)
-        return draw
-    }
-
-    // What kept the screens being drawn: said every few seconds at the render log's info level
-    // (CAULIS_LOG=render=2) — the frames drawn per monitor, and what was moving, most often first.
-    // (To find out why a compositor that should be idle keeps a processor busy.)
-    private val busy = object {
-        private var since = System.nanoTime()
-        private val frames = LinkedHashMap<String, Int>()
-        private val reasons = HashMap<String, Int>()
-
-        fun moving(why: List<String>) {
-            for (reason in why) reasons.merge(reason, 1, Int::plus)
-        }
-
-        fun drawn(monitor: String) {
-            frames.merge(monitor, 1, Int::plus)
-            val now = System.nanoTime()
-            if (now - since < BUSY_REPORT_NANOS) return
-            val seconds = (now - since) / 1e9
-            renderLog.info {
-                "Frames in the last %.0f s: %s; moving: %s".format(seconds, frames.entries.joinToString { "${it.key} ${it.value}" },
-                    reasons.entries.sortedByDescending { it.value }.take(5).joinToString { "${it.key} (${it.value})" }.ifEmpty { "nothing (programs' or the pointer's changes)" })
-            }
-            since = now
-            frames.clear()
-            reasons.clear()
-        }
-    }
+    ): Boolean = frames.refresh(view, present, force, presentDirect)
 
     /**
      * The frame last drawn for [view] reached the screen at [nanos] (monotonic clock).
      * Programs that asked are told (presentation-time).
      */
-    fun presented(view: DesktopView, nanos: Long, refreshNanos: Long, sequence: Long, flags: Int) {
-        Presentation.presented(view.inFlight, nanos, refreshNanos, sequence, flags)
-        view.inFlight.clear()
-        if (lockHost.lockPending && view.showsLock) {
-            lockHost.lockShownOn += view
-            lockHost.confirmLockIfShown()
-        }
-    }
+    fun presented(view: DesktopView, nanos: Long, refreshNanos: Long, sequence: Long, flags: Int) = frames.presented(view, nanos, refreshNanos, sequence, flags)
 
     /**
      * True if [view] needs a new frame: compares what would be drawn now with what it
      * showed last time (windows that moved, opened, closed, the cursor, ...).
      */
-    fun needsRedraw(view: DesktopView): Boolean {
-        compare(view, itemsFor(view))
-        return view.hasChanges
-    }
-
-    // What [view]'s frames show: all, or all but the cursor while it is on the cursor plane.
-    private fun itemsFor(view: DesktopView): List<DrawItem> {
-        val all = sceneBuilder.items()
-        if (!view.cursorOnPlane) return all
-        if (itemsWithoutCursorOf !== all) {
-            itemsWithoutCursor = all.subList(0, sceneBuilder.itemsCursorStart.coerceAtMost(all.size))
-            itemsWithoutCursorOf = all
-        }
-        return itemsWithoutCursor
-    }
-
-    private var itemsWithoutCursor: List<DrawItem> = emptyList()
-    private var itemsWithoutCursorOf: List<DrawItem>? = null
+    fun needsRedraw(view: DesktopView): Boolean = frames.needsRedraw(view)
 
     // The cursor on a cursor plane moved with the pointer at once — before what the move does
     // otherwise (what is under it, hovering, the next frame): a busy frame or a slow widget
@@ -2404,117 +2258,7 @@ class Desktop(
      * Draws the changed parts into [target], whose picture is [age] frames old (1 = the
      * previous frame; 0 = unknown, then everything is drawn).
      */
-    fun render(view: DesktopView, target: GpuTarget, age: Int) {
-        val items = itemsFor(view)
-        compare(view, items)
-        takeFeedbacks(view)
-        val monitor = view.monitor
-        val bounds = monitor.area
-        view.showsLock = lockHost.lockHidesDesktop
-        var parts = view.takeRepaintParts(if (fullRedraw) 0 else age, bounds) ?: return
-        backgroundAsked = 0
-        backgroundDrawn = 0
-        // Blur reads around its area: a change near it (within its reach, not only under it)
-        // changes it too — its whole reach redrawn first, in one part (else a bar's blur stayed
-        // stale while a program drew next to it, and flashed when it caught up).
-        if (items.any { it is DrawItem.Blur && parts.any { part -> it.reachRect().intersect(part) != null } }) {
-            parts = withBlurParts(items.filterIsInstance<DrawItem.Blur>().map { it.reachRect() }, parts, bounds)
-        }
-        // In pixels, one more around each: a fractional scale must not leave a half-drawn edge.
-        // Where those overlap, each pixel belongs to one part only (nothing is drawn twice).
-        val whole = Rect(0, 0, target.width, target.height)
-        val clips = ArrayList<Pair<Rect, Rect>>() // pixels, and the part in units it shows
-        for (part in parts) {
-            val px = monitor.toPixels(part)
-            var pieces = listOfNotNull(Rect(px.x - 1, px.y - 1, px.width + 2, px.height + 2).intersect(whole))
-            for ((taken, _) in clips) pieces = pieces.flatMap { it.minus(taken) }
-            pieces.forEach { clips += it to part }
-        }
-        if (clips.isEmpty()) return
-        renderLog.trace { "Frame of ${monitor.name}: redraw ${parts.joinToString()} (${clips.size} parts in pixels) of ${target.width}x${target.height} (buffer age $age), ${items.size} things to draw" }
-        for ((i, clip) in clips.withIndex()) {
-            val (pixels, part) = clip
-            // (One unit more around the part: what touches its pixels.)
-            val near = Rect(part.x - 1, part.y - 1, part.width + 2, part.height + 2)
-            if (i == 0) {
-                renderer.begin(target, backgroundColor.red, backgroundColor.green, backgroundColor.blue, clip = pixels)
-            } else {
-                renderer.setClip(pixels)
-                renderer.drawColor(pixels.x, pixels.y, pixels.width, pixels.height, backgroundColor.red, backgroundColor.green, backgroundColor.blue)
-            }
-            draw(items, near, monitor::toPixels, monitor.scale, monitor, pixels)
-        }
-        renderer.end()
-        renderLog.trace { "Frame of ${monitor.name}: background $backgroundDrawn of $backgroundAsked pixels drawn (the rest under opaque windows)" }
-    }
-
-    // In this frame: the background's pixels in the parts redrawn, and those really drawn.
-    private var backgroundAsked = 0L
-    private var backgroundDrawn = 0L
-
-    // Draws background [item] (at [index] of [items]) within [repaint]: only where nothing opaque
-    // is above it (else every window drawing would draw the wallpaper under itself first). Each
-    // piece one pixel bigger: a fractional scale must not leave an edge undrawn; the window above
-    // is drawn over it. [clip]: the part's pixels. Too many pieces (or fullRedraw): as a whole.
-    private fun drawBackground(item: DrawItem.Custom, items: List<DrawItem>, index: Int, repaint: Rect, clip: Rect, r: Rect, toPixels: (Rect) -> Rect) {
-        val asked = clip.intersect(r)
-        backgroundAsked += asked?.area() ?: 0L
-        val whole = item.rect.intersect(repaint)
-        val pieces = if (whole == null || fullRedraw) null else uncovered(listOf(whole), items, index, MAX_BACKGROUND_PIECES)
-        if (pieces == null || pieces == listOf(whole)) {
-            item.paint(r)
-            backgroundDrawn += asked?.area() ?: 0L
-            return
-        }
-        for (piece in pieces) {
-            val px = toPixels(piece)
-            val scissor = Rect(px.x - 1, px.y - 1, px.width + 2, px.height + 2).intersect(clip) ?: continue
-            renderer.setClip(scissor)
-            item.paint(r)
-            backgroundDrawn += scissor.intersect(r)?.area() ?: 0L
-        }
-        renderer.setClip(clip)
-    }
-
-    // Draws [items] (only those touching [repaint]) into the frame begun; [p] turns desktop
-    // units into the target's pixels, at [scale].
-    // [clip]: the pixels the frame is cut to now (a part of the monitor), when known.
-    internal fun draw(items: List<DrawItem>, repaint: Rect?, p: (Rect) -> Rect, scale: Double, monitor: Monitor? = null, clip: Rect? = null) {
-        val s = scale.toFloat()
-        for (index in items.indices) {
-            val item = items[index]
-            if (repaint != null && item.rect.intersect(repaint) == null) continue
-            if (monitor != null && item.only != null && item.only !== monitor) continue // (a sliding workspace of another monitor)
-            val r = p(item.rect)
-            when (item) {
-                is DrawItem.Picture -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, item.opaque, item.alpha, item.clip?.let(p), item.radius * s, item.source, item.transform)
-                is DrawItem.Color -> renderer.drawColor(r.x, r.y, r.width, r.height, item.red, item.green, item.blue, item.alpha)
-                is DrawItem.Shadow -> {
-                    val drawn = renderer.drawShadow(p(item.box), item.radius * s, item.softness * s, item.paint, p(item.cutOut), item.cutOutRadius * s, item.alpha, item.time)
-                    looks.paintWorks(item.paint, drawn)
-                    if (!drawn) renderer.drawShadow(p(item.box), item.radius * s, item.softness * s, dev.caulis.render.Paint.solid(dev.caulis.render.Color(0f, 0f, 0f, 0.45f * item.alpha)), p(item.cutOut), item.cutOutRadius * s)
-                }
-                is DrawItem.Border -> {
-                    val drawn = renderer.drawRoundedRect(r, item.radius * s, item.paint, item.width * s, item.alpha, item.time, item.state)
-                    looks.paintWorks(item.paint, drawn)
-                    if (!drawn) renderer.drawRoundedRect(r, item.radius * s, item.paint.firstColor().let { it.copy(alpha = it.alpha * item.alpha) }, item.width * s)
-                }
-                is DrawItem.Blur -> renderer.drawBlur(r, item.radius * s, Math.round(item.size * s).coerceAtLeast(1), item.passes, item.tone)
-                is DrawItem.Image -> renderer.drawTexture(item.texture, r.x, r.y, r.width, r.height, opaque = false, alpha = item.alpha, clip = item.clip?.let(p), cornerRadius = item.radius * s)
-                is DrawItem.Custom -> if (item.background && repaint != null && clip != null) drawBackground(item, items, index, repaint, clip, r, p) else item.paint(r)
-                is DrawItem.Tint -> renderer.drawRoundedRect(r, item.radius * s, dev.caulis.render.Color(item.red, item.green, item.blue, item.alpha))
-                is DrawItem.Effect -> {
-                    val code = item.shader.code
-                    val drawn = renderer.drawTextureEffect(item.texture, r.x, r.y, r.width, r.height, item.alpha, code, item.from, item.to, item.progress)
-                    looks.shaderWorks(item.shader.name, code, item.shader.fileProblem ?: if (drawn) null else renderer.effectProblem(code) ?: "it does not compile")
-                    if (!drawn) {
-                        val f = p(item.fallback)
-                        renderer.drawTexture(item.texture, f.x, f.y, f.width, f.height, opaque = false, alpha = item.alpha)
-                    }
-                }
-            }
-        }
-    }
+    fun render(view: DesktopView, target: GpuTarget, age: Int) = frames.render(view, target, age)
 
     /**
      * Every frame drawn whole (not only what changed, the background under opaque windows too):
@@ -2527,65 +2271,6 @@ class Desktop(
             renderLog.info { if (value) "Every frame drawn whole" else "Only what changed drawn" }
             changed()
         }
-
-    /**
-     * The buffer of a fullscreen window that is the only thing on screen (no menus, no
-     * cursor drawn by us, nothing above it), if it is a GPU buffer exactly as big as the
-     * screen. Such a picture can go to the display as it is.
-     */
-    private fun directCandidate(view: DesktopView): DmabufBuffer? {
-        if (screenShader != null) return null // (every frame goes through it)
-        val monitor = view.monitor
-        // (A cursor on the cursor plane is no reason to draw: it is shown over the program's picture.)
-        val all = itemsFor(view).filter { it.rect.intersect(monitor.area) != null }
-        val only = all.singleOrNull() as? DrawItem.Picture ?: return null
-        val window = only.surface.roleObject as? Window ?: return null
-        if (!window.fullscreen || only.rect != monitor.area) return null
-        val buffer = only.surface.current.buffer?.dataAs<DmabufBuffer>() ?: return null
-        // Turned as the monitor is (a program drawing for a screen on its side does so), and
-        // exactly the screen's own pixels: shown as it is.
-        if (only.surface.current.transform != monitor.transform.ordinal) return null
-        val (width, height) = if (monitor.transform.sideways) monitor.pixelHeight to monitor.pixelWidth else monitor.pixelWidth to monitor.pixelHeight
-        return buffer.takeIf { it.width == width && it.height == height }
-    }
-
-    // The visible programs' "tell me when it is shown" requests now belong to this frame.
-    private fun takeFeedbacks(view: DesktopView) {
-        for (surface in sceneBuilder.visible) {
-            if (!sceneBuilder.shownMostlyOn(surface, view.monitor)) continue
-            val feedbacks = surface.current.feedbackList
-            if (feedbacks.isEmpty()) continue
-            view.inFlight += feedbacks
-            feedbacks.clear()
-        }
-    }
-
-    // Marks everything that appeared, disappeared, moved or changed order since the view's last frame.
-    internal fun compare(view: DesktopView, items: List<DrawItem>) {
-        if (items === view.shown) return // nothing changed since the last comparison
-        val before = view.shown.withIndex().associateBy({ it.value.key }, { it })
-        val now = items.withIndex().associateBy({ it.value.key }, { it })
-        // (What changed, at the finest level: to find what keeps a screen being drawn.)
-        val why = if (renderLog.level >= 3) ArrayList<String>() else null
-        for ((key, old) in before) {
-            val new = now[key]
-            if (new == null) {
-                old.value.areas.forEach(view::damage)
-                why?.add("gone $key")
-            } else if (new.index != old.index || new.value.differsFrom(old.value)) {
-                // (The background: only where it shows — not under the windows over it.)
-                uncoveredAreas(old.value, view.shown, old.index).forEach(view::damage)
-                uncoveredAreas(new.value, items, new.index).forEach(view::damage)
-                why?.add("changed $key ${new.value.rect}")
-            }
-        }
-        for ((key, new) in now) if (key !in before) {
-            new.value.areas.forEach(view::damage)
-            why?.add("new $key")
-        }
-        if (!why.isNullOrEmpty()) renderLog.trace { "${view.monitor.name} changed: ${why.take(6).joinToString("; ")}" }
-        view.shown = items
-    }
 
     // --- the cursor ------------------------------------------------------------------------
 
@@ -2620,33 +2305,12 @@ class Desktop(
 
     // --- programs nobody sees -------------------------------------------------------------
 
-    // Surfaces kept updating although they may be hidden (e.g. shared in a screen recording).
-    private val keptUpdating = HashMap<Surface, Int>()
-
     /**
      * Keeps [surface] and its subsurfaces running at full speed even while nobody sees it,
      * for example while it is shared in a screen recording. Close the returned handle when
      * that ends. Without it, hidden programs only get a slow heartbeat (see [frameShown]).
      */
-    fun keepUpdating(surface: Surface): AutoCloseable {
-        keptUpdating[surface] = (keptUpdating[surface] ?: 0) + 1
-        var open = true
-        return AutoCloseable {
-            if (!open) return@AutoCloseable
-            open = false
-            val count = (keptUpdating[surface] ?: 1) - 1
-            if (count <= 0) keptUpdating.remove(surface) else keptUpdating[surface] = count
-        }
-    }
-
-    internal fun isKeptUpdating(surface: Surface): Boolean {
-        var current: Surface? = surface
-        while (current != null) {
-            if (current in keptUpdating) return true
-            current = current.subsurface?.parent
-        }
-        return false
-    }
+    fun keepUpdating(surface: Surface): AutoCloseable = frames.keepUpdating(surface)
 
     /**
      * Tells every program on screen (and those kept updating) that its last frame was
@@ -2656,42 +2320,6 @@ class Desktop(
      * just asked for a new size is the exception: it draws that at once (a window manager
      * waits for it before showing the window, as newm does).
      */
-    fun frameShown(timeMillis: Int) = frameShown(null, timeMillis)
-
-    // The same after a frame of [view]: programs on screen hear of it from the monitor that
-    // shows most of them (else a window on a 60 Hz monitor drew at the 144 Hz one's pace).
-    private fun frameShown(view: DesktopView?, timeMillis: Int) {
-        for (surface in sceneBuilder.visible) if (surface.resource.isAlive && (view == null || sceneBuilder.shownMostlyOn(surface, view.monitor))) surface.sendFrameDone(timeMillis)
-        for (surface in compositor.surfaces) {
-            if (surface !in sceneBuilder.visible && isKeptUpdating(surface)) surface.sendFrameDone(timeMillis)
-        }
-        for (window in allWindows) {
-            if (!window.awaitsSize) continue
-            for (surface in window.surface.stack) if (surface !in sceneBuilder.visible && surface.resource.isAlive) surface.sendFrameDone(timeMillis)
-        }
-        scheduleHiddenRefresh()
-    }
-
-    private var hiddenRefresh: EventLoop.Timer? = null
-
-    // Hidden programs waiting for their next frame get it once per HIDDEN_REFRESH_MILLIS.
-    private fun scheduleHiddenRefresh() {
-        if (hiddenRefresh != null || hiddenWaiting().isEmpty()) return
-        hiddenRefresh = compositor.display.loop.after(HIDDEN_REFRESH_MILLIS) {
-            hiddenRefresh = null
-            val time = (System.nanoTime() / 1_000_000).toInt()
-            for (surface in hiddenWaiting()) {
-                surface.sendFrameDone(time)
-                // Its pictures were never shown, and will not be until it is visible again.
-                for (feedback in surface.current.presentationFeedbacks) feedback.discard()
-                surface.current.feedbackList.clear()
-            }
-            scheduleHiddenRefresh()
-        }
-    }
-
-    private fun hiddenWaiting(): List<Surface> = compositor.surfaces.filter {
-        it.current.frameCallbacks.isNotEmpty() && it !in sceneBuilder.visible && !isKeptUpdating(it)
-    }
+    fun frameShown(timeMillis: Int) = frames.frameShown(null, timeMillis)
 
 }

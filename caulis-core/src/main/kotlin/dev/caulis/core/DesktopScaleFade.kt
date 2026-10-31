@@ -35,7 +35,7 @@ internal class DesktopScaleFade(private val desktop: Desktop) {
             val target = desktop.renderer.createTarget(width, height)
             try {
                 desktop.renderer.begin(target, desktop.backgroundColor.red, desktop.backgroundColor.green, desktop.backgroundColor.blue)
-                desktop.draw(desktop.capturing.captureItems(cursor = false, hide = false), monitor.area, monitor::toPixels, monitor.scale, monitor)
+                desktop.frames.draw(desktop.capturing.captureItems(cursor = false, hide = false), monitor.area, monitor::toPixels, monitor.scale, monitor)
                 desktop.renderer.end()
             } catch (e: Throwable) {
                 target.close()
