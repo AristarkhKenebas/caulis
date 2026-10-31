@@ -5,7 +5,6 @@ import dev.caulis.core.Overlay
 import dev.caulis.core.OverlayCanvas
 import dev.caulis.core.Window
 import dev.caulis.geometry.Rect
-import dev.caulis.render.Paint
 import dev.caulis.wm.Caulis
 
 /**
@@ -14,31 +13,32 @@ import dev.caulis.wm.Caulis
  * monitor it opened on (the name of the button under the pointer above it).
  */
 internal class ScreenshotOverlay(
-    private val caulis: Caulis,
-    private val shots: Screenshots,
-    private val frozen: Map<Monitor, Frozen>,
+    internal val caulis: Caulis,
+    internal val shots: Screenshots,
+    internal val frozen: Map<Monitor, Frozen>,
     // The windows on each monitor where they were drawn when it opened, bottom to top.
-    private val windows: Map<Monitor, List<Pair<Window, Rect>>>,
+    internal val windows: Map<Monitor, List<Pair<Window, Rect>>>,
     overview: Boolean,
     start: ShotKind,
 ) : Overlay {
+    internal val painter = ScreenshotOverlayPainter(this)
 
-    private val desktop = caulis.desktop
-    private val home: Monitor = desktop.focusedMonitor
-    private val style = shots.style
-    private val words = style.words
-    private val behaviour = shots.chooser
-    private val keys = behaviour.keys
+    internal val desktop = caulis.desktop
+    internal val home: Monitor = desktop.focusedMonitor
+    internal val style = shots.style
+    internal val words = style.words
+    internal val behaviour = shots.chooser
+    internal val keys = behaviour.keys
     // The keys' names in the keyboard layout (the chooser's keys are looked up by them).
     private val keyNames = shots.keyNames()
-    private val toolbar = Toolbar(desktop.renderer, behaviour.buttons.distinct().filter { it != ChooserButton.WINDOWS || overview }, style)
-    private val label = Label(desktop.renderer)
-    private val tip = Label(desktop.renderer)
+    internal val toolbar = Toolbar(desktop.renderer, behaviour.buttons.distinct().filter { it != ChooserButton.WINDOWS || overview }, style)
+    internal val label = Label(desktop.renderer)
+    internal val tip = Label(desktop.renderer)
 
-    private var kind = start
-    private var selection = shots.selection
-    private var pointer = shots.pointer
-    private var delay = shots.delaySeconds
+    internal var kind = start
+    internal var selection = shots.selection
+    internal var pointer = shots.pointer
+    internal var delay = shots.delaySeconds
 
     private var x = desktop.pointerX
     private var y = desktop.pointerY
@@ -46,17 +46,17 @@ internal class ScreenshotOverlay(
     // The part chosen (desktop units) and the monitor it is on: the last one offered again
     // (ChooserBehaviour.rememberSelection), while the monitors are as they were.
     private val offered = shots.rememberedPart()
-    private var region: Rect? = offered?.second
-    private var regionOn: Monitor = offered?.first ?: home
+    internal var region: Rect? = offered?.second
+    internal var regionOn: Monitor = offered?.first ?: home
 
     // The windows chosen (WINDOWS), and those a frame being dragged goes over.
-    private val picked = LinkedHashSet<Window>()
-    private var lasso: Rect? = null
+    internal val picked = LinkedHashSet<Window>()
+    internal var lasso: Rect? = null
     private var pickedBefore: Set<Window> = emptySet()
 
     // What the mouse is doing.
-    private enum class Drag { NONE, NEW, MOVE, RESIZE, LASSO }
-    private var drag = Drag.NONE
+    internal enum class Drag { NONE, NEW, MOVE, RESIZE, LASSO }
+    internal var drag = Drag.NONE
     private var dragX = 0.0
     private var dragY = 0.0
     private var dragFrom: Rect? = null
@@ -64,17 +64,17 @@ internal class ScreenshotOverlay(
     private var lastPress = 0L
 
     // The window or monitor last under the pointer (Capture on the toolbar takes it).
-    private var window: Window? = null
-    private var screen: Monitor = home
-    private var hovered: ChooserButton? = null
+    internal var window: Window? = null
+    internal var screen: Monitor = home
+    internal var hovered: ChooserButton? = null
 
     private val held = HashSet<Int>()
     private val shift get() = KEY_LEFTSHIFT in held || KEY_RIGHTSHIFT in held
     private val ctrl get() = KEY_LEFTCTRL in held || KEY_RIGHTCTRL in held
 
     // Coming in: the screen darkens and the toolbar rises, quickly.
-    private val openedAt = System.nanoTime()
-    private var ticking = false
+    internal val openedAt = System.nanoTime()
+    internal var ticking = false
 
     init {
         hover()
@@ -91,9 +91,7 @@ internal class ScreenshotOverlay(
         return at.x + (range.first + range.last + 1) / 2.0 to at.y + at.height / 2.0
     }
 
-    // --- drawing ----------------------------------------------------------------------------
-
-    private fun toolbarRect(): Rect {
+    internal fun toolbarRect(): Rect {
         val area = home.usableArea
         val width = toolbar.width(clearShown())
         return Rect(area.x + (area.width - width) / 2, area.bottom - toolbar.height - style.toolbarMargin, width, toolbar.height)
@@ -103,184 +101,24 @@ internal class ScreenshotOverlay(
     private fun partShown(): Boolean = kind == ShotKind.REGION && region != null
 
     // True if the clear button is on the toolbar: a part is shown (or being drawn).
-    private fun clearShown(): Boolean = ChooserButton.CLEAR in toolbar.buttons && (partShown() || (kind == ShotKind.REGION && drag == Drag.NEW))
+    internal fun clearShown(): Boolean = ChooserButton.CLEAR in toolbar.buttons && (partShown() || (kind == ShotKind.REGION && drag == Drag.NEW))
 
-    // 0..1 while coming in (along the curve of the desktop's animation "screenshot"), then 1; off: 1 at once.
-    private fun shown(): Float {
-        val coming = desktop.animation("screenshot", behaviour.appearMillis)
-        if (!coming.on) return 1f
-        val t = ((System.nanoTime() - openedAt) / (coming.millis * 1e6)).coerceIn(0.0, 1.0)
-        if (t < 1.0 && !ticking) {
-            ticking = true
-            caulis.after(8) {
-                ticking = false
-                desktop.redrawOverlay()
-            }
-        }
-        return try {
-            coming.at(t).toFloat()
-        } catch (e: Exception) {
-            t.toFloat()
-        }
-    }
-
-    override fun draw(monitor: Monitor, canvas: OverlayCanvas) {
-        val picture = frozen[monitor] ?: return // (plugged in since: shown as it is)
-        val area = monitor.area
-        val appear = shown()
-        val dim = style.shade * appear
-        val accent = style.accent
-        canvas.image(picture.texture, area)
-        when (kind) {
-            ShotKind.REGION -> {
-                val part = region?.takeIf { regionOn === monitor }?.intersect(area)
-                if (part == null) {
-                    canvas.fill(area, 0f, 0f, 0f, dim)
-                } else {
-                    dimAround(canvas, area, part, dim)
-                    canvas.border(grow(part, 2), 2f, Paint.Solid(accent), alpha = 0.95f)
-                    if (selection == Screenshots.Selection.ADJUST && (drag == Drag.NONE || drag == Drag.RESIZE)) handles(canvas, part)
-                    val px = picture.toPixels(part)
-                    sizeLabel(canvas, monitor, area, part, "${px.width} × ${px.height}")
-                }
-            }
-            ShotKind.WINDOW -> {
-                val shownAt = window?.let { w -> windowRect(w, monitor) }?.intersect(area)
-                if (shownAt == null) {
-                    canvas.fill(area, 0f, 0f, 0f, dim)
-                } else {
-                    dimAround(canvas, area, shownAt, dim)
-                    canvas.border(grow(shownAt, 2), 3f, Paint.Solid(accent), radius = 6f, alpha = 0.9f)
-                }
-            }
-            ShotKind.SCREEN -> {
-                if (monitor === screen) canvas.border(area, 4f, Paint.Solid(accent), alpha = 0.9f) else canvas.fill(area, 0f, 0f, 0f, dim)
-            }
-            ShotKind.WINDOWS -> drawWindows(canvas, monitor, picture, area, dim)
-        }
-        if (monitor === home) drawToolbar(canvas, monitor, appear)
-    }
-
-    private fun drawWindows(canvas: OverlayCanvas, monitor: Monitor, picture: Frozen, area: Rect, dim: Float) {
-        val accent = style.accent
-        canvas.fill(area, 0f, 0f, 0f, dim)
-        if (monitor !== regionOn && picked.isNotEmpty()) return
-        val list = windows[monitor].orEmpty()
-        val chosen = chosenNow()
-        val under = window?.takeIf { drag == Drag.NONE && hovered == null && it !in chosen }
-        // The windows chosen bright again (as they are), the one under the pointer a little.
-        for ((w, r) in list) {
-            val clip = r.intersect(area) ?: continue
-            when {
-                w in chosen -> canvas.imagePart(picture.texture, area, clip)
-                w === under -> canvas.imagePart(picture.texture, area, clip, alpha = 0.55f)
-            }
-        }
-        for ((w, r) in list) {
-            if (w in chosen) canvas.border(grow(r, 2), 2.5f, Paint.Solid(accent), radius = radiusOf(w, r, monitor) + 2f, alpha = 0.95f)
-            else if (w === under) canvas.border(grow(r, 1), 1.5f, Paint.Solid(style.text), radius = radiusOf(w, r, monitor) + 1f, alpha = 0.7f)
-        }
-        lasso?.let { l ->
-            canvas.fill(l, accent.red, accent.green, accent.blue, 0.12f)
-            canvas.border(l, 1.5f, Paint.Solid(accent), alpha = 0.9f)
-        }
-        // All of them: the picture's edges, and its size.
-        val pickedHere = list.filter { it.first in chosen }
-        if (pickedHere.isNotEmpty()) {
-            val bounds = pickedHere.map { it.second }.reduce(Rect::union)
-            if (pickedHere.size > 1) canvas.border(grow(bounds, 7), 1f, Paint.Solid(style.text), radius = 10f, alpha = 0.45f)
-            val size = shots.windowsSize(monitor, pickedHere)
-            val count = pickedHere.size
-            val text = (if (count == 1) words.oneWindow else words.manyWindows.with(count)) +
-                (size?.let { "  ·  ${it.first} × ${it.second}" } ?: "")
-            sizeLabel(canvas, monitor, area, grow(bounds, 7), text)
-        }
-    }
-
-    private fun drawToolbar(canvas: OverlayCanvas, monitor: Monitor, appear: Float) {
-        val at = toolbarRect().let { r -> Rect(r.x, r.y + Math.round((1 - appear) * behaviour.rise), r.width, r.height) }
-        val radius = style.cornerRadius.coerceAtMost(toolbar.height / 2f)
-        canvas.shadow(at, style.shadowSize, Paint.Solid(style.shadow), radius = radius, alpha = appear)
-        val look = Toolbar.Look(kind, selection, pointer, delay, hovered, monitor.scale, style, pointerIdle = !pointerApplies(), clear = clearShown())
-        canvas.image(toolbar.texture(look), at, alpha = appear, radius = radius)
-        // The name of the button under the pointer (and its key) above it.
-        val button = hovered ?: return
-        val range = toolbar.places(clearShown())[button] ?: return
-        val (text, key) = tipOf(button)
-        val (w, h) = tip.size(text, key, style)
-        val cx = at.x + (range.first + range.last + 1) / 2
-        val tx = (cx - w / 2).coerceIn(home.area.x + 4, home.area.right - w - 4)
-        canvas.image(tip.texture(text, key, monitor.scale, style), Rect(tx, at.y - h - 8, w, h), alpha = appear, radius = style.labelRadius)
-    }
-
-    // A button's name, and the key that does the same (as the layout names it).
-    private fun tipOf(button: ChooserButton): Pair<String, String> {
-        fun key(list: List<String>) = list.firstOrNull()?.let(words::keyName) ?: ""
-        return when (button) {
-            ChooserButton.REGION -> words.area to key(keys.area)
-            ChooserButton.WINDOW -> words.window to key(keys.window)
-            ChooserButton.SCREEN -> words.screen to key(keys.screen)
-            ChooserButton.WINDOWS -> words.windows to key(keys.windows)
-            ChooserButton.SELECTION -> (if (selection == Screenshots.Selection.ADJUST) words.adjustArea else words.newArea) to key(keys.selection)
-            // (Escape clears it first, with escapeClearsSelection.)
-            ChooserButton.CLEAR -> words.clearSelection to (if (behaviour.escapeClearsSelection) key(keys.close) else "")
-            ChooserButton.POINTER -> (if (!pointerApplies()) words.pointerNotHere else if (pointer) words.pointerIn else words.pointerOut) to key(keys.pointer)
-            ChooserButton.TIMER -> (if (delay > 0) words.timer.with(delay) else words.timerOff) to key(keys.timer)
-            ChooserButton.TAKE -> words.capture to key(keys.capture)
-            ChooserButton.CLOSE -> words.close to key(keys.close)
-        }
-    }
-
-    // True if the pointer can be in what would be taken now: not in a window taken alone, nor
-    // in a picture put together from windows.
-    private fun pointerApplies(): Boolean = when (kind) {
-        ShotKind.SCREEN -> true
-        ShotKind.WINDOW, ShotKind.WINDOWS -> false
-        ShotKind.REGION -> delay > 0 || region?.let { shots.sharpThere(regionOn, it, windows[regionOn].orEmpty()) } != true
-    }
-
-    // A label below [part] (above it when there is no room): its size.
-    private fun sizeLabel(canvas: OverlayCanvas, monitor: Monitor, area: Rect, part: Rect, text: String) {
-        val (w, h) = label.size(text, "", style)
-        val below = part.bottom + 8
-        val labelY = if (below + h <= area.bottom && (monitor !== home || below + h <= toolbarRect().y - 8)) below else (part.y - h - 8).coerceAtLeast(area.y + 4)
-        val labelX = part.x.coerceIn(area.x + 4, (area.right - w - 4).coerceAtLeast(area.x + 4))
-        canvas.image(label.texture(text, "", monitor.scale, style), Rect(labelX, labelY, w, h), radius = style.labelRadius)
-    }
-
-    private fun dimAround(canvas: OverlayCanvas, area: Rect, hole: Rect, dim: Float) {
-        canvas.fill(Rect(area.x, area.y, area.width, hole.y - area.y), 0f, 0f, 0f, dim)
-        canvas.fill(Rect(area.x, hole.bottom, area.width, area.bottom - hole.bottom), 0f, 0f, 0f, dim)
-        canvas.fill(Rect(area.x, hole.y, hole.x - area.x, hole.height), 0f, 0f, 0f, dim)
-        canvas.fill(Rect(hole.right, hole.y, area.right - hole.right, hole.height), 0f, 0f, 0f, dim)
-    }
-
-    private fun handles(canvas: OverlayCanvas, part: Rect) {
-        val xs = listOf(part.x, part.x + part.width / 2, part.right)
-        val ys = listOf(part.y, part.y + part.height / 2, part.bottom)
-        for ((i, hx) in xs.withIndex()) for ((j, hy) in ys.withIndex()) {
-            if (i == 1 && j == 1) continue
-            val size = style.handleSize
-            val dot = Rect(hx - size / 2, hy - size / 2, size, size)
-            canvas.roundedFill(grow(dot, 1), size / 2f + 1, style.handleRim)
-            canvas.roundedFill(dot, size / 2f, style.handle)
-        }
-    }
+    override fun draw(monitor: Monitor, canvas: OverlayCanvas) = painter.draw(monitor, canvas)
 
     // Where [w] was drawn on [monitor] when the chooser opened (null: not there).
-    private fun windowRect(w: Window, monitor: Monitor): Rect? = windows[monitor]?.firstOrNull { it.first === w }?.second
+    internal fun windowRect(w: Window, monitor: Monitor): Rect? = windows[monitor]?.firstOrNull { it.first === w }?.second
 
     // The topmost window at [px], [py] on [monitor] when the chooser opened.
     private fun windowAt(monitor: Monitor, px: Double, py: Double): Pair<Window, Rect>? = windows[monitor].orEmpty().lastOrNull { inside(it.second, px, py) }
 
     // Its corners' radius on screen (drawn smaller: smaller corners).
-    private fun radiusOf(w: Window, r: Rect, monitor: Monitor): Float {
+    internal fun radiusOf(w: Window, r: Rect, monitor: Monitor): Float {
         val (pw, _) = desktop.windowPixelSize(w)
         return (shots.sharpCornerRadius * monitor.scale * r.width / pw.coerceAtLeast(1)).toFloat()
     }
 
     // The windows chosen, with those under a frame being dragged.
-    private fun chosenNow(): Set<Window> {
+    internal fun chosenNow(): Set<Window> {
         val l = lasso ?: return picked
         val under = windows[regionOn].orEmpty().filter { it.second.intersect(l) != null }.map { it.first }
         return pickedBefore + under
@@ -629,7 +467,7 @@ internal class ScreenshotOverlay(
 
     private fun clamp(r: Rect, area: Rect): Rect = r.intersect(area) ?: Rect(r.x.coerceIn(area.x, area.right - 1), r.y.coerceIn(area.y, area.bottom - 1), 1, 1)
 
-    private fun grow(r: Rect, by: Int) = Rect(r.x - by, r.y - by, r.width + 2 * by, r.height + 2 * by)
+    internal fun grow(r: Rect, by: Int) = Rect(r.x - by, r.y - by, r.width + 2 * by, r.height + 2 * by)
 
     private fun resizeCursor(edges: Int): String = when (edges) {
         TOP -> "n-resize"
@@ -642,25 +480,6 @@ internal class ScreenshotOverlay(
         else -> "se-resize"
     }
 
-    private companion object {
-        const val LEFT = 1
-        const val RIGHT = 2
-        const val TOP = 4
-        const val BOTTOM = 8
-
-        const val BTN_LEFT = 272
-        const val BTN_RIGHT = 273
-
-        // (Modifiers and arrows by their place: the same in every layout.)
-        const val KEY_LEFTCTRL = 29
-        const val KEY_LEFTSHIFT = 42
-        const val KEY_RIGHTSHIFT = 54
-        const val KEY_RIGHTCTRL = 97
-        const val KEY_UP = 103
-        const val KEY_LEFT = 105
-        const val KEY_RIGHT = 106
-        const val KEY_DOWN = 108
-    }
 }
 
 // The rectangle between two points (in any order), at least one unit.
@@ -669,3 +488,21 @@ private fun between(x0: Double, y0: Double, x1: Double, y1: Double): Rect {
     val top = minOf(y0, y1).toInt()
     return Rect(left, top, maxOf(1, Math.abs(x1 - x0).toInt()), maxOf(1, Math.abs(y1 - y0).toInt()))
 }
+
+internal const val LEFT = 1
+internal const val RIGHT = 2
+internal const val TOP = 4
+internal const val BOTTOM = 8
+
+internal const val BTN_LEFT = 272
+internal const val BTN_RIGHT = 273
+
+// (Modifiers and arrows by their place: the same in every layout.)
+internal const val KEY_LEFTCTRL = 29
+internal const val KEY_LEFTSHIFT = 42
+internal const val KEY_RIGHTSHIFT = 54
+internal const val KEY_RIGHTCTRL = 97
+internal const val KEY_UP = 103
+internal const val KEY_LEFT = 105
+internal const val KEY_RIGHT = 106
+internal const val KEY_DOWN = 108
