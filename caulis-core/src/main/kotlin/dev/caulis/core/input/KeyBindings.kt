@@ -18,7 +18,7 @@ package dev.caulis.core.input
  * keyboard layout (Super+Q stays on the same key with a Russian layout); [keyOf] makes them
  * follow the layout instead (as GNOME and KDE do: Super+Z is the key printed Z on a German
  * keyboard, and still that key on the Russian layout). Mouse buttons
- * ("Super+MouseSide", "mouse:276"), the wheel ("Super+WheelUp") and a drawing tablet's pad
+ * ("Super+MouseSide", "BTN_TASK", "mouse:276", and [PointerBindings] for more than a press), the wheel ("Super+WheelUp") and a drawing tablet's pad
  * buttons ("Pad1", the first) are keys too, and a modifier alone ("Super") is a tap of it:
  * pressed and let go with nothing else in between.
  */
@@ -338,13 +338,15 @@ class KeyBindings {
             names(217, "XF86Search", "Search")
             names(244, "XF86MonBrightnessAuto", "BrightnessAuto")
             // Mouse buttons (also "mouse:272" and so on) and the wheel.
-            names(0x110, "MouseLeft", "LeftButton", "Button1")
-            names(0x111, "MouseRight", "RightButton", "Button3")
-            names(0x112, "MouseMiddle", "MiddleButton", "Button2")
-            names(0x113, "MouseSide", "SideButton", "Button8")
-            names(0x114, "MouseExtra", "ExtraButton", "Button9")
-            names(0x115, "MouseForward", "ForwardButton")
-            names(0x116, "MouseBack", "BackButton")
+            // (Most mice's back button is BTN_SIDE, their forward button BTN_EXTRA: ThumbBack, ThumbForward.)
+            names(0x110, "MouseLeft", "LeftButton", "Button1", "BTN_LEFT")
+            names(0x111, "MouseRight", "RightButton", "Button3", "BTN_RIGHT")
+            names(0x112, "MouseMiddle", "MiddleButton", "Button2", "BTN_MIDDLE", "WheelClick")
+            names(0x113, "MouseSide", "SideButton", "Button8", "BTN_SIDE", "ThumbBack")
+            names(0x114, "MouseExtra", "ExtraButton", "Button9", "BTN_EXTRA", "ThumbForward")
+            names(0x115, "MouseForward", "ForwardButton", "BTN_FORWARD")
+            names(0x116, "MouseBack", "BackButton", "BTN_BACK")
+            names(0x117, "MouseTask", "TaskButton", "BTN_TASK")
             names(WHEEL_UP, "WheelUp", "ScrollUp", "MouseUp")
             names(WHEEL_DOWN, "WheelDown", "ScrollDown", "MouseDown")
             names(WHEEL_LEFT, "WheelLeft", "ScrollLeft")
@@ -392,9 +394,9 @@ class KeyBindings {
             val modifiers = LinkedHashSet<Modifier>()
             val keys = ArrayList<Pair<String, Int>>()
             for (part in parts.flatMap(::parts)) {
-                // "mouse:276": a button by its Linux code.
-                Regex("(?i)mouse:(\\d+)").matchEntire(part.trim())?.let { m ->
-                    keys += part to m.groupValues[1].toInt().also { require(it in 0x110..0x2ff) { "\"$part\" is not a mouse button (mouse:272 to mouse:767)" } }
+                // "mouse:276", "mouse:0x114": a button by its Linux code.
+                Regex("(?i)mouse:(0x[0-9a-f]+|\\d+)").matchEntire(part.trim())?.let { m ->
+                    keys += part to Integer.decode(m.groupValues[1]).also { require(it in 0x100..0x2ff) { "\"$part\" is not a mouse button (mouse:256 to mouse:767)" } }
                     continue
                 }
                 val name = normalize(part)

@@ -1105,6 +1105,9 @@ class Caulis {
      */
     val keys = Keys()
 
+    /** The mouse's buttons and wheels beyond a plain press: consumed or passed on, clicks, long presses, holds with a direction. */
+    val pointerBindings = dev.caulis.core.input.PointerBindings()
+
     /** Changes the usual keys: `keys { close = "Super+Shift+Q"; dumpState = null }` (see [Keys]). */
     @JvmSynthetic
     fun keys(configure: Keys.() -> Unit) {
@@ -1741,6 +1744,12 @@ class Caulis {
     fun simulateScroll(notches: Int) {
         val running = live()
         running.rinput.pointerAxis((System.nanoTime() / 1_000_000).toInt(), dev.caulis.core.input.Scroll(dev.caulis.core.input.Scroll.Source.WHEEL, vertical = 15.0 * notches, vertical120 = 120 * notches))
+    }
+
+    /** For tests: a side wheel turned [notches] (positive: right), as from a mouse (see [simulatePointer]). */
+    fun simulateSideScroll(notches: Int) {
+        val running = live()
+        running.rinput.pointerAxis((System.nanoTime() / 1_000_000).toInt(), dev.caulis.core.input.Scroll(dev.caulis.core.input.Scroll.Source.WHEEL, horizontal = 15.0 * notches, horizontal120 = 120 * notches))
     }
 
     /**

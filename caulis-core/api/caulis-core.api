@@ -3197,6 +3197,111 @@ public final class dev/caulis/core/input/KeymapKt {
 	public static final fun keySymbolName (I)Ljava/lang/String;
 }
 
+public final class dev/caulis/core/input/PointerBindings {
+	public static final field Companion Ldev/caulis/core/input/PointerBindings$Companion;
+	public fun <init> ()V
+	public final fun button (IZLjava/util/Set;)Z
+	public final fun button (IZLjava/util/Set;J)Z
+	public final fun button (IZLjava/util/Set;JZ)Z
+	public static synthetic fun button$default (Ldev/caulis/core/input/PointerBindings;IZLjava/util/Set;JZILjava/lang/Object;)Z
+	public final fun clear ()V
+	public final fun click (Ljava/lang/String;Ldev/caulis/core/input/PointerBindings$Options;Lkotlin/jvm/functions/Function0;)V
+	public final fun click (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)V
+	public static synthetic fun click$default (Ldev/caulis/core/input/PointerBindings;Ljava/lang/String;Ldev/caulis/core/input/PointerBindings$Options;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public static final fun describe (I)Ljava/lang/String;
+	public final fun described ()Ljava/util/List;
+	public final fun gesture (Ljava/lang/String;Ljava/util/Map;)V
+	public final fun gesture (Ljava/lang/String;Ljava/util/Map;Ldev/caulis/core/input/PointerBindings$GestureOptions;)V
+	public final fun gesture (Ljava/lang/String;Ljava/util/Map;Ldev/caulis/core/input/PointerBindings$GestureOptions;Ldev/caulis/core/input/PointerBindings$Options;)V
+	public static synthetic fun gesture$default (Ldev/caulis/core/input/PointerBindings;Ljava/lang/String;Ljava/util/Map;Ldev/caulis/core/input/PointerBindings$GestureOptions;Ldev/caulis/core/input/PointerBindings$Options;ILjava/lang/Object;)V
+	public final fun getFrozen ()Z
+	public final fun getOnFailure ()Lkotlin/jvm/functions/Function1;
+	public final fun getSchedule ()Lkotlin/jvm/functions/Function2;
+	public final fun has (ILjava/util/Set;)Z
+	public final fun hold (Ljava/lang/String;Ldev/caulis/core/input/PointerBindings$Options;Lkotlin/jvm/functions/Function0;)V
+	public final fun hold (Ljava/lang/String;Ldev/caulis/core/input/PointerBindings$Options;Lkotlin/jvm/functions/Function0;Ldev/caulis/core/input/PointerBindings$HoldMoved;)V
+	public final fun hold (Ljava/lang/String;Ldev/caulis/core/input/PointerBindings$Options;Lkotlin/jvm/functions/Function0;Ldev/caulis/core/input/PointerBindings$HoldMoved;Lkotlin/jvm/functions/Function0;)V
+	public final fun hold (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)V
+	public static synthetic fun hold$default (Ldev/caulis/core/input/PointerBindings;Ljava/lang/String;Ldev/caulis/core/input/PointerBindings$Options;Lkotlin/jvm/functions/Function0;Ldev/caulis/core/input/PointerBindings$HoldMoved;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public final fun longPress (Ljava/lang/String;JLdev/caulis/core/input/PointerBindings$Options;Lkotlin/jvm/functions/Function0;)V
+	public final fun longPress (Ljava/lang/String;JLkotlin/jvm/functions/Function0;)V
+	public static synthetic fun longPress$default (Ldev/caulis/core/input/PointerBindings;Ljava/lang/String;JLdev/caulis/core/input/PointerBindings$Options;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public final fun motion (DD)Z
+	public final fun press (Ljava/lang/String;Ldev/caulis/core/input/PointerBindings$Options;Lkotlin/jvm/functions/Function0;)V
+	public final fun press (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)V
+	public static synthetic fun press$default (Ldev/caulis/core/input/PointerBindings;Ljava/lang/String;Ldev/caulis/core/input/PointerBindings$Options;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public final fun release (Ljava/lang/String;Ldev/caulis/core/input/PointerBindings$Options;Lkotlin/jvm/functions/Function0;)V
+	public final fun release (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)V
+	public static synthetic fun release$default (Ldev/caulis/core/input/PointerBindings;Ljava/lang/String;Ldev/caulis/core/input/PointerBindings$Options;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public final fun releaseAll ()V
+	public final fun scroll (ZILjava/util/Set;)Z
+	public final fun scroll (ZILjava/util/Set;J)Z
+	public final fun scroll (ZILjava/util/Set;JZ)Z
+	public static synthetic fun scroll$default (Ldev/caulis/core/input/PointerBindings;ZILjava/util/Set;JZILjava/lang/Object;)Z
+	public final fun setOnFailure (Lkotlin/jvm/functions/Function1;)V
+	public final fun setSchedule (Lkotlin/jvm/functions/Function2;)V
+	public final fun unbind (Ljava/lang/String;)V
+}
+
+public final class dev/caulis/core/input/PointerBindings$Companion {
+	public final fun describe (I)Ljava/lang/String;
+}
+
+public final class dev/caulis/core/input/PointerBindings$Direction : java/lang/Enum {
+	public static final field DOWN Ldev/caulis/core/input/PointerBindings$Direction;
+	public static final field LEFT Ldev/caulis/core/input/PointerBindings$Direction;
+	public static final field RIGHT Ldev/caulis/core/input/PointerBindings$Direction;
+	public static final field UP Ldev/caulis/core/input/PointerBindings$Direction;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/core/input/PointerBindings$Direction;
+	public static fun values ()[Ldev/caulis/core/input/PointerBindings$Direction;
+}
+
+public final class dev/caulis/core/input/PointerBindings$GestureOptions {
+	public fun <init> ()V
+	public fun <init> (D)V
+	public fun <init> (DD)V
+	public fun <init> (DDZ)V
+	public synthetic fun <init> (DDZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()D
+	public final fun component2 ()D
+	public final fun component3 ()Z
+	public final fun copy (DDZ)Ldev/caulis/core/input/PointerBindings$GestureOptions;
+	public static synthetic fun copy$default (Ldev/caulis/core/input/PointerBindings$GestureOptions;DDZILjava/lang/Object;)Ldev/caulis/core/input/PointerBindings$GestureOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFreezePointer ()Z
+	public final fun getRepeatEvery ()D
+	public final fun getThreshold ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/caulis/core/input/PointerBindings$HoldMoved {
+	public abstract fun moved (DD)Z
+}
+
+public final class dev/caulis/core/input/PointerBindings$Options {
+	public fun <init> ()V
+	public fun <init> (Z)V
+	public fun <init> (ZZ)V
+	public fun <init> (ZZJ)V
+	public fun <init> (ZZJLjava/lang/String;)V
+	public synthetic fun <init> (ZZJLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Z
+	public final fun component3 ()J
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (ZZJLjava/lang/String;)Ldev/caulis/core/input/PointerBindings$Options;
+	public static synthetic fun copy$default (Ldev/caulis/core/input/PointerBindings$Options;ZZJLjava/lang/String;ILjava/lang/Object;)Ldev/caulis/core/input/PointerBindings$Options;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCooldownMillis ()J
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getPass ()Z
+	public final fun getWhileLocked ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/caulis/core/input/PointerConstraints {
 	public fun <init> (Ldev/caulis/protocol/Display;Ldev/caulis/core/input/Seat;)V
 	public final fun current ()Ldev/caulis/core/input/PointerConstraints$Constraint;

@@ -17,6 +17,7 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ### Fixed
 - A window with a turned buffer (`wl_surface.set_buffer_transform`) is drawn turned while its workspace fades too; a change of the turn alone counts as a change of the picture.
+- `onPointerButton` handlers hear the release of every press they saw, whatever opened in between (a screenshot chooser, a lock): one holding a button no longer thinks it is held for good.
 
 ### Changed
 - Input devices (`InputDevices`) are a module of their own, `caulis-libinput`. Nothing changes for users: `caulis-core` depends on it (as an `api` dependency), and the packages and classes are the same.
@@ -26,6 +27,7 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - `Window.setSuspended`: tells a program (`xdg_toplevel` state `suspended`, xdg-shell 6) that its window cannot be seen for a while, so it may stop drawing. The compositor decides when.
 - `WindowDirector.onScreen`: a director says a window of a hidden workspace is not on screen, and it is not placed in that scene (the cost of a scene no longer grows with the windows nobody sees).
 - `OverlayCanvas.onlyOn(monitor)`: what is drawn from then on shows on that monitor only, for a window's decorations (a border around a window sliding off its monitor no longer shows on the neighbour).
+- `PointerBindings` (`caulis.pointerBindings`): the mouse beyond a plain press. Any button by name or code (`BTN_TASK`, `ThumbBack`, `mouse:0x115`) and the wheel all four ways, with any modifiers; per binding whether the press is taken or also passed to the program, a cooldown (for fast side wheels), clicks, long presses, holds, and a button held and moved in a direction as its own kind of binding. `PointerBindings.describe(code)` names a button for tools. `caulis.simulateSideScroll` for tests.
 - More project templates: `templates/new-compositor.sh --template <name>` with `tiling` (like i3), `floating`
   (like Openbox), `scrolling` (like niri), `kiosk` (one program, fullscreen), `desktop` (a bar of your own in
   Compose) and `lua` (only a `config.lua`); `--list` shows them. Each is a small commented project with the
