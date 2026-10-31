@@ -2,10 +2,7 @@ package dev.caulis.wm.config
 
 import dev.caulis.log.InternalCaulisApi
 import dev.caulis.core.WallpaperShader
-import dev.caulis.render.Paint
-import dev.caulis.tiling.Gaps
 import dev.caulis.wm.Caulis
-import dev.caulis.wm.Keys
 
 /**
  * Everything a configuration file (config.json, or what the Nix module writes) can say —
@@ -19,336 +16,9 @@ object Settings {
 
     // --- the pieces ---------------------------------------------------------------------------
 
-    private val sizeInt = IntegerType(-10_000, 10_000)
-
-    private val gaps = SectionType(
-        listOf(
-            Field("inner", IntegerType(0, Gaps.MAX), "space between tiled windows"),
-            Field("outer", IntegerType(0, Gaps.MAX), "space between them and the screen's edges"),
-            Field("top", IntegerType(0, Gaps.MAX), "space at the top edge (else outer)"),
-            Field("right", IntegerType(0, Gaps.MAX), "space at the right edge (else outer)"),
-            Field("bottom", IntegerType(0, Gaps.MAX), "space at the bottom edge (else outer)"),
-            Field("left", IntegerType(0, Gaps.MAX), "space at the left edge (else outer)"),
-        ),
-        "gaps",
-    )
-
-    // A colour or a gradient as text: "#89b4fa", or Hyprland's "rgba(33ccffee) rgba(00ff99ee) 45deg".
-    private object PaintText : SettingType() {
-        override val words get() = "a colour (\"#rrggbb[aa]\") or Hyprland's colours and angle (\"rgba(33ccffee) rgba(00ff99ee) 45deg\")"
-
-        override fun read(json: JsonValue, path: String, problems: Problems): Any? {
-            val text = (json as? JsonValue.Str)?.value ?: return problems.add(path, json, "$words, not ${json.kind}").let { null }
-            return try {
-                Paint.parse(text)
-            } catch (e: IllegalArgumentException) {
-                problems.add(path, json, e.message ?: "\"$text\" is not $words")
-                null
-            }
-        }
-
-        override fun nix() = "lib.types.str"
-        override fun jsonSchema() = """{"type":"string","minLength":1}"""
-    }
-
-    private val paint: SettingType = EitherType(
-        PaintText,
-        SectionType(
-            listOf(
-                Field("gradient", ListType(ColorType, 2, Paint.MAX_COLORS), "colours across the window"),
-                Field("conic", ListType(ColorType, 2, Paint.MAX_COLORS), "colours around the window's middle"),
-                Field("degrees", DecimalType(-3600.0, 3600.0), "the gradient's direction or start"),
-                Field("turnsPerSecond", DecimalType(-10.0, 10.0), "how fast it turns"),
-                Field("rainbow", DecimalType(0.5, 600.0), "a rainbow going round once every so many seconds"),
-                Field("shader", FileType(), "a paint shader file (vec4 paint(vec2 at))"),
-            ),
-            "a paint: gradient, conic, rainbow or shader",
-        ),
-    )
-
-    private val shadow = SectionType(
-        listOf(
-            Field("softness", IntegerType(1, 200), "how far it fades out"),
-            Field("offsetX", IntegerType(-200, 200), "moved right"),
-            Field("offsetY", IntegerType(-200, 200), "moved down"),
-            Field("color", paint, "its colour or paint (a coloured one is a glow)"),
-            Field("spread", IntegerType(-100, 200), "how much bigger than the window"),
-        ),
-        "a shadow",
-    )
-
-    private val pointerFields = listOf(
-            Field("enabled", FlagType, "false: not used at all"),
-            Field("offWithMouse", FlagType, "touchpads: off while a mouse is plugged in"),
-            Field("speed", DecimalType(-1.0, 1.0), "pointer speed, -1 to 1 (0: the device's normal)"),
-            Field("accelProfile", ChoiceType(listOf("flat", "adaptive")), "flat: as fast as the hand; adaptive: faster when moved fast"),
-            Field("naturalScroll", FlagType, "content follows the fingers"),
-            Field("scrollFactor", DecimalType(0.1, 10.0), "scrolling goes this many times as far"),
-            Field("scrollMethod", ChoiceType(listOf("none", "two-finger", "edge", "button")), "how it scrolls"),
-            Field("scrollButton", TextType("a mouse button"), "with scrollMethod button: the button (\"MouseMiddle\")"),
-            Field("leftHanded", FlagType, "buttons swapped; tablets: turned around"),
-            Field("middleEmulation", FlagType, "left and right together are a middle click"),
-            Field("tap", FlagType, "touchpads: a tap is a click"),
-            Field("tapButtons", ChoiceType(listOf("left-right-middle", "left-middle-right")), "touchpads: what two and three fingers tap"),
-            Field("tapDrag", FlagType, "touchpads: tap, touch again and move to drag"),
-            Field("dragLock", FlagType, "touchpads: a drag goes on when the finger lifts for a moment"),
-            Field("disableWhileTyping", FlagType, "touchpads: off while typing"),
-            Field("clickMethod", ChoiceType(listOf("areas", "fingers")), "touchpads: a click by the area pressed or by the number of fingers"),
-    )
-
-    private val tabletFields = listOf(
-        Field("monitor", TextType("a monitor's name"), "tablets: the monitor it covers (else a pen screen its laptop's, others all monitors as one)"),
-        Field("keepAspect", FlagType, "tablets: keep the monitor's shape, a strip of the tablet unused (default true)"),
-        Field(
-            "area",
-            SectionType(
-                listOf(
-                    Field("x", DecimalType(0.0, 1.0), "where it starts across, 0 to 1 of the tablet"),
-                    Field("y", DecimalType(0.0, 1.0), "where it starts down, 0 to 1 of the tablet"),
-                    Field("width", DecimalType(0.01, 1.0), "how wide, 0 to 1 of the tablet (else to its edge)"),
-                    Field("height", DecimalType(0.01, 1.0), "how tall, 0 to 1 of the tablet (else to its edge)"),
-                ),
-                "a part of the tablet",
-            ),
-            "tablets: only this part of the tablet is used",
-        ),
-        Field("pointerOnly", FlagType, "tablets: the pen is only ever the pointer (no pressure or tilt for programs)"),
-        Field("tipPressure", DecimalType(0.01, 1.0), "tablets: how hard the pen presses to touch, 0.01 to 1 (else libinput decides)"),
-        Field("lowerButton", TextType("a mouse button"), "tablets: the pen's lower button as a mouse button (\"MouseRight\", \"none\")"),
-        Field("upperButton", TextType("a mouse button"), "tablets: the pen's upper button as a mouse button (\"MouseMiddle\", \"none\")"),
-        Field("thirdButton", TextType("a mouse button"), "tablets: a third button of the pen as a mouse button (\"MouseSide\", \"none\")"),
-    )
-
-    // Mice and touchpads; tablets; and single devices by name, which may be either.
-    private val device = SectionType(pointerFields, "device settings")
-    private val tablet = SectionType(pointerFields.filter { it.name == "enabled" || it.name == "leftHanded" } + tabletFields, "tablet settings")
-    private val anyDevice = SectionType(pointerFields + tabletFields, "device settings")
-
-    private val windowStyle = ChoiceType(listOf("pop", "fade", "scale", "slide-up", "genie", "fly", "none"))
-
-    // A curve: a ready one, or one of "curves" by its name.
-    private val curveName = TextType("a curve (ease-out, ease-in-out, linear, overshoot, or one of curves)")
-
-    // An animation: its style alone, or { style, millis, curve }.
-    private fun animationType(styles: ChoiceType) = EitherType(
-        styles,
-        SectionType(
-            listOf(
-                Field("style", styles, "how it looks"),
-                Field("millis", IntegerType(0, 5000), "how long it takes (else animations.millis, or its spring's own time)"),
-                Field("curve", curveName, "how it moves"),
-            ),
-            "an animation",
-        ),
-    )
-
-    private val windowAnimation = animationType(windowStyle)
-
-    // One named animation's settings (Hyprland's `animation = NAME, ONOFF, SPEED, CURVE, STYLE`):
-    // true or false, its look alone, or { enabled, millis or speed, curve, style }.
-    private fun namedAnimation(node: dev.caulis.core.AnimationNode) = EitherType(
-        FlagType,
-        EitherType(
-            TextType("a look (${node.styles.joinToString()})"),
-            SectionType(
-                listOf(
-                    Field("enabled", FlagType, "on or off (else as the one above it, in the end animations.enabled)"),
-                    Field("millis", IntegerType(0, 10_000), "how long it takes in milliseconds (else as the one above it, its own usual, or animations.millis)"),
-                    Field("speed", DecimalType(0.0, 100.0), "how long it takes in tenths of a second, as Hyprland's speed (instead of millis)"),
-                    Field("curve", curveName, "how it moves"),
-                    Field("style", TextType("a look"), "its look" + if (node.styles.isEmpty()) " (it has one only)" else ": ${node.styles.joinToString()}"),
-                ),
-                "an animation's settings",
-            ),
-        ),
-    )
-
-    private val curve = SectionType(
-        listOf(
-            Field("bezier", ListType(DecimalType(-2.0, 3.0), 4, 4), "[x1, y1, x2, y2] as Hyprland's bezier (CSS cubic-bezier)"),
-            Field("spring", SectionType(listOf(
-                Field("stiffness", DecimalType(1.0, 5000.0), "how strongly it pulls"),
-                Field("damping", DecimalType(0.1, 500.0), "how much it is held back (less: it bounces)"),
-                Field("mass", DecimalType(0.01, 100.0), "how heavy"),
-            ), "a spring"), "a spring: an animation takes as long as it needs to rest"),
-        ),
-        "a curve",
-    )
-
-    private val keys = Keys().let { usual ->
-        SectionType(
-            usual.all().keys.map { name -> Field(name, OffOrType(CombinationType(usual.isGroup(name))), "the $name key (false: off)") } +
-                Field("quitWhileLocked", FlagType, "the quit key works on a locked screen too (default false: it would get round the lock)") +
-                Field("lockWhileInhibited", FlagType, "the lock key locks while a window keeps the keys (shortcuts inhibited; default true)"),
-            "keys",
-        )
-    }
-
-    // Which windows a rule is for (also inside "not" and "anyOf").
-    private val matchFields = listOf(
-        Field("appId", TextType("an app id"), "windows with this app id (case does not matter)"),
-        Field("appIdPattern", RegexType, "windows whose app id fits this"),
-        Field("title", TextType(), "windows whose title contains this"),
-        Field("titlePattern", RegexType, "windows whose title fits this"),
-        Field("program", TextType("a program name"), "windows of this program (as ps shows it)"),
-        Field("initialAppId", TextType("an app id"), "windows whose app id was this when they opened"),
-        Field("initialTitle", TextType(), "windows whose title contained this when they opened"),
-        Field("hasTag", TextType("a tag"), "windows with this tag (from an earlier rule's tags, or the action tag)"),
-        Field("isFloating", FlagType, "while it floats (true) or is tiled (false)"),
-        Field("isFullscreen", FlagType, "while it is fullscreen (or not)"),
-        Field("isMaximized", FlagType, "while it is maximized (or not)"),
-        Field("isFocused", FlagType, "while it has the keyboard (or not)"),
-        Field("isPinned", FlagType, "while it is pinned (or not)"),
-        Field("isXwayland", FlagType, "X11 programs (true) or Wayland ones (false)"),
-        Field("onWorkspace", IntegerType(1, 99), "while it is on this workspace"),
-    )
-
-    private val match = SectionType(matchFields, "which windows")
-
-    private val blurSection = SectionType(
-        listOf(
-            Field("size", IntegerType(1, 64), "how strong"),
-            Field("passes", IntegerType(1, 6), "how smooth"),
-            Field("tone", ChoiceType(listOf("none", "hyprland")), "start from no toning, or Hyprland's"),
-            Field("noise", DecimalType(0.0, 1.0), "grain (a little hides banding)"),
-            Field("contrast", DecimalType(0.0, 2.0), "1: as it is"),
-            Field("brightness", DecimalType(0.0, 2.0), "1: as it is"),
-            Field("vibrancy", DecimalType(0.0, 1.0), "stronger colours (0: as they are)"),
-        ),
-        "blur",
-    )
-
-    private val panelRule = SectionType(
-        listOf(
-            Field("namespace", TextType("a panel's name"), "panels that call themselves this (waybar, fuzzel, ...)"),
-            Field("namespacePattern", RegexType, "panels whose name fits this"),
-            Field("layer", ChoiceType(listOf("background", "bottom", "top", "overlay")), "panels on this layer"),
-            Field("blur", FlagType, "frosted glass behind it"),
-            Field("cornerRadius", IntegerType(0, 200), "how round its corners are"),
-            Field("shadow", FlagType, "a shadow under it"),
-            Field("opacity", DecimalType(0.0, 1.0), "how solid it is"),
-            Field("dimAround", DecimalType(0.0, 1.0), "everything behind it this much darker"),
-            Field("hiddenFromCapture", FlagType, "screenshots and screen sharing show a black box in its place"),
-        ),
-        "a panel rule",
-    )
-
-    private val rule = SectionType(
-        matchFields + listOf(
-            Field("unless", match, "windows that do NOT fit this"),
-            Field("anyOf", ListType(match, 1), "windows that fit at least one of these"),
-            Field("workspace", IntegerType(1, 99), "the workspace it opens on"),
-            Field("monitor", TextType("a connector"), "the monitor it opens on"),
-            Field("goToWorkspace", FlagType, "show its workspace when it opens"),
-            Field("floating", FlagType, "float (true) or tile (false)"),
-            Field("size", ListType(IntegerType(1, 10_000), 2, 2), "[width, height] when floating"),
-            Field("position", ListType(sizeInt, 2, 2), "[x, y] when floating, from the monitor's free area"),
-            Field("center", FlagType, "in the middle of its monitor when floating"),
-            Field("maximized", FlagType, "starts maximized"),
-            Field("fullscreen", FlagType, "starts fullscreen"),
-            Field("focus", FlagType, "false: opens without taking the keyboard"),
-            Field("titleBars", ChoiceType(listOf("program", "compositor", "none")), "who draws its title bar"),
-            Field("opacity", DecimalType(0.0, 1.0), "how solid it is"),
-            Field("margin", EitherType(IntegerType(-500, 500), ListType(IntegerType(-500, 500), 4, 4)), "room around it: one number, or [top, right, bottom, left]"),
-            Field("pinned", FlagType, "opens pinned: floating, on every workspace of its monitor"),
-            Field("inactiveOpacity", DecimalType(0.0, 1.0), "how solid it is while another window has the keyboard"),
-            Field("cornerRadius", IntegerType(0, 200), "how round its corners are, in pixels"),
-            Field("border", FlagType, "false: no border; true: the usual one"),
-            Field("borderWidth", IntegerType(1, 50), "its border's width in pixels"),
-            Field("borderColor", EitherType(ColorType, ListType(ColorType, 2, 2)), "its border's colour, or [with the keyboard, without]"),
-            Field(
-                "borderPaint",
-                SectionType(listOf(Field("focused", paint, "with the keyboard"), Field("unfocused", paint, "without"), Field("urgent", paint, "while it wants attention")), "its border's paints"),
-                "its border's paints: gradients, shaders (focused, unfocused, urgent)",
-            ),
-            Field("specialWorkspace", SpecialWorkspaceType, "the special workspace it opens in, unseen (unless goToWorkspace)"),
-            Field("shadow", FlagType, "false: no shadow; true: the usual one"),
-            Field("blur", FlagType, "false: nothing blurred behind it; true: frosted glass"),
-            Field("dimInactive", DecimalType(0.0, 1.0), "how much darker it is without the keyboard (0: never)"),
-            Field("minSize", ListType(IntegerType(1, 10_000), 2, 2), "[width, height] it is at least while floating"),
-            Field("maxSize", ListType(IntegerType(1, 10_000), 2, 2), "[width, height] it is at most while floating"),
-            Field("keepAwake", FlagType, "the screen stays on while it is shown"),
-            Field("animated", FlagType, "false: no animations when it opens, closes or moves"),
-            Field("hiddenFromCapture", FlagType, "screenshots and screen sharing show a black box in its place"),
-            Field("takesFocus", FlagType, "false: it never gets the keyboard"),
-            Field("ignore", ListType(ChoiceType(listOf("fullscreen", "maximize", "minimize", "activate"))), "what its program asks that is not done"),
-            Field("tags", ListType(TextType("a tag")), "tags it has while it fits (for later rules with hasTag)"),
-        ),
-        "a window rule",
-    )
-
-    private val layoutSection = SectionType(
-        listOf(
-            Field("name", ChoiceType(Layouts.names), "how windows are arranged"),
-            Field("gaps", gaps, "space around and between windows"),
-            Field("ratio", DecimalType(0.1, 0.9), "the main window's share (master layouts)"),
-            Field("side", ChoiceType(listOf("left", "right", "top", "bottom")), "the main window's side (master-stack)"),
-            Field("masters", IntegerType(1, 20), "how many masters (master-stack)"),
-            Field("newWindow", ChoiceType(listOf("stack-end", "stack-top", "master")), "where a new window goes (master-stack)"),
-            Field("splitRatio", DecimalType(0.1, 0.9), "the old window's share when a new one splits it (tree)"),
-            Field("columnWidths", ListType(DecimalType(0.1, 1.0), 1, 10), "the widths column-width goes through (scrolling-columns)"),
-            Field("newColumnWidth", DecimalType(0.1, 1.0), "a new column's width (scrolling-columns)"),
-            Field("centerFocused", FlagType, "the focused column always in the middle (scrolling-columns)"),
-        ),
-        "the layout",
-    )
-
-    private val workspaces = SectionType(
-        listOf(
-            Field("count", IntegerType(1, 99), "how many there are (1: no workspaces, one desktop)"),
-            Field(
-                "rules",
-                ListType(
-                    SectionType(
-                        listOf(
-                            Field("workspace", IntegerType(1, 99), "its number", required = true),
-                            Field("name", TextType("a name"), "its name for bars (\"web\")"),
-                            Field("monitor", TextType("a connector"), "its home monitor (\"DP-2\")"),
-                            Field("layout", layoutSection, "its own layout"),
-                            Field("persistent", FlagType, "it always exists, even empty"),
-                        ),
-                        "a workspace rule",
-                    ),
-                ),
-                "how single workspaces are",
-            ),
-        ),
-        "workspaces",
-    )
-
-    /** The whole file. */
-    private val restartType: SettingType = EitherType(
-        ChoiceType(listOf("never", "on-crash", "always")),
-        SectionType(
-            listOf(
-                Field("when", ChoiceType(listOf("never", "on-crash", "always")), "when it is started again"),
-                Field("maxTimes", IntegerType(0, 1000), "at most this many times (default 3)"),
-                Field("withinMillis", IntegerType(1, 86_400_000), "within this time (default 60000)"),
-            ),
-            "a restart rule",
-        ),
-    )
-
-    private val autostartEntry = SectionType(
-        listOf(
-            Field("app", EitherType(TextType("a program"), ListType(TextType("a word"), 1)), "a program and its arguments (no shell): [\"nm-applet\", \"--indicator\"]"),
-            Field("script", TextType("an executable file"), "an executable file (~ is your home)"),
-            Field("shell", TextType("shell"), "a piece of shell (/bin/sh -c)"),
-            Field("arguments", ListType(TextType("an argument")), "the script's arguments"),
-            Field("name", TextType("a name"), "its name (for after, ifNotRunning and the status; default the program's)"),
-            Field("delayMillis", IntegerType(0, 3_600_000), "wait this long more before it starts"),
-            Field("ifNotRunning", FlagType, "not started when a program of its name runs already"),
-            Field("restart", restartType, "started again when it ended: never (default), on-crash, always, or { when, maxTimes, withinMillis }"),
-            Field("after", ListType(TextType("an entry's name")), "start only once these entries have started"),
-            Field("env", MapType(TextType("a value"), "variable"), "more environment for it"),
-            Field("dir", TextType("a folder"), "the folder it starts in (~ is your home)"),
-        ),
-        "a program to start",
-    )
-
     val root = SectionType(
         listOf(
-            Field("layout", layoutSection, "how windows are arranged"),
+            Field("layout", SettingsPieces.layoutSection, "how windows are arranged"),
             Field("scale", DecimalType(0.5, 4.0), "how big everything is (1.0, 1.25, 1.5, 2.0, ...)"),
             Field(
                 "workspaceMode",
@@ -356,7 +26,7 @@ object Settings {
                 "shared numbers on any monitor, pinned to monitors, each monitor its own, one over all, or only on the primary monitor",
             ),
             Field("primaryMonitor", TextType("a connector"), "the primary monitor (\"DP-2\")"),
-            Field("workspaces", workspaces, "how many workspaces, and how each is"),
+            Field("workspaces", SettingsPieces.workspaces, "how many workspaces, and how each is"),
             Field("monitorEdges", ChoiceType(listOf("touching", "proportional")), "how the mouse goes between monitors of different sizes"),
             Field(
                 "monitors",
@@ -364,7 +34,7 @@ object Settings {
                     SectionType(
                         listOf(
                             Field("scale", DecimalType(0.5, 4.0), "its own scale"),
-                            Field("position", ListType(sizeInt, 2, 2), "[x, y] on the desktop, in units"),
+                            Field("position", ListType(SettingsPieces.sizeInt, 2, 2), "[x, y] on the desktop, in units"),
                             Field("mode", ListType(DecimalType(1.0, 20_000.0), 2, 3), "[width, height] or [width, height, hz]"),
                             Field("enabled", FlagType, "false: not used"),
                             Field("transform", ChoiceType(listOf("normal", "90", "180", "270", "flipped", "flipped-90", "flipped-180", "flipped-270")), "turned clockwise (a screen on its side: 90)"),
@@ -398,10 +68,10 @@ object Settings {
                 SectionType(
                     listOf(
                         Field("focusFollowsMouse", FlagType, "the window under the pointer gets the keyboard"),
-                        Field("pointers", device, "every mouse, trackball and touchpad"),
-                        Field("touchpads", device, "touchpads (on top of pointers)"),
-                        Field("tablets", tablet, "drawing tablets and their pens"),
-                        Field("devices", MapType(anyDevice, "device name"), "single devices by name (--devices lists them; * matches anything)"),
+                        Field("pointers", SettingsPieces.device, "every mouse, trackball and touchpad"),
+                        Field("touchpads", SettingsPieces.device, "touchpads (on top of pointers)"),
+                        Field("tablets", SettingsPieces.tablet, "drawing tablets and their pens"),
+                        Field("devices", MapType(SettingsPieces.anyDevice, "device name"), "single devices by name (--devices lists them; * matches anything)"),
                     ),
                     "input",
                 ),
@@ -563,17 +233,17 @@ object Settings {
             Field("lockShowMillis", IntegerType(100, 60_000), "how long a lock may take to show before it counts as failed (lockFailure)"),
             Field("lockFailure", ChoiceType(listOf("own-lock", "notice")), "when a lock does not show: the compositor's own plain lock screen, or only a notice (and sleep unlocked)"),
             Field("titleBars", ChoiceType(listOf("program", "compositor", "none")), "who draws title bars"),
-            Field("keys", keys, "the usual keys, changed or turned off"),
+            Field("keys", SettingsPieces.keys, "the usual keys, changed or turned off"),
             Field("bind", MapType(BindType, "key combination"), "your own keys: combination → action (\"exec firefox\", \"workspace 3\", ...) or { action, repeat, release, locked, description }"),
             Field("modes", MapType(MapType(BindType, "key combination"), "mode"), "key modes (\"resize\"): their own keys, on with the action \"mode resize\", off with \"mode reset\""),
-            Field("rules", ListType(rule), "rules for some windows"),
-            Field("panelRules", ListType(panelRule), "rules for some panels (bars, launchers, notifications)"),
+            Field("rules", ListType(SettingsPieces.rule), "rules for some windows"),
+            Field("panelRules", ListType(SettingsPieces.panelRule), "rules for some panels (bars, launchers, notifications)"),
             Field(
                 "specialWorkspaces",
                 SectionType(
                     listOf(
                         Field("dim", DecimalType(0.0, 1.0), "how much darker everything behind a shown one is"),
-                        Field("blur", OffOrType(blurSection), "what is behind it blurred"),
+                        Field("blur", OffOrType(SettingsPieces.blurSection), "what is behind it blurred"),
                         Field("gap", IntegerType(0, 1000), "space between it and the monitor's edges"),
                         Field("size", DecimalType(0.2, 1.0), "how much of the monitor it takes"),
                         Field("animation", ChoiceType(dev.caulis.core.AnimationTree.CAULIS.names), "the animation its windows come and go with"),
@@ -581,7 +251,7 @@ object Settings {
                         Field("newWindowsJoin", FlagType, "windows opening while it is shown go into it"),
                         Field("hideOnLock", FlagType, "hide when the screen locks"),
                         Field("clickOutsideHides", FlagType, "a click on the dimmed area hides it"),
-                        Field("layout", layoutSection, "its own layout (else the usual one)"),
+                        Field("layout", SettingsPieces.layoutSection, "its own layout (else the usual one)"),
                     ),
                     "special workspaces",
                 ),
@@ -612,11 +282,11 @@ object Settings {
                                 SectionType(
                                     listOf(
                                         Field("width", IntegerType(1, 50), "its width"),
-                                        Field("focused", paint, "with the focus"),
-                                        Field("unfocused", paint, "without"),
-                                        Field("urgent", paint, "a window that wants attention (else as the others)"),
-                                        Field("groupedFocused", paint, "the focused window of a group (else focused)"),
-                                        Field("groupedUnfocused", paint, "the other windows of a group (else unfocused)"),
+                                        Field("focused", SettingsPieces.paint, "with the focus"),
+                                        Field("unfocused", SettingsPieces.paint, "without"),
+                                        Field("urgent", SettingsPieces.paint, "a window that wants attention (else as the others)"),
+                                        Field("groupedFocused", SettingsPieces.paint, "the focused window of a group (else focused)"),
+                                        Field("groupedUnfocused", SettingsPieces.paint, "the other windows of a group (else unfocused)"),
                                         Field("animate", FlagType, "false: turning gradients and shaders using time stand still"),
                                     ),
                                     "a border",
@@ -624,9 +294,9 @@ object Settings {
                             ),
                             "a frame around windows",
                         ),
-                        Field("shadow", OffOrType(shadow), "the shadow (of the focused window)"),
-                        Field("inactiveShadow", OffOrType(shadow), "the shadow of windows without the focus"),
-                        Field("blur", OffOrType(blurSection), "blur behind see-through windows"),
+                        Field("shadow", OffOrType(SettingsPieces.shadow), "the shadow (of the focused window)"),
+                        Field("inactiveShadow", OffOrType(SettingsPieces.shadow), "the shadow of windows without the focus"),
+                        Field("blur", OffOrType(SettingsPieces.blurSection), "blur behind see-through windows"),
                         Field("dimInactive", DecimalType(0.0, 1.0), "how much darker windows without the focus are (0: not at all)"),
                         Field("opacity", DecimalType(0.0, 1.0), "how solid the focused window is"),
                         Field("inactiveOpacity", DecimalType(0.0, 1.0), "how solid the others are"),
@@ -642,15 +312,15 @@ object Settings {
                     listOf(
                         Field("enabled", FlagType, "animations on (default false: everything changes at once; one turned on by name runs all the same)"),
                         Field("millis", IntegerType(0, 5000), "the global time in milliseconds, of those without one of their own (0: none at all)"),
-                        Field("windowOpen", windowAnimation, "a window appearing, as code's look (older; windowsIn is the same by name)"),
-                        Field("windowClose", windowAnimation, "a window going away, as code's look (older; windowsOut is the same by name)"),
-                        Field("windowMove", animationType(ChoiceType(listOf("move", "none"))), "windows gliding to new places (older; windowsMove is the same by name)"),
-                        Field("workspaceSwitch", animationType(ChoiceType(listOf("slide", "slide-vertical", "fade", "none"))), "another workspace shown (older; workspaces is the same by name)"),
-                        Field("curve", curveName, "the global curve: how animations move"),
-                        Field("curves", MapType(curve, "curve name"), "your own curves by name, for curve fields"),
+                        Field("windowOpen", SettingsPieces.windowAnimation, "a window appearing, as code's look (older; windowsIn is the same by name)"),
+                        Field("windowClose", SettingsPieces.windowAnimation, "a window going away, as code's look (older; windowsOut is the same by name)"),
+                        Field("windowMove", SettingsPieces.animationType(ChoiceType(listOf("move", "none"))), "windows gliding to new places (older; windowsMove is the same by name)"),
+                        Field("workspaceSwitch", SettingsPieces.animationType(ChoiceType(listOf("slide", "slide-vertical", "fade", "none"))), "another workspace shown (older; workspaces is the same by name)"),
+                        Field("curve", SettingsPieces.curveName, "the global curve: how animations move"),
+                        Field("curves", MapType(SettingsPieces.curve, "curve name"), "your own curves by name, for curve fields"),
                         Field("overviewMillis", IntegerType(0, 5000), "the overview zooming (older; overview.millis)"),
                         Field("scaleChangeMillis", IntegerType(0, 5000), "the picture melting when the scale changes (older; fadeScale.millis)"),
-                    ) + dev.caulis.core.AnimationTree.CAULIS.nodes.map { node -> Field(node.name, namedAnimation(node), node.about) },
+                    ) + dev.caulis.core.AnimationTree.CAULIS.nodes.map { node -> Field(node.name, SettingsPieces.namedAnimation(node), node.about) },
                     "animations",
                 ),
                 "animations",
@@ -793,7 +463,7 @@ object Settings {
                         Field("afterReveal", FlagType, "start them once the desktop is shown (default true)"),
                         Field("desktopEntries", FlagType, "also the .desktop files of ~/.config/autostart and /etc/xdg/autostart (default false)"),
                         Field("afterTimeoutMillis", IntegerType(0, 600_000), "how long an entry waits for those it starts after (default 10000)"),
-                        Field("entries", ListType(autostartEntry), "the programs, in order"),
+                        Field("entries", ListType(SettingsPieces.autostartEntry), "the programs, in order"),
                     ),
                     "the programs started with the session",
                 ),
