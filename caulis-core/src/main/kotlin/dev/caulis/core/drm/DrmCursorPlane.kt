@@ -179,7 +179,7 @@ internal class DrmCursorPlane(private val drmOutput: DrmOutput) {
         if (result == 0) {
             cursorDirty = false
             cursorOnlyPending = true
-            drmOutput.awaitFlip(serial)
+            drmOutput.flips.awaitFlip(serial)
         } else {
             drmOutput.log.trace { "$drmOutput.name: the cursor's move was refused (${drmOutput.errno(result)}); with the next picture" }
         }

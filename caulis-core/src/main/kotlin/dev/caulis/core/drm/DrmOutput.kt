@@ -40,6 +40,7 @@ class DrmOutput internal constructor(
     /** Its cursor plane (0: none). */
     internal val cursorPlaneId: Int = 0,
 ) : AutoCloseable {
+    internal val flips = DrmFlips(this)
     internal val cursorSide = DrmCursorPlane(this)
     internal val gammaSide = DrmGamma(this)
     internal val log = dev.caulis.log.Logger("drm")
@@ -81,24 +82,24 @@ class DrmOutput internal constructor(
 
     private val connectorProps = device.properties(connectorId, Drm.DRM_MODE_OBJECT_CONNECTOR())
     internal val crtcProps = device.properties(crtcId, Drm.DRM_MODE_OBJECT_CRTC())
-    private val planeProps = device.properties(planeId, Drm.DRM_MODE_OBJECT_PLANE())
+    internal val planeProps = device.properties(planeId, Drm.DRM_MODE_OBJECT_PLANE())
 
     internal class Slot(val buffer: GpuBuffer, val framebuffer: Int) {
         /** The frame this buffer was last drawn in (0 = never). */
         var drawnInFrame = 0L
     }
 
-    private var frameNumber = 0L
-    private var lastFlipNanos = 0L
+    internal var frameNumber = 0L
+    internal var lastFlipNanos = 0L
 
-    private var slots: List<Slot> = emptyList()
-    private var modeBlob = 0
-    private var shown: Slot? = null
-    private var queued: Slot? = null
+    internal var slots: List<Slot> = emptyList()
+    internal var modeBlob = 0
+    internal var shown: Slot? = null
+    internal var queued: Slot? = null
 
     // A program's own buffer on screen instead of one of ours (direct scanout).
-    private var shownDirect: DmabufBuffer? = null
-    private var queuedDirect: DmabufBuffer? = null
+    internal var shownDirect: DmabufBuffer? = null
+    internal var queuedDirect: DmabufBuffer? = null
 
     // A picture (or only the cursor's new place) is on its way to the screen; the next one waits for the flip.
     internal val flipPending: Boolean get() = queued != null || queuedDirect != null || cursorSide.cursorOnlyPending
@@ -107,15 +108,15 @@ class DrmOutput internal constructor(
     // Each commit has a serial that comes back with its flip: a flip of an old commit (from
     // before switching terminals) is not taken for the one awaited.
     internal var commitSerial = 0L
-    private var awaitedSerial = -1L
+    internal var awaitedSerial = -1L
 
     // A flip that never comes (suspend, a GPU reset) must not freeze the screen: after a
     // while the picture is given up and the mode set anew.
-    private var flipWatchdog: dev.caulis.event.EventLoop.Timer? = null
+    internal var flipWatchdog: dev.caulis.event.EventLoop.Timer? = null
 
     // A picture was refused: the next one is drawn whole (what changed was used up).
     internal var redrawAll = false
-    private var modesetFailures = 0
+    internal var modesetFailures = 0
 
     // The previous mode's buffers and mode: kept until the new mode is on screen.
     private var retired: List<Slot> = emptyList()
@@ -127,16 +128,16 @@ class DrmOutput internal constructor(
     private val refusedProperties = HashSet<String>()
 
     // maxBpc or adaptiveSync changed since the last tested mode set.
-    private var extrasChanged = false
+    internal var extrasChanged = false
 
     // The properties the last tested mode set had (the next real one sets the same).
-    private var extrasInUse: List<Extra> = emptyList()
+    internal var extrasInUse: List<Extra> = emptyList()
 
     // One such property: [value] for [property] of the object [objectId].
-    private class Extra(val property: String, val objectId: Int, val props: Map<String, DrmDevice.Property>, val value: Long)
+    internal class Extra(val property: String, val objectId: Int, val props: Map<String, DrmDevice.Property>, val value: Long)
 
     // The properties a mode set sets besides the mode (those the driver has and did not refuse).
-    private fun extras(): List<Extra> {
+    internal fun extras(): List<Extra> {
         val list = ArrayList<Extra>()
         connectorProps["max bpc"]?.let { prop ->
             // (Within what the connector takes.)
@@ -156,7 +157,7 @@ class DrmOutput internal constructor(
 
     // The [extras] the driver takes along with the mode, as [test] (a TEST_ONLY commit with
     // them) finds: all, or — if the mode works without them — those it takes one by one.
-    private fun workingExtras(extras: List<Extra>, test: (List<Extra>) -> Int): List<Extra> =
+    internal fun workingExtras(extras: List<Extra>, test: (List<Extra>) -> Int): List<Extra> =
         takenAlong(extras, { test(it) == 0 }) { extra, alone ->
             refusedProperties += extra.property
             if (alone) log.warn("$name: the driver refuses ${extra.property} = ${extra.value}; left as it is")
@@ -164,7 +165,7 @@ class DrmOutput internal constructor(
         }
 
     init {
-        device.onFlip(crtcId) { nanos, sequence, serial -> flipped(nanos, sequence, serial) }
+        device.onFlip(crtcId) { nanos, sequence, serial -> flips.flipped(nanos, sequence, serial) }
     }
 
     // (Volatile: the input thread moves the cursor too — see moveFromAnyThread.)
@@ -190,7 +191,7 @@ class DrmOutput internal constructor(
             if (tryMode(candidate)) {
                 mode = candidate
                 needsModeset = true
-                scheduleFrame(0)
+                flips.scheduleFrame(0)
                 return true
             }
         }
@@ -240,7 +241,7 @@ class DrmOutput internal constructor(
         return true
     }
 
-    private fun freeRetired() {
+    internal fun freeRetired() {
         retired.forEach(::freeSlot)
         retired = emptyList()
         if (retiredBlob != 0) device.destroyBlob(retiredBlob)
@@ -248,7 +249,7 @@ class DrmOutput internal constructor(
     }
 
     // Everything the monitor needs: connector -> CRTC -> mode, plane shows the buffer full screen.
-    private fun fullState(request: DrmDevice.AtomicRequest, blob: Int, slot: Slot, mode: Mode, extras: List<Extra>) {
+    internal fun fullState(request: DrmDevice.AtomicRequest, blob: Int, slot: Slot, mode: Mode, extras: List<Extra>) {
         request.set(connectorId, connectorProps, "CRTC_ID", crtcId.toLong())
         request.set(crtcId, crtcProps, "MODE_ID", blob.toLong())
         request.set(crtcId, crtcProps, "ACTIVE", 1)
@@ -258,27 +259,13 @@ class DrmOutput internal constructor(
         for (extra in extras) request.setIfPresent(extra.objectId, extra.props, extra.property, extra.value)
         // Our gamma table (a night light), also after switching terminals.
         request.setIfPresent(crtcId, crtcProps, "GAMMA_LUT", (gammaSide.pendingGamma ?: gammaSide.gammaBlob).toLong())
-        showOnPlane(request, slot, mode)
+        flips.showOnPlane(request, slot, mode)
         cursorSide.cursorState(request)
         for (plane in strayPlanes()) {
             val props = device.properties(plane, Drm.DRM_MODE_OBJECT_PLANE())
             request.set(plane, props, "FB_ID", 0)
             request.set(plane, props, "CRTC_ID", 0)
         }
-    }
-
-    private fun showOnPlane(request: DrmDevice.AtomicRequest, slot: Slot, mode: Mode) {
-        request.set(planeId, planeProps, "FB_ID", slot.framebuffer.toLong())
-        request.set(planeId, planeProps, "CRTC_ID", crtcId.toLong())
-        // Source rectangle is in 16.16 fixed point.
-        request.set(planeId, planeProps, "SRC_X", 0)
-        request.set(planeId, planeProps, "SRC_Y", 0)
-        request.set(planeId, planeProps, "SRC_W", mode.width.toLong() shl 16)
-        request.set(planeId, planeProps, "SRC_H", mode.height.toLong() shl 16)
-        request.set(planeId, planeProps, "CRTC_X", 0)
-        request.set(planeId, planeProps, "CRTC_Y", 0)
-        request.set(planeId, planeProps, "CRTC_W", mode.width.toLong())
-        request.set(planeId, planeProps, "CRTC_H", mode.height.toLong())
     }
 
     /** True if the monitor must get a whole picture even if nothing changed (set up, or a picture was refused). */
@@ -293,103 +280,12 @@ class DrmOutput internal constructor(
      * If [draw] fails, the exception goes on to the caller; this buffer counts as never
      * drawn, so the next picture is drawn whole (no half-drawn parts stay on screen).
      */
-    fun present(draw: (target: GpuTarget, age: Int) -> Unit): Boolean {
-        val current = mode ?: return false
-        if (!isSessionActive() || flipPending || !powered) return false
-        val slot = slots.first { it !== shown }
-        frameNumber++
-        val age = if (slot.drawnInFrame == 0L) 0 else (frameNumber - slot.drawnInFrame).toInt()
-        slot.drawnInFrame = 0 // unknown until drawn to the end
-        try {
-            draw(slot.buffer, age)
-        } catch (e: Throwable) {
-            redrawAll = true
-            throw e
-        } finally {
-            renderer.end()
-        }
-        slot.drawnInFrame = frameNumber
-
-        val serial = ++commitSerial
-        val gamma = gammaSide.pendingGamma
-        val result = if (needsModeset) {
-            if (extrasChanged) {
-                // maxBpc or adaptiveSync changed: tested first (a refused one is left out).
-                extrasChanged = false
-                extrasInUse = workingExtras(extras()) { extras ->
-                    device.commit(Drm.DRM_MODE_ATOMIC_TEST_ONLY() or Drm.DRM_MODE_ATOMIC_ALLOW_MODESET()) { request -> fullState(request, modeBlob, slot, current, extras) }
-                }
-            }
-            device.commit(Drm.DRM_MODE_ATOMIC_ALLOW_MODESET() or Drm.DRM_MODE_PAGE_FLIP_EVENT(), serial) { request ->
-                fullState(request, modeBlob, slot, current, extrasInUse)
-            }
-        } else {
-            device.commit(Drm.DRM_MODE_ATOMIC_NONBLOCK() or Drm.DRM_MODE_PAGE_FLIP_EVENT(), serial) { request ->
-                request.set(planeId, planeProps, "FB_ID", slot.framebuffer.toLong())
-                if (cursorSide.cursorDirty) cursorSide.cursorState(request)
-                // A new gamma table goes with the picture (no commit of its own, no stall).
-                if (gamma != null) request.setIfPresent(crtcId, crtcProps, "GAMMA_LUT", gamma.toLong())
-            }
-        }
-        if (result == 0) {
-            if (needsModeset) freeRetired() // the new mode is on screen
-            cursorSide.cursorDirty = false
-            needsModeset = false
-            redrawAll = false
-            modesetFailures = 0
-            gammaSide.gammaApplied(gamma)
-            queued = slot
-            awaitFlip(serial)
-        } else {
-            // Busy or refused (e.g. right after switching terminals): the whole picture again a
-            // bit later — what changed was used up by this one.
-            log.trace { "$name: a picture was refused (${errno(result)})" }
-            redrawAll = true
-            slot.drawnInFrame = 0
-            if (needsModeset && ++modesetFailures >= MAX_MODESET_FAILURES) {
-                log.warn("$name: setting $current fails (${errno(result)}); trying another mode")
-                modesetFailures = 0
-                if (!start(modes.firstOrNull { it != current })) {
-                    log.error("$name: no mode works; it stays off")
-                    return false
-                }
-            }
-            scheduleFrame(RETRY_MILLIS)
-            return false
-        }
-        return true
-    }
-
-    // Programs' buffers whose flip never came: given back after the next flip that does.
-    private val lateDirect = ArrayList<DmabufBuffer>()
-
-    // Waits for the flip of commit [serial]; one that does not come within a second is given up.
-    internal fun awaitFlip(serial: Long) {
-        awaitedSerial = serial
-        flipWatchdog?.cancel()
-        flipWatchdog = loop.after(FLIP_TIMEOUT_MILLIS) {
-            flipWatchdog = null
-            if (awaitedSerial != serial || !flipPending) return@after
-            log.warn("$name: the monitor did not show the picture within $FLIP_TIMEOUT_MILLIS ms; setting it up anew")
-            queued = null
-            // The kernel may still show it: the program gets it back after the next picture
-            // that does reach the screen, not now.
-            queuedDirect?.let { lateDirect += it }
-            queuedDirect = null
-            cursorSide.cursorOnlyPending = false
-            awaitedSerial = -1
-            needsModeset = true
-            slots.forEach { it.drawnInFrame = 0 }
-            scheduleFrame(0)
-        }
-    }
+    fun present(draw: (target: GpuTarget, age: Int) -> Unit): Boolean = flips.present(draw)
 
     // Caulis 0.1.1's present (returning nothing): code built against it calls it.
     @Deprecated("Kept for code built against Caulis 0.1.1", level = DeprecationLevel.HIDDEN)
     @JvmName("present")
-    fun presentWithoutAnswer(draw: (target: GpuTarget, age: Int) -> Unit) {
-        present(draw)
-    }
+    fun presentWithoutAnswer(draw: (target: GpuTarget, age: Int) -> Unit) = flips.presentWithoutAnswer(draw)
 
     /**
      * Shows a program's own GPU buffer directly, without drawing anything (for a fullscreen
@@ -397,126 +293,13 @@ class DrmOutput internal constructor(
      * false if not — then draw normally with [present]. The program gets the buffer back
      * when the monitor has moved on to the next picture.
      */
-    fun presentDirect(buffer: DmabufBuffer): Boolean {
-        val current = mode ?: return false
-        if (!isSessionActive() || flipPending || needsModeset || !powered) return false
-        // On a descriptor shared with the renderer, a program's buffer handles could never be
-        // closed (they may be the GPU driver's own): no direct showing then.
-        if (device.sharedWithRenderer) return false
-        if (buffer.width != current.width || buffer.height != current.height) return false
-        val framebuffer = buffer.attachment(this) { ScanoutFramebuffer(device, device.importFramebuffer(buffer.dmabuf)) }
-        val id = framebuffer.id ?: return false
-        if (framebuffer.refused) return false
-        val test = device.commit(Drm.DRM_MODE_ATOMIC_TEST_ONLY()) { request ->
-            request.set(planeId, planeProps, "FB_ID", id.toLong())
-        }
-        if (test != 0) {
-            framebuffer.refused = true // this buffer will not work later either
-            return false
-        }
-        val serial = ++commitSerial
-        val gamma = gammaSide.pendingGamma
-        val withCursor = cursorSide.cursorDirty
-        val result = device.commit(Drm.DRM_MODE_ATOMIC_NONBLOCK() or Drm.DRM_MODE_PAGE_FLIP_EVENT(), serial) { request ->
-            request.set(planeId, planeProps, "FB_ID", id.toLong())
-            // The cursor and a new gamma table go along, as with our own pictures.
-            if (withCursor) cursorSide.cursorState(request)
-            if (gamma != null) request.setIfPresent(crtcId, crtcProps, "GAMMA_LUT", gamma.toLong())
-        }
-        if (result != 0) return false
-        if (withCursor) cursorSide.cursorDirty = false
-        gammaSide.gammaApplied(gamma)
-        buffer.startShowing()
-        queuedDirect = buffer
-        awaitFlip(serial)
-        return true
-    }
-
-    // A program's buffer registered with the display; freed together with the buffer.
-    private class ScanoutFramebuffer(private val device: DrmDevice, val id: Int?) : AutoCloseable {
-        var refused = false
-
-        override fun close() {
-            id?.let(device::removeFramebuffer)
-        }
-    }
-
-    // The monitor now shows the queued picture: the previous one is free again.
-    private fun flipped(nanos: Long, sequence: Long, serial: Long) {
-        // A flip of an older commit (from before switching terminals, or given up): not ours to count.
-        if (serial != awaitedSerial) {
-            log.trace { "$name: a flip of an old commit ($serial, awaiting $awaitedSerial)" }
-            return
-        }
-        awaitedSerial = -1
-        flipWatchdog?.cancel()
-        flipWatchdog = null
-        if (cursorSide.cursorOnlyPending) {
-            // Only the cursor moved: nothing to report. A picture first (it takes the cursor
-            // with it); the cursor alone only if no picture came — else, with the mouse moving
-            // every refresh, windows would never get a frame.
-            cursorSide.cursorOnlyPending = false
-            lastFlipNanos = System.nanoTime()
-            nextFrame()
-            cursorSide.cursorAlone()
-            return
-        }
-        val wasQueued = flipPending
-        // Buffers given up on by the watchdog: something newer is on screen now.
-        lateDirect.forEach { it.stopShowing() }
-        lateDirect.clear()
-        if (wasQueued) {
-            val previousDirect = shownDirect
-            if (queuedDirect != null) {
-                shownDirect = queuedDirect
-                shown = null // none of our buffers is on screen
-            } else {
-                shown = queued
-                shownDirect = null
-            }
-            // The program may draw into its previous buffer again (every start of showing has
-            // its stop — also when it committed the same buffer once more).
-            previousDirect?.stopShowing()
-            queued = null
-            queuedDirect = null
-        }
-        lastFlipNanos = System.nanoTime()
-        if (wasQueued) {
-            try {
-                onPresented(nanos, refreshNanos, sequence, shownDirect != null)
-            } catch (e: Exception) {
-                log.error("Reporting a frame of $name failed", e)
-            }
-        }
-        nextFrame()
-        cursorSide.cursorAlone()
-    }
+    fun presentDirect(buffer: DmabufBuffer): Boolean = flips.presentDirect(buffer)
 
     /**
      * Asks for an [onFrame] call at the monitor's next refresh, e.g. because something
      * changed while the screen was idle. Cheap to call often.
      */
-    fun requestFrame() {
-        if (flipPending || mode == null) return // onFrame comes with the next flip anyway
-        val wait = (lastFlipNanos + refreshNanos - System.nanoTime()).coerceAtLeast(0) / 1_000_000
-        scheduleFrame(wait)
-    }
-
-    // Nothing reaches the screen (switched off, or another terminal is shown): no refresh paces
-    // the frames then, so they come only as a slow heartbeat — programs do not freeze, and
-    // the compositor does not draw for nothing as fast as it can.
-    private val dark: Boolean get() = !powered || !isSessionActive()
-
-    // Asks for the next picture. If drawing fails, the screen must not freeze for good:
-    // the error is logged and drawing is tried again a little later.
-    private fun nextFrame() {
-        try {
-            onFrame()
-        } catch (e: Exception) {
-            log.error("Drawing a frame for $name failed", e)
-            scheduleFrame(ERROR_RETRY_MILLIS)
-        }
-    }
+    fun requestFrame() = flips.requestFrame()
 
     /** Its link failed (DisplayPort training, a dock): set the mode again and redraw. */
     internal fun relink() = resume()
@@ -532,25 +315,8 @@ class DrmOutput internal constructor(
         queuedDirect?.stopShowing() // that flip never happened
         queuedDirect = null
         slots.forEach { it.drawnInFrame = 0 } // draw everything again
-        scheduleFrame(0)
+        flips.scheduleFrame(0)
     }
-
-    internal fun scheduleFrame(delayMillis: Long) {
-        val delay = if (dark) maxOf(delayMillis, DARK_HEARTBEAT_MILLIS) else delayMillis
-        val due = System.nanoTime() + delay * 1_000_000
-        // One frame at a time; an earlier one replaces a later (the screen came back on).
-        if (frameTimer != null && due >= frameDue) return
-        frameTimer?.cancel()
-        frameDue = due
-        frameTimer = loop.after(delay) {
-            frameTimer = null
-            nextFrame()
-        }
-    }
-
-    // The frame asked for, and when it is due (System.nanoTime).
-    private var frameTimer: EventLoop.Timer? = null
-    private var frameDue = 0L
 
     /**
      * The most bits per colour the link to the monitor may use ("max bpc"; 8 by default: more
@@ -565,7 +331,7 @@ class DrmOutput internal constructor(
             refusedProperties -= "max bpc" // (another value may be taken)
             extrasChanged = true
             needsModeset = true
-            if (mode != null) scheduleFrame(0)
+            if (mode != null) flips.scheduleFrame(0)
         }
 
     /**
@@ -580,7 +346,7 @@ class DrmOutput internal constructor(
             refusedProperties -= "VRR_ENABLED"
             extrasChanged = true
             needsModeset = true
-            if (mode != null) scheduleFrame(0)
+            if (mode != null) flips.scheduleFrame(0)
         }
 
     /** False while the screen is switched off (DPMS): nothing is drawn. */
@@ -609,7 +375,7 @@ class DrmOutput internal constructor(
             powered = true
             needsModeset = true
             slots.forEach { it.drawnInFrame = 0 }
-            scheduleFrame(0)
+            flips.scheduleFrame(0)
         }
         log.info { "$name ${if (on) "on" else "off"}" }
         return true
@@ -621,7 +387,7 @@ class DrmOutput internal constructor(
         if (!tryMode(wanted)) return false
         mode = wanted
         needsModeset = true
-        scheduleFrame(0)
+        flips.scheduleFrame(0)
         log.info { "$name: $wanted" }
         return true
     }
@@ -675,8 +441,8 @@ class DrmOutput internal constructor(
 
     // Gives programs' buffers back (the monitor stops showing them).
     private fun releaseDirect() {
-        lateDirect.forEach { it.stopShowing() }
-        lateDirect.clear()
+        flips.lateDirect.forEach { it.stopShowing() }
+        flips.lateDirect.clear()
         queuedDirect?.stopShowing()
         queuedDirect = null
         shownDirect?.stopShowing()
@@ -697,8 +463,8 @@ class DrmOutput internal constructor(
         closed = true
         device.removeFlipHandler(crtcId)
         flipWatchdog?.cancel()
-        frameTimer?.cancel()
-        frameTimer = null
+        flips.frameTimer?.cancel()
+        flips.frameTimer = null
         freeBuffers()
         freeRetired()
         cursorSide.cursorSlots.forEach(::freeSlot)

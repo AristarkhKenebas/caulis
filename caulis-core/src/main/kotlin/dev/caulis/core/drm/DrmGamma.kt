@@ -38,7 +38,7 @@ internal class DrmGamma(private val drmOutput: DrmOutput) {
         pendingGamma?.let { if (it != 0 && it != gammaBlob) drmOutput.device.destroyBlob(it) }
         pendingGamma = blob
         drmOutput.redrawAll = true
-        drmOutput.scheduleFrame(0)
+        drmOutput.flips.scheduleFrame(0)
         return true
     }
 
