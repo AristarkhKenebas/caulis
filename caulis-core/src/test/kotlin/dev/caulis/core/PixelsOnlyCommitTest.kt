@@ -261,6 +261,29 @@ class PixelsOnlyCommitTest {
     }
 
     @Test
+    fun `a window under a floating one, drawn in parts, stays right`() = withServer { server, client ->
+        var last: IntArray? = null
+        val (a, b) = twoWindows(server, client)
+        server.onFrameShown = { _, pixels -> last = pixels }
+        // The other window over this one, opaque, then the lower one drawing where it is hidden and where not.
+        server.onServer { d ->
+            val top = d.windows.last()
+            val lower = d.windows.first()
+            d.setFloating(top, true)
+            top.x = lower.x + 10
+            top.y = lower.y + 10
+            d.requestRedraw()
+        }
+        settled(server, client)
+        for ((step, color) in listOf(GREEN, WHITE, RED).withIndex()) {
+            commit(client, a, color, listOf(intArrayOf(0, 0, a.width, 40), intArrayOf(20, 20, 30, 30)))
+            commit(client, b, BLUE, listOf(intArrayOf(5, 5, 10, 10)))
+            settled(server, client)
+            assertScreenRight(server, { last }, "step $step")
+        }
+    }
+
+    @Test
     fun `only the parts said to have changed are copied, and no pixel twice`() {
         // Far apart: each on its own, not the band of rows between them.
         assertEquals(listOf(Rect(0, 0, 10, 10), Rect(90, 90, 10, 10)), partsToCopy(listOf(Rect(0, 0, 10, 10), Rect(90, 90, 10, 10)), 100, 100))

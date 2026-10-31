@@ -324,6 +324,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
         for (index in items.indices) {
             val item = items[index]
             if (repaint != null && !item.rect.overlaps(repaint)) continue
+            if (repaint != null && hiddenInPart(item, items, index, repaint)) continue
             if (monitor != null && item.only != null && item.only !== monitor) continue // (a sliding workspace of another monitor)
             val r = p(item.rect)
             when (item) {
@@ -354,6 +355,31 @@ internal class DesktopFrames(private val desktop: Desktop) {
                 }
             }
         }
+    }
+
+    // True if what [item] would draw in [repaint] is all under one opaque thing above it (a window
+    // over another: no need to draw the lower one, and its damage does not reach through). Not
+    // with the whole-redraw setting; a blur between reads what is under it; a thing shown on one
+    // monitor only (a sliding workspace) hides nothing for sure.
+    private fun hiddenInPart(item: DrawItem, items: List<DrawItem>, index: Int, repaint: Rect): Boolean {
+        if (desktop.fullRedraw) return false
+        val rect = item.rect
+        // What it draws here, by hand (nothing made: this is asked for each item in each part).
+        val left = maxOf(rect.x, repaint.x)
+        val top = maxOf(rect.y, repaint.y)
+        val right = minOf(rect.right, repaint.right)
+        val bottom = minOf(rect.bottom, repaint.bottom)
+        for (i in index + 1 until items.size) {
+            val above = items[i]
+            if (above is DrawItem.Blur) return false
+            if (above.only != null) continue
+            val covers = above.covers
+            for (c in covers.indices) {
+                val cover = covers[c]
+                if (cover.x <= left && cover.y <= top && cover.right >= right && cover.bottom >= bottom) return true
+            }
+        }
+        return false
     }
 
     /**
