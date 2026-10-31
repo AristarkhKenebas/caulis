@@ -29,6 +29,9 @@ class Compositor(val display: Display, private val renderer: Renderer?) {
     val surfaces: Set<Surface> = java.util.Collections.unmodifiableSet(surfaceSet)
 
     private val uploader = renderer?.let { SurfaceUploader(it) }
+
+    // Bytes of programs' pictures copied so far (for the render log).
+    internal val bytesCopied: Long get() = uploader?.bytesCopied ?: 0L
     private val newSurfaceListeners = ArrayList<(Surface) -> Unit>()
 
     /** Runs [listener] for every surface a client creates. */

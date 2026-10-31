@@ -152,7 +152,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
             desktop.renderLog.info {
                 "Frames in the last %.0f s: %s; moving: %s".format(seconds, frames.entries.joinToString { "${it.key} ${it.value}" },
                     reasons.entries.sortedByDescending { it.value }.take(5).joinToString { "${it.key} (${it.value})" }.ifEmpty { "nothing (programs' or the pointer's changes)" }) +
-                    "; scenes built: ${desktop.sceneBuilder.takeBuilds()}"
+                    "; scenes built: ${desktop.sceneBuilder.takeBuilds()}; pictures copied: ${copiedSinceReport()} KB"
             }
             since = now
             frames.clear()
@@ -161,6 +161,13 @@ internal class DesktopFrames(private val desktop: Desktop) {
     }
 
     internal val busy = BusyReport()
+
+    private var copiedAtReport = 0L
+
+    private fun copiedSinceReport(): Long {
+        val now = desktop.compositor.bytesCopied
+        return ((now - copiedAtReport) / 1024).also { copiedAtReport = now }
+    }
 
     fun presented(view: DesktopView, nanos: Long, refreshNanos: Long, sequence: Long, flags: Int) {
         Presentation.presented(view.inFlight, nanos, refreshNanos, sequence, flags)

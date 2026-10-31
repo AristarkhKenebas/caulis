@@ -202,6 +202,12 @@ interface GpuTexture : AutoCloseable {
      */
     fun upload(pixels: MemorySegment, firstRow: Int, rowCount: Int)
 
+    /**
+     * Copies the part [width] x [height] at [x], [y] from [pixels] (rows packed tight: [width] * 4
+     * bytes each). The same care about whose memory [pixels] is as in [upload].
+     */
+    fun uploadPart(pixels: MemorySegment, x: Int, y: Int, width: Int, height: Int)
+
     /** How many times [upload] was called: new pixels in the same texture make it count up. */
     val uploads: Long get() = 0
 }

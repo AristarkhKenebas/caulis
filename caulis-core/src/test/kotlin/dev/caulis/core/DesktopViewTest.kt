@@ -98,6 +98,7 @@ class CullHiddenTest {
             override val width = 4
             override val height = 4
             override var uploads = 0L
+            override fun uploadPart(pixels: java.lang.foreign.MemorySegment, x: Int, y: Int, width: Int, height: Int) {}
             override fun upload(pixels: java.lang.foreign.MemorySegment, firstRow: Int, rowCount: Int) {
                 uploads++
             }

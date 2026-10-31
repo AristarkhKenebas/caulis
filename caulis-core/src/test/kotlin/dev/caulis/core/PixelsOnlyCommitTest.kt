@@ -1,5 +1,6 @@
 package dev.caulis.core
 
+import dev.caulis.geometry.Rect
 import dev.caulis.protocol.client.Connection
 import dev.caulis.protocol.client.wayland.WlSubcompositor
 import dev.caulis.protocol.client.wayland.WlShm
@@ -259,10 +260,55 @@ class PixelsOnlyCommitTest {
         }
     }
 
+    @Test
+    fun `only the parts said to have changed are copied, and no pixel twice`() {
+        // Far apart: each on its own, not the band of rows between them.
+        assertEquals(listOf(Rect(0, 0, 10, 10), Rect(90, 90, 10, 10)), partsToCopy(listOf(Rect(0, 0, 10, 10), Rect(90, 90, 10, 10)), 100, 100))
+        // Overlapping: as one.
+        assertEquals(listOf(Rect(0, 0, 20, 20)), partsToCopy(listOf(Rect(0, 0, 15, 15), Rect(5, 5, 15, 15)), 100, 100))
+        // Outside the picture: cut, or nothing at all.
+        assertEquals(listOf(Rect(95, 95, 5, 5)), partsToCopy(listOf(Rect(95, 95, 500, 500), Rect(200, 200, 5, 5)), 100, 100))
+        assertEquals(emptyList(), partsToCopy(listOf(Rect(-20, -20, 5, 5)), 100, 100))
+        // Many: one box around them.
+        val many = List(20) { Rect(it * 5, it * 5, 2, 2) }
+        assertEquals(listOf(Rect(0, 0, 97, 97)), partsToCopy(many, 100, 100))
+    }
+
+    @Test
+    fun `a window drawn in parts far apart has all of them right, nothing else`() = withServer { server, client ->
+        var last: IntArray? = null
+        val (a, _) = twoWindows(server, client)
+        server.onFrameShown = { _, pixels -> last = pixels }
+        commit(client, a, GREEN, listOf(intArrayOf(5, 5, 20, 10), intArrayOf(40, 200, 30, 10), intArrayOf(100, 400, 10, 30)))
+        settled(server, client)
+        val shot = last!!
+        assertEquals((20 * 10 + 30 * 10 + 10 * 30), shot.count { it == GREEN }, "exactly the parts")
+        assertScreenRight(server, { last }, "parts far apart")
+    }
+
+    @Test
+    fun `a program whose new buffer differs outside of what it says stays right too`() = withServer { server, client ->
+        var last: IntArray? = null
+        val (a, _) = twoWindows(server, client)
+        server.onFrameShown = { _, pixels -> last = pixels }
+        // All of the buffer is new, only a part is said to be: the rest is not shown.
+        val w = a.width
+        val h = a.height
+        val (buffer, memory) = client.buffer(w, h)
+        memory.write { segment -> for (i in 0 until w * h) segment.setAtIndex(ValueLayout.JAVA_INT, i.toLong(), SIGNAL) }
+        a.surface.attach(buffer, 0, 0)
+        a.surface.damageBuffer(10, 10, 20, 20)
+        a.surface.commit()
+        settled(server, client)
+        assertEquals(20 * 20, last!!.count { it == SIGNAL })
+        assertScreenRight(server, { last }, "more drawn than said")
+    }
+
     private companion object {
         const val RED = 0xffff0000.toInt()
         const val GREEN = 0xff00ff00.toInt()
         const val BLUE = 0xff0000ff.toInt()
+        const val SIGNAL = 0xff123456.toInt()
         const val WHITE = 0xffffffff.toInt()
         const val HALF_GREEN = 0x8000ff00.toInt()
     }
