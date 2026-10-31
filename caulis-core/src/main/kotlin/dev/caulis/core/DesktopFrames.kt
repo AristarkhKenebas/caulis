@@ -256,13 +256,15 @@ internal class DesktopFrames(private val desktop: Desktop) {
         val asked = clip.intersect(r)
         backgroundAsked += asked?.area() ?: 0L
         val whole = item.rect.intersect(repaint)
-        val pieces = if (whole == null || desktop.fullRedraw) null else uncovered(listOf(whole), items, index, MAX_BACKGROUND_PIECES)
-        if (pieces == null || pieces == listOf(whole)) {
+        val pieces = if (whole == null || desktop.fullRedraw) null else uncoveredBackground(item, items, index)
+        // (All of the part shows: one go.)
+        if (pieces == null || pieces.any { it.contains(whole!!) }) {
             item.paint(r)
             backgroundDrawn += asked?.area() ?: 0L
             return
         }
-        for (piece in pieces) {
+        for (uncut in pieces) {
+            val piece = uncut.intersect(whole!!) ?: continue
             val px = toPixels(piece)
             val scissor = Rect(px.x - 1, px.y - 1, px.width + 2, px.height + 2).intersect(clip) ?: continue
             desktop.renderer.setClip(scissor)
@@ -271,6 +273,21 @@ internal class DesktopFrames(private val desktop: Desktop) {
         }
         desktop.renderer.setClip(clip)
     }
+
+    // What shows of background [item]: the same until the list changes, and each part of each
+    // frame asks. (Null: too many pieces.)
+    private fun uncoveredBackground(item: DrawItem.Custom, items: List<DrawItem>, index: Int): List<Rect>? {
+        if (uncoveredOf !== items) {
+            uncoveredOf = items
+            uncoveredKept.clear()
+        }
+        if (uncoveredKept.containsKey(item)) return uncoveredKept[item]
+        return uncovered(listOf(item.rect), items, index, MAX_BACKGROUND_PIECES).also { uncoveredKept[item] = it }
+    }
+
+    private var uncoveredOf: List<DrawItem>? = null
+
+    private val uncoveredKept = java.util.IdentityHashMap<DrawItem.Custom, List<Rect>?>()
 
     // Draws [items] (only those touching [repaint]) into the frame begun; [p] turns desktop
     // units into the target's pixels, at [scale].
