@@ -45,6 +45,8 @@ class Desktop(
 
     internal val cursors = DesktopCursorLook(this)
 
+    internal val planes = DesktopCursorPlanes(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -100,7 +102,7 @@ class Desktop(
 
     // --- monitors, size and scale ---------------------------------------------------------
 
-    private val monitorList = ArrayList<Monitor>()
+    internal val monitorList = ArrayList<Monitor>()
 
     // What wallpaper shaders share (their clock, the pointer, their frames), wherever drawn.
     private val wallpaperShaders = ShaderWallpapers(compositor.display.loop) {
@@ -544,7 +546,7 @@ class Desktop(
      */
     var onChange: () -> Unit = {}
 
-    private val views = ArrayList<DesktopView>()
+    internal val views = ArrayList<DesktopView>()
 
     /** A view of [monitor] (the first one if not said), for drawing it on its screen. */
     fun createView(monitor: Monitor = monitorList.first()): DesktopView = DesktopView(monitor).also { views += it }
@@ -592,7 +594,7 @@ class Desktop(
     }
 
     // Grows with every change; the list of things to draw is rebuilt only when it moved on.
-    private var version = 0L
+    internal var version = 0L
 
     private fun changed() {
         version++
@@ -1844,7 +1846,7 @@ class Desktop(
     val lockScreen: Widget? get() = ownLock?.screen
 
     // Nothing of the desktop is drawn while locked: a locker program's lock, or our own with hideDesktop.
-    private val lockHidesDesktop: Boolean get() = sessionLocked || ownLock?.hidesDesktop == true
+    internal val lockHidesDesktop: Boolean get() = sessionLocked || ownLock?.hidesDesktop == true
 
     // The lock's rule for programs' surfaces: while a locker program has locked only its
     // surfaces may have input; behind our own lock screen only those its author allows.
@@ -4652,7 +4654,7 @@ class Desktop(
     private var lastLock: dev.caulis.core.input.PointerConstraints.Constraint? = null
 
     // The constraint working now (none during a grab, the overview or a lock screen).
-    private fun constraintNow(): dev.caulis.core.input.PointerConstraints.Constraint? {
+    internal fun constraintNow(): dev.caulis.core.input.PointerConstraints.Constraint? {
         val now = if (grab == null && !inOverview && !locked) pointerConstraints?.current() else null
         val ended = lastLock
         if (ended != null && ended !== now) {
@@ -4813,8 +4815,8 @@ class Desktop(
         lastPointerMoveNanos = System.nanoTime()
         wallpaperShaders.pointerMoved()
         // (Not while the input thread already showed movements after this one: it would go back.)
-        if (quickCursorMoves && earlyInFlight.get() <= 1) quickCursor()
-        publishEarly()
+        if (quickCursorMoves && planes.earlyInFlight.get() <= 1) planes.quickCursor()
+        planes.publishEarly()
         if (!locked) noticeBoard.pointerAt(pointerX, pointerY)
         if (!locked && withOverlay { it.pointerMoved(pointerX, pointerY) }) {
             onChange()
@@ -5405,7 +5407,7 @@ class Desktop(
         } catch (e: Exception) {
             log.error("Finding what is under the pointer failed (the frame is drawn anyway)", e)
         }
-        placeHardwareCursor(view)
+        planes.placeHardwareCursor(view)
         // A moving screen shader: every frame anew (and the next one asked for).
         val shaderMoves = screenShader?.moving == true
         if (shaderMoves) onChange()
@@ -5504,61 +5506,6 @@ class Desktop(
     private var itemsWithoutCursor: List<DrawItem> = emptyList()
     private var itemsWithoutCursorOf: List<DrawItem>? = null
 
-    // Puts the cursor on [view]'s cursor plane if it can be there (on this monitor, fitting the
-    // plane, the monitor not turned); else back into the frames. Called before each frame.
-    private fun placeHardwareCursor(view: DesktopView) {
-        view.planeCursorOffset = null
-        val plane = view.hardwareCursor
-        if (plane == null) {
-            view.cursorOnPlane = false
-            return
-        }
-        val monitor = view.monitor
-        val all = items()
-        val cursor = all.subList(itemsCursorStart.coerceAtMost(all.size), all.size)
-        fun intoFrames() {
-            if (view.cursorOnPlane || view.planeCursorKey != null) plane.hide()
-            view.cursorOnPlane = false
-            view.planeCursorKey = null
-        }
-        if (cursor.isEmpty()) {
-            // No cursor at all (hidden): nothing on the plane, nothing in the frames.
-            if (view.planeCursorKey != null) plane.hide()
-            view.planeCursorKey = null
-            view.cursorOnPlane = true
-            return
-        }
-        if (monitor.transform != Transform.NORMAL || lockHidesDesktop) return intoFrames()
-        val bounds = cursor.map { it.rect }.reduce(Rect::union)
-        if (bounds.intersect(monitor.area) == null) {
-            // On another monitor: none here.
-            if (view.planeCursorKey != null) plane.hide()
-            view.planeCursorKey = null
-            view.cursorOnPlane = true
-            return
-        }
-        // The cursor where the pointer really is, to the monitor's pixel: at scale 2 it moved
-        // in steps of 2 pixels (one unit) before.
-        val whole = monitor.toPixels(bounds)
-        val dx = Math.round((pointerX - Math.floor(pointerX)) * monitor.scale).toInt()
-        val dy = Math.round((pointerY - Math.floor(pointerY)) * monitor.scale).toInt()
-        val pixels = Rect(whole.x + dx, whole.y + dy, whole.width, whole.height)
-        if (pixels.width > plane.width || pixels.height > plane.height) return intoFrames()
-        // A new picture when the cursor looks different (another shape, its next frame, the
-        // program drew a new one, another size or scale); else it only moves.
-        val key = listOf(cursor.map { item -> (item as? DrawItem.Picture)?.surface ?: (item as? DrawItem.Image)?.texture ?: item.key }, pixels.width, pixels.height, monitor.scale,
-            cursors.cursorVersion, if (cursor.any { it is DrawItem.Picture }) version else 0L)
-        val draw: ((GpuTarget) -> Unit)? = if (key == view.planeCursorKey) null else { target ->
-            renderer.begin(target, 0f, 0f, 0f, alpha = 0f)
-            draw(cursor, null, { r -> monitor.toPixels(r).let { Rect(it.x - whole.x, it.y - whole.y, it.width, it.height) } }, monitor.scale, monitor)
-            renderer.end()
-        }
-        if (!plane.show(pixels.x, pixels.y, draw)) return intoFrames()
-        view.planeCursorKey = key
-        view.cursorOnPlane = true
-        view.planeCursorOffset = Rect(bounds.x - Math.floor(pointerX).toInt(), bounds.y - Math.floor(pointerY).toInt(), bounds.width, bounds.height)
-    }
-
     // The cursor on a cursor plane moved with the pointer at once — before what the move does
     // otherwise (what is under it, hovering, the next frame): a busy frame or a slow widget
     // does not hold the cursor up. Only its place, the same picture, worked out as
@@ -5580,120 +5527,7 @@ class Desktop(
      * will be — worked out as [pointerMovedBy] does it (monitors touching), from where it was
      * when this thread last caught up. Give it to InputDevices.earlyPointer.
      */
-    val earlyPointer: dev.caulis.core.input.EarlyPointer = Early()
-
-    // Movements the input thread read that this thread has not handled yet.
-    private val earlyInFlight = java.util.concurrent.atomic.AtomicInteger()
-
-    // What the input thread needs, as this thread last saw it (null: it moves nothing).
-    private class EarlyPlane(val area: Rect, val scale: Double, val plane: MovableFromAnyThread, val offset: Rect)
-    private class EarlyState(val x: Double, val y: Double, val areas: List<Rect>, val planes: List<EarlyPlane>)
-    @Volatile
-    private var earlyState: EarlyState? = null
-
-    // (Only once an input thread uses it: nothing made for each movement otherwise.)
-    @Volatile
-    private var earlyUsed = false
-
-    private fun publishEarly() {
-        if (!earlyUsed) return
-        earlyState = if (!earlyCursorMoves || !quickCursorMoves || monitorEdges != MonitorEdges.TOUCHING || monitorList.isEmpty() || constraintNow() != null) {
-            null
-        } else {
-            EarlyState(
-                pointerX, pointerY, monitorList.map { it.area },
-                views.mapNotNull { view ->
-                    val offset = view.planeCursorOffset ?: return@mapNotNull null
-                    val plane = view.hardwareCursor as? MovableFromAnyThread ?: return@mapNotNull null
-                    if (!view.cursorOnPlane || view.planeCursorKey == null || view.monitor.transform != Transform.NORMAL) return@mapNotNull null
-                    EarlyPlane(view.monitor.area, view.monitor.scale, plane, offset)
-                },
-            )
-        }
-    }
-
-    private inner class Early : dev.caulis.core.input.EarlyPointer {
-        // (The input thread's own: where it thinks the pointer is, and where it showed it.)
-        private var x = Double.NaN
-        private var y = Double.NaN
-        private var shownX = Double.NaN
-        private var shownY = Double.NaN
-
-        override fun movedEarly(dx: Double, dy: Double) {
-            // All before this one handled here: start from where this thread says it is.
-            val before = earlyInFlight.getAndIncrement()
-            earlyUsed = true
-            val state = earlyState
-            if (state == null) {
-                x = Double.NaN
-                return
-            }
-            if (before == 0 || x.isNaN()) {
-                x = state.x
-                y = state.y
-            }
-            val (nx, ny) = movedOver(state.areas, x, y, dx, dy)
-            x = nx
-            y = ny
-        }
-
-        override fun showEarly() {
-            val state = earlyState ?: return
-            if (x.isNaN() || (x == shownX && y == shownY)) return
-            shownX = x
-            shownY = y
-            val fx = Math.floor(x)
-            val fy = Math.floor(y)
-            for (p in state.planes) {
-                // (As quickCursor does it.)
-                val bounds = Rect(fx.toInt() + p.offset.x, fy.toInt() + p.offset.y, p.offset.width, p.offset.height)
-                if (bounds.intersect(p.area) == null) continue
-                val left = Math.round((bounds.x - p.area.x) * p.scale).toInt()
-                val top = Math.round((bounds.y - p.area.y) * p.scale).toInt()
-                val dx = Math.round((x - fx) * p.scale).toInt()
-                val dy = Math.round((y - fy) * p.scale).toInt()
-                if (p.plane.moveFromAnyThread(left + dx, top + dy)) inputLog.trace { "Cursor moved from the input thread to ${left + dx}, ${top + dy}" }
-            }
-        }
-
-        override fun caughtUp() = caughtUp(1)
-
-        override fun caughtUp(count: Int) {
-            publishEarly()
-            // The last one read so far: the cursor where this thread says (the same place
-            // unless the movement was taken — a gesture — or kept: then it goes back).
-            if (earlyInFlight.get() <= count && quickCursorMoves) quickCursor()
-            earlyInFlight.addAndGet(-count)
-        }
-    }
-
-    // Moves the cursor plane with the pointer. Run for every movement: it makes nothing (no
-    // rectangles, no iterator), all in plain numbers — as Monitor.toPixels would round them.
-    private fun quickCursor() {
-        for (i in views.indices) {
-            val view = views[i]
-            val offset = view.planeCursorOffset ?: continue
-            val plane = view.hardwareCursor ?: continue
-            if (!view.cursorOnPlane || view.planeCursorKey == null) continue
-            val monitor = view.monitor
-            val area = monitor.area
-            val fx = Math.floor(pointerX)
-            val fy = Math.floor(pointerY)
-            // The cursor's picture, in desktop units: off this monitor, not shown here.
-            val left = fx.toInt() + offset.x
-            val top = fy.toInt() + offset.y
-            val right = left + offset.width
-            val bottom = top + offset.height
-            if (minOf(right, area.right) <= maxOf(left, area.x) || minOf(bottom, area.bottom) <= maxOf(top, area.y)) continue
-            // In the monitor's pixels.
-            val pxLeft = monitor.px(left - area.x)
-            val pxTop = monitor.px(top - area.y)
-            if (monitor.px(right - area.x) - pxLeft > plane.width || monitor.px(bottom - area.y) - pxTop > plane.height) continue
-            val dx = Math.round((pointerX - fx) * monitor.scale).toInt()
-            val dy = Math.round((pointerY - fy) * monitor.scale).toInt()
-            plane.show(pxLeft + dx, pxTop + dy, null)
-        }
-    }
+    val earlyPointer: dev.caulis.core.input.EarlyPointer = planes.Early()
 
     /**
      * Draws the changed parts into [target], whose picture is [age] frames old (1 = the
@@ -5774,7 +5608,7 @@ class Desktop(
     // Draws [items] (only those touching [repaint]) into the frame begun; [p] turns desktop
     // units into the target's pixels, at [scale].
     // [clip]: the pixels the frame is cut to now (a part of the monitor), when known.
-    private fun draw(items: List<DrawItem>, repaint: Rect?, p: (Rect) -> Rect, scale: Double, monitor: Monitor? = null, clip: Rect? = null) {
+    internal fun draw(items: List<DrawItem>, repaint: Rect?, p: (Rect) -> Rect, scale: Double, monitor: Monitor? = null, clip: Rect? = null) {
         val s = scale.toFloat()
         for (index in items.indices) {
             val item = items[index]
@@ -5888,15 +5722,15 @@ class Desktop(
     private var sceneVersion = -1L
 
     // The scene plus the cursor, rebuilt when the scene changed or the pointer moved.
-    private var items: List<DrawItem> = emptyList()
+    internal var items: List<DrawItem> = emptyList()
     private var itemsVersion = -1L
     private var itemsPointerX = Double.NaN
     private var itemsPointerY = Double.NaN
     private var itemsCursorVersion = -1L
-    private var itemsCursorStart = 0
+    internal var itemsCursorStart = 0
 
     /** Everything to draw now, bottom to top, the cursor last. */
-    private fun items(): List<DrawItem> {
+    internal fun items(): List<DrawItem> {
         if (itemsVersion == version && itemsPointerX == pointerX && itemsPointerY == pointerY && itemsCursorVersion == cursors.cursorVersion) return items
         val all = ArrayList<DrawItem>(scene().size + 2)
         all += scene
