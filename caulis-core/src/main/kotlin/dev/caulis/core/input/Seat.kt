@@ -18,7 +18,7 @@ import java.nio.ByteOrder
  * turns that into the right events for the right client: enter/leave when focus moves,
  * keys and modifiers, motion, buttons and scrolling.
  */
-class Seat(private val display: Display, keymap: Keymap) : AutoCloseable {
+class Seat(internal val display: Display, keymap: Keymap) : AutoCloseable {
 
     /**
      * The keymap programs are given (see [setKeymap]). The seat owns it: it closes it when
