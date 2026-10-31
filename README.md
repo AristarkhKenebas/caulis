@@ -32,6 +32,8 @@ for a project closer to what you have in mind: `tiling` (like i3), `floating` (l
 `scrolling` (like niri), `kiosk` (one program on the whole screen), `desktop` (with a bar of your
 own in Compose) or `lua` (everything in a `config.lua`, no Kotlin).
 
+Extending a running compositor without touching its code: [Plugins](docs/plugins.md).
+
 What changed in each release: [CHANGELOG.md](CHANGELOG.md).
 
 Caulis is on Maven Central, and every release is also in its own Maven repository on GitHub

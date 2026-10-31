@@ -18,6 +18,7 @@ caulis="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 # Each template with its words: its file "about".
 list_templates() {
     for folder in "$caulis"/templates/*/; do
+        [[ -f "$folder/about" ]] || continue # (templates/plugins: not compositors)
         name="$(basename "$folder")"
         printf '  %-10s %s\n' "$name" "$(cat "$folder/about")"
     done
