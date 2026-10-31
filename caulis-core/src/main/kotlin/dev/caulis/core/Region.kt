@@ -50,6 +50,9 @@ class Region internal constructor(resource: WlRegion, private val maxParts: Int 
     class Snapshot internal constructor(private val parts: List<Pair<Rect, Boolean>>, private val rough: Boolean) {
         constructor(parts: List<Pair<Rect, Boolean>>) : this(parts, false)
 
+        // The same region, made of the same parts? (Programs often set it anew with each picture.)
+        internal fun sameAs(other: Snapshot): Boolean = rough == other.rough && parts == other.parts
+
         /**
          * Rectangles that are certainly inside the region: added ones that no later
          * subtraction touches. (Careful rather than exact: it may leave parts out — all of

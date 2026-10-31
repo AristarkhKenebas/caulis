@@ -179,7 +179,8 @@ internal sealed class DrawItem {
 
     class Picture(
         val surface: Surface,
-        val texture: GpuTexture,
+        /** (Changes with a commit of new pixels only: see [DesktopScene.pictureReplaced].) */
+        var texture: GpuTexture,
         override val rect: Rect,
         val opaque: Boolean,
         override val covers: List<Rect>,

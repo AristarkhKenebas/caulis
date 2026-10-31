@@ -47,6 +47,24 @@ internal class DesktopScene(private val desktop: Desktop) {
 
     private val sceneVisible = ArrayList<Surface>()
 
+    // The same as a set: the surfaces whose pictures the scene draws (the cursor's are not among them).
+    private val sceneSurfaces = HashSet<Surface>()
+
+    /** True if the scene draws a picture of [surface]. */
+    internal fun drawsNow(surface: Surface): Boolean = surface in sceneSurfaces
+
+    // A commit changed only the pixels of [surface]: its pictures show its texture now (a GPU
+    // buffer is a texture of its own, a shared-memory one stays the same).
+    internal fun pictureReplaced(surface: Surface) {
+        val texture = surface.texture ?: return
+        for (item in scene) if (item is DrawItem.Picture && item.surface === surface) item.texture = texture
+    }
+
+    // Scenes built since the last call (for the render log: what a busy screen costs).
+    private var builds = 0
+
+    internal fun takeBuilds(): Int = builds.also { builds = 0 }
+
     private var sceneVersion = -1L
 
     // The scene plus the cursor, rebuilt when the scene changed or the pointer moved.
@@ -103,6 +121,7 @@ internal class DesktopScene(private val desktop: Desktop) {
      */
     private fun scene(): List<DrawItem> {
         if (sceneVersion == desktop.version) return scene
+        builds++
         desktop.looks.paintsMoving = false
         desktop.looks.focusChanging = false
         val all = ArrayList<DrawItem>()
@@ -116,8 +135,7 @@ internal class DesktopScene(private val desktop: Desktop) {
             desktop.lockBackdrop?.takeIf { !desktop.lockHost.sessionLocked }?.let { addLockBackdrop(all, it) }
             for (lockSurface in desktop.lockHost.lockSurfaces()) desktop.screens.lockMonitor(lockSurface).area.let { addTree(all, lockSurface.surface, it.x, it.y) }
             for (level in DrawingLevel.entries) desktop.widgetHost.addWidgets(all, level, onLockScreen = true)
-            sceneVisible.clear()
-            for (item in all) if (item is DrawItem.Picture) sceneVisible += item.surface
+            remember(all)
             scene = all
             sceneVersion = desktop.version
             return all
@@ -239,12 +257,21 @@ internal class DesktopScene(private val desktop: Desktop) {
         // A moving wallpaper shader goes on only where it is seen (not under a wallpaper program, a fullscreen window).
         desktop.backdrops.sceneBuilt()
         desktop.wallpaperShaders.sceneBuilt(kept)
-        sceneVisible.clear()
-        for (item in kept) if (item is DrawItem.Picture) sceneVisible += item.surface
+        remember(kept)
         placeSurfaces(kept)
         scene = kept
         sceneVersion = desktop.version
         return kept
+    }
+
+    private fun remember(items: List<DrawItem>) {
+        sceneVisible.clear()
+        sceneSurfaces.clear()
+        for (item in items) {
+            if (item !is DrawItem.Picture) continue
+            sceneVisible += item.surface
+            sceneSurfaces += item.surface
+        }
     }
 
     // The items from [start] on show only on [monitor], at [alpha] (a sliding or fading workspace).

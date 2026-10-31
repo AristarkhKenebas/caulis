@@ -15,7 +15,11 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+### Fixed
+- A window's new title now reaches its title bar and your rules at once; before, it waited for the program's next commit.
+
 ### Changed
+- A program drawing no longer makes the desktop work out its whole scene again. A commit that changes only pixels (same size, same regions, same place) marks what changed and asks for a frame; everything else builds a new scene as before. `CAULIS_FULL_REDRAW=1` (`Desktop.fullRedraw`) also turns this off, to compare. At `CAULIS_LOG=render=2` the "Frames in the last" line also says how many scenes were built.
 - Input devices (`InputDevices`) are a module of their own, `caulis-libinput`. Nothing changes for users: `caulis-core` depends on it (as an `api` dependency), and the packages and classes are the same.
 - The login session (`Session`, `Logind`) is a module of its own, `caulis-session`. Nothing changes for users: `caulis-core` depends on it (as an `api` dependency), and the packages and classes are the same.
 - The plain input types (`InputSettings`, `Gesture`, `Scroll`, `EarlyPointer`, the tablet value types) are a module of their own, `caulis-input`. Nothing changes for users: `caulis-core` depends on it (as an `api` dependency), and the packages and classes are the same.

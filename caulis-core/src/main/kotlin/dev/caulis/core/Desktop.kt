@@ -303,6 +303,7 @@ class Desktop(
         // Every commit may change what is on screen.
         compositor.onNewSurface { surface ->
             surface.onCommit { frames.surfaceCommitted(surface) }
+            surface.afterCommit = { frames.commitSettled(surface) }
             surface.resource.onDestroy { frames.keptUpdating.remove(surface) }
         }
         seat.onCursorChange = ::changed

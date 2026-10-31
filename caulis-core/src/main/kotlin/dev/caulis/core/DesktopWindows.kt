@@ -12,7 +12,8 @@ internal class DesktopWindows(private val desktop: Desktop) {
 
     fun windowInfoChanged(window: Window) {
         desktop.windowsLog.trace { "Now called $window" }
-        desktop.events.windowListChanged()
+        // (Rules and title bars may show it. changed() tells those following the window list too.)
+        desktop.changed()
         if (window.mapped) notifyEach(desktop.events.windowInfoListeners, window, "window-info-changed")
     }
 

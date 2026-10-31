@@ -37,8 +37,21 @@ internal class DesktopFrames(private val desktop: Desktop) {
             }
         }
         for (listener in desktop.capturing.commitListeners.toList()) listener(surface)
-        desktop.changed()
         scheduleHiddenRefresh()
+    }
+
+    // After a commit, its role having done its part too. Only pixels changed in a picture on
+    // screen: what changed is marked already and the scene stays (a program drawing does not make
+    // the whole desktop be worked out again). Anything else: the scene is built anew.
+    internal fun commitSettled(surface: Surface) {
+        val moreThanPixels = surface.sceneFacts.changedSinceLastTime()
+        if (moreThanPixels || desktop.fullRedraw || !desktop.sceneBuilder.drawsNow(surface)) {
+            desktop.changed()
+            return
+        }
+        desktop.sceneBuilder.pictureReplaced(surface)
+        desktop.renderLog.trace { "$surface: new pixels only, the scene stays" }
+        desktop.onChange()
     }
 
     fun refresh(
@@ -138,7 +151,8 @@ internal class DesktopFrames(private val desktop: Desktop) {
             val seconds = (now - since) / 1e9
             desktop.renderLog.info {
                 "Frames in the last %.0f s: %s; moving: %s".format(seconds, frames.entries.joinToString { "${it.key} ${it.value}" },
-                    reasons.entries.sortedByDescending { it.value }.take(5).joinToString { "${it.key} (${it.value})" }.ifEmpty { "nothing (programs' or the pointer's changes)" })
+                    reasons.entries.sortedByDescending { it.value }.take(5).joinToString { "${it.key} (${it.value})" }.ifEmpty { "nothing (programs' or the pointer's changes)" }) +
+                    "; scenes built: ${desktop.sceneBuilder.takeBuilds()}"
             }
             since = now
             frames.clear()

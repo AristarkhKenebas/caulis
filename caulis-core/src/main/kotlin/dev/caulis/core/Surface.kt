@@ -244,6 +244,12 @@ class Surface internal constructor(val resource: WlSurface, private val composit
 
     private val commitListeners = ArrayList<() -> Unit>()
 
+    // Called after a commit, once all [commitListeners] (its role among them) have had their say.
+    internal var afterCommit: (() -> Unit)? = null
+
+    // What the desktop's scene reads from this surface, to see if a commit changed only pixels.
+    internal val sceneFacts = SurfaceSceneFacts(this)
+
     // Parts of the picture that changed and nobody has redrawn yet (surface coordinates).
     private val changes = ArrayList<Rect>()
 
@@ -433,6 +439,7 @@ class Surface internal constructor(val resource: WlSurface, private val composit
             if (child !== this) child.subsurface?.parentCommitted()
         }
         commitListeners.forEach { it() }
+        afterCommit?.invoke()
     }
 
     // The viewport must fit the buffer, and without a destination its source must be whole units.
