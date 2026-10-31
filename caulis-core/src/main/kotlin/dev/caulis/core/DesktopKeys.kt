@@ -14,7 +14,7 @@ internal class DesktopKeys(private val desktop: Desktop) {
         // Typing (not just holding Ctrl or Super): the cursor makes way.
         if (pressed && desktop.hideCursorWhileTyping && evdevCode !in MODIFIER_KEYS && desktop.seat.keyboardFocus != null) desktop.cursors.hideCursor()
         if (pressed || evdevCode == widgetRepeatKey) stopWidgetRepeat()
-        desktop.keyboardWidget?.takeIf { desktop.widgetUsable(it) && desktop.overlay == null }?.let { widget ->
+        desktop.keyboardWidget?.takeIf { desktop.lockHost.widgetUsable(it) && desktop.overlay == null }?.let { widget ->
             val text = if (pressed) desktop.seat.textOf(evdevCode) else null
             desktop.seat.key(timeMillis, evdevCode, pressed) // (no program has the keyboard: only its state moves on)
             val m = desktop.seat.modifierBits
@@ -66,7 +66,7 @@ internal class DesktopKeys(private val desktop: Desktop) {
         widgetRepeatKey = key.evdevCode
         widgetRepeat = desktop.compositor.display.loop.after(delayMillis) {
             widgetRepeat = null
-            if (desktop.keyboardWidget !== widget || !desktop.widgetUsable(widget) || desktop.overlay != null) {
+            if (desktop.keyboardWidget !== widget || !desktop.lockHost.widgetUsable(widget) || desktop.overlay != null) {
                 widgetRepeatKey = -1
                 return@after
             }

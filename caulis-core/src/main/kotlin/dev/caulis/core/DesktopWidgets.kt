@@ -76,10 +76,10 @@ internal class DesktopWidgets(private val desktop: Desktop) {
 
     fun focusWidget(wanted: Widget?) {
         // Behind our own lock screen the keyboard goes back to it, not to a program.
-        val widget = wanted ?: desktop.ownLock?.screen?.takeIf { !desktop.sessionLocked }
+        val widget = wanted ?: desktop.lockHost.ownLock?.screen?.takeIf { !desktop.lockHost.sessionLocked }
         val old = desktop.keyboardWidget
         if (old === widget) return
-        if (widget != null && !desktop.widgetUsable(widget)) return // the lock screen keeps it
+        if (widget != null && !desktop.lockHost.widgetUsable(widget)) return // the lock screen keeps it
         desktop.keyboardWidget = widget
         if (old != null) userCode("Your widget (keyboardFocus)", Unit) { old.keyboardFocus(false) }
         if (widget != null) {
@@ -95,7 +95,7 @@ internal class DesktopWidgets(private val desktop: Desktop) {
     // [surface] gets the keyboard (or nobody does): a widget that had it loses it then. While
     // the session is locked only the locker's surfaces may have it (nothing else takes it away).
     internal fun keyboardTo(surface: Surface?) {
-        if (desktop.locked && (surface == null || !desktop.lockAllows(surface))) return
+        if (desktop.locked && (surface == null || !desktop.lockHost.lockAllows(surface))) return
         val old = desktop.keyboardWidget
         if (old != null && surface != null) {
             desktop.keyboardWidget = null
@@ -144,7 +144,7 @@ internal class DesktopWidgets(private val desktop: Desktop) {
         if (widgets.isEmpty()) return null
         val monitor = desktop.monitorAt(x, y)
         for (widget in widgets.asReversed()) {
-            if (desktop.locked && !desktop.widgetUsable(widget)) continue // (nothing behind the lock gets the pointer)
+            if (desktop.locked && !desktop.lockHost.widgetUsable(widget)) continue // (nothing behind the lock gets the pointer)
             if (userCode("Your widget (level)", null) { widget.level } != level) continue
             val area = userCode("Your widget (area)", null) { widget.area(monitor) } ?: continue
             if (x >= area.x && y >= area.y && x < area.right && y < area.bottom) return widget to area
@@ -159,7 +159,7 @@ internal class DesktopWidgets(private val desktop: Desktop) {
         val scene = wallpaperScene()
         for (monitor in desktop.monitorList) {
             for (widget in widgets.toList()) {
-                if (onLockScreen && !desktop.widgetUsable(widget)) continue
+                if (onLockScreen && !desktop.lockHost.widgetUsable(widget)) continue
                 if (userCode("Your widget (level)", null) { widget.level } != level) continue
                 val area = userCode("Your widget (area)", null) { widget.area(monitor) } ?: continue
                 val canvas = OverlayCanvas(monitor, listOf("widget", widget, monitor.name), seconds, scene)

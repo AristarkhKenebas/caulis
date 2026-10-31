@@ -33,7 +33,7 @@ internal class DesktopCursorPlanes(private val desktop: Desktop) {
             view.cursorOnPlane = true
             return
         }
-        if (monitor.transform != Transform.NORMAL || desktop.lockHidesDesktop) return intoFrames()
+        if (monitor.transform != Transform.NORMAL || desktop.lockHost.lockHidesDesktop) return intoFrames()
         val bounds = cursor.map { it.rect }.reduce(Rect::union)
         if (bounds.intersect(monitor.area) == null) {
             // On another monitor: none here.

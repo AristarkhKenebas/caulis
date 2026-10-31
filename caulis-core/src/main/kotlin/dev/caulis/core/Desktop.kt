@@ -38,7 +38,7 @@ class Desktop(
 
     // Parts of the desktop in classes of their own (in this module; they reach back into the
     // desktop for what they need). First, so that nothing below finds them missing.
-    private val touch = DesktopTouch(this, seat)
+    internal val touch = DesktopTouch(this, seat)
     private val pens = DesktopPens(this, seat)
     private val ownTitleBars = DesktopTitleBars(this)
     internal val pointerGrab = DesktopPointerGrab(this, seat)
@@ -64,6 +64,8 @@ class Desktop(
     internal val widgetHost = DesktopWidgets(this)
 
     internal val layerHost = DesktopLayers(this)
+
+    internal val lockHost = DesktopLock(this)
 
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
@@ -533,7 +535,7 @@ class Desktop(
 
     // A monitor changed size: maximized and fullscreen windows on it follow, layouts re-arrange.
     internal fun refitWindows(monitor: Monitor) {
-        lock?.surfaces?.filter { lockMonitor(it) === monitor }?.forEach { it.configure(monitor.area.width, monitor.area.height) }
+        lockHost.lock?.surfaces?.filter { lockMonitor(it) === monitor }?.forEach { it.configure(monitor.area.width, monitor.area.height) }
         for (pad in shownPads) if (pad.monitor === monitor) placeScratchpad(pad, appearing = emptySet())
         for (workspace in workspaces.values) {
             if ((workspace.monitor ?: focusedMonitor) !== monitor) continue
@@ -568,8 +570,8 @@ class Desktop(
         views -= view
         for (feedback in view.inFlight) feedback.discard()
         view.inFlight.clear()
-        lockShownOn -= view
-        confirmLockIfShown() // one screen less to wait for
+        lockHost.lockShownOn -= view
+        lockHost.confirmLockIfShown() // one screen less to wait for
     }
 
     init {
@@ -590,11 +592,11 @@ class Desktop(
     // it, a panel that keeps it, or else the top window.
     private fun keyboardLost() {
         if (keyboardWidget != null) return
-        if (sessionLocked) {
-            lockSurfaces().firstOrNull { it.surface.resource.isAlive }?.let { widgetHost.keyboardTo(it.surface) }
+        if (lockHost.sessionLocked) {
+            lockHost.lockSurfaces().firstOrNull { it.surface.resource.isAlive }?.let { widgetHost.keyboardTo(it.surface) }
             return
         }
-        ownLock?.let { own ->
+        lockHost.ownLock?.let { own ->
             focusWidget(own.screen)
             return
         }
@@ -761,7 +763,7 @@ class Desktop(
     internal val inputLog = Logger("input")
     internal val layoutLog = Logger("layout")
     internal val layersLog = Logger("layers")
-    private val lockLog = Logger("lock")
+    internal val lockLog = Logger("lock")
     internal val cursorLog = Logger("cursor")
     private val renderLog = Logger("render")
     private val BUSY_REPORT_NANOS = 10_000_000_000L
@@ -1241,8 +1243,6 @@ class Desktop(
 
     override fun layerUnmapped(layer: LayerSurface) = layerHost.layerUnmapped(layer)
 
-    // --- session lock --------------------------------------------------------------------------
-
     /**
      * True while the session is locked — by a screen locker program such as swaylock
      * (ext-session-lock), or by the compositor's own lock screen ([lockInternally]): keys, the
@@ -1251,10 +1251,7 @@ class Desktop(
      * typed the password); if a locker program crashes, the session stays locked and a newly
      * started locker takes over.
      */
-    val locked: Boolean get() = sessionLocked || ownLock != null
-
-    // Locked by a locker program (ext-session-lock).
-    internal var sessionLocked = false
+    val locked: Boolean get() = lockHost.sessionLocked || lockHost.ownLock != null
 
     /**
      * The colour under everything: where no background, wallpaper or window is drawn (a
@@ -1288,49 +1285,14 @@ class Desktop(
             changed()
         }
 
-    // Behind our own lock screen: whether [surface] (a panel's, a menu's, an unmanaged one's) is drawn.
-    private fun drawnBehindLock(surface: Surface): Boolean =
-        panelsShowWhileLocked || ownLock == null || lockAllows(surface)
-
     /** The colour shown when the locker crashed: start a new one (e.g. from a text console). */
     var abandonedLockColor: Color = Color(0.35f, 0.05f, 0.05f)
 
-    // The locker in charge (it may have crashed).
-    private var lock: SessionLock? = null
-
-    // Waiting for every screen to show the locked picture before telling the locker.
-    private var lockPending = false
-    private val lockShownOn = HashSet<DesktopView>()
-
-    private val lockListeners = ArrayList<(Boolean) -> Unit>()
-
-    // The current locker took over a session already locked (its locker crashed): giving up
-    // before its lock is shown leaves the session locked, not unlocked.
-    private var lockTakenOver = false
-
     /** Runs [listener] when the session gets locked (true) or unlocked (false), by a locker program or [lockInternally]. */
-    fun onLockChanged(listener: (Boolean) -> Unit): AutoCloseable {
-        lockListeners += listener
-        return AutoCloseable { lockListeners -= listener }
-    }
-
-    internal fun lockSurfaces(): List<LockSurface> = lock?.surfaces?.filter { it.mapped } ?: emptyList()
-
-    // Surfaces that may get input while locked: the current locker's (with their subsurfaces).
-    private fun belongsToLocker(surface: Surface): Boolean {
-        var current: Surface = surface
-        while (true) current = current.subsurface?.parent ?: break
-        val owner = current.roleObject as? LockSurface ?: return false
-        return owner.lock === lock
-    }
-
-    // The compositor's own lock screen ([lockInternally]).
-    internal class OwnLock(val screen: Widget, val hidesDesktop: Boolean, val surfaces: (Surface) -> Boolean, val addedForTheLock: Boolean)
-
-    internal var ownLock: OwnLock? = null
+    fun onLockChanged(listener: (Boolean) -> Unit): AutoCloseable = lockHost.onLockChanged(listener)
 
     /** True while the compositor's own lock screen is up ([lockInternally]; a locker program may have locked on top of it). */
-    val lockedInternally: Boolean get() = ownLock != null
+    val lockedInternally: Boolean get() = lockHost.ownLock != null
 
     /**
      * What [lockInternally] with hideDesktop = true shows behind the lock screen, besides
@@ -1346,26 +1308,7 @@ class Desktop(
         }
 
     /** The widget showing the compositor's own lock screen ([lockInternally]), or null. */
-    val lockScreen: Widget? get() = ownLock?.screen
-
-    // Nothing of the desktop is drawn while locked: a locker program's lock, or our own with hideDesktop.
-    internal val lockHidesDesktop: Boolean get() = sessionLocked || ownLock?.hidesDesktop == true
-
-    // The lock's rule for programs' surfaces: while a locker program has locked only its
-    // surfaces may have input; behind our own lock screen only those its author allows.
-    internal fun lockAllows(surface: Surface): Boolean {
-        if (sessionLocked) return belongsToLocker(surface)
-        val own = ownLock ?: return true
-        return userCode("Your lock screen (surfaces)", false) { own.surfaces(surface) }
-    }
-
-    // Our widgets usable while locked: our own lock screen (unless a locker program locked on
-    // top of it), and the ones that say so (Widget.showsWhileLocked).
-    internal fun widgetUsable(widget: Widget): Boolean {
-        if (!locked) return true
-        if (!sessionLocked && widget === ownLock?.screen) return true
-        return userCode("Your widget (showsWhileLocked)", false) { widget.showsWhileLocked }
-    }
+    val lockScreen: Widget? get() = lockHost.ownLock?.screen
 
     /**
      * Locks the session with the compositor's own lock screen: [screen], a [Widget] you draw
@@ -1384,76 +1327,14 @@ class Desktop(
      * calling [unlockInternally] is your code's job.
      */
     @JvmOverloads
-    fun lockInternally(screen: Widget, hideDesktop: Boolean = false, allowSurface: (Surface) -> Boolean = { false }) {
-        val wasLocked = locked
-        val old = ownLock
-        if (old != null && old.addedForTheLock && old.screen !== screen) widgetHost.widgets.remove(old.screen)
-        // Shown for the time of the lock only if it was not one of the widgets already.
-        val added = (old != null && old.addedForTheLock && old.screen === screen) || screen !in widgetHost.widgets
-        if (screen !in widgetHost.widgets) widgetHost.widgets += screen
-        if (!wasLocked) rememberFocusForUnlock()
-        ownLock = OwnLock(screen, hideDesktop, allowSurface, added)
-        lockLog.info { "Locked by the compositor's own lock screen ($screen)${if (hideDesktop) ", nothing of the desktop shown" else ""}${if (sessionLocked) " (behind a locker program)" else ""}" }
-        nothingBehindTheLock()
-        seat.lockAllows = ::lockAllows
-        if (!sessionLocked) {
-            keyboardWidget?.takeIf { it !== screen && !widgetUsable(it) }?.let { focusWidget(null) }
-            focusWidget(screen)
-        }
-        updateWidgets()
-        pointerMoved((System.nanoTime() / 1_000_000).toInt(), pointerX, pointerY)
-        if (!wasLocked) notifyEach(lockListeners, true, "lock")
-    }
+    fun lockInternally(screen: Widget, hideDesktop: Boolean = false, allowSurface: (Surface) -> Boolean = { false }) = lockHost.lockInternally(screen, hideDesktop, allowSurface)
 
     /**
      * Ends the compositor's own lock screen ([lockInternally]): the session is unlocked
      * (unless a locker program locked it meanwhile — then that one's unlock is still needed),
      * and the focused window, or the panel that keeps the keyboard, gets the keyboard again.
      */
-    fun unlockInternally() {
-        val own = ownLock ?: return
-        ownLock = null
-        if (own.addedForTheLock) widgetHost.widgets.remove(own.screen)
-        if (keyboardWidget === own.screen) {
-            keyboardWidget = null
-            userCode("Your widget (keyboardFocus)", Unit) { own.screen.keyboardFocus(false) }
-        }
-        if (widgetHost.hoveredWidget === own.screen || widgetHost.pressedWidget?.widget === own.screen) widgetHost.leaveWidgets()
-        if (sessionLocked) {
-            lockLog.info("The compositor's own lock screen is gone; the locker program still locks the session")
-            seat.lockAllows = ::lockAllows
-            updateWidgets()
-            return
-        }
-        lockLog.info("Unlocked (the compositor's own lock screen)")
-        unlocked()
-        updateWidgets()
-    }
-
-    // Nothing may go on behind a lock: no menus, no overview, no dragging, no overlay, our
-    // widgets lose the pointer and the keyboard (unless they may be used while locked).
-    private fun nothingBehindTheLock() {
-        hideSpecialsForLock()
-        seat.cancelDrag()
-        seat.forgetInput()
-        popupHost.grabs.toList().asReversed().forEach { it.dismiss() }
-        popupHost.grabs.clear()
-        pointerGrab.end()
-        // Fingers on a program's window: the program forgets them (else they went on under the lock).
-        if (touch.touchingPrograms) touchCancel((System.nanoTime() / 1_000_000).toInt())
-        if (inOverview) {
-            inOverview = false
-            overview.cameraFrom = DesktopOverview.Camera.NONE
-            overview.cameraTo = DesktopOverview.Camera.NONE
-        }
-        overview.overviewTarget = null
-        closeOverlay()
-        widgetHost.leaveWidgets()
-        keyboardWidget?.takeIf { !widgetUsable(it) }?.let { old ->
-            keyboardWidget = null
-            userCode("Your widget (keyboardFocus)", Unit) { old.keyboardFocus(false) }
-        }
-    }
+    fun unlockInternally() = lockHost.unlockInternally()
 
     /**
      * Which window gets the focus when the session is unlocked: by default the one that had it
@@ -1466,147 +1347,15 @@ class Desktop(
             field = value
         }
 
-    // Windows get a number as they open: those up to [mappedBeforeLock] were open before the
-    // session was locked; [focusBeforeLock] had the focus then.
-    private var mapCount = 0L
-    private val mapNumbers = java.util.WeakHashMap<Window, Long>()
-    private var mappedBeforeLock = Long.MAX_VALUE
-    private var focusBeforeLock: java.lang.ref.WeakReference<Window>? = null
+    override fun lockRequested(lock: SessionLock): Boolean = lockHost.lockRequested(lock)
 
-    // The session is getting locked (it was not): which windows were there, which had the focus.
-    private fun rememberFocusForUnlock() {
-        mappedBeforeLock = mapCount
-        focusBeforeLock = focusedWindow?.let { java.lang.ref.WeakReference(it) }
-    }
+    override fun lockSurfaceSize(output: Output?): Pair<Int, Int> = lockHost.lockSurfaceSize(output)
 
-    // The window to focus after unlocking (see [unlockFocus]), or null.
-    private fun windowForUnlock(): Window? {
-        fun usable(window: Window) = window.mapped && (window in windows || scratchpadOf(window) != null) &&
-            (mapNumbers[window] ?: Long.MAX_VALUE) <= mappedBeforeLock
-        val newest = windows.filter(::usable).maxByOrNull { mapNumbers[it] ?: 0L }
-        return when (unlockFocus) {
-            UnlockFocus.FOCUSED_BEFORE -> focusBeforeLock?.get()?.takeIf(::usable) ?: newest
-            UnlockFocus.NEWEST_BEFORE -> newest
-        }
-    }
+    override fun lockSurfaceCommitted(surface: LockSurface) = lockHost.lockSurfaceCommitted(surface)
 
-    // The session is not locked any more: the window that had the focus before (see
-    // [unlockFocus]; or the panel that keeps the keyboard) gets it back; windows that came or
-    // went meanwhile did not take the focus.
-    private fun unlocked() {
-        seat.lockAllows = { true }
-        val layer = layerHost.exclusiveLayer()
-        val window = windowForUnlock()
-        focusBeforeLock = null
-        mappedBeforeLock = Long.MAX_VALUE
-        if (layer != null) widgetHost.keyboardTo(layer.surface)
-        else {
-            lockLog.info { "Unlocked: the focus goes to ${window ?: "nothing"}" }
-            focus(window)
-        }
-        changed()
-        pointerMoved((System.nanoTime() / 1_000_000).toInt(), pointerX, pointerY)
-        notifyEach(lockListeners, false, "unlock")
-    }
+    override fun unlockRequested(lock: SessionLock) = lockHost.unlockRequested(lock)
 
-    override fun lockRequested(lock: SessionLock): Boolean {
-        if (sessionLocked && this.lock?.alive == true) {
-            lockLog.info { "${lock.resource.client.name} wants to lock, but another locker is in charge: refused" }
-            return false
-        }
-        this.lock = lock
-        val wasLocked = locked
-        if (!wasLocked) rememberFocusForUnlock()
-        lockTakenOver = sessionLocked
-        sessionLocked = true
-        nothingBehindTheLock()
-        // (Our own lock screen, if up, gives way to the locker program's.)
-        keyboardWidget?.takeIf { !widgetUsable(it) }?.let { old ->
-            keyboardWidget = null
-            userCode("Your widget (keyboardFocus)", Unit) { old.keyboardFocus(false) }
-        }
-        seat.lockAllows = ::lockAllows
-        lockPending = true
-        lockShownOn.clear()
-        lockLog.info { "Locked by ${lock.resource.client.name}${if (lockTakenOver) " (taking over from a crashed locker)" else ""}: nothing of the desktop is shown now" }
-        confirmLockIfShown()
-        changed()
-        if (!wasLocked) notifyEach(lockListeners, true, "lock")
-        return true
-    }
-
-    // The locker hears "locked" once every screen shows the locked picture.
-    private fun confirmLockIfShown() {
-        if (!lockPending || !views.all { it in lockShownOn }) return
-        lockPending = false
-        lockLog.info("Every screen shows the lock: telling the locker")
-        lock?.confirmLocked()
-    }
-
-    override fun lockSurfaceSize(output: Output?): Pair<Int, Int> =
-        (output?.let(::monitorOf) ?: monitorList.first()).area.let { it.width to it.height }
-
-    override fun lockSurfaceCommitted(surface: LockSurface) {
-        if (surface.lock !== lock) return // an earlier locker's leftovers
-        if (surface.mapped && seat.keyboardFocus == null && keyboardWidget == null) widgetHost.keyboardTo(surface.surface)
-        changed()
-        // The pointer may be over it now.
-        val hit = hits.surfaceAt(pointerX, pointerY)
-        seat.pointerMotion((System.nanoTime() / 1_000_000).toInt(), hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
-    }
-
-    override fun unlockRequested(lock: SessionLock) {
-        if (lock !== this.lock) {
-            lockLog.warn("An old locker (${lock.resource.client.name}) tried to unlock; ignored")
-            return
-        }
-        if (!lock.confirmed && lockTakenOver) {
-            // A new locker took over from one that crashed, then gave up before its lock was
-            // on screen: the session was locked all along, and stays so (no password was asked).
-            lockLog.warn("${lock.resource.client.name} took over the lock but gave up before it was shown: the session stays locked")
-            lockPending = false
-            changed()
-            return
-        }
-        lockLog.info { "Unlocked by ${lock.resource.client.name}" }
-        this.lock = null
-        sessionLocked = false
-        lockPending = false
-        lockTakenOver = false
-        val own = ownLock
-        if (own != null) {
-            // Our own lock screen was up below it: it is in charge again.
-            lockLog.info("The compositor's own lock screen still locks the session")
-            seat.lockAllows = ::lockAllows
-            focusWidget(own.screen)
-            changed()
-            return
-        }
-        unlocked()
-    }
-
-    override fun lockAbandoned(lock: SessionLock) {
-        if (lock !== this.lock) return
-        val own = ownLock
-        if (own != null) {
-            // A locker program crashed on top of our own lock screen: that one is in charge
-            // again (it asks for the password itself), not a red screen without a way back.
-            lockLog.warn("The screen locker quit without unlocking; the compositor's own lock screen is in charge again")
-            this.lock = null
-            sessionLocked = false
-            lockPending = false
-            lockTakenOver = false
-            seat.lockAllows = ::lockAllows
-            focusWidget(own.screen)
-            updateWidgets()
-            changed()
-            return
-        }
-        // The locker crashed: the session stays locked (that is the point of a lock).
-        lockPending = false
-        lockLog.warn("The screen locker quit without unlocking; the session stays locked until a new locker is started")
-        changed()
-    }
+    override fun lockAbandoned(lock: SessionLock) = lockHost.lockAbandoned(lock)
 
     // --- scratchpads (special workspaces) -----------------------------------------------------
 
@@ -1908,7 +1657,7 @@ class Desktop(
         }
 
     // Shown special workspaces hide when the session locks (if the settings say so).
-    private fun hideSpecialsForLock() {
+    internal fun hideSpecialsForLock() {
         if (!specialWorkspaces.hideOnLock) return
         for (pad in shownPads.toList()) if (pad.isSpecial && !pad.leaving) {
             layoutLog.info { "Special workspace ${pad.name} hidden: the screen locks" }
@@ -3200,7 +2949,7 @@ class Desktop(
     }
 
     override fun windowMapped(window: Window) {
-        mapNumbers[window] = ++mapCount
+        lockHost.mapNumbers[window] = ++lockHost.mapCount
         scratchpadFor(window)?.let { pad ->
             // Its program was just started (usually by the scratchpad's key): show it. A special
             // workspace's rule sends it there silently (unless goToWorkspace), or it is shown already.
@@ -3748,7 +3497,7 @@ class Desktop(
         // The locker has the keyboard while the session is locked; no window takes it (nor
         // raises itself, nor switches workspaces) behind the lock — but one the compositor's own
         // lock screen allows (a lock screen that is a program's window).
-        if (locked && (window == null || !lockAllows(window.surface))) {
+        if (locked && (window == null || !lockHost.lockAllows(window.surface))) {
             focusLog.info { "Focus to ${window ?: "nothing"} ignored: the session is locked" }
             return
         }
@@ -4305,7 +4054,7 @@ class Desktop(
         if (pressed && buttonsHeld == 1 && !inOverview && widgetHost.widgets.isNotEmpty()) {
             var taken = false
             for (other in widgetHost.widgets.toList().asReversed()) {
-                if (other === widgetTarget || !widgetUsable(other)) continue
+                if (other === widgetTarget || !lockHost.widgetUsable(other)) continue
                 if (userCode("Your widget (pressedOutside)", false) { other.pressedOutside(button, pointerX, pointerY, widgetTarget != null) }) taken = true
             }
             if (taken && widgetTarget == null) {
@@ -4332,7 +4081,7 @@ class Desktop(
             // Only the lock screen can be under the pointer: a click on one of its surfaces
             // (the locker's on another monitor, or one our own lock screen allows) gives that
             // one the keyboard — taking it from our own lock screen's widget too.
-            if (pressed) hits.surfaceAt(pointerX, pointerY)?.takeIf { lockAllows(it.root) }?.let { hit ->
+            if (pressed) hits.surfaceAt(pointerX, pointerY)?.takeIf { lockHost.lockAllows(it.root) }?.let { hit ->
                 val window = hit.root.roleObject as? Window
                 if (window != null) focus(window) else if (seat.keyboardFocus !== hit.root) widgetHost.keyboardTo(hit.root)
             }
@@ -4606,9 +4355,9 @@ class Desktop(
     fun presented(view: DesktopView, nanos: Long, refreshNanos: Long, sequence: Long, flags: Int) {
         Presentation.presented(view.inFlight, nanos, refreshNanos, sequence, flags)
         view.inFlight.clear()
-        if (lockPending && view.showsLock) {
-            lockShownOn += view
-            confirmLockIfShown()
+        if (lockHost.lockPending && view.showsLock) {
+            lockHost.lockShownOn += view
+            lockHost.confirmLockIfShown()
         }
     }
 
@@ -4668,7 +4417,7 @@ class Desktop(
         takeFeedbacks(view)
         val monitor = view.monitor
         val bounds = monitor.area
-        view.showsLock = lockHidesDesktop
+        view.showsLock = lockHost.lockHidesDesktop
         var parts = view.takeRepaintParts(if (fullRedraw) 0 else age, bounds) ?: return
         backgroundAsked = 0
         backgroundDrawn = 0
@@ -4902,15 +4651,15 @@ class Desktop(
         paintsMoving = false
         focusChanging = false
         val all = ArrayList<DrawItem>()
-        if (lockHidesDesktop) {
+        if (lockHost.lockHidesDesktop) {
             // Nothing of the desktop: a plain colour and the locker's pictures, on every monitor
             // (and our widgets usable on the lock screen, above them).
-            val color = if (!sessionLocked || lock?.alive == true) lockColor else abandonedLockColor
+            val color = if (!lockHost.sessionLocked || lockHost.lock?.alive == true) lockColor else abandonedLockColor
             for (monitor in monitorList) {
                 all += DrawItem.Color("$LOCK_BACKGROUND ${monitor.name}", monitor.area, color.red, color.green, color.blue, covers = listOf(monitor.area))
             }
-            lockBackdrop?.takeIf { !sessionLocked }?.let { addLockBackdrop(all, it) }
-            for (lockSurface in lockSurfaces()) lockMonitor(lockSurface).area.let { addTree(all, lockSurface.surface, it.x, it.y) }
+            lockBackdrop?.takeIf { !lockHost.sessionLocked }?.let { addLockBackdrop(all, it) }
+            for (lockSurface in lockHost.lockSurfaces()) lockMonitor(lockSurface).area.let { addTree(all, lockSurface.surface, it.x, it.y) }
             for (level in DrawingLevel.entries) widgetHost.addWidgets(all, level, onLockScreen = true)
             sceneVisible.clear()
             for (item in all) if (item is DrawItem.Picture) sceneVisible += item.surface
@@ -5005,11 +4754,11 @@ class Desktop(
         addLayers(all, LayerShell.Layer.OVERLAY)
         for (popup in popupHost.popups) {
             if (camera !== DesktopOverview.Camera.NONE) break // menus are not part of the overview
-            if (!popupHost.popupShown(popup) || !drawnBehindLock(popup.surface)) continue
+            if (!popupHost.popupShown(popup) || !lockHost.drawnBehindLock(popup.surface)) continue
             val (x, y) = hits.popupOrigin(popup)
             addTree(all, popup.surface, x, y)
         }
-        if (camera === DesktopOverview.Camera.NONE) for ((surface, place) in unmanaged) if (drawnBehindLock(surface)) addTree(all, surface, place.first, place.second)
+        if (camera === DesktopOverview.Camera.NONE) for ((surface, place) in unmanaged) if (lockHost.drawnBehindLock(surface)) addTree(all, surface, place.first, place.second)
         widgetHost.addDrawings(all, DrawingLevel.ON_TOP)
         // Our own notices above everything (not on a locked screen: what they say is private).
         if (!locked) for (monitor in monitorList) all += noticeBoard.items(monitor, monitorList, noticeFallback(monitor))
@@ -5096,7 +4845,7 @@ class Desktop(
         for (layerSurface in layerHost.layerSurfaces) {
             if (!layerSurface.mapped || layerSurface.current.layer != layer) continue
             val surface = layerSurface.surface
-            if (!drawnBehindLock(surface)) continue
+            if (!lockHost.drawnBehindLock(surface)) continue
             val rect = Rect(layerSurface.x, layerSurface.y, surface.width, surface.height)
             // Everything behind it darker (a launcher in front of the desktop).
             val dim = layerHost.layerBehaviorOf(layerSurface).dimAround

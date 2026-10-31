@@ -12,10 +12,10 @@ internal class DesktopHitTest(private val desktop: Desktop) {
         fun Desktop.Hit?.at(): Desktop.Pointed? = this?.let(Desktop.Pointed::AtSurface)
         fun widget(level: DrawingLevel): Desktop.Pointed? =
             if (widgetsToo && desktop.widgetHost.widgets.isNotEmpty()) desktop.widgetHost.widgetAt(x, y, level)?.let { (widget, area) -> Desktop.Pointed.AtWidget(widget, area, level) } else null
-        if (desktop.lockHidesDesktop) {
+        if (desktop.lockHost.lockHidesDesktop) {
             // Only the lock is there: the widgets usable on it, the locker's surfaces (each on its monitor).
             for (level in listOf(DrawingLevel.ON_TOP, DrawingLevel.ABOVE_WINDOWS, DrawingLevel.BELOW_WINDOWS, DrawingLevel.WALLPAPER)) widget(level)?.let { return it }
-            for (lockSurface in desktop.lockSurfaces()) {
+            for (lockSurface in desktop.lockHost.lockSurfaces()) {
                 val area = desktop.lockMonitor(lockSurface).area
                 hitTree(lockSurface.surface, x - area.x, y - area.y, lockSurface.surface)?.let { return it.at() }
             }
@@ -24,7 +24,7 @@ internal class DesktopHitTest(private val desktop: Desktop) {
         if (desktop.locked) {
             // Behind our own lock screen (the desktop drawn): what is there, if the lock lets it have input.
             return when (val there = pointedAtUnlocked(x, y, widgetsToo)) {
-                is Desktop.Pointed.AtSurface -> there.takeIf { desktop.lockAllows(it.hit.root) }
+                is Desktop.Pointed.AtSurface -> there.takeIf { desktop.lockHost.lockAllows(it.hit.root) }
                 else -> there // (only usable widgets are found)
             }
         }
