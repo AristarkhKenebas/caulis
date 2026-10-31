@@ -69,6 +69,8 @@ class Desktop(
 
     internal val pads = DesktopScratchpads(this)
 
+    internal val scaleFade = DesktopScaleFade(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -109,7 +111,7 @@ class Desktop(
         shaderSaved?.let { WatchedText.anyChange -= it }
         shaderSaved = null
         ownTitleBars.close()
-        fades.keys.toList().forEach(::dropFade)
+        scaleFade.fades.keys.toList().forEach(scaleFade::dropFade)
         flights.forEach { it.target.close() }
         flights.clear()
         lastLooks.values.forEach { it.target.close() }
@@ -231,7 +233,7 @@ class Desktop(
         require(value in 0.5..4.0) { "a scale must be between 0.5 and 4, not $value" }
         if (value == monitor.scale) return
         layoutLog.info { "Monitor ${monitor.name}: scale ${monitor.scale} → $value" }
-        fadeFromNow(monitor) // the old picture melts into the new one instead of jumping
+        scaleFade.fadeFromNow(monitor) // the old picture melts into the new one instead of jumping
         monitor.scale = value
         monitor.output?.rescale(value)
         if (monitor === focusedMonitor) compositor.outputScale = value
@@ -285,7 +287,7 @@ class Desktop(
     /** A monitor went away: its workspaces stay (Super+N brings them back on another monitor). */
     fun removeMonitor(monitor: Monitor) {
         if (monitor !in monitorList) return
-        dropFade(monitor)
+        scaleFade.dropFade(monitor)
         backdrops.forget(monitor.name)
         if (monitorList.size == 1) {
             // The last one: it stays as the stand-in, so windows keep a place until a monitor comes.
@@ -423,80 +425,6 @@ class Desktop(
     // The monitor a lock surface covers (its output's, else the first).
     internal fun lockMonitor(surface: LockSurface): Monitor =
         surface.output?.let { output -> monitorList.firstOrNull { it.output === output } } ?: monitorList.first()
-
-    // --- a scale change: the last frame melts into the new layout -------------------------
-
-    // The picture each monitor showed before its scale changed, and when it began to fade.
-    // A monitor's picture from before a scale change: its texture, since when, and what to
-    // close when it is over (the picture it was drawn into).
-    private class Fade(val texture: GpuTexture, val since: Long, val owner: AutoCloseable)
-
-    private val fades = HashMap<Monitor, Fade>()
-
-    private fun dropFade(monitor: Monitor) {
-        fades.remove(monitor)?.owner?.close()
-        fadeAlphas -= monitor
-    }
-    private val fadeAlphas = HashMap<Monitor, Float>()
-
-    // Takes the picture on [monitor] now (as a screenshot does); it fades out over the new
-    // scale, while programs draw themselves anew underneath. Without animations: no fade.
-    private fun fadeFromNow(monitor: Monitor) {
-        if (!animation("fadeScale", animations.scaleChangeMillis).on || views.none { it.monitor === monitor }) return
-        val width = monitor.pixelWidth
-        val height = monitor.pixelHeight
-        if (width <= 0 || height <= 0) return
-        dropFade(monitor)
-        try {
-            // Drawn as on screen, without our cursor (it would fade out as a ghost) and without
-            // telling programs anything (their frames are on the real screen).
-            val target = renderer.createTarget(width, height)
-            try {
-                renderer.begin(target, backgroundColor.red, backgroundColor.green, backgroundColor.blue)
-                draw(capturing.captureItems(cursor = false, hide = false), monitor.area, monitor::toPixels, monitor.scale, monitor)
-                renderer.end()
-            } catch (e: Throwable) {
-                target.close()
-                throw e
-            }
-            val texture = target.texture
-            if (texture != null) {
-                fades[monitor] = Fade(texture, System.nanoTime(), target) // read where it is: no copy
-            } else {
-                target.use {
-                    java.lang.foreign.Arena.ofConfined().use { arena ->
-                        val pixels = arena.allocate(width.toLong() * height * 4)
-                        target.readPixels(pixels, width * 4)
-                        val copy = renderer.createTexture(width, height)
-                        copy.upload(pixels, 0, height)
-                        fades[monitor] = Fade(copy, System.nanoTime(), copy)
-                    }
-                }
-            }
-            fadeAlphas[monitor] = 1f
-        } catch (e: Throwable) {
-            e.rethrowIfFatal()
-            renderLog.warn("The picture before the scale change could not be kept (it changes without fading)", e)
-        }
-        version++
-        onChange()
-    }
-
-    // True while some monitor fades: each frame is more of the new picture.
-    private fun fading(): Boolean {
-        val now = System.nanoTime()
-        val melt = animation("fadeScale", animations.scaleChangeMillis)
-        for ((monitor, fade) in fades.toList()) {
-            val t = (now - fade.since) / 1_000_000.0 / melt.effectiveMillis.coerceAtLeast(1)
-            if (t >= 1.0 || !melt.on) {
-                dropFade(monitor)
-                version++
-            } else {
-                fadeAlphas[monitor] = (1 - melt.curve.safeAt(t)).toFloat() // (smooth at both ends, usually)
-            }
-        }
-        return fades.isNotEmpty()
-    }
 
     /** The size in pixels of the monitor with the focus. */
     val pixelWidth: Int get() = focusedMonitor.pixelWidth
@@ -767,7 +695,7 @@ class Desktop(
     internal val layersLog = Logger("layers")
     internal val lockLog = Logger("lock")
     internal val cursorLog = Logger("cursor")
-    private val renderLog = Logger("render")
+    internal val renderLog = Logger("render")
     private val BUSY_REPORT_NANOS = 10_000_000_000L
     private val WALLPAPER_SHADERS = listOf("wallpaper shader")
     private val overlayLog = Logger("overlay")
@@ -3902,7 +3830,7 @@ class Desktop(
         // none may be skipped because another already said yes).
         val now = System.nanoTime()
         val noticesMoving = noticeBoard.animating() or osd.animating(now)
-        val fadingNow = fading()
+        val fadingNow = scaleFade.fading()
         val animatingNow = animating()
         val backdropsChanging = backdrops.changing()
         val directorAnimating = director?.let { d -> userCode("Your WindowDirector (animating)", false) { d.animating(now) } } == true
@@ -4259,7 +4187,7 @@ class Desktop(
         visible.clear()
         visible += sceneVisible
         // The frame before a scale change, fading out over the new one (the cursor stays above).
-        for ((monitor, fade) in fades) all += DrawItem.Image("$FADE_KEY ${monitor.name}", fade.texture, monitor.area, alpha = fadeAlphas[monitor] ?: 1f)
+        for ((monitor, fade) in scaleFade.fades) all += DrawItem.Image("$FADE_KEY ${monitor.name}", fade.texture, monitor.area, alpha = scaleFade.fadeAlphas[monitor] ?: 1f)
         val cursorStart = all.size
         itemsCursorStart = cursorStart
         cursors.addCursor(all)
