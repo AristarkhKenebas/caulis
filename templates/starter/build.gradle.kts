@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm") version "2.4.21"
+    // kotlin("plugin.compose") version "2.4.21"     // for your own bar, dock, launcher in Compose (see below)
     application
 }
 
@@ -20,8 +21,8 @@ dependencies {
     // (caulis-script is big: it contains the Kotlin compiler.)
     // implementation("io.github.aristarkhkenebas:caulis-lua:0.1.9")
     // implementation("io.github.aristarkhkenebas:caulis-script:0.1.9")
-    // Your own bar, dock, launcher in Compose: compose { } in your configuration (needs google()
-    // in the repositories above).
+    // Your own bar, dock, launcher in Compose: compose { } in your configuration (needs the plugin
+    // above, and google() in the repositories of settings.gradle.kts).
     // implementation("io.github.aristarkhkenebas:caulis-compose:0.1.9")
     // Screenshots (Print): add it and call screenshots() in your configuration.
     // implementation("io.github.aristarkhkenebas:caulis-screenshot:0.1.9")

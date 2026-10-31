@@ -27,7 +27,10 @@ Caulis.create()
 ```
 
 **New here? Start with [Your first compositor](docs/getting-started.md)**, or create a
-ready project right away: `templates/new-compositor.sh ~/my-compositor`.
+ready project right away: `templates/new-compositor.sh ~/my-compositor`. Add `--template <name>`
+for a project closer to what you have in mind: `tiling` (like i3), `floating` (like Openbox),
+`scrolling` (like niri), `kiosk` (one program on the whole screen), `desktop` (with a bar of your
+own in Compose) or `lua` (everything in a `config.lua`, no Kotlin).
 
 What changed in each release: [CHANGELOG.md](CHANGELOG.md).
 

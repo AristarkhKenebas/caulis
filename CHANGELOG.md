@@ -15,6 +15,13 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+### Added
+- More project templates: `templates/new-compositor.sh --template <name>` with `tiling` (like i3), `floating`
+  (like Openbox), `scrolling` (like niri), `kiosk` (one program, fullscreen), `desktop` (a bar of your own in
+  Compose) and `lua` (only a `config.lua`); `--list` shows them. Each is a small commented project with the
+  same small-heap G1 settings. `ci/check-templates.sh` builds them all against your checkout (`--run` also
+  starts each, headless), and `ci/build.sh` runs it.
+
 ## [0.1.9] - 2026-10-31
 
 ### Added

@@ -38,6 +38,26 @@ cd ~/my-compositor
 (It uses Caulis from Maven Central or its GitHub Pages mirror; `new-compositor.sh --sources ~/my-compositor` builds it from
 your Caulis folder instead.)
 
+Rather start from something closer to what you have in mind? `--template <name>` picks one
+(`new-compositor.sh --list` shows them). Each is a small project with a note on every line:
+
+| `--template` | What you get |
+|---|---|
+| `starter` (the default) | windows placed by themselves, every usual key, the first settings explained |
+| `tiling` | like i3: you choose where the next window goes, keys for everything, a resize mode |
+| `floating` | like Openbox: windows stay where you put them, title bars, Alt + drag |
+| `scrolling` | like niri: columns on an endless strip that scrolls sideways |
+| `kiosk` | one program on the whole screen, started again if it ends, no usual keys |
+| `desktop` | a small whole desktop: your own bar in Compose with workspaces, the window's title, a clock |
+| `lua` | a three-line program and a `config.lua`: you change everything in Lua, no Kotlin, no rebuilding |
+
+```sh
+~/caulis/templates/new-compositor.sh --template tiling ~/my-compositor
+```
+
+All of them use the same small memory settings (G1 with a small heap, in `build.gradle.kts`,
+explained there) and can be changed into one another: the layout and keys are a few lines.
+
 Then skip to step 3. If you prefer to see every piece, make a folder with three files:
 
 `settings.gradle.kts`:
