@@ -139,7 +139,7 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
             desktop.focus(window)
         } else {
             // Waiting there unseen: drawn nowhere, the focus goes on.
-            desktop.glides -= window
+            desktop.animator.glides -= window
             if (hadFocus) desktop.passFocusOn(desktop.windows.lastOrNull())
         }
         desktop.events.windowListChanged()
@@ -184,7 +184,7 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
     fun dragInSpecialWorkspace(window: Window, dx: Int, dy: Int) {
         val pad = desktop.scratchpadOf(window)?.takeIf { it.isSpecial && it.shown && !it.leaving } ?: return
         val tile = padTargets(pad)[window] ?: return
-        desktop.glides -= window
+        desktop.animator.glides -= window
         window.x = tile.x + dx
         window.y = tile.y + dy
         desktop.changed()
@@ -208,7 +208,7 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
     private fun leavePad(pad: Scratchpad, window: Window) {
         pad.windows -= window
         pad.workspace.model.forget(window)
-        desktop.glides -= window
+        desktop.animator.glides -= window
         if (padFocus === window) padFocus = null
         if (!pad.shown || pad.leaving) return
         if (pad.windows.isEmpty() && (!pad.isSpecial || desktop.specialWorkspaces.hideWhenEmpty)) hideScratchpad(pad, focusBack = false)
@@ -279,8 +279,8 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
     // How far a special workspace is shown now (0: gone, 1: there): for its windows' fading and its dim.
     internal fun padAmount(pad: Scratchpad, now: Long): Float {
         val start = pad.changedAt ?: return if (pad.leaving) 0f else 1f
-        val picked = desktop.pick(padAnimation(pad), desktop.animations.windowMove)
-        val t = desktop.animationProgress(start, picked.millis, now)
+        val picked = desktop.animator.pick(padAnimation(pad), desktop.animations.windowMove)
+        val t = desktop.animator.animationProgress(start, picked.millis, now)
         if (t == null) {
             pad.changedAt = null
             return if (pad.leaving) 0f else 1f
@@ -292,7 +292,7 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
     // It begins coming or going now, from how far it is shown.
     private fun padChanges(pad: Scratchpad, from: Float, now: Long) {
         pad.amountFrom = from
-        pad.changedAt = if (desktop.pick(padAnimation(pad), desktop.animations.windowMove).millis > 0) now else null
+        pad.changedAt = if (desktop.animator.pick(padAnimation(pad), desktop.animations.windowMove).millis > 0) now else null
     }
 
     // The animation a scratchpad's windows come and go with.
@@ -329,8 +329,8 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
         pad.focusBefore = null
         val now = System.nanoTime()
         for (window in pad.windows) {
-            val from = desktop.shownRects[window] ?: desktop.currentRect(window)
-            desktop.glides[window] = Desktop.Glide(from, now, to = padHidden(pad, from), name = padAnimation(pad))
+            val from = desktop.animator.shownRects[window] ?: desktop.currentRect(window)
+            desktop.animator.glides[window] = DesktopAnimations.Glide(from, now, to = padHidden(pad, from), name = padAnimation(pad))
         }
         // (A hide before this one, shown again in between, must not end this one early.)
         padTimers.remove(pad)?.cancel()
@@ -340,13 +340,13 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
             pad.leaving = false
             pad.shown = false
             shownPads -= pad
-            for (window in pad.windows) desktop.glides -= window
+            for (window in pad.windows) desktop.animator.glides -= window
             desktop.popupHost.dismissHiddenGrabs("their scratchpad is hidden")
             if (padFocus != null && padFocus in pad.windows) desktop.focus(back ?: desktop.windows.lastOrNull())
             desktop.changed()
         }
         // (Without the animation: gone at once, not drawn where it was meanwhile.)
-        val millis = desktop.pick(padAnimation(pad), desktop.animations.windowMove).millis
+        val millis = desktop.animator.pick(padAnimation(pad), desktop.animations.windowMove).millis
         if (millis <= 0 || atOnce) gone() else padTimers[pad] = desktop.compositor.display.loop.after(millis) { gone() }
         if (padFocus != null && padFocus in pad.windows) desktop.focus(back ?: desktop.windows.lastOrNull())
         desktop.changed()
@@ -388,8 +388,8 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
             if (visibleRect.width != rect.width || visibleRect.height != rect.height || window.configuredSize != rect.width to rect.height) window.configure(rect.width, rect.height)
             window.x = rect.x
             window.y = rect.y
-            if (window in appearing && desktop.pick(padAnimation(pad), desktop.animations.windowMove).millis > 0) {
-                desktop.glides[window] = Desktop.Glide(desktop.shownRects[window].takeIf { fromShown } ?: padHidden(pad, rect), now, name = padAnimation(pad))
+            if (window in appearing && desktop.animator.pick(padAnimation(pad), desktop.animations.windowMove).millis > 0) {
+                desktop.animator.glides[window] = DesktopAnimations.Glide(desktop.animator.shownRects[window].takeIf { fromShown } ?: padHidden(pad, rect), now, name = padAnimation(pad))
             }
         }
         desktop.changed()

@@ -20,13 +20,13 @@ internal class DesktopReport(private val desktop: Desktop) {
         for (layer in desktop.layerHost.layerSurfaces) {
             appendLine("  panel \"${layer.namespace}\" (${layer.surface.resource.client.name}) on ${layer.current.layer} at ${layer.x},${layer.y} ${layer.surface.width}x${layer.surface.height}${if (layer === desktop.layerHost.layerFocus) ", has the keyboard" else ""}")
         }
-        if (desktop.glides.isNotEmpty()) appendLine("  moving now: ${desktop.glides.keys.joinToString { it.title.take(24) }}")
+        if (desktop.animator.glides.isNotEmpty()) appendLine("  moving now: ${desktop.animator.glides.keys.joinToString { it.title.take(24) }}")
         for (notice in desktop.notices) appendLine("  on screen: $notice")
     }
 
     private fun describe(window: Window, workspace: Workspace): String = buildString {
         append(window).append(" from ").append(window.surface.resource.client.name)
-        append(" at ").append(desktop.screenRects[window] ?: desktop.currentRect(window))
+        append(" at ").append(desktop.animator.screenRects[window] ?: desktop.currentRect(window))
         append(if (window in workspace.floating || !window.tiled) ", floating" else ", tiled")
         if (window.maximized) append(", maximized")
         if (window.fullscreen) append(", fullscreen")

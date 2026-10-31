@@ -46,7 +46,7 @@ internal class DesktopCapture(private val desktop: Desktop) {
             val owner = when {
                 item is DrawItem.Picture -> ownerOf(item.surface)
                 item.key is EffectKey -> (item.key as EffectKey).owner
-                item.key is Desktop.Flight -> (item.key as Desktop.Flight).window
+                item.key is DesktopAnimations.Flight -> (item.key as DesktopAnimations.Flight).window
                 else -> null
             }
             val hidden = when (owner) {

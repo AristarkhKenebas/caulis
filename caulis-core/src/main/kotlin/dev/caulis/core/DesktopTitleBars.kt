@@ -59,7 +59,7 @@ internal class DesktopTitleBars(private val desktop: Desktop) : AutoCloseable {
     }
 
     private fun barAt(window: Window, x: Double, y: Double): Decoration? {
-        val content = desktop.screenRects[window] ?: return null
+        val content = desktop.animator.screenRects[window] ?: return null
         val height = desktop.titleHeight(window)
         if (height > 0 && x >= content.x && x < content.right && y >= content.y - height && y < content.y) {
             val button = desktop.titleBarStyle.buttonPlaces(content.width).firstOrNull { (_, range) -> (x - content.x).toInt() in range }?.first

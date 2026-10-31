@@ -34,7 +34,7 @@ internal class DesktopPointerGrab(private val desktop: Desktop, private val seat
     fun beginMove(window: Window) {
         // A window of a shown special workspace: dragged over its tile, dropped outside it moves out.
         if (!desktop.locked && desktop.buttonsHeld > 0 && desktop.scratchpadOf(window)?.let { it.isSpecial && it.shown && !it.leaving } == true) {
-            desktop.stopGlide(window)
+            desktop.animator.stopGlide(window)
             start(Grab.Move(window, desktop.pointerX, desktop.pointerY, window.x, window.y))
             return
         }

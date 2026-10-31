@@ -14,7 +14,6 @@ import dev.caulis.geometry.Rect
 import dev.caulis.protocol.xdgshell.XdgToplevel
 import dev.caulis.render.Color
 import dev.caulis.render.GpuTarget
-import dev.caulis.render.GpuTexture
 import dev.caulis.render.Renderer
 import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Layout
@@ -73,6 +72,8 @@ class Desktop(
 
     internal val looks = DesktopLooks(this)
 
+    internal val animator = DesktopAnimations(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -101,7 +102,7 @@ class Desktop(
         // A window's last look, taken while its picture is still there (it may be going away).
         compositor.pictureGoing = { surface ->
             val window = allWindows.firstOrNull { it.surface === surface && it.mapped }
-            if (window != null) lastLookOf(window)?.let { look -> lastLooks.put(window, look)?.target?.close() }
+            if (window != null) animator.lastLookOf(window)?.let { look -> animator.lastLooks.put(window, look)?.target?.close() }
         }
     }
 
@@ -114,12 +115,12 @@ class Desktop(
         shaderSaved = null
         ownTitleBars.close()
         scaleFade.fades.keys.toList().forEach(scaleFade::dropFade)
-        flights.forEach { it.target.close() }
-        flights.clear()
-        lastLooks.values.forEach { it.target.close() }
-        lastLooks.clear()
-        appearingPictures.values.forEach { it.close() }
-        appearingPictures.clear()
+        animator.flights.forEach { it.target.close() }
+        animator.flights.clear()
+        animator.lastLooks.values.forEach { it.target.close() }
+        animator.lastLooks.clear()
+        animator.appearingPictures.values.forEach { it.close() }
+        animator.appearingPictures.clear()
         backdrops.close()
         wallpaperShaders.close()
         looks.paintsTimer?.cancel()
@@ -457,7 +458,7 @@ class Desktop(
      * where it opened: a menu, its scale and its size limits are of where you see it).
      */
     fun monitorOf(window: Window): Monitor {
-        if (director != null) screenRects[window]?.takeIf { directed(window) }?.let { rect -> return monitorAt(rect.x + rect.width / 2.0, rect.y + rect.height / 2.0) }
+        if (director != null) animator.screenRects[window]?.takeIf { directed(window) }?.let { rect -> return monitorAt(rect.x + rect.width / 2.0, rect.y + rect.height / 2.0) }
         return workspaceOf(window)?.monitor ?: focusedMonitor
     }
 
@@ -475,11 +476,11 @@ class Desktop(
                 if (!window.configured) continue
                 if (window.fullscreen) {
                     window.configure(monitor.area.width, monitor.area.height)
-                    moveSmoothly(window, monitor.area.x, monitor.area.y)
+                    animator.moveSmoothly(window, monitor.area.x, monitor.area.y)
                 } else if (window.maximized) {
                     val area = withoutTitle(window, monitor.usableArea)
                     window.configure(area.width, area.height)
-                    moveSmoothly(window, area.x, area.y)
+                    animator.moveSmoothly(window, area.x, area.y)
                 }
             }
             arrange(workspace)
@@ -1034,9 +1035,9 @@ class Desktop(
     private fun show(workspace: Workspace, on: Monitor) {
         val previous = on.workspace
         if (previous === workspace) return
-        if (pick("workspaces", animations.workspaceSwitch).millis > 0 && !locked && !inOverview) {
+        if (animator.pick("workspaces", animations.workspaceSwitch).millis > 0 && !locked && !inOverview) {
             val direction = if (workspace.number >= previous.number) 1 else -1
-            slides[on] = Slide(previous, workspace, direction, System.nanoTime())
+            animator.slides[on] = DesktopAnimations.Slide(previous, workspace, direction, System.nanoTime())
         }
         // Pinned windows go along (they float, keeping their place on the monitor).
         for (window in previous.windows.filter { it in pinned }) {
@@ -1515,7 +1516,7 @@ class Desktop(
     private fun applyPending() {
         pendingTimer?.cancel()
         pendingTimer = null
-        for ((window, rect) in pending) moveSmoothly(window, rect.x, rect.y)
+        for ((window, rect) in pending) animator.moveSmoothly(window, rect.x, rect.y)
         pending.clear()
         changed()
     }
@@ -1962,7 +1963,7 @@ class Desktop(
         set(value) {
             require(value in 0..10_000) { "animationMillis is 0 to 10000, not $value" }
             field = value
-            animationSettings = null
+            animator.animationSettings = null
         }
 
     /**
@@ -1973,223 +1974,28 @@ class Desktop(
     var animations: Animations = Animations()
         set(value) {
             field = value
-            animationSettings = null
+            animator.animationSettings = null
             changed()
         }
-
-    // The animations' settings by name, made again when they change.
-    private var animationSettings: AnimationSettings? = null
 
     /**
      * What the animation [name] (of [AnimationTree.CAULIS]) comes to now: on or off, how long,
      * along which curve, which look. ([animationMillis] = 0 turns all of them off, as before.)
      */
     @JvmOverloads
-    fun animation(name: String, usualMillis: Long? = null, usualCurve: Curve? = null): ResolvedAnimation {
-        val settings = animationSettings ?: (
-            if (animationMillis == 0L) AnimationSettings(AnimationTree.CAULIS, false, 0, animations.curve)
-            else animations.settings(animationMillis)
-        ).also { made ->
-            animationSettings = made
-            log.info { "Animations ${if (made.enabled) "on" else "off"}${if (made.entries.isEmpty()) "" else ", ${made.entries.size} set by name"}" }
-            log.trace { "Animations by name:\n${made.describe()}" }
-        }
-        return settings.resolve(name, usualMillis, usualCurve)
-    }
-
-    // A window's animation by [name]: the code's look (or the one its settings name), its time and curve.
-    internal class Picked<T>(val look: T, val millis: Long, val curve: Curve)
-
-    // Window looks by their names, made once (asked every frame).
-    private val namedLooks = HashMap<String, WindowAnimation?>()
-
-    internal fun pick(name: String, code: WindowAnimation): Picked<WindowAnimation> {
-        val resolved = animation(name, code.millis, code.curve)
-        val style = resolved.style?.takeIf { it != "default" }
-        val look = when {
-            style == null -> code
-            name == "windowsMove" || name == "scratchpads" -> if (style.trim().lowercase() == "none") WindowAnimation.NONE else code
-            else -> namedLooks.getOrPut(style) { WindowAnimation.named(style) } ?: code
-        }
-        return Picked(look, if (look === WindowAnimation.NONE) 0L else resolved.effectiveMillis, resolved.curve)
-    }
-
-    internal fun pick(name: String, code: WorkspaceAnimation): Picked<WorkspaceAnimation> {
-        val resolved = animation(name, code.millis, code.curve)
-        val look = resolved.style?.takeIf { it != "default" }?.let(WorkspaceAnimation::named) ?: code
-        return Picked(look, if (look === WorkspaceAnimation.NONE) 0L else resolved.effectiveMillis, resolved.curve)
-    }
-
-    // How much of an animation's time has passed (0 to 1), or null once it is over (or off).
-    internal fun animationProgress(start: Long, millis: Long, now: Long): Double? {
-        if (millis <= 0) return null
-        val t = (now - start) / (millis * 1_000_000.0)
-        return if (t >= 1.0) null else t.coerceAtLeast(0.0)
-    }
-
-    // Windows appearing, since when (and their picture, when a shader draws them).
-    private val appearing = HashMap<Window, Long>()
-    private val appearingPictures = HashMap<Window, GpuTarget>()
-
-    // A picture of a window on its way — going away (its last look), into its dock icon or
-    // back out of it — drawn by an animation from [from] to [to].
-    internal class Flight(
-        val target: GpuTarget, val texture: GpuTexture, val from: Rect, val to: Rect, val start: Long,
-        val workspace: Workspace, val animation: WindowAnimation, val millis: Long, val curve: Curve,
-        val kind: FlightKind, val window: Window?,
-    )
-
-    internal enum class FlightKind { CLOSE, MINIMIZE, RESTORE }
-
-    private val flights = ArrayList<Flight>()
-
-    // Last looks taken just before a window's picture went (it may go away next).
-    private val lastLooks = HashMap<Window, Flight>()
-
-    // A monitor changing its workspace: the one before goes out, the new one comes in.
-    private class Slide(val from: Workspace, val to: Workspace, val direction: Int, val start: Long)
-
-    private val slides = HashMap<Monitor, Slide>()
-
-    // True while windows appear, go away or fly, or workspaces change: each frame is different.
-    private fun animating() = appearing.isNotEmpty() || flights.isNotEmpty() || slides.isNotEmpty()
-
-    // A picture of [window] as it looks now (with its title bar, border and shadow), and where
-    // it is: for animations that move the picture rather than the window. Null if it is not drawn.
-    private fun pictureOf(window: Window): Triple<GpuTarget, GpuTexture, Rect>? {
-        val items = ArrayList<DrawItem>()
-        addWindow(items, window, System.nanoTime(), plain = true)
-        val parts = items.filter { it !is DrawItem.Blur } // (blur needs what is behind: not in a picture of its own)
-        if (parts.none { it is DrawItem.Picture }) return null
-        val box = parts.map { (it as? DrawItem.Shadow)?.box?.union(it.rect) ?: it.rect }.reduce(Rect::union)
-        val scale = monitorOf(window).scale
-        fun px(units: Int) = (units * scale).roundToInt()
-        return try {
-            val target = renderer.createTarget(px(box.width).coerceIn(1, 8192), px(box.height).coerceIn(1, 8192))
-            val texture = target.texture ?: run {
-                target.close()
-                return null
-            }
-            renderer.begin(target, 0f, 0f, 0f, alpha = 0f)
-            draw(parts, null, { r -> Rect(px(r.x - box.x), px(r.y - box.y), px(r.width).coerceAtLeast(1), px(r.height).coerceAtLeast(1)) }, scale)
-            renderer.end()
-            Triple(target, texture, box)
-        } catch (e: Throwable) {
-            e.rethrowIfFatal()
-            renderLog.warn("A picture of $window for its animation could not be made (it changes without one): $e")
-            null
-        }
-    }
-
-    // [window] on its way as a picture (see Flight), if it is on screen and the animation is on.
-    private fun flightOf(window: Window, kind: FlightKind, name: String, code: WindowAnimation, to: Rect? = null, workspace: Workspace? = workspaceOf(window)): Flight? {
-        val picked = pick(name, code)
-        val millis = picked.millis
-        if (millis <= 0 || locked || inOverview || workspace == null || monitorList.none { it.workspace === workspace } || scratchpadOf(window) != null) return null
-        if (!behaviorOf(window).animated) return null
-        val (target, texture, box) = pictureOf(window) ?: return null
-        return Flight(target, texture, box, to ?: box, System.nanoTime(), workspace, picked.look, millis, picked.curve, kind, window)
-    }
-
-    // A window's pictures on their way are let go (it does something else now).
-    private fun stopFlights(window: Window) {
-        for (flight in flights.filter { it.window === window }) {
-            flights -= flight
-            flight.target.close()
-        }
-    }
-
-    // The last look of a window that is going away (taken while its picture is still there).
-    private fun lastLookOf(window: Window): Flight? {
-        val workspace = workspaceOf(window) ?: return null
-        if (window !in workspace.windows) return null
-        return flightOf(window, FlightKind.CLOSE, "windowsOut", animations.windowClose, workspace = workspace)
-    }
-
-    // How a flight is drawn now (null once it is over).
-    private fun flightItem(flight: Flight, now: Long): DrawItem? {
-        val t = animationProgress(flight.start, flight.millis, now) ?: return null
-        val e = flight.curve.safeAt(t)
-        // Going away and coming back out of the dock run backwards (1 → 0).
-        val progress = if (flight.kind == FlightKind.MINIMIZE) e else 1 - e
-        val area = monitorList.firstOrNull { it.workspace === flight.workspace }?.usableArea ?: focusedMonitor.usableArea
-        val frame = try {
-            flight.animation.frame(Motion(flight.window, flight.from, flight.to, progress, t, area))
-        } catch (e: Throwable) {
-            e.rethrowIfFatal()
-            log.error("Your window animation failed (it is drawn without): $e", e)
-            WindowFrame(flight.to)
-        }
-        return frameItem(flight, flight.texture, frame)
-    }
-
-    // The item that draws [texture] as [frame] says (through its shader, if it has one).
-    private fun frameItem(key: Any, texture: GpuTexture, frame: WindowFrame): DrawItem {
-        val shader = frame.shader ?: return DrawItem.Image(key, texture, frame.rect, alpha = frame.alpha)
-        val box = frame.rect
-        fun part(r: Rect) = floatArrayOf(
-            (r.x - box.x).toFloat() / box.width, (r.y - box.y).toFloat() / box.height,
-            r.width.toFloat() / box.width, r.height.toFloat() / box.height,
-        )
-        return DrawItem.Effect(
-            key, texture, box, frame.alpha, shader, part(frame.shaderFrom), part(frame.shaderTo), frame.progress.toFloat(),
-            fallback = Motion.mix(frame.shaderFrom, frame.shaderTo, frame.progress),
-        )
-    }
-
-    // A window on its way: where it started; the end is wherever the window is now.
-    internal class Glide(val from: Rect, val startNanos: Long, val to: Rect? = null, val name: String = "windowsMove")
-
-    internal val glides = HashMap<Window, Glide>()
-
-    // [window] stops gliding where it is (a drag takes it from there).
-    internal fun stopGlide(window: Window) {
-        glides -= window
-    }
-
-    // Where each window was drawn last (with any glide), so a new glide starts there.
-    internal val shownRects = HashMap<Window, Rect>()
-
-    // Where each window appears on screen (with the overview's zoom).
-    internal val screenRects = HashMap<Window, Rect>()
+    fun animation(name: String, usualMillis: Long? = null, usualCurve: Curve? = null): ResolvedAnimation = animator.animation(name, usualMillis, usualCurve)
 
     /** Where [window] appears on screen right now, also zoomed out in the overview (null = not drawn yet). */
-    fun screenRect(window: Window): Rect? = screenRects[window]
+    fun screenRect(window: Window): Rect? = animator.screenRects[window]
 
     /**
      * Where [window] is drawn right now — during a glide, somewhere between its old and new
      * place (null if it has not been drawn yet).
      */
-    fun shownRect(window: Window): Rect? = shownRects[window]
+    fun shownRect(window: Window): Rect? = animator.shownRects[window]
 
     /** True if [window] is in the picture on screen now (not hidden, not on a workspace not shown). */
     fun drawnNow(window: Window): Boolean = window.surface in visible
-
-    // Moves [window] to ([x], [y]); if it was on screen, it glides there instead of jumping.
-    private fun moveSmoothly(window: Window, x: Int, y: Int) {
-        val shown = shownRects[window]
-        window.x = x
-        window.y = y
-        val name = scratchpadOf(window)?.let(pads::padAnimation) ?: "windowsMove"
-        if (shown != null && (window in activeWorkspace.windows || scratchpadOf(window) != null) && behaviorOf(window).animated && pick(name, animations.windowMove).millis > 0) {
-            glides[window] = Glide(shown, System.nanoTime(), name = name)
-        }
-    }
-
-    // Where a gliding window is drawn now: from its start towards its current place, fast
-    // at first and gently slowing down. Null when the glide is over.
-    private fun glidePosition(glide: Glide, current: Rect, nowNanos: Long): Rect? {
-        val target = glide.to ?: current
-        val picked = pick(glide.name, animations.windowMove)
-        val t = animationProgress(glide.startNanos, picked.millis, nowNanos) ?: return null
-        return try {
-            picked.look.frame(Motion(null, glide.from, target, picked.curve.safeAt(t), t, focusedMonitor.usableArea)).rect
-        } catch (e: Throwable) {
-            e.rethrowIfFatal()
-            log.error("Your window move animation failed (windows jump): $e", e)
-            null
-        }
-    }
 
     // Takes a window out of tiling: it gets its floating place and size back.
     private fun untile(window: Window) {
@@ -2197,7 +2003,7 @@ class Desktop(
         if (!window.tiled) return
         window.tiled = false
         val floating = floatingRects[window] ?: cascadeRect(window.visibleRect.width, window.visibleRect.height)
-        moveSmoothly(window, floating.x, floating.y)
+        animator.moveSmoothly(window, floating.x, floating.y)
         window.configure(floating.width, floating.height)
         changed()
     }
@@ -2346,7 +2152,7 @@ class Desktop(
             }
             floatingRects[window] = place
             if (!window.tiled && !window.maximized && !window.fullscreen) {
-                moveSmoothly(window, place.x, place.y)
+                animator.moveSmoothly(window, place.x, place.y)
                 window.configure(place.width, place.height)
             }
         }
@@ -2449,8 +2255,8 @@ class Desktop(
         targets[window]?.let { window.x = it.x; window.y = it.y }
         // The keyboard: if it is on screen (or should be shown) and may take it.
         val shown = monitorList.any { it.workspace === workspace }
-        if ((shown || placement.goToWorkspace) && pick("windowsIn", animations.windowOpen).millis > 0 && !locked && behavior.animated) {
-            appearing[window] = System.nanoTime()
+        if ((shown || placement.goToWorkspace) && animator.pick("windowsIn", animations.windowOpen).millis > 0 && !locked && behavior.animated) {
+            animator.appearing[window] = System.nanoTime()
         }
         if (placement.goToWorkspace || (shown && placement.focus)) focus(window) else changed()
         windowsLog.info { "Opened $window (workspace ${workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
@@ -2463,22 +2269,22 @@ class Desktop(
         // Its dialogs belong to its own parent now (or to nobody).
         for (child in allWindows) if (child.parent === window) child.parentGone(window)
         placements -= window
-        appearing -= window
+        animator.appearing -= window
         pinned -= window
         // Where the director drew it last: gone too (the pointer looked there before the next frame).
         if (window in places) places = places - window
         // Its last look goes away smoothly (taken just before its picture went, or now).
-        stopFlights(window)
-        appearingPictures.remove(window)?.close()
-        (lastLooks.remove(window) ?: lastLookOf(window))?.let { flights += it }
+        animator.stopFlights(window)
+        animator.appearingPictures.remove(window)?.close()
+        (animator.lastLooks.remove(window) ?: animator.lastLookOf(window))?.let { animator.flights += it }
         ownTitleBars.forget(window)
         events.minimizeTargets -= window
         // What every closed window leaves behind (a scratchpad's too).
         pending.remove(window)
         floatingRects -= window
-        glides -= window
-        shownRects -= window
-        screenRects -= window
+        animator.glides -= window
+        animator.shownRects -= window
+        animator.screenRects -= window
         pointerGrab.forget(window)
         if (hovered === window) hovered = null
         // (It had the focus even if a launcher, a widget or a panel has the keyboard now.)
@@ -2526,7 +2332,7 @@ class Desktop(
     }
 
     override fun windowCommitted(window: Window) {
-        lastLooks.remove(window)?.target?.close() // it drew again: still here
+        animator.lastLooks.remove(window)?.target?.close() // it drew again: still here
         if (window in pending) applyWhenReady()
         // While resizing from the left or top, the opposite edge stays where it was.
         val resize = grab as? DesktopPointerGrab.Grab.Resize ?: return
@@ -2667,13 +2473,13 @@ class Desktop(
             // Fullscreen covers its monitor; maximized leaves panels and docks free.
             val monitor = monitorOf(window)
             val area = if (window.fullscreen) monitor.area else withoutTitle(window, monitor.usableArea)
-            moveSmoothly(window, area.x, area.y)
+            animator.moveSmoothly(window, area.x, area.y)
             window.configure(area.width, area.height)
         } else if (workspace != null && window in workspace.tiledWindows()) {
             window.tiled = false // makes arrange send the tile size again
         } else {
             val floating = floatingRects[window] ?: currentRect(window)
-            moveSmoothly(window, floating.x, floating.y)
+            animator.moveSmoothly(window, floating.x, floating.y)
             window.configure(floating.width, floating.height)
         }
         workspace?.let { arrange(it) }
@@ -2691,9 +2497,9 @@ class Desktop(
         if (window !in workspace.windows) return
         windowsLog.info { "$window: minimized${if (window in events.minimizeTargets) " (into its dock icon)" else ""}" }
         // Into its dock icon (or down out of sight), as the minimize animation says.
-        val shown = shownRects[window]
-        stopFlights(window)
-        if (shown != null) flightOf(window, FlightKind.MINIMIZE, "minimize", animations.minimize, to = events.minimizedRect(window, shown))?.let { flights += it }
+        val shown = animator.shownRects[window]
+        animator.stopFlights(window)
+        if (shown != null) animator.flightOf(window, DesktopAnimations.FlightKind.MINIMIZE, "minimize", animations.minimize, to = events.minimizedRect(window, shown))?.let { animator.flights += it }
         workspace.windowList -= window
         workspace.minimizedList += window
         window.setMinimized(true)
@@ -3005,9 +2811,9 @@ class Desktop(
                 if (window !in activeWorkspace.windowList) activeWorkspace.windowList += window
                 window.setMinimized(false)
                 // Back out of its dock icon (or up from below), as the restore animation says.
-                stopFlights(window)
-                glides -= window
-                flightOf(window, FlightKind.RESTORE, "restore", animations.restore, to = events.minimizedRect(window, currentRect(window)))?.let { flights += it }
+                animator.stopFlights(window)
+                animator.glides -= window
+                animator.flightOf(window, DesktopAnimations.FlightKind.RESTORE, "restore", animations.restore, to = events.minimizedRect(window, currentRect(window)))?.let { animator.flights += it }
             }
         }
         val list = activeWorkspace.windowList
@@ -3692,7 +3498,7 @@ class Desktop(
         val now = System.nanoTime()
         val noticesMoving = noticeBoard.animating() or osd.animating(now)
         val fadingNow = scaleFade.fading()
-        val animatingNow = animating()
+        val animatingNow = animator.animating()
         val backdropsChanging = backdrops.changing()
         val directorAnimating = director?.let { d -> userCode("Your WindowDirector (animating)", false) { d.animating(now) } } == true
         var directorMoving = directorAnimating
@@ -3700,10 +3506,10 @@ class Desktop(
         for (list in widgetHost.drawings.values) for (d in list) if (userCode("Your drawing (animating)", false) { d.animating(now) }) { directorMoving = true; movingThing = d }
         for (w in widgetHost.widgets.toList()) if (userCode("Your widget (animating)", false) { w.animating(now) }) { directorMoving = true; movingThing = w }
         val paintsNow = looks.paintsMoving && looks.paintsDue(now)
-        if (glides.isNotEmpty() || pads.shownPads.any { it.changedAt != null } || overview.cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsNow || looks.focusChanging || directorMoving) {
+        if (animator.glides.isNotEmpty() || pads.shownPads.any { it.changedAt != null } || overview.cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsNow || looks.focusChanging || directorMoving) {
             // Windows are gliding (or the overview zooms): the scene changes every frame until done.
             if (renderLog.level >= 2) {
-                val why = listOfNotNull("glides".takeIf { glides.isNotEmpty() }, "camera".takeIf { overview.cameraMoving(System.nanoTime()) }, "fading".takeIf { fadingNow },
+                val why = listOfNotNull("glides".takeIf { animator.glides.isNotEmpty() }, "camera".takeIf { overview.cameraMoving(System.nanoTime()) }, "fading".takeIf { fadingNow },
                     "notices".takeIf { noticesMoving }, "animating".takeIf { animatingNow }, "backdrops".takeIf { backdropsChanging }, "paints".takeIf { paintsNow },
                     "focus".takeIf { looks.focusChanging }, "director".takeIf { directorAnimating }, movingThing?.let { "drawing or widget $it" })
                 renderLog.trace { "Moving: ${why.joinToString()}" }
@@ -4116,12 +3922,12 @@ class Desktop(
         // one's windows (and the old one's) show only on that monitor while they move.
         class Change(val monitor: Monitor, val frame: WorkspaceFrame)
         val changes = HashMap<Workspace, Change>()
-        for ((monitor, slide) in slides.toList()) {
-            val picked = pick("workspaces", animations.workspaceSwitch)
+        for ((monitor, slide) in animator.slides.toList()) {
+            val picked = animator.pick("workspaces", animations.workspaceSwitch)
             val animation = picked.look
-            val t = animationProgress(slide.start, picked.millis, now)
+            val t = animator.animationProgress(slide.start, picked.millis, now)
             if (t == null || inOverview || monitor !in monitorList || monitor.workspace !== slide.to) {
-                slides -= monitor
+                animator.slides -= monitor
                 continue
             }
             val frame = try {
@@ -4129,7 +3935,7 @@ class Desktop(
             } catch (e: Throwable) {
                 e.rethrowIfFatal()
                 log.error("Your workspace animation failed (workspaces change at once): $e", e)
-                slides -= monitor
+                animator.slides -= monitor
                 continue
             }
             changes[slide.to] = Change(monitor, frame)
@@ -4158,12 +3964,12 @@ class Desktop(
         // The director's windows, where it put them, lowest first.
         for ((window, place) in placed) addDirected(all, window, place)
         // Windows going away: their last look, as the close animation says.
-        addFlights(all, now, FlightKind.CLOSE)
+        animator.addFlights(all, now, DesktopAnimations.FlightKind.CLOSE)
         widgetHost.addDrawings(all, DrawingLevel.ABOVE_WINDOWS)
         addLayers(all, LayerShell.Layer.TOP)
         // Windows on their way into the dock and out of it (above it, so they are seen going into their icon).
-        addFlights(all, now, FlightKind.MINIMIZE)
-        addFlights(all, now, FlightKind.RESTORE)
+        animator.addFlights(all, now, DesktopAnimations.FlightKind.MINIMIZE)
+        animator.addFlights(all, now, DesktopAnimations.FlightKind.RESTORE)
         // Fullscreen windows cover panels and bars (not notifications on the overlay layer).
         for (window in fullscreen) addWindowNow(window)
         // Shown scratchpads above every workspace, the last shown on top.
@@ -4225,25 +4031,6 @@ class Desktop(
         return kept
     }
 
-    // The pictures of windows on their way of [kind] (those that arrived are let go).
-    private fun addFlights(all: MutableList<DrawItem>, now: Long, kind: FlightKind) {
-        for (flight in flights.toList()) {
-            if (flight.kind != kind) continue
-            val item = flightItem(flight, now)
-            if (item == null) {
-                flights -= flight
-                flight.target.close()
-                if (kind == FlightKind.RESTORE) changed() // the window itself is drawn again
-                continue
-            }
-            if (monitorList.any { it.workspace === flight.workspace }) all += item
-            // Where the window is drawn now, for shownRect (going away: it is not there any more).
-            if (flight.window != null && kind != FlightKind.CLOSE) {
-                shownRects[flight.window] = (item as? DrawItem.Effect)?.fallback ?: item.rect
-            }
-        }
-    }
-
     // The items from [start] on show only on [monitor], at [alpha] (a sliding or fading workspace).
     private fun fade(all: MutableList<DrawItem>, start: Int, alpha: Float, monitor: Monitor) {
         for (i in start until all.size) {
@@ -4289,31 +4076,31 @@ class Desktop(
     }
 
     // A window where it is (or on its way, see glides); a leaving one only while it moves.
-    private fun addWindow(all: MutableList<DrawItem>, window: Window, now: Long, leaving: Boolean = false, camera: DesktopOverview.Camera = DesktopOverview.Camera.NONE, plain: Boolean = false, fade: Float = 1f) {
+    internal fun addWindow(all: MutableList<DrawItem>, window: Window, now: Long, leaving: Boolean = false, camera: DesktopOverview.Camera = DesktopOverview.Camera.NONE, plain: Boolean = false, fade: Float = 1f) {
         // Coming back out of the dock: its picture flies (see flights) until it is there.
-        if (!plain && flights.any { it.window === window && it.kind == FlightKind.RESTORE }) {
-            shownRects[window] = currentRect(window)
+        if (!plain && animator.flights.any { it.window === window && it.kind == DesktopAnimations.FlightKind.RESTORE }) {
+            animator.shownRects[window] = currentRect(window)
             return
         }
         val visibleRect = window.visibleRect
         val target = currentRect(window)
-        val glide = if (plain) null else glides[window]
-        val shown = glide?.let { glidePosition(it, target, now) }
-        if (glide != null && shown == null) glides -= window
+        val glide = if (plain) null else animator.glides[window]
+        val shown = glide?.let { animator.glidePosition(it, target, now) }
+        if (glide != null && shown == null) animator.glides -= window
         if (leaving && shown == null) return // gone out of sight
         var world = shown ?: target
         // Tiled windows follow the fingers while the view is dragged.
         if ((overview.dragX != 0.0 || overview.dragY != 0.0) && window.tiled && window in activeWorkspace.windows) {
             world = world.translate(overview.dragX.roundToInt(), overview.dragY.roundToInt())
         }
-        shownRects[window] = world
+        animator.shownRects[window] = world
         // Appearing: as the open animation says (only its picture: the window itself is in place).
         var alpha = fade
-        val appearSince = if (plain) null else appearing[window]
+        val appearSince = if (plain) null else animator.appearing[window]
         if (appearSince != null) {
-            val picked = pick("windowsIn", animations.windowOpen)
+            val picked = animator.pick("windowsIn", animations.windowOpen)
             val animation = picked.look
-            val t = animationProgress(appearSince, picked.millis, now)
+            val t = animator.animationProgress(appearSince, picked.millis, now)
             val frame = if (t == null) null else try {
                 animation.frame(Motion(window, world, world, picked.curve.safeAt(t), t, monitorOf(window).usableArea))
             } catch (e: Throwable) {
@@ -4322,17 +4109,17 @@ class Desktop(
                 null
             }
             if (frame == null) {
-                appearing -= window
-                appearingPictures.remove(window)?.close()
+                animator.appearing -= window
+                animator.appearingPictures.remove(window)?.close()
             } else if (frame.shader != null) {
                 // Through a shader: the whole window as one picture, made anew each frame.
-                val picture = pictureOf(window)
-                (if (picture != null) appearingPictures.put(window, picture.first) else appearingPictures.remove(window))?.close()
+                val picture = animator.pictureOf(window)
+                (if (picture != null) animator.appearingPictures.put(window, picture.first) else animator.appearingPictures.remove(window))?.close()
                 if (picture != null) {
                     // The picture has the window's shadow around it: every rectangle grows the same.
                     val (_, texture, box) = picture
                     fun around(r: Rect) = Rect(r.x + box.x - world.x, r.y + box.y - world.y, r.width + box.width - world.width, r.height + box.height - world.height)
-                    all += frameItem(EffectKey("appearing", window), texture, WindowFrame(around(frame.rect), frame.alpha, frame.shader, around(frame.shaderFrom), around(frame.shaderTo), frame.progress))
+                    all += animator.frameItem(EffectKey("appearing", window), texture, WindowFrame(around(frame.rect), frame.alpha, frame.shader, around(frame.shaderFrom), around(frame.shaderTo), frame.progress))
                     return
                 }
             } else {
@@ -4341,7 +4128,7 @@ class Desktop(
             }
         }
         val rect = if (camera === DesktopOverview.Camera.NONE) world else camera.apply(world)
-        screenRects[window] = rect
+        animator.screenRects[window] = rect
         // While gliding (or zoomed out), the picture is stretched to the in-between size.
         val scaleX = if (target.width > 0) rect.width.toDouble() / target.width else 1.0
         val scaleY = if (target.height > 0) rect.height.toDouble() / target.height else 1.0
@@ -4389,8 +4176,8 @@ class Desktop(
         // Its menus open from there, and it counts as on the monitor it is drawn on.
         window.x = rect.x
         window.y = rect.y
-        shownRects[window] = rect
-        screenRects[window] = rect
+        animator.shownRects[window] = rect
+        animator.screenRects[window] = rect
         val visible = window.visibleRect
         val scaleX = if (visible.width > 0) place.width / visible.width else 1.0
         val scaleY = if (visible.height > 0) place.height / visible.height else 1.0

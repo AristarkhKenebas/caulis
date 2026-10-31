@@ -71,7 +71,7 @@ internal class DesktopEvents(private val desktop: Desktop) {
         }
         return when (val role = current.roleObject) {
             is LayerSurface -> (role.x + dx) to (role.y + dy)
-            is Window -> desktop.screenRects[role]?.let { (it.x - role.visibleRect.x + dx) to (it.y - role.visibleRect.y + dy) }
+            is Window -> desktop.animator.screenRects[role]?.let { (it.x - role.visibleRect.x + dx) to (it.y - role.visibleRect.y + dy) }
             else -> null
         }
     }

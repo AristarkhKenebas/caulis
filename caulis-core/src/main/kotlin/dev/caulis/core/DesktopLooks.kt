@@ -70,7 +70,7 @@ internal class DesktopLooks(private val desktop: Desktop) {
         val change = focusLooks[owner]
         if (change == null || change.first != focused) focusLooks[owner] = focused to if (change == null) 0L else now
         val fading = desktop.animation("border", fx.focusChangeMillis)
-        val e = desktop.animationProgress(focusLooks.getValue(owner).second, fading.effectiveMillis, now)?.let { fading.curve.safeAt(it).toFloat().coerceIn(0f, 1f) }
+        val e = desktop.animator.animationProgress(focusLooks.getValue(owner).second, fading.effectiveMillis, now)?.let { fading.curve.safeAt(it).toFloat().coerceIn(0f, 1f) }
         if (e != null) focusChanging = true
         fun shadowOf(focus: Boolean) = (if (focus) fx.shadow else fx.inactiveShadow ?: fx.shadow)?.takeIf { it != Shadow.NONE }
         fun addShadow(shadow: Shadow, alpha: Float, key: String) {
