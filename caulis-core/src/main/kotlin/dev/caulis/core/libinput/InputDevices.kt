@@ -33,6 +33,7 @@ import java.nio.file.Path
  * goes is lifted and taken away.
  */
 class InputDevices(internal val loop: EventLoop, internal val session: Session) : AutoCloseable {
+    internal val tabletInput = InputTablets(this)
     internal val inputThread = InputThread(this)
 
     /** Input, in Linux key/button codes; times are milliseconds. */
@@ -144,7 +145,7 @@ class InputDevices(internal val loop: EventLoop, internal val session: Session) 
     val list: List<InputDevice> get() = published
 
     // By the address of libinput's device. (Only on the thread that reads libinput.)
-    private val devices = LinkedHashMap<Long, InputDevice>()
+    internal val devices = LinkedHashMap<Long, InputDevice>()
 
     // The devices as the compositor's thread sees them (a copy made at each change).
     @Volatile
@@ -190,24 +191,6 @@ class InputDevices(internal val loop: EventLoop, internal val session: Session) 
 
     // Fingers down on each touch screen right now (their seat slots), to cancel them if it goes.
     private val touching = HashMap<Long, MutableSet<Int>>()
-
-    // Tablet tools: each one by what tells it apart (see toolOf), and those near a tablet now.
-    private val tools = HashMap<String, TabletTool>()
-    private class Near(val tablet: Tablet, val device: Long) {
-        var tip = false
-        var pressure = 0.0
-        var x = 0.0
-        var y = 0.0
-        val buttons = LinkedHashSet<Int>()
-    }
-    private val near = HashMap<TabletTool, Near>()
-
-    // Each pad's groups' modes as last told, and its buttons held.
-    private val padModes = HashMap<TabletPad, IntArray>()
-    private val padHeld = HashMap<TabletPad, MutableSet<Int>>()
-
-    // The device group of each device (a tablet's pen and its pad are one group).
-    private val groups = HashMap<Long, Long>()
 
     init {
         check(udev != MemorySegment.NULL) { "udev_new failed" }
@@ -296,7 +279,7 @@ class InputDevices(internal val loop: EventLoop, internal val session: Session) 
             Input.LIBINPUT_EVENT_DEVICE_REMOVED() -> {
                 releaseHeld(device)
                 val gone = devices.remove(device.address())
-                groups.remove(device.address())
+                tabletInput.groups.remove(device.address())
                 gone?.let { log.info { "Device gone: ${it.name}" } }
                 published = devices.values.toList()
                 gone?.tablet?.let { t -> inputThread.toMain { onTabletRemoved(t) } }
@@ -305,10 +288,10 @@ class InputDevices(internal val loop: EventLoop, internal val session: Session) 
             }
 
             Input.LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY(), Input.LIBINPUT_EVENT_TABLET_TOOL_AXIS(),
-            Input.LIBINPUT_EVENT_TABLET_TOOL_TIP(), Input.LIBINPUT_EVENT_TABLET_TOOL_BUTTON() -> tabletTool(type, event, device)
+            Input.LIBINPUT_EVENT_TABLET_TOOL_TIP(), Input.LIBINPUT_EVENT_TABLET_TOOL_BUTTON() -> tabletInput.tabletTool(type, event, device)
 
             Input.LIBINPUT_EVENT_TABLET_PAD_BUTTON(), Input.LIBINPUT_EVENT_TABLET_PAD_RING(),
-            Input.LIBINPUT_EVENT_TABLET_PAD_STRIP() -> pad(type, event, device)
+            Input.LIBINPUT_EVENT_TABLET_PAD_STRIP() -> tabletInput.pad(type, event, device)
 
             Input.LIBINPUT_EVENT_SWITCH_TOGGLE() -> {
                 val switch = Input.libinput_event_get_switch_event(event)
@@ -397,204 +380,6 @@ class InputDevices(internal val loop: EventLoop, internal val session: Session) 
         }
     }
 
-    // --- drawing tablets ------------------------------------------------------------------------
-
-    private fun tabletTool(type: Int, event: MemorySegment, device: MemorySegment) {
-        val tablet = devices[device.address()]?.tablet ?: return
-        val e = Input.libinput_event_get_tablet_tool_event(event)
-        val time = Input.libinput_event_tablet_tool_get_time(e)
-        val tool = toolOf(Input.libinput_event_tablet_tool_get_tool(e), device)
-        val x = Input.libinput_event_tablet_tool_get_x_transformed(e, ABSOLUTE_RANGE) / ABSOLUTE_RANGE
-        val y = Input.libinput_event_tablet_tool_get_y_transformed(e, ABSOLUTE_RANGE) / ABSOLUTE_RANGE
-        when (type) {
-            Input.LIBINPUT_EVENT_TABLET_TOOL_PROXIMITY() -> {
-                if (Input.libinput_event_tablet_tool_get_proximity_state(e) == Input.LIBINPUT_TABLET_TOOL_PROXIMITY_STATE_IN()) {
-                    val n = Near(tablet, device.address())
-                    near[tool] = n
-                    val axes = axes(e, tool, all = true)
-                    n.pressure = axes.pressure ?: 0.0
-                    n.x = x
-                    n.y = y
-                    inputThread.toMain { onTabletProximity(time, tablet, tool, x, y, axes, true) }
-                } else {
-                    away(time, tool)
-                }
-            }
-            Input.LIBINPUT_EVENT_TABLET_TOOL_AXIS(), Input.LIBINPUT_EVENT_TABLET_TOOL_TIP() -> {
-                val n = near[tool] ?: return
-                val axes = axes(e, tool, all = false)
-                axes.pressure?.let { n.pressure = it }
-                if (x != n.x || y != n.y || axes != TabletAxes.NONE) {
-                    n.x = x
-                    n.y = y
-                    inputThread.toMain { onTabletMotion(time, tablet, tool, x, y, axes) }
-                }
-                // The tip: as libinput says, or as hard as the settings want.
-                val threshold = tablet.settings.tipPressure?.takeIf { TabletTool.Capability.PRESSURE in tool.capabilities }
-                val down = when {
-                    threshold != null -> n.pressure >= threshold
-                    type == Input.LIBINPUT_EVENT_TABLET_TOOL_TIP() -> Input.libinput_event_tablet_tool_get_tip_state(e) == Input.LIBINPUT_TABLET_TOOL_TIP_DOWN()
-                    else -> n.tip
-                }
-                if (down != n.tip) {
-                    n.tip = down
-                    inputThread.toMain { onTabletTip(time, tablet, tool, down) }
-                }
-            }
-            Input.LIBINPUT_EVENT_TABLET_TOOL_BUTTON() -> {
-                val n = near[tool] ?: return
-                val button = Input.libinput_event_tablet_tool_get_button(e)
-                val pressed = Input.libinput_event_tablet_tool_get_button_state(e) == Input.LIBINPUT_BUTTON_STATE_PRESSED()
-                if (if (pressed) n.buttons.add(button) else n.buttons.remove(button)) inputThread.toMain { onTabletButton(time, tablet, tool, button, pressed) }
-            }
-        }
-    }
-
-    // [tool] went away (or its tablet did): its tip lifted and its buttons let go first.
-    private fun away(time: Int, tool: TabletTool) {
-        val n = near.remove(tool) ?: return
-        val tablet = n.tablet
-        val x = n.x
-        val y = n.y
-        if (n.tip) inputThread.toMain { onTabletTip(time, tablet, tool, false) }
-        for (button in n.buttons.toList()) inputThread.toMain { onTabletButton(time, tablet, tool, button, false) }
-        inputThread.toMain { onTabletProximity(time, tablet, tool, x, y, TabletAxes.NONE, false) }
-    }
-
-    // The tool libinput means: the same object for the same physical tool. One with a serial is
-    // itself on every tablet; one without is a tool of its tablet.
-    private fun toolOf(handle: MemorySegment, device: MemorySegment): TabletTool {
-        val serial = Input.libinput_tablet_tool_get_serial(handle)
-        val id = Input.libinput_tablet_tool_get_tool_id(handle)
-        val type = Input.libinput_tablet_tool_get_type(handle)
-        val key = if (serial != 0L) "$type:$serial:$id" else "${device.address()}:$type:$id"
-        return tools.getOrPut(key) {
-            val capabilities = buildSet {
-                if (Input.libinput_tablet_tool_has_pressure(handle) != 0) add(TabletTool.Capability.PRESSURE)
-                if (Input.libinput_tablet_tool_has_distance(handle) != 0) add(TabletTool.Capability.DISTANCE)
-                if (Input.libinput_tablet_tool_has_tilt(handle) != 0) add(TabletTool.Capability.TILT)
-                if (Input.libinput_tablet_tool_has_rotation(handle) != 0) add(TabletTool.Capability.ROTATION)
-                if (Input.libinput_tablet_tool_has_slider(handle) != 0) add(TabletTool.Capability.SLIDER)
-                if (Input.libinput_tablet_tool_has_wheel(handle) != 0) add(TabletTool.Capability.WHEEL)
-            }
-            val kind = when (type) {
-                Input.LIBINPUT_TABLET_TOOL_TYPE_ERASER() -> TabletTool.Type.ERASER
-                Input.LIBINPUT_TABLET_TOOL_TYPE_BRUSH() -> TabletTool.Type.BRUSH
-                Input.LIBINPUT_TABLET_TOOL_TYPE_PENCIL() -> TabletTool.Type.PENCIL
-                Input.LIBINPUT_TABLET_TOOL_TYPE_AIRBRUSH() -> TabletTool.Type.AIRBRUSH
-                Input.LIBINPUT_TABLET_TOOL_TYPE_MOUSE() -> TabletTool.Type.MOUSE
-                Input.LIBINPUT_TABLET_TOOL_TYPE_LENS() -> TabletTool.Type.LENS
-                else -> TabletTool.Type.PEN
-            }
-            TabletTool(kind, capabilities, serial, id).also { log.info { "Tablet tool: ${it.type.name.lowercase()} (${capabilities.joinToString { c -> c.name.lowercase() }.ifEmpty { "no axes" }})" } }
-        }
-    }
-
-    // What the tool tells besides its place: everything ([all], when it comes near) or what changed.
-    private fun axes(e: MemorySegment, tool: TabletTool, all: Boolean): TabletAxes {
-        fun has(c: TabletTool.Capability) = c in tool.capabilities
-        fun changed(c: TabletTool.Capability, test: (MemorySegment) -> Int) = has(c) && (all || test(e) != 0)
-        val tilt = changed(TabletTool.Capability.TILT) { Input.libinput_event_tablet_tool_tilt_x_has_changed(it) or Input.libinput_event_tablet_tool_tilt_y_has_changed(it) }
-        val wheel = !all && has(TabletTool.Capability.WHEEL) && Input.libinput_event_tablet_tool_wheel_has_changed(e) != 0
-        return TabletAxes(
-            pressure = if (changed(TabletTool.Capability.PRESSURE, Input::libinput_event_tablet_tool_pressure_has_changed)) Input.libinput_event_tablet_tool_get_pressure(e) else null,
-            distance = if (changed(TabletTool.Capability.DISTANCE, Input::libinput_event_tablet_tool_distance_has_changed)) Input.libinput_event_tablet_tool_get_distance(e) else null,
-            // (Both together: programs get them in one event.)
-            tiltX = if (tilt) Input.libinput_event_tablet_tool_get_tilt_x(e) else null,
-            tiltY = if (tilt) Input.libinput_event_tablet_tool_get_tilt_y(e) else null,
-            rotation = if (changed(TabletTool.Capability.ROTATION, Input::libinput_event_tablet_tool_rotation_has_changed)) Input.libinput_event_tablet_tool_get_rotation(e) else null,
-            slider = if (changed(TabletTool.Capability.SLIDER, Input::libinput_event_tablet_tool_slider_has_changed)) Input.libinput_event_tablet_tool_get_slider_position(e) else null,
-            wheelDegrees = if (wheel) Input.libinput_event_tablet_tool_get_wheel_delta(e) else 0.0,
-            wheelClicks = if (wheel) Input.libinput_event_tablet_tool_get_wheel_delta_discrete(e) else 0,
-        )
-    }
-
-    private fun pad(type: Int, event: MemorySegment, device: MemorySegment) {
-        val pad = devices[device.address()]?.pad ?: return
-        val e = Input.libinput_event_get_tablet_pad_event(event)
-        val time = Input.libinput_event_tablet_pad_get_time(e)
-        // Every pad event says the mode its group is in (a mode button switched it).
-        val modes = padModes.getOrPut(pad) { IntArray(pad.groups.size) }
-        val group = Input.libinput_tablet_pad_mode_group_get_index(Input.libinput_event_tablet_pad_get_mode_group(e))
-        val mode = Input.libinput_event_tablet_pad_get_mode(e)
-        if (group in modes.indices && modes[group] != mode) {
-            modes[group] = mode
-            inputThread.toMain { onPadMode(time, pad, group, mode) }
-        }
-        when (type) {
-            Input.LIBINPUT_EVENT_TABLET_PAD_BUTTON() -> {
-                val button = Input.libinput_event_tablet_pad_get_button_number(e)
-                val pressed = Input.libinput_event_tablet_pad_get_button_state(e) == Input.LIBINPUT_BUTTON_STATE_PRESSED()
-                val buttons = padHeld.getOrPut(pad) { HashSet() }
-                if (if (pressed) buttons.add(button) else buttons.remove(button)) inputThread.toMain { onPadButton(time, pad, button, pressed) }
-            }
-            Input.LIBINPUT_EVENT_TABLET_PAD_RING() -> {
-                val position = Input.libinput_event_tablet_pad_get_ring_position(e)
-                val finger = Input.libinput_event_tablet_pad_get_ring_source(e) == Input.LIBINPUT_TABLET_PAD_RING_SOURCE_FINGER()
-                val ring = Input.libinput_event_tablet_pad_get_ring_number(e)
-                inputThread.toMain { onPadRing(time, pad, ring, position.takeIf { it >= 0 }, finger) }
-            }
-            Input.LIBINPUT_EVENT_TABLET_PAD_STRIP() -> {
-                val position = Input.libinput_event_tablet_pad_get_strip_position(e)
-                val finger = Input.libinput_event_tablet_pad_get_strip_source(e) == Input.LIBINPUT_TABLET_PAD_STRIP_SOURCE_FINGER()
-                val strip = Input.libinput_event_tablet_pad_get_strip_number(e)
-                inputThread.toMain { onPadStrip(time, pad, strip, position.takeIf { it >= 0 }, finger) }
-            }
-        }
-    }
-
-    // A tablet or a pad came: what it is (its size, ids, buttons and groups).
-    private fun tabletOf(device: MemorySegment, name: String): Tablet = Arena.ofConfined().use { temp ->
-        val width = temp.allocate(java.lang.foreign.ValueLayout.JAVA_DOUBLE)
-        val height = temp.allocate(java.lang.foreign.ValueLayout.JAVA_DOUBLE)
-        val sized = Input.libinput_device_get_size(device, width, height) == 0
-        Tablet(
-            name, Input.libinput_device_get_id_vendor(device), Input.libinput_device_get_id_product(device), pathOf(device),
-            if (sized) width.get(java.lang.foreign.ValueLayout.JAVA_DOUBLE, 0) else 0.0,
-            if (sized) height.get(java.lang.foreign.ValueLayout.JAVA_DOUBLE, 0) else 0.0,
-            screen = Input.libinput_device_config_calibration_has_matrix(device) != 0,
-        )
-    }
-
-    private fun padOf(device: MemorySegment, name: String): TabletPad {
-        val buttons = Input.libinput_device_tablet_pad_get_num_buttons(device).coerceAtLeast(0)
-        val rings = Input.libinput_device_tablet_pad_get_num_rings(device).coerceAtLeast(0)
-        val strips = Input.libinput_device_tablet_pad_get_num_strips(device).coerceAtLeast(0)
-        val groups = (0 until Input.libinput_device_tablet_pad_get_num_mode_groups(device).coerceAtLeast(0)).mapNotNull { i ->
-            val g = Input.libinput_device_tablet_pad_get_mode_group(device, i)
-            if (g == MemorySegment.NULL) return@mapNotNull null
-            TabletPad.Group(
-                (0 until buttons).filter { Input.libinput_tablet_pad_mode_group_has_button(g, it) != 0 },
-                (0 until rings).filter { Input.libinput_tablet_pad_mode_group_has_ring(g, it) != 0 },
-                (0 until strips).filter { Input.libinput_tablet_pad_mode_group_has_strip(g, it) != 0 },
-                Input.libinput_tablet_pad_mode_group_get_num_modes(g).coerceAtLeast(1),
-            )
-        }
-        return if (groups.isEmpty()) TabletPad(name, buttons, rings, strips, path = pathOf(device)) else TabletPad(name, buttons, rings, strips, groups, path = pathOf(device))
-    }
-
-    // The device's file ("/dev/input/event7"), or null.
-    private fun pathOf(device: MemorySegment): String? {
-        val udevDevice = Input.libinput_device_get_udev_device(device)
-        if (udevDevice == MemorySegment.NULL) return null
-        return try {
-            CStrings.borrowed(Input.udev_device_get_devnode(udevDevice))
-        } finally {
-            Input.udev_device_unref(udevDevice)
-        }
-    }
-
-    // A tablet's pen and its pad are one device group: each knows the other once both are there.
-    private fun pairPads() {
-        val tablets = devices.values.filter { it.tablet != null }
-        for (padDevice in devices.values) {
-            val pad = padDevice.pad ?: continue
-            if (pad.tablet != null) continue
-            val group = groups[padDevice.handle.address()] ?: continue
-            pad.tablet = tablets.firstOrNull { groups[it.handle.address()] == group }?.tablet
-        }
-    }
-
     // One scroll event of libinput: both directions together (a diagonal swipe stays one). A
     // finger or continuous scroll that says 0 on a direction it has means the fingers stopped
     // there (programs end their kinetic scrolling).
@@ -657,13 +442,13 @@ class InputDevices(internal val loop: EventLoop, internal val session: Session) 
             if (has(Input.LIBINPUT_DEVICE_CAP_SWITCH())) add(InputDevice.Kind.SWITCH)
         }
         val known = InputDevice(name, kinds, device)
-        if (InputDevice.Kind.TABLET in kinds) known.tablet = tabletOf(device, name)
-        if (InputDevice.Kind.TABLET_PAD in kinds) known.pad = padOf(device, name)
+        if (InputDevice.Kind.TABLET in kinds) known.tablet = tabletInput.tabletOf(device, name)
+        if (InputDevice.Kind.TABLET_PAD in kinds) known.pad = tabletInput.padOf(device, name)
         devices[device.address()] = known
-        groups[device.address()] = Input.libinput_device_get_device_group(device).address()
+        tabletInput.groups[device.address()] = Input.libinput_device_get_device_group(device).address()
         log.info { "Device: $name (${kinds.joinToString { it.name.lowercase() }})" }
         configure(known)
-        pairPads()
+        tabletInput.pairPads()
         published = devices.values.toList()
         known.tablet?.let { t -> inputThread.toMain { onTabletAdded(t) } }
         known.pad?.let { p -> inputThread.toMain { onPadAdded(p) } }
@@ -751,8 +536,8 @@ class InputDevices(internal val loop: EventLoop, internal val session: Session) 
             inputThread.toMain { onTouchCancel(time) }
         }
         // Tools near the tablet, and pad buttons held.
-        for ((tool, n) in near.toList()) if (n.device == device) away(time, tool)
-        devices[device]?.pad?.let { pad -> padHeld.remove(pad)?.forEach { button -> inputThread.toMain { onPadButton(time, pad, button, false) } } }
+        for ((tool, n) in tabletInput.near.toList()) if (n.device == device) tabletInput.away(time, tool)
+        devices[device]?.pad?.let { pad -> tabletInput.padHeld.remove(pad)?.forEach { button -> inputThread.toMain { onPadButton(time, pad, button, false) } } }
         val keys = held.remove(device) ?: return
         for (code in keys) {
             // Pointer buttons are 0x110 (BTN_LEFT) and above; keys are below.
@@ -761,7 +546,7 @@ class InputDevices(internal val loop: EventLoop, internal val session: Session) 
     }
 
     private fun releaseEverything() {
-        for (device in (held.keys + near.values.map { it.device } + touching.keys + devices.keys).toSet()) releaseHeld(device)
+        for (device in (held.keys + tabletInput.near.values.map { it.device } + touching.keys + devices.keys).toSet()) releaseHeld(device)
     }
 
     private fun now(): Int = (System.nanoTime() / 1_000_000).toInt()
