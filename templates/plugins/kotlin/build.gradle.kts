@@ -3,6 +3,9 @@ plugins {
     kotlin("jvm") version "2.4.21"
 }
 
+// (Kotlin cannot write JDK 27's bytecode yet: both at 26, which newer JDKs run.)
+java { targetCompatibility = JavaVersion.VERSION_26 }
+
 repositories {
     mavenCentral()
     maven("https://aristarkhkenebas.github.io/caulis/maven")
