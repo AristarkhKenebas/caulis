@@ -85,7 +85,7 @@ internal class DesktopCursorLook(private val desktop: Desktop) {
             current is DesktopPointerGrab.Grab.Move -> "grabbing"
             current is DesktopPointerGrab.Grab.Resize -> resizeCursor(current.edges)
             desktop.overlay != null && !desktop.locked -> desktop.overlay?.cursor ?: "default"
-            (desktop.pressedWidget != null || desktop.hoveredWidget != null) && !desktop.inOverview -> userCode("Your widget (cursor)", "default") { (desktop.pressedWidget?.widget ?: desktop.hoveredWidget)!!.cursor }
+            (desktop.widgetHost.pressedWidget != null || desktop.widgetHost.hoveredWidget != null) && !desktop.inOverview -> userCode("Your widget (cursor)", "default") { (desktop.widgetHost.pressedWidget?.widget ?: desktop.widgetHost.hoveredWidget)!!.cursor }
             desktop.inOverview -> "default"
             desktop.noticeBoard.hovering -> "default" // our notice, not the program below it
             decorationCursor != null -> decorationCursor

@@ -11,7 +11,7 @@ internal class DesktopHitTest(private val desktop: Desktop) {
     internal fun pointedAt(x: Double, y: Double, widgetsToo: Boolean): Desktop.Pointed? {
         fun Desktop.Hit?.at(): Desktop.Pointed? = this?.let(Desktop.Pointed::AtSurface)
         fun widget(level: DrawingLevel): Desktop.Pointed? =
-            if (widgetsToo && desktop.widgets.isNotEmpty()) desktop.widgetAt(x, y, level)?.let { (widget, area) -> Desktop.Pointed.AtWidget(widget, area, level) } else null
+            if (widgetsToo && desktop.widgetHost.widgets.isNotEmpty()) desktop.widgetHost.widgetAt(x, y, level)?.let { (widget, area) -> Desktop.Pointed.AtWidget(widget, area, level) } else null
         if (desktop.lockHidesDesktop) {
             // Only the lock is there: the widgets usable on it, the locker's surfaces (each on its monitor).
             for (level in listOf(DrawingLevel.ON_TOP, DrawingLevel.ABOVE_WINDOWS, DrawingLevel.BELOW_WINDOWS, DrawingLevel.WALLPAPER)) widget(level)?.let { return it }
@@ -34,7 +34,7 @@ internal class DesktopHitTest(private val desktop: Desktop) {
     private fun pointedAtUnlocked(x: Double, y: Double, widgetsToo: Boolean): Desktop.Pointed? {
         fun Desktop.Hit?.at(): Desktop.Pointed? = this?.let(Desktop.Pointed::AtSurface)
         fun widget(level: DrawingLevel): Desktop.Pointed? =
-            if (widgetsToo && desktop.widgets.isNotEmpty()) desktop.widgetAt(x, y, level)?.let { (widget, area) -> Desktop.Pointed.AtWidget(widget, area, level) } else null
+            if (widgetsToo && desktop.widgetHost.widgets.isNotEmpty()) desktop.widgetHost.widgetAt(x, y, level)?.let { (widget, area) -> Desktop.Pointed.AtWidget(widget, area, level) } else null
         widget(DrawingLevel.ON_TOP)?.let { return it }
         for ((surface, place) in desktop.unmanaged.entries.reversed()) {
             hitTree(surface, x - place.first, y - place.second, surface)?.let { return it.at() }

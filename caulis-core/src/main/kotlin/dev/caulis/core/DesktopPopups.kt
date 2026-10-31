@@ -81,6 +81,6 @@ internal class DesktopPopups(private val desktop: Desktop) {
             return
         }
         grabs += popup
-        desktop.keyboardTo(popup.surface)
+        desktop.widgetHost.keyboardTo(popup.surface)
     }
 }

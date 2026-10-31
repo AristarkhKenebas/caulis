@@ -61,6 +61,8 @@ class Desktop(
 
     internal val report = DesktopReport(this)
 
+    internal val widgetHost = DesktopWidgets(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -119,7 +121,7 @@ class Desktop(
     internal val monitorList = ArrayList<Monitor>()
 
     // What wallpaper shaders share (their clock, the pointer, their frames), wherever drawn.
-    private val wallpaperShaders = ShaderWallpapers(compositor.display.loop) {
+    internal val wallpaperShaders = ShaderWallpapers(compositor.display.loop) {
         // (Said in the render log's report of what keeps the screens drawn.)
         if (renderLog.level >= 2) busy.moving(WALLPAPER_SHADERS)
         version++
@@ -410,7 +412,7 @@ class Desktop(
     }
 
     // All monitors together: the box around them.
-    private fun desktopBounds(): Rect = monitorList.map { it.area }.reduce(Rect::union)
+    internal fun desktopBounds(): Rect = monitorList.map { it.area }.reduce(Rect::union)
 
     // The monitor a lock surface covers (its output's, else the first).
     internal fun lockMonitor(surface: LockSurface): Monitor =
@@ -587,7 +589,7 @@ class Desktop(
     private fun keyboardLost() {
         if (keyboardWidget != null) return
         if (sessionLocked) {
-            lockSurfaces().firstOrNull { it.surface.resource.isAlive }?.let { keyboardTo(it.surface) }
+            lockSurfaces().firstOrNull { it.surface.resource.isAlive }?.let { widgetHost.keyboardTo(it.surface) }
             return
         }
         ownLock?.let { own ->
@@ -599,7 +601,7 @@ class Desktop(
             ?: exclusiveLayer()?.surface?.takeIf { it.resource.isAlive }
             ?: layerFocus?.surface
         focusLog.info { "The keyboard's surface went away: it goes to ${next?.roleObject ?: windows.lastOrNull { it.surface.resource.isAlive } ?: "nobody"}" }
-        if (next != null) keyboardTo(next) else focus(windows.lastOrNull { it.surface.resource.isAlive })
+        if (next != null) widgetHost.keyboardTo(next) else focus(windows.lastOrNull { it.surface.resource.isAlive })
     }
 
     // Grows with every change; the list of things to draw is rebuilt only when it moved on.
@@ -633,80 +635,21 @@ class Desktop(
         return userCode("Your WindowDirector (manages)", false) { d.manages(window) }
     }
 
-    private val drawings = java.util.EnumMap<DrawingLevel, MutableList<Drawing>>(DrawingLevel::class.java)
-
     /**
      * Draws [drawing] at [level] from now on (with the others there, in the order added);
      * close the result to take it away. It takes no input: clicks go through to what is below.
      */
-    fun addDrawing(level: DrawingLevel, drawing: Drawing): AutoCloseable {
-        drawings.getOrPut(level) { ArrayList() } += drawing
-        changed()
-        return AutoCloseable {
-            drawings[level]?.remove(drawing)
-            changed()
-        }
-    }
-
-    // The drawings of [level], on every monitor.
-    private fun addDrawings(all: MutableList<DrawItem>, level: DrawingLevel, withWidgets: Boolean = true) {
-        val list = drawings[level].orEmpty()
-        if (list.isEmpty()) {
-            if (withWidgets) addWidgets(all, level)
-            return
-        }
-        val seconds = ((System.nanoTime() - paintStart) / 1e9).toFloat()
-        val scene = wallpaperScene()
-        for (monitor in monitorList) {
-            for (drawing in list.toList()) {
-                val canvas = OverlayCanvas(monitor, listOf("drawing", drawing, monitor.name), seconds, scene)
-                try {
-                    drawing.draw(monitor, canvas)
-                } catch (e: Throwable) {
-                    e.rethrowIfFatal()
-                    log.error("Your drawing $drawing failed (it is left out)", e)
-                    continue
-                }
-                if (canvas.movingPaint) paintsMoving = true
-                all += canvas.items
-            }
-        }
-        if (withWidgets) addWidgets(all, level)
-    }
-
-    // What wallpaper shaders drawn on canvases need now (the pointer, the clock, all monitors).
-    private fun wallpaperScene() = WallpaperScene(wallpaperShaders, renderer, pointerX, pointerY, System.nanoTime(), if (monitorList.isEmpty()) Rect(0, 0, 1, 1) else desktopBounds()) { name, code, problem -> shaderWorks(name, code, problem) }
-
-    internal val widgets = ArrayList<Widget>()
-    internal var hoveredWidget: Widget? = null
-    internal var pressedWidget: PressedWidget? = null
-    private var hoveredArea: Rect? = null
-
-    internal class PressedWidget(val widget: Widget, val area: Rect, val monitor: Monitor)
+    fun addDrawing(level: DrawingLevel, drawing: Drawing): AutoCloseable = widgetHost.addDrawing(level, drawing)
 
     /** The [Widget] that has the keyboard now (see [focusWidget]), or null: a program has it. */
     var keyboardWidget: Widget? = null
-        private set
+        internal set
 
     /**
      * Shows [widget] from now on (the last added is on top); close the result to take it
      * away (and to close the widget, if it can be). Its reserved room is kept free at once.
      */
-    fun addWidget(widget: Widget): AutoCloseable {
-        widgets += widget
-        updateWidgets()
-        return AutoCloseable {
-            if (!widgets.remove(widget)) return@AutoCloseable
-            if (hoveredWidget === widget) {
-                hoveredWidget = null
-                hoveredArea = null
-            }
-            if (pressedWidget?.widget === widget) pressedWidget = null
-            if (keyboardWidget === widget) focusWidget(null)
-            updateWidgets()
-            (widget as? AutoCloseable)?.let { userCode("Your widget (close)", Unit) { it.close() } }
-        }
-    }
+    fun addWidget(widget: Widget): AutoCloseable = widgetHost.addWidget(widget)
 
     /** The widgets changed their place or reserved room: windows and panels make way anew, and they are drawn again. */
     fun updateWidgets() {
@@ -720,122 +663,7 @@ class Desktop(
      * session is [locked] only the lock screen and the widgets that say [Widget.showsWhileLocked]
      * may have it; behind the compositor's own lock screen null gives it back to that screen.
      */
-    fun focusWidget(wanted: Widget?) {
-        // Behind our own lock screen the keyboard goes back to it, not to a program.
-        val widget = wanted ?: ownLock?.screen?.takeIf { !sessionLocked }
-        val old = keyboardWidget
-        if (old === widget) return
-        if (widget != null && !widgetUsable(widget)) return // the lock screen keeps it
-        keyboardWidget = widget
-        if (old != null) userCode("Your widget (keyboardFocus)", Unit) { old.keyboardFocus(false) }
-        if (widget != null) {
-            inputLog.info { "The keyboard goes to the widget $widget" }
-            seat.focusKeyboard(null)
-            userCode("Your widget (keyboardFocus)", Unit) { widget.keyboardFocus(true) }
-        } else if (!locked) {
-            seat.focusKeyboard(exclusiveLayer()?.surface ?: layerFocus?.surface ?: focusedWindow?.surface)
-        }
-        changed()
-    }
-
-    // [surface] gets the keyboard (or nobody does): a widget that had it loses it then. While
-    // the session is locked only the locker's surfaces may have it (nothing else takes it away).
-    internal fun keyboardTo(surface: Surface?) {
-        if (locked && (surface == null || !lockAllows(surface))) return
-        val old = keyboardWidget
-        if (old != null && surface != null) {
-            keyboardWidget = null
-            inputLog.info { "The widget $old loses the keyboard" }
-            userCode("Your widget (keyboardFocus)", Unit) { old.keyboardFocus(false) }
-            changed()
-        }
-        seat.focusKeyboard(surface)
-    }
-
-    // The pointer leaves our widgets (the overview opens, the screen locks): the hovered one is told.
-    internal fun leaveWidgets() {
-        val left = hoveredWidget ?: pressedWidget?.widget
-        hoveredWidget = null
-        hoveredArea = null
-        pressedWidget = null
-        if (left != null) {
-            userCode("Your widget (pointerLeft)", Unit) { left.pointerLeft() }
-            cursors.cursorChanged()
-        }
-    }
-
-    // The widget the pointer is over now (and where it is there): it gets the pointer, the
-    // program below loses it. With [moved] false the pointer stood still (the widget came to it).
-    private fun hoverWidget(timeMillis: Int, at: Pointed.AtWidget?, moved: Boolean): Boolean {
-        val old = hoveredWidget
-        if (old != null && old !== at?.widget) {
-            hoveredWidget = null
-            hoveredArea = null
-            userCode("Your widget (pointerLeft)", Unit) { old.pointerLeft() }
-            cursors.cursorChanged()
-        }
-        if (at == null) return false
-        val came = hoveredWidget !== at.widget
-        hoveredWidget = at.widget
-        hoveredArea = at.area
-        if (came) cursors.cursorChanged()
-        // (A drag going on hears it left the program: dropped here, nobody gets it.)
-        if (seat.pointerFocus != null || seat.drag != null) seat.pointerMotion(timeMillis, null, 0.0, 0.0)
-        if (moved || came) userCode("Your widget (pointerMoved)", Unit) { at.widget.pointerMoved(monitorAt(pointerX, pointerY), pointerX - at.area.x, pointerY - at.area.y) }
-        return true
-    }
-
-    // The widget under ([x], [y]) at [level], topmost first, and its area there.
-    internal fun widgetAt(x: Double, y: Double, level: DrawingLevel): Pair<Widget, Rect>? {
-        if (widgets.isEmpty()) return null
-        val monitor = monitorAt(x, y)
-        for (widget in widgets.asReversed()) {
-            if (locked && !widgetUsable(widget)) continue // (nothing behind the lock gets the pointer)
-            if (userCode("Your widget (level)", null) { widget.level } != level) continue
-            val area = userCode("Your widget (area)", null) { widget.area(monitor) } ?: continue
-            if (x >= area.x && y >= area.y && x < area.right && y < area.bottom) return widget to area
-        }
-        return null
-    }
-
-    // The widgets of [level], on every monitor.
-    private fun addWidgets(all: MutableList<DrawItem>, level: DrawingLevel, onLockScreen: Boolean = false) {
-        if (widgets.isEmpty()) return
-        val seconds = ((System.nanoTime() - paintStart) / 1e9).toFloat()
-        val scene = wallpaperScene()
-        for (monitor in monitorList) {
-            for (widget in widgets.toList()) {
-                if (onLockScreen && !widgetUsable(widget)) continue
-                if (userCode("Your widget (level)", null) { widget.level } != level) continue
-                val area = userCode("Your widget (area)", null) { widget.area(monitor) } ?: continue
-                val canvas = OverlayCanvas(monitor, listOf("widget", widget, monitor.name), seconds, scene)
-                try {
-                    widget.draw(monitor, canvas, area)
-                } catch (e: Throwable) {
-                    e.rethrowIfFatal()
-                    log.error("Your widget $widget failed to draw (left out)", e)
-                    continue
-                }
-                if (canvas.movingPaint) paintsMoving = true
-                all += canvas.items
-            }
-        }
-    }
-
-    // The director's pictures with [window], below it or above it.
-    private fun addDecorations(all: MutableList<DrawItem>, window: Window, place: WindowPlace, above: Boolean) {
-        val d = director ?: return
-        val canvas = OverlayCanvas(null, listOf("decorations", window, above), ((System.nanoTime() - paintStart) / 1e9).toFloat())
-        try {
-            d.decorate(window, place, canvas, above)
-        } catch (e: Throwable) {
-            e.rethrowIfFatal()
-            log.error("Your WindowDirector failed to decorate $window (left out)", e)
-            return
-        }
-        if (canvas.movingPaint) paintsMoving = true
-        all += canvas.items
-    }
+    fun focusWidget(wanted: Widget?) = widgetHost.focusWidget(wanted)
 
     // Where the director showed each of its windows in the frame last built (what is on screen
     // now: drawn there, and found there by the pointer).
@@ -1440,7 +1268,7 @@ class Desktop(
         if (layerFocus === layer) {
             // It had the keyboard: back to the window (or the next launcher that wants it).
             layerFocus = null
-            keyboardTo(focusedWindow?.surface)
+            widgetHost.keyboardTo(focusedWindow?.surface)
         }
         arrangeLayers(monitor)
         updateLayerKeyboard()
@@ -1460,7 +1288,7 @@ class Desktop(
         // Widgets keeping room at an edge (a bar of our own), nearest it in the order added:
         // panels and windows make way.
         var free = full
-        for (widget in widgets) {
+        for (widget in widgetHost.widgets) {
             val reserve = userCode("Your widget (reserve)", null) { widget.reserve(monitor) } ?: continue
             if (reserve.size <= 0) continue
             free = when (reserve.edge) {
@@ -1529,7 +1357,7 @@ class Desktop(
     }
 
     // A launcher that wants the keyboard (top or overlay layer) gets it and keeps it while open.
-    private fun exclusiveLayer(): LayerSurface? = layerSurfaces.lastOrNull {
+    internal fun exclusiveLayer(): LayerSurface? = layerSurfaces.lastOrNull {
         it.mapped && it.current.keyboard == KEYBOARD_EXCLUSIVE && it.current.layer >= LayerShell.Layer.TOP
     }
 
@@ -1538,12 +1366,12 @@ class Desktop(
         when {
             exclusive != null -> if (layerFocus !== exclusive) {
                 layerFocus = exclusive
-                keyboardTo(exclusive.surface)
+                widgetHost.keyboardTo(exclusive.surface)
             }
             layerFocus?.let { !it.mapped || it.current.keyboard == KEYBOARD_NONE } == true -> {
                 // The panel that had the keyboard is gone or does not want it: back to the window.
                 layerFocus = null
-                keyboardTo(focusedWindow?.surface)
+                widgetHost.keyboardTo(focusedWindow?.surface)
             }
         }
     }
@@ -1561,7 +1389,7 @@ class Desktop(
     val locked: Boolean get() = sessionLocked || ownLock != null
 
     // Locked by a locker program (ext-session-lock).
-    private var sessionLocked = false
+    internal var sessionLocked = false
 
     /**
      * The colour under everything: where no background, wallpaper or window is drawn (a
@@ -1632,9 +1460,9 @@ class Desktop(
     }
 
     // The compositor's own lock screen ([lockInternally]).
-    private class OwnLock(val screen: Widget, val hidesDesktop: Boolean, val surfaces: (Surface) -> Boolean, val addedForTheLock: Boolean)
+    internal class OwnLock(val screen: Widget, val hidesDesktop: Boolean, val surfaces: (Surface) -> Boolean, val addedForTheLock: Boolean)
 
-    private var ownLock: OwnLock? = null
+    internal var ownLock: OwnLock? = null
 
     /** True while the compositor's own lock screen is up ([lockInternally]; a locker program may have locked on top of it). */
     val lockedInternally: Boolean get() = ownLock != null
@@ -1694,10 +1522,10 @@ class Desktop(
     fun lockInternally(screen: Widget, hideDesktop: Boolean = false, allowSurface: (Surface) -> Boolean = { false }) {
         val wasLocked = locked
         val old = ownLock
-        if (old != null && old.addedForTheLock && old.screen !== screen) widgets.remove(old.screen)
+        if (old != null && old.addedForTheLock && old.screen !== screen) widgetHost.widgets.remove(old.screen)
         // Shown for the time of the lock only if it was not one of the widgets already.
-        val added = (old != null && old.addedForTheLock && old.screen === screen) || screen !in widgets
-        if (screen !in widgets) widgets += screen
+        val added = (old != null && old.addedForTheLock && old.screen === screen) || screen !in widgetHost.widgets
+        if (screen !in widgetHost.widgets) widgetHost.widgets += screen
         if (!wasLocked) rememberFocusForUnlock()
         ownLock = OwnLock(screen, hideDesktop, allowSurface, added)
         lockLog.info { "Locked by the compositor's own lock screen ($screen)${if (hideDesktop) ", nothing of the desktop shown" else ""}${if (sessionLocked) " (behind a locker program)" else ""}" }
@@ -1720,12 +1548,12 @@ class Desktop(
     fun unlockInternally() {
         val own = ownLock ?: return
         ownLock = null
-        if (own.addedForTheLock) widgets.remove(own.screen)
+        if (own.addedForTheLock) widgetHost.widgets.remove(own.screen)
         if (keyboardWidget === own.screen) {
             keyboardWidget = null
             userCode("Your widget (keyboardFocus)", Unit) { own.screen.keyboardFocus(false) }
         }
-        if (hoveredWidget === own.screen || pressedWidget?.widget === own.screen) leaveWidgets()
+        if (widgetHost.hoveredWidget === own.screen || widgetHost.pressedWidget?.widget === own.screen) widgetHost.leaveWidgets()
         if (sessionLocked) {
             lockLog.info("The compositor's own lock screen is gone; the locker program still locks the session")
             seat.lockAllows = ::lockAllows
@@ -1755,7 +1583,7 @@ class Desktop(
         }
         overview.overviewTarget = null
         closeOverlay()
-        leaveWidgets()
+        widgetHost.leaveWidgets()
         keyboardWidget?.takeIf { !widgetUsable(it) }?.let { old ->
             keyboardWidget = null
             userCode("Your widget (keyboardFocus)", Unit) { old.keyboardFocus(false) }
@@ -1806,7 +1634,7 @@ class Desktop(
         val window = windowForUnlock()
         focusBeforeLock = null
         mappedBeforeLock = Long.MAX_VALUE
-        if (layer != null) keyboardTo(layer.surface)
+        if (layer != null) widgetHost.keyboardTo(layer.surface)
         else {
             lockLog.info { "Unlocked: the focus goes to ${window ?: "nothing"}" }
             focus(window)
@@ -1855,7 +1683,7 @@ class Desktop(
 
     override fun lockSurfaceCommitted(surface: LockSurface) {
         if (surface.lock !== lock) return // an earlier locker's leftovers
-        if (surface.mapped && seat.keyboardFocus == null && keyboardWidget == null) keyboardTo(surface.surface)
+        if (surface.mapped && seat.keyboardFocus == null && keyboardWidget == null) widgetHost.keyboardTo(surface.surface)
         changed()
         // The pointer may be over it now.
         val hit = hits.surfaceAt(pointerX, pointerY)
@@ -2590,7 +2418,7 @@ class Desktop(
     fun focusUnmanaged(surface: Surface?) {
         if (surface != null && surface !in unmanaged) return
         focusLog.trace { "Keyboard to ${surface?.roleObject ?: "the focused window"} (places itself)" }
-        keyboardTo(surface ?: exclusiveLayer()?.surface ?: focusedWindow?.surface)
+        widgetHost.keyboardTo(surface ?: exclusiveLayer()?.surface ?: focusedWindow?.surface)
     }
 
     // --- title bars (server-side decorations) ---------------------------------------------
@@ -2777,7 +2605,7 @@ class Desktop(
             noticeButton = null
             return true
         }
-        if (pressedWidget != null) return false // (a drag in a widget goes on)
+        if (widgetHost.pressedWidget != null) return false // (a drag in a widget goes on)
         noticeBoard.actionAt(pointerX, pointerY)?.let { (notice, action) ->
             noticeButton = button
             when (action) {
@@ -2944,9 +2772,9 @@ class Desktop(
 
     // Set while building the scene: a border or shadow changes by itself (a turning gradient,
     // a shader using time) or after a focus change — frames go on.
-    private var paintsMoving = false
+    internal var paintsMoving = false
     private var focusChanging = false
-    private val paintStart = System.nanoTime()
+    internal val paintStart = System.nanoTime()
 
     /**
      * How many times a second borders and shadows that move by themselves (a turning gradient,
@@ -4052,7 +3880,7 @@ class Desktop(
     internal fun restoreKeyboard() {
         if (keyboardWidget != null) return
         if (locked) return keyboardLost()
-        keyboardTo(popupHost.grabs.lastOrNull()?.surface ?: exclusiveLayer()?.surface ?: layerFocus?.surface ?: focusedWindow?.surface)
+        widgetHost.keyboardTo(popupHost.grabs.lastOrNull()?.surface ?: exclusiveLayer()?.surface ?: layerFocus?.surface ?: focusedWindow?.surface)
     }
 
     /**
@@ -4097,7 +3925,7 @@ class Desktop(
             padFocus = window
             if (exclusiveLayer() == null) {
                 layerFocus = null
-                keyboardTo(window.surface)
+                widgetHost.keyboardTo(window.surface)
             }
             if (window !== lastFocused) {
                 lastFocused = window
@@ -4155,7 +3983,7 @@ class Desktop(
         }
         if (exclusiveLayer() == null) {
             layerFocus = null
-            keyboardTo(window?.surface)
+            widgetHost.keyboardTo(window?.surface)
         }
         if (window !== lastFocused) {
             lastFocused = window
@@ -4380,7 +4208,7 @@ class Desktop(
 
     // The pen took over from the pointer: what the pointer was over hears that it left.
     internal fun pointerAway(timeMillis: Int) {
-        hoverWidget(timeMillis, null, moved = false)
+        widgetHost.hoverWidget(timeMillis, null, moved = false)
         if (ownTitleBars.hover != null) {
             ownTitleBars.hover = null
             changed()
@@ -4403,7 +4231,7 @@ class Desktop(
     internal fun penPressedOutside(x: Double, y: Double): Boolean {
         if (keyboardWidget != null) focusWidget(null)
         var taken = false
-        for (other in widgets.toList().asReversed()) {
+        for (other in widgetHost.widgets.toList().asReversed()) {
             if (userCode("Your widget (pressedOutside)", false) { other.pressedOutside(BTN_LEFT, x, y, false) }) taken = true
         }
         return taken
@@ -4463,13 +4291,13 @@ class Desktop(
             pressedIn = null
         }
         // A button pressed in a widget: it keeps the pointer until let go.
-        pressedWidget?.let { pressed ->
+        widgetHost.pressedWidget?.let { pressed ->
             if (buttonsHeld > 0) {
                 userCode("Your widget (pointerMoved)", Unit) { pressed.widget.pointerMoved(pressed.monitor, pointerX - pressed.area.x, pointerY - pressed.area.y) }
                 onChange()
                 return
             }
-            pressedWidget = null
+            widgetHost.pressedWidget = null
         }
         // Over one of our widgets: it has the pointer (the program below loses it). Title bars
         // are above the widgets below the windows.
@@ -4477,7 +4305,7 @@ class Desktop(
         val overWidget = under as? Pointed.AtWidget
         // (Behind a lock no title bar lights up and no edge shows a resize cursor.)
         val decoration = if (locked || (overWidget != null && overWidget.level != DrawingLevel.BELOW_WINDOWS)) null else ownTitleBars.at(pointerX, pointerY)
-        if (hoverWidget(timeMillis, overWidget.takeIf { decoration == null }, moved = true)) {
+        if (widgetHost.hoverWidget(timeMillis, overWidget.takeIf { decoration == null }, moved = true)) {
             onChange()
             return
         }
@@ -4533,7 +4361,7 @@ class Desktop(
         val under = hits.pointedAt(pointerX, pointerY, widgetsToo = true)
         val overWidget = under as? Pointed.AtWidget
         val onBar = (overWidget == null || overWidget.level == DrawingLevel.BELOW_WINDOWS) && ownTitleBars.at(pointerX, pointerY) != null
-        if (hoverWidget(time, overWidget.takeIf { !onBar }, moved = false) || onBar) return
+        if (widgetHost.hoverWidget(time, overWidget.takeIf { !onBar }, moved = false) || onBar) return
         val hit = (under as? Pointed.AtSurface)?.hit
         if (hit?.surface === seat.pointerFocus) return
         inputLog.trace { "The pointer is over ${hit?.root?.roleObject ?: "nothing"} now (the windows moved)" }
@@ -4615,11 +4443,11 @@ class Desktop(
         }
         // A widget's (the one pressed in keeps it until the last button is let go).
         // (While locked only the lock screen's widgets can be hovered or pressed.)
-        val widgetTarget = if (inOverview) null else pressedWidget?.widget ?: hoveredWidget
+        val widgetTarget = if (inOverview) null else widgetHost.pressedWidget?.widget ?: widgetHost.hoveredWidget
         // A press anywhere else: the widgets it is not on hear of it (an open menu closes).
-        if (pressed && buttonsHeld == 1 && !inOverview && widgets.isNotEmpty()) {
+        if (pressed && buttonsHeld == 1 && !inOverview && widgetHost.widgets.isNotEmpty()) {
             var taken = false
-            for (other in widgets.toList().asReversed()) {
+            for (other in widgetHost.widgets.toList().asReversed()) {
                 if (other === widgetTarget || !widgetUsable(other)) continue
                 if (userCode("Your widget (pressedOutside)", false) { other.pressedOutside(button, pointerX, pointerY, widgetTarget != null) }) taken = true
             }
@@ -4631,12 +4459,12 @@ class Desktop(
         }
         if (widgetTarget != null) {
             if (pressed && buttonsHeld == 1) {
-                hoveredArea?.takeIf { widgetTarget === hoveredWidget }?.let { area -> pressedWidget = PressedWidget(widgetTarget, area, monitorAt(pointerX, pointerY)) }
+                widgetHost.hoveredArea?.takeIf { widgetTarget === widgetHost.hoveredWidget }?.let { area -> widgetHost.pressedWidget = DesktopWidgets.PressedWidget(widgetTarget, area, monitorAt(pointerX, pointerY)) }
             }
             if (pressed && userCode("Your widget (takesKeyboard)", false) { widgetTarget.takesKeyboard }) focusWidget(widgetTarget)
             userCode("Your widget (pointerButton)", Unit) { widgetTarget.pointerButton(button, pressed) }
-            if (!pressed && buttonsHeld == 0 && pressedWidget != null) {
-                pressedWidget = null
+            if (!pressed && buttonsHeld == 0 && widgetHost.pressedWidget != null) {
+                widgetHost.pressedWidget = null
                 movePointer(timeMillis, pointerX, pointerY)
             }
             return
@@ -4649,7 +4477,7 @@ class Desktop(
             // one the keyboard — taking it from our own lock screen's widget too.
             if (pressed) hits.surfaceAt(pointerX, pointerY)?.takeIf { lockAllows(it.root) }?.let { hit ->
                 val window = hit.root.roleObject as? Window
-                if (window != null) focus(window) else if (seat.keyboardFocus !== hit.root) keyboardTo(hit.root)
+                if (window != null) focus(window) else if (seat.keyboardFocus !== hit.root) widgetHost.keyboardTo(hit.root)
             }
             seat.pointerButton(timeMillis, button, pressed)
             return
@@ -4686,7 +4514,7 @@ class Desktop(
             (hit?.root?.roleObject as? LayerSurface)?.let { layer ->
                 if (layer.current.keyboard != KEYBOARD_NONE && exclusiveLayer() == null) {
                     layerFocus = layer
-                    keyboardTo(layer.surface)
+                    widgetHost.keyboardTo(layer.surface)
                 }
             }
             val window = hit?.root?.roleObject as? Window
@@ -4746,7 +4574,7 @@ class Desktop(
             }
             return
         }
-        hoveredWidget?.takeIf { !inOverview }?.let { widget ->
+        widgetHost.hoveredWidget?.takeIf { !inOverview }?.let { widget ->
             if (scroll.horizontal != 0.0 || scroll.vertical != 0.0) userCode("Your widget (scroll)", Unit) { widget.scroll(scroll.horizontal, scroll.vertical) }
             return
         }
@@ -4830,8 +4658,8 @@ class Desktop(
         val directorAnimating = director?.let { d -> userCode("Your WindowDirector (animating)", false) { d.animating(now) } } == true
         var directorMoving = directorAnimating
         var movingThing: Any? = null
-        for (list in drawings.values) for (d in list) if (userCode("Your drawing (animating)", false) { d.animating(now) }) { directorMoving = true; movingThing = d }
-        for (w in widgets.toList()) if (userCode("Your widget (animating)", false) { w.animating(now) }) { directorMoving = true; movingThing = w }
+        for (list in widgetHost.drawings.values) for (d in list) if (userCode("Your drawing (animating)", false) { d.animating(now) }) { directorMoving = true; movingThing = d }
+        for (w in widgetHost.widgets.toList()) if (userCode("Your widget (animating)", false) { w.animating(now) }) { directorMoving = true; movingThing = w }
         val paintsNow = paintsMoving && paintsDue(now)
         if (glides.isNotEmpty() || shownPads.any { it.changedAt != null } || overview.cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsNow || focusChanging || directorMoving) {
             // Windows are gliding (or the overview zooms): the scene changes every frame until done.
@@ -5226,7 +5054,7 @@ class Desktop(
             }
             lockBackdrop?.takeIf { !sessionLocked }?.let { addLockBackdrop(all, it) }
             for (lockSurface in lockSurfaces()) lockMonitor(lockSurface).area.let { addTree(all, lockSurface.surface, it.x, it.y) }
-            for (level in DrawingLevel.entries) addWidgets(all, level, onLockScreen = true)
+            for (level in DrawingLevel.entries) widgetHost.addWidgets(all, level, onLockScreen = true)
             sceneVisible.clear()
             for (item in all) if (item is DrawItem.Picture) sceneVisible += item.surface
             scene = all
@@ -5241,10 +5069,10 @@ class Desktop(
         val allMonitors = desktopBounds()
         wallpaperShaders.sample(pointerX, pointerY, now)
         for (monitor in monitorList) all += backdrops.items(monitor, monitor.workspace.number, pointerX, pointerY, now, allMonitors, largestScale)
-        addDrawings(all, DrawingLevel.WALLPAPER)
+        widgetHost.addDrawings(all, DrawingLevel.WALLPAPER)
         addLayers(all, LayerShell.Layer.BACKGROUND)
         addLayers(all, LayerShell.Layer.BOTTOM)
-        addDrawings(all, DrawingLevel.BELOW_WINDOWS)
+        widgetHost.addDrawings(all, DrawingLevel.BELOW_WINDOWS)
         // A monitor changing its workspace: how the old and the new one are drawn now. The new
         // one's windows (and the old one's) show only on that monitor while they move.
         class Change(val monitor: Monitor, val frame: WorkspaceFrame)
@@ -5292,7 +5120,7 @@ class Desktop(
         for ((window, place) in placed) addDirected(all, window, place)
         // Windows going away: their last look, as the close animation says.
         addFlights(all, now, FlightKind.CLOSE)
-        addDrawings(all, DrawingLevel.ABOVE_WINDOWS)
+        widgetHost.addDrawings(all, DrawingLevel.ABOVE_WINDOWS)
         addLayers(all, LayerShell.Layer.TOP)
         // Windows on their way into the dock and out of it (above it, so they are seen going into their icon).
         addFlights(all, now, FlightKind.MINIMIZE)
@@ -5325,7 +5153,7 @@ class Desktop(
             addTree(all, popup.surface, x, y)
         }
         if (camera === DesktopOverview.Camera.NONE) for ((surface, place) in unmanaged) if (drawnBehindLock(surface)) addTree(all, surface, place.first, place.second)
-        addDrawings(all, DrawingLevel.ON_TOP)
+        widgetHost.addDrawings(all, DrawingLevel.ON_TOP)
         // Our own notices above everything (not on a locked screen: what they say is private).
         if (!locked) for (monitor in monitorList) all += noticeBoard.items(monitor, monitorList, noticeFallback(monitor))
         if (!locked) overlay?.takeIf { it !== brokenOverlay }?.let { open ->
@@ -5399,7 +5227,7 @@ class Desktop(
             wallpaperShaders.sample(pointerX, pointerY, now)
             val allMonitors = desktopBounds()
             for (monitor in monitorList) all += backdrops.items(monitor, monitor.workspace.number, pointerX, pointerY, now, allMonitors, largestScale)
-            addDrawings(all, DrawingLevel.WALLPAPER, withWidgets = false)
+            widgetHost.addDrawings(all, DrawingLevel.WALLPAPER, withWidgets = false)
         }
         for (monitor in monitorList) {
             backdrop.blur?.let { b -> all += DrawItem.Blur(EffectKey("blur lock", monitor), monitor.area, 0f, b.size, b.passes, b.tone) }
@@ -5537,10 +5365,10 @@ class Desktop(
             else -> look.clip.intersect(place.clip) ?: return
         }
         val clipped = Look(clip, look.radius, look.alpha, look.dim)
-        addDecorations(all, window, place, above = false)
+        widgetHost.addDecorations(all, window, place, above = false)
         addTree(all, window.surface, rect.x - (visible.x * scaleX).roundToInt(), rect.y - (visible.y * scaleY).roundToInt(), scaleX, scaleY, clipped)
         if (look.dim > 0f) all += DrawItem.Tint(EffectKey("dim", window), rect, look.radius, 0f, 0f, 0f, look.dim * place.alpha)
-        addDecorations(all, window, place, above = true)
+        widgetHost.addDecorations(all, window, place, above = true)
     }
 
     internal fun addTree(

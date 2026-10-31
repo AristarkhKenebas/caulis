@@ -42,7 +42,7 @@ internal class DesktopOverview(private val desktop: Desktop) {
         // Programs do not see the pointer while the overview is open.
         if (on) {
             desktop.seat.pointerMotion((now / 1_000_000).toInt(), null, 0.0, 0.0)
-            desktop.leaveWidgets()
+            desktop.widgetHost.leaveWidgets()
         }
         desktop.changed()
     }
