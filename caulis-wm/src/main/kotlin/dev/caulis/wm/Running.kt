@@ -97,7 +97,7 @@ internal class Running(
     // Monitors switched off because the configuration says enabled = false.
     private val disabledByConfig = config.monitorSettings.values.filter { !it.enabled }.mapTo(HashSet()) { it.name }
 
-    private val log = Logger("config")
+    internal val log = Logger("config")
     private val keyboardLog = Logger("keyboard")
     private val clientsLog = Logger("clients")
 
@@ -145,6 +145,7 @@ internal class Running(
     val seat = Seat(display, Keymap.fromNames(layouts = config.keyboardLayouts, variants = config.keyboardVariants, options = config.keyboardOptions, model = config.keyboardModel))
     private val compositor = Compositor(display, renderer)
     val desktop = Desktop(renderer, seat, compositor, width, height)
+    internal val renv = RunningEnvironment(this)
     internal val rrules = RunningRules(this)
     internal val rlooks = RunningAppearance(this)
     internal val rtablets = RunningTablets(this)
@@ -262,10 +263,10 @@ internal class Running(
     private val configListeners = ArrayList<AutoCloseable>()
 
     // Where a cursor theme that came with a library is put for programs that draw their own cursor.
-    private var cursorFolder: java.nio.file.Path? = null
+    internal var cursorFolder: java.nio.file.Path? = null
 
     // X11 programs (null if turned off). Declared before init, which sets it.
-    private var xwayland: Xwayland? = null
+    internal var xwayland: Xwayland? = null
 
     /** The X11 display programs reach Xwayland at (DISPLAY), or null. */
     val x11Display: String? get() = xwayland?.displayName
@@ -273,95 +274,10 @@ internal class Running(
     // The IPC socket (null if turned off). Declared before init, which sets it.
     internal var ipc: IpcServer? = null
 
-    // What every program started inside gets in its environment (on top of the compositor's
-    // own) — Caulis's choices only: the user's [Caulis.environment] goes on top last (see
-    // userEnvironment). [token]: a fresh activation token too (for a program started now).
-    private fun fillEnvironment(env: MutableMap<String, String>, token: Boolean = true) {
-        env["WAYLAND_DISPLAY"] = socket
-        // A good activation token: its first window may take the focus.
-        if (token) env["XDG_ACTIVATION_TOKEN"] = activation.issue() else env.remove("XDG_ACTIVATION_TOKEN")
-        ipc?.let { env[dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE] = it.path.toString() } ?: env.remove(dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE)
-        env["XDG_CURRENT_DESKTOP"] = config.desktopName
-        // (Started from a text console the compositor itself was "tty": its programs are Wayland's.)
-        env["XDG_SESSION_TYPE"] = "wayland"
-        env["XDG_SESSION_DESKTOP"] = config.desktopName
-        // X11 programs (started now or later by these) reach Xwayland here.
-        xwayland?.let { env["DISPLAY"] = it.displayName } ?: env.remove("DISPLAY")
-        // Programs that draw their own cursor use the same theme and size.
-        val theme = desktop.cursorTheme
-        env["XCURSOR_THEME"] = theme.name
-        // On a scaled screen X11 programs need the cursor size in pixels and Wayland ones in
-        // units: no XCURSOR_SIZE then (it would win over both); X11 programs get it from the
-        // X resources, Wayland ones from the compositor (cursor-shape) or their own default.
-        if (desktop.scale == 1.0) env["XCURSOR_SIZE"] = theme.size.toString() else env.remove("XCURSOR_SIZE")
-        cursorFolder?.let { folder -> env["XCURSOR_PATH"] = (listOf(folder) + CursorTheme.searchPath()).joinToString(":") }
-    }
-
-    // The user's own environment ([Caulis.environment]) on top of everything else — except what
-    // must be the compositor's for programs to reach it at all.
-    private fun userEnvironment(env: MutableMap<String, String>) {
-        for ((name, value) in config.environment) {
-            if (name in OWN_VARIABLES) continue
-            if (value == null) env.remove(name) else env[name] = value
-        }
-    }
-    // systemd's user manager and D-Bus activation get the compositor's environment (the services
-    // they start then reach it); both quietly do nothing where they are not.
-    private fun exportEnvironment() {
-        // (No activation token: it would be handed to services that never use it.)
-        val env = HashMap(System.getenv()).also { fillEnvironment(it, token = false) }.also(::userEnvironment)
-        val ours = listOf("WAYLAND_DISPLAY", "DISPLAY", "XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE", "XDG_SESSION_DESKTOP")
-        val names = (ours + config.environment.filterValues { it != null }.keys.filter { it !in OWN_VARIABLES }).distinct().filter { env[it] != null }
-        val pairs = names.map { "$it=${env[it]}" }
-        val portals = config.portalsToRestart.toList()
-        // (On a thread of its own: the commands are waited for, one after the other.)
-        Thread({
-            fun run(command: List<String>): Boolean = try {
-                val process = dev.caulis.ffi.Processes.start(
-                    ProcessBuilder(command).also { it.environment().putAll(env) }
-                        .redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD),
-                )
-                process.waitFor(10, java.util.concurrent.TimeUnit.SECONDS).also { if (!it) process.destroyForcibly() } && process.exitValue() == 0
-            } catch (e: java.io.IOException) {
-                if (dev.caulis.ffi.Processes.isNotFound(e)) log.trace { "${command.first()} is not there" }
-                else dev.caulis.ffi.Processes.tellStartFailed(log, command.first(), e)
-                false
-            }
-            run(listOf("systemctl", "--user", "import-environment") + names)
-            run(listOf("dbus-update-activation-environment", "--systemd") + pairs)
-            log.info { "The session's services know this compositor: ${pairs.joinToString()}" }
-            // Portals started before (by the login, by a session before) still have the old
-            // environment: a link they open went to no screen (Telegram's links did nothing).
-            // Started again, only those running.
-            if (portals.isNotEmpty() && staleServices(env["WAYLAND_DISPLAY"])) {
-                // (One by one: a portal not installed failed the whole command, and none restarted.)
-                val restarted = portals.filter { run(listOf("systemctl", "--user", "try-restart", it)) }
-                log.info { "The portals were started again with this compositor's environment (${restarted.joinToString()})" }
-            }
-        }, "caulis-environment").apply { isDaemon = true }.start()
-    }
-
-    // True if xdg-desktop-portal runs with another WAYLAND_DISPLAY than [ours] (or none).
-    private fun staleServices(ours: String?): Boolean = try {
-        java.nio.file.Files.list(java.nio.file.Path.of("/proc")).use { procs ->
-            procs.filter { it.fileName.toString().all(Char::isDigit) }.anyMatch { proc ->
-                val name = runCatching { java.nio.file.Files.readString(proc.resolve("comm")).trim() }.getOrNull()
-                if (name?.startsWith("xdg-desktop-po") != true) return@anyMatch false // (comm is cut to 15 characters)
-                val environ = runCatching { String(java.nio.file.Files.readAllBytes(proc.resolve("environ"))) }.getOrNull() ?: return@anyMatch false
-                environ.split('\u0000').none { it == "WAYLAND_DISPLAY=$ours" }
-            }
-        }
-    } catch (_: Exception) {
-        false
-    }
-
-    /** The environment programs started inside get (WAYLAND_DISPLAY, DISPLAY, the cursor, the user's own, ...). */
-    fun programEnvironment(): Map<String, String> = HashMap(System.getenv()).also { fillEnvironment(it) }.also(::userEnvironment)
-
     // Starts programs: Wayland first, X11 when that fails.
     private val launcher = Launcher(
-        environment = { env -> fillEnvironment(env) },
-        userEnvironment = ::userEnvironment,
+        environment = { env -> renv.fillEnvironment(env) },
+        userEnvironment = renv::userEnvironment,
         x11Available = { xwayland != null },
         post = loop::post,
         settings = {
@@ -1542,7 +1458,7 @@ internal class Running(
             for (problem in config.startWarnings) desktop.notify("${problem.message} ${problem.fix}", NoticeLevel.WARNING)
             for (problem in config.configProblems) configNotices += desktop.notify(problem, NoticeLevel.WARNING)
             if (config.useConfigFile) followConfigFile()
-            if (config.exportEnvironment ?: (switchConsole != null)) safely("handing the environment to the session") { exportEnvironment() }
+            if (config.exportEnvironment ?: (switchConsole != null)) safely("handing the environment to the session") { renv.exportEnvironment() }
             // The start: dark until warm, the sound, the programs of autostart (see SessionStart).
             sessionStart.begin()
             // What onStart starts is the session's: it stays through reloads (see Caulis.onStart).
@@ -1626,25 +1542,6 @@ internal class Running(
         desktop.close()
         seat.close()
         display.close()
-    }
-
-    private companion object {
-
-        // What programs must get from the compositor itself (Caulis.environment does not change them).
-        val OWN_VARIABLES = setOf("WAYLAND_DISPLAY", "DISPLAY", "XDG_ACTIVATION_TOKEN", dev.caulis.ipc.CaulisIpc.SOCKET_VARIABLE)
-        // The start's report, and when the memory the start freed is given back (Caulis.trimMemory).
-        const val START_REPORT_MILLIS = 30_000L
-        const val TRIM_FIRST_MILLIS = 20_000L
-        const val TRIM_SECOND_MILLIS = 60_000L
-        const val BTN_LEFT = 0x110
-        const val BTN_RIGHT = 0x111
-
-        // From here on, keys are no typing keys (media, laptop, F13..F24); 0x100..0x15f are buttons.
-        const val FIRST_SPECIAL_KEY = 113
-
-        // Keys that always exist when a configuration has none at all.
-        const val EMERGENCY_QUIT = "Super+Shift+Escape"
-        const val EMERGENCY_TERMINAL = "Super+Return"
     }
 
     // Last of all (after every property above): from here on the configuration's code may use

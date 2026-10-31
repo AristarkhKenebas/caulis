@@ -121,7 +121,7 @@ internal class SessionStart(
     /** Plays the startup sound ([preset]: another preset than the configured one). */
     fun playSound(preset: String?) {
         val sound = config.startupSound
-        SoundPlayer.playLater(sound, soundFolder(), resolve = { name -> config.file(AutostartRunner.expandHome(name)) }, env = running.programEnvironment(), presetOverride = preset)
+        SoundPlayer.playLater(sound, soundFolder(), resolve = { name -> config.file(AutostartRunner.expandHome(name)) }, env = running.renv.programEnvironment(), presetOverride = preset)
     }
 
     // Where the presets are kept: ~/.cache/<configName>/sounds.
