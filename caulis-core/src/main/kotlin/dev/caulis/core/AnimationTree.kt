@@ -245,6 +245,17 @@ class AnimationSettings @JvmOverloads constructor(
      */
     @JvmOverloads
     fun resolve(name: String, usualMillis: Long? = null, usualCurve: Curve? = null): ResolvedAnimation {
+        // (Asked many times a frame: the last answer per name, as settings never change.)
+        val known = lastResolved[name]
+        if (known != null && known.usualMillis == usualMillis && known.usualCurve == usualCurve) return known.result
+        return worked(name, usualMillis, usualCurve).also { lastResolved[name] = LastResolved(usualMillis, usualCurve, it) }
+    }
+
+    private class LastResolved(val usualMillis: Long?, val usualCurve: Curve?, val result: ResolvedAnimation)
+
+    private val lastResolved = java.util.concurrent.ConcurrentHashMap<String, LastResolved>()
+
+    private fun worked(name: String, usualMillis: Long?, usualCurve: Curve?): ResolvedAnimation {
         val chain = tree.chain(name)
         var on: Boolean? = null
         var time: Long? = null
