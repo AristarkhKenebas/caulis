@@ -12,6 +12,13 @@ internal class DesktopFrames(private val desktop: Desktop) {
 
     private val BUSY_REPORT_NANOS = 10_000_000_000L
 
+    private val MOVING_SCENE_NANOS = 2_000_000L
+
+    private var movedAt = 0L
+
+    // A refresh went by with the scene of a moment ago: the next one builds a new one.
+    private var movedOwed = false
+
     internal val WALLPAPER_SHADERS = listOf("wallpaper shader")
 
     // A program drew something: mark those parts as changed where the surface is shown.
@@ -87,6 +94,19 @@ internal class DesktopFrames(private val desktop: Desktop) {
                 desktop.renderLog.trace { "Moving: ${why.joinToString()}" }
                 busy.moving(why)
             }
+            // On several screens each refresh asked for its own scene of the same moment (a
+            // 60 Hz monitor paying for a 144 Hz one's animation): one built just now serves
+            // them, and the next refresh builds one for certain, so the last look is never stale.
+            if (desktop.monitorList.size == 1 || movedOwed || now - movedAt >= MOVING_SCENE_NANOS) {
+                desktop.version++
+                movedAt = now
+                movedOwed = false
+            } else {
+                movedOwed = true
+            }
+            desktop.onChange()
+        } else if (movedOwed) {
+            movedOwed = false
             desktop.version++
             desktop.onChange()
         }
