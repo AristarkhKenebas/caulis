@@ -11,6 +11,51 @@ internal object SettingsPieces {
 
     internal val sizeInt = IntegerType(-10_000, 10_000)
 
+    // What a plugin's settings may hold: anything JSON can say; it reads what it knows.
+    private object AnyType : SettingType() {
+        override val words get() = "any value"
+
+        override fun read(json: JsonValue, path: String, problems: Problems): Any? = plain(json)
+
+        private fun plain(json: JsonValue): Any? = when (json) {
+            is JsonValue.Obj -> json.fields.mapValues { plain(it.value) }
+            is JsonValue.Arr -> json.items.map { plain(it) }
+            is JsonValue.Str -> json.value
+            is JsonValue.Num -> json.value
+            is JsonValue.Bool -> json.value
+            else -> null
+        }
+
+        override fun nix() = "lib.types.anything"
+        override fun jsonSchema() = "{}"
+    }
+
+    internal val pluginsField = Field(
+        "plugins",
+        SectionType(
+            listOf(
+                Field("enabled", FlagType, "false: no plugin runs and no folder is followed (restart; default true)"),
+                Field("directories", ListType(FileType("a folder")), "the folders plugins are in (restart; default: plugins in the configuration's folder)"),
+                Field("disabled", ListType(TextType("a plugin's id")), "plugins that stay off"),
+                Field("watch", FlagType, "a jar replaced is hot-reloaded, a Lua file reloads on save (restart; default true)"),
+                Field("settleMillis", IntegerType(0, 60_000), "a changed file must be quiet this long before it is read (default 300)"),
+                Field("failuresBeforeDisable", IntegerType(1, 1000), "how many failures before a plugin is disabled (default 1)"),
+                Field("hangReportMillis", IntegerType(0, 600_000), "a call into a plugin longer than this is reported, with its stack; 0: never (restart; default 2000)"),
+                Field("hangInterruptMillis", IntegerType(0, 600_000), "a call this long has its thread interrupted; 0: never (restart; default 5000)"),
+                Field("hangQuarantineMillis", IntegerType(0, 600_000), "a call this long leaves the plugin off at the next start; 0: never (restart; default 10000)"),
+                Field("disableAfterHang", FlagType, "a plugin that held up the desktop is disabled once its call returns (default true)"),
+                Field("leakCheckMillis", IntegerType(0, 600_000), "after an unload: when to look whether the plugin's classes went from memory; 0: never (default 30000)"),
+                Field("maxLeakedGenerations", IntegerType(1, 1000), "with this many left in memory, hot reloads wait for a restart (default 8)"),
+                Field("allowUnsafePermissions", FlagType, "run also what others can write to (default false: that would run their code as you)"),
+                Field("stateFile", FileType("a file"), "where what `plugin disable` and a hang said is kept (default: plugins.properties in the state folder)"),
+                Field("settings", MapType(MapType(AnyType, "setting"), "plugin id"), "what each plugin is told, by its id"),
+                Field("allow", MapType(ListType(ChoiceType(listOf("exec"))), "plugin id"), "what Lua plugins may do beyond their sandbox, by id (\"exec\": start programs)"),
+            ),
+            "plugins",
+        ),
+        "plugins: where they are, and how much they are forgiven",
+    )
+
     private val gaps = SectionType(
         listOf(
             Field("inner", IntegerType(0, Gaps.MAX), "space between tiled windows"),

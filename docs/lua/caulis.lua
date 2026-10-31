@@ -69,6 +69,7 @@
 ---@field xwaylandRestart? caulis.Settings.xwaylandRestart when Xwayland fails to start
 ---@field startup? (string)[] programs started with the compositor
 ---@field autostart? caulis.Settings.autostart programs started with the session, one after another, once per session (a reload starts only new entries)
+---@field plugins? caulis.Settings.plugins plugins: where they are, and how much they are forgiven
 ---@field reveal? caulis.Settings.reveal the start, smooth: dark until warm, then the desktop fades in
 ---@field startupSound? caulis.Settings.startupSound a sound when the session starts
 ---@field logLevel? integer how much the log says
@@ -888,6 +889,24 @@
 ---@field when? "never"|"on-crash"|"always" when it is started again
 ---@field maxTimes? integer at most this many times (default 3)
 ---@field withinMillis? integer within this time (default 60000)
+
+---@class caulis.Settings.plugins
+---@field enabled? boolean false: no plugin runs and no folder is followed (restart; default true)
+---@field directories? (string)[] the folders plugins are in (restart; default: plugins in the configuration's folder)
+---@field disabled? (string)[] plugins that stay off
+---@field watch? boolean a jar replaced is hot-reloaded, a Lua file reloads on save (restart; default true)
+---@field settleMillis? integer a changed file must be quiet this long before it is read (default 300)
+---@field failuresBeforeDisable? integer how many failures before a plugin is disabled (default 1)
+---@field hangReportMillis? integer a call into a plugin longer than this is reported, with its stack; 0: never (restart; default 2000)
+---@field hangInterruptMillis? integer a call this long has its thread interrupted; 0: never (restart; default 5000)
+---@field hangQuarantineMillis? integer a call this long leaves the plugin off at the next start; 0: never (restart; default 10000)
+---@field disableAfterHang? boolean a plugin that held up the desktop is disabled once its call returns (default true)
+---@field leakCheckMillis? integer after an unload: when to look whether the plugin's classes went from memory; 0: never (default 30000)
+---@field maxLeakedGenerations? integer with this many left in memory, hot reloads wait for a restart (default 8)
+---@field allowUnsafePermissions? boolean run also what others can write to (default false: that would run their code as you)
+---@field stateFile? string where what `plugin disable` and a hang said is kept (default: plugins.properties in the state folder)
+---@field settings? table<string, table<string, any>> what each plugin is told, by its id
+---@field allow? table<string, ("exec")[]> what Lua plugins may do beyond their sandbox, by id ("exec": start programs)
 
 ---@class caulis.Settings.reveal
 ---@field enabled? boolean dark until warm, then the desktop fades in (default false)

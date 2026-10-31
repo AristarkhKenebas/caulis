@@ -229,6 +229,8 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getOverviewFill ()D
 	public final fun getOverviewPinchFingers ()I
 	public final fun getPermissions ()Ldev/caulis/wm/Permissions;
+	public final fun getPluginCommands ()Ljava/util/Set;
+	public final fun getPlugins ()Ldev/caulis/wm/plugins/Plugins;
 	public final fun getPortalsToRestart ()Ljava/util/List;
 	public final fun getPrimaryMonitor ()Ljava/lang/String;
 	public final fun getPrimarySelection ()Z
@@ -396,6 +398,9 @@ public final class dev/caulis/wm/Caulis {
 	public final fun playStartupSound ()V
 	public final fun playStartupSound (Ljava/lang/String;)V
 	public static synthetic fun playStartupSound$default (Ldev/caulis/wm/Caulis;Ljava/lang/String;ILjava/lang/Object;)V
+	public final fun pluginCommand (Ljava/lang/String;)Ljava/lang/String;
+	public final fun plugins (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
+	public final synthetic fun plugins (Lkotlin/jvm/functions/Function1;)V
 	public final fun post (Ljava/util/function/Consumer;)V
 	public final synthetic fun post (Lkotlin/jvm/functions/Function1;)V
 	public final fun processStart (Ldev/caulis/ffi/Processes$Method;)Ldev/caulis/wm/Caulis;
@@ -1202,5 +1207,124 @@ public abstract interface class dev/caulis/wm/config/ConfigLanguage {
 
 public final class dev/caulis/wm/config/ConfigLanguage$DefaultImpls {
 	public static fun stubs (Ldev/caulis/wm/config/ConfigLanguage;)Ljava/lang/String;
+}
+
+public abstract interface class dev/caulis/wm/plugins/CaulisPlugin : dev/caulis/plugins/Plugin {
+}
+
+public final class dev/caulis/wm/plugins/CaulisPlugin$DefaultImpls {
+	public static fun disable (Ldev/caulis/wm/plugins/CaulisPlugin;)V
+	public static fun settingsChanged (Ldev/caulis/wm/plugins/CaulisPlugin;Ldev/caulis/plugins/PluginSettings;)Z
+}
+
+public class dev/caulis/wm/plugins/PluginApi {
+	public fun <init> (Ldev/caulis/plugins/PluginHandle;Lkotlin/jvm/functions/Function0;)V
+	public final synthetic fun action (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public final synthetic fun action (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public final synthetic fun action (Ljava/lang/String;Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public static synthetic fun action$default (Ldev/caulis/wm/plugins/PluginApi;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)Ljava/lang/AutoCloseable;
+	public final fun addDrawing (Ldev/caulis/core/DrawingLevel;Ldev/caulis/core/Drawing;)Ljava/lang/AutoCloseable;
+	public final fun addWidget (Ldev/caulis/core/Widget;)Ljava/lang/AutoCloseable;
+	public final fun after (JLjava/lang/Runnable;)Ljava/lang/AutoCloseable;
+	public final synthetic fun after (JLkotlin/jvm/functions/Function0;)Ljava/lang/AutoCloseable;
+	public final fun bind (Ljava/lang/String;Ldev/caulis/core/input/KeyBindings$Options;Ljava/lang/Runnable;)Ljava/lang/AutoCloseable;
+	public final synthetic fun bind (Ljava/lang/String;Ldev/caulis/core/input/KeyBindings$Options;Lkotlin/jvm/functions/Function0;)Ljava/lang/AutoCloseable;
+	public final synthetic fun bind (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)Ljava/lang/AutoCloseable;
+	public static synthetic fun bind$default (Ldev/caulis/wm/plugins/PluginApi;Ljava/lang/String;Ldev/caulis/core/input/KeyBindings$Options;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Ljava/lang/AutoCloseable;
+	public final synthetic fun command (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final synthetic fun effectsFor (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public final fun every (JLjava/lang/Runnable;)Ljava/lang/AutoCloseable;
+	public final synthetic fun every (JLkotlin/jvm/functions/Function0;)Ljava/lang/AutoCloseable;
+	public final fun getCaulis ()Ldev/caulis/wm/Caulis;
+	public final fun getDesktop ()Ldev/caulis/core/Desktop;
+	public final fun getDisplay ()Ldev/caulis/protocol/Display;
+	public final fun getGuard ()Ldev/caulis/plugins/PluginGuard;
+	public final fun getHandle ()Ldev/caulis/plugins/PluginHandle;
+	public final fun getScope ()Ldev/caulis/plugins/PluginScope;
+	public final fun getSettings ()Ldev/caulis/plugins/PluginSettings;
+	public final fun global (Ldev/caulis/protocol/ResourceType;ILkotlin/jvm/functions/Function1;)Ldev/caulis/protocol/Global;
+	public final synthetic fun layout (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)Ljava/lang/AutoCloseable;
+	public final fun notify (Ljava/lang/String;)Ldev/caulis/core/Notice;
+	public final fun notify (Ljava/lang/String;Ldev/caulis/core/NoticeLevel;)Ldev/caulis/core/Notice;
+	public final fun notify (Ljava/lang/String;Ldev/caulis/core/NoticeLevel;Ljava/lang/String;)Ldev/caulis/core/Notice;
+	public static synthetic fun notify$default (Ldev/caulis/wm/plugins/PluginApi;Ljava/lang/String;Ldev/caulis/core/NoticeLevel;Ljava/lang/String;ILjava/lang/Object;)Ldev/caulis/core/Notice;
+	public final synthetic fun onColorSchemeChanged (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun onFocusChanged (Ljava/util/function/Consumer;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onFocusChanged (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onGesture (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onKey (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onLid (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onLockChanged (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onMonitorAdded (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onMonitorRemoved (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onNotice (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onPointerButton (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onPointerMotion (Lkotlin/jvm/functions/Function2;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onQuit (Lkotlin/jvm/functions/Function0;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onReload (Lkotlin/jvm/functions/Function0;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onScroll (Lkotlin/jvm/functions/Function3;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onSleep (Lkotlin/jvm/functions/Function0;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onWake (Lkotlin/jvm/functions/Function0;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onWindowChanged (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun onWindowClosed (Ljava/util/function/Consumer;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onWindowClosed (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun onWindowOpened (Ljava/util/function/Consumer;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onWindowOpened (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun onWorkspaceChanged (Ljava/util/function/Consumer;)Ljava/lang/AutoCloseable;
+	public final synthetic fun onWorkspaceChanged (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final synthetic fun panelEffects (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final synthetic fun panelRule (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun post (Ljava/lang/Runnable;)V
+	public final synthetic fun rule (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun run (Ljava/lang/String;)V
+	public final fun run (Ljava/lang/String;Ldev/caulis/core/Window;)V
+	public static synthetic fun run$default (Ldev/caulis/wm/plugins/PluginApi;Ljava/lang/String;Ldev/caulis/core/Window;ILjava/lang/Object;)V
+	public final fun screenShader (Ldev/caulis/core/ScreenShader;)Ljava/lang/AutoCloseable;
+	public final fun useLayout (Ljava/lang/String;)V
+}
+
+public final class dev/caulis/wm/plugins/Plugins {
+	public static final field API_MAJOR I
+	public static final field API_MINOR I
+	public static final field Companion Ldev/caulis/wm/plugins/Plugins$Companion;
+	public fun <init> ()V
+	public final fun allow (Ljava/lang/String;[Ljava/lang/String;)V
+	public final fun api (Ljava/lang/String;IILkotlin/jvm/functions/Function2;)V
+	public final fun format (Ldev/caulis/plugins/PluginFormat;)V
+	public final fun getAllow ()Ljava/util/LinkedHashMap;
+	public final fun getAllowUnsafePermissions ()Z
+	public final fun getDirectories ()Ljava/util/List;
+	public final fun getDisableAfterHang ()Z
+	public final fun getDisabled ()Ljava/util/Set;
+	public final fun getEnabled ()Z
+	public final fun getFailuresBeforeDisable ()I
+	public final fun getHangInterruptMillis ()J
+	public final fun getHangQuarantineMillis ()J
+	public final fun getHangReportMillis ()J
+	public final fun getLeakCheckMillis ()J
+	public final fun getMaxLeakedGenerations ()I
+	public final fun getSettings ()Ljava/util/LinkedHashMap;
+	public final fun getSettleMillis ()J
+	public final fun getStateFile ()Ljava/nio/file/Path;
+	public final fun getWatch ()Z
+	public final fun setAllowUnsafePermissions (Z)V
+	public final fun setDirectories (Ljava/util/List;)V
+	public final fun setDisableAfterHang (Z)V
+	public final fun setDisabled (Ljava/util/Set;)V
+	public final fun setEnabled (Z)V
+	public final fun setFailuresBeforeDisable (I)V
+	public final fun setHangInterruptMillis (J)V
+	public final fun setHangQuarantineMillis (J)V
+	public final fun setHangReportMillis (J)V
+	public final fun setLeakCheckMillis (J)V
+	public final fun setMaxLeakedGenerations (I)V
+	public final fun setSettleMillis (J)V
+	public final fun setStateFile (Ljava/nio/file/Path;)V
+	public final fun setWatch (Z)V
+	public final fun settings (Ljava/lang/String;[Lkotlin/Pair;)V
+	public final fun sharePackages ([Ljava/lang/String;)V
+}
+
+public final class dev/caulis/wm/plugins/Plugins$Companion {
 }
 

@@ -78,7 +78,7 @@ internal class RunningSettings(private val running: Running) {
         }
         // Each privileged feature: the permission rules first, else the privileged rule.
         running.display.mayUse = { client, feature -> running.permissions.mayUse(client, feature) }
-        running.desktop.screenShader = config.screenShader
+        running.desktop.screenShader = running.rplugins.screenShaders.lastOrNull() ?: config.screenShader
         running.desktop.titleBars = config.titleBars
         running.desktop.titleBarStyle = config.titleBarStyle
         running.desktop.titleBarsFor = if (config.titleBarRules.isEmpty() && config.rules.none { it.titleBars != null }) null else running.rrules::titleBarsOf

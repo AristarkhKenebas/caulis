@@ -150,3 +150,8 @@ object PluginFiles {
         null
     }
 }
+
+/** A [PluginFormat] found by itself on the class path (ServiceLoader): how caulis-lua's comes. */
+fun interface PluginFormatProvider {
+    fun format(): PluginFormat<*>
+}

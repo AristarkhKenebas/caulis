@@ -23,6 +23,7 @@ import java.nio.file.Path
  * my-compositor --devices                        keyboards, mice, touchpads (names for device settings)
  * my-compositor --events [kind ...]              what changes, a line each (kinds: windows,
  *                                                focus, workspaces, monitors, notices, config, lock, keys)
+ * my-compositor --plugin list|enable <id>|disable <id>|reload [id]|cmd <name> ...   the plugins
  * my-compositor --lua <code>                     runs Lua in config.lua's own state, prints what it returns
  * my-compositor --repl                           the same, a line at a time (Ctrl+D ends it)
  * my-compositor --print-lua-stubs                LuaLS annotations of the caulis table (for your editor)
@@ -68,7 +69,7 @@ object CommandLine {
                 println(stubs)
                 0
             }
-            "--do", "--state", "--events", "--devices", "--lua", "--repl" -> talk(caulis, arguments)
+            "--do", "--state", "--events", "--devices", "--lua", "--repl", "--plugin" -> talk(caulis, arguments)
             else -> null
         }
     }
@@ -98,6 +99,7 @@ object CommandLine {
                         if (code.isBlank()) return usage("--lua needs code, e.g. --lua 'return #caulis.windows()'")
                         println(ipc.eval(code))
                     }
+                    "--plugin" -> println(ipc.eval(arguments.drop(1).joinToString(" ").ifBlank { "list" }, "plugin"))
                     "--repl" -> {
                         println("Lua in ${caulis.configName}'s config.lua (its variables are here). Ctrl+D ends.")
                         while (true) {

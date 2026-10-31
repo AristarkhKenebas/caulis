@@ -182,6 +182,7 @@ internal class RunningReload(private val running: Running) {
         }
         next.startWaitingTimers()
         next.reloadActions.forEach { action -> running.safely("onReload") { action(next) } }
+        running.rplugins.configurationChanged()
         running.ipc?.configReloaded(next.configProblems)
         return restartOnly to notes
     }

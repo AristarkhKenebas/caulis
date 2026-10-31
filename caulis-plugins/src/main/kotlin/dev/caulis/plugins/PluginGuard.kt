@@ -1,7 +1,5 @@
 package dev.caulis.plugins
 
-import dev.caulis.core.rethrowIfFatal
-
 /**
  * Runs one plugin's code: what it throws is caught and makes the plugin fail, and a call on the
  * compositor's thread is timed by the watchdog. Every hook an API gives a plugin goes through
@@ -38,7 +36,7 @@ class PluginGuard internal constructor(
     /** What was thrown while running it. */
     @PublishedApi
     internal fun failed(what: String, e: Throwable) {
-        e.rethrowIfFatal()
+        // (Also running out of memory: what it needed goes with it. If that was not it, the compositor's next allocation says so.)
         onFailure(this, what, e)
     }
 }

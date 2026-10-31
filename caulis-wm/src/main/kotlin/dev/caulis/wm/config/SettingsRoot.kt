@@ -461,6 +461,7 @@ internal object SettingsRoot {
                 ),
                 "programs started with the session, one after another, once per session (a reload starts only new entries)",
             ),
+            SettingsPieces.pluginsField,
             Field(
                 "reveal",
                 SectionType(

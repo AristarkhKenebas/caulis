@@ -4950,6 +4950,116 @@
       },
       "description": "programs started with the session, one after another, once per session (a reload starts only new entries)"
     },
+    "plugins": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "false: no plugin runs and no folder is followed (restart; default true)"
+        },
+        "directories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "description": "the folders plugins are in (restart; default: plugins in the configuration's folder)"
+        },
+        "disabled": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "maxItems": 1000,
+          "description": "plugins that stay off"
+        },
+        "watch": {
+          "type": "boolean",
+          "description": "a jar replaced is hot-reloaded, a Lua file reloads on save (restart; default true)"
+        },
+        "settleMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "description": "a changed file must be quiet this long before it is read (default 300)"
+        },
+        "failuresBeforeDisable": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "how many failures before a plugin is disabled (default 1)"
+        },
+        "hangReportMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600000,
+          "description": "a call into a plugin longer than this is reported, with its stack; 0: never (restart; default 2000)"
+        },
+        "hangInterruptMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600000,
+          "description": "a call this long has its thread interrupted; 0: never (restart; default 5000)"
+        },
+        "hangQuarantineMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600000,
+          "description": "a call this long leaves the plugin off at the next start; 0: never (restart; default 10000)"
+        },
+        "disableAfterHang": {
+          "type": "boolean",
+          "description": "a plugin that held up the desktop is disabled once its call returns (default true)"
+        },
+        "leakCheckMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600000,
+          "description": "after an unload: when to look whether the plugin's classes went from memory; 0: never (default 30000)"
+        },
+        "maxLeakedGenerations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "with this many left in memory, hot reloads wait for a restart (default 8)"
+        },
+        "allowUnsafePermissions": {
+          "type": "boolean",
+          "description": "run also what others can write to (default false: that would run their code as you)"
+        },
+        "stateFile": {
+          "type": "string",
+          "minLength": 1,
+          "description": "where what `plugin disable` and a hang said is kept (default: plugins.properties in the state folder)"
+        },
+        "settings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "description": "what each plugin is told, by its id"
+        },
+        "allow": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "enum": ["exec"]
+            },
+            "minItems": 0,
+            "maxItems": 1000
+          },
+          "description": "what Lua plugins may do beyond their sandbox, by id (\"exec\": start programs)"
+        }
+      },
+      "description": "plugins: where they are, and how much they are forgiven"
+    },
     "reveal": {
       "type": "object",
       "additionalProperties": false,
