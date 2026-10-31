@@ -36,17 +36,17 @@ internal class DesktopMonitors(private val desktop: Desktop) {
             desktop.monitorList -= standIn
             monitor.workspace = standIn.workspace
             for (view in desktop.views + desktop.capturing.captureViews) if (view.monitor === standIn) view.monitor = monitor
-            for (workspace in desktop.workspaces.values) if (workspace.monitor === standIn) workspace.monitor = monitor
+            for (workspace in desktop.workspaceHost.workspaces.values) if (workspace.monitor === standIn) workspace.monitor = monitor
             if (desktop.workspaceMode == WorkspaceMode.SPANNING || desktop.workspaceMode == WorkspaceMode.SEPARATE) {
                 // Workspaces of their own on this monitor from now on (the stand-in's windows go along).
                 desktop.monitorList += monitor
                 desktop.focusedMonitor = monitor
-                desktop.mergeWorkspaces(of = standIn, into = monitor)
+                desktop.workspaceHost.mergeWorkspaces(of = standIn, into = monitor)
                 desktop.monitorList -= monitor
-                monitor.workspace = desktop.workspace(monitor.workspace.number, monitor)
+                monitor.workspace = desktop.workspaceHost.workspace(monitor.workspace.number, monitor)
             }
         } else {
-            monitor.workspace = desktop.workspaceForNewMonitor(monitor)
+            monitor.workspace = desktop.workspaceHost.workspaceForNewMonitor(monitor)
         }
         monitor.workspace.monitor = monitor
         desktop.monitorList += monitor
@@ -54,9 +54,9 @@ internal class DesktopMonitors(private val desktop: Desktop) {
         // The primary monitor gets the focus when it comes before anything is open.
         if (monitor.name == desktop.primaryMonitorName && desktop.allWindows.isEmpty()) desktop.focusedMonitor = monitor
         output?.rescale(scale)
-        desktop.arrangePrimary()
-        desktop.ensurePersistent()
-        if (desktop.workspaceMode == WorkspaceMode.PINNED) for (each in desktop.monitorList) if (each.workspace.number > 0) desktop.pinnedHomes.putIfAbsent(each.workspace.number, each.name)
+        desktop.workspaceHost.arrangePrimary()
+        desktop.workspaceHost.ensurePersistent()
+        if (desktop.workspaceMode == WorkspaceMode.PINNED) for (each in desktop.monitorList) if (each.workspace.number > 0) desktop.workspaceHost.pinnedHomes.putIfAbsent(each.workspace.number, each.name)
         desktop.layoutLog.info { "Monitor ${monitor.name}: ${pixelWidth}x$pixelHeight, scale $scale, workspace ${monitor.workspace.number}" }
         placeMonitors()
         for (each in desktop.monitorList) monitorChanged(each)
@@ -87,20 +87,20 @@ internal class DesktopMonitors(private val desktop: Desktop) {
             }
         }
         when (desktop.workspaceMode) {
-            WorkspaceMode.PER_MONITOR, WorkspaceMode.PINNED -> for (workspace in desktop.workspaces.values.toList()) if (workspace.monitor === monitor) desktop.moveWorkspace(workspace, home)
-            WorkspaceMode.SPANNING, WorkspaceMode.SEPARATE -> desktop.mergeWorkspaces(of = monitor, into = home)
+            WorkspaceMode.PER_MONITOR, WorkspaceMode.PINNED -> for (workspace in desktop.workspaceHost.workspaces.values.toList()) if (workspace.monitor === monitor) desktop.workspaceHost.moveWorkspace(workspace, home)
+            WorkspaceMode.SPANNING, WorkspaceMode.SEPARATE -> desktop.workspaceHost.mergeWorkspaces(of = monitor, into = home)
             WorkspaceMode.PRIMARY_ONLY -> {
                 val shown = monitor.workspace
                 val primary = desktop.primaryMonitor
                 if (shown.number == 0) {
                     // A screen of its own: its windows go to what the primary monitor shows.
-                    desktop.mergeInto(shown, primary.workspace)
+                    desktop.workspaceHost.mergeInto(shown, primary.workspace)
                 } else {
                     // The primary monitor went: the next one shows its workspace (its own screen's windows join).
                     val own = primary.workspace
                     primary.workspace = shown
-                    desktop.moveWorkspace(shown, primary)
-                    if (own.number == 0) desktop.mergeInto(own, shown)
+                    desktop.workspaceHost.moveWorkspace(shown, primary)
+                    if (own.number == 0) desktop.workspaceHost.mergeInto(own, shown)
                     desktop.arranger.arrange(shown)
                 }
             }
@@ -193,7 +193,7 @@ internal class DesktopMonitors(private val desktop: Desktop) {
     internal fun refitWindows(monitor: Monitor) {
         desktop.lockHost.lock?.surfaces?.filter { lockMonitor(it) === monitor }?.forEach { it.configure(monitor.area.width, monitor.area.height) }
         for (pad in desktop.pads.shownPads) if (pad.monitor === monitor) desktop.pads.placeScratchpad(pad, appearing = emptySet())
-        for (workspace in desktop.workspaces.values) {
+        for (workspace in desktop.workspaceHost.workspaces.values) {
             if ((workspace.monitor ?: desktop.focusedMonitor) !== monitor) continue
             for (window in workspace.windows + workspace.minimized) {
                 if (!window.configured) continue

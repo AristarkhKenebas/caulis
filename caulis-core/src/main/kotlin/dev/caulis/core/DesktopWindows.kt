@@ -55,7 +55,7 @@ internal class DesktopWindows(private val desktop: Desktop) {
             } else {
                 desktop.pads.showScratchpad(pad, appearing = setOf(window))
             }
-            desktop.windowsLog.info { "Opened $window (workspace ${desktop.workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
+            desktop.windowsLog.info { "Opened $window (workspace ${desktop.workspaceHost.workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
             notifyEach(desktop.events.windowOpenedListeners, window, "window-opened")
             return
         }
@@ -110,7 +110,7 @@ internal class DesktopWindows(private val desktop: Desktop) {
             desktop.animator.appearing[window] = System.nanoTime()
         }
         if (placement.goToWorkspace || (shown && placement.focus)) desktop.focus(window) else desktop.changed()
-        desktop.windowsLog.info { "Opened $window (workspace ${desktop.workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
+        desktop.windowsLog.info { "Opened $window (workspace ${desktop.workspaceHost.workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
         notifyEach(desktop.events.windowOpenedListeners, window, "window-opened")
     }
 
@@ -162,12 +162,12 @@ internal class DesktopWindows(private val desktop: Desktop) {
             notifyEach(desktop.events.windowClosedListeners, window, "window-closed")
             return
         }
-        val workspace = desktop.workspaceOf(window)
+        val workspace = desktop.workspaceHost.workspaceOf(window)
         workspace?.remove(window)
         workspace?.model?.forget(window) // closed for good: its place is free now
         if (workspace != null) {
             desktop.arranger.arrange(workspace)
-            desktop.dropIfEmpty(workspace)
+            desktop.workspaceHost.dropIfEmpty(workspace)
         }
         if (hadFocus) desktop.focuser.passFocusOn(desktop.windows.lastOrNull())
         desktop.changed()
@@ -178,7 +178,7 @@ internal class DesktopWindows(private val desktop: Desktop) {
     // its place in a remembering layout (given to learn its size) go.
     fun windowDestroyed(window: Window) {
         desktop.arranger.placements -= window
-        for (workspace in desktop.workspaces.values) workspace.model.forget(window)
+        for (workspace in desktop.workspaceHost.workspaces.values) workspace.model.forget(window)
         desktop.pads.allPads.forEach { it.windows -= window }
     }
 
@@ -278,7 +278,7 @@ internal class DesktopWindows(private val desktop: Desktop) {
     // Puts a window where its states say: full desktop, its tile, or its floating place.
     internal fun applyState(window: Window) {
         desktop.arranger.pending.remove(window)
-        val workspace = desktop.workspaceOf(window)
+        val workspace = desktop.workspaceHost.workspaceOf(window)
         if (window.maximized || window.fullscreen) {
             if (!window.tiled && window.mapped) desktop.arranger.floatingRects[window] = currentRect(window)
             // Fullscreen covers its monitor; maximized leaves panels and docks free.
@@ -303,7 +303,7 @@ internal class DesktopWindows(private val desktop: Desktop) {
     }
 
     fun minimize(window: Window) {
-        val workspace = desktop.workspaceOf(window) ?: return
+        val workspace = desktop.workspaceHost.workspaceOf(window) ?: return
         if (window !in workspace.windows) return
         desktop.windowsLog.info { "$window: minimized${if (window in desktop.events.minimizeTargets) " (into its dock icon)" else ""}" }
         // Into its dock icon (or down out of sight), as the minimize animation says.

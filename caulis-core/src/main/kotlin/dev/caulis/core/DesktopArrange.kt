@@ -59,7 +59,7 @@ internal class DesktopArrange(private val desktop: Desktop) {
     }
 
     fun marginsChanged(window: Window) {
-        desktop.workspaceOf(window)?.let { arrange(it); desktop.changed() }
+        desktop.workspaceHost.workspaceOf(window)?.let { arrange(it); desktop.changed() }
     }
 
     // [place] with [window]'s margins: smaller, or (negative) bigger — but inside [area] and at least 1 x 1.
@@ -144,7 +144,7 @@ internal class DesktopArrange(private val desktop: Desktop) {
 
     fun setFloating(window: Window, floating: Boolean) {
         desktop.layoutLog.info { "$window: ${if (floating) "floating" else "tiled"}" }
-        val workspace = desktop.workspaceOf(window) ?: return
+        val workspace = desktop.workspaceHost.workspaceOf(window) ?: return
         if (floating) {
             if (!window.tiled && window in workspace.floating) return
             floatingRects.getOrPut(window) { cascadeRect(window.visibleRect.width, window.visibleRect.height) }
@@ -167,7 +167,7 @@ internal class DesktopArrange(private val desktop: Desktop) {
         workspace.windows.lastOrNull { it !in pinned } ?: workspace.windows.lastOrNull()
 
     fun setPinned(window: Window, on: Boolean) {
-        if (on == desktop.isPinned(window) || (on && desktop.workspaceOf(window) == null)) return
+        if (on == desktop.isPinned(window) || (on && desktop.workspaceHost.workspaceOf(window) == null)) return
         desktop.layoutLog.info { "$window: ${if (on) "pinned (on every workspace)" else "no longer pinned"}" }
         if (on) {
             if (window.tiled) setFloating(window, true)
@@ -202,7 +202,7 @@ internal class DesktopArrange(private val desktop: Desktop) {
     // The workspace a new window opens on: the one its placement says, or the one with the focus.
     internal fun workspaceFor(placement: WindowPlacement): Workspace {
         val monitor = monitorNamed(placement.monitor) ?: desktop.focusedMonitor
-        return validWorkspace(placement)?.let { desktop.workspace(it, monitor) } ?: monitor.workspace
+        return validWorkspace(placement)?.let { desktop.workspaceHost.workspace(it, monitor) } ?: monitor.workspace
     }
 
     // Its floating place on [monitor]: as the placement says, else the next step of the cascade.
@@ -220,13 +220,13 @@ internal class DesktopArrange(private val desktop: Desktop) {
     }
 
     fun applyPlacement(window: Window, placement: WindowPlacement) {
-        if (desktop.scratchpadOf(window) != null || desktop.workspaceOf(window) == null) return
+        if (desktop.scratchpadOf(window) != null || desktop.workspaceHost.workspaceOf(window) == null) return
         desktop.layoutLog.info { "$window: placed by a rule ($placement)" }
         placement.specialWorkspace?.let { name -> return desktop.moveToSpecialWorkspace(window, name, silent = !placement.goToWorkspace) }
         val monitor = monitorNamed(placement.monitor)
         when {
-            validWorkspace(placement) != null -> desktop.moveToWorkspace(window, desktop.workspace(placement.workspace!!, monitor ?: desktop.monitorOf(window)))
-            monitor != null -> desktop.moveToWorkspace(window, monitor.workspace)
+            validWorkspace(placement) != null -> desktop.workspaceHost.moveToWorkspace(window, desktop.workspaceHost.workspace(placement.workspace!!, monitor ?: desktop.monitorOf(window)))
+            monitor != null -> desktop.workspaceHost.moveToWorkspace(window, monitor.workspace)
         }
         placement.floating?.let { setFloating(window, it) }
         if (placement.width != null || placement.height != null || placement.x != null || placement.y != null || placement.center) {

@@ -112,8 +112,8 @@ internal class DesktopFocus(private val desktop: Desktop) {
         if (window != null && desktop.keyboardWidget != null) desktop.focusWidget(null)
         // One that never takes the keyboard: the top one of its workspace that does, instead.
         if (window != null && !desktop.behaviorOf(window).takesFocus) {
-            val instead = desktop.workspaceOf(window)?.windows?.lastOrNull { it !== window && desktop.behaviorOf(it).takesFocus }
-            if (instead === window || (instead == null && desktop.focusedWindow != null && desktop.workspaceOf(desktop.focusedWindow!!) === desktop.workspaceOf(window))) return
+            val instead = desktop.workspaceHost.workspaceOf(window)?.windows?.lastOrNull { it !== window && desktop.behaviorOf(it).takesFocus }
+            if (instead === window || (instead == null && desktop.focusedWindow != null && desktop.workspaceHost.workspaceOf(desktop.focusedWindow!!) === desktop.workspaceHost.workspaceOf(window))) return
             return focus(instead)
         }
         if (window != null && window.urgent) desktop.setUrgent(window, false)
@@ -147,24 +147,24 @@ internal class DesktopFocus(private val desktop: Desktop) {
         }
         desktop.pads.padFocus = null
         if (window != null) {
-            val workspace = desktop.workspaceOf(window)
+            val workspace = desktop.workspaceHost.workspaceOf(window)
             if (workspace != null && workspace !== desktop.activeWorkspace) {
                 // Its monitor gets the focus; a workspace on no monitor comes onto the focused one.
                 val showing = desktop.monitorList.firstOrNull { it.workspace === workspace }
                 if (showing != null) {
-                    desktop.moveFocusTo(showing)
+                    desktop.workspaceHost.moveFocusTo(showing)
                 } else {
                     // Where this workspace belongs, as the workspace mode says (as switchTo does).
                     when {
                         desktop.workspaceMode == WorkspaceMode.SPANNING && workspace.number > 0 ->
-                            for (monitor in desktop.monitorList) desktop.show(desktop.workspace(workspace.number, monitor), on = monitor)
+                            for (monitor in desktop.monitorList) desktop.workspaceHost.show(desktop.workspaceHost.workspace(workspace.number, monitor), on = monitor)
                         else -> {
                             val on = desktop.arranger.monitorNamed(workspace.homeMonitor)
                                 ?: (if (desktop.workspaceMode == WorkspaceMode.PRIMARY_ONLY && workspace.number > 0) desktop.primaryMonitor else null)
-                                ?: (if (workspace.number > 0) desktop.homeOf(workspace.number) else null)
+                                ?: (if (workspace.number > 0) desktop.workspaceHost.homeOf(workspace.number) else null)
                                 ?: desktop.focusedMonitor
-                            desktop.moveFocusTo(on)
-                            desktop.show(workspace, on = on)
+                            desktop.workspaceHost.moveFocusTo(on)
+                            desktop.workspaceHost.show(workspace, on = on)
                         }
                     }
                     desktop.layoutLog.info { "Workspace ${workspace.number} (${workspace.layout.name})" }

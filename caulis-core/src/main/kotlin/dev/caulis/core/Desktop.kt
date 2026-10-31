@@ -17,7 +17,6 @@ import dev.caulis.render.Renderer
 import dev.caulis.tiling.Floating
 import dev.caulis.tiling.Layout
 import dev.caulis.tiling.TilingCommand
-import java.util.TreeMap
 
 /**
  * The window manager: workspaces, layouts (floating or tiled — see [Layout]), focus,
@@ -85,6 +84,8 @@ class Desktop(
     internal val frames = DesktopFrames(this)
 
     internal val screens = DesktopMonitors(this)
+
+    internal val workspaceHost = DesktopWorkspaces(this)
 
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
@@ -294,7 +295,7 @@ class Desktop(
      */
     fun monitorOf(window: Window): Monitor {
         if (director != null) animator.screenRects[window]?.takeIf { directed(window) }?.let { rect -> return monitorAt(rect.x + rect.width / 2.0, rect.y + rect.height / 2.0) }
-        return workspaceOf(window)?.monitor ?: focusedMonitor
+        return workspaceHost.workspaceOf(window)?.monitor ?: focusedMonitor
     }
 
     /** Size of the monitor with the focus, in desktop units. */
@@ -355,7 +356,7 @@ class Desktop(
             field = value
             layoutLog.info { if (value == null) "Windows are placed by the layouts again" else "Windows are placed by $value" }
             places = emptyMap()
-            for (workspace in workspaces.values) arranger.arrange(workspace)
+            for (workspace in workspaceHost.workspaces.values) arranger.arrange(workspace)
             changed()
         }
 
@@ -433,10 +434,10 @@ class Desktop(
 
     /** Every window: on all workspaces (minimized ones too) and in scratchpads. */
     val allWindows: List<Window>
-        get() = workspaces.values.flatMap { it.windows + it.minimized } + pads.allPads.flatMap { it.windows }
+        get() = workspaceHost.workspaces.values.flatMap { it.windows + it.minimized } + pads.allPads.flatMap { it.windows }
 
     /** True if [window] is minimized (on any workspace). */
-    fun isMinimized(window: Window): Boolean = workspaces.values.any { window in it.minimized }
+    fun isMinimized(window: Window): Boolean = workspaceHost.workspaces.values.any { window in it.minimized }
 
     /**
      * Runs [listener] when the windows or what a window list shows of them changed: a window
@@ -490,7 +491,7 @@ class Desktop(
     var layout: Layout = Floating
         set(value) {
             field = value
-            for (workspace in workspaces.values) if (workspace.number > 0 && ruleOf(workspace.number)?.layout == null) setLayout(workspace, value)
+            for (workspace in workspaceHost.workspaces.values) if (workspace.number > 0 && workspaceHost.ruleOf(workspace.number)?.layout == null) setLayout(workspace, value)
         }
 
     /**
@@ -508,7 +509,7 @@ class Desktop(
     var primaryMonitorName: String? = null
         set(value) {
             field = value
-            arrangePrimary()
+            workspaceHost.arrangePrimary()
         }
 
     /** The primary monitor (see [primaryMonitorName]). */
@@ -525,40 +526,27 @@ class Desktop(
     var workspaceRules: List<WorkspaceRule> = emptyList()
         set(value) {
             field = value.toList()
-            applyWorkspaceRules()
+            workspaceHost.applyWorkspaceRules()
         }
 
-    private fun ruleOf(number: Int): WorkspaceRule? = workspaceRules.lastOrNull { it.number == number }
-
     /** The name of workspace [number] from its rule, or null. */
-    fun workspaceName(number: Int): String? = ruleOf(number)?.name
+    fun workspaceName(number: Int): String? = workspaceHost.ruleOf(number)?.name
 
     /** The workspace shown before the one with the focus now (for "back and forth"), or null. */
     var previousWorkspaceNumber: Int? = null
-        private set
-
-    // By number; with workspaces of each monitor's own, by number and monitor.
-    internal data class WorkspaceKey(val number: Int, val monitor: String?)
-
-    private fun keyFor(number: Int, monitor: Monitor): WorkspaceKey = when {
-        number == 0 -> WorkspaceKey(0, monitor.name)
-        workspaceMode == WorkspaceMode.SPANNING || workspaceMode == WorkspaceMode.SEPARATE -> WorkspaceKey(number, monitor.name)
-        else -> WorkspaceKey(number, null)
-    }
-
-    internal val workspaces = java.util.TreeMap<WorkspaceKey, Workspace>(compareBy<WorkspaceKey> { it.number }.thenBy { it.monitor ?: "" })
+        internal set
 
     /** The workspace on the monitor with the focus. */
     val activeWorkspace: Workspace get() = focusedMonitor.workspace
 
     /** The number of the workspace [window] is on (null: in a scratchpad, or not open). */
-    fun workspaceNumberOf(window: Window): Int? = if (scratchpadOf(window) != null) null else workspaceOf(window)?.number
+    fun workspaceNumberOf(window: Window): Int? = if (scratchpadOf(window) != null) null else workspaceHost.workspaceOf(window)?.number
 
     init {
         // Until the backend adds monitors: one of the size given (tests, the very first frame).
         val standIn = Monitor("default", null, screenWidth, screenHeight, 1.0)
         val first = Workspace(1, layout).also { it.monitor = standIn; it.leftOut = ::directed }
-        workspaces[WorkspaceKey(1, null)] = first
+        workspaceHost.workspaces[DesktopWorkspaces.WorkspaceKey(1, null)] = first
         standIn.workspace = first
         monitorList += standIn
         placeholder = standIn
@@ -571,156 +559,19 @@ class Desktop(
     }
 
     /** Workspaces that exist now (those shown and those with windows), in order. */
-    val allWorkspaces: Collection<Workspace> get() = workspaces.values
-
-    // The workspace with [number] (of [monitor] when monitors have their own), created when first needed.
-    internal fun workspace(number: Int, monitor: Monitor = focusedMonitor): Workspace {
-        val key = keyFor(number, monitor)
-        return workspaces.getOrPut(key) {
-            val rule = if (number > 0) ruleOf(number) else null
-            Workspace(number, rule?.layout ?: layout, key.monitor).also {
-                it.leftOut = ::directed
-                it.monitor = monitor
-                it.name = rule?.name
-            }
-        }
-    }
-
-    // No real monitor yet: only the stand-in.
-    private fun onlyStandIn() = placeholder != null && monitorList.singleOrNull() === placeholder
-
-    // Pinned workspaces: the monitor each was first shown on (kept while it is gone empty).
-    internal val pinnedHomes = HashMap<Int, String>()
-
-    // Where workspace [number] belongs: its rule's monitor (if plugged in); pinned, also where it was first shown.
-    internal fun homeOf(number: Int): Monitor? {
-        ruleOf(number)?.monitor?.let { name -> monitorList.firstOrNull { it.name == name }?.let { return it } }
-        if (workspaceMode == WorkspaceMode.PINNED) {
-            pinnedHomes[number]?.let { name -> monitorList.firstOrNull { it.name == name }?.let { return it } }
-        }
-        return null
-    }
-
-    // A new monitor shows: its own workspace from before (plugged in again), or the first free number.
-    internal fun workspaceForNewMonitor(monitor: Monitor): Workspace {
-        when (workspaceMode) {
-            WorkspaceMode.SPANNING -> return workspace(focusedMonitor.workspace.number.coerceAtLeast(1), monitor)
-            WorkspaceMode.SEPARATE -> return workspaces.values.firstOrNull { it.homeMonitor == monitor.name && it.lastMonitorName == monitor.name } ?: workspace(1, monitor)
-            // (A screen of its own; if it is the primary one, arrangePrimary gives it the workspaces.)
-            WorkspaceMode.PRIMARY_ONLY -> return workspace(0, monitor)
-            WorkspaceMode.PER_MONITOR, WorkspaceMode.PINNED -> {}
-        }
-        val shown = monitorList.map { it.workspace }.toSet()
-        // Workspaces whose home it is, then those it showed before it was unplugged.
-        workspaceRules.firstOrNull { it.monitor == monitor.name && shown.none { s -> s.number == it.number } }?.let { return workspace(it.number, monitor) }
-        workspaces.values.firstOrNull { it !in shown && !it.isEmpty && it.lastMonitorName == monitor.name }?.let { return it }
-        val number = generateSequence(1) { it + 1 }.first { n ->
-            n > workspaceCount || (shown.none { it.number == n } && workspaces[WorkspaceKey(n, null)]?.isEmpty != false && ruleOf(n)?.monitor.let { it == null || it == monitor.name })
-        }
-        return workspace(number, monitor)
-    }
-
-    // Workspaces of a monitor that went away (each monitor had its own): their windows join the same workspace on [into].
-    internal fun mergeWorkspaces(of: Monitor, into: Monitor) {
-        for (workspace in workspaces.values.filter { it.homeMonitor == of.name || (it.homeMonitor == null && of === placeholder) }.toList()) {
-            mergeInto(workspace, workspace(workspace.number, into))
-        }
-    }
-
-    // The windows of [from] join [to]; [from] is gone.
-    internal fun mergeInto(from: Workspace, to: Workspace) {
-        if (from === to) return
-        for (window in from.windows.toList() + from.minimized.toList()) {
-            val wasMinimized = window in from.minimized
-            val wasFloating = window in from.floating
-            from.remove(window)
-            from.model.forget(window)
-            if (wasMinimized) to.minimizedList += window else to.add(window)
-            if (wasFloating) to.floating += window
-        }
-        workspaces.values.remove(from)
-        arranger.arrange(to)
-    }
-
-    // PRIMARY_ONLY: the primary monitor shows the numbered workspaces, every other one a screen of its own.
-    internal fun arrangePrimary() {
-        if (workspaceMode != WorkspaceMode.PRIMARY_ONLY || monitorList.isEmpty() || onlyStandIn()) return
-        val primary = primaryMonitor
-        if (primary.workspace.number == 0) {
-            // The numbered workspace shown elsewhere (that monitor was primary) comes here; this one's windows join it.
-            val own = primary.workspace
-            val numbered = monitorList.map { it.workspace }.firstOrNull { it.number > 0 }
-                ?: workspaces.values.firstOrNull { it.number > 0 && it.homeMonitor == null }
-                ?: workspace(1, primary)
-            monitorList.firstOrNull { it.workspace === numbered }?.let { other ->
-                // (The focus goes along with the workspaces.)
-                if (focusedMonitor === other) moveFocusTo(primary)
-                other.workspace = workspace(0, other)
-                moveWorkspace(other.workspace, other)
-                arranger.arrange(other.workspace)
-            }
-            primary.workspace = numbered
-            moveWorkspace(numbered, primary)
-            numbered.lastMonitorName = primary.name
-            mergeInto(own, numbered)
-            arranger.arrange(numbered)
-        }
-        for (monitor in monitorList) {
-            if (monitor !== primary && monitor.workspace.number > 0) {
-                monitor.workspace = workspace(0, monitor)
-                moveWorkspace(monitor.workspace, monitor)
-                arranger.arrange(monitor.workspace)
-            }
-        }
-        changed()
-    }
-
-    // Workspaces that always exist are there; names and layouts of rules apply to those there are.
-    private fun applyWorkspaceRules() {
-        for (workspace in workspaces.values.toList()) {
-            if (workspace.number == 0) continue
-            val rule = ruleOf(workspace.number)
-            workspace.name = rule?.name
-            val wanted = rule?.layout ?: layout
-            // (A layout of the same kind keeps its arrangement.)
-            if (wanted !== workspace.layout && (wanted.javaClass != workspace.layout.javaClass || wanted.name != workspace.layout.name)) setLayout(workspace, wanted)
-        }
-        ensurePersistent()
-    }
-
-    internal fun ensurePersistent() {
-        if (onlyStandIn()) return
-        for (rule in workspaceRules.filter { it.persistent && it.number <= workspaceCount }) {
-            when (workspaceMode) {
-                WorkspaceMode.SPANNING, WorkspaceMode.SEPARATE -> for (monitor in monitorList) workspace(rule.number, monitor)
-                WorkspaceMode.PRIMARY_ONLY -> workspace(rule.number, primaryMonitor)
-                else -> workspace(rule.number, homeOf(rule.number) ?: primaryMonitor)
-            }
-        }
-    }
+    val allWorkspaces: Collection<Workspace> get() = workspaceHost.workspaces.values
 
     /**
      * Numbers of the workspaces there are (shown, with windows, or persistent) that Super+N
      * reaches from the monitor with the focus, in order.
      */
-    fun workspaceNumbers(): List<Int> {
-        val own = workspaceMode == WorkspaceMode.SPANNING || workspaceMode == WorkspaceMode.SEPARATE
-        return workspaces.values.filter { it.number > 0 && (!own || it.homeMonitor == focusedMonitor.name) }.map { it.number }.distinct().sorted()
-    }
+    fun workspaceNumbers(): List<Int> = workspaceHost.workspaceNumbers()
 
     /** The workspace [steps] after (or before, negative) the active one among those there are, going round. */
-    fun workspaceAfter(steps: Int): Int {
-        val numbers = (workspaceNumbers() + activeWorkspace.number).filter { it > 0 }.distinct().sorted()
-        if (numbers.isEmpty()) return 1
-        val at = numbers.indexOf(activeWorkspace.number).coerceAtLeast(0)
-        return numbers[Math.floorMod(at + steps, numbers.size)]
-    }
+    fun workspaceAfter(steps: Int): Int = workspaceHost.workspaceAfter(steps)
 
     /** The lowest workspace number with no windows (null: all [workspaceCount] have some). */
-    fun firstEmptyWorkspace(): Int? = (1..workspaceCount).firstOrNull { n ->
-        val key = keyFor(n, if (workspaceMode == WorkspaceMode.PRIMARY_ONLY) primaryMonitor else focusedMonitor)
-        workspaces[key]?.isEmpty != false
-    }
+    fun firstEmptyWorkspace(): Int? = workspaceHost.firstEmptyWorkspace()
 
     /** Windows on the active workspace, bottom to top. */
     val windows: List<Window> get() = activeWorkspace.windows
@@ -733,194 +584,25 @@ class Desktop(
      * window gets the keyboard. If another monitor shows it, the focus goes there instead.
      * With spanning workspaces, every monitor switches.
      */
-    fun switchTo(number: Int) {
-        if (number !in 1..workspaceCount) {
-            layoutLog.info { "There is no workspace $number (workspaceCount is $workspaceCount)" }
-            return
-        }
-        val before = activeWorkspace.number
-        pointerGrab.end()
-        when (workspaceMode) {
-            WorkspaceMode.SPANNING -> {
-                if (number == before) return
-                for (monitor in monitorList) show(workspace(number, monitor), on = monitor)
-            }
-            WorkspaceMode.SEPARATE -> {
-                if (number == before) return
-                show(workspace(number, focusedMonitor), on = focusedMonitor)
-            }
-            WorkspaceMode.PRIMARY_ONLY -> {
-                val primary = primaryMonitor
-                if (primary.workspace.number == number) {
-                    if (focusedMonitor !== primary) focusMonitor(primary)
-                    return
-                }
-                moveFocusTo(primary)
-                show(workspace(number, primary), on = primary)
-            }
-            WorkspaceMode.PER_MONITOR, WorkspaceMode.PINNED -> {
-                val home = homeOf(number)
-                val target = workspace(number, home ?: focusedMonitor)
-                val shownOn = monitorList.firstOrNull { it.workspace === target }
-                if (shownOn != null) {
-                    if (shownOn !== focusedMonitor) {
-                        previousWorkspaceNumber = before
-                        focusMonitor(shownOn)
-                    }
-                    return
-                }
-                val on = home ?: focusedMonitor
-                moveFocusTo(on)
-                show(target, on = on)
-            }
-        }
-        if (before > 0 && before != activeWorkspace.number) previousWorkspaceNumber = before
-        focus(arranger.topWindow(activeWorkspace))
-        layoutLog.info { "Workspace ${activeWorkspace.number} (${activeWorkspace.layout.name})${if (monitorList.size > 1) " on ${focusedMonitor.name}" else ""}" }
-        notifyEach(events.workspaceListeners, activeWorkspace, "workspace")
-    }
-
-    // [workspace] goes onto [monitor]: its floating windows keep their place relative to the
-    // monitor's corner (and stay on it), maximized and fullscreen ones fit it; tiled ones are
-    // arranged by whoever shows it.
-    internal fun moveWorkspace(workspace: Workspace, monitor: Monitor) {
-        val from = workspace.monitor
-        workspace.monitor = monitor
-        if (from == null || from === monitor) return
-        val dx = monitor.area.x - from.area.x
-        val dy = monitor.area.y - from.area.y
-        for (window in workspace.windows + workspace.minimized) {
-            when {
-                window.fullscreen || window.maximized -> if (window.configured) windowRoles.applyState(window)
-                !window.tiled -> {
-                    window.x = (window.x + dx).coerceIn(monitor.area.x, (monitor.area.right - 50).coerceAtLeast(monitor.area.x))
-                    window.y = (window.y + dy).coerceIn(monitor.area.y, (monitor.area.bottom - 50).coerceAtLeast(monitor.area.y))
-                    arranger.floatingRects[window]?.let { arranger.floatingRects[window] = Rect(window.x, window.y, it.width, it.height) }
-                }
-            }
-        }
-    }
-
-    // An empty workspace nobody sees goes away (unless it always exists), as one left empty does.
-    internal fun dropIfEmpty(workspace: Workspace) {
-        if (workspace.isEmpty && workspace.number > 0 && ruleOf(workspace.number)?.persistent != true && monitorList.none { it.workspace === workspace }) {
-            workspaces.values.remove(workspace)
-        }
-    }
-
-    // [workspace] is shown on [on] now (the one shown there before is hidden, gone if empty).
-    internal fun show(workspace: Workspace, on: Monitor) {
-        val previous = on.workspace
-        if (previous === workspace) return
-        if (animator.pick("workspaces", animations.workspaceSwitch).millis > 0 && !locked && !inOverview) {
-            val direction = if (workspace.number >= previous.number) 1 else -1
-            animator.slides[on] = DesktopAnimations.Slide(previous, workspace, direction, System.nanoTime())
-        }
-        // Pinned windows go along (they float, keeping their place on the monitor).
-        for (window in previous.windows.filter { it in arranger.pinned }) {
-            previous.remove(window)
-            previous.model.forget(window)
-            workspace.add(window)
-            workspace.floating += window
-        }
-        on.workspace = workspace
-        moveWorkspace(workspace, on)
-        popupHost.dismissHiddenGrabs("their workspace is not shown any more")
-        workspace.lastMonitorName = on.name
-        if (workspaceMode == WorkspaceMode.PINNED && workspace.number > 0 && !onlyStandIn()) pinnedHomes.putIfAbsent(workspace.number, on.name)
-        // Empty workspaces disappear once you leave them (never one on screen), unless they always exist.
-        dropIfEmpty(previous)
-        arranger.arrange(workspace)
-        changed()
-    }
+    fun switchTo(number: Int) = workspaceHost.switchTo(number)
 
     /** Gives the focus to [monitor] (its top window gets the keyboard). */
-    fun focusMonitor(monitor: Monitor) {
-        if (monitor !in monitorList) return
-        moveFocusTo(monitor)
-        focus(arranger.topWindow(monitor.workspace))
-    }
+    fun focusMonitor(monitor: Monitor) = workspaceHost.focusMonitor(monitor)
 
     /** The monitor next to the focused one in a direction ([dx], [dy] = -1, 0 or 1), if any. */
     fun monitorBeside(dx: Int, dy: Int, from: Monitor = focusedMonitor): Monitor? = screens.monitorBeside(dx, dy, from)
 
     /** Moves [window] to the workspace shown on [monitor] (it keeps its place there if floating). */
-    fun moveToMonitor(window: Window, monitor: Monitor) {
-        val from = monitorOf(window)
-        if (from === monitor) return
-        // A floating window keeps its place relative to the monitor.
-        if (!window.tiled) {
-            window.x = monitor.area.x + (window.x - from.area.x).coerceIn(0, (monitor.area.width - 50).coerceAtLeast(0))
-            window.y = monitor.area.y + (window.y - from.area.y).coerceIn(0, (monitor.area.height - 50).coerceAtLeast(0))
-        }
-        moveToWorkspace(window, monitor.workspace)
-        if (window.fullscreen || window.maximized) windowRoles.applyState(window)
-        focusMonitor(monitor)
-        focus(window)
-    }
-
-    internal fun moveFocusTo(monitor: Monitor) {
-        if (focusedMonitor === monitor) return
-        focusedMonitor = monitor
-        compositor.outputScale = monitor.scale
-        focusLog.trace { "Monitor ${monitor.name}" }
-    }
+    fun moveToMonitor(window: Window, monitor: Monitor) = workspaceHost.moveToMonitor(window, monitor)
 
     /**
      * Moves [window] to workspace [number] (if floating, it keeps its place — on that
      * workspace's monitor when it has one of its own).
      */
-    fun moveToWorkspace(window: Window, number: Int) {
-        if (number !in 1..workspaceCount) return
-        if (workspaceOf(window) == null) return // (a scratchpad's: no workspace is made for it)
-        val monitor = when (workspaceMode) {
-            WorkspaceMode.PRIMARY_ONLY -> primaryMonitor
-            WorkspaceMode.SPANNING, WorkspaceMode.SEPARATE -> monitorOf(window)
-            WorkspaceMode.PER_MONITOR, WorkspaceMode.PINNED -> homeOf(number) ?: monitorOf(window)
-        }
-        moveToWorkspace(window, workspace(number, monitor))
-    }
-
-    internal fun moveToWorkspace(window: Window, to: Workspace) {
-        val from = workspaceOf(window) ?: return
-        if (from === to) return
-        layoutLog.info { "$window moves from workspace ${from.number} to ${to.number}" }
-        val wasFloating = window in from.floating
-        // A floating window going to another monitor keeps its place relative to that one.
-        val fromMonitor = from.monitor
-        val toMonitor = to.monitor
-        if (!window.tiled && fromMonitor != null && toMonitor != null && fromMonitor !== toMonitor) {
-            window.x = toMonitor.area.x + (window.x - fromMonitor.area.x).coerceIn(0, (toMonitor.area.width - 50).coerceAtLeast(0))
-            window.y = toMonitor.area.y + (window.y - fromMonitor.area.y).coerceIn(0, (toMonitor.area.height - 50).coerceAtLeast(0))
-            arranger.floatingRects[window]?.let { arranger.floatingRects[window] = Rect(window.x, window.y, it.width, it.height) }
-        }
-        popupHost.dismissPopupsOf(window, "it moved to another workspace")
-        from.remove(window)
-        from.model.forget(window) // it lives on the other workspace now
-        arranger.pending.remove(window)
-        to.add(window)
-        if (wasFloating) to.floating += window
-        window.setActivated(false)
-        arranger.arrange(from)
-        arranger.arrange(to)
-        if (from === activeWorkspace) focus(arranger.topWindow(from))
-        dropIfEmpty(from)
-        changed()
-    }
+    fun moveToWorkspace(window: Window, number: Int) = workspaceHost.moveToWorkspace(window, number)
 
     /** Uses [layout] on [workspace]; windows move to their new places right away. */
-    fun setLayout(workspace: Workspace, layout: Layout) {
-        layoutLog.info { "Workspace ${workspace.number}: layout ${workspace.layout.name} → ${layout.name}" }
-        val wasTiled = workspace.tiledWindows().toSet()
-        workspace.layout = layout
-        // Windows leaving the layout get their own floating place back.
-        for (window in wasTiled - workspace.tiledWindows().toSet()) arranger.untile(window)
-        arranger.arrange(workspace)
-        changed()
-    }
-
-    internal fun workspaceOf(window: Window): Workspace? =
-        workspaces.values.firstOrNull { window in it.windows || window in it.minimized }
+    fun setLayout(workspace: Workspace, layout: Layout) = workspaceHost.setLayout(workspace, layout)
 
     /** Panels, docks, wallpapers, ... that are set up (configured), any layer. */
     val layers: List<LayerSurface> get() = layerHost.layerSurfaces
@@ -1509,7 +1191,7 @@ class Desktop(
 
     // A window's title bar came or went: its place changes.
     internal fun decorationOfChanged(window: Window) {
-        val workspace = workspaceOf(window) ?: return
+        val workspace = workspaceHost.workspaceOf(window) ?: return
         if (window.maximized && !window.fullscreen) windowRoles.applyState(window) else arranger.arrange(workspace)
         changed()
     }

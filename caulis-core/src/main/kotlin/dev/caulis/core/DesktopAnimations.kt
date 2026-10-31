@@ -112,7 +112,7 @@ internal class DesktopAnimations(private val desktop: Desktop) {
     }
 
     // [window] on its way as a picture (see Flight), if it is on screen and the animation is on.
-    internal fun flightOf(window: Window, kind: FlightKind, name: String, code: WindowAnimation, to: Rect? = null, workspace: Workspace? = desktop.workspaceOf(window)): Flight? {
+    internal fun flightOf(window: Window, kind: FlightKind, name: String, code: WindowAnimation, to: Rect? = null, workspace: Workspace? = desktop.workspaceHost.workspaceOf(window)): Flight? {
         val picked = pick(name, code)
         val millis = picked.millis
         if (millis <= 0 || desktop.locked || desktop.inOverview || workspace == null || desktop.monitorList.none { it.workspace === workspace } || desktop.scratchpadOf(window) != null) return null
@@ -131,7 +131,7 @@ internal class DesktopAnimations(private val desktop: Desktop) {
 
     // The last look of a window that is going away (taken while its picture is still there).
     internal fun lastLookOf(window: Window): Flight? {
-        val workspace = desktop.workspaceOf(window) ?: return null
+        val workspace = desktop.workspaceHost.workspaceOf(window) ?: return null
         if (window !in workspace.windows) return null
         return flightOf(window, FlightKind.CLOSE, "windowsOut", desktop.animations.windowClose, workspace = workspace)
     }

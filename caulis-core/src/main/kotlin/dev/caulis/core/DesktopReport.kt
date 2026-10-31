@@ -9,7 +9,7 @@ internal class DesktopReport(private val desktop: Desktop) {
         appendLine("Desktop ${desktop.width}x$desktop.height, room for windows $desktop.usableArea${if (desktop.locked) ", LOCKED" else ""}${if (desktop.inOverview) ", overview open" else ""}")
         appendLine("  focus: ${desktop.focusedWindow ?: "nothing"}; keyboard: ${desktop.seat.keyboardFocus?.roleObject ?: desktop.seat.keyboardFocus ?: "nobody"}; pointer at ${desktop.pointerX.toInt()},${desktop.pointerY.toInt()} over ${desktop.seat.pointerFocus?.roleObject ?: "nothing"}")
         appendLine("  cursor: ${desktop.cursorTheme.name} ${desktop.cursorTheme.size} px, showing ${desktop.cursorShape ?: "the program's own"}${if (desktop.cursors.cursorHidden) " (hidden)" else ""}")
-        for (workspace in desktop.workspaces.values.sortedBy { it.number }) {
+        for (workspace in desktop.workspaceHost.workspaces.values.sortedBy { it.number }) {
             appendLine("  workspace ${workspace.number}${if (workspace === desktop.activeWorkspace) " (on screen)" else ""}, layout ${workspace.layout.name}:")
             for (window in workspace.windows) appendLine("    ${describe(window, workspace)}")
             for (window in workspace.minimized) appendLine("    ${describe(window, workspace)} [minimized]")

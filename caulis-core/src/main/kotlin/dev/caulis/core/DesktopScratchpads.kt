@@ -118,7 +118,7 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
         if (before != null) {
             leavePad(before, window)
         } else {
-            val from = desktop.workspaceOf(window) ?: return
+            val from = desktop.workspaceHost.workspaceOf(window) ?: return
             if (window.fullscreen) desktop.setFullscreen(window, false)
             if (window.maximized) desktop.setMaximized(window, false)
             desktop.arranger.pinned -= window
@@ -200,7 +200,7 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
         }
         desktop.layoutLog.info { "$window dragged out of the special workspace ${pad.name}" }
         val there = desktop.monitorAt(x, y)
-        if (there !== desktop.focusedMonitor) desktop.moveFocusTo(there)
+        if (there !== desktop.focusedMonitor) desktop.workspaceHost.moveFocusTo(there)
         return moveOutOfSpecialWorkspace(window)
     }
 
@@ -251,7 +251,7 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
 
     fun moveToScratchpad(window: Window, name: String) {
         val pad = scratchpads[name] ?: return
-        val from = desktop.workspaceOf(window) ?: return
+        val from = desktop.workspaceHost.workspaceOf(window) ?: return
         from.remove(window)
         from.model.forget(window)
         desktop.arranger.pending.remove(window)

@@ -18,7 +18,7 @@ internal class DesktopPopups(private val desktop: Desktop) {
     fun popupBounds(popup: Popup): Rect? {
         val (ox, oy) = popup.parent?.let(desktop.hits::visibleOrigin) ?: popup.layerParent?.let { it.x to it.y } ?: return null
         val window = generateSequence(popup.parent) { (it.role as? Popup)?.parent }.mapNotNull { it.role as? Window }.firstOrNull()
-        val monitor = window?.let { if (desktop.workspaceOf(it) != null || desktop.directed(it)) desktop.monitorOf(it) else null } ?: desktop.monitorAt(ox.toDouble(), oy.toDouble())
+        val monitor = window?.let { if (desktop.workspaceHost.workspaceOf(it) != null || desktop.directed(it)) desktop.monitorOf(it) else null } ?: desktop.monitorAt(ox.toDouble(), oy.toDouble())
         val area = monitor.area
         return Rect(area.x - ox, area.y - oy, area.width, area.height)
     }
@@ -63,7 +63,7 @@ internal class DesktopPopups(private val desktop: Desktop) {
     internal fun popupShown(popup: Popup): Boolean = when (val owner = desktop.capturing.ownerOf(popup.surface)) {
         is Window -> owner.mapped && (
             desktop.scratchpadOf(owner)?.let { it.shown && !it.leaving }
-                ?: desktop.workspaceOf(owner)?.let { it.windows.contains(owner) && desktop.monitorList.any { m -> m.workspace === it } }
+                ?: desktop.workspaceHost.workspaceOf(owner)?.let { it.windows.contains(owner) && desktop.monitorList.any { m -> m.workspace === it } }
                 ?: false
             )
         is LayerSurface -> owner in desktop.layerHost.layerSurfaces

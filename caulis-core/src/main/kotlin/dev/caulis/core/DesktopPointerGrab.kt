@@ -114,9 +114,9 @@ internal class DesktopPointerGrab(private val desktop: Desktop, private val seat
             val rect = desktop.windowRoles.currentRect(ended.window)
             val target = desktop.monitorAt(rect.x + rect.width / 2.0, rect.y + rect.height / 2.0)
             val from = desktop.monitorOf(ended.window)
-            if (target !== from && desktop.workspaceOf(ended.window) != null) {
-                desktop.moveToWorkspace(ended.window, target.workspace)
-                desktop.moveFocusTo(target)
+            if (target !== from && desktop.workspaceHost.workspaceOf(ended.window) != null) {
+                desktop.workspaceHost.moveToWorkspace(ended.window, target.workspace)
+                desktop.workspaceHost.moveFocusTo(target)
                 desktop.focus(ended.window)
             }
         }
