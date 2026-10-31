@@ -222,14 +222,24 @@ class ComposeWidget @JvmOverloads constructor(
     override fun animating(now: Long): Boolean {
         // (While locked only the lock screen and the widgets shown then move on.)
         if (closed || (desktop.locked && !showsWhileLocked && desktop.lockScreen !== this)) return false
-        val shown = desktop.monitors.associateBy { it.name }
-        for (name in parts.keys.filter { it !in shown }) drop(name)
-        letHiddenGo(shown)
-        return parts.any { (name, part) ->
-            val monitor = shown.getValue(name)
-            !part.failed && part.scene.hasInvalidations() && place(monitor) != null && appearance(monitor).alpha > HIDDEN
-        } || moving()
+        val monitors = desktop.monitors
+        // (No maps here: this is asked for each widget at each refresh.)
+        if (parts.keys.any { name -> monitors.none { it.name == name } }) {
+            for (name in parts.keys.filter { name -> monitors.none { it.name == name } }) drop(name)
+        }
+        if (now - hiddenLookedAt >= HIDDEN_LOOK_NANOS) {
+            hiddenLookedAt = now
+            letHiddenGo(monitors.associateBy { it.name })
+        }
+        for (monitor in monitors) {
+            val part = parts[monitor.name] ?: continue
+            if (!part.failed && part.scene.hasInvalidations() && place(monitor) != null && appearance(monitor).alpha > HIDDEN) return true
+        }
+        return moving()
     }
+
+    // When scenes not shown were last looked for.
+    private var hiddenLookedAt = 0L
 
     // Scenes not shown for keepHiddenSeconds are let go (made anew when shown again).
     private fun letHiddenGo(shown: Map<String, Monitor>) {
@@ -592,6 +602,7 @@ internal const val WHEEL_UNITS = 15.0
 
 // As see-through as this: not seen (not drawn, no frames for it, no clicks).
 internal const val HIDDEN = 0.002f
+const val HIDDEN_LOOK_NANOS = 1_000_000_000L
 
 // A frame this slow (ms) is said at level 2.
 internal const val SLOW_FRAME_MILLIS = 50
