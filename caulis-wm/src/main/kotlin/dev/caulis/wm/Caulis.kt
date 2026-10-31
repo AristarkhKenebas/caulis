@@ -992,7 +992,7 @@ class Caulis {
     var colorScheme: ColorScheme = ColorScheme.DEFAULT
         set(value) {
             field = value
-            running?.applyAppearance()
+            running?.rlooks?.applyAppearance()
         }
 
     /**
@@ -1004,14 +1004,14 @@ class Caulis {
     var colorSchedule: ColorSchedule? = null
         set(value) {
             field = value
-            running?.applyAppearance()
+            running?.rlooks?.applyAppearance()
         }
 
     /** The accent colour programs are told (buttons, selections; libadwaita and others follow it), or null: their own. */
     var accentColor: dev.caulis.render.Color? = null
         set(value) {
             field = value
-            running?.applyAppearance()
+            running?.rlooks?.applyAppearance()
         }
 
     /**
@@ -1022,7 +1022,7 @@ class Caulis {
     var gtkThemes: Pair<String, String>? = null
         set(value) {
             field = value
-            running?.applyAppearance()
+            running?.rlooks?.applyAppearance()
         }
 
     /**
@@ -1052,7 +1052,7 @@ class Caulis {
     var appearanceToPrograms: Boolean? = null
         set(value) {
             field = value
-            running?.applyAppearance()
+            running?.rlooks?.applyAppearance()
         }
 
     /** The scheme programs are told now (from the schedule, by hand, or [colorScheme]). */
@@ -1064,7 +1064,7 @@ class Caulis {
      * or [colorScheme].
      */
     fun switchColorScheme(scheme: ColorScheme?) {
-        live().switchColorScheme(scheme)
+        live().rlooks.switchColorScheme(scheme)
     }
 
     /** Runs [action] whenever the scheme changes (to restyle a bar of your own, ...). */

@@ -50,7 +50,7 @@ internal class Running(
     width: Int,
     height: Int,
     /** Null where switching text consoles is impossible (nested mode). */
-    private val switchConsole: ((Int) -> Unit)?,
+    internal val switchConsole: ((Int) -> Unit)?,
 ) : AutoCloseable {
 
     // The configuration: replaced by a new one when it is reloaded (see reconfigure). Everything
@@ -145,6 +145,7 @@ internal class Running(
     val seat = Seat(display, Keymap.fromNames(layouts = config.keyboardLayouts, variants = config.keyboardVariants, options = config.keyboardOptions, model = config.keyboardModel))
     private val compositor = Compositor(display, renderer)
     val desktop = Desktop(renderer, seat, compositor, width, height)
+    internal val rlooks = RunningAppearance(this)
     internal val rtablets = RunningTablets(this)
 
     /** logind (on the screen): sleep and wake, lock requests, brightness. Null elsewhere. */
@@ -236,12 +237,8 @@ internal class Running(
     private val idleWatches = ArrayList<AutoCloseable>()
     private var appliedNumLock: Boolean? = null
 
-    // --- light and dark ---
-
     /** What programs are told about how to look (light or dark, the accent colour). */
     val appearance = dev.caulis.core.appearance.Appearance()
-    private val colorSchemes = ColorSchemes()
-    private var colorSchemeTimer: EventLoop.Timer? = null
     /** The session bus, connected when first asked for and shared (null: there is none). */
     val sessionBus: dev.caulis.core.dbus.DBusConnection? by lazy {
         dev.caulis.core.dbus.DBusConnection.session(loop).also { sessionBusConnected = true }
@@ -253,65 +250,6 @@ internal class Running(
         dev.caulis.core.dbus.DBusConnection.system(loop).also { systemBusConnected = true }
     }
     private var systemBusConnected = false
-
-    // Telling programs: the portal backend (on the session bus) and gsettings. Only while wanted.
-    private var portalSettings: dev.caulis.core.appearance.PortalSettings? = null
-    private var gsettings: dev.caulis.core.appearance.GSettingsAppearance? = null
-    private val appearanceLog = Logger("appearance")
-
-    /** The configuration's scheme, schedule, accent and GTK themes, applied (again). */
-    fun applyAppearance() {
-        val config = config
-        val toPrograms = config.appearanceToPrograms ?: (switchConsole != null)
-        if (toPrograms && gsettings == null) {
-            appearanceLog.info { "Programs are told the colour scheme (gsettings and the portal)" }
-            gsettings = dev.caulis.core.appearance.GSettingsAppearance(appearance).also { if (appearance.colorScheme != dev.caulis.core.appearance.ColorScheme.DEFAULT) it.write() }
-            portalSettings = sessionBus?.let { dev.caulis.core.appearance.PortalSettings(it, appearance) }
-        } else if (!toPrograms && gsettings != null) {
-            stopTellingPrograms()
-        }
-        gsettings?.gtkThemes = config.gtkThemes
-        appearance.accentColor = config.accentColor
-        if (colorSchemes.base != config.colorScheme) {
-            colorSchemes.base = config.colorScheme
-            colorSchemes.switch(null, java.time.ZonedDateTime.now()) // (set anew: it wins over one by hand)
-        }
-        colorSchemes.schedule = config.colorSchedule
-        updateColorScheme()
-    }
-
-    /** Light or dark by hand until the schedule's next change (null: back to the schedule). */
-    fun switchColorScheme(scheme: dev.caulis.core.appearance.ColorScheme?) {
-        appearanceLog.info { "Colour scheme by hand: ${scheme?.name?.lowercase() ?: "back to the schedule"}" }
-        colorSchemes.switch(scheme, java.time.ZonedDateTime.now())
-        updateColorScheme()
-    }
-
-    // The scheme of now, told; looked at again when the schedule changes it (at least hourly:
-    // the clock may be set, or the laptop asleep).
-    private fun updateColorScheme() {
-        colorSchemeTimer?.cancel()
-        colorSchemeTimer = null
-        val now = java.time.ZonedDateTime.now()
-        val (scheme, next) = colorSchemes.at(now)
-        if (appearance.colorScheme != scheme) {
-            appearance.colorScheme = scheme
-            ipc?.colorSchemeChanged(scheme)
-            for (action in config.colorSchemeListeners.toList()) safely("onColorSchemeChanged") { action(config, scheme) }
-        }
-        if (next != null) {
-            val millis = java.time.Duration.between(now, next).toMillis().coerceIn(1_000, 3_600_000)
-            appearanceLog.trace { "The colour scheme is looked at again in ${millis / 1000} s" }
-            colorSchemeTimer = loop.after(millis) { safely("the colour schedule") { updateColorScheme() } }
-        }
-    }
-
-    private fun stopTellingPrograms() {
-        portalSettings?.close()
-        portalSettings = null
-        gsettings?.close()
-        gsettings = null
-    }
 
     // keyboard-shortcuts-inhibit (set in init).
     private var shortcutsInhibit: dev.caulis.core.input.ShortcutsInhibit
@@ -392,7 +330,7 @@ internal class Running(
     val x11Display: String? get() = xwayland?.displayName
 
     // The IPC socket (null if turned off). Declared before init, which sets it.
-    private var ipc: IpcServer? = null
+    internal var ipc: IpcServer? = null
 
     // What every program started inside gets in its environment (on top of the compositor's
     // own) — Caulis's choices only: the user's [Caulis.environment] goes on top last (see
@@ -661,7 +599,7 @@ internal class Running(
     private fun wokeUp() {
         safely("waking the monitors") { wakeMonitors() }
         userActive()
-        safely("the colour schedule") { updateColorScheme() } // (the clock went on while asleep)
+        safely("the colour schedule") { rlooks.updateColorScheme() } // (the clock went on while asleep)
         config.wakeActions.toList().forEach { action -> safely("onWake") { action(config) } }
     }
 
@@ -757,7 +695,7 @@ internal class Running(
         applyKeyRepeat()
         applyKeymap()
         applyNumLock()
-        applyAppearance()
+        rlooks.applyAppearance()
         inputDevices?.settings = config.input
         inputDevices?.ownThread = config.inputThread
         applyWorkspaces()
@@ -1737,8 +1675,8 @@ internal class Running(
         sessionResources.toList().forEach { runCatching { it.close() } }
         sessionResources.clear()
         sessionScopes.values.forEach { it.close() }
-        colorSchemeTimer?.cancel()
-        stopTellingPrograms()
+        rlooks.colorSchemeTimer?.cancel()
+        rlooks.stopTellingPrograms()
         if (sessionBusConnected) sessionBus?.close()
         if (systemBusConnected) systemBus?.close()
         logind?.close()
