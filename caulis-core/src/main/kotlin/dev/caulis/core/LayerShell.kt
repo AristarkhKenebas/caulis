@@ -109,6 +109,9 @@ class LayerSurface internal constructor(
         var exclusiveEdge = 0
             internal set
 
+        internal fun sameAs(o: State) = layer == o.layer && width == o.width && height == o.height && anchor == o.anchor && exclusiveZone == o.exclusiveZone &&
+            marginTop == o.marginTop && marginRight == o.marginRight && marginBottom == o.marginBottom && marginLeft == o.marginLeft && keyboard == o.keyboard && exclusiveEdge == o.exclusiveEdge
+
         internal fun copy() = State(layer).also {
             it.width = width
             it.height = height
@@ -224,6 +227,13 @@ class LayerSurface internal constructor(
         surface.onCommit { committed() }
     }
 
+    // This commit changed neither its size nor anything it asked of its place.
+    internal var sameAsBefore = false
+        private set
+
+    private var arrangedWidth = 0
+    private var arrangedHeight = 0
+
     private fun committed() {
         if (!resource.isAlive) return
         // A width of 0 means "as wide as the screen": that needs both side edges anchored.
@@ -236,6 +246,10 @@ class LayerSurface internal constructor(
             resource.postError(ZwlrLayerSurfaceV1.Error.INVALID_SURFACE_STATE, "a buffer was attached before the first configure was acknowledged")
             return
         }
+        // (New pixels alone change nothing here: see DesktopLayers.layerCommitted.)
+        sameAsBefore = current.sameAs(pending) && arrangedWidth == surface.width && arrangedHeight == surface.height && mapped
+        arrangedWidth = surface.width
+        arrangedHeight = surface.height
         current = pending.copy()
         val wasMapped = mapped
         mapped = surface.hasContent && acknowledged

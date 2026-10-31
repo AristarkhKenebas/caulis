@@ -21,6 +21,8 @@ internal class DesktopLayers(private val desktop: Desktop) {
     internal var layerFocus: LayerSurface? = null
 
     fun layerCommitted(layer: LayerSurface) {
+        // New pixels only (a panel's clock): nothing to place anew, the scene stays.
+        if (layer.sameAsBefore && layer in layerSurfaces) return
         if (layer !in layerSurfaces) {
             layerSurfaces += layer
             desktop.layersLog.info { "Panel \"${layer.namespace}\" (${layer.surface.resource.client.name}) on the ${layer.current.layer} layer of ${desktop.monitorOf(layer).name}, anchors ${layer.current.anchor}, exclusive zone ${layer.current.exclusiveZone}" }

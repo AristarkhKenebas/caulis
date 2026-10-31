@@ -47,6 +47,35 @@ class LayerShellTest {
     }
 
     @Test
+    fun `a panel's new pixels leave the scene, its new height does not`() = withServer { server, client ->
+        var last: IntArray? = null
+        server.onServer { d -> d.backgroundChangeMillis = 0; d.background = Background.gradient(dev.caulis.render.Color.hex("#102030"), dev.caulis.render.Color.hex("#f0e0d0"), degrees = 30.0) }
+        val bar = client.panel(layer = 2, anchor = TOP or LEFT or RIGHT, width = 0, height = 30, exclusive = 30)
+        client.draw(bar.surface, bar.width, bar.height)
+        client.waitFor { server.onServer { it.usableArea } == Rect(0, 30, width, height - 30) }
+        client.connection.roundtrip()
+        Thread.sleep(200)
+        server.onFrameShown = { _, pixels -> last = pixels }
+        val version = server.onServer { it.version }
+        val red = 0xffff0000.toInt()
+        val (buffer, memory) = client.buffer(bar.width, bar.height)
+        memory.write { s -> for (i in 0 until bar.width * bar.height) s.setAtIndex(java.lang.foreign.ValueLayout.JAVA_INT, i.toLong(), red) }
+        bar.surface.attach(buffer, 0, 0)
+        bar.surface.damageBuffer(0, 0, bar.width, bar.height)
+        bar.surface.commit()
+        client.waitFor { last?.contains(red) == true }
+        kotlin.test.assertEquals(version, server.onServer { it.version }, "new pixels: the same scene")
+        kotlin.test.assertContentEquals(server.screenshot(), last, "and the screen as a whole redraw shows it")
+        // Another height, asked for: placed anew, windows make way.
+        bar.layer.setSize(0, 60)
+        bar.layer.setExclusiveZone(60)
+        bar.surface.commit()
+        client.connection.roundtrip()
+        client.draw(bar.surface, bar.width, 60)
+        client.waitFor { server.onServer { it.usableArea } == Rect(0, 60, width, height - 60) }
+    }
+
+    @Test
     fun `a bar along the top keeps its space free of windows`() = withServer { server, client ->
         server.onServer { it.layout = Dwindle(Gaps(0, 0)) }
         val bar = client.panel(layer = 2, anchor = TOP or LEFT or RIGHT, width = 0, height = 30, exclusive = 30)
