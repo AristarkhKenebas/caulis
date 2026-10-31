@@ -26,7 +26,7 @@ internal class DesktopWidgets(private val desktop: Desktop) {
             if (withWidgets) addWidgets(all, level)
             return
         }
-        val seconds = ((System.nanoTime() - desktop.paintStart) / 1e9).toFloat()
+        val seconds = ((System.nanoTime() - desktop.looks.paintStart) / 1e9).toFloat()
         val scene = wallpaperScene()
         for (monitor in desktop.monitorList) {
             for (drawing in list.toList()) {
@@ -38,7 +38,7 @@ internal class DesktopWidgets(private val desktop: Desktop) {
                     desktop.log.error("Your drawing $drawing failed (it is left out)", e)
                     continue
                 }
-                if (canvas.movingPaint) desktop.paintsMoving = true
+                if (canvas.movingPaint) desktop.looks.paintsMoving = true
                 all += canvas.items
             }
         }
@@ -46,7 +46,7 @@ internal class DesktopWidgets(private val desktop: Desktop) {
     }
 
     // What wallpaper shaders drawn on canvases need now (the pointer, the clock, all monitors).
-    private fun wallpaperScene() = WallpaperScene(desktop.wallpaperShaders, desktop.renderer, desktop.pointerX, desktop.pointerY, System.nanoTime(), if (desktop.monitorList.isEmpty()) Rect(0, 0, 1, 1) else desktop.desktopBounds()) { name, code, problem -> desktop.shaderWorks(name, code, problem) }
+    private fun wallpaperScene() = WallpaperScene(desktop.wallpaperShaders, desktop.renderer, desktop.pointerX, desktop.pointerY, System.nanoTime(), if (desktop.monitorList.isEmpty()) Rect(0, 0, 1, 1) else desktop.desktopBounds()) { name, code, problem -> desktop.looks.shaderWorks(name, code, problem) }
 
     internal val widgets = ArrayList<Widget>()
 
@@ -155,7 +155,7 @@ internal class DesktopWidgets(private val desktop: Desktop) {
     // The widgets of [level], on every monitor.
     internal fun addWidgets(all: MutableList<DrawItem>, level: DrawingLevel, onLockScreen: Boolean = false) {
         if (widgets.isEmpty()) return
-        val seconds = ((System.nanoTime() - desktop.paintStart) / 1e9).toFloat()
+        val seconds = ((System.nanoTime() - desktop.looks.paintStart) / 1e9).toFloat()
         val scene = wallpaperScene()
         for (monitor in desktop.monitorList) {
             for (widget in widgets.toList()) {
@@ -170,7 +170,7 @@ internal class DesktopWidgets(private val desktop: Desktop) {
                     desktop.log.error("Your widget $widget failed to draw (left out)", e)
                     continue
                 }
-                if (canvas.movingPaint) desktop.paintsMoving = true
+                if (canvas.movingPaint) desktop.looks.paintsMoving = true
                 all += canvas.items
             }
         }
@@ -179,7 +179,7 @@ internal class DesktopWidgets(private val desktop: Desktop) {
     // The director's pictures with [window], below it or above it.
     internal fun addDecorations(all: MutableList<DrawItem>, window: Window, place: WindowPlace, above: Boolean) {
         val d = desktop.director ?: return
-        val canvas = OverlayCanvas(null, listOf("decorations", window, above), ((System.nanoTime() - desktop.paintStart) / 1e9).toFloat())
+        val canvas = OverlayCanvas(null, listOf("decorations", window, above), ((System.nanoTime() - desktop.looks.paintStart) / 1e9).toFloat())
         try {
             d.decorate(window, place, canvas, above)
         } catch (e: Throwable) {
@@ -187,7 +187,7 @@ internal class DesktopWidgets(private val desktop: Desktop) {
             desktop.log.error("Your WindowDirector failed to decorate $window (left out)", e)
             return
         }
-        if (canvas.movingPaint) desktop.paintsMoving = true
+        if (canvas.movingPaint) desktop.looks.paintsMoving = true
         all += canvas.items
     }
 }

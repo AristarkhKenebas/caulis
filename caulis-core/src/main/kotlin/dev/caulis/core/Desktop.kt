@@ -71,6 +71,8 @@ class Desktop(
 
     internal val scaleFade = DesktopScaleFade(this)
 
+    internal val looks = DesktopLooks(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -120,7 +122,7 @@ class Desktop(
         appearingPictures.clear()
         backdrops.close()
         wallpaperShaders.close()
-        paintsTimer?.cancel()
+        looks.paintsTimer?.cancel()
         osd.close()
     }
 
@@ -140,7 +142,7 @@ class Desktop(
     private val backdrops = Backdrops(renderer, compositor.display.loop, changed = {
         version++
         onChange()
-    }, shaderWorks = { name, code, problem -> shaderWorks(name, code, problem) }, shaders = wallpaperShaders).also { it.fade = { usual -> animation("fadeBackground", usual) } }
+    }, shaderWorks = { name, code, problem -> looks.shaderWorks(name, code, problem) }, shaders = wallpaperShaders).also { it.fade = { usual -> animation("fadeBackground", usual) } }
 
     /**
      * Every wallpaper shader ([WallpaperShader], the background's or a drawing's) stands still:
@@ -1937,23 +1939,6 @@ class Desktop(
             changed()
         }
 
-    // How one window or panel is drawn: its picture clipped and faded, effects below it.
-    // [dim]: how much darker it is drawn (a window without the focus, see Effects.dimInactive).
-    internal class Look(val clip: Rect?, val radius: Float, val alpha: Float, val dim: Float = 0f) {
-        companion object {
-            val PLAIN = Look(null, 0f, 1f)
-        }
-    }
-
-    // Whether each window (or panel) had the focus, and since when (for the change of its look).
-    private val focusLooks = java.util.WeakHashMap<Any, Pair<Boolean, Long>>()
-
-    // Set while building the scene: a border or shadow changes by itself (a turning gradient,
-    // a shader using time) or after a focus change — frames go on.
-    internal var paintsMoving = false
-    private var focusChanging = false
-    internal val paintStart = System.nanoTime()
-
     /**
      * How many times a second borders and shadows that move by themselves (a turning gradient,
      * a shader using time) are drawn anew, at most (0, the default: every frame of the screen).
@@ -1966,82 +1951,6 @@ class Desktop(
             field = value
             renderLog.info { if (value == 0) "Moving borders and shadows: every frame" else "Moving borders and shadows: at most $value frames a second" }
         }
-
-    // When moving paints last moved on, and the frame asked for when they are due next.
-    private var paintsMovedAt = 0L
-    private var paintsTimer: dev.caulis.event.EventLoop.Timer? = null
-
-    // True if moving paints are due to move on now ([movingPaintsFps]); if not, a frame is asked for when they are.
-    private fun paintsDue(now: Long): Boolean {
-        val fps = movingPaintsFps
-        if (fps <= 0) return true
-        val interval = 1_000_000_000L / fps
-        if (now - paintsMovedAt >= interval) {
-            paintsMovedAt = now
-            return true
-        }
-        if (paintsTimer == null) {
-            paintsTimer = compositor.display.loop.after(((interval - (now - paintsMovedAt)) / 1_000_000).coerceAtLeast(1)) {
-                paintsTimer = null
-                changed()
-            }
-        }
-        return false
-    }
-
-    // The time a moving paint is drawn at (0 for one that does not move, or must not: [animate] false).
-    private fun paintTime(paint: dev.caulis.render.Paint, animate: Boolean = true): Float {
-        if (!animate || !paint.moving) return 0f
-        paintsMoving = true
-        return ((System.nanoTime() - paintStart) / 1e9).toFloat()
-    }
-
-    // Adds the effects that go below [owner]'s picture at [rect] (on screen, zoomed by [scale]),
-    // and returns how the picture itself is drawn.
-    private fun addEffects(all: MutableList<DrawItem>, owner: Any, surface: Surface, local: Rect, rect: Rect, scale: Double, fx: Effects, focused: Boolean): Look {
-        if (fx == Effects.NONE || rect.isEmpty) return Look.PLAIN
-        val radius = (fx.cornerRadius * scale).toFloat()
-        val alpha = if (focused) fx.opacity else fx.inactiveOpacity
-        // When the focus moves, the look before fades into the new one.
-        val now = System.nanoTime()
-        val change = focusLooks[owner]
-        if (change == null || change.first != focused) focusLooks[owner] = focused to if (change == null) 0L else now
-        val fading = animation("border", fx.focusChangeMillis)
-        val e = animationProgress(focusLooks.getValue(owner).second, fading.effectiveMillis, now)?.let { fading.curve.safeAt(it).toFloat().coerceIn(0f, 1f) }
-        if (e != null) focusChanging = true
-        fun shadowOf(focus: Boolean) = (if (focus) fx.shadow else fx.inactiveShadow ?: fx.shadow)?.takeIf { it != Shadow.NONE }
-        fun addShadow(shadow: Shadow, alpha: Float, key: String) {
-            val spread = (shadow.spread * scale).roundToInt()
-            val box = Rect(rect.x - spread, rect.y - spread, rect.width + 2 * spread, rect.height + 2 * spread)
-                .translate((shadow.offsetX * scale).roundToInt(), (shadow.offsetY * scale).roundToInt())
-            all += DrawItem.Shadow(EffectKey(key, owner), box, radius + spread, (shadow.softness * scale).toFloat().coerceAtLeast(1f), shadow.color, rect, radius, alpha, paintTime(shadow.color))
-        }
-        if (e != null) shadowOf(!focused)?.let { addShadow(it, 1 - e, "shadow before") }
-        shadowOf(focused)?.let { addShadow(it, e ?: 1f, "shadow") }
-        fx.blur?.let { blur ->
-            // Only worth it where one can see through the window.
-            val seeThrough = alpha < 1f || surface.opaqueRects().none { it.contains(local) }
-            if (seeThrough) all += DrawItem.Blur(EffectKey("blur", owner), rect, radius, (blur.size * scale).roundToInt().coerceAtLeast(1), blur.passes, blur.tone)
-        }
-        fx.border?.let { border ->
-            val width = (border.width * scale).roundToInt().coerceAtLeast(1)
-            val outer = Rect(rect.x - width, rect.y - width, rect.width + 2 * width, rect.height + 2 * width)
-            // Urgent, in a group, focused: the paint for each state (and the shader learns it).
-            val window = owner as? Window
-            val urgent = window?.urgent == true
-            val grouped = window != null && userCode("Your windowGrouped", false) { windowGrouped(window) }
-            fun stateOf(focus: Boolean) = dev.caulis.render.PaintState(focus, urgent, grouped)
-            fun paintOf(focus: Boolean) = border.paintFor(stateOf(focus))
-            // One pixel more, under the window's edge: its soft edge then blends into the border, not the background.
-            val round = if (radius > 0f) radius + width else 0f
-            // The border before stays below until the new one is all there.
-            if (e != null) all += DrawItem.Border(EffectKey("border before", owner), outer, round, width + 1f, paintOf(!focused), 1f, paintTime(paintOf(!focused), border.animate), stateOf(!focused))
-            all += DrawItem.Border(EffectKey("border", owner), outer, round, width + 1f, paintOf(focused), e ?: 1f, paintTime(paintOf(focused), border.animate), stateOf(focused))
-        }
-        fun dimOf(focus: Boolean) = if (focus) 0f else fx.dimInactive
-        val dim = if (e != null) dimOf(!focused) + (dimOf(focused) - dimOf(!focused)) * e else dimOf(focused)
-        return Look(if (radius > 0f) rect else null, radius, alpha, dim)
-    }
 
     // --- smooth movement -------------------------------------------------------------------
 
@@ -2225,54 +2134,6 @@ class Desktop(
         return DrawItem.Effect(
             key, texture, box, frame.alpha, shader, part(frame.shaderFrom), part(frame.shaderTo), frame.progress.toFloat(),
             fallback = Motion.mix(frame.shaderFrom, frame.shaderTo, frame.progress),
-        )
-    }
-
-    // A paint was drawn (or its shader did not compile): said like other shaders.
-    private fun paintWorks(paint: dev.caulis.render.Paint, drawn: Boolean) {
-        if (paint !is dev.caulis.render.Paint.Shader) return
-        val code = paint.code
-        shaderWorks(paint.name, code, if (drawn) null else renderer.effectProblem(code) ?: "it does not compile")
-    }
-
-    // Shaders that do not compile now, by name: their code then, and the notice that says so.
-    private val shaderNotices = HashMap<String, Pair<String, Notice>>()
-
-    // A shader was used: a notice says what is wrong with it (once per version of its code),
-    // and goes once a new version works.
-    internal fun shaderWorks(name: String, code: String, problem: String?) {
-        val known = shaderNotices[name]
-        if (problem == null) {
-            if (known != null && known.first != code) {
-                dismiss(known.second)
-                shaderNotices -= name
-                renderLog.info { "$name works now" }
-            }
-            return
-        }
-        if (known?.first == code) return
-        known?.let { dismiss(it.second) }
-        renderLog.warn("$name does not compile (drawn without it): $problem")
-        shaderNotices[name] = code to notify(readableShaderProblem(problem), NoticeLevel.ERROR, "$name does not compile")
-    }
-
-    // "Shader failed to compile: 0:15(2): error: ..." → "line 15: ...".
-    private fun readableShaderProblem(problem: String): String =
-        problem.removePrefix("Shader failed to compile: ").lines().map { it.trim() }.filter { it.isNotEmpty() }.map { line ->
-            Regex("""^\d+:(\d+)\(\d+\): (?:error: )?(.*)$""").find(line)?.let { "line ${it.groupValues[1]}: ${it.groupValues[2]}" } ?: line
-        }.take(4).joinToString("\n")
-
-    // [fx] at [alpha] of its strength (a window fading in or out).
-    private fun faded(fx: Effects, alpha: Float): Effects {
-        if (alpha >= 1f) return fx
-        if (fx == Effects.NONE) return Effects(opacity = alpha, inactiveOpacity = alpha)
-        return fx.copy(
-            opacity = fx.opacity * alpha,
-            inactiveOpacity = fx.inactiveOpacity * alpha,
-            shadow = fx.shadow?.let { it.copy(color = it.color.faded(alpha)) },
-            inactiveShadow = fx.inactiveShadow?.takeIf { it != Shadow.NONE }?.let { it.copy(color = it.color.faded(alpha)) } ?: fx.inactiveShadow,
-            border = fx.border?.faded(alpha),
-            blur = null,
         )
     }
 
@@ -3838,13 +3699,13 @@ class Desktop(
         var movingThing: Any? = null
         for (list in widgetHost.drawings.values) for (d in list) if (userCode("Your drawing (animating)", false) { d.animating(now) }) { directorMoving = true; movingThing = d }
         for (w in widgetHost.widgets.toList()) if (userCode("Your widget (animating)", false) { w.animating(now) }) { directorMoving = true; movingThing = w }
-        val paintsNow = paintsMoving && paintsDue(now)
-        if (glides.isNotEmpty() || pads.shownPads.any { it.changedAt != null } || overview.cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsNow || focusChanging || directorMoving) {
+        val paintsNow = looks.paintsMoving && looks.paintsDue(now)
+        if (glides.isNotEmpty() || pads.shownPads.any { it.changedAt != null } || overview.cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsNow || looks.focusChanging || directorMoving) {
             // Windows are gliding (or the overview zooms): the scene changes every frame until done.
             if (renderLog.level >= 2) {
                 val why = listOfNotNull("glides".takeIf { glides.isNotEmpty() }, "camera".takeIf { overview.cameraMoving(System.nanoTime()) }, "fading".takeIf { fadingNow },
                     "notices".takeIf { noticesMoving }, "animating".takeIf { animatingNow }, "backdrops".takeIf { backdropsChanging }, "paints".takeIf { paintsNow },
-                    "focus".takeIf { focusChanging }, "director".takeIf { directorAnimating }, movingThing?.let { "drawing or widget $it" })
+                    "focus".takeIf { looks.focusChanging }, "director".takeIf { directorAnimating }, movingThing?.let { "drawing or widget $it" })
                 renderLog.trace { "Moving: ${why.joinToString()}" }
                 busy.moving(why)
             }
@@ -4070,12 +3931,12 @@ class Desktop(
                 is DrawItem.Color -> renderer.drawColor(r.x, r.y, r.width, r.height, item.red, item.green, item.blue, item.alpha)
                 is DrawItem.Shadow -> {
                     val drawn = renderer.drawShadow(p(item.box), item.radius * s, item.softness * s, item.paint, p(item.cutOut), item.cutOutRadius * s, item.alpha, item.time)
-                    paintWorks(item.paint, drawn)
+                    looks.paintWorks(item.paint, drawn)
                     if (!drawn) renderer.drawShadow(p(item.box), item.radius * s, item.softness * s, dev.caulis.render.Paint.solid(dev.caulis.render.Color(0f, 0f, 0f, 0.45f * item.alpha)), p(item.cutOut), item.cutOutRadius * s)
                 }
                 is DrawItem.Border -> {
                     val drawn = renderer.drawRoundedRect(r, item.radius * s, item.paint, item.width * s, item.alpha, item.time, item.state)
-                    paintWorks(item.paint, drawn)
+                    looks.paintWorks(item.paint, drawn)
                     if (!drawn) renderer.drawRoundedRect(r, item.radius * s, item.paint.firstColor().let { it.copy(alpha = it.alpha * item.alpha) }, item.width * s)
                 }
                 is DrawItem.Blur -> renderer.drawBlur(r, item.radius * s, Math.round(item.size * s).coerceAtLeast(1), item.passes, item.tone)
@@ -4085,7 +3946,7 @@ class Desktop(
                 is DrawItem.Effect -> {
                     val code = item.shader.code
                     val drawn = renderer.drawTextureEffect(item.texture, r.x, r.y, r.width, r.height, item.alpha, code, item.from, item.to, item.progress)
-                    shaderWorks(item.shader.name, code, item.shader.fileProblem ?: if (drawn) null else renderer.effectProblem(code) ?: "it does not compile")
+                    looks.shaderWorks(item.shader.name, code, item.shader.fileProblem ?: if (drawn) null else renderer.effectProblem(code) ?: "it does not compile")
                     if (!drawn) {
                         val f = p(item.fallback)
                         renderer.drawTexture(item.texture, f.x, f.y, f.width, f.height, opaque = false, alpha = item.alpha)
@@ -4220,8 +4081,8 @@ class Desktop(
      */
     private fun scene(): List<DrawItem> {
         if (sceneVersion == version) return scene
-        paintsMoving = false
-        focusChanging = false
+        looks.paintsMoving = false
+        looks.focusChanging = false
         val all = ArrayList<DrawItem>()
         if (lockHost.lockHidesDesktop) {
             // Nothing of the desktop: a plain colour and the locker's pictures, on every monitor
@@ -4422,7 +4283,7 @@ class Desktop(
             // Everything behind it darker (a launcher in front of the desktop).
             val dim = layerHost.layerBehaviorOf(layerSurface).dimAround
             if (dim > 0f) all += DrawItem.Tint(EffectKey("dim around", layerSurface), monitorOf(layerSurface).area, 0f, 0f, 0f, 0f, dim)
-            val look = addEffects(all, layerSurface, surface, Rect(0, 0, surface.width, surface.height), rect, 1.0, userCode("Your layerEffects", Effects.NONE) { layerEffects(layerSurface) }, focused = true)
+            val look = looks.addEffects(all, layerSurface, surface, Rect(0, 0, surface.width, surface.height), rect, 1.0, userCode("Your layerEffects", Effects.NONE) { layerEffects(layerSurface) }, focused = true)
             addTree(all, surface, layerSurface.x, layerSurface.y, look = look)
         }
     }
@@ -4484,13 +4345,13 @@ class Desktop(
         // While gliding (or zoomed out), the picture is stretched to the in-between size.
         val scaleX = if (target.width > 0) rect.width.toDouble() / target.width else 1.0
         val scaleY = if (target.height > 0) rect.height.toDouble() / target.height else 1.0
-        val fx = faded(if (window.fullscreen) Effects.NONE else userCode("Your windowEffects", effects) { windowEffects(window) }, alpha)
+        val fx = looks.faded(if (window.fullscreen) Effects.NONE else userCode("Your windowEffects", effects) { windowEffects(window) }, alpha)
         // The compositor's title bar over it, if it has one: effects go around both.
         val bar = titleHeight(window).let { if (it > 0) Rect(rect.x, rect.y - (it * scaleY).roundToInt(), rect.width, (it * scaleY).roundToInt()) else null }
         val frame = bar?.union(rect) ?: rect
         // (A window of a scratchpad going keeps the look of the focus it had: border and glow fade with it.)
         val looksFocused = window === focusedWindow || (leaving && scratchpadOf(window)?.focusedAsItWent?.get() === window)
-        val look = addEffects(all, window, window.surface, visibleRect, frame, minOf(scaleX, scaleY), fx, focused = looksFocused)
+        val look = looks.addEffects(all, window, window.surface, visibleRect, frame, minOf(scaleX, scaleY), fx, focused = looksFocused)
         if (bar != null) all += DrawItem.Image(EffectKey("title", window), ownTitleBars.texture(window, bar), bar, look.clip, look.radius, alpha = alpha)
         addTree(all, window.surface, rect.x - (visibleRect.x * scaleX).roundToInt(), rect.y - (visibleRect.y * scaleY).roundToInt(), scaleX, scaleY, look)
         if (look.dim > 0f) all += DrawItem.Tint(EffectKey("dim", window), frame, look.radius, 0f, 0f, 0f, look.dim * alpha)
@@ -4534,15 +4395,15 @@ class Desktop(
         val scaleX = if (visible.width > 0) place.width / visible.width else 1.0
         val scaleY = if (visible.height > 0) place.height / visible.height else 1.0
         val scale = minOf(scaleX, scaleY)
-        var fx = faded(if (window.fullscreen) Effects.NONE else userCode("Your windowEffects", effects) { windowEffects(window) }, place.alpha)
+        var fx = looks.faded(if (window.fullscreen) Effects.NONE else userCode("Your windowEffects", effects) { windowEffects(window) }, place.alpha)
         place.cornerRadius?.let { r -> fx = fx.copy(cornerRadius = if (scale > 0) Math.round(r / scale).toInt() else 0) }
-        val look = addEffects(all, window, window.surface, visible, rect, scale, fx, focused = window === focusedWindow)
+        val look = looks.addEffects(all, window, window.surface, visible, rect, scale, fx, focused = window === focusedWindow)
         val clip = when {
             place.clip == null -> look.clip
             look.clip == null -> place.clip
             else -> look.clip.intersect(place.clip) ?: return
         }
-        val clipped = Look(clip, look.radius, look.alpha, look.dim)
+        val clipped = DesktopLooks.Look(clip, look.radius, look.alpha, look.dim)
         widgetHost.addDecorations(all, window, place, above = false)
         addTree(all, window.surface, rect.x - (visible.x * scaleX).roundToInt(), rect.y - (visible.y * scaleY).roundToInt(), scaleX, scaleY, clipped)
         if (look.dim > 0f) all += DrawItem.Tint(EffectKey("dim", window), rect, look.radius, 0f, 0f, 0f, look.dim * place.alpha)
@@ -4551,7 +4412,7 @@ class Desktop(
 
     internal fun addTree(
         items: MutableList<DrawItem>, surface: Surface, x: Int, y: Int,
-        scaleX: Double = 1.0, scaleY: Double = 1.0, look: Look = Look.PLAIN,
+        scaleX: Double = 1.0, scaleY: Double = 1.0, look: DesktopLooks.Look = DesktopLooks.Look.PLAIN,
     ) {
         val scaled = scaleX != 1.0 || scaleY != 1.0
         for (child in surface.stack) {
@@ -4569,7 +4430,7 @@ class Desktop(
     }
 
     // What an opaque picture still hides when clipped with round corners: everything but the corners.
-    private fun coversOf(opaque: List<Rect>, look: Look): List<Rect> {
+    private fun coversOf(opaque: List<Rect>, look: DesktopLooks.Look): List<Rect> {
         val clip = look.clip ?: return opaque
         val r = Math.ceil(look.radius.toDouble()).toInt()
         val wide = Rect(clip.x, clip.y + r, clip.width, clip.height - 2 * r)
