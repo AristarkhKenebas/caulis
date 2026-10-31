@@ -225,7 +225,7 @@ internal class DesktopPointer(private val desktop: Desktop) {
         if (desktop.quickCursorMoves && desktop.planes.earlyInFlight.get() <= 1) desktop.planes.quickCursor()
         desktop.planes.publishEarly()
         if (!desktop.locked) desktop.noticeBoard.pointerAt(desktop.pointerX, desktop.pointerY)
-        if (!desktop.locked && desktop.withOverlay { it.pointerMoved(desktop.pointerX, desktop.pointerY) }) {
+        if (!desktop.locked && desktop.overlayHost.withOverlay { it.pointerMoved(desktop.pointerX, desktop.pointerY) }) {
             desktop.onChange()
             return
         }
@@ -355,7 +355,7 @@ internal class DesktopPointer(private val desktop: Desktop) {
             if (desktop.seat.drag == null) movePointer(timeMillis, desktop.pointerX, desktop.pointerY) // the one under the pointer gets it now
             return
         }
-        if (desktop.withOverlay { it.pointerButton(button, pressed) }) return
+        if (desktop.overlayHost.withOverlay { it.pointerButton(button, pressed) }) return
         // Notices are above everything (a bar too): a click on one is theirs (none on a lock screen).
         if (!desktop.locked && noticeClick(button, pressed)) return
         // A release of a press that only closed a menu: nobody's.
@@ -480,7 +480,7 @@ internal class DesktopPointer(private val desktop: Desktop) {
             for (vertical in listOf(true, false)) {
                 val value = if (vertical) scroll.vertical else scroll.horizontal
                 val value120 = if (vertical) scroll.vertical120 else scroll.horizontal120
-                if (value != 0.0 || value120 != 0) desktop.withOverlay { it.scroll(vertical, if (value120 != 0) value120 / 120.0 else value / 15.0) }
+                if (value != 0.0 || value120 != 0) desktop.overlayHost.withOverlay { it.scroll(vertical, if (value120 != 0) value120 / 120.0 else value / 15.0) }
             }
             return
         }

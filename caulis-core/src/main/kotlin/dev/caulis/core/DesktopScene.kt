@@ -213,11 +213,11 @@ internal class DesktopScene(private val desktop: Desktop) {
             val (x, y) = desktop.hits.popupOrigin(popup)
             addTree(all, popup.surface, x, y)
         }
-        if (camera === DesktopOverview.Camera.NONE) for ((surface, place) in desktop.unmanaged) if (desktop.lockHost.drawnBehindLock(surface)) addTree(all, surface, place.first, place.second)
+        if (camera === DesktopOverview.Camera.NONE) for ((surface, place) in desktop.overlayHost.unmanaged) if (desktop.lockHost.drawnBehindLock(surface)) addTree(all, surface, place.first, place.second)
         desktop.widgetHost.addDrawings(all, DrawingLevel.ON_TOP)
         // Our own notices above everything (not on a locked screen: what they say is private).
         if (!desktop.locked) for (monitor in desktop.monitorList) all += desktop.noticeBoard.items(monitor, desktop.monitorList, desktop.noticeFallback(monitor))
-        if (!desktop.locked) desktop.overlay?.takeIf { it !== desktop.brokenOverlay }?.let { open ->
+        if (!desktop.locked) desktop.overlay?.takeIf { it !== desktop.overlayHost.brokenOverlay }?.let { open ->
             for (monitor in desktop.monitorList) {
                 val canvas = OverlayCanvas(monitor, "overlay ${monitor.name}")
                 try {
@@ -225,11 +225,11 @@ internal class DesktopScene(private val desktop: Desktop) {
                 } catch (e: Throwable) {
                     e.rethrowIfFatal()
                     desktop.overlayLog.error("$open failed to draw; closing it", e)
-                    desktop.brokenOverlay = open
+                    desktop.overlayHost.brokenOverlay = open
                     desktop.onChange()
                     break
                 }
-                if (desktop.brokenOverlay !== open) all += canvas.items
+                if (desktop.overlayHost.brokenOverlay !== open) all += canvas.items
             }
         }
         if (!desktop.locked) all += desktop.osd.items(desktop.focusedMonitor, System.nanoTime())

@@ -55,7 +55,7 @@ internal class DesktopLayers(private val desktop: Desktop) {
         val pushAll = room(NoticePlacement.Banner.Room.PUSH_ALL)
         val pushWindows = room(NoticePlacement.Banner.Room.PUSH_WINDOWS)
         val bottom = banner?.bottom == true
-        val full = desktop.withoutBanners(monitor.area, monitor, pushAll, bottom)
+        val full = desktop.overlayHost.withoutBanners(monitor.area, monitor, pushAll, bottom)
         // Widgets keeping room at an edge (a bar of our own), nearest it in the order added:
         // panels and windows make way.
         var free = full
@@ -79,7 +79,7 @@ internal class DesktopLayers(private val desktop: Desktop) {
             placeLayer(layer, if (layer.current.exclusiveZone < 0) full else usable)
         }
         // (Below the ones that push everything: those are nearest the edge.)
-        if (pushWindows > 0) usable = desktop.withoutBanners(usable, monitor, pushAll + pushWindows, bottom)
+        if (pushWindows > 0) usable = desktop.overlayHost.withoutBanners(usable, monitor, pushAll + pushWindows, bottom)
         if (usable != monitor.usableArea) {
             monitor.usableArea = usable
             if (refit) desktop.screens.refitWindows(monitor)

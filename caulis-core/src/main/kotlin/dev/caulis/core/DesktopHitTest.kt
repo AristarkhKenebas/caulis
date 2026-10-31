@@ -36,7 +36,7 @@ internal class DesktopHitTest(private val desktop: Desktop) {
         fun widget(level: DrawingLevel): Desktop.Pointed? =
             if (widgetsToo && desktop.widgetHost.widgets.isNotEmpty()) desktop.widgetHost.widgetAt(x, y, level)?.let { (widget, area) -> Desktop.Pointed.AtWidget(widget, area, level) } else null
         widget(DrawingLevel.ON_TOP)?.let { return it }
-        for ((surface, place) in desktop.unmanaged.entries.reversed()) {
+        for ((surface, place) in desktop.overlayHost.unmanaged.entries.reversed()) {
             hitTree(surface, x - place.first, y - place.second, surface)?.let { return it.at() }
         }
         for (popup in desktop.popupHost.popups.asReversed()) {

@@ -22,7 +22,7 @@ internal class DesktopProtocols(private val desktop: Desktop) :
     override fun setUrgent(window: Window, urgent: Boolean) = desktop.setUrgent(window, urgent)
 
     override fun titleBarsOf(window: Window): TitleBars = desktop.titleBarsOf(window)
-    override fun decorationOfChanged(window: Window) = desktop.decorationOfChanged(window)
+    override fun decorationOfChanged(window: Window) = desktop.overlayHost.decorationOfChanged(window)
     override fun onDecorationSettingsChanged(tellAll: () -> Unit) {
         desktop.decorationsChanged = tellAll
     }

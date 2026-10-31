@@ -30,7 +30,7 @@ internal class DesktopWindows(private val desktop: Desktop) {
         placement.fullscreen?.let { window.fullscreen = it }
         val workspace = desktop.arranger.workspaceFor(placement)
         val monitor = workspace.monitor ?: desktop.focusedMonitor
-        if (window.maximized && !window.fullscreen) return desktop.withoutTitle(window, monitor.usableArea).let { it.width to it.height }
+        if (window.maximized && !window.fullscreen) return desktop.overlayHost.withoutTitle(window, monitor.usableArea).let { it.width to it.height }
         if (window.fullscreen) return monitor.area.let { it.width to it.height }
         if (placement.floating ?: (placement.pinned == true || desktop.arranger.floats(window))) return (placement.width ?: 0) to (placement.height ?: 0)
         val target = desktop.arranger.arrange(workspace, extra = window)[window] ?: return 0 to 0
@@ -283,7 +283,7 @@ internal class DesktopWindows(private val desktop: Desktop) {
             if (!window.tiled && window.mapped) desktop.arranger.floatingRects[window] = currentRect(window)
             // Fullscreen covers its monitor; maximized leaves panels and docks free.
             val monitor = desktop.monitorOf(window)
-            val area = if (window.fullscreen) monitor.area else desktop.withoutTitle(window, monitor.usableArea)
+            val area = if (window.fullscreen) monitor.area else desktop.overlayHost.withoutTitle(window, monitor.usableArea)
             desktop.animator.moveSmoothly(window, area.x, area.y)
             window.configure(area.width, area.height)
         } else if (workspace != null && window in workspace.tiledWindows()) {

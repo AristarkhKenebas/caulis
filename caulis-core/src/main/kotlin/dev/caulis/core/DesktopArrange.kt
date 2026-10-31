@@ -81,7 +81,7 @@ internal class DesktopArrange(private val desktop: Desktop) {
     // Respects the program's own size limits: a window that cannot be as big (or small) as
     // its tile is centred in it instead of being pushed off screen (R5).
     internal fun fit(window: Window, place: Rect): Rect {
-        val tile = desktop.withoutTitle(window, place) // the compositor's title bar takes the top of the tile
+        val tile = desktop.overlayHost.withoutTitle(window, place) // the compositor's title bar takes the top of the tile
         val w = limitSize(tile.width, window.minWidth, window.maxWidth)
         val h = limitSize(tile.height, window.minHeight, window.maxHeight)
         return Rect(tile.x + (tile.width - w) / 2, tile.y + (tile.height - h) / 2, w, h)

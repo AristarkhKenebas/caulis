@@ -87,6 +87,8 @@ class Desktop(
 
     internal val workspaceHost = DesktopWorkspaces(this)
 
+    internal val overlayHost = DesktopOverlays(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -931,34 +933,19 @@ class Desktop(
 
     // --- surfaces that place themselves (X11 menus and tooltips) ---------------------------
 
-    internal val unmanaged = LinkedHashMap<Surface, Pair<Int, Int>>()
-
     /**
      * Shows [surface] at [x], [y] (desktop units) above the windows, as it places itself —
      * an X11 menu or tooltip ("override-redirect" window). Again to move it.
      */
-    fun showUnmanaged(surface: Surface, x: Int, y: Int) {
-        if (!surface.resource.isAlive) return
-        if (unmanaged.remove(surface) == null) surface.resource.onDestroy { hideUnmanaged(surface) }
-        unmanaged[surface] = x to y // last shown on top
-        changed()
-    }
+    fun showUnmanaged(surface: Surface, x: Int, y: Int) = overlayHost.showUnmanaged(surface, x, y)
 
-    fun hideUnmanaged(surface: Surface) {
-        if (unmanaged.remove(surface) == null) return
-        if (seat.keyboardFocus === surface) focusUnmanaged(null)
-        changed()
-    }
+    fun hideUnmanaged(surface: Surface) = overlayHost.hideUnmanaged(surface)
 
     /**
      * Gives the keyboard to [surface], shown with [showUnmanaged] — an X11 launcher, game or
      * menu that grabbed the keyboard; null gives it back to the focused window.
      */
-    fun focusUnmanaged(surface: Surface?) {
-        if (surface != null && surface !in unmanaged) return
-        focusLog.trace { "Keyboard to ${surface?.roleObject ?: "the focused window"} (places itself)" }
-        widgetHost.keyboardTo(surface ?: layerHost.exclusiveLayer()?.surface ?: focusedWindow?.surface)
-    }
+    fun focusUnmanaged(surface: Surface?) = overlayHost.focusUnmanaged(surface)
 
     // --- title bars (server-side decorations) ---------------------------------------------
 
@@ -986,7 +973,7 @@ class Desktop(
         set(value) {
             field = value
             ownTitleBars.close()
-            for (window in allWindows) decorationOfChanged(window)
+            for (window in allWindows) overlayHost.decorationOfChanged(window)
         }
 
     // --- the background -----------------------------------------------------------------------
@@ -1053,12 +1040,7 @@ class Desktop(
      * grey when [off] (muted). A new one replaces it at once; it goes by itself.
      */
     @JvmOverloads
-    fun showLevel(title: String, level: Double? = null, off: Boolean = false) {
-        val own = osdHandler
-        if (own != null && userCode("Your on-screen display", false) { own(title, level, off) }) return
-        osd.show(Osd.Look(title, level, off))
-        changed()
-    }
+    fun showLevel(title: String, level: Double? = null, off: Boolean = false) = overlayHost.showLevel(title, level, off)
 
     /**
      * An on-screen display of your own: told what [showLevel] would show ("Volume 45 %", the
@@ -1070,68 +1052,20 @@ class Desktop(
      * The on-screen display with a short list: [title] and [choices], the one at [chosen]
      * marked (a key pressed again moves the mark; see the display modes of a laptop's key).
      */
-    fun showChoices(title: String, choices: List<String>, chosen: Int) {
-        osd.show(Osd.Look(title, null, false, choices, chosen))
-        changed()
-    }
+    fun showChoices(title: String, choices: List<String>, chosen: Int) = overlayHost.showChoices(title, choices, chosen)
 
     /** The [Overlay] open now (it has the keyboard and the pointer), or null. */
     var overlay: Overlay? = null
-        private set
+        internal set
 
     /** Opens [overlay] above everything (one closes the one open before). */
-    fun openOverlay(overlay: Overlay) {
-        if (locked) {
-            overlayLog.info { "Not opened while the session is locked: $overlay" }
-            return
-        }
-        closeOverlay()
-        this.overlay = overlay
-        pointerGrab.end()
-        overlayLog.info { "Open: $overlay" }
-        seat.pointerMotion(0, null, 0.0, 0.0) // the program under the pointer loses it
-        overlay.pointerMoved(pointerX, pointerY)
-        changed()
-        cursors.cursorChanged()
-    }
+    fun openOverlay(overlay: Overlay) = overlayHost.openOverlay(overlay)
 
     /** Closes the [overlay] open now (if any); programs get the keyboard and pointer again. */
-    fun closeOverlay() {
-        val open = overlay ?: return
-        overlay = null
-        brokenOverlay = null
-        overlayLog.info { "Closed: $open" }
-        changed()
-        try {
-            open.closed()
-        } catch (e: Throwable) {
-            e.rethrowIfFatal()
-            overlayLog.error("$open failed while closing", e)
-        }
-        pointerInput.movePointer(0, pointerX, pointerY) // the program under the pointer gets it back
-        cursors.cursorChanged()
-    }
+    fun closeOverlay() = overlayHost.closeOverlay()
 
     /** The [overlay] looks different now: drawn again. */
-    fun redrawOverlay() {
-        if (overlay != null) changed()
-    }
-
-    // An overlay that failed to draw (closed before the next frame).
-    internal var brokenOverlay: Overlay? = null
-
-    // Runs [action] on the overlay; one that fails is closed (never the compositor with it).
-    internal inline fun withOverlay(action: (Overlay) -> Unit): Boolean {
-        val open = overlay ?: return false
-        try {
-            action(open)
-        } catch (e: Throwable) {
-            e.rethrowIfFatal()
-            overlayLog.error("$open failed; closing it", e)
-            closeOverlay()
-        }
-        return true
-    }
+    fun redrawOverlay() = overlayHost.redrawOverlay()
 
     /** Closes [notice] (it fades away). */
     fun dismiss(notice: Notice) = noticeBoard.dismiss(notice)
@@ -1151,50 +1085,17 @@ class Desktop(
     // Where notices go that belong to no monitor there is now.
     internal fun noticeFallback(monitor: Monitor) = if (this::focusedMonitor.isInitialized) focusedMonitor else monitor
 
-    // [rect] without the strip banners take at the edge of [monitor].
-    internal fun withoutBanners(rect: Rect, monitor: Monitor, room: Int, bottom: Boolean): Rect {
-        if (room <= 0) return rect
-        return if (bottom) {
-            Rect(rect.x, rect.y, rect.width, (minOf(rect.bottom, monitor.area.bottom - room) - rect.y).coerceAtLeast(1))
-        } else {
-            val top = maxOf(rect.y, monitor.area.y + room)
-            Rect(rect.x, top, rect.width, (rect.bottom - top).coerceAtLeast(1))
-        }
-    }
-
     /** Who draws [window]'s title bar now. */
     fun titleBarsOf(window: Window): TitleBars = titleBarsFor?.let { rule -> userCode("Your titleBarsFor", null) { rule(window) } } ?: titleBars
 
     /** How high the compositor's title bar over [window] is, in desktop units (0: it has none). */
-    fun titleHeight(window: Window): Int {
-        if (window.fullscreen) return 0
-        val mode = titleBarsOf(window)
-        return when {
-            mode == TitleBars.NONE -> 0
-            window.needsTitleBar -> titleBarStyle.height
-            window.serverDecorated && mode == TitleBars.COMPOSITOR -> titleBarStyle.height
-            else -> 0
-        }
-    }
-
-    // [area] without the title bar at its top (where the window's own picture goes).
-    internal fun withoutTitle(window: Window, area: Rect): Rect {
-        val bar = titleHeight(window)
-        return if (bar == 0) area else Rect(area.x, area.y + bar, area.width, (area.height - bar).coerceAtLeast(1))
-    }
+    fun titleHeight(window: Window): Int = overlayHost.titleHeight(window)
 
     // Set by ServerDecorations: tells the programs again when the settings change.
     internal var decorationsChanged: () -> Unit = {}
 
     /** Asks [titleBarsFor] again for every window (its answer may have changed, e.g. with a title). */
     fun titleBarsChanged() = decorationsChanged()
-
-    // A window's title bar came or went: its place changes.
-    internal fun decorationOfChanged(window: Window) {
-        val workspace = workspaceHost.workspaceOf(window) ?: return
-        if (window.maximized && !window.fullscreen) windowRoles.applyState(window) else arranger.arrange(workspace)
-        changed()
-    }
 
     // --- effects ---------------------------------------------------------------------------
 

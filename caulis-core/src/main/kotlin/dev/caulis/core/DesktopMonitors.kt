@@ -201,7 +201,7 @@ internal class DesktopMonitors(private val desktop: Desktop) {
                     window.configure(monitor.area.width, monitor.area.height)
                     desktop.animator.moveSmoothly(window, monitor.area.x, monitor.area.y)
                 } else if (window.maximized) {
-                    val area = desktop.withoutTitle(window, monitor.usableArea)
+                    val area = desktop.overlayHost.withoutTitle(window, monitor.usableArea)
                     window.configure(area.width, area.height)
                     desktop.animator.moveSmoothly(window, area.x, area.y)
                 }

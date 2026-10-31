@@ -27,12 +27,12 @@ internal class DesktopKeys(private val desktop: Desktop) {
         // A key pressed while the overview or an overlay had the keyboard: its release is not
         // for programs either (they never saw the press); the keyboard's state follows both.
         if (!pressed && keptKeys.remove(evdevCode)) {
-            if (!desktop.locked && desktop.overlay != null) desktop.withOverlay { it.key(evdevCode, false) }
+            if (!desktop.locked && desktop.overlay != null) desktop.overlayHost.withOverlay { it.key(evdevCode, false) }
             desktop.seat.trackKey(evdevCode, false)
             return
         }
         if (!desktop.locked && desktop.overlay != null) {
-            desktop.withOverlay { it.key(evdevCode, pressed) }
+            desktop.overlayHost.withOverlay { it.key(evdevCode, pressed) }
             if (pressed) return keepKey(evdevCode) // ...as with the overview below
         }
         if (desktop.inOverview && pressed) {

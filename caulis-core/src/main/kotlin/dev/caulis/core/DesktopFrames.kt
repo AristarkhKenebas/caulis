@@ -51,7 +51,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
          */
         presentDirect: ((DmabufBuffer) -> Boolean)? = null,
     ): Boolean {
-        if (desktop.brokenOverlay != null && desktop.brokenOverlay === desktop.overlay) desktop.closeOverlay()
+        if (desktop.overlayHost.brokenOverlay != null && desktop.overlayHost.brokenOverlay === desktop.overlay) desktop.closeOverlay()
         // Each asked every time (they move their animations on, and let go of what faded away:
         // none may be skipped because another already said yes).
         val now = System.nanoTime()
