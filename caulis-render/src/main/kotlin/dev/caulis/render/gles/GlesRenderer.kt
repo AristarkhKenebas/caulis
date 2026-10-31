@@ -313,12 +313,33 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         target as? GlesFramebuffer ?: throw notOurs(target)
         require(part.size == 4) { "a part is x, y, width and height, not ${part.size} numbers" }
         // Into the target, whole and cleared; then the frame being drawn goes on where it was.
+        // (Its picture may still be bound from being shown: never read and written at once.)
+        Gles.glActiveTexture(Gles.GL_TEXTURE0())
+        Gles.glBindTexture(Gles.GL_TEXTURE_2D(), 0)
         bindTarget(target, null)
         Gles.glClearColor(0f, 0f, 0f, 0f)
         Gles.glClear(Gles.GL_COLOR_BUFFER_BIT())
         try {
             return shaded(0, 0, target.width, target.height, fragment, floats, ints, texture, part)
         } finally {
+            this.target?.let { bindTarget(it, clip) }
+        }
+    }
+
+    override fun redrawShadedInto(
+        target: GpuTarget, area: Rect, fragment: String, floats: Map<String, FloatArray>, ints: Map<String, Int>, texture: GpuTexture?, part: FloatArray,
+    ): Boolean {
+        target as? GlesFramebuffer ?: throw notOurs(target)
+        require(part.size == 4) { "a part is x, y, width and height, not ${part.size} numbers" }
+        // Only there, and replacing what it has; then the frame being drawn goes on where it was.
+        Gles.glActiveTexture(Gles.GL_TEXTURE0())
+        Gles.glBindTexture(Gles.GL_TEXTURE_2D(), 0)
+        bindTarget(target, area)
+        Gles.glDisable(Gles.GL_BLEND())
+        try {
+            return shaded(0, 0, target.width, target.height, fragment, floats, ints, texture, part)
+        } finally {
+            Gles.glEnable(Gles.GL_BLEND())
             this.target?.let { bindTarget(it, clip) }
         }
     }

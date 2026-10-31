@@ -120,6 +120,18 @@ interface Renderer : AutoCloseable {
         texture: GpuTexture? = null, part: FloatArray = floatArrayOf(0f, 0f, 1f, 1f),
     ): Boolean = false
 
+    /**
+     * The same as [drawShadedInto], but only inside [area] (the target's pixels): the rest of
+     * [target] stays as it is, nothing is cleared, and each pixel the shader gives replaces what
+     * was there (no blending) — one it `discard`s keeps its old colour. The shader's `uv` goes
+     * over all of [target] as with [drawShadedInto]. For a picture of which only a part moves.
+     * Returns false (drawing nothing) if it does not compile, or if this renderer cannot.
+     */
+    fun redrawShadedInto(
+        target: GpuTarget, area: Rect, fragment: String, floats: Map<String, FloatArray>, ints: Map<String, Int> = emptyMap(),
+        texture: GpuTexture? = null, part: FloatArray = floatArrayOf(0f, 0f, 1f, 1f),
+    ): Boolean = false
+
     /** From now on, draws only inside [clip] (pixels; null: everywhere) — for a frame redrawn in parts. */
     fun setClip(clip: Rect?) {}
 
