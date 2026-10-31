@@ -24,7 +24,7 @@ internal class DesktopTouch(private val desktop: Desktop, private val seat: Seat
     fun down(timeMillis: Int, id: Int, x: Double, y: Double) {
         desktop.onUserActivity()
         val plain = !desktop.locked && desktop.overlay == null && !desktop.inOverview && desktop.grab == null && desktop.grabs.isEmpty()
-        val hit = if (plain) (desktop.pointedAt(x, y, widgetsToo = true) as? Desktop.Pointed.AtSurface)?.hit else null
+        val hit = if (plain) (desktop.hits.pointedAt(x, y, widgetsToo = true) as? Desktop.Pointed.AtSurface)?.hit else null
         if (hit != null && seat.takesTouch(hit.surface)) {
             (hit.root.roleObject as? Window)?.let { if (it !== desktop.focusedWindow) desktop.focus(it) }
             touchPoints[id] = TouchPoint(hit.surface, x - hit.localX * hit.scaleX, y - hit.localY * hit.scaleY, hit.scaleX, hit.scaleY)

@@ -132,12 +132,12 @@ internal class DesktopTitleBars(private val desktop: Desktop) : AutoCloseable {
     fun at(x: Double, y: Double): Decoration? {
         if (desktop.locked || desktop.inOverview) return null
         val (fullscreen, normal) = desktop.stackingOrder().partition { it.fullscreen }
-        if (fullscreen.any { !desktop.directed(it) && desktop.windowHit(it, x, y) != null }) return null
+        if (fullscreen.any { !desktop.directed(it) && desktop.hits.windowHit(it, x, y) != null }) return null
         // A director's windows are where it draws them, with no bars or edges of ours.
-        for ((window, place) in desktop.places.entries.reversed()) if (window.mapped && place.takesInput && place.alpha > 0f && desktop.directedHit(window, place, x, y) != null) return null
+        for ((window, place) in desktop.places.entries.reversed()) if (window.mapped && place.takesInput && place.alpha > 0f && desktop.hits.directedHit(window, place, x, y) != null) return null
         for (window in normal.asReversed()) {
             if (desktop.directed(window)) continue
-            if (desktop.windowHit(window, x, y) != null) return null // the window's own picture is on top
+            if (desktop.hits.windowHit(window, x, y) != null) return null // the window's own picture is on top
             barAt(window, x, y)?.let { return it }
         }
         return null

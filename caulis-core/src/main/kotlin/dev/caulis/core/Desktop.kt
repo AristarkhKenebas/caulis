@@ -47,6 +47,8 @@ class Desktop(
 
     internal val planes = DesktopCursorPlanes(this)
 
+    internal val hits = DesktopHitTest(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -404,7 +406,7 @@ class Desktop(
     private fun desktopBounds(): Rect = monitorList.map { it.area }.reduce(Rect::union)
 
     // The monitor a lock surface covers (its output's, else the first).
-    private fun lockMonitor(surface: LockSurface): Monitor =
+    internal fun lockMonitor(surface: LockSurface): Monitor =
         surface.output?.let { output -> monitorList.firstOrNull { it.output === output } } ?: monitorList.first()
 
     // --- a scale change: the last frame melts into the new layout -------------------------
@@ -668,7 +670,7 @@ class Desktop(
     // What wallpaper shaders drawn on canvases need now (the pointer, the clock, all monitors).
     private fun wallpaperScene() = WallpaperScene(wallpaperShaders, renderer, pointerX, pointerY, System.nanoTime(), if (monitorList.isEmpty()) Rect(0, 0, 1, 1) else desktopBounds()) { name, code, problem -> shaderWorks(name, code, problem) }
 
-    private val widgets = ArrayList<Widget>()
+    internal val widgets = ArrayList<Widget>()
     internal var hoveredWidget: Widget? = null
     internal var pressedWidget: PressedWidget? = null
     private var hoveredArea: Rect? = null
@@ -777,7 +779,7 @@ class Desktop(
     }
 
     // The widget under ([x], [y]) at [level], topmost first, and its area there.
-    private fun widgetAt(x: Double, y: Double, level: DrawingLevel): Pair<Widget, Rect>? {
+    internal fun widgetAt(x: Double, y: Double, level: DrawingLevel): Pair<Widget, Rect>? {
         if (widgets.isEmpty()) return null
         val monitor = monitorAt(x, y)
         for (widget in widgets.asReversed()) {
@@ -1584,7 +1586,7 @@ class Desktop(
 
     // --- panels, docks, bars, wallpapers (layer shell) -------------------------------------------
 
-    private val layerSurfaces = ArrayList<LayerSurface>()
+    internal val layerSurfaces = ArrayList<LayerSurface>()
 
     /** Panels, docks, wallpapers, ... that are set up (configured), any layer. */
     val layers: List<LayerSurface> get() = layerSurfaces
@@ -1811,7 +1813,7 @@ class Desktop(
         return AutoCloseable { lockListeners -= listener }
     }
 
-    private fun lockSurfaces(): List<LockSurface> = lock?.surfaces?.filter { it.mapped } ?: emptyList()
+    internal fun lockSurfaces(): List<LockSurface> = lock?.surfaces?.filter { it.mapped } ?: emptyList()
 
     // Surfaces that may get input while locked: the current locker's (with their subsurfaces).
     private fun belongsToLocker(surface: Surface): Boolean {
@@ -1850,7 +1852,7 @@ class Desktop(
 
     // The lock's rule for programs' surfaces: while a locker program has locked only its
     // surfaces may have input; behind our own lock screen only those its author allows.
-    private fun lockAllows(surface: Surface): Boolean {
+    internal fun lockAllows(surface: Surface): Boolean {
         if (sessionLocked) return belongsToLocker(surface)
         val own = ownLock ?: return true
         return userCode("Your lock screen (surfaces)", false) { own.surfaces(surface) }
@@ -2048,7 +2050,7 @@ class Desktop(
         if (surface.mapped && seat.keyboardFocus == null && keyboardWidget == null) keyboardTo(surface.surface)
         changed()
         // The pointer may be over it now.
-        val hit = surfaceAt(pointerX, pointerY)
+        val hit = hits.surfaceAt(pointerX, pointerY)
         seat.pointerMotion((System.nanoTime() / 1_000_000).toInt(), hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
     }
 
@@ -2110,7 +2112,7 @@ class Desktop(
     private val scratchpads = LinkedHashMap<String, Scratchpad>()
 
     // Scratchpads on screen (or leaving it), the last shown on top.
-    private val shownPads = ArrayList<Scratchpad>()
+    internal val shownPads = ArrayList<Scratchpad>()
 
     // The scratchpad window with the keyboard, if any.
     private var padFocus: Window? = null
@@ -2875,7 +2877,7 @@ class Desktop(
 
     // --- surfaces that place themselves (X11 menus and tooltips) ---------------------------
 
-    private val unmanaged = LinkedHashMap<Surface, Pair<Int, Int>>()
+    internal val unmanaged = LinkedHashMap<Surface, Pair<Int, Int>>()
 
     /**
      * Shows [surface] at [x], [y] (desktop units) above the windows, as it places itself —
@@ -3993,7 +3995,7 @@ class Desktop(
 
     /** Where [popup] is on screen. */
     fun screenRect(popup: Popup): Rect {
-        val (x, y) = popupOrigin(popup)
+        val (x, y) = hits.popupOrigin(popup)
         val visible = popup.shell.visibleRect
         return Rect(x + visible.x, y + visible.y, visible.width, visible.height)
     }
@@ -4195,7 +4197,7 @@ class Desktop(
     }
 
     /** The window under the desktop point ([x], [y]), if any. */
-    fun windowAt(x: Double, y: Double): Window? = surfaceAt(x, y)?.root?.roleObject as? Window
+    fun windowAt(x: Double, y: Double): Window? = hits.surfaceAt(x, y)?.root?.roleObject as? Window
 
     /** The windows on screen bottom to top, as they are drawn (X11 windows are stacked the same way). */
     val stacking: List<Window> get() = stackingOrder()
@@ -4282,7 +4284,7 @@ class Desktop(
     // --- popups and focus ------------------------------------------------------------------
 
     /** Mapped popups, in the order they opened (children after parents). */
-    private val popups = ArrayList<Popup>()
+    internal val popups = ArrayList<Popup>()
 
     /** Popups that asked for a grab: a click outside them closes them. */
     internal val grabs = ArrayList<Popup>()
@@ -4307,7 +4309,7 @@ class Desktop(
 
     // A menu stays on the monitor its window (or panel) is on.
     override fun popupBounds(popup: Popup): Rect? {
-        val (ox, oy) = popup.parent?.let(::visibleOrigin) ?: popup.layerParent?.let { it.x to it.y } ?: return null
+        val (ox, oy) = popup.parent?.let(hits::visibleOrigin) ?: popup.layerParent?.let { it.x to it.y } ?: return null
         val window = generateSequence(popup.parent) { (it.role as? Popup)?.parent }.mapNotNull { it.role as? Window }.firstOrNull()
         val monitor = window?.let { if (workspaceOf(it) != null || directed(it)) monitorOf(it) else null } ?: monitorAt(ox.toDouble(), oy.toDouble())
         val area = monitor.area
@@ -4351,7 +4353,7 @@ class Desktop(
 
     // A menu is shown only while what it belongs to is: its window on a shown workspace (not
     // minimized) or in a shown scratchpad, or its panel. (Until its program closes it.)
-    private fun popupShown(popup: Popup): Boolean = when (val owner = ownerOf(popup.surface)) {
+    internal fun popupShown(popup: Popup): Boolean = when (val owner = ownerOf(popup.surface)) {
         is Window -> owner.mapped && (
             scratchpadOf(owner)?.let { it.shown && !it.leaving }
                 ?: workspaceOf(owner)?.let { it.windows.contains(owner) && monitorList.any { m -> m.workspace === it } }
@@ -4749,7 +4751,7 @@ class Desktop(
         if (tablet.settings.pointerOnly == true) return null
         if ((overlay != null && !locked) || inOverview || grab != null || grabs.isNotEmpty() || buttonsHeld > 0) return null
         if (!locked && noticeBoard.at(x, y) != null) return null
-        val hit = (pointedAt(x, y, widgetsToo = true) as? Pointed.AtSurface)?.hit ?: return null
+        val hit = (hits.pointedAt(x, y, widgetsToo = true) as? Pointed.AtSurface)?.hit ?: return null
         // (Our title bars and window edges are above what is under them.)
         if (!locked && ownTitleBars.at(x, y) != null) return null
         if (!hit.surface.resource.isAlive || !seat.allowed(hit.surface) || !tablets.takes(hit.surface)) return null
@@ -4851,7 +4853,7 @@ class Desktop(
         }
         // Over one of our widgets: it has the pointer (the program below loses it). Title bars
         // are above the widgets below the windows.
-        val under = pointedAt(pointerX, pointerY, widgetsToo = true)
+        val under = hits.pointedAt(pointerX, pointerY, widgetsToo = true)
         val overWidget = under as? Pointed.AtWidget
         // (Behind a lock no title bar lights up and no edge shows a resize cursor.)
         val decoration = if (locked || (overWidget != null && overWidget.level != DrawingLevel.BELOW_WINDOWS)) null else ownTitleBars.at(pointerX, pointerY)
@@ -4908,7 +4910,7 @@ class Desktop(
         if (overlay != null || grab != null || inOverview || buttonsHeld > 0) return
         if (pens.onPrograms) return // (the pen has it: the program under it gets the pen)
         val time = (System.nanoTime() / 1_000_000).toInt()
-        val under = pointedAt(pointerX, pointerY, widgetsToo = true)
+        val under = hits.pointedAt(pointerX, pointerY, widgetsToo = true)
         val overWidget = under as? Pointed.AtWidget
         val onBar = (overWidget == null || overWidget.level == DrawingLevel.BELOW_WINDOWS) && ownTitleBars.at(pointerX, pointerY) != null
         if (hoverWidget(time, overWidget.takeIf { !onBar }, moved = false) || onBar) return
@@ -5025,7 +5027,7 @@ class Desktop(
             // Only the lock screen can be under the pointer: a click on one of its surfaces
             // (the locker's on another monitor, or one our own lock screen allows) gives that
             // one the keyboard — taking it from our own lock screen's widget too.
-            if (pressed) surfaceAt(pointerX, pointerY)?.takeIf { lockAllows(it.root) }?.let { hit ->
+            if (pressed) hits.surfaceAt(pointerX, pointerY)?.takeIf { lockAllows(it.root) }?.let { hit ->
                 val window = hit.root.roleObject as? Window
                 if (window != null) focus(window) else if (seat.keyboardFocus !== hit.root) keyboardTo(hit.root)
             }
@@ -5047,7 +5049,7 @@ class Desktop(
         // Title bars and edges of our own (no program sees these clicks).
         if (grabs.isEmpty() && ownTitleBars.button(button, pressed)) return
         if (pressed) {
-            val hit = surfaceAt(pointerX, pointerY)
+            val hit = hits.surfaceAt(pointerX, pointerY)
             // A click outside the open menus closes them (and is not passed to the window below).
             if (grabs.isNotEmpty() && (hit == null || popups.none { it.surface === hit.root })) {
                 grabs.toList().asReversed().forEach { it.dismiss() }
@@ -5209,124 +5211,11 @@ class Desktop(
         val scaleY: Double = 1.0,
     )
 
-    private fun surfaceAt(x: Double, y: Double): Hit? = (pointedAt(x, y, widgetsToo = false) as? Pointed.AtSurface)?.hit
-
     // What the pointer at ([x], [y]) is over: a program's surface or (with [widgetsToo]) one of
     // our widgets — topmost first, in the order they are drawn.
     internal sealed interface Pointed {
         class AtSurface(val hit: Hit) : Pointed
         class AtWidget(val widget: Widget, val area: Rect, val level: DrawingLevel) : Pointed
-    }
-
-    internal fun pointedAt(x: Double, y: Double, widgetsToo: Boolean): Pointed? {
-        fun Hit?.at(): Pointed? = this?.let(Pointed::AtSurface)
-        fun widget(level: DrawingLevel): Pointed? =
-            if (widgetsToo && widgets.isNotEmpty()) widgetAt(x, y, level)?.let { (widget, area) -> Pointed.AtWidget(widget, area, level) } else null
-        if (lockHidesDesktop) {
-            // Only the lock is there: the widgets usable on it, the locker's surfaces (each on its monitor).
-            for (level in listOf(DrawingLevel.ON_TOP, DrawingLevel.ABOVE_WINDOWS, DrawingLevel.BELOW_WINDOWS, DrawingLevel.WALLPAPER)) widget(level)?.let { return it }
-            for (lockSurface in lockSurfaces()) {
-                val area = lockMonitor(lockSurface).area
-                hitTree(lockSurface.surface, x - area.x, y - area.y, lockSurface.surface)?.let { return it.at() }
-            }
-            return null
-        }
-        if (locked) {
-            // Behind our own lock screen (the desktop drawn): what is there, if the lock lets it have input.
-            return when (val there = pointedAtUnlocked(x, y, widgetsToo)) {
-                is Pointed.AtSurface -> there.takeIf { lockAllows(it.hit.root) }
-                else -> there // (only usable widgets are found)
-            }
-        }
-        return pointedAtUnlocked(x, y, widgetsToo)
-    }
-
-    private fun pointedAtUnlocked(x: Double, y: Double, widgetsToo: Boolean): Pointed? {
-        fun Hit?.at(): Pointed? = this?.let(Pointed::AtSurface)
-        fun widget(level: DrawingLevel): Pointed? =
-            if (widgetsToo && widgets.isNotEmpty()) widgetAt(x, y, level)?.let { (widget, area) -> Pointed.AtWidget(widget, area, level) } else null
-        widget(DrawingLevel.ON_TOP)?.let { return it }
-        for ((surface, place) in unmanaged.entries.reversed()) {
-            hitTree(surface, x - place.first, y - place.second, surface)?.let { return it.at() }
-        }
-        for (popup in popups.asReversed()) {
-            if (!popupShown(popup)) continue
-            val (px, py) = popupOrigin(popup)
-            hitTree(popup.surface, x - px, y - py, popup.surface)?.let { return it.at() }
-        }
-        layerAt(LayerShell.Layer.OVERLAY, x, y)?.let { return it.at() }
-        for (pad in shownPads.asReversed()) {
-            if (pad.leaving) continue
-            for (window in pad.windows.asReversed()) {
-                val visible = window.visibleRect
-                hitTree(window.surface, x - (window.x - visible.x), y - (window.y - visible.y), window.surface)?.let { return it.at() }
-            }
-        }
-        val (fullscreen, normal) = stackingOrder().partition { it.fullscreen }
-        for (window in fullscreen.asReversed()) if (window !in places && !directed(window)) windowHit(window, x, y)?.let { return it.at() }
-        layerAt(LayerShell.Layer.TOP, x, y)?.let { return it.at() }
-        widget(DrawingLevel.ABOVE_WINDOWS)?.let { return it }
-        // The director's windows, topmost first, where they are drawn (stretched maybe).
-        for ((window, place) in places.entries.reversed()) if (window.mapped && place.takesInput && place.alpha > 0f) directedHit(window, place, x, y)?.let { return it.at() }
-        for (window in normal.asReversed()) if (window !in places && !directed(window)) windowHit(window, x, y)?.let { return it.at() }
-        widget(DrawingLevel.BELOW_WINDOWS)?.let { return it }
-        layerAt(LayerShell.Layer.BOTTOM, x, y)?.let { return it.at() }
-        layerAt(LayerShell.Layer.BACKGROUND, x, y)?.let { return it.at() }
-        return widget(DrawingLevel.WALLPAPER)
-    }
-
-    // [place] is where the picture is; the program is told the point in its own size.
-    internal fun directedHit(window: Window, place: WindowPlace, x: Double, y: Double): Hit? {
-        if (x < place.x || y < place.y || x >= place.x + place.width || y >= place.y + place.height) return null
-        place.clip?.let { c -> if (x < c.x || y < c.y || x >= c.right || y >= c.bottom) return null }
-        val visible = window.visibleRect
-        val scaleX = if (visible.width > 0 && place.width > 0) place.width / visible.width else 1.0
-        val scaleY = if (visible.height > 0 && place.height > 0) place.height / visible.height else 1.0
-        val hit = hitTree(window.surface, visible.x + (x - place.x) / scaleX, visible.y + (y - place.y) / scaleY, window.surface) ?: return null
-        return Hit(hit.surface, hit.localX, hit.localY, hit.root, scaleX, scaleY)
-    }
-
-    internal fun windowHit(window: Window, x: Double, y: Double): Hit? {
-        val visible = window.visibleRect
-        return hitTree(window.surface, x - (window.x - visible.x), y - (window.y - visible.y), window.surface)
-    }
-
-    private fun layerAt(layer: LayerShell.Layer, x: Double, y: Double): Hit? {
-        for (surface in layerSurfaces.asReversed()) {
-            if (!surface.mapped || surface.current.layer != layer) continue
-            hitTree(surface.surface, x - surface.x, y - surface.y, surface.surface)?.let { return it }
-        }
-        return null
-    }
-
-    // Checks a surface and its subsurfaces, topmost first. x, y are relative to [surface].
-    private fun hitTree(surface: Surface, x: Double, y: Double, root: Surface): Hit? {
-        for (child in surface.stack.asReversed()) {
-            if (child === surface) {
-                if (surface.hasContent && surface.acceptsInput(x, y)) return Hit(surface, x, y, root)
-            } else {
-                val sub = child.subsurface ?: continue
-                hitTree(child, x - sub.x, y - sub.y, root)?.let { return it }
-            }
-        }
-        return null
-    }
-
-    // Where a popup's surface starts on the output.
-    private fun popupOrigin(popup: Popup): Pair<Int, Int> {
-        val (parentX, parentY) = popup.parent?.let(::visibleOrigin) ?: popup.layerParent?.let { it.x to it.y } ?: (0 to 0)
-        val visible = popup.shell.visibleRect
-        return (parentX + popup.x - visible.x) to (parentY + popup.y - visible.y)
-    }
-
-    // Where the visible top left corner of a window or popup is on the output.
-    private fun visibleOrigin(shell: ShellSurface): Pair<Int, Int> = when (val role = shell.role) {
-        is Window -> role.x to role.y
-        is Popup -> {
-            val (parentX, parentY) = role.parent?.let(::visibleOrigin) ?: role.layerParent?.let { it.x to it.y } ?: (0 to 0)
-            (parentX + role.x) to (parentY + role.y)
-        }
-        else -> 0 to 0
     }
 
     // --- drawing ----------------------------------------------------------------------
@@ -5877,7 +5766,7 @@ class Desktop(
         for (popup in popups) {
             if (camera !== Camera.NONE) break // menus are not part of the overview
             if (!popupShown(popup) || !drawnBehindLock(popup.surface)) continue
-            val (x, y) = popupOrigin(popup)
+            val (x, y) = hits.popupOrigin(popup)
             addTree(all, popup.surface, x, y)
         }
         if (camera === Camera.NONE) for ((surface, place) in unmanaged) if (drawnBehindLock(surface)) addTree(all, surface, place.first, place.second)
