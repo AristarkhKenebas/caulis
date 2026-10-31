@@ -136,4 +136,30 @@ class EventLoopTest {
         assertTrue(dev.caulis.ffi.NativeMemory.residentKb() > 0)
         if (dev.caulis.ffi.NativeMemory.canTrim) assertTrue(dev.caulis.ffi.NativeMemory.limitPools(8))
     }
+
+    @Test
+    fun `stopped from another thread, it ends at once though it sleeps`() {
+        val loop = EventLoop()
+        val thread = Thread { loop.run() }
+        thread.start()
+        Thread.sleep(150) // (asleep by now)
+        val started = System.nanoTime()
+        loop.stop()
+        thread.join(2000)
+        kotlin.test.assertFalse(thread.isAlive)
+        kotlin.test.assertTrue((System.nanoTime() - started) / 1_000_000 < 500, "it took ${(System.nanoTime() - started) / 1_000_000} ms")
+        loop.close()
+    }
+
+    @Test
+    fun `a timer far away does not keep it from a nearer one`() {
+        val loop = EventLoop()
+        var ran = false
+        loop.after(5000) {}
+        loop.after(30) { ran = true; loop.stop() }
+        val started = System.nanoTime()
+        loop.run()
+        kotlin.test.assertTrue(ran && (System.nanoTime() - started) / 1_000_000 < 900)
+        loop.close()
+    }
 }

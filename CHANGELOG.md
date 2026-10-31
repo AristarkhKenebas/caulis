@@ -19,6 +19,7 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - A window's new title now reaches its title bar and your rules at once; before, it waited for the program's next commit.
 
 ### Changed
+- An event loop at rest wakes once a second, not ten times (the main loop, the X11 router, the input thread's); `stop()` wakes it at once.
 - A program's shared-memory picture is copied to the GPU part by part: only the rectangles it said changed, not the band of whole rows around them all. A blinking cursor in a wide window and a status line at the bottom of a terminal no longer copy all of it. New: `GpuTexture.uploadPart`; a compositor with a `GpuTexture` of its own needs a rebuild. The render log's "Frames in the last" line says how much was copied.
 - A program drawing no longer makes the desktop work out its whole scene again. A commit that changes only pixels (same size, same regions, same place) marks what changed and asks for a frame; everything else builds a new scene as before. `CAULIS_FULL_REDRAW=1` (`Desktop.fullRedraw`) also turns this off, to compare. At `CAULIS_LOG=render=2` the "Frames in the last" line also says how many scenes were built.
 - Input devices (`InputDevices`) are a module of their own, `caulis-libinput`. Nothing changes for users: `caulis-core` depends on it (as an `api` dependency), and the packages and classes are the same.
