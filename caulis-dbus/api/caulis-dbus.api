@@ -8,6 +8,7 @@ public final class dev/caulis/core/dbus/DBusConnection : java/lang/AutoCloseable
 	public final fun export (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)Ljava/lang/AutoCloseable;
 	public final fun getUniqueName ()Ljava/lang/String;
 	public final fun keep (Ldev/caulis/ffi/Fd;)V
+	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
 	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
 	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
 	public final synthetic fun onSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
@@ -71,6 +72,7 @@ public final class dev/caulis/core/dbus/DBusScope : java/lang/AutoCloseable {
 	public final fun getConnection ()Ldev/caulis/core/dbus/DBusConnection;
 	public final fun getUniqueName ()Ljava/lang/String;
 	public final fun keep (Ldev/caulis/ffi/Fd;)V
+	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
 	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
 	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
 	public final fun onSignal (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;

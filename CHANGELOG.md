@@ -19,6 +19,7 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - A window's new title now reaches its title bar and your rules at once; before, it waited for the program's next commit.
 
 ### Changed
+- Following a bus name (`onSignal` with a well-known `sender`) asks the bus only for that name's owner changes, not for every program coming and going: the program is not woken for them. New overload of `DBusConnection.onSignal` / `DBusScope.onSignal` with `arg0`.
 - With several monitors, something moving builds one scene per moment instead of one per monitor's refresh: a 60 Hz monitor no longer pays for a 144 Hz monitor's animation.
 - An event loop at rest wakes once a second, not ten times (the main loop, the X11 router, the input thread's); `stop()` wakes it at once.
 - A program's shared-memory picture is copied to the GPU part by part: only the rectangles it said changed, not the band of whole rows around them all. A blinking cursor in a wide window and a status line at the bottom of a terminal no longer copy all of it. New: `GpuTexture.uploadPart`; a compositor with a `GpuTexture` of its own needs a rebuild. The render log's "Frames in the last" line says how much was copied.

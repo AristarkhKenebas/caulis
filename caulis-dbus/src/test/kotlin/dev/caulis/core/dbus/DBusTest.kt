@@ -204,4 +204,32 @@ class DBusTest {
         const val MANAGER = "org.freedesktop.login1.Manager"
         const val MANAGER_PATH = "/org/freedesktop/login1"
     }
+
+    @Test
+    fun `told of one name's owner, the others' stay away`() {
+        EventLoop().use { loop ->
+            val listener = DBusConnection.session(loop)
+            assumeTrue(listener != null, "no session bus")
+            val other = DBusConnection.session(loop)!!
+            listener!!.use { other.use {
+                fun until(done: () -> Boolean) {
+                    val end = System.nanoTime() + 5_000_000_000
+                    while (!done() && System.nanoTime() < end) loop.dispatch(20)
+                    check(done()) { "timed out" }
+                }
+                until { listener.uniqueName != null && other.uniqueName != null }
+                val wanted = "dev.caulis.WantedName.p${ProcessHandle.current().pid()}"
+                val otherName = "dev.caulis.OtherName.p${ProcessHandle.current().pid()}"
+                val heard = ArrayList<Any?>()
+                listener.onSignal("org.freedesktop.DBus", "NameOwnerChanged", "/org/freedesktop/DBus", "org.freedesktop.DBus", wanted) { heard += it.body[0] }
+                var asked = 0
+                listener.call("org.freedesktop.DBus", ObjectPath("/org/freedesktop/DBus"), "org.freedesktop.DBus", "GetId", "", emptyList()) { asked++ }
+                until { asked == 1 }
+                other.requestName(otherName) { asked++ }
+                other.requestName(wanted) { asked++ }
+                until { asked == 3 && heard.isNotEmpty() }
+                assertEquals(listOf<Any?>(wanted), heard)
+            } }
+        }
+    }
 }

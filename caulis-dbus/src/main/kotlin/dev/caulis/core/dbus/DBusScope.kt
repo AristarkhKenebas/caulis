@@ -43,6 +43,10 @@ class DBusScope(
         connection.emitSignal(path, iface, member, signature, args)
 
     /** See [DBusConnection.onSignal]; stopped by [close] too. */
+    fun onSignal(iface: String, member: String, path: String?, sender: String?, arg0: String, handler: (DBusMessage) -> Unit): AutoCloseable =
+        own(connection.onSignal(iface, member, path, sender, arg0, handler))
+
+    /** See [DBusConnection.onSignal]; stopped by [close] too. */
     @JvmOverloads
     fun onSignal(iface: String, member: String, path: String? = null, sender: String? = null, handler: (DBusMessage) -> Unit): AutoCloseable =
         own(connection.onSignal(iface, member, path, sender, handler))
