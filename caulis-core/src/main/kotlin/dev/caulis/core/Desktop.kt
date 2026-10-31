@@ -30,8 +30,8 @@ import kotlin.math.roundToInt
 class Desktop(
     /** What draws everything (for pictures of your own: [Overlay], screenshots). */
     val renderer: Renderer,
-    private val seat: Seat,
-    private val compositor: Compositor,
+    internal val seat: Seat,
+    internal val compositor: Compositor,
     screenWidth: Int,
     screenHeight: Int,
 ) : XdgShell.Listener, LayerShell.Listener, SessionLockManager.Listener, AutoCloseable {
@@ -832,7 +832,7 @@ class Desktop(
     override fun windowInfoChanged(window: Window) {
         windowsLog.trace { "Now called $window" }
         windowListChanged()
-        if (window.mapped) notify(windowInfoListeners, window, "window-info-changed")
+        if (window.mapped) notifyEach(windowInfoListeners, window, "window-info-changed")
     }
 
     // --- a picture of the whole state, for finding problems ------------------------------------
@@ -1101,40 +1101,16 @@ class Desktop(
         return AutoCloseable { workspaceListeners -= listener }
     }
 
-    // Calls listeners one by one; a mistake in one of them is reported and the rest go on
-    // (your code must never be able to bring the whole desktop down).
     // A layout's places for [windows] (fewer: the rest are not placed, as Floating does); one
     // that fails leaves every window the whole [area] meanwhile.
     private fun arrangeSafely(workspace: Workspace, windows: List<Window>, area: Rect, focused: Window?): List<Rect> =
         userCode("The layout ${workspace.layout.name}", null) { workspace.model.arrange(windows, area, focused) } ?: windows.map { area }
 
-    // Your code (a rule, a curve, a layout, effects): what it throws is logged and [fallback]
-    // used, so one mistake never stops the drawing or the desktop.
-    private inline fun <T> userCode(what: String, fallback: T, body: () -> T): T = try {
-        body()
-    } catch (e: Throwable) {
-        e.rethrowIfFatal()
-        log.error("$what failed (ignored): $e", e)
-        fallback
-    }
-
-    // A curve's point, guarded (a curve of yours may throw): straight on if it does.
-    private fun Curve.safeAt(t: Double): Double = userCode("Your animation curve", t) { at(t) }
 
     // Floats or not: your floatRule, or (if it fails) the usual answer.
     private fun floats(window: Window): Boolean =
         userCode("Your floatRule", window.parent != null || window.fixedSize || window.prefersFloating) { floatRule(window) }
 
-    private fun <T> notify(listeners: List<(T) -> Unit>, value: T, event: String) {
-        for (listener in listeners.toList()) {
-            try {
-                listener(value)
-            } catch (e: Throwable) {
-                e.rethrowIfFatal()
-                log.error("Your $event handler failed (ignored): $e", e)
-            }
-        }
-    }
 
     // The log, by area (see dev.caulis.log.Log.AREAS): CAULIS_LOG="1,focus=3" and so on.
     internal val log = Logger("config")
@@ -1447,7 +1423,7 @@ class Desktop(
         if (before > 0 && before != activeWorkspace.number) previousWorkspaceNumber = before
         focus(topWindow(activeWorkspace))
         layoutLog.info { "Workspace ${activeWorkspace.number} (${activeWorkspace.layout.name})${if (monitorList.size > 1) " on ${focusedMonitor.name}" else ""}" }
-        notify(workspaceListeners, activeWorkspace, "workspace")
+        notifyEach(workspaceListeners, activeWorkspace, "workspace")
     }
 
     // [workspace] goes onto [monitor]: its floating windows keep their place relative to the
@@ -1921,7 +1897,7 @@ class Desktop(
         }
         updateWidgets()
         pointerMoved((System.nanoTime() / 1_000_000).toInt(), pointerX, pointerY)
-        if (!wasLocked) notify(lockListeners, true, "lock")
+        if (!wasLocked) notifyEach(lockListeners, true, "lock")
     }
 
     /**
@@ -2025,7 +2001,7 @@ class Desktop(
         }
         changed()
         pointerMoved((System.nanoTime() / 1_000_000).toInt(), pointerX, pointerY)
-        notify(lockListeners, false, "unlock")
+        notifyEach(lockListeners, false, "unlock")
     }
 
     override fun lockRequested(lock: SessionLock): Boolean {
@@ -2050,7 +2026,7 @@ class Desktop(
         lockLog.info { "Locked by ${lock.resource.client.name}${if (lockTakenOver) " (taking over from a crashed locker)" else ""}: nothing of the desktop is shown now" }
         confirmLockIfShown()
         changed()
-        if (!wasLocked) notify(lockListeners, true, "lock")
+        if (!wasLocked) notifyEach(lockListeners, true, "lock")
         return true
     }
 
@@ -3865,7 +3841,7 @@ class Desktop(
                 showScratchpad(pad, appearing = setOf(window))
             }
             windowsLog.info { "Opened $window (workspace ${workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
-            notify(windowOpenedListeners, window, "window-opened")
+            notifyEach(windowOpenedListeners, window, "window-opened")
             return
         }
         val placement = placementOf(window)
@@ -3877,7 +3853,7 @@ class Desktop(
             window.tiled = false
             if (placement.goToWorkspace || placement.focus) focus(window) else changed()
             windowsLog.info { "Opened $window (placed by the director)" }
-            notify(windowOpenedListeners, window, "window-opened")
+            notifyEach(windowOpenedListeners, window, "window-opened")
             return
         }
         val monitor = workspace.monitor ?: focusedMonitor
@@ -3920,7 +3896,7 @@ class Desktop(
         }
         if (placement.goToWorkspace || (shown && placement.focus)) focus(window) else changed()
         windowsLog.info { "Opened $window (workspace ${workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
-        notify(windowOpenedListeners, window, "window-opened")
+        notifyEach(windowOpenedListeners, window, "window-opened")
     }
 
     override fun windowUnmapped(window: Window) {
@@ -3968,7 +3944,7 @@ class Desktop(
             }
             if (padFocus === window || hadFocus) passFocusOn(pad.windows.lastOrNull()?.takeIf { pad.shown } ?: back ?: windows.lastOrNull())
             changed()
-            notify(windowClosedListeners, window, "window-closed")
+            notifyEach(windowClosedListeners, window, "window-closed")
             return
         }
         val workspace = workspaceOf(window)
@@ -3980,7 +3956,7 @@ class Desktop(
         }
         if (hadFocus) passFocusOn(windows.lastOrNull())
         changed()
-        notify(windowClosedListeners, window, "window-closed")
+        notifyEach(windowClosedListeners, window, "window-closed")
     }
 
     // Also for a window that never appeared: its placement (asked before its first frame) and
@@ -4402,7 +4378,7 @@ class Desktop(
         if (window.urgent == urgent) return
         window.urgent = urgent
         focusLog.info { "$window ${if (urgent) "wants attention" else "no longer wants attention"}" }
-        if (window.mapped) notify(windowInfoListeners, window, "window-info-changed")
+        if (window.mapped) notifyEach(windowInfoListeners, window, "window-info-changed")
         windowListChanged()
         changed()
     }
@@ -4442,7 +4418,7 @@ class Desktop(
             lastFocused = next
             focusedAt = System.nanoTime()
             focusLog.info { "Focus: ${next ?: "nothing"} (the keyboard stays where it is)" }
-            notify(focusListeners, next, "focus")
+            notifyEach(focusListeners, next, "focus")
         }
         changed()
     }
@@ -4503,7 +4479,7 @@ class Desktop(
                 lastFocused = window
                 focusedAt = System.nanoTime()
                 focusLog.info { "Focus: $window" }
-                notify(focusListeners, window, "focus")
+                notifyEach(focusListeners, window, "focus")
             }
             changed()
             return
@@ -4531,7 +4507,7 @@ class Desktop(
                         }
                     }
                     layoutLog.info { "Workspace ${workspace.number} (${workspace.layout.name})" }
-                    notify(workspaceListeners, workspace, "workspace")
+                    notifyEach(workspaceListeners, workspace, "workspace")
                 }
             }
             if (activeWorkspace.minimizedList.remove(window)) {
@@ -4561,7 +4537,7 @@ class Desktop(
             lastFocused = window
             focusedAt = System.nanoTime()
             focusLog.info { "Focus: ${window ?: "nothing"}" }
-            notify(focusListeners, window, "focus")
+            notifyEach(focusListeners, window, "focus")
         }
         // Layouts that follow the focus (scrolling) move their windows.
         if (window != null && window.tiled && activeWorkspace.layout !== Floating) arrange(activeWorkspace)
@@ -5798,7 +5774,6 @@ class Desktop(
         renderer.setClip(clip)
     }
 
-    private fun Rect.area() = width.toLong() * height
 
     // Draws [items] (only those touching [repaint]) into the frame begun; [p] turns desktop
     // units into the target's pixels, at [scale].
@@ -6553,89 +6528,4 @@ class Desktop(
         it.current.frameCallbacks.isNotEmpty() && it !in visible && !isKeptUpdating(it)
     }
 
-    private companion object {
-        const val FADE_KEY = "the frame before the scale change"
-        const val CURSOR_BORDER = "cursor border"
-        const val CURSOR_FILL = "cursor fill"
-        const val LOCK_BACKGROUND = "lock background"
-        const val CURSOR_IMAGE = "cursor"
-        const val BTN_LEFT = 0x110
-
-        // Ctrl, Shift, Alt, AltGr, Super (left and right): pressing them alone is not typing.
-        val MODIFIER_KEYS = setOf(29, 97, 42, 54, 56, 100, 125, 126)
-
-        /**
-         * How long a layout change waits for every window to draw in its new size before
-         * moving them anyway (a program that does not answer must not hold up the others).
-         */
-        const val TRANSACTION_TIMEOUT_MILLIS = 200L
-
-        const val KEY_ESC = 1
-
-        private const val ANCHOR_TOP = 1
-        private const val ANCHOR_BOTTOM = 2
-        private const val ANCHOR_LEFT = 4
-        private const val ANCHOR_RIGHT = 8
-        private const val KEYBOARD_NONE = 0
-        private const val KEYBOARD_EXCLUSIVE = 1
-
-        /** How often programs nobody sees may draw a frame (they must not freeze completely). */
-        const val HIDDEN_REFRESH_MILLIS = 1000L
-    }
-}
-
-// Java reads the system's fonts the first time text is measured — a second or more on a
-// cold start. Done on a thread of its own as soon as a desktop exists, so the first title
-// bar or notice does not stop the compositor for it. (Once per program.)
-private val fontsWarm = java.util.concurrent.atomic.AtomicBoolean()
-
-private fun warmUpFonts() {
-    if (!fontsWarm.compareAndSet(false, true)) return
-    Thread.ofPlatform().daemon().name("caulis-fonts").start {
-        val log = Logger("render")
-        val start = System.nanoTime()
-        try {
-            val g = java.awt.image.BufferedImage(1, 1, java.awt.image.BufferedImage.TYPE_INT_ARGB_PRE).createGraphics()
-            try {
-                for (style in listOf(java.awt.Font.PLAIN, java.awt.Font.BOLD)) {
-                    g.font = java.awt.Font(java.awt.Font.SANS_SERIF, style, 13)
-                    g.fontMetrics.stringWidth("Caulis Каулис")
-                }
-            } finally {
-                g.dispose()
-            }
-            log.info { "Fonts ready in ${(System.nanoTime() - start) / 1_000_000} ms" }
-        } catch (e: Throwable) {
-            log.warn("Fonts could not be read ahead: $e")
-        }
-    }
-}
-
-/**
- * Where the pointer at ([x], [y]) is after moving by ([dx], [dy]) over monitors at [areas]
- * that touch ([MonitorEdges.TOUCHING]): as [Desktop.pointerMovedBy] and its movePointer do it
- * — onto the monitor there, else sliding along the edge — for the input thread's early cursor.
- */
-internal fun movedOver(areas: List<Rect>, x: Double, y: Double, dx: Double, dy: Double): Pair<Double, Double> {
-    if (areas.isEmpty()) return (x + dx) to (y + dy)
-    fun Rect.has(px: Double, py: Double) = px >= this.x && px < right && py >= this.y && py < bottom
-    fun nearest(px: Double, py: Double): Rect = areas.firstOrNull { it.has(px, py) } ?: areas.minBy { a ->
-        val ox = maxOf(a.x - px, 0.0, px - (a.right - 1))
-        val oy = maxOf(a.y - py, 0.0, py - (a.bottom - 1))
-        ox * ox + oy * oy
-    }
-    val from = nearest(x, y)
-    var nx = x + dx
-    var ny = y + dy
-    if (!from.has(nx, ny) && areas.none { it.has(nx, ny) }) {
-        val alongX = nx.coerceIn(from.x.toDouble(), from.right - 1.0)
-        val alongY = ny.coerceIn(from.y.toDouble(), from.bottom - 1.0)
-        val sideways = areas.firstOrNull { it !== from && it.has(nx, alongY) }?.let { nx to alongY }
-            ?: areas.firstOrNull { it !== from && it.has(alongX, ny) }?.let { alongX to ny }
-        val (sx, sy) = sideways ?: (alongX to alongY)
-        nx = sx
-        ny = sy
-    }
-    val on = nearest(nx, ny)
-    return nx.coerceIn(on.x.toDouble(), on.right - 1.0) to ny.coerceIn(on.y.toDouble(), on.bottom - 1.0)
 }

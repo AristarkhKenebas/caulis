@@ -156,6 +156,3 @@ internal class DesktopTitleBars(private val desktop: Desktop) : AutoCloseable {
         textures.clear()
     }
 }
-
-// The left mouse button (a Linux code).
-private const val BTN_LEFT = 0x110

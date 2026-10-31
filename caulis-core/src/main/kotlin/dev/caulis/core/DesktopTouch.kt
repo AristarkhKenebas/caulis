@@ -69,6 +69,3 @@ internal class DesktopTouch(private val desktop: Desktop, private val seat: Seat
         touchPoints.clear()
     }
 }
-
-// The left mouse button (a Linux code): what a finger that is the pointer presses.
-private const val BTN_LEFT = 0x110

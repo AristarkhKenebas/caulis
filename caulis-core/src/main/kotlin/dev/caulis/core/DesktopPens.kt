@@ -139,6 +139,3 @@ internal class DesktopPens(private val desktop: Desktop, private val seat: Seat)
         desktop.tablets?.proximityIn(timeMillis, pen.tablet, tool, hit.surface, hit.localX, hit.localY, axes)
     }
 }
-
-// The left mouse button (a Linux code): what a pen's tip is when the pen is the pointer.
-private const val BTN_LEFT = 0x110
