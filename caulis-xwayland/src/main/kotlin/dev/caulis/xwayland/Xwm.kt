@@ -4,12 +4,9 @@ import dev.caulis.core.DataDeviceManager
 import dev.caulis.core.Desktop
 import dev.caulis.core.Surface
 import dev.caulis.core.Window
-import dev.caulis.core.WindowRequest
 import dev.caulis.event.EventLoop
 import dev.caulis.ffi.c.xcb.Xcb
-import dev.caulis.ffi.c.xcb.xcb_client_message_event_t
 import dev.caulis.ffi.c.xcb.xcb_configure_notify_event_t
-import dev.caulis.ffi.c.xcb.xcb_configure_request_event_t
 import dev.caulis.ffi.c.xcb.xcb_create_notify_event_t
 import dev.caulis.ffi.c.xcb.xcb_destroy_notify_event_t
 import dev.caulis.ffi.c.xcb.xcb_map_notify_event_t
@@ -20,8 +17,6 @@ import dev.caulis.geometry.Rect
 import dev.caulis.log.Logger
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout.JAVA_BYTE
-import java.lang.foreign.ValueLayout.JAVA_INT
-import java.lang.foreign.ValueLayout.JAVA_SHORT
 
 /**
  * The window manager of X11 programs: their windows become [XWindow]s the [desktop]
@@ -32,13 +27,14 @@ class Xwm internal constructor(
     internal val x: XConnection,
     internal val desktop: Desktop,
     private val loop: EventLoop,
-    private val surfaceFor: (serial: Long) -> Surface?,
+    internal val surfaceFor: (serial: Long) -> Surface?,
     clipboard: DataDeviceManager? = null,
     /** How many of X's pixels one desktop unit is: the screen's scale, or a whole number (a world of its own). */
     private val pixelScale: () -> Double = { desktop.largestScale },
     /** Cuts a title or class to what other programs can take (Display.capForwarded). */
     internal val capText: (String) -> String = { it },
 ) : AutoCloseable {
+    internal val requests = XwmRequests(this)
     internal val props = XwmProperties(this)
 
     internal val log = Logger("xwayland")
@@ -51,8 +47,8 @@ class Xwm internal constructor(
 
     // The X window with the keyboard (as far as we decided), and the number of our last
     // request that gave it: focus changes X reports from before it are out of date.
-    private var focused: XWindow? = null
-    private var lastFocusRequest = 0
+    internal var focused: XWindow? = null
+    internal var lastFocusRequest = 0
 
     /** The X windows managed now. */
     val all: Collection<XWindow> get() = windows.values
@@ -68,10 +64,10 @@ class Xwm internal constructor(
     private var watching = true
     private var focusWatch: AutoCloseable? = null
 
-    private var warnedOld = false
+    internal var warnedOld = false
 
     // A program taking the keyboard again and again is given up on for a while (no endless tug of war).
-    private val refusals = HashMap<Int, LongArray>() // window -> (count, since, given up until)
+    internal val refusals = HashMap<Int, LongArray>() // window -> (count, since, given up until)
 
     // Events that came in while we waited for a reply outside dispatch() are handled next turn.
     private var drainPosted = false
@@ -169,13 +165,13 @@ class Xwm internal constructor(
                 show(window)
             }
             Xcb.XCB_UNMAP_NOTIFY() -> windows[xcb_unmap_notify_event_t.window(event)]?.let(::unmapped)
-            Xcb.XCB_CONFIGURE_REQUEST() -> configureRequested(event)
+            Xcb.XCB_CONFIGURE_REQUEST() -> requests.configureRequested(event)
             Xcb.XCB_CONFIGURE_NOTIFY() -> configured(event)
             Xcb.XCB_PROPERTY_NOTIFY() -> if (!clipboard.propertyChanged(event)) {
                 windows[xcb_property_notify_event_t.window(event)]?.let { window -> props.propertyChanged(window, xcb_property_notify_event_t.atom(event)) }
             }
-            Xcb.XCB_FOCUS_IN() -> focusIn(event)
-            Xcb.XCB_CLIENT_MESSAGE() -> clientMessage(event)
+            Xcb.XCB_FOCUS_IN() -> requests.focusIn(event)
+            Xcb.XCB_CLIENT_MESSAGE() -> requests.clientMessage(event)
             Xcb.XCB_SELECTION_REQUEST(), Xcb.XCB_SELECTION_NOTIFY(), Xcb.XCB_SELECTION_CLEAR() -> clipboard.handle(type, event)
             else -> if (xfixesEvent >= 0 && type == xfixesEvent + Xcb.XCB_XFIXES_SELECTION_NOTIFY()) clipboard.handle(type, event)
         }
@@ -304,7 +300,7 @@ class Xwm internal constructor(
         associate(window, surface)
     }
 
-    private fun associate(window: XWindow, surface: Surface) {
+    internal fun associate(window: XWindow, surface: Surface) {
         if (window.xSurface === surface) return
         window.xSurface = surface
         surface.claimXwaylandRole(window)
@@ -323,160 +319,6 @@ class Xwm internal constructor(
         log.trace { "$window is surface ${surface.resource}" }
         show(window)
         drainSoon()
-    }
-
-    // Xwayland tells which surface shows a window: the serial it also gave the surface
-    // (xwayland-shell), sent as a message (low half, high half). Either may come first.
-    private fun serialReceived(window: XWindow, low: Int, high: Int) {
-        window.serial = (low.toLong() and 0xffffffffL) or (high.toLong() shl 32)
-        log.trace { "$window has serial ${window.serial}" }
-        surfaceFor(window.serial)?.let { associate(window, it) }
-    }
-
-    // --- requests of the programs ----------------------------------------------------------
-
-    private fun configureRequested(event: MemorySegment) {
-        val id = xcb_configure_request_event_t.window(event)
-        val window = windows[id]
-        val mask = xcb_configure_request_event_t.value_mask(event).toInt() and 0xffff
-        val rx = xcb_configure_request_event_t.x(event).toInt()
-        val ry = xcb_configure_request_event_t.y(event).toInt()
-        val rw = xcb_configure_request_event_t.width(event).toInt() and 0xffff
-        val rh = xcb_configure_request_event_t.height(event).toInt() and 0xffff
-        val geometry = Xcb.XCB_CONFIG_WINDOW_X() or Xcb.XCB_CONFIG_WINDOW_Y() or Xcb.XCB_CONFIG_WINDOW_WIDTH() or Xcb.XCB_CONFIG_WINDOW_HEIGHT()
-        if (mask and geometry == 0) return // only stacking: the window manager stacks
-        if (window == null || !window.inDesktop || window.unmanaged || (!window.tiled && !window.maximized && !window.fullscreen)) {
-            // Not ours to decide (yet), placing itself, or floating: as the program asks.
-            val values = ArrayList<Int>()
-            var applied = 0
-            fun take(bit: Int, value: Int) {
-                if (mask and bit != 0) {
-                    applied = applied or bit
-                    values += value
-                }
-            }
-            take(Xcb.XCB_CONFIG_WINDOW_X(), rx)
-            take(Xcb.XCB_CONFIG_WINDOW_Y(), ry)
-            take(Xcb.XCB_CONFIG_WINDOW_WIDTH(), rw)
-            take(Xcb.XCB_CONFIG_WINDOW_HEIGHT(), rh)
-            x.configure(id, applied, values.toIntArray())
-            if (window != null && window.inDesktop && !window.unmanaged) {
-                // The desktop keeps the new place and size (or moving it would undo them).
-                if (mask and (Xcb.XCB_CONFIG_WINDOW_WIDTH() or Xcb.XCB_CONFIG_WINDOW_HEIGHT()) != 0) {
-                    window.resizedItself(
-                        toUnits(if (mask and Xcb.XCB_CONFIG_WINDOW_WIDTH() != 0) rw else window.xGeometry.width),
-                        toUnits(if (mask and Xcb.XCB_CONFIG_WINDOW_HEIGHT() != 0) rh else window.xGeometry.height),
-                    )
-                }
-                if (mask and (Xcb.XCB_CONFIG_WINDOW_X() or Xcb.XCB_CONFIG_WINDOW_Y()) != 0) {
-                    window.x = toUnits(if (mask and Xcb.XCB_CONFIG_WINDOW_X() != 0) rx else window.xGeometry.x)
-                    window.y = toUnits(if (mask and Xcb.XCB_CONFIG_WINDOW_Y() != 0) ry else window.xGeometry.y)
-                }
-            }
-            return
-        }
-        // Tiled, maximized or fullscreen: it stays as the window manager has it (and is told so).
-        place(window)
-    }
-
-    private fun clientMessage(event: MemorySegment) {
-        val window = windows[xcb_client_message_event_t.window(event)]
-        val type = xcb_client_message_event_t.type(event)
-        val format = event.get(JAVA_BYTE, 1).toInt() and 0xff
-        val data = IntArray(5) { event.get(JAVA_INT, 12L + it * 4) }
-        when (type) {
-            atom("WL_SURFACE_SERIAL") -> window?.let { serialReceived(it, data[0], data[1]) }
-            atom("WL_SURFACE_ID") -> if (!warnedOld) {
-                warnedOld = true
-                log.warn("This Xwayland is too old (before 23.1): its windows cannot be shown; please update it")
-            }
-            atom("_NET_WM_STATE") -> if (format == 32) window?.let { stateRequest(it, data) }
-            // (Only as the rule against focus stealing says: any X program may send this for any window.)
-            atom("_NET_ACTIVE_WINDOW") -> window?.takeIf { it.inDesktop && !it.unmanaged }?.let { desktop.focusRequested(it, WindowRequest.ACTIVATE) }
-            atom("_NET_CLOSE_WINDOW") -> window?.let(::close)
-            atom("WM_CHANGE_STATE") -> window?.takeIf { it.inDesktop && !it.unmanaged }?.let { w ->
-                when (data[0]) {
-                    ICONIC_STATE -> desktop.minimizeRequested(w)
-                    NORMAL_STATE -> if (desktop.isMinimized(w)) desktop.focusRequested(w, WindowRequest.RESTORE)
-                }
-            }
-            atom("_NET_WM_MOVERESIZE") -> window?.takeIf { it.inDesktop && !it.unmanaged }?.let { w ->
-                when (val direction = data[2]) {
-                    // (As a Wayland program's request: the button held in its window, the director asked.)
-                    MOVERESIZE_MOVE -> desktop.x11DragRequested(w, null)
-                    in 0..7 -> desktop.x11DragRequested(w, RESIZE_EDGES[direction])
-                    else -> log.trace { "Move/resize $direction of $w ignored" }
-                }
-            }
-            else -> log.trace { "Client message ${x.atomName(type)} for $window" }
-        }
-    }
-
-    // _NET_WM_STATE: action (0 remove, 1 add, 2 toggle), two properties.
-    private fun stateRequest(window: XWindow, data: IntArray) {
-        val action = data[0]
-        val properties = setOf(data[1], data[2])
-        fun wanted(now: Boolean) = when (action) {
-            0 -> false
-            1 -> true
-            else -> !now
-        }
-        if (atom("_NET_WM_STATE_FULLSCREEN") in properties) {
-            if (window.inDesktop) desktop.fullscreenRequested(window, wanted(window.fullscreen)) else window.fullscreen = wanted(window.fullscreen)
-        }
-        if (atom("_NET_WM_STATE_MAXIMIZED_VERT") in properties || atom("_NET_WM_STATE_MAXIMIZED_HORZ") in properties) {
-            if (window.inDesktop) desktop.maximizeRequested(window, wanted(window.maximized)) else window.maximized = wanted(window.maximized)
-        }
-        if (atom("_NET_WM_STATE_MODAL") in properties) window.describeModal(wanted(window.modal))
-        if (atom("_NET_WM_STATE_HIDDEN") in properties && window.inDesktop) {
-            val minimized = desktop.isMinimized(window)
-            if (wanted(minimized) && !minimized) desktop.minimizeRequested(window) else if (!wanted(minimized) && minimized) desktop.focusRequested(window, WindowRequest.RESTORE)
-        }
-    }
-
-    // X's keyboard focus follows the desktop's, and only matters while an X window has the
-    // keyboard: a program moving it while a Wayland window is focused changes nothing, so there
-    // is nothing to fight over. Within one program it may move freely (to its dialog); another
-    // program may not take it. Self-placing windows (launchers, games, menus that grab the
-    // keyboard) get the keyboard when they take it.
-    private fun focusIn(event: MemorySegment) {
-        val detail = event.get(JAVA_BYTE, 1).toInt()
-        val sequence = event.get(JAVA_SHORT, 2).toInt() and 0xffff
-        val window = windows[event.get(JAVA_INT, 4)]
-        val mode = event.get(JAVA_BYTE, 8).toInt()
-        if (detail == Xcb.XCB_NOTIFY_DETAIL_POINTER() || mode == Xcb.XCB_NOTIFY_MODE_UNGRAB()) return
-        if (window != null && window.unmanaged) {
-            if (window.inDesktop) window.xSurface?.let(desktop::focusUnmanaged)
-            return
-        }
-        if (mode == Xcb.XCB_NOTIFY_MODE_GRAB()) return // a grab of the window with the keyboard
-        // Older than our last focus change: X tells of what was, not what is.
-        if ((sequence - lastFocusRequest) and 0xffff >= 0x8000) return
-        val current = focused ?: return // a Wayland window has the keyboard
-        if (window == null || window === current) return
-        if (sameProgram(window, current)) {
-            focused = window
-            if (window.inDesktop) desktop.focus(window)
-            return
-        }
-        if (insists(window)) return
-        log.trace { "$window took the keyboard from $current: given back" }
-        giveFocus(current)
-    }
-
-    private fun insists(window: XWindow): Boolean {
-        val now = System.nanoTime()
-        val record = refusals.getOrPut(window.id) { longArrayOf(0, now, 0) }
-        if (now < record[2]) return true
-        if (now - record[1] > 1_000_000_000) {
-            record[0] = 0
-            record[1] = now
-        }
-        record[0]++
-        if (record[0] <= MAX_REFUSALS) return false
-        record[2] = now + 5_000_000_000
-        log.warn("$window keeps taking the keyboard from other programs; left alone for 5 seconds")
-        return true
     }
 
     // Windows of one X connection share the high bits of their ids.
@@ -540,7 +382,7 @@ class Xwm internal constructor(
         giveFocus(window)
     }
 
-    private fun giveFocus(window: XWindow?) {
+    internal fun giveFocus(window: XWindow?) {
         if (window == null) {
             // Not "None": that turns X's keyboard off, and menus' keyboard grabs with it.
             lastFocusRequest = x.focus(XConnection.POINTER_ROOT)
