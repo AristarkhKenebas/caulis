@@ -1,0 +1,28 @@
+public final class dev/caulis/core/Logind$Companion {
+	public final fun connect (Ldev/caulis/event/EventLoop;)Ldev/caulis/core/Logind;
+}
+
+public final class dev/caulis/core/session/Session : java/lang/AutoCloseable {
+	public static final field Companion Ldev/caulis/core/session/Session$Companion;
+	public fun close ()V
+	public final fun closeDevice (Ldev/caulis/core/session/Session$Device;)V
+	public final fun getActive ()Z
+	public final fun getSeatName ()Ljava/lang/String;
+	public final fun onActiveChanged (Lkotlin/jvm/functions/Function1;)V
+	public final fun openDevice (Ljava/nio/file/Path;)Ldev/caulis/core/session/Session$Device;
+	public final fun switchTo (I)V
+}
+
+public final class dev/caulis/core/session/Session$Companion {
+	public final fun open (Ldev/caulis/event/EventLoop;)Ldev/caulis/core/session/Session;
+}
+
+public final class dev/caulis/core/session/Session$Device {
+	public final fun getFd ()Ldev/caulis/ffi/Fd;
+	public final fun getPath ()Ljava/nio/file/Path;
+}
+
+public final class dev/caulis/core/session/SessionException : java/lang/RuntimeException {
+	public fun <init> (Ljava/lang/String;)V
+}
+

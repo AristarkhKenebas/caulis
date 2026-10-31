@@ -16,6 +16,7 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 ## [Unreleased]
 
 ### Changed
+- The login session (`Session`, `Logind`) is a module of its own, `caulis-session`. Nothing changes for users: `caulis-core` depends on it (as an `api` dependency), and the packages and classes are the same.
 - The plain input types (`InputSettings`, `Gesture`, `Scroll`, `EarlyPointer`, the tablet value types) are a module of their own, `caulis-input`. Nothing changes for users: `caulis-core` depends on it (as an `api` dependency), and the packages and classes are the same.
 
 ## [0.1.9] - 2026-10-31

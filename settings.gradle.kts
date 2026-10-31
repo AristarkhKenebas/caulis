@@ -22,6 +22,7 @@ include(
     "caulis-log",
     "caulis-native",
     "caulis-dbus",
+    "caulis-session",
     "caulis-geometry",
     "caulis-input",
     "caulis-cursor",
