@@ -40,53 +40,29 @@ class Desktop(
     internal val pointerGrab = DesktopPointerGrab(this, seat)
 
     internal val cursors = DesktopCursorLook(this)
-
     internal val planes = DesktopCursorPlanes(this)
-
     internal val hits = DesktopHitTest(this)
-
     internal val popupHost = DesktopPopups(this)
-
     internal val keys = DesktopKeys(this)
-
     internal val overview = DesktopOverview(this)
-
     internal val capturing = DesktopCapture(this)
-
     internal val events = DesktopEvents(this)
-
     internal val report = DesktopReport(this)
-
     internal val widgetHost = DesktopWidgets(this)
-
     internal val layerHost = DesktopLayers(this)
-
     internal val lockHost = DesktopLock(this)
-
     internal val pads = DesktopScratchpads(this)
-
     internal val scaleFade = DesktopScaleFade(this)
-
     internal val looks = DesktopLooks(this)
-
     internal val animator = DesktopAnimations(this)
-
     internal val arranger = DesktopArrange(this)
-
     internal val focuser = DesktopFocus(this)
-
     internal val windowRoles = DesktopWindows(this)
-
     internal val pointerInput = DesktopPointer(this)
-
     internal val sceneBuilder = DesktopScene(this)
-
     internal val frames = DesktopFrames(this)
-
     internal val screens = DesktopMonitors(this)
-
     internal val workspaceHost = DesktopWorkspaces(this)
-
     internal val overlayHost = DesktopOverlays(this)
 
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
