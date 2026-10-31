@@ -55,6 +55,8 @@ class Desktop(
 
     internal val overview = DesktopOverview(this)
 
+    internal val capturing = DesktopCapture(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -240,7 +242,7 @@ class Desktop(
             placeholder = null
             monitorList -= standIn
             monitor.workspace = standIn.workspace
-            for (view in views + captureViews) if (view.monitor === standIn) view.monitor = monitor
+            for (view in views + capturing.captureViews) if (view.monitor === standIn) view.monitor = monitor
             for (workspace in workspaces.values) if (workspace.monitor === standIn) workspace.monitor = monitor
             if (workspaceMode == WorkspaceMode.SPANNING || workspaceMode == WorkspaceMode.SEPARATE) {
                 // Workspaces of their own on this monitor from now on (the stand-in's windows go along).
@@ -281,7 +283,7 @@ class Desktop(
         monitorList -= monitor
         val home = if (focusedMonitor === monitor) monitorList.first() else focusedMonitor
         layoutLog.info { "Monitor ${monitor.name} is gone; its windows stay on their workspaces (now on ${home.name})" }
-        for (view in views + captureViews) if (view.monitor === monitor) view.monitor = home
+        for (view in views + capturing.captureViews) if (view.monitor === monitor) view.monitor = home
         // Scratchpads shown on it come over to [home]; a special workspace only if none is shown
         // there (one a monitor: else two dimmings and two sets of windows on top of each other).
         for (pad in shownPads.toList()) if (pad.monitor === monitor && !pad.leaving) {
@@ -394,7 +396,7 @@ class Desktop(
     private fun monitorChanged(monitor: Monitor) {
         arrangeLayers(monitor, refit = false)
         refitWindows(monitor)
-        for (view in views + captureViews) if (view.monitor === monitor) view.damageEverything()
+        for (view in views + capturing.captureViews) if (view.monitor === monitor) view.damageEverything()
     }
 
     // Every surface shown learns the monitors it is on and draws at the largest of their scales.
@@ -444,7 +446,7 @@ class Desktop(
             val target = renderer.createTarget(width, height)
             try {
                 renderer.begin(target, backgroundColor.red, backgroundColor.green, backgroundColor.blue)
-                draw(captureItems(cursor = false, hide = false), monitor.area, monitor::toPixels, monitor.scale, monitor)
+                draw(capturing.captureItems(cursor = false, hide = false), monitor.area, monitor::toPixels, monitor.scale, monitor)
                 renderer.end()
             } catch (e: Throwable) {
                 target.close()
@@ -883,115 +885,22 @@ class Desktop(
         if (window === focusedWindow) append(", focused")
     }
 
-    // --- pictures for screenshots and screen sharing ----------------------------------------------
-
-    // Views of screen recordings: what each has seen, so it gets only what changed since.
-    private val captureViews = ArrayList<DesktopView>()
-    internal val commitListeners = ArrayList<(Surface) -> Unit>()
-    internal val frameListeners = ArrayList<() -> Unit>()
-
-    /** A record of what a recording of [monitor] last got (see [captureChanges]). Remove it with [removeCaptureView]. */
-    internal fun createCaptureView(monitor: Monitor): DesktopView = DesktopView(monitor).also { captureViews += it }
-
-    internal fun removeCaptureView(view: DesktopView) {
-        captureViews -= view
-    }
-
-    /**
-     * What changed on the desktop since [view] last got a picture (everything the first
-     * time), or null if nothing did. Counts as given: the next call starts from now.
-     */
-    internal fun captureChanges(view: DesktopView, cursor: Boolean): Rect? {
-        compare(view, captureItems(cursor))
-        return view.takeRepaint(1, view.monitor.area)
-    }
-
-    // Everything on screen, with or without our cursor; windows hidden from capture are
-    // black boxes (their popups too).
-    private fun captureItems(cursor: Boolean, hide: Boolean = true): List<DrawItem> {
-        val all = items()
-        val shown = if (cursor) all else all.subList(0, itemsCursorStart.coerceAtMost(all.size))
-        if (!hide) return shown
-        if (allWindows.none { behaviorOf(it).hiddenFromCapture } && layerSurfaces.none { layerBehaviorOf(it).hiddenFromCapture }) return shown
-        return shown.map { item ->
-            // Whose picture it is: a window's (or panel's) own, its title bar, its picture
-            // flying or appearing in an animation.
-            val owner = when {
-                item is DrawItem.Picture -> ownerOf(item.surface)
-                item.key is EffectKey -> (item.key as EffectKey).owner
-                item.key is Flight -> (item.key as Flight).window
-                else -> null
-            }
-            val hidden = when (owner) {
-                is Window -> behaviorOf(owner).hiddenFromCapture
-                is LayerSurface -> layerBehaviorOf(owner).hiddenFromCapture
-                else -> false
-            }
-            if (hidden && (item is DrawItem.Picture || item is DrawItem.Image || item is DrawItem.Effect)) {
-                DrawItem.Color(EffectKey("hidden from capture", item.key), item.rect, 0f, 0f, 0f, item.covers).also { it.only = item.only }
-            } else {
-                item
-            }
-        }
-    }
-
-    // The window or panel [surface] belongs to (it, a part of it, or one of its menus), if any.
-    internal fun ownerOf(surface: Surface): Any? {
-        var current = surface
-        repeat(16) {
-            while (true) current = current.subsurface?.parent ?: break
-            when (val role = current.roleObject) {
-                is Window, is LayerSurface -> return role
-                is Popup -> current = role.parent?.surface ?: role.layerParent?.surface ?: return null
-                else -> return null
-            }
-        }
-        return null
-    }
-
     /**
      * Draws [monitor] as it is on screen into [target] (as big as the monitor in pixels),
      * with or without the [cursor]. For screenshots and screen sharing: what is on screen
      * does not change, and programs are not told about this picture.
      */
-    fun capture(target: GpuTarget, cursor: Boolean, monitor: Monitor = monitorList.first()) {
-        val items = captureItems(cursor)
-        renderer.begin(target, backgroundColor.red, backgroundColor.green, backgroundColor.blue)
-        draw(items, monitor.area, monitor::toPixels, monitor.scale, monitor)
-        renderer.end()
-    }
+    fun capture(target: GpuTarget, cursor: Boolean, monitor: Monitor = monitorList.first()) = capturing.capture(target, cursor, monitor)
 
     /**
      * Draws [window] alone into [target] (as big as the window), see-through around it —
      * also when it is hidden or on another workspace. For sharing one window. A window hidden
      * from capture ([WindowBehavior.hiddenFromCapture]) is a black box, as on a shared screen.
      */
-    fun captureWindow(window: Window, target: GpuTarget) {
-        val visible = window.visibleRect
-        val items = ArrayList<DrawItem>()
-        if (behaviorOf(window).hiddenFromCapture) {
-            items += DrawItem.Color(EffectKey("hidden from capture", window), Rect(0, 0, visible.width, visible.height), 0f, 0f, 0f)
-        } else {
-            addTree(items, window.surface, -visible.x, -visible.y)
-        }
-        val scale = monitorOf(window).scale
-        renderer.begin(target, 0f, 0f, 0f, alpha = 0f)
-        draw(items, null, { rect -> pixelsOf(rect, scale) }, scale)
-        renderer.end()
-    }
+    fun captureWindow(window: Window, target: GpuTarget) = capturing.captureWindow(window, target)
 
     /** The size [captureWindow] draws [window] at, in pixels (at the scale of its monitor). */
-    fun windowPixelSize(window: Window): Pair<Int, Int> {
-        val visible = window.visibleRect
-        val scale = monitorOf(window).scale
-        return Math.round(visible.width * scale).toInt().coerceAtLeast(1) to Math.round(visible.height * scale).toInt().coerceAtLeast(1)
-    }
-
-    // A rectangle in units (from 0, 0) as pixels of [scale].
-    internal fun pixelsOf(rect: Rect, scale: Double): Rect {
-        fun p(v: Int) = Math.round(v * scale).toInt()
-        return Rect(p(rect.x), p(rect.y), p(rect.right) - p(rect.x), p(rect.bottom) - p(rect.y))
-    }
+    fun windowPixelSize(window: Window): Pair<Int, Int> = capturing.windowPixelSize(window)
 
     /** Asks for a refresh soon (the backend then calls [refresh]), e.g. because a screenshot waits. */
     internal fun requestFrame() = onChange()
@@ -3121,7 +3030,7 @@ class Desktop(
             changed()
         }
 
-    private fun layerBehaviorOf(layer: LayerSurface): LayerBehavior = try {
+    internal fun layerBehaviorOf(layer: LayerSurface): LayerBehavior = try {
         layerBehaviorFor(layer)
     } catch (e: Throwable) {
         e.rethrowIfFatal()
@@ -3316,13 +3225,13 @@ class Desktop(
 
     // A picture of a window on its way — going away (its last look), into its dock icon or
     // back out of it — drawn by an animation from [from] to [to].
-    private class Flight(
+    internal class Flight(
         val target: GpuTarget, val texture: GpuTexture, val from: Rect, val to: Rect, val start: Long,
         val workspace: Workspace, val animation: WindowAnimation, val millis: Long, val curve: Curve,
         val kind: FlightKind, val window: Window?,
     )
 
-    private enum class FlightKind { CLOSE, MINIMIZE, RESTORE }
+    internal enum class FlightKind { CLOSE, MINIMIZE, RESTORE }
 
     private val flights = ArrayList<Flight>()
 
@@ -4909,7 +4818,7 @@ class Desktop(
      * The window that gets the pointer now: the one under it, or — while buttons are held —
      * the one they were pressed in (null: none, a panel, or our own title bar).
      */
-    val pointerWindow: Window? get() = seat.pointerFocus?.let(::ownerOf) as? Window
+    val pointerWindow: Window? get() = seat.pointerFocus?.let(capturing::ownerOf) as? Window
 
     // The surface the held buttons were pressed in, and where its top left corner was (desktop
     // units): pointer moves go to it until they are let go (Wayland's implicit grab).
@@ -4977,7 +4886,7 @@ class Desktop(
     private fun surfaceCommitted(surface: Surface) {
         val changes = surface.takeChanges()
         if (changes.isNotEmpty()) {
-            for (view in views + captureViews) {
+            for (view in views + capturing.captureViews) {
                 // Everywhere it is drawn, at the size it is drawn (smaller in the overview,
                 // stretched while it glides): rounded outwards, so no changed pixel is missed.
                 for (item in view.shown) {
@@ -4995,7 +4904,7 @@ class Desktop(
                 }
             }
         }
-        for (listener in commitListeners.toList()) listener(surface)
+        for (listener in capturing.commitListeners.toList()) listener(surface)
         changed()
         scheduleHiddenRefresh()
     }
@@ -5080,7 +4989,7 @@ class Desktop(
             presented(view, System.nanoTime(), refreshNanos = 0, sequence = 0, flags = 0)
         }
         frameShown(view, (System.nanoTime() / 1_000_000).toInt())
-        for (listener in frameListeners.toList()) listener()
+        for (listener in capturing.frameListeners.toList()) listener()
         if (draw && renderLog.level >= 2) busy.drawn(view.monitor.name)
         return draw
     }
@@ -5332,7 +5241,7 @@ class Desktop(
     }
 
     // Marks everything that appeared, disappeared, moved or changed order since the view's last frame.
-    private fun compare(view: DesktopView, items: List<DrawItem>) {
+    internal fun compare(view: DesktopView, items: List<DrawItem>) {
         if (items === view.shown) return // nothing changed since the last comparison
         val before = view.shown.withIndex().associateBy({ it.value.key }, { it })
         val now = items.withIndex().associateBy({ it.value.key }, { it })

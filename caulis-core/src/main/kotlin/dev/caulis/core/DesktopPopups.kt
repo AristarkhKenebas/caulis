@@ -40,7 +40,7 @@ internal class DesktopPopups(private val desktop: Desktop) {
     // Closes the menus of [owner] (a window), as when it goes, hides or moves away: menus of
     // a window that is not there must not stay on screen.
     internal fun dismissPopupsOf(owner: Window, why: String) {
-        val gone = popups.filter { desktop.ownerOf(it.surface) === owner }
+        val gone = popups.filter { desktop.capturing.ownerOf(it.surface) === owner }
         if (gone.isEmpty()) return
         desktop.windowsLog.info { "The menus of $owner close: $why" }
         gone.asReversed().forEach { it.dismiss() }
@@ -60,7 +60,7 @@ internal class DesktopPopups(private val desktop: Desktop) {
 
     // A menu is shown only while what it belongs to is: its window on a shown workspace (not
     // minimized) or in a shown scratchpad, or its panel. (Until its program closes it.)
-    internal fun popupShown(popup: Popup): Boolean = when (val owner = desktop.ownerOf(popup.surface)) {
+    internal fun popupShown(popup: Popup): Boolean = when (val owner = desktop.capturing.ownerOf(popup.surface)) {
         is Window -> owner.mapped && (
             desktop.scratchpadOf(owner)?.let { it.shown && !it.leaving }
                 ?: desktop.workspaceOf(owner)?.let { it.windows.contains(owner) && desktop.monitorList.any { m -> m.workspace === it } }

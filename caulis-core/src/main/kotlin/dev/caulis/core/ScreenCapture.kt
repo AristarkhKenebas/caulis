@@ -80,16 +80,16 @@ class ScreenCapture(
     }
 
     init {
-        desktop.frameListeners += ::serviceWaiting
-        desktop.commitListeners += { surface -> windowSessions.forEach { it.committed(surface) } }
+        desktop.capturing.frameListeners += ::serviceWaiting
+        desktop.capturing.commitListeners += { surface -> windowSessions.forEach { it.committed(surface) } }
 
         display.addPrivilegedGlobal(ZwlrScreencopyManagerV1, WLR_VERSION, "screencopy") { manager ->
             val damageViews = HashMap<Pair<Boolean, Monitor>, DesktopView>() // per cursor choice and monitor: what this program got last
-            manager.onDestroy { damageViews.values.forEach(desktop::removeCaptureView) }
+            manager.onDestroy { damageViews.values.forEach(desktop.capturing::removeCaptureView) }
             manager.requests = object : ZwlrScreencopyManagerV1.Requests {
                 override fun captureOutput(resource: ZwlrScreencopyManagerV1, frame: ZwlrScreencopyFrameV1, overlayCursor: Int, output: WlOutput) {
                     val screen = Source.Screen(output.dataAs<Output>())
-                    WlrFrame(frame, overlayCursor != 0, null, screen) { m -> damageViews.getOrPut((overlayCursor != 0) to m) { desktop.createCaptureView(m) } }.start()
+                    WlrFrame(frame, overlayCursor != 0, null, screen) { m -> damageViews.getOrPut((overlayCursor != 0) to m) { desktop.capturing.createCaptureView(m) } }.start()
                 }
 
                 override fun captureOutputRegion(
@@ -97,7 +97,7 @@ class ScreenCapture(
                     x: Int, y: Int, width: Int, height: Int,
                 ) {
                     val screen = Source.Screen(output.dataAs<Output>())
-                    WlrFrame(frame, overlayCursor != 0, Rect(x, y, width, height), screen) { m -> damageViews.getOrPut((overlayCursor != 0) to m) { desktop.createCaptureView(m) } }.start()
+                    WlrFrame(frame, overlayCursor != 0, Rect(x, y, width, height), screen) { m -> damageViews.getOrPut((overlayCursor != 0) to m) { desktop.capturing.createCaptureView(m) } }.start()
                 }
 
                 override fun destroy(resource: ZwlrScreencopyManagerV1) {}
@@ -351,7 +351,7 @@ class ScreenCapture(
                 null -> {}
             }
             // A recording waits until something changed; a screenshot takes the picture now.
-            val changed = desktop.captureChanges(damageView(monitor), cursor)
+            val changed = desktop.capturing.captureChanges(damageView(monitor), cursor)
             if (withDamage && changed == null) return false
             val problem = copyInto(screen, region, cursor, target)
             if (problem != null) {
@@ -377,7 +377,7 @@ class ScreenCapture(
 
     private inner class Session(val resource: ExtImageCopyCaptureSessionV1, val source: Source, val cursor: Boolean) {
         var frame: ExtFrame? = null
-        private val view = (source as? Source.Screen)?.let { desktop.createCaptureView(monitorOf(it)) }
+        private val view = (source as? Source.Screen)?.let { desktop.capturing.createCaptureView(monitorOf(it)) }
         private var keepRunning: AutoCloseable? = null
         private var size: Pair<Int, Int>? = null
         private var stopped = false
@@ -460,7 +460,7 @@ class ScreenCapture(
 
         /** What changed since the last picture, or null if nothing did (screen: a rectangle). */
         fun changes(): Rect? = when (source) {
-            is Source.Screen -> view!!.monitor.let { monitor -> desktop.captureChanges(view, cursor)?.let { changedPixels(it, Rect(0, 0, monitor.pixelWidth, monitor.pixelHeight), monitor) } }
+            is Source.Screen -> view!!.monitor.let { monitor -> desktop.capturing.captureChanges(view, cursor)?.let { changedPixels(it, Rect(0, 0, monitor.pixelWidth, monitor.pixelHeight), monitor) } }
             is Source.OneWindow -> if (windowChanged && !desktop.locked) {
                 windowChanged = false
                 sizeOf(source)?.let { Rect(0, 0, it.first, it.second) }
@@ -482,7 +482,7 @@ class ScreenCapture(
             keepRunning?.close()
             keepRunning = null
             windowSessions -= this
-            view?.let(desktop::removeCaptureView)
+            view?.let(desktop.capturing::removeCaptureView)
         }
     }
 

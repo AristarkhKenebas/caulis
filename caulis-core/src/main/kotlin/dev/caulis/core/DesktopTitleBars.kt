@@ -23,7 +23,7 @@ internal class DesktopTitleBars(private val desktop: Desktop) : AutoCloseable {
         // At the scale of the window's monitor.
         val scale = desktop.monitorOf(window).scale
         fun px(value: Int) = Math.round(value * scale).toInt()
-        val pixels = desktop.pixelsOf(Rect(0, 0, bar.width, desktop.titleBarStyle.height), scale)
+        val pixels = desktop.capturing.pixelsOf(Rect(0, 0, bar.width, desktop.titleBarStyle.height), scale)
         val hovered = hover?.takeIf { it.first === window }?.second
         val pressed = this.pressed?.takeIf { it.first === window }?.second
         val key = listOf(window.title, window.appId, window === desktop.focusedWindow, window.maximized, hovered, pressed, pixels.width, pixels.height, scale)
