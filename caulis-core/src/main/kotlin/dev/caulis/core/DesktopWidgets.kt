@@ -134,7 +134,7 @@ internal class DesktopWidgets(private val desktop: Desktop) {
         hoveredArea = at.area
         if (came) desktop.cursors.cursorChanged()
         // (A drag going on hears it left the program: dropped here, nobody gets it.)
-        if (desktop.seat.pointerFocus != null || desktop.seat.drag != null) desktop.seat.pointerMotion(timeMillis, null, 0.0, 0.0)
+        if (desktop.seat.pointerFocus != null || desktop.seat.pointerSide.drag != null) desktop.seat.pointerMotion(timeMillis, null, 0.0, 0.0)
         if (moved || came) userCode("Your widget (pointerMoved)", Unit) { at.widget.pointerMoved(desktop.monitorAt(desktop.pointerX, desktop.pointerY), desktop.pointerX - at.area.x, desktop.pointerY - at.area.y) }
         return true
     }

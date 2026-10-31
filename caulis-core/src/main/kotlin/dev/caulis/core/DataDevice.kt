@@ -117,7 +117,7 @@ class DataDeviceManager(private val display: Display, private val seat: Seat) {
             id.onDestroy {
                 if (selection === source) setSelection(null)
                 // A drag of it goes too.
-                if ((this@DataDeviceManager.seat.drag as? DndDrag)?.source === source) this@DataDeviceManager.seat.cancelDrag()
+                if ((this@DataDeviceManager.seat.pointerSide.drag as? DndDrag)?.source === source) this@DataDeviceManager.seat.pointerSide.cancelDrag()
             }
         }
 
@@ -155,7 +155,7 @@ class DataDeviceManager(private val display: Display, private val seat: Seat) {
     private fun startDrag(device: WlDataDevice, source: Source?, originResource: WlSurface, iconResource: WlSurface?, serial: Int) {
         val client = device.client
         val origin = originResource.dataAs<Surface>() ?: return
-        if (!seat.isInputSerial(client, serial) || !seat.buttonHeld || seat.pointerFocus?.resource?.client !== client || seat.drag != null) {
+        if (!seat.isInputSerial(client, serial) || !seat.pointerSide.buttonHeld || seat.pointerFocus?.resource?.client !== client || seat.pointerSide.drag != null) {
             log.info { "${client.name} tried to start a drag without a button held in it: refused" }
             source?.resource?.sendCancelled()
             return
@@ -167,7 +167,7 @@ class DataDeviceManager(private val display: Display, private val seat: Seat) {
         // (One listener per surface, for every drag it is in: a tab dragged many times over a
         // session does not pile them up.)
         if (icon != null && iconsHeard.put(icon, Unit) == null) icon.onCommit {
-            val current = seat.drag as? DndDrag
+            val current = seat.pointerSide.drag as? DndDrag
             if (current != null && current.icon === icon) {
                 current.iconX += icon.current.offsetX
                 current.iconY += icon.current.offsetY
@@ -176,9 +176,9 @@ class DataDeviceManager(private val display: Display, private val seat: Seat) {
         }
         if (originsHeard.put(origin, Unit) == null) origin.resource.onDestroy {
             // The window the drag started in went away (its program crashed): the drag ends.
-            if ((seat.drag as? DndDrag)?.origin === origin) seat.cancelDrag()
+            if ((seat.pointerSide.drag as? DndDrag)?.origin === origin) seat.pointerSide.cancelDrag()
         }
-        seat.startDrag(drag)
+        seat.pointerSide.startDrag(drag)
     }
 
     // Surfaces already heard as drag icons and drag origins (see startDrag).

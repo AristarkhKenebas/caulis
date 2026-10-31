@@ -240,7 +240,7 @@ internal class DesktopPointer(private val desktop: Desktop) {
         }
         // Buttons held since a press in a program: it keeps the pointer, wherever it goes.
         pressedIn?.let { pressed ->
-            if (desktop.buttonsHeld > 0 && !desktop.locked && pressed.surface.resource.isAlive && desktop.seat.drag == null) {
+            if (desktop.buttonsHeld > 0 && !desktop.locked && pressed.surface.resource.isAlive && desktop.seat.pointerSide.drag == null) {
                 desktop.seat.pointerMotion(timeMillis, pressed.surface, (desktop.pointerX - pressed.x) / pressed.scaleX, (desktop.pointerY - pressed.y) / pressed.scaleY)
                 desktop.onChange()
                 return
@@ -350,9 +350,9 @@ internal class DesktopPointer(private val desktop: Desktop) {
         desktop.cursors.cursorActive()
         if (!passToApps) return
         // A drag and drop going on: letting go drops it (wherever the pointer is).
-        if (desktop.seat.drag != null) {
+        if (desktop.seat.pointerSide.drag != null) {
             desktop.seat.pointerButton(timeMillis, button, pressed)
-            if (desktop.seat.drag == null) movePointer(timeMillis, desktop.pointerX, desktop.pointerY) // the one under the pointer gets it now
+            if (desktop.seat.pointerSide.drag == null) movePointer(timeMillis, desktop.pointerX, desktop.pointerY) // the one under the pointer gets it now
             return
         }
         if (desktop.overlayHost.withOverlay { it.pointerButton(button, pressed) }) return

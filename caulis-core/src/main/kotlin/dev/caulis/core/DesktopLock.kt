@@ -111,7 +111,7 @@ internal class DesktopLock(private val desktop: Desktop) {
     // widgets lose the pointer and the keyboard (unless they may be used while locked).
     private fun nothingBehindTheLock() {
         desktop.pads.hideSpecialsForLock()
-        desktop.seat.cancelDrag()
+        desktop.seat.pointerSide.cancelDrag()
         desktop.seat.forgetInput()
         desktop.popupHost.grabs.toList().asReversed().forEach { it.dismiss() }
         desktop.popupHost.grabs.clear()
