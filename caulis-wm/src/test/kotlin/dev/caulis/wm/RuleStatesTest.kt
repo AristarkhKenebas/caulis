@@ -54,18 +54,18 @@ class RuleStatesTest {
             client.waitFor { caulis.onLoop { r -> r.desktop.windows.size == 2 } }
             caulis.onLoop { r ->
                 val (vlc, editor) = listOf("vlc", "editor").map { id -> r.desktop.windows.single { it.appId == id } }
-                assertEquals(setOf("video"), r.tagsOf(vlc))
-                assertEquals(setOf("other"), r.tagsOf(editor))
+                assertEquals(setOf("video"), r.rrules.tagsOf(vlc))
+                assertEquals(setOf("other"), r.rrules.tagsOf(editor))
                 assertTrue(r.desktop.behaviorOf(vlc).keepsAwake)
                 assertFalse(r.desktop.behaviorOf(vlc).animated)
                 assertFalse(r.desktop.behaviorOf(editor).keepsAwake)
                 assertTrue(r.idle.inhibited(), "a video on screen keeps it awake")
 
                 r.config.run("tag +starred") // the focused one: the editor
-                assertEquals(setOf("starred", "other"), r.tagsOf(editor))
+                assertEquals(setOf("starred", "other"), r.rrules.tagsOf(editor))
                 assertEquals(30, r.desktop.windowEffects(editor).cornerRadius)
                 r.config.run("tag starred") // toggled off again
-                assertEquals(setOf("other"), r.tagsOf(editor))
+                assertEquals(setOf("other"), r.rrules.tagsOf(editor))
             }
         }
     }

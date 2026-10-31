@@ -503,7 +503,7 @@ class Caulis {
     @JvmSynthetic
     fun titleBarsFor(rule: (Window) -> TitleBars?) {
         titleBarRules += rule
-        running?.rulesChanged() // (while running: open windows are asked at once)
+        running?.rrules?.rulesChanged() // (while running: open windows are asked at once)
     }
 
     /**
@@ -1864,7 +1864,7 @@ class Caulis {
     @JvmSynthetic
     fun rule(configure: WindowRule.() -> Unit) {
         rules += WindowRule().apply(configure)
-        running?.rulesChanged() // (while running: title bars and margins of open windows at once)
+        running?.rrules?.rulesChanged() // (while running: title bars and margins of open windows at once)
     }
 
     /**
@@ -1883,11 +1883,11 @@ class Caulis {
     @JvmSynthetic
     fun addRule(configure: WindowRule.() -> Unit): WindowRule = WindowRule().apply(configure).also {
         rules += it
-        running?.rulesChanged()
+        running?.rrules?.rulesChanged()
     }
 
     /** Takes out a rule made with [addRule] (true if it was there). */
-    fun removeRule(rule: WindowRule): Boolean = rules.remove(rule).also { if (it) running?.rulesChanged() }
+    fun removeRule(rule: WindowRule): Boolean = rules.remove(rule).also { if (it) running?.rrules?.rulesChanged() }
 
     /** [panelRule], giving the rule back for [removePanelRule]. */
     @JvmSynthetic

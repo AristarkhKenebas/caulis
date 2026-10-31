@@ -145,6 +145,7 @@ internal class Running(
     val seat = Seat(display, Keymap.fromNames(layouts = config.keyboardLayouts, variants = config.keyboardVariants, options = config.keyboardOptions, model = config.keyboardModel))
     private val compositor = Compositor(display, renderer)
     val desktop = Desktop(renderer, seat, compositor, width, height)
+    internal val rrules = RunningRules(this)
     internal val rlooks = RunningAppearance(this)
     internal val rtablets = RunningTablets(this)
 
@@ -256,66 +257,6 @@ internal class Running(
 
     // Takes on changed code while running (null when off or not started from a project).
     private var reloader: Reloader? = null
-
-    // Which rules (by what they say) each window got its placement from already: a rule is
-    // applied once, when the window opens or first fits it.
-    private val rulesApplied = java.util.WeakHashMap<dev.caulis.core.Window, MutableSet<String>>()
-
-    // The margins each window was arranged with last (a rule may change them with its title).
-    private val shownMargins = java.util.WeakHashMap<dev.caulis.core.Window, dev.caulis.core.Margins?>()
-
-    // A window's margins: the last rule that fits and says.
-    private fun marginsOf(window: dev.caulis.core.Window): dev.caulis.core.Margins? =
-        config.rules.lastOrNull { it.margins != null && fits(it, window) }?.margins
-
-    // The title bars each window was last told (a rule may change them with its title).
-    private val shownTitleBars = java.util.WeakHashMap<dev.caulis.core.Window, dev.caulis.core.TitleBars?>()
-
-    private val rulesLog = Logger("windows")
-
-    private fun fits(rule: WindowRule, window: dev.caulis.core.Window): Boolean = safely("$rule", false) { rule.fits(window, factsOf(window)) }
-
-    // Tags given by hand (the action `tag`), and each window's app id and title when it opened.
-    private val manualTags = java.util.WeakHashMap<dev.caulis.core.Window, MutableSet<String>>()
-    private val initials = java.util.WeakHashMap<dev.caulis.core.Window, Pair<String, String>>()
-
-    // What rules may ask about [window]: its tags are those given by hand, then those of each
-    // rule in turn that fits it (a rule sees the tags of the ones before).
-    private fun factsOf(window: dev.caulis.core.Window, rules: List<WindowRule> = config.rules): WindowRule.Facts {
-        val (appId, title) = initials.getOrPut(window) { window.appId to window.title }
-        val tags = LinkedHashSet(manualTags[window].orEmpty())
-        for (rule in rules) {
-            if (rule.tags.isEmpty() || rule.tags.all { it in tags }) continue
-            if (safely("$rule", false) { rule.fits(window, WindowRule.Facts(desktop, tags, appId, title)) }) tags += rule.tags
-        }
-        return WindowRule.Facts(desktop, tags, appId, title)
-    }
-
-    /** [window]'s tags now: given by hand and by the rules that fit it. */
-    fun tagsOf(window: dev.caulis.core.Window): Set<String> = factsOf(window).tags
-
-    /** Gives [window] the tag [name] (true), takes it away (false), or toggles it (null). */
-    fun tag(window: dev.caulis.core.Window, name: String, on: Boolean? = null) {
-        val own = manualTags.getOrPut(window) { LinkedHashSet() }
-        val give = on ?: (name !in own)
-        if (give) own += name else own -= name
-        rulesLog.info { "$window: tag $name ${if (give) "given" else "taken away"}" }
-        rulesChanged(window)
-    }
-
-    // A window's tags or state changed: its rules' margins and title bar may be others now.
-    private fun rulesChanged(window: dev.caulis.core.Window) {
-        val margins = marginsOf(window)
-        if (shownMargins.put(window, margins) != margins) desktop.marginsChanged(window)
-        val bars = titleBarsOf(window)
-        if (shownTitleBars.put(window, bars) != bars) desktop.titleBarsChanged()
-        desktop.requestRedraw()
-    }
-
-    // Who draws a window's title bar: the last rule that fits and says, then titleBarsFor.
-    private fun titleBarsOf(window: dev.caulis.core.Window): dev.caulis.core.TitleBars? =
-        config.rules.lastOrNull { it.titleBars != null && fits(it, window) }?.titleBars
-            ?: config.titleBarRules.firstNotNullOfOrNull { rule -> safely("titleBarsFor", null) { rule(window) } }
 
     // The user's event listeners of the configuration of the moment (replaced on a reload).
     private val configListeners = ArrayList<AutoCloseable>()
@@ -527,34 +468,34 @@ internal class Running(
         val defaultRule = desktop.floatRule
         desktop.windowEffects = { window ->
             val fx = config.effectRules.fold(desktop.effects) { fx, rule -> safely("effectsFor", fx) { rule(window, fx) } }
-            config.rules.fold(fx) { now, rule -> if (rule.hasLooks && fits(rule, window)) safely("$rule effects", now) { rule.effectsOf(now) } else now }
+            config.rules.fold(fx) { now, rule -> if (rule.hasLooks && rrules.fits(rule, window)) safely("$rule effects", now) { rule.effectsOf(now) } else now }
         }
         // Window rules: where windows open (decided before their first frame), and once more
         // for a window that fits a rule only after it changed its title or app id.
         desktop.placementFor = { window ->
-            val fitting = config.rules.filter { it.hasPlacement && fits(it, window) }
-            rulesApplied.getOrPut(window) { HashSet() } += fitting.map { it.signature }
+            val fitting = config.rules.filter { it.hasPlacement && rrules.fits(it, window) }
+            rrules.rulesApplied.getOrPut(window) { HashSet() } += fitting.map { it.signature }
             fitting.fold(WindowPlacement.USUAL) { placement, rule -> placement.and(rule.placement()) }.takeIf { fitting.isNotEmpty() }
         }
         desktop.onWindowInfoChanged { window ->
-            val applied = rulesApplied.getOrPut(window) { HashSet() }
+            val applied = rrules.rulesApplied.getOrPut(window) { HashSet() }
             for (rule in config.rules) {
-                if (!rule.hasPlacement || rule.signature in applied || !fits(rule, window)) continue
+                if (!rule.hasPlacement || rule.signature in applied || !rrules.fits(rule, window)) continue
                 applied += rule.signature
-                rulesLog.info { "$window fits $rule now" }
+                rrules.rulesLog.info { "$window fits $rule now" }
                 safely("$rule") { desktop.applyPlacement(window, rule.placement()) }
             }
             // Its margins and title bar too (a rule may fit it now, or no longer).
-            rulesChanged(window)
+            rrules.rulesChanged(window)
         }
         desktop.behaviorFor = { window ->
-            config.rules.fold(dev.caulis.core.WindowBehavior.USUAL) { now, rule -> if (rule.hasBehavior && fits(rule, window)) rule.behaviorOf(now) else now }
+            config.rules.fold(dev.caulis.core.WindowBehavior.USUAL) { now, rule -> if (rule.hasBehavior && rrules.fits(rule, window)) rule.behaviorOf(now) else now }
         }
         desktop.onWindowOpened { window ->
-            shownTitleBars[window] = titleBarsOf(window)
-            shownMargins[window] = marginsOf(window)
+            rrules.shownTitleBars[window] = rrules.titleBarsOf(window)
+            rrules.shownMargins[window] = rrules.marginsOf(window)
         }
-        desktop.marginsFor = { window -> marginsOf(window) }
+        desktop.marginsFor = { window -> rrules.marginsOf(window) }
         desktop.layerEffects = { layer ->
             val fx = config.panelEffectRules.firstNotNullOfOrNull { rule -> safely("panelEffects", null) { rule(layer) } } ?: Effects.NONE
             config.panelRules.fold(fx) { now, rule -> if (safely("$rule", false) { rule.fits(layer) }) safely("$rule effects", now) { rule.effectsOf(now) } else now }
@@ -669,7 +610,7 @@ internal class Running(
         desktop.screenShader = config.screenShader
         desktop.titleBars = config.titleBars
         desktop.titleBarStyle = config.titleBarStyle
-        desktop.titleBarsFor = if (config.titleBarRules.isEmpty() && config.rules.none { it.titleBars != null }) null else ::titleBarsOf
+        desktop.titleBarsFor = if (config.titleBarRules.isEmpty() && config.rules.none { it.titleBars != null }) null else rrules::titleBarsOf
         desktop.noticeStyle = config.noticeStyle
         desktop.animationMillis = config.animationMillis
         desktop.animations = config.animations
@@ -740,12 +681,6 @@ internal class Running(
     fun applyWorkspaces() {
         desktop.workspaceCount = config.workspaceCount
         desktop.workspaceRules = config.workspaceRules
-    }
-
-    /** Rules changed (one added while running): who draws title bars, and each window's margins and bars. */
-    fun rulesChanged() {
-        desktop.titleBarsFor = if (config.titleBarRules.isEmpty() && config.rules.none { it.titleBars != null }) null else ::titleBarsOf
-        for (window in desktop.allWindows) rulesChanged(window)
     }
 
     /** The configuration's scratchpads: those not there yet made, and their keys bound. */
@@ -975,8 +910,8 @@ internal class Running(
         // New rules are for windows that open from now on (or fit them later), not for those
         // already open where they fit: those stay where you have them.
         for (window in desktop.allWindows) {
-            val facts = factsOf(window, next.rules)
-            rulesApplied.getOrPut(window) { HashSet() } += next.rules.filter { it.hasPlacement && safely("$it", false) { it.fits(window, facts) } }.map { it.signature }
+            val facts = rrules.factsOf(window, next.rules)
+            rrules.rulesApplied.getOrPut(window) { HashSet() } += next.rules.filter { it.hasPlacement && safely("$it", false) { it.fits(window, facts) } }.map { it.signature }
         }
         // (The same configuration when config.json was applied onto it: nothing to compare.)
         val same = before === next
@@ -1008,8 +943,8 @@ internal class Running(
         applyCursor()
         // Margins of the new rules: windows take them at once.
         for (window in desktop.allWindows) {
-            val margins = marginsOf(window)
-            if (shownMargins.put(window, margins) != margins) desktop.marginsChanged(window)
+            val margins = rrules.marginsOf(window)
+            if (rrules.shownMargins.put(window, margins) != margins) desktop.marginsChanged(window)
         }
         // Only now that the new one runs, the one that goes hears it (to stop what it started)
         // and its timers end: a new one that fails on the way leaves the old one whole.

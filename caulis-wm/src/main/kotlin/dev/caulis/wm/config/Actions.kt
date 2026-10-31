@@ -248,7 +248,7 @@ object Actions {
                 val tag = word.removePrefix("+").removePrefix("-")
                 if (tag.isEmpty() || tag.any { it.isWhitespace() }) throw IllegalArgumentException("\"$word\" is not a tag (one word, with + or - before it to give or take it)")
                 val on = when (word.first()) { '+' -> true; '-' -> false; else -> null }
-                window { w -> running?.tag(w, tag, on) }
+                window { w -> running?.rrules?.tag(w, tag, on) }
             }
             "rotate" -> focused { desktop.tilingCommand(TilingCommand.Rotate) }
             "balance" -> focused { desktop.tilingCommand(TilingCommand.Balance) }
