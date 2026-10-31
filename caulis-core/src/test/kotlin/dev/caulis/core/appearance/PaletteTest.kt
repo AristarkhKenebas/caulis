@@ -46,4 +46,12 @@ class PaletteTest {
         val y = luminance(b)
         return (maxOf(x, y) + 0.05) / (minOf(x, y) + 0.05)
     }
+
+    @Test
+    fun `a scheme is worked out once, and dark and light stay apart`() {
+        val palette = Palette(dev.caulis.render.Color.hex("#5b8cc8"))
+        kotlin.test.assertSame(palette.scheme(dark = true), palette.scheme(dark = true))
+        kotlin.test.assertSame(palette.scheme(dark = false), palette.scheme(dark = false))
+        kotlin.test.assertTrue(palette.scheme(dark = true).dark && !palette.scheme(dark = false).dark)
+    }
 }
