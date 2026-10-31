@@ -245,7 +245,7 @@ class Idle(display: Display, private val loop: EventLoop, private val desktop: D
         while (true) root = root.subsurface?.parent ?: break
         return when (val role = root.roleObject) {
             is Window -> role in shown && !desktop.isMinimized(role)
-            is LayerSurface -> role.mapped && desktop.monitorOfLayer(role)?.powered == true
+            is LayerSurface -> role.mapped && desktop.layerHost.monitorOfLayer(role)?.powered == true
             else -> false
         }
     }

@@ -39,7 +39,7 @@ internal class DesktopCapture(private val desktop: Desktop) {
         val all = desktop.items()
         val shown = if (cursor) all else all.subList(0, desktop.itemsCursorStart.coerceAtMost(all.size))
         if (!hide) return shown
-        if (desktop.allWindows.none { desktop.behaviorOf(it).hiddenFromCapture } && desktop.layerSurfaces.none { desktop.layerBehaviorOf(it).hiddenFromCapture }) return shown
+        if (desktop.allWindows.none { desktop.behaviorOf(it).hiddenFromCapture } && desktop.layerHost.layerSurfaces.none { desktop.layerHost.layerBehaviorOf(it).hiddenFromCapture }) return shown
         return shown.map { item ->
             // Whose picture it is: a window's (or panel's) own, its title bar, its picture
             // flying or appearing in an animation.
@@ -51,7 +51,7 @@ internal class DesktopCapture(private val desktop: Desktop) {
             }
             val hidden = when (owner) {
                 is Window -> desktop.behaviorOf(owner).hiddenFromCapture
-                is LayerSurface -> desktop.layerBehaviorOf(owner).hiddenFromCapture
+                is LayerSurface -> desktop.layerHost.layerBehaviorOf(owner).hiddenFromCapture
                 else -> false
             }
             if (hidden && (item is DrawItem.Picture || item is DrawItem.Image || item is DrawItem.Effect)) {

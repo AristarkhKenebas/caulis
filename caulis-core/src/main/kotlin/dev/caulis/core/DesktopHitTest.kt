@@ -82,7 +82,7 @@ internal class DesktopHitTest(private val desktop: Desktop) {
     }
 
     private fun layerAt(layer: LayerShell.Layer, x: Double, y: Double): Desktop.Hit? {
-        for (surface in desktop.layerSurfaces.asReversed()) {
+        for (surface in desktop.layerHost.layerSurfaces.asReversed()) {
             if (!surface.mapped || surface.current.layer != layer) continue
             hitTree(surface.surface, x - surface.x, y - surface.y, surface.surface)?.let { return it }
         }

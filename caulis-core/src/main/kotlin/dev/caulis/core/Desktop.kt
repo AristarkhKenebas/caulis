@@ -63,6 +63,8 @@ class Desktop(
 
     internal val widgetHost = DesktopWidgets(this)
 
+    internal val layerHost = DesktopLayers(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -163,7 +165,7 @@ class Desktop(
             onChange()
         },
         roomChanged = {
-            for (monitor in monitorList.toList()) arrangeLayers(monitor)
+            for (monitor in monitorList.toList()) layerHost.arrangeLayers(monitor)
             version++
             onChange()
         },
@@ -320,9 +322,9 @@ class Desktop(
             }
         }
         // Panels on it close (programs like Waybar open new ones for the monitors there are).
-        for (layer in layerSurfaces.filter { monitorOf(it) === monitor }.toList()) {
+        for (layer in layerHost.layerSurfaces.filter { monitorOf(it) === monitor }.toList()) {
             layer.close()
-            layerMonitors -= layer
+            layerHost.layerMonitors -= layer
         }
         if (focusedMonitor === monitor) {
             focusedMonitor = home
@@ -395,7 +397,7 @@ class Desktop(
 
     // A monitor's size, place or scale changed: its panels, windows and views follow.
     private fun monitorChanged(monitor: Monitor) {
-        arrangeLayers(monitor, refit = false)
+        layerHost.arrangeLayers(monitor, refit = false)
         refitWindows(monitor)
         for (view in views + capturing.captureViews) if (view.monitor === monitor) view.damageEverything()
     }
@@ -530,7 +532,7 @@ class Desktop(
     val height: Int get() = focusedMonitor.area.height
 
     // A monitor changed size: maximized and fullscreen windows on it follow, layouts re-arrange.
-    private fun refitWindows(monitor: Monitor) {
+    internal fun refitWindows(monitor: Monitor) {
         lock?.surfaces?.filter { lockMonitor(it) === monitor }?.forEach { it.configure(monitor.area.width, monitor.area.height) }
         for (pad in shownPads) if (pad.monitor === monitor) placeScratchpad(pad, appearing = emptySet())
         for (workspace in workspaces.values) {
@@ -596,10 +598,10 @@ class Desktop(
             focusWidget(own.screen)
             return
         }
-        if (layerFocus?.surface?.resource?.isAlive == false) layerFocus = null
+        if (layerHost.layerFocus?.surface?.resource?.isAlive == false) layerHost.layerFocus = null
         val next = popupHost.grabs.lastOrNull { it.surface.resource.isAlive }?.surface
-            ?: exclusiveLayer()?.surface?.takeIf { it.resource.isAlive }
-            ?: layerFocus?.surface
+            ?: layerHost.exclusiveLayer()?.surface?.takeIf { it.resource.isAlive }
+            ?: layerHost.layerFocus?.surface
         focusLog.info { "The keyboard's surface went away: it goes to ${next?.roleObject ?: windows.lastOrNull { it.surface.resource.isAlive } ?: "nobody"}" }
         if (next != null) widgetHost.keyboardTo(next) else focus(windows.lastOrNull { it.surface.resource.isAlive })
     }
@@ -653,7 +655,7 @@ class Desktop(
 
     /** The widgets changed their place or reserved room: windows and panels make way anew, and they are drawn again. */
     fun updateWidgets() {
-        for (monitor in monitorList) arrangeLayers(monitor)
+        for (monitor in monitorList) layerHost.arrangeLayers(monitor)
         changed()
     }
 
@@ -758,7 +760,7 @@ class Desktop(
     private val focusLog = Logger("focus")
     internal val inputLog = Logger("input")
     internal val layoutLog = Logger("layout")
-    private val layersLog = Logger("layers")
+    internal val layersLog = Logger("layers")
     private val lockLog = Logger("lock")
     internal val cursorLog = Logger("cursor")
     private val renderLog = Logger("render")
@@ -1220,12 +1222,8 @@ class Desktop(
     internal fun workspaceOf(window: Window): Workspace? =
         workspaces.values.firstOrNull { window in it.windows || window in it.minimized }
 
-    // --- panels, docks, bars, wallpapers (layer shell) -------------------------------------------
-
-    internal val layerSurfaces = ArrayList<LayerSurface>()
-
     /** Panels, docks, wallpapers, ... that are set up (configured), any layer. */
-    val layers: List<LayerSurface> get() = layerSurfaces
+    val layers: List<LayerSurface> get() = layerHost.layerSurfaces
 
     /**
      * The part of the monitor with the focus that panels and docks leave free (their
@@ -1234,147 +1232,14 @@ class Desktop(
      */
     val usableArea: Rect get() = focusedMonitor.usableArea
 
-    // The monitor of each panel that did not ask for one (the one with the focus when it came).
-    private val layerMonitors = HashMap<LayerSurface, Monitor>()
-
-    // The monitor [layer] is on, without placing it anywhere (null: on none now).
-    internal fun monitorOfLayer(layer: LayerSurface): Monitor? =
-        layer.output?.let { output -> monitorList.firstOrNull { it.output === output } } ?: layerMonitors[layer]
-
     /** The monitor [layer] is on: the one its program asked for, else the one it came on. */
     fun monitorOf(layer: LayerSurface): Monitor =
         layer.output?.let { output -> monitorList.firstOrNull { it.output === output } }
-            ?: layerMonitors.getOrPut(layer) { focusedMonitor }
+            ?: layerHost.layerMonitors.getOrPut(layer) { focusedMonitor }
 
-    // The panel with the keyboard (a launcher, or one clicked that wants it), if any.
-    internal var layerFocus: LayerSurface? = null
+    override fun layerCommitted(layer: LayerSurface) = layerHost.layerCommitted(layer)
 
-    override fun layerCommitted(layer: LayerSurface) {
-        if (layer !in layerSurfaces) {
-            layerSurfaces += layer
-            layersLog.info { "Panel \"${layer.namespace}\" (${layer.surface.resource.client.name}) on the ${layer.current.layer} layer of ${monitorOf(layer).name}, anchors ${layer.current.anchor}, exclusive zone ${layer.current.exclusiveZone}" }
-        }
-        arrangeLayers(monitorOf(layer))
-        updateLayerKeyboard()
-        changed()
-    }
-
-    override fun layerUnmapped(layer: LayerSurface) {
-        layersLog.info { "Panel \"${layer.namespace}\" is gone" }
-        val monitor = monitorOf(layer)
-        layerSurfaces -= layer
-        layerMonitors -= layer
-        popupHost.popups.filter { it.layerParent === layer }.forEach { it.dismiss() }
-        if (layerFocus === layer) {
-            // It had the keyboard: back to the window (or the next launcher that wants it).
-            layerFocus = null
-            widgetHost.keyboardTo(focusedWindow?.surface)
-        }
-        arrangeLayers(monitor)
-        updateLayerKeyboard()
-        changed()
-    }
-
-    // Places the layer surfaces of [monitor], the way wlroots-based compositors do: first
-    // those that reserve space (each takes it from its edge), then the others in what is left.
-    private fun arrangeLayers(monitor: Monitor, refit: Boolean = true) {
-        // Banners of our own notices take their room first (from panels too, or only from windows).
-        val banner = noticeBoard.style.placement as? NoticePlacement.Banner
-        fun room(kind: NoticePlacement.Banner.Room) = if (banner == null) 0 else noticeBoard.bannerRoom(monitor, monitorList, noticeFallback(monitor), kind)
-        val pushAll = room(NoticePlacement.Banner.Room.PUSH_ALL)
-        val pushWindows = room(NoticePlacement.Banner.Room.PUSH_WINDOWS)
-        val bottom = banner?.bottom == true
-        val full = withoutBanners(monitor.area, monitor, pushAll, bottom)
-        // Widgets keeping room at an edge (a bar of our own), nearest it in the order added:
-        // panels and windows make way.
-        var free = full
-        for (widget in widgetHost.widgets) {
-            val reserve = userCode("Your widget (reserve)", null) { widget.reserve(monitor) } ?: continue
-            if (reserve.size <= 0) continue
-            free = when (reserve.edge) {
-                Edge.TOP -> Rect(free.x, free.y + reserve.size, free.width, (free.height - reserve.size).coerceAtLeast(1))
-                Edge.BOTTOM -> Rect(free.x, free.y, free.width, (free.height - reserve.size).coerceAtLeast(1))
-                Edge.LEFT -> Rect(free.x + reserve.size, free.y, (free.width - reserve.size).coerceAtLeast(1), free.height)
-                Edge.RIGHT -> Rect(free.x, free.y, (free.width - reserve.size).coerceAtLeast(1), free.height)
-            }
-        }
-        var usable = free
-        val ordered = layerSurfaces.filter { monitorOf(it) === monitor }.sortedByDescending { it.current.layer } // overlay first
-        for (layer in ordered.filter { it.current.exclusiveZone > 0 }) {
-            placeLayer(layer, free)
-            usable = reserve(usable, layer)
-        }
-        for (layer in ordered.filter { it.current.exclusiveZone <= 0 }) {
-            placeLayer(layer, if (layer.current.exclusiveZone < 0) full else usable)
-        }
-        // (Below the ones that push everything: those are nearest the edge.)
-        if (pushWindows > 0) usable = withoutBanners(usable, monitor, pushAll + pushWindows, bottom)
-        if (usable != monitor.usableArea) {
-            monitor.usableArea = usable
-            if (refit) refitWindows(monitor)
-        }
-    }
-
-    private fun placeLayer(layer: LayerSurface, bounds: Rect) {
-        val s = layer.current
-        val anchor = s.anchor
-        fun has(edge: Int) = anchor and edge != 0
-        val width = if (s.width == 0) bounds.width - s.marginLeft - s.marginRight else s.width
-        val height = if (s.height == 0) bounds.height - s.marginTop - s.marginBottom else s.height
-        val x = when {
-            has(ANCHOR_LEFT) && !has(ANCHOR_RIGHT) -> bounds.x + s.marginLeft
-            has(ANCHOR_RIGHT) && !has(ANCHOR_LEFT) -> bounds.right - width - s.marginRight
-            else -> bounds.x + s.marginLeft + (bounds.width - s.marginLeft - s.marginRight - width) / 2
-        }
-        val y = when {
-            has(ANCHOR_TOP) && !has(ANCHOR_BOTTOM) -> bounds.y + s.marginTop
-            has(ANCHOR_BOTTOM) && !has(ANCHOR_TOP) -> bounds.bottom - height - s.marginBottom
-            else -> bounds.y + s.marginTop + (bounds.height - s.marginTop - s.marginBottom - height) / 2
-        }
-        layer.configure(width.coerceAtLeast(1), height.coerceAtLeast(1))
-        layer.x = x
-        layer.y = y
-    }
-
-    // The area left after [layer] took its exclusive zone from its edge.
-    private fun reserve(area: Rect, layer: LayerSurface): Rect {
-        val s = layer.current
-        val edge = when {
-            s.exclusiveEdge != 0 -> s.exclusiveEdge
-            // Anchored to one edge, or to one edge and both of its neighbours (a bar).
-            s.anchor in setOf(ANCHOR_TOP, ANCHOR_TOP or ANCHOR_LEFT or ANCHOR_RIGHT) -> ANCHOR_TOP
-            s.anchor in setOf(ANCHOR_BOTTOM, ANCHOR_BOTTOM or ANCHOR_LEFT or ANCHOR_RIGHT) -> ANCHOR_BOTTOM
-            s.anchor in setOf(ANCHOR_LEFT, ANCHOR_LEFT or ANCHOR_TOP or ANCHOR_BOTTOM) -> ANCHOR_LEFT
-            s.anchor in setOf(ANCHOR_RIGHT, ANCHOR_RIGHT or ANCHOR_TOP or ANCHOR_BOTTOM) -> ANCHOR_RIGHT
-            else -> return area // anchored to opposite edges or a corner: reserves nothing
-        }
-        return when (edge) {
-            ANCHOR_TOP -> (s.exclusiveZone + s.marginTop).let { Rect(area.x, area.y + it, area.width, (area.height - it).coerceAtLeast(1)) }
-            ANCHOR_BOTTOM -> (s.exclusiveZone + s.marginBottom).let { Rect(area.x, area.y, area.width, (area.height - it).coerceAtLeast(1)) }
-            ANCHOR_LEFT -> (s.exclusiveZone + s.marginLeft).let { Rect(area.x + it, area.y, (area.width - it).coerceAtLeast(1), area.height) }
-            else -> (s.exclusiveZone + s.marginRight).let { Rect(area.x, area.y, (area.width - it).coerceAtLeast(1), area.height) }
-        }
-    }
-
-    // A launcher that wants the keyboard (top or overlay layer) gets it and keeps it while open.
-    internal fun exclusiveLayer(): LayerSurface? = layerSurfaces.lastOrNull {
-        it.mapped && it.current.keyboard == KEYBOARD_EXCLUSIVE && it.current.layer >= LayerShell.Layer.TOP
-    }
-
-    private fun updateLayerKeyboard() {
-        val exclusive = exclusiveLayer()
-        when {
-            exclusive != null -> if (layerFocus !== exclusive) {
-                layerFocus = exclusive
-                widgetHost.keyboardTo(exclusive.surface)
-            }
-            layerFocus?.let { !it.mapped || it.current.keyboard == KEYBOARD_NONE } == true -> {
-                // The panel that had the keyboard is gone or does not want it: back to the window.
-                layerFocus = null
-                widgetHost.keyboardTo(focusedWindow?.surface)
-            }
-        }
-    }
+    override fun layerUnmapped(layer: LayerSurface) = layerHost.layerUnmapped(layer)
 
     // --- session lock --------------------------------------------------------------------------
 
@@ -1630,7 +1495,7 @@ class Desktop(
     // went meanwhile did not take the focus.
     private fun unlocked() {
         seat.lockAllows = { true }
-        val layer = exclusiveLayer()
+        val layer = layerHost.exclusiveLayer()
         val window = windowForUnlock()
         focusBeforeLock = null
         mappedBeforeLock = Long.MAX_VALUE
@@ -2418,7 +2283,7 @@ class Desktop(
     fun focusUnmanaged(surface: Surface?) {
         if (surface != null && surface !in unmanaged) return
         focusLog.trace { "Keyboard to ${surface?.roleObject ?: "the focused window"} (places itself)" }
-        widgetHost.keyboardTo(surface ?: exclusiveLayer()?.surface ?: focusedWindow?.surface)
+        widgetHost.keyboardTo(surface ?: layerHost.exclusiveLayer()?.surface ?: focusedWindow?.surface)
     }
 
     // --- title bars (server-side decorations) ---------------------------------------------
@@ -2639,10 +2504,10 @@ class Desktop(
     }
 
     // Where notices go that belong to no monitor there is now.
-    private fun noticeFallback(monitor: Monitor) = if (this::focusedMonitor.isInitialized) focusedMonitor else monitor
+    internal fun noticeFallback(monitor: Monitor) = if (this::focusedMonitor.isInitialized) focusedMonitor else monitor
 
     // [rect] without the strip banners take at the edge of [monitor].
-    private fun withoutBanners(rect: Rect, monitor: Monitor, room: Int, bottom: Boolean): Rect {
+    internal fun withoutBanners(rect: Rect, monitor: Monitor, room: Int, bottom: Boolean): Rect {
         if (room <= 0) return rect
         return if (bottom) {
             Rect(rect.x, rect.y, rect.width, (minOf(rect.bottom, monitor.area.bottom - room) - rect.y).coerceAtLeast(1))
@@ -2750,14 +2615,6 @@ class Desktop(
             field = value
             changed()
         }
-
-    internal fun layerBehaviorOf(layer: LayerSurface): LayerBehavior = try {
-        layerBehaviorFor(layer)
-    } catch (e: Throwable) {
-        e.rethrowIfFatal()
-        log.error("Your panel rule failed for ${layer.namespace} (ignored): $e", e)
-        LayerBehavior.USUAL
-    }
 
     // How one window or panel is drawn: its picture clipped and faded, effects below it.
     // [dim]: how much darker it is drawn (a window without the focus, see Effects.dimInactive).
@@ -3857,7 +3714,7 @@ class Desktop(
     // [next] when done). Nothing while locked (unlocking gives the top window the focus).
     private fun passFocusOn(next: Window?) {
         if (locked) return
-        if (keyboardWidget == null && exclusiveLayer() == null && layerFocus == null) return focus(next)
+        if (keyboardWidget == null && layerHost.exclusiveLayer() == null && layerHost.layerFocus == null) return focus(next)
         val pad = next?.let(::scratchpadOf)
         for (other in activeWorkspace.windowList) if (other !== next) other.setActivated(false)
         for (other in allPads.flatMap { it.windows }) if (other !== next) other.setActivated(false)
@@ -3880,7 +3737,7 @@ class Desktop(
     internal fun restoreKeyboard() {
         if (keyboardWidget != null) return
         if (locked) return keyboardLost()
-        widgetHost.keyboardTo(popupHost.grabs.lastOrNull()?.surface ?: exclusiveLayer()?.surface ?: layerFocus?.surface ?: focusedWindow?.surface)
+        widgetHost.keyboardTo(popupHost.grabs.lastOrNull()?.surface ?: layerHost.exclusiveLayer()?.surface ?: layerHost.layerFocus?.surface ?: focusedWindow?.surface)
     }
 
     /**
@@ -3923,8 +3780,8 @@ class Desktop(
             pad.windows += window
             window.setActivated(true)
             padFocus = window
-            if (exclusiveLayer() == null) {
-                layerFocus = null
+            if (layerHost.exclusiveLayer() == null) {
+                layerHost.layerFocus = null
                 widgetHost.keyboardTo(window.surface)
             }
             if (window !== lastFocused) {
@@ -3981,8 +3838,8 @@ class Desktop(
             if (list.remove(window)) list += window
             window.setActivated(true)
         }
-        if (exclusiveLayer() == null) {
-            layerFocus = null
+        if (layerHost.exclusiveLayer() == null) {
+            layerHost.layerFocus = null
             widgetHost.keyboardTo(window?.surface)
         }
         if (window !== lastFocused) {
@@ -4324,7 +4181,7 @@ class Desktop(
             val under = windowAt(pointerX, pointerY) ?: (decoration as? DesktopTitleBars.Decoration.Bar)?.window ?: (decoration as? DesktopTitleBars.Decoration.Edge)?.window
             if (under !== hovered) {
                 hovered = under
-                if (under != null && under !== focusedWindow && exclusiveLayer() == null && !behindSpecial(under)) focus(under)
+                if (under != null && under !== focusedWindow && layerHost.exclusiveLayer() == null && !behindSpecial(under)) focus(under)
             }
         }
         if (decoration != null) {
@@ -4512,13 +4369,13 @@ class Desktop(
             }
             // A click on a panel that wants the keyboard on demand gives it the keyboard.
             (hit?.root?.roleObject as? LayerSurface)?.let { layer ->
-                if (layer.current.keyboard != KEYBOARD_NONE && exclusiveLayer() == null) {
-                    layerFocus = layer
+                if (layer.current.keyboard != KEYBOARD_NONE && layerHost.exclusiveLayer() == null) {
+                    layerHost.layerFocus = layer
                     widgetHost.keyboardTo(layer.surface)
                 }
             }
             val window = hit?.root?.roleObject as? Window
-            if (window != null && (window !== focusedWindow || layerFocus != null)) {
+            if (window != null && (window !== focusedWindow || layerHost.layerFocus != null)) {
                 focus(window)
             } else if (window == null) {
                 // A click on another monitor's free space: new windows open there now.
@@ -5236,13 +5093,13 @@ class Desktop(
     }
 
     private fun addLayers(all: MutableList<DrawItem>, layer: LayerShell.Layer) {
-        for (layerSurface in layerSurfaces) {
+        for (layerSurface in layerHost.layerSurfaces) {
             if (!layerSurface.mapped || layerSurface.current.layer != layer) continue
             val surface = layerSurface.surface
             if (!drawnBehindLock(surface)) continue
             val rect = Rect(layerSurface.x, layerSurface.y, surface.width, surface.height)
             // Everything behind it darker (a launcher in front of the desktop).
-            val dim = layerBehaviorOf(layerSurface).dimAround
+            val dim = layerHost.layerBehaviorOf(layerSurface).dimAround
             if (dim > 0f) all += DrawItem.Tint(EffectKey("dim around", layerSurface), monitorOf(layerSurface).area, 0f, 0f, 0f, 0f, dim)
             val look = addEffects(all, layerSurface, surface, Rect(0, 0, surface.width, surface.height), rect, 1.0, userCode("Your layerEffects", Effects.NONE) { layerEffects(layerSurface) }, focused = true)
             addTree(all, surface, layerSurface.x, layerSurface.y, look = look)

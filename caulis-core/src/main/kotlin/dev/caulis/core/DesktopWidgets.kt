@@ -87,7 +87,7 @@ internal class DesktopWidgets(private val desktop: Desktop) {
             desktop.seat.focusKeyboard(null)
             userCode("Your widget (keyboardFocus)", Unit) { widget.keyboardFocus(true) }
         } else if (!desktop.locked) {
-            desktop.seat.focusKeyboard(desktop.exclusiveLayer()?.surface ?: desktop.layerFocus?.surface ?: desktop.focusedWindow?.surface)
+            desktop.seat.focusKeyboard(desktop.layerHost.exclusiveLayer()?.surface ?: desktop.layerHost.layerFocus?.surface ?: desktop.focusedWindow?.surface)
         }
         desktop.changed()
     }

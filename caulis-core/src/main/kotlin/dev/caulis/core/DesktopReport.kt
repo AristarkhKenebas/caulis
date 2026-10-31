@@ -17,8 +17,8 @@ internal class DesktopReport(private val desktop: Desktop) {
         for (pad in desktop.allPads) {
             appendLine("  ${if (pad.isSpecial) "special workspace" else "scratchpad"} ${pad.name} (${if (pad.shown) "shown" else "hidden"}): ${pad.windows.joinToString { it.toString() }.ifEmpty { "no window" }}")
         }
-        for (layer in desktop.layerSurfaces) {
-            appendLine("  panel \"${layer.namespace}\" (${layer.surface.resource.client.name}) on ${layer.current.layer} at ${layer.x},${layer.y} ${layer.surface.width}x${layer.surface.height}${if (layer === desktop.layerFocus) ", has the keyboard" else ""}")
+        for (layer in desktop.layerHost.layerSurfaces) {
+            appendLine("  panel \"${layer.namespace}\" (${layer.surface.resource.client.name}) on ${layer.current.layer} at ${layer.x},${layer.y} ${layer.surface.width}x${layer.surface.height}${if (layer === desktop.layerHost.layerFocus) ", has the keyboard" else ""}")
         }
         if (desktop.glides.isNotEmpty()) appendLine("  moving now: ${desktop.glides.keys.joinToString { it.title.take(24) }}")
         for (notice in desktop.notices) appendLine("  on screen: $notice")

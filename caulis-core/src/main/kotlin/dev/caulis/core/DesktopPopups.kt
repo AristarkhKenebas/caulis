@@ -66,7 +66,7 @@ internal class DesktopPopups(private val desktop: Desktop) {
                 ?: desktop.workspaceOf(owner)?.let { it.windows.contains(owner) && desktop.monitorList.any { m -> m.workspace === it } }
                 ?: false
             )
-        is LayerSurface -> owner in desktop.layerSurfaces
+        is LayerSurface -> owner in desktop.layerHost.layerSurfaces
         else -> false
     }
 
