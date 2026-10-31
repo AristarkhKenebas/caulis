@@ -86,6 +86,23 @@ class HardwareCursorTest {
     }
 
     @Test
+    fun `the pointer moving on the plane compares nothing, the list stays the very same`() = withDesktop { _, d, view, _, frame ->
+        d.pointerMoved(0, 100.0, 100.0)
+        d.frame(view, frame)
+        d.frame(view, frame)
+        val shown = view.shown
+        d.pointerMoved(0, 140.0, 120.0)
+        assertFalse(d.frame(view, frame))
+        d.pointerMoved(0, 150.0, 130.0)
+        assertFalse(d.frame(view, frame))
+        kotlin.test.assertSame(shown, view.shown)
+        // Something else changes: a new list.
+        d.requestRedraw()
+        d.frame(view, frame)
+        assertTrue(shown !== view.shown)
+    }
+
+    @Test
     fun `the plane follows the pointer at once, where the next frame puts it too`() = withDesktop { _, d, view, plane, frame ->
         d.pointerMoved(0, 100.0, 100.0)
         d.frame(view, frame)

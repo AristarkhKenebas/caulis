@@ -80,39 +80,67 @@ internal class DesktopScene(private val desktop: Desktop) {
 
     internal var itemsCursorStart = 0
 
+    // Counts the lists made for another reason than the pointer or the cursor moving: all items
+    // before the cursor (at [itemsCursorStart]) stay the same while this does.
+    internal var itemsStamp = 0L
+        private set
+
+    private var stampVersion = -1L
+
+    // The surfaces of the cursor now (a program's own, and what is dragged).
+    private val cursorSurfaces = ArrayList<Surface>()
+
     /** Everything to draw now, bottom to top, the cursor last. */
     internal fun items(): List<DrawItem> {
         if (itemsVersion == desktop.version && itemsPointerX == desktop.pointerX && itemsPointerY == desktop.pointerY && itemsCursorVersion == desktop.cursors.cursorVersion) return items
         val all = ArrayList<DrawItem>(scene().size + 2)
         all += scene
-        visible.clear()
-        visible += sceneVisible
+        val newScene = stampVersion != desktop.version
+        if (newScene) {
+            stampVersion = desktop.version
+            itemsStamp++
+        }
+        // (Only the pointer moved: of these, only what a program's own cursor adds can change.)
+        if (newScene) {
+            visible.clear()
+            visible += sceneVisible
+        } else {
+            for (surface in cursorSurfaces) if (surface !in sceneSurfaces) visible -= surface
+        }
         // The frame before a scale change, fading out over the new one (the cursor stays above).
         for ((monitor, fade) in desktop.scaleFade.fades) all += DrawItem.Image("$FADE_KEY ${monitor.name}", fade.texture, monitor.area, alpha = desktop.scaleFade.fadeAlphas[monitor] ?: 1f)
         val cursorStart = all.size
         itemsCursorStart = cursorStart
         desktop.cursors.addCursor(all)
-        for (i in cursorStart until all.size) (all[i] as? DrawItem.Picture)?.let { visible += it.surface }
-        surfaceHomes.clear()
-        if (desktop.monitorList.size > 1) {
-            // Where each picture is shown most (frame callbacks and presentation times come from there).
-            val shownArea = HashMap<Surface, HashMap<Monitor, Long>>()
-            for (item in all) {
-                if (item !is DrawItem.Picture) continue
-                for (monitor in desktop.monitorList) {
-                    if (item.only != null && item.only !== monitor) continue
-                    val part = item.rect.intersect(monitor.area) ?: continue
-                    shownArea.getOrPut(item.surface) { HashMap() }.merge(monitor, part.width.toLong() * part.height, Long::plus)
-                }
-            }
-            for ((surface, areas) in shownArea) surfaceHomes[surface] = areas.maxBy { it.value }.key
+        if (newScene) surfaceHomes.clear() else for (surface in cursorSurfaces) if (surface !in sceneSurfaces) surfaceHomes -= surface
+        cursorSurfaces.clear()
+        for (i in cursorStart until all.size) (all[i] as? DrawItem.Picture)?.let {
+            visible += it.surface
+            cursorSurfaces += it.surface
         }
+        if (desktop.monitorList.size > 1) findHomes(all, if (newScene) 0 else cursorStart)
         items = all
         itemsVersion = desktop.version
         itemsPointerX = desktop.pointerX
         itemsPointerY = desktop.pointerY
         itemsCursorVersion = desktop.cursors.cursorVersion
         return all
+    }
+
+    // Where each picture from [from] on is shown most (frame callbacks and presentation times come from there).
+    private fun findHomes(all: List<DrawItem>, from: Int) {
+        if (from == all.size) return
+        val shownArea = HashMap<Surface, HashMap<Monitor, Long>>()
+        for (i in from until all.size) {
+            val item = all[i]
+            if (item !is DrawItem.Picture) continue
+            for (monitor in desktop.monitorList) {
+                if (item.only != null && item.only !== monitor) continue
+                val part = item.rect.intersect(monitor.area) ?: continue
+                shownArea.getOrPut(item.surface) { HashMap() }.merge(monitor, part.width.toLong() * part.height, Long::plus)
+            }
+        }
+        for ((surface, areas) in shownArea) surfaceHomes[surface] = areas.maxBy { it.value }.key
     }
 
     /**

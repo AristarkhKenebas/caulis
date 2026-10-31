@@ -188,8 +188,13 @@ internal class DesktopFrames(private val desktop: Desktop) {
         val all = desktop.sceneBuilder.items()
         if (!view.cursorOnPlane) return all
         if (itemsWithoutCursorOf !== all) {
-            itemsWithoutCursor = all.subList(0, desktop.sceneBuilder.itemsCursorStart.coerceAtMost(all.size))
             itemsWithoutCursorOf = all
+            // Only the pointer moved: the very same list, so that nothing is compared at all.
+            val stamp = desktop.sceneBuilder.itemsStamp
+            if (stamp != itemsWithoutCursorStamp || desktop.sceneBuilder.itemsCursorStart != itemsWithoutCursor.size) {
+                itemsWithoutCursor = all.subList(0, desktop.sceneBuilder.itemsCursorStart.coerceAtMost(all.size))
+                itemsWithoutCursorStamp = stamp
+            }
         }
         return itemsWithoutCursor
     }
@@ -197,6 +202,8 @@ internal class DesktopFrames(private val desktop: Desktop) {
     private var itemsWithoutCursor: List<DrawItem> = emptyList()
 
     private var itemsWithoutCursorOf: List<DrawItem>? = null
+
+    private var itemsWithoutCursorStamp = -1L
 
     fun render(view: DesktopView, target: GpuTarget, age: Int) {
         val items = itemsFor(view)
@@ -364,6 +371,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
     // Marks everything that appeared, disappeared, moved or changed order since the view's last frame.
     internal fun compare(view: DesktopView, items: List<DrawItem>) {
         if (items === view.shown) return // nothing changed since the last comparison
+        if (compareInPlace(view, items)) return
         val before = view.shown.withIndex().associateBy({ it.value.key }, { it })
         val now = items.withIndex().associateBy({ it.value.key }, { it })
         // (What changed, at the finest level: to find what keeps a screen being drawn.)
@@ -386,6 +394,25 @@ internal class DesktopFrames(private val desktop: Desktop) {
         }
         if (!why.isNullOrEmpty()) desktop.renderLog.trace { "${view.monitor.name} changed: ${why.take(6).joinToString("; ")}" }
         view.shown = items
+    }
+
+    // The usual case: the same things in the same order. Compared one by one, no maps made (false:
+    // something came, went or moved in the order, for [compare] to find out).
+    private fun compareInPlace(view: DesktopView, items: List<DrawItem>): Boolean {
+        val shown = view.shown
+        if (shown.size != items.size) return false
+        for (i in items.indices) if (shown[i].key != items[i].key) return false
+        val trace = desktop.renderLog.level >= 3
+        for (i in items.indices) {
+            val old = shown[i]
+            val new = items[i]
+            if (old === new || !new.differsFrom(old)) continue
+            uncoveredAreas(old, shown, i).forEach(view::damage)
+            uncoveredAreas(new, items, i).forEach(view::damage)
+            if (trace) desktop.renderLog.trace { "${view.monitor.name} changed: ${new.key} ${new.rect}" }
+        }
+        view.shown = items
+        return true
     }
 
     // Surfaces kept updating although they may be hidden (e.g. shared in a screen recording).
