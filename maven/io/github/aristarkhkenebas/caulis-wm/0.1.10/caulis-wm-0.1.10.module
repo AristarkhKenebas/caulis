@@ -1,0 +1,158 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-wm",
+    "version": "0.1.10",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-core",
+          "version": {
+            "requires": "0.1.10"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-xwayland",
+          "version": {
+            "requires": "0.1.10"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-ipc",
+          "version": {
+            "requires": "0.1.10"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-plugins",
+          "version": {
+            "requires": "0.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-wm-0.1.10.jar",
+          "url": "caulis-wm-0.1.10.jar",
+          "size": 901398,
+          "sha512": "8b786c9501ca42ecf43306efc8204459d8b9acfac0246c99c167d3dd8d8b8f4111808a681cd89fca57f8aa75a545e3d7c82c5132e0c73719170dc3d748894e18",
+          "sha256": "1f87840f4e44ed957119740e9882297b93d8138cfa32b21a849f86f92e476827",
+          "sha1": "91f1b8fa837ae482d9f9efd66cd63b77e29f5f02",
+          "md5": "afc3d9262023c3bfb99421acf15215b9"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-core",
+          "version": {
+            "requires": "0.1.10"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-xwayland",
+          "version": {
+            "requires": "0.1.10"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-ipc",
+          "version": {
+            "requires": "0.1.10"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-plugins",
+          "version": {
+            "requires": "0.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-wm-0.1.10.jar",
+          "url": "caulis-wm-0.1.10.jar",
+          "size": 901398,
+          "sha512": "8b786c9501ca42ecf43306efc8204459d8b9acfac0246c99c167d3dd8d8b8f4111808a681cd89fca57f8aa75a545e3d7c82c5132e0c73719170dc3d748894e18",
+          "sha256": "1f87840f4e44ed957119740e9882297b93d8138cfa32b21a849f86f92e476827",
+          "sha1": "91f1b8fa837ae482d9f9efd66cd63b77e29f5f02",
+          "md5": "afc3d9262023c3bfb99421acf15215b9"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-wm-0.1.10-sources.jar",
+          "url": "caulis-wm-0.1.10-sources.jar",
+          "size": 232535,
+          "sha512": "a45006a2c5cfeacd3d9b5995c08d85499e92f7de7f4081426135a07ad1c941ec3526645e9cc3b9a21d3ab8266c91c2e267d9841863175bfd93b1ef4555d22b2c",
+          "sha256": "2d1e8a16b567609811ef80facf874dfedbf718748e5dab59da77e59e6bd4985b",
+          "sha1": "bb6b5605c2e61defedf8c007a8326d1c68d295fb",
+          "md5": "9e14be3e65b9e860520dbd1bc11ec643"
+        }
+      ]
+    }
+  ]
+}

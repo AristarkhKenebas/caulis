@@ -1,0 +1,102 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-geometry",
+    "version": "0.1.10",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-geometry-0.1.10.jar",
+          "url": "caulis-geometry-0.1.10.jar",
+          "size": 10538,
+          "sha512": "450ccd76f54646cb560f18a62b7fbe4fab58ab8f497ef915c1c8c42c9544a968dc72853c9be31cd2c4b423bc4bf1ecbfa0ba4ba36c7812335ef47a44f6bb5c13",
+          "sha256": "cf1c1c80c1e095b64d7c366543831feb2140bc60c86578fc5e946dae4165d63d",
+          "sha1": "9baca97cc8c0e4113af3b10d201cc513d0ad5a2e",
+          "md5": "b3f0dbba81deca742fbac19367d49d93"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-geometry-0.1.10.jar",
+          "url": "caulis-geometry-0.1.10.jar",
+          "size": 10538,
+          "sha512": "450ccd76f54646cb560f18a62b7fbe4fab58ab8f497ef915c1c8c42c9544a968dc72853c9be31cd2c4b423bc4bf1ecbfa0ba4ba36c7812335ef47a44f6bb5c13",
+          "sha256": "cf1c1c80c1e095b64d7c366543831feb2140bc60c86578fc5e946dae4165d63d",
+          "sha1": "9baca97cc8c0e4113af3b10d201cc513d0ad5a2e",
+          "md5": "b3f0dbba81deca742fbac19367d49d93"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-geometry-0.1.10-sources.jar",
+          "url": "caulis-geometry-0.1.10-sources.jar",
+          "size": 7994,
+          "sha512": "8d2a478707c9bb80e9ee65c3530c141da4727fe49bae3968b219094624b9a055c79bbfbada928260e716175802367bc8db6aac801e9d3a0de97ff0719aa5ac60",
+          "sha256": "746606d12f7624cfbb9542b72b3fb422a7cd9bf05b816a6c09885b1de46e94aa",
+          "sha1": "a9d80e4cea7f58bf83bd1f53462272176d1bb7e6",
+          "md5": "ba51415105ef295e49160b9c787af562"
+        }
+      ]
+    }
+  ]
+}
