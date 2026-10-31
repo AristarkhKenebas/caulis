@@ -118,7 +118,8 @@ class CursorTest {
         client.waitFor { server.onServer { d -> d.windows.isNotEmpty() } }
         TestClient(Connection.connect(server.socketPath)).use { other ->
             other.window().draw(200, 200)
-            other.waitFor { server.onServer { d -> d.windows.size == 2 } }
+            // (On screen too: a busy machine may not have drawn the second one yet.)
+            other.waitFor { server.onServer { d -> d.windows.size == 2 && d.windows.all { d.screenRect(it) != null } } }
             val (mine, theirs) = server.onServer { d -> d.windows[0] to d.windows[1] }
             // The button held in the other program's window: the drag is not taken over.
             server.onServer { d ->
