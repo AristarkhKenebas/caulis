@@ -70,7 +70,7 @@ internal class DesktopPens(private val desktop: Desktop, private val seat: Seat)
         if (pen.surface == null) return desktop.penPointer.button(timeMillis, BTN_LEFT, down)
         if (down) {
             // A touch outside our open menus closes them, as a click does (and only that).
-            if (desktop.penPressedOutside(pen.x, pen.y)) {
+            if (desktop.pointerInput.penPressedOutside(pen.x, pen.y)) {
                 pen.swallowed = true
                 return
             }
@@ -107,7 +107,7 @@ internal class DesktopPens(private val desktop: Desktop, private val seat: Seat)
         if (pen.tip || pen.buttons.isNotEmpty()) {
             val surface = pen.surface ?: return desktop.penPointer.moved(timeMillis, x, y)
             if (surface.resource.isAlive && seat.allowed(surface) && desktop.tablets?.surfaceOf(tool) === surface) {
-                desktop.showPenAt(x, y)
+                desktop.pointerInput.showPenAt(x, y)
                 desktop.tablets?.motion(timeMillis, tool, (x - pen.originX) / pen.scaleX, (y - pen.originY) / pen.scaleY, axes)
                 return
             }
@@ -117,7 +117,7 @@ internal class DesktopPens(private val desktop: Desktop, private val seat: Seat)
             pen.swallowed = false
             pen.buttons.clear()
         }
-        val hit = desktop.tabletTarget(pen.tablet, x, y)
+        val hit = desktop.pointerInput.tabletTarget(pen.tablet, x, y)
         if (hit == null) {
             if (pen.surface != null) {
                 desktop.tablets?.proximityOut(timeMillis, tool)
@@ -128,14 +128,14 @@ internal class DesktopPens(private val desktop: Desktop, private val seat: Seat)
             return
         }
         // Onto a program's surface: the pointer leaves whatever it was over (programs, our widgets and bars).
-        if (pen.surface == null) desktop.pointerAway(timeMillis)
+        if (pen.surface == null) desktop.pointerInput.pointerAway(timeMillis)
         pen.surface = hit.surface
         pen.window = hit.root.roleObject as? Window
         pen.originX = x - hit.localX * hit.scaleX
         pen.originY = y - hit.localY * hit.scaleY
         pen.scaleX = hit.scaleX
         pen.scaleY = hit.scaleY
-        desktop.showPenAt(x, y)
+        desktop.pointerInput.showPenAt(x, y)
         desktop.tablets?.proximityIn(timeMillis, pen.tablet, tool, hit.surface, hit.localX, hit.localY, axes)
     }
 }

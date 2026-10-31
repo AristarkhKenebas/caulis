@@ -137,7 +137,7 @@ internal class DesktopWindows(private val desktop: Desktop) {
         desktop.animator.shownRects -= window
         desktop.animator.screenRects -= window
         desktop.pointerGrab.forget(window)
-        if (desktop.hovered === window) desktop.hovered = null
+        if (desktop.pointerInput.hovered === window) desktop.pointerInput.hovered = null
         // (It had the focus even if a launcher, a widget or a panel has the keyboard now.)
         val hadFocus = window === desktop.focuser.lastFocused || window.activated || desktop.seat.keyboardFocus === window.surface
         if (desktop.focuser.lastFocused === window) desktop.focuser.lastFocused = null
@@ -338,7 +338,7 @@ internal class DesktopWindows(private val desktop: Desktop) {
 
     fun x11DragRequested(window: Window, edges: Int?) {
         val what = if (edges == null) "move" else "resize"
-        if (desktop.buttonsHeld == 0 || desktop.pressedIn?.surface?.resource?.client !== window.surface.resource.client) {
+        if (desktop.buttonsHeld == 0 || desktop.pointerInput.pressedIn?.surface?.resource?.client !== window.surface.resource.client) {
             desktop.windowsLog.info { "$window asked to $what without a button held in it: refused" }
             return
         }
@@ -355,7 +355,7 @@ internal class DesktopWindows(private val desktop: Desktop) {
     // press went to that program ([serial] is the press's, or a later event of it), not to another.
     private fun dragAllowed(window: Window, serial: Int, what: String): Boolean {
         val client = window.surface.resource.client
-        val pressed = desktop.pressedIn?.surface?.resource?.client
+        val pressed = desktop.pointerInput.pressedIn?.surface?.resource?.client
         if (desktop.buttonsHeld > 0 && pressed === client && desktop.seat.isInputSerial(client, serial)) return true
         desktop.windowsLog.info { "$window asked to $what without a button held in it: refused" }
         return false

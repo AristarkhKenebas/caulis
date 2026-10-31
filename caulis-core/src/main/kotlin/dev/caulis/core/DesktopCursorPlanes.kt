@@ -81,7 +81,7 @@ internal class DesktopCursorPlanes(private val desktop: Desktop) {
 
     internal fun publishEarly() {
         if (!earlyUsed) return
-        earlyState = if (!desktop.earlyCursorMoves || !desktop.quickCursorMoves || desktop.monitorEdges != MonitorEdges.TOUCHING || desktop.monitorList.isEmpty() || desktop.constraintNow() != null) {
+        earlyState = if (!desktop.earlyCursorMoves || !desktop.quickCursorMoves || desktop.monitorEdges != MonitorEdges.TOUCHING || desktop.monitorList.isEmpty() || desktop.pointerInput.constraintNow() != null) {
             null
         } else {
             EarlyState(

@@ -38,7 +38,7 @@ class Desktop(
     // Parts of the desktop in classes of their own (in this module; they reach back into the
     // desktop for what they need). First, so that nothing below finds them missing.
     internal val touch = DesktopTouch(this, seat)
-    private val pens = DesktopPens(this, seat)
+    internal val pens = DesktopPens(this, seat)
     internal val ownTitleBars = DesktopTitleBars(this)
     internal val pointerGrab = DesktopPointerGrab(this, seat)
 
@@ -79,6 +79,8 @@ class Desktop(
     internal val focuser = DesktopFocus(this)
 
     internal val windowRoles = DesktopWindows(this)
+
+    internal val pointerInput = DesktopPointer(this)
 
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
@@ -1633,7 +1635,7 @@ class Desktop(
             e.rethrowIfFatal()
             overlayLog.error("$open failed while closing", e)
         }
-        movePointer(0, pointerX, pointerY) // the program under the pointer gets it back
+        pointerInput.movePointer(0, pointerX, pointerY) // the program under the pointer gets it back
         cursors.cursorChanged()
     }
 
@@ -1660,35 +1662,6 @@ class Desktop(
 
     /** Closes [notice] (it fades away). */
     fun dismiss(notice: Notice) = noticeBoard.dismiss(notice)
-
-    // A click on a notice of ours closes it, or copies it on its copy button (nothing below sees
-    // the press or the release). True if it was one.
-    private fun noticeClick(button: Int, pressed: Boolean): Boolean {
-        if (!pressed) {
-            if (button != noticeButton) return false
-            noticeButton = null
-            return true
-        }
-        if (widgetHost.pressedWidget != null) return false // (a drag in a widget goes on)
-        noticeBoard.actionAt(pointerX, pointerY)?.let { (notice, action) ->
-            noticeButton = button
-            when (action) {
-                NoticeAction.COPY -> copyText?.let { copy ->
-                    userCode("copyText", Unit) { copy(notice.fullText) }
-                    noticeBoard.copied(notice)
-                }
-                NoticeAction.CLOSE -> dismiss(notice)
-            }
-            return true
-        }
-        // A warning or an error with buttons: a click elsewhere on it does nothing (it is not lost by chance).
-        noticeBoard.at(pointerX, pointerY)?.let { notice ->
-            noticeButton = button
-            if (notice.level == NoticeLevel.INFO || noticeBoard.style.painter !is CardNoticePainter) dismiss(notice)
-            return true
-        }
-        return false
-    }
 
     /** Puts text on the clipboard (a notice's copy button uses it); set by whoever owns the clipboard. */
     var copyText: ((String) -> Unit)? = null
@@ -2027,7 +2000,7 @@ class Desktop(
 
     // How many buttons are held now.
     internal var buttonsHeld = 0
-        private set
+        internal set
 
     override fun moveRequested(window: Window, serial: Int) = windowRoles.moveRequested(window, serial)
 
@@ -2057,9 +2030,9 @@ class Desktop(
 
     /** Pointer position on the output. */
     var pointerX = width / 2.0
-        private set
+        internal set
     var pointerY = height / 2.0
-        private set
+        internal set
 
     // Surfaces visible right now; they get "frame done" at every refresh.
     private val visible = LinkedHashSet<Surface>()
@@ -2109,122 +2082,13 @@ class Desktop(
      * The mouse or touchpad moved by ([dx], [dy]) desktop units: across monitors as
      * [monitorEdges] says. (A tablet or a nested window gives places instead: [pointerMoved].)
      */
-    fun pointerMovedBy(timeMillis: Int, dx: Double, dy: Double, rawDx: Double = dx, rawDy: Double = dy) {
-        // Games and 3D programs hear the movement itself; a lock holds the pointer, a confinement keeps it in.
-        pointerConstraints?.let { pc ->
-            pc.relativeMotion(timeMillis, dx, dy, rawDx, rawDy)
-            when (val c = constraintNow()) {
-                null -> {}
-                else -> if (c.locks) {
-                    onUserActivity()
-                    seat.pointerFrame()
-                    return
-                } else {
-                    val (cx, cy) = confined(c, pointerX + dx, pointerY + dy)
-                    return movePointer(timeMillis, cx, cy)
-                }
-            }
-        }
-        val from = monitorAt(pointerX, pointerY)
-        val x = pointerX + dx
-        val y = pointerY + dy
-        if (from.contains(x, y)) return movePointer(timeMillis, x, y)
-        when (monitorEdges) {
-            MonitorEdges.TOUCHING -> {
-                // Onto the monitor there, if there is one; else it stays at this one's edge.
-                val onto = monitorList.firstOrNull { it.contains(x, y) }
-                if (onto != null) {
-                    movePointer(timeMillis, x, y)
-                } else {
-                    // Along the edge it can still go (sliding along it, not stuck).
-                    val alongX = x.coerceIn(from.area.x.toDouble(), from.area.right - 1.0)
-                    val alongY = y.coerceIn(from.area.y.toDouble(), from.area.bottom - 1.0)
-                    val sideways = monitorList.firstOrNull { it !== from && it.contains(x, alongY) }?.let { x to alongY }
-                        ?: monitorList.firstOrNull { it !== from && it.contains(alongX, y) }?.let { alongX to y }
-                    val (nx, ny) = sideways ?: (alongX to alongY)
-                    movePointer(timeMillis, nx, ny)
-                }
-            }
-            MonitorEdges.PROPORTIONAL -> {
-                val area = from.area
-                // Which edge it went past (the one it went further past, at a corner).
-                val overRight = x - (area.right - 1)
-                val overLeft = area.x - x
-                val overDown = y - (area.bottom - 1)
-                val overUp = area.y - y
-                val horizontal = maxOf(overRight, overLeft) >= maxOf(overDown, overUp)
-                val next = if (horizontal) monitorPast(from, if (overRight > 0) 1 else -1, 0) else monitorPast(from, 0, if (overDown > 0) 1 else -1)
-                if (next == null) {
-                    movePointer(timeMillis, x.coerceIn(area.x.toDouble(), area.right - 1.0), y.coerceIn(area.y.toDouble(), area.bottom - 1.0))
-                    return
-                }
-                val to = next.area
-                if (horizontal) {
-                    // The same share of the height; just inside the new monitor's near edge.
-                    val share = ((y - area.y) / area.height).coerceIn(0.0, 1.0)
-                    val nx = if (overRight > 0) to.x + overRight.coerceAtMost(to.width - 1.0) else to.right - 1 - overLeft.coerceAtMost(to.width - 1.0)
-                    movePointer(timeMillis, nx, to.y + share * (to.height - 1))
-                } else {
-                    val share = ((x - area.x) / area.width).coerceIn(0.0, 1.0)
-                    val ny = if (overDown > 0) to.y + overDown.coerceAtMost(to.height - 1.0) else to.bottom - 1 - overUp.coerceAtMost(to.height - 1.0)
-                    movePointer(timeMillis, to.x + share * (to.width - 1), ny)
-                }
-            }
-        }
-    }
-
-    // The monitor past [from]'s edge in a direction ([dx] or [dy] = ±1): wholly on that side,
-    // the nearest (then the one most beside it).
-    private fun monitorPast(from: Monitor, dx: Int, dy: Int): Monitor? {
-        val a = from.area
-        return monitorList.filter { it !== from }.filter { o ->
-            val b = o.area
-            (dx > 0 && b.x >= a.right - 1) || (dx < 0 && b.right <= a.x + 1) || (dy > 0 && b.y >= a.bottom - 1) || (dy < 0 && b.bottom <= a.y + 1)
-        }.minWithOrNull(compareBy<Monitor>({ o ->
-            val b = o.area
-            when {
-                dx > 0 -> b.x - a.right
-                dx < 0 -> a.x - b.right
-                dy > 0 -> b.y - a.bottom
-                else -> a.y - b.bottom
-            }
-        }, { o ->
-            val b = o.area
-            // How far apart they are across: overlapping ones first.
-            if (dx != 0) Math.abs((b.y + b.height / 2) - (a.y + a.height / 2)) else Math.abs((b.x + b.width / 2) - (a.x + a.width / 2))
-        }))
-    }
+    fun pointerMovedBy(timeMillis: Int, dx: Double, dy: Double, rawDx: Double = dx, rawDy: Double = dy) = pointerInput.pointerMovedBy(timeMillis, dx, dy, rawDx, rawDy)
 
     /** Someone moved the pointer (for idle timers; keys and clicks are told by whoever handles them). */
     var onUserActivity: () -> Unit = {}
 
     /** Pointer constraints and relative motion (games); null: none. */
     var pointerConstraints: dev.caulis.core.input.PointerConstraints? = null
-
-    // The lock in force at the last motion (to put the pointer at its hint when it ends).
-    private var lastLock: dev.caulis.core.input.PointerConstraints.Constraint? = null
-
-    // The constraint working now (none during a grab, the overview or a lock screen).
-    internal fun constraintNow(): dev.caulis.core.input.PointerConstraints.Constraint? {
-        val now = if (grab == null && !inOverview && !locked) pointerConstraints?.current() else null
-        val ended = lastLock
-        if (ended != null && ended !== now) {
-            // A lock let go: the pointer goes where the program said it should be.
-            ended.hint?.let { (hx, hy) -> events.surfaceOrigin(ended.surface)?.let { (ox, oy) -> pointerX = ox + hx; pointerY = oy + hy } }
-        }
-        lastLock = now?.takeIf { it.locks }
-        return now
-    }
-
-    // [x], [y] kept inside the confinement (the part of the region the pointer is in).
-    private fun confined(c: dev.caulis.core.input.PointerConstraints.Constraint, x: Double, y: Double): Pair<Double, Double> {
-        val (ox, oy) = events.surfaceOrigin(c.surface) ?: return x to y
-        val rects = c.region?.solidRects()?.takeIf { it.isNotEmpty() } ?: listOf(Rect(0, 0, c.surface.width, c.surface.height))
-        val px = pointerX - ox
-        val py = pointerY - oy
-        val rect = rects.firstOrNull { px >= it.x && py >= it.y && px < it.right && py < it.bottom } ?: return x to y
-        return (x - ox).coerceIn(rect.x.toDouble(), rect.right - 1.0) + ox to (y - oy).coerceIn(rect.y.toDouble(), rect.bottom - 1.0) + oy
-    }
 
     // --- touch screens -----------------------------------------------------------------------------
 
@@ -2293,181 +2157,7 @@ class Desktop(
     /** A [button] of [tool] (a Linux code: 0x14b the pen's lower one, 0x14c the upper one) was pressed or let go. */
     fun tabletButton(timeMillis: Int, tool: TabletTool, button: Int, pressed: Boolean) = pens.button(timeMillis, tool, button, pressed)
 
-    // The program's surface at ([x], [y]) that gets the pen as a pen, or null: there the pen is
-    // the pointer (our own things, programs without tablet events, and while the pointer is busy).
-    internal fun tabletTarget(tablet: Tablet, x: Double, y: Double): Hit? {
-        val tablets = tablets ?: return null
-        if (tablet.settings.pointerOnly == true) return null
-        if ((overlay != null && !locked) || inOverview || grab != null || popupHost.grabs.isNotEmpty() || buttonsHeld > 0) return null
-        if (!locked && noticeBoard.at(x, y) != null) return null
-        val hit = (hits.pointedAt(x, y, widgetsToo = true) as? Pointed.AtSurface)?.hit ?: return null
-        // (Our title bars and window edges are above what is under them.)
-        if (!locked && ownTitleBars.at(x, y) != null) return null
-        if (!hit.surface.resource.isAlive || !seat.allowed(hit.surface) || !tablets.takes(hit.surface)) return null
-        return hit
-    }
-
-    // The pen took over from the pointer: what the pointer was over hears that it left.
-    internal fun pointerAway(timeMillis: Int) {
-        widgetHost.hoverWidget(timeMillis, null, moved = false)
-        if (ownTitleBars.hover != null) {
-            ownTitleBars.hover = null
-            changed()
-        }
-        cursors.decorationCursor = null
-        if (seat.pointerFocus != null) seat.pointerMotion(timeMillis, null, 0.0, 0.0)
-    }
-
-    // The cursor is where the pen is (over a program that takes the pen as a pen).
-    internal fun showPenAt(x: Double, y: Double) {
-        cursors.cursorActive()
-        val on = monitorAt(x, y)
-        pointerX = x.coerceIn(on.area.x.toDouble(), on.area.right - 1.0)
-        pointerY = y.coerceIn(on.area.y.toDouble(), on.area.bottom - 1.0)
-        onChange()
-    }
-
-    // The pen's tip touched a program: our widgets it is not on hear of it (an open menu
-    // closes, a text field gives the keyboard back). True if one took it (the program does not get it).
-    internal fun penPressedOutside(x: Double, y: Double): Boolean {
-        if (keyboardWidget != null) focusWidget(null)
-        var taken = false
-        for (other in widgetHost.widgets.toList().asReversed()) {
-            if (userCode("Your widget (pressedOutside)", false) { other.pressedOutside(BTN_LEFT, x, y, false) }) taken = true
-        }
-        return taken
-    }
-
-    fun pointerMoved(timeMillis: Int, x: Double, y: Double) {
-        // From an absolute position (nested, tablets): the movement counts for constraints too.
-        pointerConstraints?.let { pc ->
-            if (x != pointerX || y != pointerY) pc.relativeMotion(timeMillis, x - pointerX, y - pointerY, x - pointerX, y - pointerY)
-            constraintNow()?.let { c ->
-                if (c.locks) {
-                    onUserActivity()
-                    seat.pointerFrame()
-                    return
-                }
-                val (cx, cy) = confined(c, x, y)
-                return movePointer(timeMillis, cx, cy)
-            }
-        }
-        movePointer(timeMillis, x, y)
-    }
-
-    private fun movePointer(timeMillis: Int, x: Double, y: Double) {
-        onUserActivity()
-        inputLog.trace { "Pointer at ${String.format("%.1f, %.1f", x, y)}" }
-        cursors.cursorActive()
-        // On a monitor: past an edge with no monitor beyond, it stops there.
-        val on = monitorAt(x, y)
-        pointerX = x.coerceIn(on.area.x.toDouble(), on.area.right - 1.0)
-        pointerY = y.coerceIn(on.area.y.toDouble(), on.area.bottom - 1.0)
-        lastPointerMoveNanos = System.nanoTime()
-        wallpaperShaders.pointerMoved()
-        // (Not while the input thread already showed movements after this one: it would go back.)
-        if (quickCursorMoves && planes.earlyInFlight.get() <= 1) planes.quickCursor()
-        planes.publishEarly()
-        if (!locked) noticeBoard.pointerAt(pointerX, pointerY)
-        if (!locked && withOverlay { it.pointerMoved(pointerX, pointerY) }) {
-            onChange()
-            return
-        }
-        grab?.let { current ->
-            pointerGrab.pointerMoved(current)
-            onChange()
-            return
-        }
-        if (inOverview) {
-            onChange() // only our cursor moves; programs do not see it
-            return
-        }
-        // Buttons held since a press in a program: it keeps the pointer, wherever it goes.
-        pressedIn?.let { pressed ->
-            if (buttonsHeld > 0 && !locked && pressed.surface.resource.isAlive && seat.drag == null) {
-                seat.pointerMotion(timeMillis, pressed.surface, (pointerX - pressed.x) / pressed.scaleX, (pointerY - pressed.y) / pressed.scaleY)
-                onChange()
-                return
-            }
-            pressedIn = null
-        }
-        // A button pressed in a widget: it keeps the pointer until let go.
-        widgetHost.pressedWidget?.let { pressed ->
-            if (buttonsHeld > 0) {
-                userCode("Your widget (pointerMoved)", Unit) { pressed.widget.pointerMoved(pressed.monitor, pointerX - pressed.area.x, pointerY - pressed.area.y) }
-                onChange()
-                return
-            }
-            widgetHost.pressedWidget = null
-        }
-        // Over one of our widgets: it has the pointer (the program below loses it). Title bars
-        // are above the widgets below the windows.
-        val under = hits.pointedAt(pointerX, pointerY, widgetsToo = true)
-        val overWidget = under as? Pointed.AtWidget
-        // (Behind a lock no title bar lights up and no edge shows a resize cursor.)
-        val decoration = if (locked || (overWidget != null && overWidget.level != DrawingLevel.BELOW_WINDOWS)) null else ownTitleBars.at(pointerX, pointerY)
-        if (widgetHost.hoverWidget(timeMillis, overWidget.takeIf { decoration == null }, moved = true)) {
-            onChange()
-            return
-        }
-        // Over one of our title bars: the program does not see the pointer, the bar may light up.
-        val hover = (decoration as? DesktopTitleBars.Decoration.Bar)?.let { it.window to it.button }
-        cursors.decorationCursor = (decoration as? DesktopTitleBars.Decoration.Edge)?.let { cursors.resizeCursor(it.edges) }
-        if (hover != ownTitleBars.hover) {
-            ownTitleBars.hover = hover
-            changed()
-        }
-        // The keyboard follows the pointer: onto another window, it gets the focus (once, so
-        // keys can still move the focus while the pointer rests).
-        // (Not while one of our widgets has the keyboard — a launcher, a menu: the pointer
-        // passing over a window took the keys from it.)
-        if (focusFollowsMouse && !locked && keyboardWidget == null) {
-            val under = windowAt(pointerX, pointerY) ?: (decoration as? DesktopTitleBars.Decoration.Bar)?.window ?: (decoration as? DesktopTitleBars.Decoration.Edge)?.window
-            if (under !== hovered) {
-                hovered = under
-                if (under != null && under !== focusedWindow && layerHost.exclusiveLayer() == null && !behindSpecial(under)) focus(under)
-            }
-        }
-        if (decoration != null) {
-            seat.pointerMotion(timeMillis, null, 0.0, 0.0)
-            onChange()
-            return
-        }
-        val hit = (under as? Pointed.AtSurface)?.hit
-        seat.pointerMotion(timeMillis, hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
-        onChange() // only the cursor moved: the rest of the scene stays as it is
-    }
-
-    // [window] is behind a special workspace shown on the pointer's monitor that a click
-    // outside hides (SpecialWorkspaces.clickOutsideHides): the pointer passing over it there
-    // does not take the focus away from the special workspace (a key meant for its window —
-    // moving it out — went to the window behind). Clicking there hides it, as before.
-    private fun behindSpecial(window: Window): Boolean {
-        if (scratchpadOf(window) != null || !specialWorkspaces.clickOutsideHides) return false
-        return shownSpecialOn(monitorAt(pointerX, pointerY)) != null
-    }
-
-    // The version of the scene the pointer's program was last checked against.
-    private var pointerCheckedVersion = -1L
-
-    // Windows moved under a pointer standing still (another workspace shown, a window
-    // opened, closed or moved): the program now under it gets it — with its cursor — and the
-    // one that went away stops getting it (a game on a hidden workspace saw every move).
-    private fun pointerOntoWhatIsThere() {
-        if (pointerCheckedVersion == version) return
-        pointerCheckedVersion = version
-        if (overlay != null || grab != null || inOverview || buttonsHeld > 0) return
-        if (pens.onPrograms) return // (the pen has it: the program under it gets the pen)
-        val time = (System.nanoTime() / 1_000_000).toInt()
-        val under = hits.pointedAt(pointerX, pointerY, widgetsToo = true)
-        val overWidget = under as? Pointed.AtWidget
-        val onBar = (overWidget == null || overWidget.level == DrawingLevel.BELOW_WINDOWS) && ownTitleBars.at(pointerX, pointerY) != null
-        if (widgetHost.hoverWidget(time, overWidget.takeIf { !onBar }, moved = false) || onBar) return
-        val hit = (under as? Pointed.AtSurface)?.hit
-        if (hit?.surface === seat.pointerFocus) return
-        inputLog.trace { "The pointer is over ${hit?.root?.roleObject ?: "nothing"} now (the windows moved)" }
-        seat.pointerMotion(time, hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
-    }
+    fun pointerMoved(timeMillis: Int, x: Double, y: Double) = pointerInput.pointerMoved(timeMillis, x, y)
 
     /** The window under the pointer gets the keyboard as soon as the pointer comes onto it. */
     var focusFollowsMouse = false
@@ -2498,143 +2188,13 @@ class Desktop(
      */
     @Volatile
     var lastPointerMoveNanos = 0L
-        private set
-
-    // The window the pointer was over last (for focusFollowsMouse).
-    internal var hovered: Window? = null
-
-    // The button that closed a notice: its release is ours too.
-    private var noticeButton: Int? = null
-
-    // The button whose press only closed a menu (pressedOutside): its release is ours too.
-    private var outsideButton: Int? = null
+        internal set
 
     /**
      * A mouse button changed. With [passToApps] false it only counts as held (for a move or
      * resize the window manager starts itself, e.g. Super+drag) and no program sees it.
      */
-    fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean, passToApps: Boolean = true) {
-        inputLog.trace { "Button $button ${if (pressed) "pressed" else "released"} at ${pointerX.toInt()},${pointerY.toInt()}${if (passToApps) "" else " (for the window manager)"}" }
-        buttonsHeld = (buttonsHeld + if (pressed) 1 else -1).coerceAtLeast(0)
-        // (Wallpaper shaders may ripple from it: not on a lock screen.)
-        if (pressed && !locked) wallpaperShaders.pressed(pointerX, pointerY, button)
-        // A first button pressed: no release is owed to a notice or a menu any more (one taken
-        // elsewhere — by the lock, by an overlay — left these set).
-        if (pressed && buttonsHeld == 1) {
-            noticeButton = null
-            outsideButton = null
-        }
-        // The last button let go: the program the press was in lets go of the pointer.
-        val releasedFrom = if (!pressed && buttonsHeld == 0) pressedIn.also { pressedIn = null } else null
-        cursors.cursorActive()
-        if (!passToApps) return
-        // A drag and drop going on: letting go drops it (wherever the pointer is).
-        if (seat.drag != null) {
-            seat.pointerButton(timeMillis, button, pressed)
-            if (seat.drag == null) movePointer(timeMillis, pointerX, pointerY) // the one under the pointer gets it now
-            return
-        }
-        if (withOverlay { it.pointerButton(button, pressed) }) return
-        // Notices are above everything (a bar too): a click on one is theirs (none on a lock screen).
-        if (!locked && noticeClick(button, pressed)) return
-        // A release of a press that only closed a menu: nobody's.
-        if (!pressed && button == outsideButton) {
-            outsideButton = null
-            return
-        }
-        // A widget's (the one pressed in keeps it until the last button is let go).
-        // (While locked only the lock screen's widgets can be hovered or pressed.)
-        val widgetTarget = if (inOverview) null else widgetHost.pressedWidget?.widget ?: widgetHost.hoveredWidget
-        // A press anywhere else: the widgets it is not on hear of it (an open menu closes).
-        if (pressed && buttonsHeld == 1 && !inOverview && widgetHost.widgets.isNotEmpty()) {
-            var taken = false
-            for (other in widgetHost.widgets.toList().asReversed()) {
-                if (other === widgetTarget || !lockHost.widgetUsable(other)) continue
-                if (userCode("Your widget (pressedOutside)", false) { other.pressedOutside(button, pointerX, pointerY, widgetTarget != null) }) taken = true
-            }
-            if (taken && widgetTarget == null) {
-                inputLog.trace { "Button $button: a press outside a menu, which closed (not passed on)" }
-                outsideButton = button
-                return
-            }
-        }
-        if (widgetTarget != null) {
-            if (pressed && buttonsHeld == 1) {
-                widgetHost.hoveredArea?.takeIf { widgetTarget === widgetHost.hoveredWidget }?.let { area -> widgetHost.pressedWidget = DesktopWidgets.PressedWidget(widgetTarget, area, monitorAt(pointerX, pointerY)) }
-            }
-            if (pressed && userCode("Your widget (takesKeyboard)", false) { widgetTarget.takesKeyboard }) focusWidget(widgetTarget)
-            userCode("Your widget (pointerButton)", Unit) { widgetTarget.pointerButton(button, pressed) }
-            if (!pressed && buttonsHeld == 0 && widgetHost.pressedWidget != null) {
-                widgetHost.pressedWidget = null
-                movePointer(timeMillis, pointerX, pointerY)
-            }
-            return
-        }
-        // A click anywhere else takes the keyboard back from a widget.
-        if (pressed && keyboardWidget != null) focusWidget(null)
-        if (locked) {
-            // Only the lock screen can be under the pointer: a click on one of its surfaces
-            // (the locker's on another monitor, or one our own lock screen allows) gives that
-            // one the keyboard — taking it from our own lock screen's widget too.
-            if (pressed) hits.surfaceAt(pointerX, pointerY)?.takeIf { lockHost.lockAllows(it.root) }?.let { hit ->
-                val window = hit.root.roleObject as? Window
-                if (window != null) focus(window) else if (seat.keyboardFocus !== hit.root) widgetHost.keyboardTo(hit.root)
-            }
-            seat.pointerButton(timeMillis, button, pressed)
-            return
-        }
-        if (inOverview) {
-            if (pressed) overview.overviewClick()
-            return
-        }
-        if (grab != null) {
-            // The button that started a move or resize ends it; the app does not see it.
-            if (!pressed && buttonsHeld == 0) {
-                pointerGrab.end()
-                movePointer(timeMillis, pointerX, pointerY) // the app under the pointer gets it back
-            }
-            return
-        }
-        // Title bars and edges of our own (no program sees these clicks).
-        if (popupHost.grabs.isEmpty() && ownTitleBars.button(button, pressed)) return
-        if (pressed) {
-            val hit = hits.surfaceAt(pointerX, pointerY)
-            // A click outside the open menus closes them (and is not passed to the window below).
-            if (popupHost.grabs.isNotEmpty() && (hit == null || popupHost.popups.none { it.surface === hit.root })) {
-                popupHost.grabs.toList().asReversed().forEach { it.dismiss() }
-                popupHost.grabs.clear()
-                return
-            }
-            // A click on the dimmed area around an overlay scratchpad (or a special workspace) hides it.
-            val overlay = pads.shownPads.lastOrNull { it.style is Scratchpad.Overlay && !it.leaving && (!it.isSpecial || specialWorkspaces.clickOutsideHides) }
-            if (overlay != null && (hit == null || (hit.root.roleObject as? Window)?.let(::scratchpadOf) !== overlay)) {
-                pads.hideScratchpad(overlay)
-                return
-            }
-            // A click on a panel that wants the keyboard on demand gives it the keyboard.
-            (hit?.root?.roleObject as? LayerSurface)?.let { layer ->
-                if (layer.current.keyboard != KEYBOARD_NONE && layerHost.exclusiveLayer() == null) {
-                    layerHost.layerFocus = layer
-                    widgetHost.keyboardTo(layer.surface)
-                }
-            }
-            val window = hit?.root?.roleObject as? Window
-            if (window != null && (window !== focusedWindow || layerHost.layerFocus != null)) {
-                focus(window)
-            } else if (window == null) {
-                // A click on another monitor's free space: new windows open there now.
-                val clicked = monitorAt(pointerX, pointerY)
-                if (clicked !== focusedMonitor && hit?.root?.roleObject !is LayerSurface) focusMonitor(clicked)
-            }
-            // The first button: the pointer stays with this program until the last one is let
-            // go, outside its window too (selecting text past the edge, dragging a slider).
-            if (buttonsHeld == 1 && hit != null && hit.surface === seat.pointerFocus) {
-                pressedIn = PressedIn(hit.surface, pointerX - hit.localX * hit.scaleX, pointerY - hit.localY * hit.scaleY, hit.scaleX, hit.scaleY)
-            }
-        }
-        seat.pointerButton(timeMillis, button, pressed)
-        if (releasedFrom != null) movePointer(timeMillis, pointerX, pointerY) // the one under the pointer gets it now
-    }
+    fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean, passToApps: Boolean = true) = pointerInput.pointerButton(timeMillis, button, pressed, passToApps)
 
     /**
      * The window that gets the pointer now: the one under it, or — while buttons are held —
@@ -2642,45 +2202,15 @@ class Desktop(
      */
     val pointerWindow: Window? get() = seat.pointerFocus?.let(capturing::ownerOf) as? Window
 
-    // The surface the held buttons were pressed in, and where its top left corner was (desktop
-    // units): pointer moves go to it until they are let go (Wayland's implicit grab).
-    internal var pressedIn: PressedIn? = null
-
-    internal class PressedIn(val surface: Surface, val x: Double, val y: Double, val scaleX: Double, val scaleY: Double)
-
     /**
      * Scrolling as 0.1.1 had it: [value] units along one axis, [value120] the wheel's steps in
      * 1/120 (a full notch = 120; 0: fingers).
      */
     @Deprecated("Give a Scroll (where it came from, notches in 1/120)", ReplaceWith("pointerAxis(timeMillis, Scroll(...))"))
-    fun pointerAxis(timeMillis: Int, vertical: Boolean, value: Double, value120: Int) {
-        val source = if (value120 != 0) dev.caulis.core.input.Scroll.Source.WHEEL else dev.caulis.core.input.Scroll.Source.FINGER
-        pointerAxis(
-            timeMillis,
-            if (vertical) dev.caulis.core.input.Scroll(source, vertical = value, vertical120 = value120)
-            else dev.caulis.core.input.Scroll(source, horizontal = value, horizontal120 = value120),
-        )
-    }
+    fun pointerAxis(timeMillis: Int, vertical: Boolean, value: Double, value120: Int) = pointerInput.pointerAxis(timeMillis, vertical, value, value120)
 
     /** Scrolling (the wheel or fingers, see [Scroll]): an overlay, a widget or the program under the pointer gets it. */
-    fun pointerAxis(timeMillis: Int, scroll: Scroll) {
-        inputLog.trace { "$scroll" }
-        cursors.cursorActive()
-        if (!locked && overlay != null) {
-            // An overlay hears each direction in steps (a notch is 1).
-            for (vertical in listOf(true, false)) {
-                val value = if (vertical) scroll.vertical else scroll.horizontal
-                val value120 = if (vertical) scroll.vertical120 else scroll.horizontal120
-                if (value != 0.0 || value120 != 0) withOverlay { it.scroll(vertical, if (value120 != 0) value120 / 120.0 else value / 15.0) }
-            }
-            return
-        }
-        widgetHost.hoveredWidget?.takeIf { !inOverview }?.let { widget ->
-            if (scroll.horizontal != 0.0 || scroll.vertical != 0.0) userCode("Your widget (scroll)", Unit) { widget.scroll(scroll.horizontal, scroll.vertical) }
-            return
-        }
-        seat.pointerAxis(timeMillis, scroll)
-    }
+    fun pointerAxis(timeMillis: Int, scroll: Scroll) = pointerInput.pointerAxis(timeMillis, scroll)
 
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) = keys.key(timeMillis, evdevCode, pressed)
 
@@ -2776,7 +2306,7 @@ class Desktop(
         }
         // (What is under the pointer may fail on a window going away: the frame is drawn all the same.)
         try {
-            pointerOntoWhatIsThere()
+            pointerInput.pointerOntoWhatIsThere()
         } catch (e: Exception) {
             log.error("Finding what is under the pointer failed (the frame is drawn anyway)", e)
         }
