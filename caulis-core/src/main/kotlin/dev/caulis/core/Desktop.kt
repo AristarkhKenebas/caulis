@@ -51,6 +51,8 @@ class Desktop(
 
     internal val popupHost = DesktopPopups(this)
 
+    internal val keys = DesktopKeys(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -1862,7 +1864,7 @@ class Desktop(
 
     // Our widgets usable while locked: our own lock screen (unless a locker program locked on
     // top of it), and the ones that say so (Widget.showsWhileLocked).
-    private fun widgetUsable(widget: Widget): Boolean {
+    internal fun widgetUsable(widget: Widget): Boolean {
         if (!locked) return true
         if (!sessionLocked && widget === ownLock?.screen) return true
         return userCode("Your widget (showsWhileLocked)", false) { widget.showsWhileLocked }
@@ -3069,7 +3071,7 @@ class Desktop(
     private var brokenOverlay: Overlay? = null
 
     // Runs [action] on the overlay; one that fails is closed (never the compositor with it).
-    private inline fun withOverlay(action: (Overlay) -> Unit): Boolean {
+    internal inline fun withOverlay(action: (Overlay) -> Unit): Boolean {
         val open = overlay ?: return false
         try {
             action(open)
@@ -5068,72 +5070,7 @@ class Desktop(
         seat.pointerAxis(timeMillis, scroll)
     }
 
-    fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
-        // Never what is typed into a locker (a password).
-        inputLog.trace { if (locked) "A key (not logged while locked)" else "Key $evdevCode ${if (pressed) "pressed" else "released"} → ${seat.keyboardFocus}" }
-        // Typing (not just holding Ctrl or Super): the cursor makes way.
-        if (pressed && hideCursorWhileTyping && evdevCode !in MODIFIER_KEYS && seat.keyboardFocus != null) cursors.hideCursor()
-        if (pressed || evdevCode == widgetRepeatKey) stopWidgetRepeat()
-        keyboardWidget?.takeIf { widgetUsable(it) && overlay == null }?.let { widget ->
-            val text = if (pressed) seat.textOf(evdevCode) else null
-            seat.key(timeMillis, evdevCode, pressed) // (no program has the keyboard: only its state moves on)
-            val m = seat.modifierBits
-            val key = WidgetKey(evdevCode, pressed, text, m and 1 != 0, m and 4 != 0, m and 8 != 0, m and 64 != 0, timeMillis)
-            userCode("Your widget (key)", Unit) { widget.key(key) }
-            // Held, it comes again as programs would repeat it themselves.
-            if (pressed && evdevCode !in MODIFIER_KEYS && seat.repeatRate > 0) repeatForWidget(widget, key, seat.repeatDelay.toLong())
-            return
-        }
-        // A key pressed while the overview or an overlay had the keyboard: its release is not
-        // for programs either (they never saw the press); the keyboard's state follows both.
-        if (!pressed && keptKeys.remove(evdevCode)) {
-            if (!locked && overlay != null) withOverlay { it.key(evdevCode, false) }
-            seat.trackKey(evdevCode, false)
-            return
-        }
-        if (!locked && overlay != null) {
-            withOverlay { it.key(evdevCode, pressed) }
-            if (pressed) return keepKey(evdevCode) // ...as with the overview below
-        }
-        if (inOverview && pressed) {
-            if (evdevCode == KEY_ESC) setOverview(false)
-            return keepKey(evdevCode) // new key presses are not for programs while the overview is open...
-        }
-        if (pressed) keptKeys.remove(evdevCode) // (its release, missed somehow, is the programs' now)
-        seat.key(timeMillis, evdevCode, pressed) // ...but releases of keys they saw pressed are, or keys would stick
-    }
-
-    // Keys pressed while the overview or an overlay had them (programs never saw the press).
-    private val keptKeys = HashSet<Int>()
-
-    private fun keepKey(evdevCode: Int) {
-        keptKeys += evdevCode
-        seat.trackKey(evdevCode, true) // (Shift held there is still held for programs afterwards)
-    }
-
-    // The key a widget gets again and again while it is held (programs repeat keys themselves).
-    private var widgetRepeat: EventLoop.Timer? = null
-    private var widgetRepeatKey = -1
-
-    private fun stopWidgetRepeat() {
-        widgetRepeat?.cancel()
-        widgetRepeat = null
-        widgetRepeatKey = -1
-    }
-
-    private fun repeatForWidget(widget: Widget, key: WidgetKey, delayMillis: Long) {
-        widgetRepeatKey = key.evdevCode
-        widgetRepeat = compositor.display.loop.after(delayMillis) {
-            widgetRepeat = null
-            if (keyboardWidget !== widget || !widgetUsable(widget) || overlay != null) {
-                widgetRepeatKey = -1
-                return@after
-            }
-            val again = WidgetKey(key.evdevCode, true, key.text, key.shift, key.ctrl, key.alt, key.logo, (System.nanoTime() / 1_000_000).toInt())
-            userCode("Your widget (key)", Unit) { widget.key(again) }
-            repeatForWidget(widget, key, (1000L / seat.repeatRate.coerceAtLeast(1)).coerceAtLeast(1))
-        }
-    }
+    fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) = keys.key(timeMillis, evdevCode, pressed)
 
     /** What is under a point: the surface, the point inside it, and the window/popup surface it belongs to. */
     class Hit @JvmOverloads constructor(
