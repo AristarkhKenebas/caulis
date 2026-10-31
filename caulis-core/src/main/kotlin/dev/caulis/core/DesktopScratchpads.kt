@@ -32,7 +32,7 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
     // special workspace, or the special workspace shown where it opens.
     internal fun scratchpadFor(window: Window): Scratchpad? {
         scratchpads.values.firstOrNull { pad -> userCode("Your scratchpad ${pad.name}'s match", false) { pad.match(window) } }?.let { return it }
-        desktop.placementOf(window).specialWorkspace?.let { name ->
+        desktop.arranger.placementOf(window).specialWorkspace?.let { name ->
             // (A bad name from a rule: logged, and the window opens as usual — not refused.)
             try {
                 return specialWorkspace(name)
@@ -121,11 +121,11 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
             val from = desktop.workspaceOf(window) ?: return
             if (window.fullscreen) desktop.setFullscreen(window, false)
             if (window.maximized) desktop.setMaximized(window, false)
-            desktop.pinned -= window
+            desktop.arranger.pinned -= window
             from.remove(window)
             from.model.forget(window)
-            desktop.pending.remove(window)
-            desktop.arrange(from)
+            desktop.arranger.pending.remove(window)
+            desktop.arranger.arrange(from)
         }
         pad.windows += window
         lastSpecial = pad
@@ -151,16 +151,16 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
         leavePad(pad, window)
         val workspace = desktop.focusedMonitor.workspace
         workspace.add(window)
-        window.tiled = workspace.layout !== dev.caulis.tiling.Floating && !desktop.floats(window)
+        window.tiled = workspace.layout !== dev.caulis.tiling.Floating && !desktop.arranger.floats(window)
         if (!window.tiled) {
             workspace.floating += window
             val visible = window.visibleRect
-            val place = desktop.floatingRects[window] ?: desktop.cascadeRect(visible.width, visible.height, desktop.focusedMonitor.area)
+            val place = desktop.arranger.floatingRects[window] ?: desktop.arranger.cascadeRect(visible.width, visible.height, desktop.focusedMonitor.area)
             window.x = place.x
             window.y = place.y
             window.configure(place.width, place.height)
         }
-        desktop.arrange(workspace)
+        desktop.arranger.arrange(workspace)
         desktop.layoutLog.info { "$window moved out of ${pad.name} onto workspace ${workspace.number}" }
         desktop.focus(window)
         desktop.events.windowListChanged()
@@ -254,8 +254,8 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
         val from = desktop.workspaceOf(window) ?: return
         from.remove(window)
         from.model.forget(window)
-        desktop.pending.remove(window)
-        desktop.arrange(from)
+        desktop.arranger.pending.remove(window)
+        desktop.arranger.arrange(from)
         pad.windows += window
         showScratchpad(pad, appearing = emptySet())
     }
@@ -364,18 +364,18 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
                 // No tiling: each window in the middle, two thirds of it as big.
                 val w = area.width * 2 / 3
                 val h = area.height * 2 / 3
-                return windows.associateWith { desktop.fit(it, Rect(area.x + (area.width - w) / 2, area.y + (area.height - h) / 2, w, h)) }
+                return windows.associateWith { desktop.arranger.fit(it, Rect(area.x + (area.width - w) / 2, area.y + (area.height - h) / 2, w, h)) }
             }
             if (pad.workspace.layout != layout) pad.workspace.layout = layout
-            val rects = desktop.arrangeSafely(pad.workspace, windows, area, windows.lastOrNull())
-            return windows.associateWith { window -> desktop.fit(window, rects.getOrNull(windows.indexOf(window)) ?: area) }
+            val rects = desktop.arranger.arrangeSafely(pad.workspace, windows, area, windows.lastOrNull())
+            return windows.associateWith { window -> desktop.arranger.fit(window, rects.getOrNull(windows.indexOf(window)) ?: area) }
         }
         if (pad.style is Scratchpad.Overlay) {
-            val rects = desktop.arrangeSafely(pad.workspace, windows, padArea(pad), windows.lastOrNull())
-            return windows.zip(rects).associate { (window, rect) -> window to desktop.fit(window, rect) }
+            val rects = desktop.arranger.arrangeSafely(pad.workspace, windows, padArea(pad), windows.lastOrNull())
+            return windows.zip(rects).associate { (window, rect) -> window to desktop.arranger.fit(window, rect) }
         }
         val rect = pad.shownRect(padArea(pad))
-        return windows.associateWith { desktop.fit(it, rect) }
+        return windows.associateWith { desktop.arranger.fit(it, rect) }
     }
 
     // Sizes and places the scratchpad's windows; [appearing] ones grow or slide into place.

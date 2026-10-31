@@ -121,10 +121,10 @@ internal class DesktopOverview(private val desktop: Desktop) {
         dragY = 0.0
         val workspace = desktop.activeWorkspace
         workspace.model.command(TilingCommand.PanBy(-dx, -dy), desktop.focusedWindow?.takeIf { it.tiled })
-        desktop.arrange(workspace)
+        desktop.arranger.arrange(workspace)
         val screen = desktop.focusedMonitor.area
         fun visibleShare(window: Window): Double {
-            val target = desktop.pending[window] ?: desktop.currentRect(window)
+            val target = desktop.arranger.pending[window] ?: desktop.currentRect(window)
             val inView = target.intersect(screen) ?: return 0.0
             return inView.width.toDouble() * inView.height / (target.width.toDouble() * target.height)
         }
