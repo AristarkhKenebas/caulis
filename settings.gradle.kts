@@ -23,6 +23,7 @@ include(
     "caulis-native",
     "caulis-dbus",
     "caulis-geometry",
+    "caulis-input",
     "caulis-cursor",
     "caulis-tiling",
     "caulis-protocol",
