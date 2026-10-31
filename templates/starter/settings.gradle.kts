@@ -8,6 +8,7 @@ plugins {
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
+        // google()     // Compose's androidx parts: for caulis-compose
         // Caulis' own Maven repository on GitHub Pages: the same releases (same coordinates and
         // signatures), for a version not on Central yet when Central's free monthly limit is
         // used up. Only Caulis is looked up there.

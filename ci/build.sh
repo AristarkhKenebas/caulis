@@ -18,11 +18,8 @@ gradle_options=(--console=plain --stacktrace)
 echo "== Caulis: build and test"
 ./gradlew "${gradle_options[@]}" build
 
-echo "== The project template still builds"
-template_dir="$(mktemp -d)"
-templates/new-compositor.sh --sources "$template_dir/template-check" > /dev/null
-(cd "$template_dir/template-check" && ./gradlew "${gradle_options[@]}" build)
-rm -rf "$template_dir"
+echo "== The project templates still build"
+ci/check-templates.sh
 
 echo "== Done"
 ls -l caulis-*/build/libs
