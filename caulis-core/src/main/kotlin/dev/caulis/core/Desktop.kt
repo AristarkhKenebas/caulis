@@ -59,6 +59,8 @@ class Desktop(
 
     internal val events = DesktopEvents(this)
 
+    internal val report = DesktopReport(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -846,41 +848,12 @@ class Desktop(
         if (window.mapped) notifyEach(events.windowInfoListeners, window, "window-info-changed")
     }
 
-    // --- a picture of the whole state, for finding problems ------------------------------------
-
     /**
      * Everything the window manager knows right now, as text: the screen, the focus, every
      * workspace with its windows (where, tiled or floating, minimized, ...), scratchpads,
      * panels, the lock. Log it when something looks wrong (Super+F12 in caulis-wm).
      */
-    fun describe(): String = buildString {
-        appendLine("Desktop ${width}x$height, room for windows $usableArea${if (locked) ", LOCKED" else ""}${if (inOverview) ", overview open" else ""}")
-        appendLine("  focus: ${focusedWindow ?: "nothing"}; keyboard: ${seat.keyboardFocus?.roleObject ?: seat.keyboardFocus ?: "nobody"}; pointer at ${pointerX.toInt()},${pointerY.toInt()} over ${seat.pointerFocus?.roleObject ?: "nothing"}")
-        appendLine("  cursor: ${cursorTheme.name} ${cursorTheme.size} px, showing ${cursorShape ?: "the program's own"}${if (cursors.cursorHidden) " (hidden)" else ""}")
-        for (workspace in workspaces.values.sortedBy { it.number }) {
-            appendLine("  workspace ${workspace.number}${if (workspace === activeWorkspace) " (on screen)" else ""}, layout ${workspace.layout.name}:")
-            for (window in workspace.windows) appendLine("    ${describe(window, workspace)}")
-            for (window in workspace.minimized) appendLine("    ${describe(window, workspace)} [minimized]")
-        }
-        for (pad in allPads) {
-            appendLine("  ${if (pad.isSpecial) "special workspace" else "scratchpad"} ${pad.name} (${if (pad.shown) "shown" else "hidden"}): ${pad.windows.joinToString { it.toString() }.ifEmpty { "no window" }}")
-        }
-        for (layer in layerSurfaces) {
-            appendLine("  panel \"${layer.namespace}\" (${layer.surface.resource.client.name}) on ${layer.current.layer} at ${layer.x},${layer.y} ${layer.surface.width}x${layer.surface.height}${if (layer === layerFocus) ", has the keyboard" else ""}")
-        }
-        if (glides.isNotEmpty()) appendLine("  moving now: ${glides.keys.joinToString { it.title.take(24) }}")
-        for (notice in notices) appendLine("  on screen: $notice")
-    }
-
-    private fun describe(window: Window, workspace: Workspace): String = buildString {
-        append(window).append(" from ").append(window.surface.resource.client.name)
-        append(" at ").append(screenRects[window] ?: currentRect(window))
-        append(if (window in workspace.floating || !window.tiled) ", floating" else ", tiled")
-        if (window.maximized) append(", maximized")
-        if (window.fullscreen) append(", fullscreen")
-        if (window.parent != null) append(", dialog of ").append(window.parent)
-        if (window === focusedWindow) append(", focused")
-    }
+    fun describe(): String = report.describe()
 
     /**
      * Draws [monitor] as it is on screen into [target] (as big as the monitor in pixels),
@@ -1023,7 +996,7 @@ class Desktop(
         private set
 
     // By number; with workspaces of each monitor's own, by number and monitor.
-    private data class WorkspaceKey(val number: Int, val monitor: String?)
+    internal data class WorkspaceKey(val number: Int, val monitor: String?)
 
     private fun keyFor(number: Int, monitor: Monitor): WorkspaceKey = when {
         number == 0 -> WorkspaceKey(0, monitor.name)
@@ -1031,7 +1004,7 @@ class Desktop(
         else -> WorkspaceKey(number, null)
     }
 
-    private val workspaces = java.util.TreeMap<WorkspaceKey, Workspace>(compareBy<WorkspaceKey> { it.number }.thenBy { it.monitor ?: "" })
+    internal val workspaces = java.util.TreeMap<WorkspaceKey, Workspace>(compareBy<WorkspaceKey> { it.number }.thenBy { it.monitor ?: "" })
 
     /** The workspace on the monitor with the focus. */
     val activeWorkspace: Workspace get() = focusedMonitor.workspace
@@ -1446,7 +1419,7 @@ class Desktop(
             ?: layerMonitors.getOrPut(layer) { focusedMonitor }
 
     // The panel with the keyboard (a launcher, or one clicked that wants it), if any.
-    private var layerFocus: LayerSurface? = null
+    internal var layerFocus: LayerSurface? = null
 
     override fun layerCommitted(layer: LayerSurface) {
         if (layer !in layerSurfaces) {
@@ -1994,7 +1967,7 @@ class Desktop(
     private val specials = LinkedHashMap<String, Scratchpad>()
 
     // Scratchpads and special workspaces together.
-    private val allPads: List<Scratchpad> get() = scratchpads.values + specials.values
+    internal val allPads: List<Scratchpad> get() = scratchpads.values + specials.values
 
     /**
      * How special workspaces look and behave: dimming and blur behind them, their size, their
@@ -3298,9 +3271,9 @@ class Desktop(
     }
 
     // A window on its way: where it started; the end is wherever the window is now.
-    private class Glide(val from: Rect, val startNanos: Long, val to: Rect? = null, val name: String = "windowsMove")
+    internal class Glide(val from: Rect, val startNanos: Long, val to: Rect? = null, val name: String = "windowsMove")
 
-    private val glides = HashMap<Window, Glide>()
+    internal val glides = HashMap<Window, Glide>()
 
     // [window] stops gliding where it is (a drag takes it from there).
     internal fun stopGlide(window: Window) {
