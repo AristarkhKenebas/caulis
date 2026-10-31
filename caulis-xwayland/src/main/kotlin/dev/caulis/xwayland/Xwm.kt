@@ -29,19 +29,20 @@ import java.lang.foreign.ValueLayout.JAVA_SHORT
  * surface Xwayland made for an X window (xwayland-shell serials).
  */
 class Xwm internal constructor(
-    private val x: XConnection,
-    private val desktop: Desktop,
+    internal val x: XConnection,
+    internal val desktop: Desktop,
     private val loop: EventLoop,
     private val surfaceFor: (serial: Long) -> Surface?,
     clipboard: DataDeviceManager? = null,
     /** How many of X's pixels one desktop unit is: the screen's scale, or a whole number (a world of its own). */
     private val pixelScale: () -> Double = { desktop.largestScale },
     /** Cuts a title or class to what other programs can take (Display.capForwarded). */
-    private val capText: (String) -> String = { it },
+    internal val capText: (String) -> String = { it },
 ) : AutoCloseable {
+    internal val props = XwmProperties(this)
 
-    private val log = Logger("xwayland")
-    private val windows = HashMap<Int, XWindow>()
+    internal val log = Logger("xwayland")
+    internal val windows = HashMap<Int, XWindow>()
 
     // X's stacking order as it reports it (kept in step with the desktop's, see restack).
     private val stack = XStack()
@@ -125,7 +126,6 @@ class Xwm internal constructor(
 
     // --- events ----------------------------------------------------------------------------
 
-
     private fun dispatch() {
         while (true) {
             val event = x.poll() ?: break
@@ -172,7 +172,7 @@ class Xwm internal constructor(
             Xcb.XCB_CONFIGURE_REQUEST() -> configureRequested(event)
             Xcb.XCB_CONFIGURE_NOTIFY() -> configured(event)
             Xcb.XCB_PROPERTY_NOTIFY() -> if (!clipboard.propertyChanged(event)) {
-                windows[xcb_property_notify_event_t.window(event)]?.let { window -> propertyChanged(window, xcb_property_notify_event_t.atom(event)) }
+                windows[xcb_property_notify_event_t.window(event)]?.let { window -> props.propertyChanged(window, xcb_property_notify_event_t.atom(event)) }
             }
             Xcb.XCB_FOCUS_IN() -> focusIn(event)
             Xcb.XCB_CLIENT_MESSAGE() -> clientMessage(event)
@@ -225,15 +225,15 @@ class Xwm internal constructor(
         windows[id] = window
         // Its properties change later (title, class, ...) and it may take the keyboard: we want to hear it.
         x.changeAttributes(id, Xcb.XCB_CW_EVENT_MASK(), intArrayOf(Xcb.XCB_EVENT_MASK_PROPERTY_CHANGE() or Xcb.XCB_EVENT_MASK_FOCUS_CHANGE()))
-        readProperties(window)
+        props.readProperties(window)
         log.trace { "Created $window at ${window.xGeometry}${if (window.overrideRedirect) " (places itself)" else ""}" }
         return window
     }
 
     private fun mapRequested(window: XWindow) {
-        readProperties(window) {
-            readEverything(it)
-            startingState(it)
+        props.readProperties(window) {
+            props.readEverything(it)
+            props.startingState(it)
         }
         x.setProperty(window.id, atom("WM_STATE"), atom("WM_STATE"), intArrayOf(NORMAL_STATE, XConnection.NONE))
         x.map(window.id)
@@ -323,143 +323,6 @@ class Xwm internal constructor(
         log.trace { "$window is surface ${surface.resource}" }
         show(window)
         drainSoon()
-    }
-
-    // --- properties ------------------------------------------------------------------------
-
-    // Properties fetched together for readProperties (one round trip), else read one by one.
-    private var fetched: Map<Int, XConnection.Property?>? = null
-
-    private fun prop(window: XWindow, atom: Int): XConnection.Property? =
-        fetched?.let { if (atom in it) return it[atom] }.let { x.property(window.id, atom) }
-
-    private val windowProperties: List<Int> by lazy {
-        listOf(
-            atom("_NET_WM_NAME"), Xcb.XCB_ATOM_WM_NAME(), Xcb.XCB_ATOM_WM_CLASS(), Xcb.XCB_ATOM_WM_TRANSIENT_FOR(),
-            Xcb.XCB_ATOM_WM_NORMAL_HINTS(), Xcb.XCB_ATOM_WM_HINTS(), atom("WM_PROTOCOLS"), atom("_NET_WM_WINDOW_TYPE"),
-            atom("_MOTIF_WM_HINTS"), atom("_NET_WM_PID"), atom("_NET_WM_STATE"),
-        )
-    }
-
-    // Fetches all the window's properties together, then reads them ([read]: everything).
-    private fun readProperties(window: XWindow, read: (XWindow) -> Unit = ::readEverything) {
-        fetched = x.properties(window.id, windowProperties)
-        try {
-            read(window)
-        } finally {
-            fetched = null
-        }
-    }
-
-    private fun readEverything(window: XWindow) {
-        readTitle(window)
-        readClass(window)
-        readParent(window)
-        readSizeHints(window)
-        readHints(window)
-        readProtocols(window)
-        readTypes(window)
-        readMotif(window)
-        window.netWmPid = prop(window, atom("_NET_WM_PID"))?.ints()?.firstOrNull() ?: 0
-    }
-
-    // Only what changed is read again (programs change _NET_WM_USER_TIME with every key).
-    private fun propertyChanged(window: XWindow, atom: Int) {
-        when (atom) {
-            atom("_NET_WM_NAME"), Xcb.XCB_ATOM_WM_NAME() -> readTitle(window).also { infoChanged(window) }
-            Xcb.XCB_ATOM_WM_CLASS() -> readClass(window).also { infoChanged(window) }
-            Xcb.XCB_ATOM_WM_TRANSIENT_FOR() -> readParent(window)
-            Xcb.XCB_ATOM_WM_NORMAL_HINTS() -> readSizeHints(window)
-            Xcb.XCB_ATOM_WM_HINTS() -> readHints(window)
-            atom("WM_PROTOCOLS") -> readProtocols(window)
-            atom("_NET_WM_WINDOW_TYPE") -> readTypes(window)
-            atom("_MOTIF_WM_HINTS") -> readMotif(window).also { infoChanged(window) }
-        }
-    }
-
-    private fun infoChanged(window: XWindow) {
-        if (window.inDesktop && !window.unmanaged) desktop.windowInfoChanged(window)
-    }
-
-    private fun readTitle(window: XWindow) {
-        val value = prop(window, atom("_NET_WM_NAME")) ?: prop(window, Xcb.XCB_ATOM_WM_NAME()) ?: return
-        // Old programs give WM_NAME as STRING: Latin-1, not UTF-8.
-        val title = if (value.type == Xcb.XCB_ATOM_STRING()) String(value.bytes, Charsets.ISO_8859_1).trimEnd('\u0000') else value.text()
-        window.describe(capText(title))
-    }
-
-    private fun readClass(window: XWindow) {
-        // WM_CLASS is "instance\0class\0": the class names the program (as app ids do).
-        val wmClass = prop(window, Xcb.XCB_ATOM_WM_CLASS())?.text()?.split('\u0000')?.filter { it.isNotEmpty() }
-        window.wmClass = wmClass?.lastOrNull() ?: ""
-        if (window.wmClass.isNotEmpty()) window.describeClass(capText(window.wmClass.lowercase()))
-    }
-
-    // WM_TRANSIENT_FOR: the window a dialog belongs to (none once removed; never itself through others).
-    private fun readParent(window: XWindow) {
-        var parent: Window? = prop(window, Xcb.XCB_ATOM_WM_TRANSIENT_FOR())?.ints()?.firstOrNull()?.let { windows[it] }
-        var up = parent
-        while (up != null) {
-            if (up === window) {
-                log.trace { "$window: transient for itself through ${window.parent}, ignored" }
-                parent = null
-                break
-            }
-            up = up.parent
-        }
-        window.describeParent(parent)
-    }
-
-    // WM_NORMAL_HINTS: flags, (x, y, w, h,) min w/h at 5/6, max at 7/8, ..., base at 15/16 (pixels).
-    private fun readSizeHints(window: XWindow) {
-        val hints = prop(window, Xcb.XCB_ATOM_WM_NORMAL_HINTS())?.ints()
-        var minW = 0
-        var minH = 0
-        var maxW = 0
-        var maxH = 0
-        if (hints != null && hints.size >= 9) {
-            val flags = hints[0]
-            if (flags and P_MIN_SIZE != 0) { minW = toUnits(hints[5]); minH = toUnits(hints[6]) }
-            // Without a minimum the base size is one (ICCCM).
-            else if (flags and P_BASE_SIZE != 0 && hints.size >= 17) { minW = toUnits(hints[15]); minH = toUnits(hints[16]) }
-            if (flags and P_MAX_SIZE != 0) { maxW = toUnits(hints[7]); maxH = toUnits(hints[8]) }
-        }
-        window.describeSize(minW, minH, maxW, maxH)
-    }
-
-    // WM_HINTS: flags, input, ...: "input = false" programs take the keyboard themselves (WM_TAKE_FOCUS).
-    private fun readHints(window: XWindow) {
-        val hints = prop(window, Xcb.XCB_ATOM_WM_HINTS())?.ints()
-        window.acceptsFocus = !(hints != null && hints.size >= 2 && hints[0] and INPUT_HINT != 0 && hints[1] == 0)
-    }
-
-    private fun readProtocols(window: XWindow) {
-        window.protocols = prop(window, atom("WM_PROTOCOLS"))?.ints()?.toSet() ?: emptySet()
-    }
-
-    private fun readTypes(window: XWindow) {
-        window.windowTypes = prop(window, atom("_NET_WM_WINDOW_TYPE"))?.ints()?.toList() ?: emptyList()
-    }
-
-    // _MOTIF_WM_HINTS: flags, functions, decorations, ...: decorations say what the window manager draws.
-    private fun readMotif(window: XWindow) {
-        val motif = prop(window, atom("_MOTIF_WM_HINTS"))?.ints()
-        window.wantsDecorations = if (motif != null && motif.size >= 3 && motif[0] and MOTIF_DECORATIONS != 0) {
-            val decorations = motif[2]
-            // With "all" set the others are the ones left out; without, the ones wanted.
-            if (decorations and DECOR_ALL != 0) decorations and DECOR_TITLE == 0 else decorations and DECOR_TITLE != 0
-        } else {
-            true
-        }
-    }
-
-    // _NET_WM_STATE before the window is shown: programs that start fullscreen or maximized.
-    private fun startingState(window: XWindow) {
-        val states = prop(window, atom("_NET_WM_STATE"))?.ints()?.toSet() ?: return
-        if (atom("_NET_WM_STATE_FULLSCREEN") in states) window.fullscreen = true
-        if (atom("_NET_WM_STATE_MAXIMIZED_VERT") in states && atom("_NET_WM_STATE_MAXIMIZED_HORZ") in states) window.maximized = true
-        // A dialog its window waits for (modal).
-        if (atom("_NET_WM_STATE_MODAL") in states) window.describeModal(true)
     }
 
     // Xwayland tells which surface shows a window: the serial it also gave the surface
@@ -601,7 +464,6 @@ class Xwm internal constructor(
         giveFocus(current)
     }
 
-
     private fun insists(window: XWindow): Boolean {
         val now = System.nanoTime()
         val record = refusals.getOrPut(window.id) { longArrayOf(0, now, 0) }
@@ -621,7 +483,6 @@ class Xwm internal constructor(
     internal fun sameProgram(a: XWindow, b: XWindow) = (a.id xor b.id) and x.resourceIdMask.inv() == 0
 
     // --- what the window manager tells X ---------------------------------------------------
-
 
     private fun drainSoon() {
         if (drainPosted) return
@@ -695,7 +556,6 @@ class Xwm internal constructor(
         x.flush()
     }
 
-
     // X stacks its windows as the desktop draws them (X decides by it which window a click is
     // for), with the self-placing ones (menus) on top; only windows out of place are moved.
     private fun restack() {
@@ -765,7 +625,7 @@ class Xwm internal constructor(
             window.xSurface?.nativeScale = pixelScale()
             if (window.inDesktop) place(window)
             if (window.unmanaged && window.inDesktop) showUnmanaged(window)
-            readSizeHints(window)
+            props.readSizeHints(window)
         }
         updateCursor()
         tellResources()
@@ -804,37 +664,36 @@ class Xwm internal constructor(
         log.info("Window manager of X11 programs ready")
     }
 
-    private companion object {
-        const val REPARENT_NOTIFY = 21 // (XCB_REPARENT_NOTIFY)
-        const val NORMAL_STATE = 1
-        const val ICONIC_STATE = 3
-        const val WITHDRAWN_STATE = 0
-        const val P_MIN_SIZE = 16
-        const val P_MAX_SIZE = 32
-        const val P_BASE_SIZE = 256
-        const val INPUT_HINT = 1
-        const val MOTIF_DECORATIONS = 2
-        const val DECOR_ALL = 1
-        const val DECOR_TITLE = 8
-        const val MOVERESIZE_MOVE = 8
-        const val MAX_REFUSALS = 3
-
-        // _NET_WM_MOVERESIZE directions 0..7 (top-left, top, ... left) as xdg resize edges.
-        val RESIZE_EDGES = intArrayOf(5, 1, 9, 8, 10, 2, 6, 4)
-
-        val POPUP_TYPES = listOf("MENU", "DROPDOWN_MENU", "POPUP_MENU", "TOOLTIP", "NOTIFICATION", "COMBO", "DND")
-        val FLOATING_TYPES = listOf("DIALOG", "UTILITY", "SPLASH", "TOOLBAR")
-
-        val SUPPORTED = listOf(
-            "_NET_SUPPORTED", "_NET_SUPPORTING_WM_CHECK", "_NET_WM_NAME", "_NET_ACTIVE_WINDOW", "_NET_CLIENT_LIST",
-            "_NET_CLIENT_LIST_STACKING", "_NET_WM_STATE", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE_MAXIMIZED_VERT",
-            "_NET_WM_STATE_MAXIMIZED_HORZ", "_NET_WM_STATE_HIDDEN", "_NET_WM_STATE_FOCUSED", "_NET_WM_MOVERESIZE",
-            "_NET_CLOSE_WINDOW", "_NET_WM_WINDOW_TYPE", "_NET_WM_STATE_MODAL",
-        )
-
-        val ATOMS = SUPPORTED + listOf(
-            "WM_S0", "_NET_WM_CM_S0", "UTF8_STRING", "WM_PROTOCOLS", "WM_DELETE_WINDOW", "WM_TAKE_FOCUS", "WM_STATE", "WM_CHANGE_STATE",
-            "WL_SURFACE_SERIAL", "WL_SURFACE_ID", "_MOTIF_WM_HINTS", "_NET_WM_PID", "CLIPBOARD", "TARGETS", "TEXT", "INCR",
-        ) + (POPUP_TYPES + FLOATING_TYPES + "NORMAL").distinct().map { "_NET_WM_WINDOW_TYPE_$it" }
-    }
 }
+
+internal const val REPARENT_NOTIFY = 21 // (XCB_REPARENT_NOTIFY)
+internal const val NORMAL_STATE = 1
+internal const val ICONIC_STATE = 3
+internal const val WITHDRAWN_STATE = 0
+internal const val P_MIN_SIZE = 16
+internal const val P_MAX_SIZE = 32
+internal const val P_BASE_SIZE = 256
+internal const val INPUT_HINT = 1
+internal const val MOTIF_DECORATIONS = 2
+internal const val DECOR_ALL = 1
+internal const val DECOR_TITLE = 8
+internal const val MOVERESIZE_MOVE = 8
+internal const val MAX_REFUSALS = 3
+
+// _NET_WM_MOVERESIZE directions 0..7 (top-left, top, ... left) as xdg resize edges.
+internal val RESIZE_EDGES = intArrayOf(5, 1, 9, 8, 10, 2, 6, 4)
+
+internal val POPUP_TYPES = listOf("MENU", "DROPDOWN_MENU", "POPUP_MENU", "TOOLTIP", "NOTIFICATION", "COMBO", "DND")
+internal val FLOATING_TYPES = listOf("DIALOG", "UTILITY", "SPLASH", "TOOLBAR")
+
+internal val SUPPORTED = listOf(
+    "_NET_SUPPORTED", "_NET_SUPPORTING_WM_CHECK", "_NET_WM_NAME", "_NET_ACTIVE_WINDOW", "_NET_CLIENT_LIST",
+    "_NET_CLIENT_LIST_STACKING", "_NET_WM_STATE", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE_MAXIMIZED_VERT",
+    "_NET_WM_STATE_MAXIMIZED_HORZ", "_NET_WM_STATE_HIDDEN", "_NET_WM_STATE_FOCUSED", "_NET_WM_MOVERESIZE",
+    "_NET_CLOSE_WINDOW", "_NET_WM_WINDOW_TYPE", "_NET_WM_STATE_MODAL",
+)
+
+internal val ATOMS = SUPPORTED + listOf(
+    "WM_S0", "_NET_WM_CM_S0", "UTF8_STRING", "WM_PROTOCOLS", "WM_DELETE_WINDOW", "WM_TAKE_FOCUS", "WM_STATE", "WM_CHANGE_STATE",
+    "WL_SURFACE_SERIAL", "WL_SURFACE_ID", "_MOTIF_WM_HINTS", "_NET_WM_PID", "CLIPBOARD", "TARGETS", "TEXT", "INCR",
+) + (POPUP_TYPES + FLOATING_TYPES + "NORMAL").distinct().map { "_NET_WM_WINDOW_TYPE_$it" }
