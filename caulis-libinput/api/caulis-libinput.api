@@ -1,0 +1,97 @@
+public final class dev/caulis/core/libinput/InputDevice {
+	public final fun getKinds ()Ljava/util/Set;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getPad ()Ldev/caulis/core/input/TabletPad;
+	public final fun getTablet ()Ldev/caulis/core/input/Tablet;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/libinput/InputDevice$Kind : java/lang/Enum {
+	public static final field KEYBOARD Ldev/caulis/core/libinput/InputDevice$Kind;
+	public static final field POINTER Ldev/caulis/core/libinput/InputDevice$Kind;
+	public static final field SWITCH Ldev/caulis/core/libinput/InputDevice$Kind;
+	public static final field TABLET Ldev/caulis/core/libinput/InputDevice$Kind;
+	public static final field TABLET_PAD Ldev/caulis/core/libinput/InputDevice$Kind;
+	public static final field TOUCHPAD Ldev/caulis/core/libinput/InputDevice$Kind;
+	public static final field TOUCHSCREEN Ldev/caulis/core/libinput/InputDevice$Kind;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/core/libinput/InputDevice$Kind;
+	public static fun values ()[Ldev/caulis/core/libinput/InputDevice$Kind;
+}
+
+public final class dev/caulis/core/libinput/InputDevices : java/lang/AutoCloseable {
+	public fun <init> (Ldev/caulis/event/EventLoop;Ldev/caulis/core/session/Session;)V
+	public fun close ()V
+	public final fun getEarlyPointer ()Ldev/caulis/core/input/EarlyPointer;
+	public final fun getHasTouchScreen ()Z
+	public final fun getHasTouchpad ()Z
+	public final fun getList ()Ljava/util/List;
+	public final fun getOnDevicesChanged ()Lkotlin/jvm/functions/Function0;
+	public final fun getOnGesture ()Lkotlin/jvm/functions/Function1;
+	public final fun getOnKey ()Lkotlin/jvm/functions/Function3;
+	public final fun getOnPadAdded ()Lkotlin/jvm/functions/Function1;
+	public final fun getOnPadButton ()Lkotlin/jvm/functions/Function4;
+	public final fun getOnPadMode ()Lkotlin/jvm/functions/Function4;
+	public final fun getOnPadRemoved ()Lkotlin/jvm/functions/Function1;
+	public final fun getOnPadRing ()Lkotlin/jvm/functions/Function5;
+	public final fun getOnPadStrip ()Lkotlin/jvm/functions/Function5;
+	public final fun getOnPointerAxis ()Lkotlin/jvm/functions/Function2;
+	public final synthetic fun getOnPointerAxis ()Lkotlin/jvm/functions/Function4;
+	public final fun getOnPointerButton ()Lkotlin/jvm/functions/Function3;
+	public final fun getOnPointerMotion ()Lkotlin/jvm/functions/Function5;
+	public final fun getOnPointerMotionAbsolute ()Lkotlin/jvm/functions/Function3;
+	public final fun getOnSwitch ()Lkotlin/jvm/functions/Function2;
+	public final fun getOnTabletAdded ()Lkotlin/jvm/functions/Function1;
+	public final fun getOnTabletButton ()Lkotlin/jvm/functions/Function5;
+	public final fun getOnTabletMotion ()Lkotlin/jvm/functions/Function6;
+	public final fun getOnTabletProximity ()Lkotlin/jvm/functions/Function7;
+	public final fun getOnTabletRemoved ()Lkotlin/jvm/functions/Function1;
+	public final fun getOnTabletTip ()Lkotlin/jvm/functions/Function4;
+	public final fun getOnTouchCancel ()Lkotlin/jvm/functions/Function1;
+	public final fun getOnTouchDown ()Lkotlin/jvm/functions/Function4;
+	public final fun getOnTouchFrame ()Lkotlin/jvm/functions/Function0;
+	public final fun getOnTouchMotion ()Lkotlin/jvm/functions/Function4;
+	public final fun getOnTouchUp ()Lkotlin/jvm/functions/Function2;
+	public final fun getOwnThread ()Z
+	public final fun getSettings ()Ldev/caulis/core/input/InputSettings;
+	public final fun getTouchpadsOn ()Z
+	public final fun setEarlyPointer (Ldev/caulis/core/input/EarlyPointer;)V
+	public final fun setOnDevicesChanged (Lkotlin/jvm/functions/Function0;)V
+	public final fun setOnGesture (Lkotlin/jvm/functions/Function1;)V
+	public final fun setOnKey (Lkotlin/jvm/functions/Function3;)V
+	public final fun setOnPadAdded (Lkotlin/jvm/functions/Function1;)V
+	public final fun setOnPadButton (Lkotlin/jvm/functions/Function4;)V
+	public final fun setOnPadMode (Lkotlin/jvm/functions/Function4;)V
+	public final fun setOnPadRemoved (Lkotlin/jvm/functions/Function1;)V
+	public final fun setOnPadRing (Lkotlin/jvm/functions/Function5;)V
+	public final fun setOnPadStrip (Lkotlin/jvm/functions/Function5;)V
+	public final fun setOnPointerAxis (Lkotlin/jvm/functions/Function2;)V
+	public final synthetic fun setOnPointerAxis (Lkotlin/jvm/functions/Function4;)V
+	public final fun setOnPointerButton (Lkotlin/jvm/functions/Function3;)V
+	public final fun setOnPointerMotion (Lkotlin/jvm/functions/Function5;)V
+	public final fun setOnPointerMotionAbsolute (Lkotlin/jvm/functions/Function3;)V
+	public final fun setOnSwitch (Lkotlin/jvm/functions/Function2;)V
+	public final fun setOnTabletAdded (Lkotlin/jvm/functions/Function1;)V
+	public final fun setOnTabletButton (Lkotlin/jvm/functions/Function5;)V
+	public final fun setOnTabletMotion (Lkotlin/jvm/functions/Function6;)V
+	public final fun setOnTabletProximity (Lkotlin/jvm/functions/Function7;)V
+	public final fun setOnTabletRemoved (Lkotlin/jvm/functions/Function1;)V
+	public final fun setOnTabletTip (Lkotlin/jvm/functions/Function4;)V
+	public final fun setOnTouchCancel (Lkotlin/jvm/functions/Function1;)V
+	public final fun setOnTouchDown (Lkotlin/jvm/functions/Function4;)V
+	public final fun setOnTouchFrame (Lkotlin/jvm/functions/Function0;)V
+	public final fun setOnTouchMotion (Lkotlin/jvm/functions/Function4;)V
+	public final fun setOnTouchUp (Lkotlin/jvm/functions/Function2;)V
+	public final fun setOwnThread (Z)V
+	public final fun setSettings (Ldev/caulis/core/input/InputSettings;)V
+	public final fun setTouchpadsOn (Z)V
+}
+
+public final class dev/caulis/core/libinput/Switch : java/lang/Enum {
+	public static final field LID Ldev/caulis/core/libinput/Switch;
+	public static final field TABLET_MODE Ldev/caulis/core/libinput/Switch;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/core/libinput/Switch;
+	public static fun values ()[Ldev/caulis/core/libinput/Switch;
+}
+

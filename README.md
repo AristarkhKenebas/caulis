@@ -92,6 +92,7 @@ Wayland way when they can, and through X11 when that fails.
 | `caulis-log` | the log: levels 0–3 for everything or single areas (`CAULIS_LOG="1,focus=3"`) |
 | `caulis-native` | C libraries through the Foreign Function & Memory API, the event loop |
 | `caulis-dbus` | a small D-Bus client on the event loop (brought by `caulis-core`) |
+| `caulis-libinput` | input devices through libinput (brought by `caulis-core`) |
 | `caulis-session` | the login session: libseat and logind (brought by `caulis-core`) |
 | `caulis-input` | plain input types: settings, gestures, scrolling, tablets (brought by `caulis-core`) |
 | `caulis-protocol` | the Wayland protocol (server and client side), generated from XML |
