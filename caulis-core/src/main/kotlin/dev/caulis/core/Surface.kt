@@ -244,6 +244,12 @@ class Surface internal constructor(val resource: WlSurface, private val composit
 
     private val commitListeners = ArrayList<() -> Unit>()
 
+    // Called after a commit, once all [commitListeners] (its role among them) have had their say.
+    internal var afterCommit: (() -> Unit)? = null
+
+    // What the desktop's scene reads from this surface, to see if a commit changed only pixels.
+    internal val sceneFacts = SurfaceSceneFacts(this)
+
     // Parts of the picture that changed and nobody has redrawn yet (surface coordinates).
     private val changes = ArrayList<Rect>()
 
@@ -403,7 +409,23 @@ class Surface internal constructor(val resource: WlSurface, private val composit
             sub.cache(pending)
             return
         }
+        // Waiting for the program's GPU, if asked to (see ClientFences): in order, the picture
+        // before stays till then.
+        val fences = if (pending.newBuffer) compositor.clientFences?.invoke(pending).orEmpty() else emptyList()
+        if (fences.isNotEmpty() || heldCommits?.isEmpty == false) {
+            val held = heldCommits ?: HeldCommits(compositor.display.loop, ::applyIfAlive).also { heldCommits = it }
+            val state = SurfaceState()
+            state.takeFrom(pending)
+            held.add(state, fences)
+            return
+        }
         apply(pending)
+    }
+
+    private var heldCommits: HeldCommits? = null
+
+    private fun applyIfAlive(state: SurfaceState) {
+        if (resource.isAlive) apply(state)
     }
 
     /** Makes [state] current. Also applies cached state of synchronized subsurfaces. */
@@ -433,6 +455,7 @@ class Surface internal constructor(val resource: WlSurface, private val composit
             if (child !== this) child.subsurface?.parentCommitted()
         }
         commitListeners.forEach { it() }
+        afterCommit?.invoke()
     }
 
     // The viewport must fit the buffer, and without a destination its source must be whole units.
@@ -472,6 +495,7 @@ class Surface internal constructor(val resource: WlSurface, private val composit
     }
 
     internal fun destroyed() {
+        heldCommits?.forget()
         if (subsurface != null || texture != null) compositor.surfaceGone(this)
         for (feedback in current.feedbackList) feedback.discard()
         current.feedbackList.clear()

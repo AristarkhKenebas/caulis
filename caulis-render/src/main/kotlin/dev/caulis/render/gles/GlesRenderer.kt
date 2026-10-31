@@ -57,7 +57,7 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         when (paint) {
             is Paint.Solid -> setColor(program, paint.color)
             is Paint.Gradient -> {
-                for ((i, c) in paint.colors.withIndex()) Gles.glUniform4f(program.uniform("colors[$i]"), c.red, c.green, c.blue, c.alpha)
+                for ((i, c) in paint.colors.withIndex()) Gles.glUniform4f(program.uniform(colorUniform(i)), c.red, c.green, c.blue, c.alpha)
                 Gles.glUniform1i(program.uniform("count"), paint.colors.size)
                 val degrees = paint.degrees + paint.turnsPerSecond * 360.0 * time
                 Gles.glUniform1f(program.uniform("angle"), Math.toRadians(degrees % 360.0).toFloat())
@@ -69,7 +69,7 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
                 Gles.glUniform1f(program.uniform("focused"), if (state.focused) 1f else 0f)
                 Gles.glUniform1f(program.uniform("urgent"), if (state.urgent) 1f else 0f)
                 Gles.glUniform1f(program.uniform("grouped"), if (state.grouped) 1f else 0f)
-                for ((i, c) in paint.colors.withIndex()) Gles.glUniform4f(program.uniform("colors[$i]"), c.red, c.green, c.blue, c.alpha)
+                for ((i, c) in paint.colors.withIndex()) Gles.glUniform4f(program.uniform(colorUniform(i)), c.red, c.green, c.blue, c.alpha)
                 Gles.glUniform1i(program.uniform("colorCount"), paint.colors.size)
             }
         }
@@ -569,3 +569,8 @@ private val YUV_FORMATS = setOf(
     "YUYV", "YVYU", "UYVY", "VYUY", "AYUV", "XYUV", "YU12", "YV12", "YU16", "YV16", "YU24", "YV24",
     "Y210", "Y212", "Y216", "Y410", "Y412", "Y416", "XV30", "XV36", "XV48", "VUY8", "VU24",
 )
+
+// The names of a gradient's colours in its shader (not made anew for each thing drawn).
+private val COLOR_UNIFORMS = Array(16) { "colors[$it]" }
+
+private fun colorUniform(i: Int): String = COLOR_UNIFORMS.getOrNull(i) ?: "colors[$i]"

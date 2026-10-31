@@ -160,6 +160,8 @@ internal object SettingsRoot {
                         Field("inputThread", FlagType, "keyboards, mice and touchpads are read on a thread of their own; the cursor keeps moving while the compositor is busy"),
                         Field("glVendorByDriver", FlagType, "only the EGL driver for the GPU in use is loaded, not every one installed (only at the start)"),
                         Field("widgetThreads", IntegerType(0, 16), "threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)"),
+                        Field("maxRenderMillis", IntegerType(0, 50), "frames are begun this long before the next refresh, up to one refresh less delay; a frame taking longer shows a refresh later (0: as soon as the last was shown; default 0)"),
+                        Field("waitForClientGpu", FlagType, "a program's picture its GPU still draws waits for it, the one before stays (one slow program does not make all windows miss a refresh; Linux 6.0; default false)"),
                         Field("movingPaintsFps", IntegerType(0, 240), "borders and shadows that move by themselves (turning gradients, shaders) drawn anew at most this often a second (0: every frame)"),
                     ),
                     "performance",

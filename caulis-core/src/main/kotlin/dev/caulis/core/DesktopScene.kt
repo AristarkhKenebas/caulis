@@ -14,7 +14,7 @@ internal class DesktopScene(private val desktop: Desktop) {
         if (desktop.monitorList.size == 1 && desktop.placeholder != null) return // no real monitor yet: the default holds
         for (item in items) {
             if (item !is DrawItem.Picture) continue
-            val on = desktop.monitorList.filter { it.area.intersect(item.rect) != null }
+            val on = desktop.monitorList.filter { it.area.overlaps(item.rect) }
             if (on.isEmpty()) continue
             item.surface.placeOn(on.mapNotNull { it.output }, on.maxOf { it.scale })
         }
@@ -47,6 +47,24 @@ internal class DesktopScene(private val desktop: Desktop) {
 
     private val sceneVisible = ArrayList<Surface>()
 
+    // The same as a set: the surfaces whose pictures the scene draws (the cursor's are not among them).
+    private val sceneSurfaces = HashSet<Surface>()
+
+    /** True if the scene draws a picture of [surface]. */
+    internal fun drawsNow(surface: Surface): Boolean = surface in sceneSurfaces
+
+    // A commit changed only the pixels of [surface]: its pictures show its texture now (a GPU
+    // buffer is a texture of its own, a shared-memory one stays the same).
+    internal fun pictureReplaced(surface: Surface) {
+        val texture = surface.texture ?: return
+        for (item in scene) if (item is DrawItem.Picture && item.surface === surface) item.texture = texture
+    }
+
+    // Scenes built since the last call (for the render log: what a busy screen costs).
+    private var builds = 0
+
+    internal fun takeBuilds(): Int = builds.also { builds = 0 }
+
     private var sceneVersion = -1L
 
     // The scene plus the cursor, rebuilt when the scene changed or the pointer moved.
@@ -62,33 +80,45 @@ internal class DesktopScene(private val desktop: Desktop) {
 
     internal var itemsCursorStart = 0
 
+    // Counts the lists made for another reason than the pointer or the cursor moving: all items
+    // before the cursor (at [itemsCursorStart]) stay the same while this does.
+    internal var itemsStamp = 0L
+        private set
+
+    private var stampVersion = -1L
+
+    // The surfaces of the cursor now (a program's own, and what is dragged).
+    private val cursorSurfaces = ArrayList<Surface>()
+
     /** Everything to draw now, bottom to top, the cursor last. */
     internal fun items(): List<DrawItem> {
         if (itemsVersion == desktop.version && itemsPointerX == desktop.pointerX && itemsPointerY == desktop.pointerY && itemsCursorVersion == desktop.cursors.cursorVersion) return items
         val all = ArrayList<DrawItem>(scene().size + 2)
         all += scene
-        visible.clear()
-        visible += sceneVisible
+        val newScene = stampVersion != desktop.version
+        if (newScene) {
+            stampVersion = desktop.version
+            itemsStamp++
+        }
+        // (Only the pointer moved: of these, only what a program's own cursor adds can change.)
+        if (newScene) {
+            visible.clear()
+            visible += sceneVisible
+        } else {
+            for (surface in cursorSurfaces) if (surface !in sceneSurfaces) visible -= surface
+        }
         // The frame before a scale change, fading out over the new one (the cursor stays above).
         for ((monitor, fade) in desktop.scaleFade.fades) all += DrawItem.Image("$FADE_KEY ${monitor.name}", fade.texture, monitor.area, alpha = desktop.scaleFade.fadeAlphas[monitor] ?: 1f)
         val cursorStart = all.size
         itemsCursorStart = cursorStart
         desktop.cursors.addCursor(all)
-        for (i in cursorStart until all.size) (all[i] as? DrawItem.Picture)?.let { visible += it.surface }
-        surfaceHomes.clear()
-        if (desktop.monitorList.size > 1) {
-            // Where each picture is shown most (frame callbacks and presentation times come from there).
-            val shownArea = HashMap<Surface, HashMap<Monitor, Long>>()
-            for (item in all) {
-                if (item !is DrawItem.Picture) continue
-                for (monitor in desktop.monitorList) {
-                    if (item.only != null && item.only !== monitor) continue
-                    val part = item.rect.intersect(monitor.area) ?: continue
-                    shownArea.getOrPut(item.surface) { HashMap() }.merge(monitor, part.width.toLong() * part.height, Long::plus)
-                }
-            }
-            for ((surface, areas) in shownArea) surfaceHomes[surface] = areas.maxBy { it.value }.key
+        if (newScene) surfaceHomes.clear() else for (surface in cursorSurfaces) if (surface !in sceneSurfaces) surfaceHomes -= surface
+        cursorSurfaces.clear()
+        for (i in cursorStart until all.size) (all[i] as? DrawItem.Picture)?.let {
+            visible += it.surface
+            cursorSurfaces += it.surface
         }
+        if (desktop.monitorList.size > 1) findHomes(all, if (newScene) 0 else cursorStart)
         items = all
         itemsVersion = desktop.version
         itemsPointerX = desktop.pointerX
@@ -97,12 +127,29 @@ internal class DesktopScene(private val desktop: Desktop) {
         return all
     }
 
+    // Where each picture from [from] on is shown most (frame callbacks and presentation times come from there).
+    private fun findHomes(all: List<DrawItem>, from: Int) {
+        if (from == all.size) return
+        val shownArea = HashMap<Surface, HashMap<Monitor, Long>>()
+        for (i in from until all.size) {
+            val item = all[i]
+            if (item !is DrawItem.Picture) continue
+            for (monitor in desktop.monitorList) {
+                if (item.only != null && item.only !== monitor) continue
+                val part = item.rect.intersect(monitor.area) ?: continue
+                shownArea.getOrPut(item.surface) { HashMap() }.merge(monitor, part.width.toLong() * part.height, Long::plus)
+            }
+        }
+        for ((surface, areas) in shownArea) surfaceHomes[surface] = areas.maxBy { it.value }.key
+    }
+
     /**
      * Windows and popups to draw, bottom to top. Things nobody can see are left out:
      * outside the desktop, or completely behind something opaque.
      */
     private fun scene(): List<DrawItem> {
         if (sceneVersion == desktop.version) return scene
+        builds++
         desktop.looks.paintsMoving = false
         desktop.looks.focusChanging = false
         val all = ArrayList<DrawItem>()
@@ -116,8 +163,7 @@ internal class DesktopScene(private val desktop: Desktop) {
             desktop.lockBackdrop?.takeIf { !desktop.lockHost.sessionLocked }?.let { addLockBackdrop(all, it) }
             for (lockSurface in desktop.lockHost.lockSurfaces()) desktop.screens.lockMonitor(lockSurface).area.let { addTree(all, lockSurface.surface, it.x, it.y) }
             for (level in DrawingLevel.entries) desktop.widgetHost.addWidgets(all, level, onLockScreen = true)
-            sceneVisible.clear()
-            for (item in all) if (item is DrawItem.Picture) sceneVisible += item.surface
+            remember(all)
             scene = all
             sceneVersion = desktop.version
             return all
@@ -136,7 +182,10 @@ internal class DesktopScene(private val desktop: Desktop) {
         desktop.widgetHost.addDrawings(all, DrawingLevel.BELOW_WINDOWS)
         // A monitor changing its workspace: how the old and the new one are drawn now. The new
         // one's windows (and the old one's) show only on that monitor while they move.
-        class Change(val monitor: Monitor, val frame: WorkspaceFrame)
+        class Change(val monitor: Monitor, val frame: WorkspaceFrame, workspace: Workspace) {
+            // (Asked for each window: not a walk through the workspace's list each time.)
+            val windows = HashSet<Window>(workspace.windows).apply { addAll(workspace.minimized) }
+        }
         val changes = HashMap<Workspace, Change>()
         for ((monitor, slide) in desktop.animator.slides.toList()) {
             val picked = desktop.animator.pick("workspaces", desktop.animations.workspaceSwitch)
@@ -154,7 +203,7 @@ internal class DesktopScene(private val desktop: Desktop) {
                 desktop.animator.slides -= monitor
                 continue
             }
-            changes[slide.to] = Change(monitor, frame)
+            changes[slide.to] = Change(monitor, frame, slide.to)
             // The workspace before, on its way out (unless another monitor shows it now).
             if (desktop.monitorList.none { it.workspace === slide.from }) {
                 val start = all.size
@@ -163,7 +212,7 @@ internal class DesktopScene(private val desktop: Desktop) {
                 fade(all, start, frame.outgoingAlpha, monitor)
             }
         }
-        fun changeOf(window: Window) = changes.entries.firstOrNull { (workspace, _) -> window in workspace.windows || window in workspace.minimized }?.value
+        fun changeOf(window: Window) = changes.values.firstOrNull { window in it.windows }
         // The overview's camera is on the monitor with the focus only; a changing workspace moves.
         fun cameraFor(window: Window): DesktopOverview.Camera {
             if (camera !== DesktopOverview.Camera.NONE) return if (window in desktop.activeWorkspace.windows || window in desktop.activeWorkspace.minimized) camera else DesktopOverview.Camera.NONE
@@ -239,12 +288,21 @@ internal class DesktopScene(private val desktop: Desktop) {
         // A moving wallpaper shader goes on only where it is seen (not under a wallpaper program, a fullscreen window).
         desktop.backdrops.sceneBuilt()
         desktop.wallpaperShaders.sceneBuilt(kept)
-        sceneVisible.clear()
-        for (item in kept) if (item is DrawItem.Picture) sceneVisible += item.surface
+        remember(kept)
         placeSurfaces(kept)
         scene = kept
         sceneVersion = desktop.version
         return kept
+    }
+
+    private fun remember(items: List<DrawItem>) {
+        sceneVisible.clear()
+        sceneSurfaces.clear()
+        for (item in items) {
+            if (item !is DrawItem.Picture) continue
+            sceneVisible += item.surface
+            sceneSurfaces += item.surface
+        }
     }
 
     // The items from [start] on show only on [monitor], at [alpha] (a sliding or fading workspace).

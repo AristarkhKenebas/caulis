@@ -18,6 +18,7 @@ public final class dev/caulis/geometry/Rect {
 	public final fun intersect (Ldev/caulis/geometry/Rect;)Ldev/caulis/geometry/Rect;
 	public final fun isEmpty ()Z
 	public final fun minus (Ldev/caulis/geometry/Rect;)Ljava/util/List;
+	public final fun overlaps (Ldev/caulis/geometry/Rect;)Z
 	public fun toString ()Ljava/lang/String;
 	public final fun translate (II)Ldev/caulis/geometry/Rect;
 	public final fun union (Ldev/caulis/geometry/Rect;)Ldev/caulis/geometry/Rect;

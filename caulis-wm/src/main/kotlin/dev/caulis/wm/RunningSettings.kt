@@ -99,6 +99,7 @@ internal class RunningSettings(private val running: Running) {
         running.desktop.focusFollowsMouse = config.focusFollowsMouse
         running.desktop.quickCursorMoves = config.quickCursorMoves
         running.desktop.widgetThreads = config.widgetThreads
+        running.desktop.waitForClientGpu = config.waitForClientGpu
         running.desktop.osdHandler = config.osdHandler
         running.activation.focusOnActivate = config.focusOnActivate
         running.activation.tokensNeedFocus = config.activationTokensNeedFocus

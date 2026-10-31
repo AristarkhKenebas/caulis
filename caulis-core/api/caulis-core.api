@@ -515,6 +515,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public static synthetic fun addMonitor$default (Ldev/caulis/core/Desktop;Ljava/lang/String;Ldev/caulis/core/Output;IIDLjava/lang/Integer;Ljava/lang/Integer;ILjava/lang/Object;)Ldev/caulis/core/Monitor;
 	public final fun addScratchpad (Ljava/lang/String;Ldev/caulis/core/Scratchpad$Style;Lkotlin/jvm/functions/Function1;)Ldev/caulis/core/Scratchpad;
 	public final fun addWidget (Ldev/caulis/core/Widget;)Ljava/lang/AutoCloseable;
+	public final fun after (JLkotlin/jvm/functions/Function0;)Ldev/caulis/event/EventLoop$Timer;
 	public final fun animation (Ljava/lang/String;)Ldev/caulis/core/ResolvedAnimation;
 	public final fun animation (Ljava/lang/String;Ljava/lang/Long;)Ldev/caulis/core/ResolvedAnimation;
 	public final fun animation (Ljava/lang/String;Ljava/lang/Long;Ldev/caulis/core/Curve;)Ldev/caulis/core/ResolvedAnimation;
@@ -635,6 +636,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getUnlockFocus ()Ldev/caulis/core/UnlockFocus;
 	public final fun getUrgentWindows ()Ljava/util/List;
 	public final fun getUsableArea ()Ldev/caulis/geometry/Rect;
+	public final fun getWaitForClientGpu ()Z
 	public final fun getWallpaperFpsLimit ()I
 	public final fun getWallpaperShadersPaused ()Z
 	public final fun getWidgetThreads ()I
@@ -793,6 +795,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun setTransform (Ldev/caulis/core/Monitor;Ldev/caulis/core/Transform;)V
 	public final fun setUnlockFocus (Ldev/caulis/core/UnlockFocus;)V
 	public final fun setUrgent (Ldev/caulis/core/Window;Z)V
+	public final fun setWaitForClientGpu (Z)V
 	public final fun setWallpaperFpsLimit (I)V
 	public final fun setWallpaperShadersPaused (Z)V
 	public final fun setWidgetThreads (I)V
@@ -2996,6 +2999,7 @@ public final class dev/caulis/core/drm/DrmOutput : java/lang/AutoCloseable {
 	public final fun getHardwareCursor ()Ldev/caulis/core/HardwareCursor;
 	public final fun getHeight ()I
 	public final fun getMaxBpc ()I
+	public final fun getMaxRenderMillis ()I
 	public final fun getMode ()Ldev/caulis/core/drm/DrmOutput$Mode;
 	public final fun getModes ()Ljava/util/List;
 	public final fun getName ()Ljava/lang/String;
@@ -3014,6 +3018,7 @@ public final class dev/caulis/core/drm/DrmOutput : java/lang/AutoCloseable {
 	public final fun setAdaptiveSync (Z)V
 	public final fun setGamma ([S[S[S)Z
 	public final fun setMaxBpc (I)V
+	public final fun setMaxRenderMillis (I)V
 	public final fun setOnFrame (Lkotlin/jvm/functions/Function0;)V
 	public final fun setOnPresented (Lkotlin/jvm/functions/Function4;)V
 	public final fun setPower (Z)Z

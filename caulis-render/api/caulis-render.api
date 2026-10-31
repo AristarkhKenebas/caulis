@@ -130,6 +130,7 @@ public abstract interface class dev/caulis/render/GpuTexture : java/lang/AutoClo
 	public fun getUploads ()J
 	public abstract fun getWidth ()I
 	public abstract fun upload (Ljava/lang/foreign/MemorySegment;II)V
+	public abstract fun uploadPart (Ljava/lang/foreign/MemorySegment;IIII)V
 }
 
 public final class dev/caulis/render/GpuTexture$DefaultImpls {

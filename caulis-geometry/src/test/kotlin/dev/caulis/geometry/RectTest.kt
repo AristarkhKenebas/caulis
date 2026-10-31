@@ -25,4 +25,10 @@ class RectTest {
         assertEquals(listOf(big), big.minus(Rect(20, 20, 2, 2)))
         assertEquals(emptyList(), big.minus(Rect(-1, -1, 20, 20)))
     }
+
+    @Test
+    fun `overlaps says what intersect says`() {
+        val rects = listOf(Rect(0, 0, 10, 10), Rect(5, 5, 10, 10), Rect(10, 0, 5, 5), Rect(0, 10, 5, 5), Rect(3, 3, 0, 4), Rect(-4, -4, 5, 5), Rect(2, 2, 1, 1))
+        for (a in rects) for (b in rects) kotlin.test.assertEquals(a.intersect(b) != null, a.overlaps(b), "$a $b")
+    }
 }

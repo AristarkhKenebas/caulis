@@ -12,6 +12,13 @@ internal class DesktopFrames(private val desktop: Desktop) {
 
     private val BUSY_REPORT_NANOS = 10_000_000_000L
 
+    private val MOVING_SCENE_NANOS = 2_000_000L
+
+    private var movedAt = 0L
+
+    // A refresh went by with the scene of a moment ago: the next one builds a new one.
+    private var movedOwed = false
+
     internal val WALLPAPER_SHADERS = listOf("wallpaper shader")
 
     // A program drew something: mark those parts as changed where the surface is shown.
@@ -37,8 +44,21 @@ internal class DesktopFrames(private val desktop: Desktop) {
             }
         }
         for (listener in desktop.capturing.commitListeners.toList()) listener(surface)
-        desktop.changed()
         scheduleHiddenRefresh()
+    }
+
+    // After a commit, its role having done its part too. Only pixels changed in a picture on
+    // screen: what changed is marked already and the scene stays (a program drawing does not make
+    // the whole desktop be worked out again). Anything else: the scene is built anew.
+    internal fun commitSettled(surface: Surface) {
+        val moreThanPixels = surface.sceneFacts.changedSinceLastTime()
+        if (moreThanPixels || desktop.fullRedraw || !desktop.sceneBuilder.drawsNow(surface)) {
+            desktop.changed()
+            return
+        }
+        desktop.sceneBuilder.pictureReplaced(surface)
+        desktop.renderLog.trace { "$surface: new pixels only, the scene stays" }
+        desktop.onChange()
     }
 
     fun refresh(
@@ -74,6 +94,19 @@ internal class DesktopFrames(private val desktop: Desktop) {
                 desktop.renderLog.trace { "Moving: ${why.joinToString()}" }
                 busy.moving(why)
             }
+            // On several screens each refresh asked for its own scene of the same moment (a
+            // 60 Hz monitor paying for a 144 Hz one's animation): one built just now serves
+            // them, and the next refresh builds one for certain, so the last look is never stale.
+            if (desktop.monitorList.size == 1 || movedOwed || now - movedAt >= MOVING_SCENE_NANOS) {
+                desktop.version++
+                movedAt = now
+                movedOwed = false
+            } else {
+                movedOwed = true
+            }
+            desktop.onChange()
+        } else if (movedOwed) {
+            movedOwed = false
             desktop.version++
             desktop.onChange()
         }
@@ -138,7 +171,8 @@ internal class DesktopFrames(private val desktop: Desktop) {
             val seconds = (now - since) / 1e9
             desktop.renderLog.info {
                 "Frames in the last %.0f s: %s; moving: %s".format(seconds, frames.entries.joinToString { "${it.key} ${it.value}" },
-                    reasons.entries.sortedByDescending { it.value }.take(5).joinToString { "${it.key} (${it.value})" }.ifEmpty { "nothing (programs' or the pointer's changes)" })
+                    reasons.entries.sortedByDescending { it.value }.take(5).joinToString { "${it.key} (${it.value})" }.ifEmpty { "nothing (programs' or the pointer's changes)" }) +
+                    "; scenes built: ${desktop.sceneBuilder.takeBuilds()}; pictures copied: ${copiedSinceReport()} KB"
             }
             since = now
             frames.clear()
@@ -147,6 +181,13 @@ internal class DesktopFrames(private val desktop: Desktop) {
     }
 
     internal val busy = BusyReport()
+
+    private var copiedAtReport = 0L
+
+    private fun copiedSinceReport(): Long {
+        val now = desktop.compositor.bytesCopied
+        return ((now - copiedAtReport) / 1024).also { copiedAtReport = now }
+    }
 
     fun presented(view: DesktopView, nanos: Long, refreshNanos: Long, sequence: Long, flags: Int) {
         Presentation.presented(view.inFlight, nanos, refreshNanos, sequence, flags)
@@ -167,8 +208,13 @@ internal class DesktopFrames(private val desktop: Desktop) {
         val all = desktop.sceneBuilder.items()
         if (!view.cursorOnPlane) return all
         if (itemsWithoutCursorOf !== all) {
-            itemsWithoutCursor = all.subList(0, desktop.sceneBuilder.itemsCursorStart.coerceAtMost(all.size))
             itemsWithoutCursorOf = all
+            // Only the pointer moved: the very same list, so that nothing is compared at all.
+            val stamp = desktop.sceneBuilder.itemsStamp
+            if (stamp != itemsWithoutCursorStamp || desktop.sceneBuilder.itemsCursorStart != itemsWithoutCursor.size) {
+                itemsWithoutCursor = all.subList(0, desktop.sceneBuilder.itemsCursorStart.coerceAtMost(all.size))
+                itemsWithoutCursorStamp = stamp
+            }
         }
         return itemsWithoutCursor
     }
@@ -176,6 +222,8 @@ internal class DesktopFrames(private val desktop: Desktop) {
     private var itemsWithoutCursor: List<DrawItem> = emptyList()
 
     private var itemsWithoutCursorOf: List<DrawItem>? = null
+
+    private var itemsWithoutCursorStamp = -1L
 
     fun render(view: DesktopView, target: GpuTarget, age: Int) {
         val items = itemsFor(view)
@@ -190,7 +238,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
         // Blur reads around its area: a change near it (within its reach, not only under it)
         // changes it too — its whole reach redrawn first, in one part (else a bar's blur stayed
         // stale while a program drew next to it, and flashed when it caught up).
-        if (items.any { it is DrawItem.Blur && parts.any { part -> it.reachRect().intersect(part) != null } }) {
+        if (items.any { it is DrawItem.Blur && parts.any { part -> it.reachRect().overlaps(part) } }) {
             parts = withBlurParts(items.filterIsInstance<DrawItem.Blur>().map { it.reachRect() }, parts, bounds)
         }
         // In pixels, one more around each: a fractional scale must not leave a half-drawn edge.
@@ -205,6 +253,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
         }
         if (clips.isEmpty()) return
         desktop.renderLog.trace { "Frame of ${monitor.name}: redraw ${parts.joinToString()} (${clips.size} parts in pixels) of ${target.width}x${target.height} (buffer age $age), ${items.size} things to draw" }
+        val toPixels = monitor::toPixels
         for ((i, clip) in clips.withIndex()) {
             val (pixels, part) = clip
             // (One unit more around the part: what touches its pixels.)
@@ -215,7 +264,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
                 desktop.renderer.setClip(pixels)
                 desktop.renderer.drawColor(pixels.x, pixels.y, pixels.width, pixels.height, desktop.backgroundColor.red, desktop.backgroundColor.green, desktop.backgroundColor.blue)
             }
-            draw(items, near, monitor::toPixels, monitor.scale, monitor, pixels)
+            draw(items, near, toPixels, monitor.scale, monitor, pixels)
         }
         desktop.renderer.end()
         desktop.renderLog.trace { "Frame of ${monitor.name}: background $backgroundDrawn of $backgroundAsked pixels drawn (the rest under opaque windows)" }
@@ -234,13 +283,15 @@ internal class DesktopFrames(private val desktop: Desktop) {
         val asked = clip.intersect(r)
         backgroundAsked += asked?.area() ?: 0L
         val whole = item.rect.intersect(repaint)
-        val pieces = if (whole == null || desktop.fullRedraw) null else uncovered(listOf(whole), items, index, MAX_BACKGROUND_PIECES)
-        if (pieces == null || pieces == listOf(whole)) {
+        val pieces = if (whole == null || desktop.fullRedraw) null else uncoveredBackground(item, items, index)
+        // (All of the part shows: one go.)
+        if (pieces == null || pieces.any { it.contains(whole!!) }) {
             item.paint(r)
             backgroundDrawn += asked?.area() ?: 0L
             return
         }
-        for (piece in pieces) {
+        for (uncut in pieces) {
+            val piece = uncut.intersect(whole!!) ?: continue
             val px = toPixels(piece)
             val scissor = Rect(px.x - 1, px.y - 1, px.width + 2, px.height + 2).intersect(clip) ?: continue
             desktop.renderer.setClip(scissor)
@@ -250,6 +301,21 @@ internal class DesktopFrames(private val desktop: Desktop) {
         desktop.renderer.setClip(clip)
     }
 
+    // What shows of background [item]: the same until the list changes, and each part of each
+    // frame asks. (Null: too many pieces.)
+    private fun uncoveredBackground(item: DrawItem.Custom, items: List<DrawItem>, index: Int): List<Rect>? {
+        if (uncoveredOf !== items) {
+            uncoveredOf = items
+            uncoveredKept.clear()
+        }
+        if (uncoveredKept.containsKey(item)) return uncoveredKept[item]
+        return uncovered(listOf(item.rect), items, index, MAX_BACKGROUND_PIECES).also { uncoveredKept[item] = it }
+    }
+
+    private var uncoveredOf: List<DrawItem>? = null
+
+    private val uncoveredKept = java.util.IdentityHashMap<DrawItem.Custom, List<Rect>?>()
+
     // Draws [items] (only those touching [repaint]) into the frame begun; [p] turns desktop
     // units into the target's pixels, at [scale].
     // [clip]: the pixels the frame is cut to now (a part of the monitor), when known.
@@ -257,7 +323,8 @@ internal class DesktopFrames(private val desktop: Desktop) {
         val s = scale.toFloat()
         for (index in items.indices) {
             val item = items[index]
-            if (repaint != null && item.rect.intersect(repaint) == null) continue
+            if (repaint != null && !item.rect.overlaps(repaint)) continue
+            if (repaint != null && hiddenInPart(item, items, index, repaint)) continue
             if (monitor != null && item.only != null && item.only !== monitor) continue // (a sliding workspace of another monitor)
             val r = p(item.rect)
             when (item) {
@@ -290,6 +357,31 @@ internal class DesktopFrames(private val desktop: Desktop) {
         }
     }
 
+    // True if what [item] would draw in [repaint] is all under one opaque thing above it (a window
+    // over another: no need to draw the lower one, and its damage does not reach through). Not
+    // with the whole-redraw setting; a blur between reads what is under it; a thing shown on one
+    // monitor only (a sliding workspace) hides nothing for sure.
+    private fun hiddenInPart(item: DrawItem, items: List<DrawItem>, index: Int, repaint: Rect): Boolean {
+        if (desktop.fullRedraw) return false
+        val rect = item.rect
+        // What it draws here, by hand (nothing made: this is asked for each item in each part).
+        val left = maxOf(rect.x, repaint.x)
+        val top = maxOf(rect.y, repaint.y)
+        val right = minOf(rect.right, repaint.right)
+        val bottom = minOf(rect.bottom, repaint.bottom)
+        for (i in index + 1 until items.size) {
+            val above = items[i]
+            if (above is DrawItem.Blur) return false
+            if (above.only != null) continue
+            val covers = above.covers
+            for (c in covers.indices) {
+                val cover = covers[c]
+                if (cover.x <= left && cover.y <= top && cover.right >= right && cover.bottom >= bottom) return true
+            }
+        }
+        return false
+    }
+
     /**
      * The buffer of a fullscreen window that is the only thing on screen (no menus, no
      * cursor drawn by us, nothing above it), if it is a GPU buffer exactly as big as the
@@ -299,7 +391,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
         if (desktop.screenShader != null) return null // (every frame goes through it)
         val monitor = view.monitor
         // (A cursor on the cursor plane is no reason to draw: it is shown over the program's picture.)
-        val all = itemsFor(view).filter { it.rect.intersect(monitor.area) != null }
+        val all = itemsFor(view).filter { it.rect.overlaps(monitor.area) }
         val only = all.singleOrNull() as? DrawItem.Picture ?: return null
         val window = only.surface.roleObject as? Window ?: return null
         if (!window.fullscreen || only.rect != monitor.area) return null
@@ -325,6 +417,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
     // Marks everything that appeared, disappeared, moved or changed order since the view's last frame.
     internal fun compare(view: DesktopView, items: List<DrawItem>) {
         if (items === view.shown) return // nothing changed since the last comparison
+        if (compareInPlace(view, items)) return
         val before = view.shown.withIndex().associateBy({ it.value.key }, { it })
         val now = items.withIndex().associateBy({ it.value.key }, { it })
         // (What changed, at the finest level: to find what keeps a screen being drawn.)
@@ -347,6 +440,25 @@ internal class DesktopFrames(private val desktop: Desktop) {
         }
         if (!why.isNullOrEmpty()) desktop.renderLog.trace { "${view.monitor.name} changed: ${why.take(6).joinToString("; ")}" }
         view.shown = items
+    }
+
+    // The usual case: the same things in the same order. Compared one by one, no maps made (false:
+    // something came, went or moved in the order, for [compare] to find out).
+    private fun compareInPlace(view: DesktopView, items: List<DrawItem>): Boolean {
+        val shown = view.shown
+        if (shown.size != items.size) return false
+        for (i in items.indices) if (shown[i].key != items[i].key) return false
+        val trace = desktop.renderLog.level >= 3
+        for (i in items.indices) {
+            val old = shown[i]
+            val new = items[i]
+            if (old === new || !new.differsFrom(old)) continue
+            uncoveredAreas(old, shown, i).forEach(view::damage)
+            uncoveredAreas(new, items, i).forEach(view::damage)
+            if (trace) desktop.renderLog.trace { "${view.monitor.name} changed: ${new.key} ${new.rect}" }
+        }
+        view.shown = items
+        return true
     }
 
     // Surfaces kept updating although they may be hidden (e.g. shared in a screen recording).

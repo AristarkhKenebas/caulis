@@ -745,6 +745,29 @@ class Caulis {
         }
 
     /**
+     * Frames are begun this many milliseconds before each monitor's next refresh, so they show on
+     * that very one: up to one refresh less delay, but a frame taking longer shows one refresh
+     * later. 0 (the default): as soon as the last one was shown. On the screen only.
+     */
+    var maxRenderMillis = 0
+        set(value) {
+            require(value in 0..50) { "maxRenderMillis is 0 to 50, not $value" }
+            field = value
+            running?.rmon?.applyMonitorSettings()
+        }
+
+    /**
+     * A program's picture its GPU still draws waits for it, the one before staying on screen: one
+     * slow program does not make all windows miss the screen's refresh. Needs Linux 6.0; only
+     * GPU buffers. False by default.
+     */
+    var waitForClientGpu = false
+        set(value) {
+            field = value
+            running?.desktop?.waitForClientGpu = value
+        }
+
+    /**
      * Blocks the C library hands out of this many kB or more get a mapping of their own and go
      * back to the system the moment they are freed (glibc otherwise raises this limit by itself
      * and keeps the pictures Skia and the GPU driver make and free each frame in its pools:
@@ -2433,8 +2456,9 @@ class Caulis {
         val mine = !(r.startingUp || running == null)
         var stopped = false
         var timer: dev.caulis.event.EventLoop.Timer? = null
+        var first = true
         fun next() {
-            timer = r.loop.after(millis) {
+            timer = r.loop.after(timerDelayMillis(millis, System.nanoTime() / 1_000_000, first).also { first = false }) {
                 timers -= timer!!
                 if (stopped) return@after
                 r.loop.taskOrigin = action

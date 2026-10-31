@@ -1047,6 +1047,16 @@
           "maximum": 16,
           "description": "threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)"
         },
+        "maxRenderMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50,
+          "description": "frames are begun this long before the next refresh, up to one refresh less delay; a frame taking longer shows a refresh later (0: as soon as the last was shown; default 0)"
+        },
+        "waitForClientGpu": {
+          "type": "boolean",
+          "description": "a program's picture its GPU still draws waits for it, the one before stays (one slow program does not make all windows miss a refresh; Linux 6.0; default false)"
+        },
         "movingPaintsFps": {
           "type": "integer",
           "minimum": 0,

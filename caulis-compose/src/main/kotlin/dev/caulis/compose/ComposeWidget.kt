@@ -177,6 +177,7 @@ class ComposeWidget @JvmOverloads constructor(
     override fun draw(monitor: Monitor, canvas: OverlayCanvas, area: Rect) {
         if (closed) return
         val part = partFor(monitor, area) ?: return
+        watchPixels()
         val look = appearance(monitor)
         if (look.alpha > HIDDEN) part.lastShown = System.nanoTime()
         if (look.alpha <= HIDDEN) {
@@ -222,14 +223,50 @@ class ComposeWidget @JvmOverloads constructor(
     override fun animating(now: Long): Boolean {
         // (While locked only the lock screen and the widgets shown then move on.)
         if (closed || (desktop.locked && !showsWhileLocked && desktop.lockScreen !== this)) return false
-        val shown = desktop.monitors.associateBy { it.name }
-        for (name in parts.keys.filter { it !in shown }) drop(name)
-        letHiddenGo(shown)
-        return parts.any { (name, part) ->
-            val monitor = shown.getValue(name)
-            !part.failed && part.scene.hasInvalidations() && place(monitor) != null && appearance(monitor).alpha > HIDDEN
-        } || moving()
+        val monitors = desktop.monitors
+        // (No maps here: this is asked for each widget at each refresh.)
+        if (parts.keys.any { name -> monitors.none { it.name == name } }) {
+            for (name in parts.keys.filter { name -> monitors.none { it.name == name } }) drop(name)
+        }
+        if (now - hiddenLookedAt >= HIDDEN_LOOK_NANOS) {
+            hiddenLookedAt = now
+            letHiddenGo(monitors.associateBy { it.name })
+            letPixelsGo(now)
+        }
+        for (monitor in monitors) {
+            val part = parts[monitor.name] ?: continue
+            if (!part.failed && part.scene.hasInvalidations() && place(monitor) != null && appearance(monitor).alpha > HIDDEN) return true
+        }
+        return moving()
     }
+
+    private var pixelsWatch: dev.caulis.event.EventLoop.Timer? = null
+
+    // (A desktop at rest draws no frames: a timer of its own, only while pixels are held.)
+    private fun watchPixels() {
+        val keep = ComposeScenes.keepPixelsSeconds
+        if (keep <= 0 || pixelsWatch != null || closed) return
+        pixelsWatch = desktop.after(keep * 1000L + 100) {
+            pixelsWatch = null
+            if (closed) return@after
+            letPixelsGo(System.nanoTime())
+            if (parts.values.any { it.scene.holdsPixels }) watchPixels()
+        }
+    }
+
+    // A scene that stays still does not need its pixels in memory besides the GPU's copy.
+    private fun letPixelsGo(now: Long) {
+        val keep = ComposeScenes.keepPixelsSeconds
+        if (keep <= 0) return
+        for (part in parts.values) {
+            if (part.busy || part.pixelsReady || !part.scene.holdsPixels || part.texture == null || now - part.scene.drawnAt < keep * 1_000_000_000L) continue
+            log.trace { "A Compose scene at rest lets go of its pixels (${part.width}x${part.height})" }
+            part.scene.releasePixels()
+        }
+    }
+
+    // When scenes not shown were last looked for.
+    private var hiddenLookedAt = 0L
 
     // Scenes not shown for keepHiddenSeconds are let go (made anew when shown again).
     private fun letHiddenGo(shown: Map<String, Monitor>) {
@@ -559,22 +596,6 @@ class ComposeWidget @JvmOverloads constructor(
 
 }
 
-/** Settings for every [ComposeWidget]. */
-object ComposeScenes {
-    /**
-     * A widget's scene not shown for this many seconds is let go and made anew when it shows
-     * again ([ComposeWidget.keepHiddenSeconds] for one widget): menus opened once do not keep
-     * their memory (pixels, composition, icons) for the rest of the session. 0: kept. 60 by default.
-     */
-    @JvmStatic
-    @Volatile
-    var keepHiddenSeconds: Int = 60
-        set(value) {
-            require(value in 0..86_400) { "keepHiddenSeconds is 0 to 86400, not $value" }
-            field = value
-        }
-}
-
 // What nothing here can recover from goes on (the JVM's own trouble, but for a stack
 // overflow: that is the content's own, and fails it as any mistake does).
 internal fun Throwable.rethrowIfFatalHere() {
@@ -592,6 +613,7 @@ internal const val WHEEL_UNITS = 15.0
 
 // As see-through as this: not seen (not drawn, no frames for it, no clicks).
 internal const val HIDDEN = 0.002f
+const val HIDDEN_LOOK_NANOS = 1_000_000_000L
 
 // A frame this slow (ms) is said at level 2.
 internal const val SLOW_FRAME_MILLIS = 50

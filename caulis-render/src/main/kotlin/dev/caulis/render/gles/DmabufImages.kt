@@ -92,6 +92,9 @@ internal class ImageTexture(
     override fun upload(pixels: MemorySegment, firstRow: Int, rowCount: Int) =
         throw UnsupportedOperationException("a dma-buf texture shows the buffer itself; it cannot be uploaded to")
 
+    override fun uploadPart(pixels: MemorySegment, x: Int, y: Int, width: Int, height: Int) =
+        throw UnsupportedOperationException("a dma-buf texture shows the buffer itself; it cannot be uploaded to")
+
     override fun close() {
         Gl.delete(id, Gles::glDeleteTextures)
         images.destroyImage(image)

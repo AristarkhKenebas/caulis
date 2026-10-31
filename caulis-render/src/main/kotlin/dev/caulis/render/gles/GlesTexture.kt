@@ -39,12 +39,17 @@ internal class GlesTexture(override val width: Int, override val height: Int) : 
 
     override fun upload(pixels: MemorySegment, firstRow: Int, rowCount: Int) {
         require(firstRow >= 0 && rowCount > 0 && firstRow + rowCount <= height) { "rows $firstRow+$rowCount outside $height" }
-        require(pixels.byteSize() >= rowCount.toLong() * width * 4) { "not enough pixel data" }
+        uploadPart(pixels, 0, firstRow, width, rowCount)
+    }
+
+    override fun uploadPart(pixels: MemorySegment, x: Int, y: Int, width: Int, height: Int) {
+        require(x >= 0 && y >= 0 && width > 0 && height > 0 && x + width <= this.width && y + height <= this.height) { "part $x,$y ${width}x$height outside ${this.width}x${this.height}" }
+        require(pixels.byteSize() >= height.toLong() * width * 4) { "not enough pixel data" }
         Gl.drain("something drawn before an upload")
         Gles.glBindTexture(Gles.GL_TEXTURE_2D(), id)
         Gles.glPixelStorei(Gles.GL_UNPACK_ALIGNMENT(), 4)
         Gles.glTexSubImage2D(
-            Gles.GL_TEXTURE_2D(), 0, 0, firstRow, width, rowCount,
+            Gles.GL_TEXTURE_2D(), 0, x, y, width, height,
             Gles.GL_BGRA_EXT(), Gles.GL_UNSIGNED_BYTE(), pixels,
         )
         Gl.check("uploading a texture")

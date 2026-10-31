@@ -32,8 +32,14 @@ class Palette(
 ) {
     private val seedLch = Oklch.of(seed)
 
+    // (Worked out once each: a border asks for them every frame, and nothing here ever changes.)
+    private val darkScheme by lazy { makeScheme(true) }
+    private val lightScheme by lazy { makeScheme(false) }
+
     /** The roles' colours for the dark ([dark]) or light look. */
-    fun scheme(dark: Boolean): PaletteScheme {
+    fun scheme(dark: Boolean): PaletteScheme = if (dark) darkScheme else lightScheme
+
+    private fun makeScheme(dark: Boolean): PaletteScheme {
         val h = seedLch.h
         val c = style.chromas(seedLch.c)
         fun tone(l: Double, chroma: Double, hue: Double) = Oklch(l, chroma, hue).toColor()

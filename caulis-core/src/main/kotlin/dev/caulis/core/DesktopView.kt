@@ -124,7 +124,7 @@ class DesktopView internal constructor(monitor: Monitor) {
             val iterator = parts.iterator()
             while (iterator.hasNext()) {
                 val part = iterator.next()
-                if (part.intersect(merged) != null) {
+                if (part.overlaps(merged)) {
                     merged = merged.union(part)
                     iterator.remove()
                     again = true
@@ -179,7 +179,8 @@ internal sealed class DrawItem {
 
     class Picture(
         val surface: Surface,
-        val texture: GpuTexture,
+        /** (Changes with a commit of new pixels only: see [DesktopScene.pictureReplaced].) */
+        var texture: GpuTexture,
         override val rect: Rect,
         val opaque: Boolean,
         override val covers: List<Rect>,
@@ -362,7 +363,7 @@ internal fun uncovered(parts: List<Rect>, list: List<DrawItem>, index: Int, limi
         }
         if (above.only != null) continue
         for (cover in above.covers) {
-            if (left.none { it.intersect(cover) != null }) continue
+            if (left.none { it.overlaps(cover) }) continue
             var pieces = listOf(cover)
             blurs?.forEach { reach -> pieces = pieces.flatMap { it.minus(reach) } }
             for (piece in pieces) {
@@ -395,7 +396,7 @@ internal fun withBlurParts(blurs: List<Rect>, parts: List<Rect>, bounds: Rect): 
         grew = false
         for (reach in reaches) {
             if (taken.any { it.contains(reach) }) continue
-            if (parts.any { it.intersect(reach) != null } || taken.any { it.intersect(reach) != null }) {
+            if (parts.any { it.overlaps(reach) } || taken.any { it.overlaps(reach) }) {
                 taken += reach
                 grew = true
             }
@@ -405,7 +406,7 @@ internal fun withBlurParts(blurs: List<Rect>, parts: List<Rect>, bounds: Rect): 
         while (merged) {
             merged = false
             loop@ for (a in taken.indices) for (b in a + 1 until taken.size) {
-                if (taken[a].intersect(taken[b]) != null) {
+                if (taken[a].overlaps(taken[b])) {
                     taken[a] = taken[a].union(taken[b])
                     taken.removeAt(b)
                     merged = true

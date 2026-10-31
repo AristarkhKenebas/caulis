@@ -245,13 +245,16 @@ class EventLoop : AutoCloseable {
     fun run() {
         running = true
         while (running) {
-            // Wake up regularly so a stop() from another thread is noticed quickly.
-            dispatch(timeoutMillis = 100)
+            // Asleep until something is due (a stop() wakes it). Round once a second all the same:
+            // a watchdog sees it is alive (it starts to worry after 2 s).
+            dispatch(timeoutMillis = 1000)
         }
     }
 
     fun stop() {
         running = false
+        // (From another thread too: the loop may be asleep.)
+        post {}
     }
 
     companion object {

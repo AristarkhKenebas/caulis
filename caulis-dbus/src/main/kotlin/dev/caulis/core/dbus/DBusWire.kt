@@ -188,7 +188,20 @@ internal class Reader(private val data: ByteBuffer, private val messageFds: List
 }
 
 // "sa{sv}(ii)" -> ["s", "a{sv}", "(ii)"].
+// (A few signatures come again and again, for every signal on the bus: each worked out once.)
 internal fun splitSignature(signature: String): List<String> {
+    knownSignatures[signature]?.let { return it }
+    val types = workOutSignature(signature)
+    if (knownSignatures.size >= MAX_KNOWN_SIGNATURES) knownSignatures.clear()
+    knownSignatures[signature] = types
+    return types
+}
+
+private val knownSignatures = java.util.concurrent.ConcurrentHashMap<String, List<String>>()
+
+private const val MAX_KNOWN_SIGNATURES = 256
+
+private fun workOutSignature(signature: String): List<String> {
     val types = ArrayList<String>()
     var i = 0
     fun one(): String {

@@ -215,7 +215,17 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
      * interface and path (a forged PrepareForSleep). Null: from anyone.
      */
     @JvmOverloads
-    fun onSignal(iface: String, member: String, path: String? = null, sender: String? = null, handler: (DBusMessage) -> Unit): AutoCloseable {
+    fun onSignal(iface: String, member: String, path: String? = null, sender: String? = null, handler: (DBusMessage) -> Unit): AutoCloseable =
+        listen(iface, member, path, sender, null, handler)
+
+    /**
+     * The same, only signals whose first argument is [arg0], said to the bus already: the others
+     * do not even wake the program (NameOwnerChanged of one name, not of every program on the bus).
+     */
+    fun onSignal(iface: String, member: String, path: String?, sender: String?, arg0: String, handler: (DBusMessage) -> Unit): AutoCloseable =
+        listen(iface, member, path, sender, arg0, handler)
+
+    private fun listen(iface: String, member: String, path: String?, sender: String?, arg0: String?, handler: (DBusMessage) -> Unit): AutoCloseable {
         // Who owns [sender] now (its unique name), when it is a well-known name; null: no one yet.
         // (The bus itself sends as "org.freedesktop.DBus", which no one else may own.)
         var owner: String? = sender?.takeIf { it.startsWith(":") || it == BUS }
@@ -226,7 +236,7 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
             waiting = ArrayList()
             // Told of new owners first, then asked for the owner now: the bus answers in order,
             // so no change of owner falls in between.
-            follow += onSignal("org.freedesktop.DBus", "NameOwnerChanged", "/org/freedesktop/DBus", BUS) { m ->
+            follow += onSignal("org.freedesktop.DBus", "NameOwnerChanged", "/org/freedesktop/DBus", BUS, sender) { m ->
                 if (m.body.getOrNull(0) == sender) {
                     owner = (m.body.getOrNull(2) as String?)?.takeIf { it.isNotEmpty() }
                     log.trace { "$sender is now owned by ${owner ?: "no one"}" }
@@ -241,6 +251,7 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
         }
         val listener: Pair<(DBusMessage) -> Boolean, (DBusMessage) -> Unit> = { m: DBusMessage ->
             m.iface == iface && m.member == member && (path == null || m.path == path) &&
+                (arg0 == null || m.body.getOrNull(0) == arg0) &&
                 (sender == null || run {
                     val early = waiting
                     if (early != null) {
@@ -256,7 +267,7 @@ class DBusConnection private constructor(private val socket: UnixSocket, private
                 })
         } to handler
         signals += listener
-        val rule = "type='signal',interface='$iface',member='$member'" + (path?.let { ",path='$it'" } ?: "") + (sender?.let { ",sender='$it'" } ?: "")
+        val rule = "type='signal',interface='$iface',member='$member'" + (path?.let { ",path='$it'" } ?: "") + (sender?.let { ",sender='$it'" } ?: "") + (arg0?.let { ",arg0='$it'" } ?: "")
         call("org.freedesktop.DBus", ObjectPath("/org/freedesktop/DBus"), "org.freedesktop.DBus", "AddMatch", "s", listOf(rule)) { reply ->
             if (reply.isError) log.warn("The bus refused to send $iface.$member: ${reply.body.firstOrNull()}")
         }

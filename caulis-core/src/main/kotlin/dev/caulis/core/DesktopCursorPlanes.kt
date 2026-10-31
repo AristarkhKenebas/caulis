@@ -35,7 +35,7 @@ internal class DesktopCursorPlanes(private val desktop: Desktop) {
         }
         if (monitor.transform != Transform.NORMAL || desktop.lockHost.lockHidesDesktop) return intoFrames()
         val bounds = cursor.map { it.rect }.reduce(Rect::union)
-        if (bounds.intersect(monitor.area) == null) {
+        if (!bounds.overlaps(monitor.area)) {
             // On another monitor: none here.
             if (view.planeCursorKey != null) plane.hide()
             view.planeCursorKey = null
@@ -131,7 +131,7 @@ internal class DesktopCursorPlanes(private val desktop: Desktop) {
             for (p in state.planes) {
                 // (As quickCursor does it.)
                 val bounds = Rect(fx.toInt() + p.offset.x, fy.toInt() + p.offset.y, p.offset.width, p.offset.height)
-                if (bounds.intersect(p.area) == null) continue
+                if (!bounds.overlaps(p.area)) continue
                 val left = Math.round((bounds.x - p.area.x) * p.scale).toInt()
                 val top = Math.round((bounds.y - p.area.y) * p.scale).toInt()
                 val dx = Math.round((x - fx) * p.scale).toInt()
