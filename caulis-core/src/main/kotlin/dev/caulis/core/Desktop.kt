@@ -43,6 +43,8 @@ class Desktop(
     private val ownTitleBars = DesktopTitleBars(this)
     private val pointerGrab = DesktopPointerGrab(this, seat)
 
+    internal val cursors = DesktopCursorLook(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -136,7 +138,7 @@ class Desktop(
         }
 
     // The compositor's own notices (declared first: arranging a monitor asks for their room).
-    private val noticeBoard = NoticeBoard(
+    internal val noticeBoard = NoticeBoard(
         renderer, compositor.display.loop,
         changed = {
             version++
@@ -211,7 +213,7 @@ class Desktop(
         if (monitor === focusedMonitor) compositor.outputScale = value
         placeMonitors() // its size in units changed: the ones beside it move
         for (each in monitorList) monitorChanged(each)
-        cursorChanged()
+        cursors.cursorChanged()
     }
 
     /**
@@ -665,11 +667,11 @@ class Desktop(
     private fun wallpaperScene() = WallpaperScene(wallpaperShaders, renderer, pointerX, pointerY, System.nanoTime(), if (monitorList.isEmpty()) Rect(0, 0, 1, 1) else desktopBounds()) { name, code, problem -> shaderWorks(name, code, problem) }
 
     private val widgets = ArrayList<Widget>()
-    private var hoveredWidget: Widget? = null
-    private var pressedWidget: PressedWidget? = null
+    internal var hoveredWidget: Widget? = null
+    internal var pressedWidget: PressedWidget? = null
     private var hoveredArea: Rect? = null
 
-    private class PressedWidget(val widget: Widget, val area: Rect, val monitor: Monitor)
+    internal class PressedWidget(val widget: Widget, val area: Rect, val monitor: Monitor)
 
     /** The [Widget] that has the keyboard now (see [focusWidget]), or null: a program has it. */
     var keyboardWidget: Widget? = null
@@ -747,7 +749,7 @@ class Desktop(
         pressedWidget = null
         if (left != null) {
             userCode("Your widget (pointerLeft)", Unit) { left.pointerLeft() }
-            cursorChanged()
+            cursors.cursorChanged()
         }
     }
 
@@ -759,13 +761,13 @@ class Desktop(
             hoveredWidget = null
             hoveredArea = null
             userCode("Your widget (pointerLeft)", Unit) { old.pointerLeft() }
-            cursorChanged()
+            cursors.cursorChanged()
         }
         if (at == null) return false
         val came = hoveredWidget !== at.widget
         hoveredWidget = at.widget
         hoveredArea = at.area
-        if (came) cursorChanged()
+        if (came) cursors.cursorChanged()
         // (A drag going on hears it left the program: dropped here, nobody gets it.)
         if (seat.pointerFocus != null || seat.drag != null) seat.pointerMotion(timeMillis, null, 0.0, 0.0)
         if (moved || came) userCode("Your widget (pointerMoved)", Unit) { at.widget.pointerMoved(monitorAt(pointerX, pointerY), pointerX - at.area.x, pointerY - at.area.y) }
@@ -845,7 +847,7 @@ class Desktop(
     fun describe(): String = buildString {
         appendLine("Desktop ${width}x$height, room for windows $usableArea${if (locked) ", LOCKED" else ""}${if (inOverview) ", overview open" else ""}")
         appendLine("  focus: ${focusedWindow ?: "nothing"}; keyboard: ${seat.keyboardFocus?.roleObject ?: seat.keyboardFocus ?: "nobody"}; pointer at ${pointerX.toInt()},${pointerY.toInt()} over ${seat.pointerFocus?.roleObject ?: "nothing"}")
-        appendLine("  cursor: ${cursorTheme.name} ${cursorTheme.size} px, showing ${cursorShape ?: "the program's own"}${if (cursorHidden) " (hidden)" else ""}")
+        appendLine("  cursor: ${cursorTheme.name} ${cursorTheme.size} px, showing ${cursorShape ?: "the program's own"}${if (cursors.cursorHidden) " (hidden)" else ""}")
         for (workspace in workspaces.values.sortedBy { it.number }) {
             appendLine("  workspace ${workspace.number}${if (workspace === activeWorkspace) " (on screen)" else ""}, layout ${workspace.layout.name}:")
             for (window in workspace.windows) appendLine("    ${describe(window, workspace)}")
@@ -1106,11 +1108,9 @@ class Desktop(
     private fun arrangeSafely(workspace: Workspace, windows: List<Window>, area: Rect, focused: Window?): List<Rect> =
         userCode("The layout ${workspace.layout.name}", null) { workspace.model.arrange(windows, area, focused) } ?: windows.map { area }
 
-
     // Floats or not: your floatRule, or (if it fails) the usual answer.
     private fun floats(window: Window): Boolean =
         userCode("Your floatRule", window.parent != null || window.fixedSize || window.prefersFloating) { floatRule(window) }
-
 
     // The log, by area (see dev.caulis.log.Log.AREAS): CAULIS_LOG="1,focus=3" and so on.
     internal val log = Logger("config")
@@ -1120,7 +1120,7 @@ class Desktop(
     private val layoutLog = Logger("layout")
     private val layersLog = Logger("layers")
     private val lockLog = Logger("lock")
-    private val cursorLog = Logger("cursor")
+    internal val cursorLog = Logger("cursor")
     private val renderLog = Logger("render")
     private val BUSY_REPORT_NANOS = 10_000_000_000L
     private val WALLPAPER_SHADERS = listOf("wallpaper shader")
@@ -3034,7 +3034,7 @@ class Desktop(
         seat.pointerMotion(0, null, 0.0, 0.0) // the program under the pointer loses it
         overlay.pointerMoved(pointerX, pointerY)
         changed()
-        cursorChanged()
+        cursors.cursorChanged()
     }
 
     /** Closes the [overlay] open now (if any); programs get the keyboard and pointer again. */
@@ -3051,7 +3051,7 @@ class Desktop(
             overlayLog.error("$open failed while closing", e)
         }
         movePointer(0, pointerX, pointerY) // the program under the pointer gets it back
-        cursorChanged()
+        cursors.cursorChanged()
     }
 
     /** The [overlay] looks different now: drawn again. */
@@ -3242,7 +3242,7 @@ class Desktop(
 
     // How one window or panel is drawn: its picture clipped and faded, effects below it.
     // [dim]: how much darker it is drawn (a window without the focus, see Effects.dimInactive).
-    private class Look(val clip: Rect?, val radius: Float, val alpha: Float, val dim: Float = 0f) {
+    internal class Look(val clip: Rect?, val radius: Float, val alpha: Float, val dim: Float = 0f) {
         companion object {
             val PLAIN = Look(null, 0f, 1f)
         }
@@ -4761,13 +4761,13 @@ class Desktop(
             ownTitleBars.hover = null
             changed()
         }
-        decorationCursor = null
+        cursors.decorationCursor = null
         if (seat.pointerFocus != null) seat.pointerMotion(timeMillis, null, 0.0, 0.0)
     }
 
     // The cursor is where the pen is (over a program that takes the pen as a pen).
     internal fun showPenAt(x: Double, y: Double) {
-        cursorActive()
+        cursors.cursorActive()
         val on = monitorAt(x, y)
         pointerX = x.coerceIn(on.area.x.toDouble(), on.area.right - 1.0)
         pointerY = y.coerceIn(on.area.y.toDouble(), on.area.bottom - 1.0)
@@ -4805,7 +4805,7 @@ class Desktop(
     private fun movePointer(timeMillis: Int, x: Double, y: Double) {
         onUserActivity()
         inputLog.trace { "Pointer at ${String.format("%.1f, %.1f", x, y)}" }
-        cursorActive()
+        cursors.cursorActive()
         // On a monitor: past an edge with no monitor beyond, it stops there.
         val on = monitorAt(x, y)
         pointerX = x.coerceIn(on.area.x.toDouble(), on.area.right - 1.0)
@@ -4859,7 +4859,7 @@ class Desktop(
         }
         // Over one of our title bars: the program does not see the pointer, the bar may light up.
         val hover = (decoration as? DesktopTitleBars.Decoration.Bar)?.let { it.window to it.button }
-        decorationCursor = (decoration as? DesktopTitleBars.Decoration.Edge)?.let { resizeCursor(it.edges) }
+        cursors.decorationCursor = (decoration as? DesktopTitleBars.Decoration.Edge)?.let { cursors.resizeCursor(it.edges) }
         if (hover != ownTitleBars.hover) {
             ownTitleBars.hover = hover
             changed()
@@ -4915,9 +4915,6 @@ class Desktop(
         inputLog.trace { "The pointer is over ${hit?.root?.roleObject ?: "nothing"} now (the windows moved)" }
         seat.pointerMotion(time, hit?.surface, hit?.localX ?: 0.0, hit?.localY ?: 0.0)
     }
-
-    // Our own cursor over a window's edge (resize arrows), or null.
-    private var decorationCursor: String? = null
 
     /** The window under the pointer gets the keyboard as soon as the pointer comes onto it. */
     var focusFollowsMouse = false
@@ -4976,7 +4973,7 @@ class Desktop(
         }
         // The last button let go: the program the press was in lets go of the pointer.
         val releasedFrom = if (!pressed && buttonsHeld == 0) pressedIn.also { pressedIn = null } else null
-        cursorActive()
+        cursors.cursorActive()
         if (!passToApps) return
         // A drag and drop going on: letting go drops it (wherever the pointer is).
         if (seat.drag != null) {
@@ -5115,7 +5112,7 @@ class Desktop(
     /** Scrolling (the wheel or fingers, see [Scroll]): an overlay, a widget or the program under the pointer gets it. */
     fun pointerAxis(timeMillis: Int, scroll: Scroll) {
         inputLog.trace { "$scroll" }
-        cursorActive()
+        cursors.cursorActive()
         if (!locked && overlay != null) {
             // An overlay hears each direction in steps (a notch is 1).
             for (vertical in listOf(true, false)) {
@@ -5136,7 +5133,7 @@ class Desktop(
         // Never what is typed into a locker (a password).
         inputLog.trace { if (locked) "A key (not logged while locked)" else "Key $evdevCode ${if (pressed) "pressed" else "released"} → ${seat.keyboardFocus}" }
         // Typing (not just holding Ctrl or Super): the cursor makes way.
-        if (pressed && hideCursorWhileTyping && evdevCode !in MODIFIER_KEYS && seat.keyboardFocus != null) hideCursor()
+        if (pressed && hideCursorWhileTyping && evdevCode !in MODIFIER_KEYS && seat.keyboardFocus != null) cursors.hideCursor()
         if (pressed || evdevCode == widgetRepeatKey) stopWidgetRepeat()
         keyboardWidget?.takeIf { widgetUsable(it) && overlay == null }?.let { widget ->
             val text = if (pressed) seat.textOf(evdevCode) else null
@@ -5550,7 +5547,7 @@ class Desktop(
         // A new picture when the cursor looks different (another shape, its next frame, the
         // program drew a new one, another size or scale); else it only moves.
         val key = listOf(cursor.map { item -> (item as? DrawItem.Picture)?.surface ?: (item as? DrawItem.Image)?.texture ?: item.key }, pixels.width, pixels.height, monitor.scale,
-            cursorVersion, if (cursor.any { it is DrawItem.Picture }) version else 0L)
+            cursors.cursorVersion, if (cursor.any { it is DrawItem.Picture }) version else 0L)
         val draw: ((GpuTarget) -> Unit)? = if (key == view.planeCursorKey) null else { target ->
             renderer.begin(target, 0f, 0f, 0f, alpha = 0f)
             draw(cursor, null, { r -> monitor.toPixels(r).let { Rect(it.x - whole.x, it.y - whole.y, it.width, it.height) } }, monitor.scale, monitor)
@@ -5774,7 +5771,6 @@ class Desktop(
         renderer.setClip(clip)
     }
 
-
     // Draws [items] (only those touching [repaint]) into the frame begun; [p] turns desktop
     // units into the target's pixels, at [scale].
     // [clip]: the pixels the frame is cut to now (a part of the monitor), when known.
@@ -5901,7 +5897,7 @@ class Desktop(
 
     /** Everything to draw now, bottom to top, the cursor last. */
     private fun items(): List<DrawItem> {
-        if (itemsVersion == version && itemsPointerX == pointerX && itemsPointerY == pointerY && itemsCursorVersion == cursorVersion) return items
+        if (itemsVersion == version && itemsPointerX == pointerX && itemsPointerY == pointerY && itemsCursorVersion == cursors.cursorVersion) return items
         val all = ArrayList<DrawItem>(scene().size + 2)
         all += scene
         visible.clear()
@@ -5910,7 +5906,7 @@ class Desktop(
         for ((monitor, fade) in fades) all += DrawItem.Image("$FADE_KEY ${monitor.name}", fade.texture, monitor.area, alpha = fadeAlphas[monitor] ?: 1f)
         val cursorStart = all.size
         itemsCursorStart = cursorStart
-        addCursor(all)
+        cursors.addCursor(all)
         for (i in cursorStart until all.size) (all[i] as? DrawItem.Picture)?.let { visible += it.surface }
         surfaceHomes.clear()
         if (monitorList.size > 1) {
@@ -5930,7 +5926,7 @@ class Desktop(
         itemsVersion = version
         itemsPointerX = pointerX
         itemsPointerY = pointerY
-        itemsCursorVersion = cursorVersion
+        itemsCursorVersion = cursors.cursorVersion
         return all
     }
 
@@ -6269,7 +6265,7 @@ class Desktop(
         addDecorations(all, window, place, above = true)
     }
 
-    private fun addTree(
+    internal fun addTree(
         items: MutableList<DrawItem>, surface: Surface, x: Int, y: Int,
         scaleX: Double = 1.0, scaleY: Double = 1.0, look: Look = Look.PLAIN,
     ) {
@@ -6297,46 +6293,6 @@ class Desktop(
         return opaque.flatMap { listOfNotNull(it.intersect(wide), it.intersect(tall)) }
     }
 
-    private fun addCursor(items: MutableList<DrawItem>) {
-        // (Whole units here, rounded down — also left of and above 0; the cursor plane adds
-        // the part of a unit in the monitor's pixels, see placeHardwareCursor.)
-        val x = Math.floor(pointerX).toInt()
-        val y = Math.floor(pointerY).toInt()
-        // What is dragged (drag and drop), under the cursor.
-        seat.drag?.let { drag -> drag.icon?.takeIf { it.hasContent && it.resource.isAlive }?.let { addTree(items, it, x + drag.iconX, y + drag.iconY) } }
-        if (cursorHidden) return
-        val shape = cursorShapeNow()
-        if (shape == null) {
-            // The program drew its own cursor (or hid it).
-            val own = seat.cursorSurface
-            if (own != null && own.hasContent) addTree(items, own, x - seat.cursorHotspotX, y - seat.cursorHotspotY)
-            return
-        }
-        if (shape != shownShape) {
-            cursorLog.trace { "Cursor: $shape" }
-            shownShape = shape
-            shapeSince = System.nanoTime()
-        }
-        // Loaded in the size it has on screen (the monitor it is on), so it is sharp at any scale.
-        val pixels = Math.round(cursorTheme.size * monitorAt(pointerX, pointerY).scale).toInt()
-        val cursor = cursorTheme.cursor(shape, pixels) ?: cursorTheme.cursor("default", pixels)
-        if (cursor == null) {
-            // Only if even Caulis's own cursors could not be read (a broken jar): a plain square.
-            items += DrawItem.Color(CURSOR_BORDER, Rect(x, y, 12, 12), 0f, 0f, 0f)
-            items += DrawItem.Color(CURSOR_FILL, Rect(x + 1, y + 1, 10, 10), 1f, 1f, 1f)
-            return
-        }
-        val (image, untilNext) = cursor.frameAt((System.nanoTime() - shapeSince) / 1_000_000)
-        // Themes have a few sizes; the nearest one is stretched to the size wanted.
-        val scale = cursorTheme.size.toDouble() / image.nominalSize
-        val rect = Rect(
-            x - (image.hotspotX * scale).roundToInt(), y - (image.hotspotY * scale).roundToInt(),
-            (image.width * scale).roundToInt().coerceAtLeast(1), (image.height * scale).roundToInt().coerceAtLeast(1),
-        )
-        items += DrawItem.Image(CURSOR_IMAGE, cursorTexture(image), rect)
-        if (cursor.animated) nextCursorFrameIn(untilNext)
-    }
-
     // --- the cursor ------------------------------------------------------------------------
 
     /**
@@ -6347,9 +6303,9 @@ class Desktop(
     var cursorTheme: CursorTheme = CursorTheme.load()
         set(value) {
             field = value
-            for (texture in cursorTextures.values) texture.close()
-            cursorTextures.clear()
-            cursorChanged()
+            for (texture in cursors.cursorTextures.values) texture.close()
+            cursors.cursorTextures.clear()
+            cursors.cursorChanged()
         }
 
     /** Hide the cursor while typing (it comes back when the mouse moves). */
@@ -6359,98 +6315,14 @@ class Desktop(
     var hideCursorAfterMillis = 0L
         set(value) {
             field = value
-            cursorActive()
+            cursors.cursorActive()
         }
-
-    // Changes only the cursor makes (a hidden cursor, the next frame of an animated one).
-    private var cursorVersion = 0L
-    private var cursorHidden = false
-    private val cursorTextures = HashMap<dev.caulis.core.cursor.CursorImage, GpuTexture>()
-    private var shownShape: String? = null
-    private var shapeSince = 0L
-    private var cursorFrameTimer: EventLoop.Timer? = null
-    private var cursorIdleTimer: EventLoop.Timer? = null
-
-    private fun cursorChanged() {
-        cursorVersion++
-        onChange()
-    }
 
     /**
      * The cursor shown now, by name ("default", "text", "grabbing", ...), or null while the
      * program under the pointer shows a picture of its own (or none).
      */
-    val cursorShape: String? get() = cursorShapeNow()
-
-    // The cursor the window manager shows: its own while it moves or resizes a window or
-    // nothing is under the pointer, else what the program there asked for (null = the
-    // program's own picture).
-    private fun cursorShapeNow(): String? {
-        val current = grab
-        return when {
-            current is DesktopPointerGrab.Grab.Move -> "grabbing"
-            current is DesktopPointerGrab.Grab.Resize -> resizeCursor(current.edges)
-            overlay != null && !locked -> overlay?.cursor ?: "default"
-            (pressedWidget != null || hoveredWidget != null) && !inOverview -> userCode("Your widget (cursor)", "default") { (pressedWidget?.widget ?: hoveredWidget)!!.cursor }
-            inOverview -> "default"
-            noticeBoard.hovering -> "default" // our notice, not the program below it
-            decorationCursor != null -> decorationCursor
-            seat.pointerFocus == null && seat.penFocus == null -> "default"
-            else -> seat.cursorShape
-        }
-    }
-
-    private fun resizeCursor(edges: Int): String = when (edges) {
-        XdgToplevel.ResizeEdge.TOP -> "n-resize"
-        XdgToplevel.ResizeEdge.BOTTOM -> "s-resize"
-        XdgToplevel.ResizeEdge.LEFT -> "w-resize"
-        XdgToplevel.ResizeEdge.RIGHT -> "e-resize"
-        XdgToplevel.ResizeEdge.TOP_LEFT -> "nw-resize"
-        XdgToplevel.ResizeEdge.TOP_RIGHT -> "ne-resize"
-        XdgToplevel.ResizeEdge.BOTTOM_LEFT -> "sw-resize"
-        XdgToplevel.ResizeEdge.BOTTOM_RIGHT -> "se-resize"
-        else -> "all-resize"
-    }
-
-    // Each cursor picture goes to the GPU once.
-    private fun cursorTexture(image: dev.caulis.core.cursor.CursorImage): GpuTexture = cursorTextures.getOrPut(image) {
-        renderer.createTexture(image.width, image.height).also { texture ->
-            java.lang.foreign.Arena.ofConfined().use { arena ->
-                // Premultiplied 0xAARRGGBB ints are the BGRA bytes the texture wants.
-                texture.upload(arena.allocateFrom(java.lang.foreign.ValueLayout.JAVA_INT, *image.pixels), 0, image.height)
-            }
-        }
-    }
-
-    private fun nextCursorFrameIn(millis: Long) {
-        if (cursorFrameTimer != null) return
-        cursorFrameTimer = compositor.display.loop.after(millis.coerceIn(1, 1000)) {
-            cursorFrameTimer = null
-            cursorChanged()
-        }
-    }
-
-    // The mouse was used: the cursor shows again, and the idle countdown starts over.
-    private fun cursorActive() {
-        cursorIdleTimer?.cancel()
-        cursorIdleTimer = null
-        if (cursorHidden) {
-            cursorHidden = false
-            cursorChanged()
-        }
-        if (hideCursorAfterMillis > 0) {
-            cursorIdleTimer = compositor.display.loop.after(hideCursorAfterMillis) {
-                cursorIdleTimer = null
-                hideCursor()
-            }
-        }
-    }
-
-    private fun hideCursor() {
-        if (cursorHidden) return
-        cursorHidden = true
-        cursorChanged()
-    }
+    val cursorShape: String? get() = cursors.cursorShapeNow()
 
     // --- programs nobody sees -------------------------------------------------------------
 
