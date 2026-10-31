@@ -8,10 +8,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.PointerButton
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.Density
@@ -63,7 +59,7 @@ import kotlin.coroutines.CoroutineContext
 class ComposeWidget @JvmOverloads constructor(
     internal val desktop: Desktop,
     /** Runs a task on the compositor's thread soon (from any thread): `EventLoop.post`, `Caulis.post`. */
-    private val post: (Runnable) -> Unit,
+    internal val post: (Runnable) -> Unit,
     /** Where it is on a monitor (desktop units), or null: not there. */
     private val place: (Monitor) -> Rect?,
     override val level: DrawingLevel = DrawingLevel.ON_TOP,
@@ -97,6 +93,7 @@ class ComposeWidget @JvmOverloads constructor(
     override val showsWhileLocked: Boolean = false,
     private val content: @Composable (monitor: Monitor) -> Unit,
 ) : Widget, AutoCloseable {
+    internal val input = ComposeInput(this)
     internal val contentFailures = ComposeFailures(this)
 
     // Caulis 0.1.1's constructor with its defaults left out (level, reserve, takesKeyboard):
@@ -158,10 +155,10 @@ class ComposeWidget @JvmOverloads constructor(
     var keepHiddenSeconds: Int? = null
 
     internal val parts = HashMap<String, Part>()
-    private var keyboardLost by mutableIntStateOf(0)
-    private val heldKeys = LinkedHashMap<Int, WidgetKey>()
+    internal var keyboardLost by mutableIntStateOf(0)
+    internal val heldKeys = LinkedHashMap<Int, WidgetKey>()
     internal var hoverOn: String? = null
-    private var keysOn: String? = null
+    internal var keysOn: String? = null
     internal var closed = false
     // (Compose of another version than this module's: said once, then nothing is shown.)
     private var broken = false
@@ -287,7 +284,7 @@ class ComposeWidget @JvmOverloads constructor(
         val name = monitor.name
         // (Its own coroutines fail into [failed], not into the thread's.)
         val context = dispatcher + CoroutineExceptionHandler { _, e -> post(Runnable { contentFailures.failed(name, e) }) }
-        return Scene(width, height, Density(scale.toFloat()), context, ::pointerIcon) {
+        return Scene(width, height, Density(scale.toFloat()), context, input::pointerIcon) {
             // The keyboard gone elsewhere: no text field keeps it (or its caret blinking).
             val focus = LocalFocusManager.current
             val lost = keyboardLost
@@ -403,13 +400,11 @@ class ComposeWidget @JvmOverloads constructor(
         }
     }
 
-    // --- input ------------------------------------------------------------------------------
-
-    private fun sceneOf(name: String?): Part? = if (closed) null else name?.let(parts::get)?.takeIf { !it.failed }
+    internal fun sceneOf(name: String?): Part? = if (closed) null else name?.let(parts::get)?.takeIf { !it.failed }
 
     // Where the pointer is in the scene's pixels: [x], [y] (units from its area's top left)
     // taken back through how it is shown (bigger, moved); null where nothing of it is seen.
-    private fun inScene(monitor: Monitor, part: Part, x: Double, y: Double): Offset? {
+    internal fun inScene(monitor: Monitor, part: Part, x: Double, y: Double): Offset? {
         val area = place(monitor) ?: return null
         val look = appearance(monitor)
         if (look.alpha <= HIDDEN || look.scale <= 0.001f) return null
@@ -420,145 +415,28 @@ class ComposeWidget @JvmOverloads constructor(
         return Offset((sx * part.scale).toFloat(), (sy * part.scale).toFloat())
     }
 
-    private var last: Offset? = null
+    override fun pointerMoved(monitor: Monitor, x: Double, y: Double) = input.pointerMoved(monitor, x, y)
 
-    override fun pointerMoved(monitor: Monitor, x: Double, y: Double) {
-        val part = sceneOf(monitor.name) ?: return
-        val at = inScene(monitor, part, x, y)
-        if (at == null) return pointerLeft()
-        if (hoverOn != monitor.name) {
-            send(hoverOn, PointerEventType.Exit, Offset.Zero)
-            hoverOn = monitor.name
-            send(monitor.name, PointerEventType.Enter, at, modifiers = modifiers())
-        }
-        last = at
-        // One move a turn of the compositor's loop, the latest: a mouse sends up to 1000 a
-        // second, and each went through the scene at once (finding what is under it) — a
-        // waste on the compositor's thread while the pointer is over a menu or a card.
-        if (!moveQueued) {
-            moveQueued = true
-            post(Runnable { sendMove() })
-        }
-    }
-
-    // A move waits to be sent (see pointerMoved).
-    private var moveQueued = false
-
-    // The latest move to the scene the pointer is on, if one waits.
-    private fun sendMove() {
-        if (!moveQueued) return
-        moveQueued = false
-        val at = last ?: return
-        send(hoverOn, PointerEventType.Move, at, modifiers = modifiers())
-    }
-
-    override fun pointerLeft() {
-        sendMove()
-        send(hoverOn, PointerEventType.Exit, Offset.Zero)
-        hoverOn = null
-        last = null
-        pointerIcon(PointerIcon.Default)
-    }
+    override fun pointerLeft() = input.pointerLeft()
 
     override fun pressedOutside(button: Int, x: Double, y: Double, onAnother: Boolean): Boolean =
         !closed && onPressOutside(x, y, onAnother)
 
-    override fun pointerButton(button: Int, pressed: Boolean) {
-        sendMove() // (the press where the pointer is now)
-        if (sceneOf(hoverOn) == null) return
-        val at = last ?: return
-        if (pressed) keysOn = hoverOn
-        val which = when (button) {
-            BTN_LEFT -> PointerButton.Primary
-            BTN_RIGHT -> PointerButton.Secondary
-            BTN_MIDDLE -> PointerButton.Tertiary
-            BTN_SIDE -> PointerButton.Back
-            BTN_EXTRA -> PointerButton.Forward
-            else -> return
-        }
-        send(hoverOn, if (pressed) PointerEventType.Press else PointerEventType.Release, at, modifiers = modifiers(), button = which)
-    }
+    override fun pointerButton(button: Int, pressed: Boolean) = input.pointerButton(button, pressed)
 
-    override fun scroll(dx: Double, dy: Double) {
-        sendMove()
-        val at = last ?: return
-        // Compose counts in lines (one wheel notch is one; the compositor gives units, a notch
-        // being WHEEL_UNITS of them).
-        send(hoverOn, PointerEventType.Scroll, at, scrollDelta = Offset((dx / WHEEL_UNITS).toFloat(), (dy / WHEEL_UNITS).toFloat()), modifiers = modifiers())
-    }
+    override fun scroll(dx: Double, dy: Double) = input.scroll(dx, dy)
 
-    // The modifiers held, as the last key said (Shift+click, Ctrl+wheel). (Known while it has
-    // the keyboard: else keys go to the programs.)
-    private var lastKey: WidgetKey? = null
-
-    private fun modifiers(): PointerKeyboardModifiers {
-        val key = lastKey ?: return PointerKeyboardModifiers()
-        return PointerKeyboardModifiers(isCtrlPressed = key.ctrl, isMetaPressed = key.logo, isAltPressed = key.alt, isShiftPressed = key.shift)
-    }
-
-    override fun key(key: WidgetKey) {
-        val name = (keysOn ?: hoverOn)?.takeIf { sceneOf(it) != null } ?: parts.entries.firstOrNull { !it.value.failed }?.key?.takeIf { !closed } ?: return
-        if (key.pressed) heldKeys[key.evdevCode] = key else heldKeys.remove(key.evdevCode)
-        lastKey = key
-        sendKeys(name, key)
-    }
-
-    // A pointer event to the scene on [name] (none: nothing; one that throws fails).
-    private fun send(
-        name: String?,
-        type: PointerEventType,
-        at: Offset,
-        scrollDelta: Offset = Offset.Zero,
-        modifiers: PointerKeyboardModifiers? = null,
-        button: PointerButton? = null,
-    ) {
-        val part = sceneOf(name) ?: return
-        contentFailures.guarded(name!!, part) { part.scene.sendPointerEvent(type, at, scrollDelta, modifiers, button) }
-    }
-
-    // [key] as Compose's key events to the scene on [name].
-    private fun sendKeys(name: String, key: WidgetKey) {
-        val part = sceneOf(name) ?: return
-        for (event in AwtKeys.events(key, log)) contentFailures.guarded(name, part) { part.scene.sendKeyEvent(event) } ?: return
-    }
+    override fun key(key: WidgetKey) = input.key(key)
 
     /** True while it has the keyboard ([Desktop.focusWidget]). */
     var hasKeyboard = false
-        private set
+        internal set
 
-    override fun keyboardFocus(has: Boolean) {
-        hasKeyboard = has
-        for (part in parts.values) part.scene.focused = has
-        if (has) {
-            // Given without a click (a key that opens a launcher): the keys go to the scene on
-            // the monitor with the pointer, else on the focused one.
-            keysOn = hoverOn ?: desktop.focusedMonitor.name.takeIf { it in parts } ?: keysOn
-            return
-        }
-        // Keys held now are let go (else Compose thinks they still are).
-        val name = (keysOn ?: hoverOn)?.takeIf { sceneOf(it) != null } ?: parts.entries.firstOrNull { !it.value.failed }?.key
-        for (held in heldKeys.values.toList()) {
-            val up = WidgetKey(held.evdevCode, false, null, held.shift, held.ctrl, held.alt, held.logo, (System.nanoTime() / 1_000_000).toInt())
-            if (name != null) sendKeys(name, up)
-        }
-        heldKeys.clear()
-        lastKey = null
-        keyboardLost++
-    }
-
-    // --- the pointer's shape ----------------------------------------------------------------
+    override fun keyboardFocus(has: Boolean) = input.keyboardFocus(has)
 
     /** The cursor Compose asks for where the pointer is ("text" over a text field, "pointer" over a link, ...). */
     override var cursor: String = "default"
-        private set
-
-    private fun pointerIcon(icon: PointerIcon) {
-        val name = CURSORS.firstOrNull { (awt, _) -> PointerIcon(java.awt.Cursor(awt)) == icon }?.second ?: "default"
-        if (name == cursor) return
-        cursor = name
-        log.trace { "Compose's pointer: $name" }
-        desktop.requestRedraw()
-    }
+        internal set
 
     override fun close() {
         if (closed) return
@@ -603,7 +481,7 @@ class ComposeWidget @JvmOverloads constructor(
             // (The new scenes are entered anew by the next move; the keys go where the next click is.)
             hoverOn = null
             keysOn = null
-            last = null
+            input.last = null
             desktop.requestRedraw()
         })
     }
