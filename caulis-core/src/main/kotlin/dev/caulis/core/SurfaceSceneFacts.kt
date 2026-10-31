@@ -26,6 +26,12 @@ internal class SurfaceSceneFacts(private val surface: Surface) {
     private var opaqueRegion: Region.Snapshot? = null
     private var inputRegion: Region.Snapshot? = null
     private var geometry: Rect? = null
+
+    // Its window's or menu's place and kind (an X11 program moves its window itself, and that was
+    // shown with its next picture).
+    private var roleX = 0
+    private var roleY = 0
+    private var roleKind = 0
     private val stack = ArrayList<Surface>()
     private var childPlaces = IntArray(0)
 
@@ -39,7 +45,8 @@ internal class SurfaceSceneFacts(private val surface: Surface) {
             viewportWidth == state.viewportWidth && viewportHeight == state.viewportHeight &&
             viewportSource.contentEquals(state.viewportSource) && nativeScale == surface.nativeScale &&
             sameRegion(opaqueRegion, state.opaqueRegion) && sameRegion(inputRegion, state.inputRegion) &&
-            geometry == surface.shellSurface?.geometry
+            geometry == surface.shellSurface?.geometry &&
+            roleX == roleXNow() && roleY == roleYNow() && roleKind == roleKindNow()
         if (same) return false
         width = surface.width
         height = surface.height
@@ -56,8 +63,27 @@ internal class SurfaceSceneFacts(private val surface: Surface) {
         opaqueRegion = state.opaqueRegion
         inputRegion = state.inputRegion
         geometry = surface.shellSurface?.geometry
+        roleX = roleXNow()
+        roleY = roleYNow()
+        roleKind = roleKindNow()
         return true
     }
+
+    private fun roleXNow(): Int = when (val role = surface.roleObject) {
+        is Window -> role.x
+        is Popup -> role.x
+        else -> 0
+    }
+
+    private fun roleYNow(): Int = when (val role = surface.roleObject) {
+        is Window -> role.y
+        is Popup -> role.y
+        else -> 0
+    }
+
+    private fun roleKindNow(): Int = (surface.roleObject as? Window)?.let { window ->
+        (if (window.fullscreen) 1 else 0) or (if (window.maximized) 2 else 0) or (if (window.tiled) 4 else 0) or (if (window.mapped) 8 else 0)
+    } ?: 0
 
     // Its subsurfaces in the same order at the same places? (If not, they are remembered anew.)
     private fun childrenAsBefore(): Boolean {

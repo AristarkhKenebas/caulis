@@ -167,6 +167,27 @@ class PixelsOnlyCommitTest {
     }
 
     @Test
+    fun `a window moved without telling, then new pixels, is shown where it is`() = withServer { server, client ->
+        var last: IntArray? = null
+        val (a, _) = twoWindows(server, client)
+        server.onFrameShown = { _, pixels -> last = pixels }
+        val version = server.version()
+        // (As an X11 program moves its window: set, and the next picture shows it.)
+        server.onServer { d ->
+            val window = d.windows.first()
+            d.setFloating(window, true)
+        }
+        settled(server, client)
+        val moved = server.version()
+        assertTrue(moved != version)
+        server.onServer { d -> d.windows.first().let { it.x += 40; it.y += 30 } }
+        commit(client, a, GREEN, listOf(intArrayOf(0, 0, 20, 20)))
+        settled(server, client)
+        assertTrue(server.version() != moved, "moved: a new scene")
+        assertScreenRight(server, { last }, "moved and drawn")
+    }
+
+    @Test
     fun `a viewport changed or kept`() = withServer { server, client ->
         var last: IntArray? = null
         val (a, _) = twoWindows(server, client)
