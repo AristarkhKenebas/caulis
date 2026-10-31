@@ -31,10 +31,6 @@ import dev.caulis.core.input.Keymap
 import dev.caulis.core.input.PointerGestures
 import dev.caulis.core.input.PenPointer
 import dev.caulis.core.input.Seat
-import dev.caulis.core.input.Tablet
-import dev.caulis.core.input.TabletAxes
-import dev.caulis.core.input.TabletPad
-import dev.caulis.core.input.TabletTool
 import dev.caulis.core.input.Tablets
 import dev.caulis.event.EventLoop
 import dev.caulis.protocol.Display
@@ -112,7 +108,7 @@ internal class Running(
     private val permissions = PermissionKeeper({ config }, { capture?.answered() }, { client -> display.privileged(client) })
     private val cursorLog = Logger("cursor")
     private val gesturesLog = Logger("gestures")
-    private val inputLog = Logger("input")
+    internal val inputLog = Logger("input")
 
     // Lines of the log that become notices (from any thread; shown on ours). Watched from the
     // start, so mistakes found while starting (a key used twice) are shown too. Not lines
@@ -149,6 +145,7 @@ internal class Running(
     val seat = Seat(display, Keymap.fromNames(layouts = config.keyboardLayouts, variants = config.keyboardVariants, options = config.keyboardOptions, model = config.keyboardModel))
     private val compositor = Compositor(display, renderer)
     val desktop = Desktop(renderer, seat, compositor, width, height)
+    internal val rtablets = RunningTablets(this)
 
     /** logind (on the screen): sleep and wake, lock requests, brightness. Null elsewhere. */
     internal val logind: dev.caulis.core.Logind? = if (switchConsole != null) dev.caulis.core.Logind.connect(loop) else null
@@ -189,7 +186,7 @@ internal class Running(
         set(value) {
             field = value
             value?.settings = config.input
-            value?.let(::useTablets)
+            value?.let(rtablets::useTablets)
             value?.onSwitch = { switch, on ->
                 if (switch == dev.caulis.core.libinput.Switch.LID) {
                     log.info { "The lid is ${if (on) "closed" else "open"}" }
@@ -218,84 +215,12 @@ internal class Running(
     private var screensOffAt = 0L
 
     // Someone did something: idle timers start over, and dark screens light up again.
-    private fun userActive() {
+    internal fun userActive() {
         idle.activity()
         if (config.wakeScreensOnInput && System.nanoTime() - screensOffAt > config.wakeScreensAfterMillis * 1_000_000L) {
             for (monitor in desktop.monitors) if (!monitor.powered) desktop.setPower(monitor, true)
         }
     }
-
-    // --- drawing tablets ----------------------------------------------------------------------
-
-    // The tablets, pens and pads of [devices]: places on the desktop as each tablet's settings
-    // say; the pen goes to programs as a pen or as the pointer (the desktop decides), pads to
-    // the program with the keyboard or to a binding ("Pad1").
-    private fun useTablets(devices: dev.caulis.core.libinput.InputDevices) {
-        devices.onTabletAdded = tablets::add
-        devices.onTabletRemoved = tablets::remove
-        devices.onPadAdded = tablets::addPad
-        devices.onPadRemoved = tablets::removePad
-        devices.onTabletProximity = { time, tablet, tool, x, y, axes, near ->
-            val (dx, dy) = tablet.place(x, y, tabletArea(tablet))
-            desktop.tabletProximity(time, tablet, tool, dx, dy, asLaid(tablet, axes), near)
-        }
-        devices.onTabletMotion = { time, tablet, tool, x, y, axes ->
-            val (dx, dy) = tablet.place(x, y, tabletArea(tablet))
-            desktop.tabletMotion(time, tool, dx, dy, asLaid(tablet, axes))
-        }
-        devices.onTabletTip = { time, _, tool, down -> desktop.tabletTip(time, tool, down) }
-        devices.onTabletButton = { time, _, tool, button, pressed -> desktop.tabletButton(time, tool, button, pressed) }
-        devices.onPadButton = ::padButton
-        devices.onPadRing = { time, pad, ring, degrees, finger ->
-            userActive()
-            tablets.padRing(time, pad, ring, degrees, finger)
-        }
-        devices.onPadStrip = { time, pad, strip, position, finger ->
-            userActive()
-            tablets.padStrip(time, pad, strip, position, finger)
-        }
-        devices.onPadMode = tablets::padMode
-        for (device in devices.list) {
-            device.tablet?.let(tablets::add)
-            device.pad?.let(tablets::addPad)
-        }
-    }
-
-    // A left-handed tablet lies turned around: its pen tilts the other way.
-    private fun asLaid(tablet: Tablet, axes: TabletAxes) = if (tablet.settings.leftHanded == true) axes.turnedAround() else axes
-
-    // Monitors named in tablet settings that are not there (said once each).
-    private val missingTabletMonitors = HashSet<String>()
-
-    /**
-     * The part of the desktop [tablet] covers: the monitor its settings name; else, for a
-     * tablet that is a screen, the laptop's own (or the first); else all monitors as one.
-     */
-    fun tabletArea(tablet: Tablet): dev.caulis.geometry.Rect {
-        val monitors = desktop.monitors
-        tablet.settings.monitor?.let { name ->
-            monitors.firstOrNull { it.name.equals(name, ignoreCase = true) }?.let { return it.area }
-            if (missingTabletMonitors.add(name)) inputLog.warn("The tablet ${tablet.name} is set to the monitor $name, which is not there (it covers ${if (tablet.screen) "the laptop's screen" else "all monitors"} meanwhile)")
-        }
-        if (tablet.screen) return (monitors.firstOrNull { config.isBuiltIn(it.name) } ?: monitors.first()).area
-        return monitors.map { it.area }.reduce(dev.caulis.geometry.Rect::union)
-    }
-
-    /** A tablet pad's [button] (0 the first): a combination bound to it ("Pad1"), else the program with the keyboard. */
-    fun padButton(timeMillis: Int, pad: TabletPad, button: Int, pressed: Boolean) {
-        userActive()
-        val code = KeyBindings.padButton(button)
-        val active = activeKeys()
-        if (!pressed) for (other in allKeys()) if (other !== active) other.key(code, false)
-        if (active.key(code, pressed)) return
-        tablets.padButton(timeMillis, pad, button, pressed)
-    }
-
-    // The pretend tablet, pen and pad of the simulate functions (tests).
-    internal val testTablet = Tablet("Caulis test tablet", widthMm = 216.0, heightMm = 135.0)
-    internal val testPen = TabletTool(TabletTool.Type.PEN, setOf(TabletTool.Capability.PRESSURE, TabletTool.Capability.DISTANCE, TabletTool.Capability.TILT))
-    internal val testPad by lazy { TabletPad("Caulis test pad", buttons = 4, tablet = testTablet).also(tablets::addPad) }
-    internal var testPenNear = false
 
     /** Switches the screens off (or on) — all of them, or the monitor [name]; false if one could not. */
     fun setScreens(on: Boolean, name: String? = null): Boolean {
@@ -1515,7 +1440,7 @@ internal class Running(
         else -> keyMode?.let(modeKeys::get) ?: keys
     }
 
-    private fun allKeys(): List<KeyBindings> = listOf(keys, lockedKeys, inhibitedKeys) + modeKeys.values
+    internal fun allKeys(): List<KeyBindings> = listOf(keys, lockedKeys, inhibitedKeys) + modeKeys.values
 
     /** Forgets every key held (the keyboard went to another session or terminal). */
     fun releaseKeys() {

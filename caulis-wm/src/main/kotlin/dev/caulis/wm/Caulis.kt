@@ -1754,11 +1754,11 @@ class Caulis {
     fun simulatePen(x: Double, y: Double, pressure: Double = 0.0, down: Boolean? = null) {
         val running = live()
         val time = (System.nanoTime() / 1_000_000).toInt()
-        val pen = running.testPen
-        running.testTablet.settings = input.forTablet(running.testTablet.name)
-        if (!running.testPenNear) {
-            running.testPenNear = true
-            running.desktop.tabletProximity(time, running.testTablet, pen, x, y, TabletAxes(pressure, distance = 0.0, tiltX = 0.0, tiltY = 0.0), near = true)
+        val pen = running.rtablets.testPen
+        running.rtablets.testTablet.settings = input.forTablet(running.rtablets.testTablet.name)
+        if (!running.rtablets.testPenNear) {
+            running.rtablets.testPenNear = true
+            running.desktop.tabletProximity(time, running.rtablets.testTablet, pen, x, y, TabletAxes(pressure, distance = 0.0, tiltX = 0.0, tiltY = 0.0), near = true)
         } else {
             running.desktop.tabletMotion(time, pen, x, y, TabletAxes(pressure))
         }
@@ -1768,17 +1768,17 @@ class Caulis {
     /** For tests: a button of the pen (0x14b its lower one, 0x14c its upper one) pressed or let go (see [simulatePen]). */
     fun simulatePenButton(button: Int, pressed: Boolean) {
         val running = live()
-        running.desktop.tabletButton((System.nanoTime() / 1_000_000).toInt(), running.testPen, button, pressed)
+        running.desktop.tabletButton((System.nanoTime() / 1_000_000).toInt(), running.rtablets.testPen, button, pressed)
     }
 
     /** For tests: the pen goes away from the tablet (lifted first, if it touched; see [simulatePen]). */
     fun simulatePenAway() {
         val running = live()
-        if (!running.testPenNear) return
-        running.testPenNear = false
+        if (!running.rtablets.testPenNear) return
+        running.rtablets.testPenNear = false
         val x = running.desktop.pointerX
         val y = running.desktop.pointerY
-        running.desktop.tabletProximity((System.nanoTime() / 1_000_000).toInt(), running.testTablet, running.testPen, x, y, TabletAxes.NONE, near = false)
+        running.desktop.tabletProximity((System.nanoTime() / 1_000_000).toInt(), running.rtablets.testTablet, running.rtablets.testPen, x, y, TabletAxes.NONE, near = false)
     }
 
     /**
@@ -1787,7 +1787,7 @@ class Caulis {
      */
     fun simulatePadButton(button: Int, pressed: Boolean) {
         val running = live()
-        running.padButton((System.nanoTime() / 1_000_000).toInt(), running.testPad, button, pressed)
+        running.rtablets.padButton((System.nanoTime() / 1_000_000).toInt(), running.rtablets.testPad, button, pressed)
     }
 
     /** A mouse button (272 left, 273 right, 274 middle): true takes it. Not on a locked screen. */
