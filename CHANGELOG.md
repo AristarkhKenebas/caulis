@@ -15,11 +15,15 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+### Fixed
+- `onPointerButton` handlers hear the release of every press they saw, whatever opened in between (a screenshot chooser, a lock): one holding a button no longer thinks it is held for good.
+
 ### Changed
 - Input devices (`InputDevices`) are a module of their own, `caulis-libinput`. Nothing changes for users: `caulis-core` depends on it (as an `api` dependency), and the packages and classes are the same.
 - The login session (`Session`, `Logind`) is a module of its own, `caulis-session`. Nothing changes for users: `caulis-core` depends on it (as an `api` dependency), and the packages and classes are the same.
 - The plain input types (`InputSettings`, `Gesture`, `Scroll`, `EarlyPointer`, the tablet value types) are a module of their own, `caulis-input`. Nothing changes for users: `caulis-core` depends on it (as an `api` dependency), and the packages and classes are the same.
 ### Added
+- `PointerBindings` (`caulis.pointerBindings`): the mouse beyond a plain press. Any button by name or code (`BTN_TASK`, `ThumbBack`, `mouse:0x115`) and the wheel all four ways, with any modifiers; per binding whether the press is taken or also passed to the program, a cooldown (for fast side wheels), clicks, long presses, holds, and a button held and moved in a direction as its own kind of binding. `PointerBindings.describe(code)` names a button for tools. `caulis.simulateSideScroll` for tests.
 - More project templates: `templates/new-compositor.sh --template <name>` with `tiling` (like i3), `floating`
   (like Openbox), `scrolling` (like niri), `kiosk` (one program, fullscreen), `desktop` (a bar of your own in
   Compose) and `lua` (only a `config.lua`); `--list` shows them. Each is a small commented project with the

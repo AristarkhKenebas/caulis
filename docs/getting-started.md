@@ -2080,12 +2080,29 @@ bind("XF86AudioRaiseVolume", BindOptions(repeat = true, whileLocked = true)) { l
 bind("Super", BindOptions(description = "overview")) { desktop.toggleOverview() }   // Super tapped alone
 bind("Super+P", BindOptions(release = true)) { launch("grim") }                        // when let go
 bind("Super+WheelDown") { run("workspace next") }                                       // the wheel
-bind("MouseSide") { run("workspace back") }                                             // mouse buttons: MouseLeft/Right/Middle/Side/Extra/Forward/Back, mouse:276
+bind("MouseSide") { run("workspace back") }                                             // mouse buttons: MouseLeft/Right/Middle/Side/Extra/Forward/Back/Task, BTN_TASK, mouse:276, mouse:0x114
 ```
 
 `repeat` repeats while held (at the keyboard's repeat rate), `whileLocked` works on the lock
 screen too (volume, brightness), `release` runs when the key is let go. A modifier alone
 (`"Super"`) is a tap: pressed and let go with nothing in between — Super+Q never counts as one.
+
+**The mouse, beyond a press:** `pointerBindings` takes any button or wheel with any modifiers, and says
+whether the press also reaches the program. Most mice's back button is `MouseSide` (`ThumbBack`), their
+forward button `MouseExtra` (`ThumbForward`).
+
+```kotlin
+pointerBindings.press("Super+WheelRight", PointerBindings.Options(cooldownMillis = 150)) { run("workspace next") }  // a side wheel
+pointerBindings.press("ThumbBack", PointerBindings.Options(pass = true)) { log.info { "back" } }  // the program gets the press too
+pointerBindings.click("WheelClick") { desktop.toggleOverview() }
+pointerBindings.longPress("WheelClick", 500) { launch("fuzzel") }
+pointerBindings.gesture("MouseTask", mapOf(
+    PointerBindings.Direction.LEFT to { run("workspace prev") },
+    PointerBindings.Direction.RIGHT to { run("workspace next") },
+))                                     // held and moved: one action per way; the pointer stays; a press alone is a click
+```
+
+Bindings here go before `bind()`'s mouse combinations. `PointerBindings.describe(code)` names a button for a tool of yours.
 
 **Key modes** ("submaps"): keys of their own, on until you leave — e.g. a resize mode:
 

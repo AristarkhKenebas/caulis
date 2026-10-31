@@ -12,7 +12,7 @@ internal class RunningInput(private val running: Running) {
     /** The pointer moved by [dx], [dy] (units; raw: the mouse's own movement) — onPointerMotion first. */
     fun pointerMovedBy(timeMillis: Int, dx: Double, dy: Double, rawDx: Double = dx, rawDy: Double = dy) {
         // (The input thread moves the cursor ahead only while the movement moves the pointer.)
-        if (motionTaken(dx, dy)) {
+        if (motionTaken(dx, dy) || running.config.pointerBindings.motion(dx, dy)) {
             running.desktop.earlyCursorMoves = false
             return running.desktop.onUserActivity()
         }
@@ -22,7 +22,9 @@ internal class RunningInput(private val running: Running) {
 
     /** The pointer is at [x], [y] (units: nested, tablets) — onPointerMotion first, with the movement. */
     fun pointerMovedTo(timeMillis: Int, x: Double, y: Double) {
-        if (motionTaken(x - running.desktop.pointerX, y - running.desktop.pointerY)) return running.desktop.onUserActivity()
+        val dx = x - running.desktop.pointerX
+        val dy = y - running.desktop.pointerY
+        if (motionTaken(dx, dy) || running.config.pointerBindings.motion(dx, dy)) return running.desktop.onUserActivity()
         running.desktop.pointerMoved(timeMillis, x, y)
     }
 
@@ -175,6 +177,7 @@ internal class RunningInput(private val running: Running) {
         // (An overlay — a screenshot chooser — has the mouse to itself: no handler takes it first.)
         if (!running.desktop.locked && running.desktop.overlay == null && running.config.scrollHandlers.asReversed().any { h -> running.safely("onScroll", false) { h(running.config, vertical, value, value120 / 120.0) } }) return true
         val active = activeKeys()
+        if (running.config.pointerBindings.scroll(vertical, value120, running.keys.heldModifiers(), locked = running.desktop.locked)) return true
         if (value120 != 0 && !running.desktop.locked) {
             val (back, forth) = if (vertical) KeyBindings.WHEEL_UP to KeyBindings.WHEEL_DOWN else KeyBindings.WHEEL_LEFT to KeyBindings.WHEEL_RIGHT
             val code = if (value120 < 0) back else forth
@@ -198,7 +201,13 @@ internal class RunningInput(private val running: Running) {
     fun pointerButton(timeMillis: Int, button: Int, pressed: Boolean) {
         running.userActive()
         // (An overlay — a screenshot chooser — has the mouse to itself: no handler takes it first.)
-        if (!running.desktop.locked && running.desktop.overlay == null && running.config.buttonHandlers.asReversed().any { h -> running.safely("onPointerButton", false) { h(running.config, button, pressed) } }) return
+        // (The release of a press they saw is theirs too, whatever opened since: they count what is held.)
+        val sawDown = !pressed && buttonHandlersSawDown.remove(button)
+        val toHandlers = sawDown || (!running.desktop.locked && running.desktop.overlay == null)
+        if (pressed && toHandlers) buttonHandlersSawDown += button
+        if (toHandlers && running.config.buttonHandlers.asReversed().any { h -> running.safely("onPointerButton", false) { h(running.config, button, pressed) } }) return
+        // The mouse's own bindings (a press and its release go the same way).
+        if (running.config.pointerBindings.button(button, pressed, running.keys.heldModifiers(), locked = running.desktop.locked)) return
         // A combination with a mouse button ("Super+MouseSide", "MouseBack").
         val active = activeKeys()
         if (!pressed) for (other in allKeys()) if (other !== active) other.key(button, false)
@@ -217,6 +226,9 @@ internal class RunningInput(private val running: Running) {
         }
         running.desktop.pointerButton(timeMillis, button, pressed)
     }
+
+    // Buttons onPointerButton handlers were told went down (and not yet that they were let go).
+    private val buttonHandlersSawDown = HashSet<Int>()
 
     // The modifiers for dragging windows are held (and no others).
     private fun dragging(): Boolean {
