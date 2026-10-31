@@ -140,7 +140,7 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
         } else {
             // Waiting there unseen: drawn nowhere, the focus goes on.
             desktop.animator.glides -= window
-            if (hadFocus) desktop.passFocusOn(desktop.windows.lastOrNull())
+            if (hadFocus) desktop.focuser.passFocusOn(desktop.windows.lastOrNull())
         }
         desktop.events.windowListChanged()
         desktop.changed()

@@ -34,7 +34,7 @@ internal class DesktopPopups(private val desktop: Desktop) {
         // Its own menus go with it (a submenu without its menu would float there forever).
         popups.filter { it.parent === popup.shell }.asReversed().forEach { it.dismiss() }
         desktop.changed()
-        if (desktop.seat.keyboardFocus === popup.surface) desktop.restoreKeyboard()
+        if (desktop.seat.keyboardFocus === popup.surface) desktop.focuser.restoreKeyboard()
     }
 
     // Closes the menus of [owner] (a window), as when it goes, hides or moves away: menus of
@@ -55,7 +55,7 @@ internal class DesktopPopups(private val desktop: Desktop) {
         // (Not holding it any more even if the program never closes them.)
         grabs -= hidden.toSet()
         hidden.asReversed().forEach { it.dismiss() }
-        if (hidden.any { desktop.seat.keyboardFocus === it.surface }) desktop.restoreKeyboard()
+        if (hidden.any { desktop.seat.keyboardFocus === it.surface }) desktop.focuser.restoreKeyboard()
     }
 
     // A menu is shown only while what it belongs to is: its window on a shown workspace (not

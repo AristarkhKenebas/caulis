@@ -12,7 +12,7 @@ internal class DesktopProtocols(private val desktop: Desktop) :
     Activation.Listener, ServerDecorations.Listener, ForeignToplevels.Listener {
 
     override val focusedWindow: Window? get() = desktop.focusedWindow
-    override val focusedAt: Long get() = desktop.focusedAt
+    override val focusedAt: Long get() = desktop.focuser.focusedAt
     override val allWindows: List<Window> get() = desktop.allWindows
     override val locked: Boolean get() = desktop.locked
     override val titleBars: TitleBars get() = desktop.titleBars

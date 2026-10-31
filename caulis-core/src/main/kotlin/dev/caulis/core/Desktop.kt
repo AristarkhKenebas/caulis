@@ -76,6 +76,8 @@ class Desktop(
 
     internal val arranger = DesktopArrange(this)
 
+    internal val focuser = DesktopFocus(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -520,27 +522,7 @@ class Desktop(
         compositor.surfaceGone = { changed() }
         // The surface with the keyboard was destroyed before its window or menu closed (or its
         // program quit): once the dust settles, the next one gets the keyboard.
-        seat.keyboardFocusDestroyed = { compositor.display.loop.post { if (seat.keyboardFocus == null) keyboardLost() } }
-    }
-
-    // Nobody has the keyboard although somebody should: the locker, the newest menu that took
-    // it, a panel that keeps it, or else the top window.
-    private fun keyboardLost() {
-        if (keyboardWidget != null) return
-        if (lockHost.sessionLocked) {
-            lockHost.lockSurfaces().firstOrNull { it.surface.resource.isAlive }?.let { widgetHost.keyboardTo(it.surface) }
-            return
-        }
-        lockHost.ownLock?.let { own ->
-            focusWidget(own.screen)
-            return
-        }
-        if (layerHost.layerFocus?.surface?.resource?.isAlive == false) layerHost.layerFocus = null
-        val next = popupHost.grabs.lastOrNull { it.surface.resource.isAlive }?.surface
-            ?: layerHost.exclusiveLayer()?.surface?.takeIf { it.resource.isAlive }
-            ?: layerHost.layerFocus?.surface
-        focusLog.info { "The keyboard's surface went away: it goes to ${next?.roleObject ?: windows.lastOrNull { it.surface.resource.isAlive } ?: "nobody"}" }
-        if (next != null) widgetHost.keyboardTo(next) else focus(windows.lastOrNull { it.surface.resource.isAlive })
+        seat.keyboardFocusDestroyed = { compositor.display.loop.post { if (seat.keyboardFocus == null) focuser.keyboardLost() } }
     }
 
     // Grows with every change; the list of things to draw is rebuilt only when it moved on.
@@ -685,7 +667,7 @@ class Desktop(
     // The log, by area (see dev.caulis.log.Log.AREAS): CAULIS_LOG="1,focus=3" and so on.
     internal val log = Logger("config")
     internal val windowsLog = Logger("windows")
-    private val focusLog = Logger("focus")
+    internal val focusLog = Logger("focus")
     internal val inputLog = Logger("input")
     internal val layoutLog = Logger("layout")
     internal val layersLog = Logger("layers")
@@ -695,7 +677,6 @@ class Desktop(
     private val BUSY_REPORT_NANOS = 10_000_000_000L
     private val WALLPAPER_SHADERS = listOf("wallpaper shader")
     private val overlayLog = Logger("overlay")
-    private var lastFocused: Window? = null
 
     // --- workspaces -----------------------------------------------------------------------
 
@@ -809,7 +790,7 @@ class Desktop(
     private val pinnedHomes = HashMap<Int, String>()
 
     // Where workspace [number] belongs: its rule's monitor (if plugged in); pinned, also where it was first shown.
-    private fun homeOf(number: Int): Monitor? {
+    internal fun homeOf(number: Int): Monitor? {
         ruleOf(number)?.monitor?.let { name -> monitorList.firstOrNull { it.name == name }?.let { return it } }
         if (workspaceMode == WorkspaceMode.PINNED) {
             pinnedHomes[number]?.let { name -> monitorList.firstOrNull { it.name == name }?.let { return it } }
@@ -1025,7 +1006,7 @@ class Desktop(
     }
 
     // [workspace] is shown on [on] now (the one shown there before is hidden, gone if empty).
-    private fun show(workspace: Workspace, on: Monitor) {
+    internal fun show(workspace: Workspace, on: Monitor) {
         val previous = on.workspace
         if (previous === workspace) return
         if (animator.pick("workspaces", animations.workspaceSwitch).millis > 0 && !locked && !inOverview) {
@@ -2065,8 +2046,8 @@ class Desktop(
         pointerGrab.forget(window)
         if (hovered === window) hovered = null
         // (It had the focus even if a launcher, a widget or a panel has the keyboard now.)
-        val hadFocus = window === lastFocused || window.activated || seat.keyboardFocus === window.surface
-        if (lastFocused === window) lastFocused = null
+        val hadFocus = window === focuser.lastFocused || window.activated || seat.keyboardFocus === window.surface
+        if (focuser.lastFocused === window) focuser.lastFocused = null
         events.windowListChanged()
         scratchpadOf(window)?.let { pad ->
             pad.windows -= window
@@ -2083,7 +2064,7 @@ class Desktop(
             } else if (pad.shown) {
                 pads.placeScratchpad(pad, appearing = emptySet())
             }
-            if (pads.padFocus === window || hadFocus) passFocusOn(pad.windows.lastOrNull()?.takeIf { pad.shown } ?: back ?: windows.lastOrNull())
+            if (pads.padFocus === window || hadFocus) focuser.passFocusOn(pad.windows.lastOrNull()?.takeIf { pad.shown } ?: back ?: windows.lastOrNull())
             changed()
             notifyEach(events.windowClosedListeners, window, "window-closed")
             return
@@ -2095,7 +2076,7 @@ class Desktop(
             arranger.arrange(workspace)
             dropIfEmpty(workspace)
         }
-        if (hadFocus) passFocusOn(windows.lastOrNull())
+        if (hadFocus) focuser.passFocusOn(windows.lastOrNull())
         changed()
         notifyEach(events.windowClosedListeners, window, "window-closed")
     }
@@ -2285,9 +2266,9 @@ class Desktop(
         pointerGrab.forget(window)
         arranger.arrange(workspace)
         // (Only if it had the focus: a background window minimizing itself takes nothing away.)
-        if (workspace === activeWorkspace && (window === lastFocused || window.activated)) {
+        if (workspace === activeWorkspace && (window === focuser.lastFocused || window.activated)) {
             window.setActivated(false)
-            passFocusOn(windows.lastOrNull())
+            focuser.passFocusOn(windows.lastOrNull())
         }
     }
 
@@ -2295,43 +2276,16 @@ class Desktop(
      * Brings the window at the bottom of the stack to the front; pressed repeatedly, it
      * goes through all windows, minimized ones included (they come back).
      */
-    fun cycleFocus() {
-        val next = minimized.firstOrNull() ?: windows.firstOrNull() ?: return
-        if (next === windows.lastOrNull()) return // only one window
-        focus(next)
-    }
+    fun cycleFocus() = focuser.cycleFocus()
 
     /**
      * Focuses the nearest window in a direction ([dx], [dy] = -1, 0 or 1), e.g. the column
      * to the right in a scrolling layout. Scrolling and canvas layouts then bring it into view.
      */
-    fun focusDirection(dx: Int, dy: Int) {
-        val from = focusedWindow
-        if (from == null) {
-            // Nothing focused here: the monitor beside, if there is one.
-            val beside = monitorBeside(dx, dy)
-            if (beside != null) focusMonitor(beside) else focus(windows.lastOrNull())
-            return
-        }
-        val origin = currentRect(from)
-        // Windows on every monitor count: past the last one here comes the next monitor.
-        val shown = stackingOrder()
-        val candidates = shown.filter { it !== from }.map { it to currentRect(it) }.filter { (_, rect) ->
-            (dx > 0 && rect.x >= origin.right - 1) || (dx < 0 && rect.right <= origin.x + 1) ||
-                (dy > 0 && rect.y >= origin.bottom - 1) || (dy < 0 && rect.bottom <= origin.y + 1)
-        }
-        val nearest = candidates.minByOrNull { (_, rect) ->
-            val distanceX = (rect.x + rect.width / 2) - (origin.x + origin.width / 2)
-            val distanceY = (rect.y + rect.height / 2) - (origin.y + origin.height / 2)
-            distanceX.toLong() * distanceX + distanceY.toLong() * distanceY
-        }
-        if (nearest != null) focus(nearest.first) else monitorBeside(dx, dy)?.let(::focusMonitor) // an empty monitor
-    }
+    fun focusDirection(dx: Int, dy: Int) = focuser.focusDirection(dx, dy)
 
     /** Asks the focused window to close. */
-    fun closeFocused() {
-        focusedWindow?.close()
-    }
+    fun closeFocused() = focuser.closeFocused()
 
     /** The window under the desktop point ([x], [y]), if any. */
     fun windowAt(x: Double, y: Double): Window? = hits.surfaceAt(x, y)?.root?.roleObject as? Window
@@ -2457,9 +2411,6 @@ class Desktop(
         changed()
     }
 
-    // When the focus last went to another window (System.nanoTime).
-    internal var focusedAt = 0L
-
     /** The windows that want attention, oldest first. */
     val urgentWindows: List<Window> get() = allWindows.filter { it.urgent }
 
@@ -2474,149 +2425,11 @@ class Desktop(
         return dialog
     }
 
-    // The focused window went (closed, minimized): [next] gets the focus — the keyboard too if
-    // a window had it; a launcher, a widget or a panel that has it keeps it (and gives it to
-    // [next] when done). Nothing while locked (unlocking gives the top window the focus).
-    internal fun passFocusOn(next: Window?) {
-        if (locked) return
-        if (keyboardWidget == null && layerHost.exclusiveLayer() == null && layerHost.layerFocus == null) return focus(next)
-        val pad = next?.let(::scratchpadOf)
-        for (other in activeWorkspace.windowList) if (other !== next) other.setActivated(false)
-        for (other in pads.allPads.flatMap { it.windows }) if (other !== next) other.setActivated(false)
-        if (next != null) {
-            if (pad == null && activeWorkspace.windowList.remove(next)) activeWorkspace.windowList += next
-            next.setActivated(true)
-        }
-        pads.padFocus = next?.takeIf { pad != null }
-        if (next !== lastFocused) {
-            lastFocused = next
-            focusedAt = System.nanoTime()
-            focusLog.info { "Focus: ${next ?: "nothing"} (the keyboard stays where it is)" }
-            notifyEach(events.focusListeners, next, "focus")
-        }
-        changed()
-    }
-
-    // Somebody should have the keyboard back (a menu closed): the newest menu that took it,
-    // the panel that keeps it or was clicked, else the focused window (a scratchpad's too).
-    internal fun restoreKeyboard() {
-        if (keyboardWidget != null) return
-        if (locked) return keyboardLost()
-        widgetHost.keyboardTo(popupHost.grabs.lastOrNull()?.surface ?: layerHost.exclusiveLayer()?.surface ?: layerHost.layerFocus?.surface ?: focusedWindow?.surface)
-    }
-
     /**
      * Raises [window], marks it active and gives it the keyboard (null = nothing focused).
      * A minimized window comes back; a window on another workspace brings that workspace.
      */
-    fun focus(window: Window?) {
-        // The locker has the keyboard while the session is locked; no window takes it (nor
-        // raises itself, nor switches workspaces) behind the lock — but one the compositor's own
-        // lock screen allows (a lock screen that is a program's window).
-        if (locked && (window == null || !lockHost.lockAllows(window.surface))) {
-            focusLog.info { "Focus to ${window ?: "nothing"} ignored: the session is locked" }
-            return
-        }
-        // A window waiting for a modal dialog of its own: the dialog gets the focus (an IDE's
-        // settings; else keys seemed to do nothing) — unless a rule says it never takes it (then
-        // the focus went back to the window, and round again).
-        if (window != null) modalDialogOf(window)?.takeIf { behaviorOf(it).takesFocus }?.let { return focus(it) }
-        // A window getting the focus takes the keyboard back from a widget.
-        if (window != null && keyboardWidget != null) focusWidget(null)
-        // One that never takes the keyboard: the top one of its workspace that does, instead.
-        if (window != null && !behaviorOf(window).takesFocus) {
-            val instead = workspaceOf(window)?.windows?.lastOrNull { it !== window && behaviorOf(it).takesFocus }
-            if (instead === window || (instead == null && focusedWindow != null && workspaceOf(focusedWindow!!) === workspaceOf(window))) return
-            return focus(instead)
-        }
-        if (window != null && window.urgent) setUrgent(window, false)
-        val pad = window?.let(::scratchpadOf)
-        // Everything else loses the "active" look.
-        for (other in pads.allPads.flatMap { it.windows }) if (other !== window) other.setActivated(false)
-        // A window of a hidden special workspace (from a task bar): the special workspace shows.
-        if (pad != null && pad.isSpecial && (!pad.shown || pad.leaving)) {
-            pads.showScratchpad(pad, appearing = pad.windows.toSet(), focusOn = window)
-            return
-        }
-        if (pad != null) {
-            for (other in activeWorkspace.windows) other.setActivated(false)
-            if (pad.isSpecial) pads.lastSpecial = pad
-            pad.windows -= window
-            pad.windows += window
-            window.setActivated(true)
-            pads.padFocus = window
-            if (layerHost.exclusiveLayer() == null) {
-                layerHost.layerFocus = null
-                widgetHost.keyboardTo(window.surface)
-            }
-            if (window !== lastFocused) {
-                lastFocused = window
-                focusedAt = System.nanoTime()
-                focusLog.info { "Focus: $window" }
-                notifyEach(events.focusListeners, window, "focus")
-            }
-            changed()
-            return
-        }
-        pads.padFocus = null
-        if (window != null) {
-            val workspace = workspaceOf(window)
-            if (workspace != null && workspace !== activeWorkspace) {
-                // Its monitor gets the focus; a workspace on no monitor comes onto the focused one.
-                val showing = monitorList.firstOrNull { it.workspace === workspace }
-                if (showing != null) {
-                    setFocusedMonitor(showing)
-                } else {
-                    // Where this workspace belongs, as the workspace mode says (as switchTo does).
-                    when {
-                        workspaceMode == WorkspaceMode.SPANNING && workspace.number > 0 ->
-                            for (monitor in monitorList) show(workspace(workspace.number, monitor), on = monitor)
-                        else -> {
-                            val on = arranger.monitorNamed(workspace.homeMonitor)
-                                ?: (if (workspaceMode == WorkspaceMode.PRIMARY_ONLY && workspace.number > 0) primaryMonitor else null)
-                                ?: (if (workspace.number > 0) homeOf(workspace.number) else null)
-                                ?: focusedMonitor
-                            setFocusedMonitor(on)
-                            show(workspace, on = on)
-                        }
-                    }
-                    layoutLog.info { "Workspace ${workspace.number} (${workspace.layout.name})" }
-                    notifyEach(events.workspaceListeners, workspace, "workspace")
-                }
-            }
-            if (activeWorkspace.minimizedList.remove(window)) {
-                if (window !in activeWorkspace.windowList) activeWorkspace.windowList += window
-                window.setMinimized(false)
-                // Back out of its dock icon (or up from below), as the restore animation says.
-                animator.stopFlights(window)
-                animator.glides -= window
-                animator.flightOf(window, DesktopAnimations.FlightKind.RESTORE, "restore", animations.restore, to = events.minimizedRect(window, currentRect(window)))?.let { animator.flights += it }
-            }
-        }
-        val list = activeWorkspace.windowList
-        // Every other window is not the active one any more — also those on other monitors'
-        // workspaces (a window clicked on the second monitor left the first one's looking
-        // focused, and some programs then acted as if they still had the keys).
-        for (other in allWindows) if (other !== window && other.activated) other.setActivated(false)
-        if (window != null) {
-            // On top of its own workspace (only if it is on this one: never into another's list).
-            if (list.remove(window)) list += window
-            window.setActivated(true)
-        }
-        if (layerHost.exclusiveLayer() == null) {
-            layerHost.layerFocus = null
-            widgetHost.keyboardTo(window?.surface)
-        }
-        if (window !== lastFocused) {
-            lastFocused = window
-            focusedAt = System.nanoTime()
-            focusLog.info { "Focus: ${window ?: "nothing"}" }
-            notifyEach(events.focusListeners, window, "focus")
-        }
-        // Layouts that follow the focus (scrolling) move their windows.
-        if (window != null && window.tiled && activeWorkspace.layout !== Floating) arranger.arrange(activeWorkspace)
-        changed()
-    }
+    fun focus(window: Window?) = focuser.focus(window)
 
     // --- input ------------------------------------------------------------------------
 
