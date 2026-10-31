@@ -39,8 +39,8 @@ internal class DesktopHitTest(private val desktop: Desktop) {
         for ((surface, place) in desktop.unmanaged.entries.reversed()) {
             hitTree(surface, x - place.first, y - place.second, surface)?.let { return it.at() }
         }
-        for (popup in desktop.popups.asReversed()) {
-            if (!desktop.popupShown(popup)) continue
+        for (popup in desktop.popupHost.popups.asReversed()) {
+            if (!desktop.popupHost.popupShown(popup)) continue
             val (px, py) = popupOrigin(popup)
             hitTree(popup.surface, x - px, y - py, popup.surface)?.let { return it.at() }
         }

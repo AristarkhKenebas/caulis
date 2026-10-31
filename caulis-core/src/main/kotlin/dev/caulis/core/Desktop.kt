@@ -49,6 +49,8 @@ class Desktop(
 
     internal val hits = DesktopHitTest(this)
 
+    internal val popupHost = DesktopPopups(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -588,7 +590,7 @@ class Desktop(
             return
         }
         if (layerFocus?.surface?.resource?.isAlive == false) layerFocus = null
-        val next = grabs.lastOrNull { it.surface.resource.isAlive }?.surface
+        val next = popupHost.grabs.lastOrNull { it.surface.resource.isAlive }?.surface
             ?: exclusiveLayer()?.surface?.takeIf { it.resource.isAlive }
             ?: layerFocus?.surface
         focusLog.info { "The keyboard's surface went away: it goes to ${next?.roleObject ?: windows.lastOrNull { it.surface.resource.isAlive } ?: "nobody"}" }
@@ -598,7 +600,7 @@ class Desktop(
     // Grows with every change; the list of things to draw is rebuilt only when it moved on.
     internal var version = 0L
 
-    private fun changed() {
+    internal fun changed() {
         version++
         onChange()
         windowListChanged()
@@ -733,7 +735,7 @@ class Desktop(
 
     // [surface] gets the keyboard (or nobody does): a widget that had it loses it then. While
     // the session is locked only the locker's surfaces may have it (nothing else takes it away).
-    private fun keyboardTo(surface: Surface?) {
+    internal fun keyboardTo(surface: Surface?) {
         if (locked && (surface == null || !lockAllows(surface))) return
         val old = keyboardWidget
         if (old != null && surface != null) {
@@ -930,7 +932,7 @@ class Desktop(
     }
 
     // The window or panel [surface] belongs to (it, a part of it, or one of its menus), if any.
-    private fun ownerOf(surface: Surface): Any? {
+    internal fun ownerOf(surface: Surface): Any? {
         var current = surface
         repeat(16) {
             while (true) current = current.subsurface?.parent ?: break
@@ -1118,7 +1120,7 @@ class Desktop(
 
     // The log, by area (see dev.caulis.log.Log.AREAS): CAULIS_LOG="1,focus=3" and so on.
     internal val log = Logger("config")
-    private val windowsLog = Logger("windows")
+    internal val windowsLog = Logger("windows")
     private val focusLog = Logger("focus")
     internal val inputLog = Logger("input")
     private val layoutLog = Logger("layout")
@@ -1475,7 +1477,7 @@ class Desktop(
         }
         on.workspace = workspace
         moveWorkspace(workspace, on)
-        dismissHiddenGrabs("their workspace is not shown any more")
+        popupHost.dismissHiddenGrabs("their workspace is not shown any more")
         workspace.lastMonitorName = on.name
         if (workspaceMode == WorkspaceMode.PINNED && workspace.number > 0 && !onlyStandIn()) pinnedHomes.putIfAbsent(workspace.number, on.name)
         // Empty workspaces disappear once you leave them (never one on screen), unless they always exist.
@@ -1556,7 +1558,7 @@ class Desktop(
             window.y = toMonitor.area.y + (window.y - fromMonitor.area.y).coerceIn(0, (toMonitor.area.height - 50).coerceAtLeast(0))
             floatingRects[window]?.let { floatingRects[window] = Rect(window.x, window.y, it.width, it.height) }
         }
-        dismissPopupsOf(window, "it moved to another workspace")
+        popupHost.dismissPopupsOf(window, "it moved to another workspace")
         from.remove(window)
         from.model.forget(window) // it lives on the other workspace now
         pending.remove(window)
@@ -1628,7 +1630,7 @@ class Desktop(
         val monitor = monitorOf(layer)
         layerSurfaces -= layer
         layerMonitors -= layer
-        popups.filter { it.layerParent === layer }.forEach { it.dismiss() }
+        popupHost.popups.filter { it.layerParent === layer }.forEach { it.dismiss() }
         if (layerFocus === layer) {
             // It had the keyboard: back to the window (or the next launcher that wants it).
             layerFocus = null
@@ -1935,8 +1937,8 @@ class Desktop(
         hideSpecialsForLock()
         seat.cancelDrag()
         seat.forgetInput()
-        grabs.toList().asReversed().forEach { it.dismiss() }
-        grabs.clear()
+        popupHost.grabs.toList().asReversed().forEach { it.dismiss() }
+        popupHost.grabs.clear()
         pointerGrab.end()
         // Fingers on a program's window: the program forgets them (else they went on under the lock).
         if (touch.touchingPrograms) touchCancel((System.nanoTime() / 1_000_000).toInt())
@@ -2520,7 +2522,7 @@ class Desktop(
             pad.shown = false
             shownPads -= pad
             for (window in pad.windows) glides -= window
-            dismissHiddenGrabs("their scratchpad is hidden")
+            popupHost.dismissHiddenGrabs("their scratchpad is hidden")
             if (padFocus != null && padFocus in pad.windows) focus(back ?: windows.lastOrNull())
             changed()
         }
@@ -3905,7 +3907,7 @@ class Desktop(
 
     override fun windowUnmapped(window: Window) {
         windowsLog.info { "Closed $window" }
-        dismissPopupsOf(window, "it closed")
+        popupHost.dismissPopupsOf(window, "it closed")
         // Its dialogs belong to its own parent now (or to nobody).
         for (child in allWindows) if (child.parent === window) child.parentGone(window)
         placements -= window
@@ -3991,7 +3993,7 @@ class Desktop(
     val keyboardFocus: Surface? get() = seat.keyboardFocus
 
     /** Open menus (popups), in the order they opened. */
-    val openPopups: List<Popup> get() = popups
+    val openPopups: List<Popup> get() = popupHost.popups
 
     /** Where [popup] is on screen. */
     fun screenRect(popup: Popup): Rect {
@@ -4143,7 +4145,7 @@ class Desktop(
         workspace.windowList -= window
         workspace.minimizedList += window
         window.setMinimized(true)
-        dismissPopupsOf(window, "it was minimized")
+        popupHost.dismissPopupsOf(window, "it was minimized")
         pending.remove(window)
         pointerGrab.forget(window)
         arrange(workspace)
@@ -4283,12 +4285,6 @@ class Desktop(
 
     // --- popups and focus ------------------------------------------------------------------
 
-    /** Mapped popups, in the order they opened (children after parents). */
-    internal val popups = ArrayList<Popup>()
-
-    /** Popups that asked for a grab: a click outside them closes them. */
-    internal val grabs = ArrayList<Popup>()
-
     /** Pointer position on the output. */
     var pointerX = width / 2.0
         private set
@@ -4308,74 +4304,13 @@ class Desktop(
     }
 
     // A menu stays on the monitor its window (or panel) is on.
-    override fun popupBounds(popup: Popup): Rect? {
-        val (ox, oy) = popup.parent?.let(hits::visibleOrigin) ?: popup.layerParent?.let { it.x to it.y } ?: return null
-        val window = generateSequence(popup.parent) { (it.role as? Popup)?.parent }.mapNotNull { it.role as? Window }.firstOrNull()
-        val monitor = window?.let { if (workspaceOf(it) != null || directed(it)) monitorOf(it) else null } ?: monitorAt(ox.toDouble(), oy.toDouble())
-        val area = monitor.area
-        return Rect(area.x - ox, area.y - oy, area.width, area.height)
-    }
+    override fun popupBounds(popup: Popup): Rect? = popupHost.popupBounds(popup)
 
-    override fun popupMapped(popup: Popup) {
-        popups += popup
-        changed()
-    }
+    override fun popupMapped(popup: Popup) = popupHost.popupMapped(popup)
 
-    override fun popupUnmapped(popup: Popup) {
-        popups -= popup
-        grabs -= popup
-        // Its own menus go with it (a submenu without its menu would float there forever).
-        popups.filter { it.parent === popup.shell }.asReversed().forEach { it.dismiss() }
-        changed()
-        if (seat.keyboardFocus === popup.surface) restoreKeyboard()
-    }
+    override fun popupUnmapped(popup: Popup) = popupHost.popupUnmapped(popup)
 
-    // Closes the menus of [owner] (a window), as when it goes, hides or moves away: menus of
-    // a window that is not there must not stay on screen.
-    private fun dismissPopupsOf(owner: Window, why: String) {
-        val gone = popups.filter { ownerOf(it.surface) === owner }
-        if (gone.isEmpty()) return
-        windowsLog.info { "The menus of $owner close: $why" }
-        gone.asReversed().forEach { it.dismiss() }
-    }
-
-    // Menus holding the keyboard (grabs) that are not shown any more close: an invisible one
-    // kept the title bars from being clicked, and might get the keyboard back.
-    private fun dismissHiddenGrabs(why: String) {
-        val hidden = grabs.filter { !popupShown(it) }
-        if (hidden.isEmpty()) return
-        windowsLog.info { "${hidden.size} menu(s) holding the keyboard close: $why" }
-        // (Not holding it any more even if the program never closes them.)
-        grabs -= hidden.toSet()
-        hidden.asReversed().forEach { it.dismiss() }
-        if (hidden.any { seat.keyboardFocus === it.surface }) restoreKeyboard()
-    }
-
-    // A menu is shown only while what it belongs to is: its window on a shown workspace (not
-    // minimized) or in a shown scratchpad, or its panel. (Until its program closes it.)
-    internal fun popupShown(popup: Popup): Boolean = when (val owner = ownerOf(popup.surface)) {
-        is Window -> owner.mapped && (
-            scratchpadOf(owner)?.let { it.shown && !it.leaving }
-                ?: workspaceOf(owner)?.let { it.windows.contains(owner) && monitorList.any { m -> m.workspace === it } }
-                ?: false
-            )
-        is LayerSurface -> owner in layerSurfaces
-        else -> false
-    }
-
-    override fun popupGrab(popup: Popup, serial: Int) {
-        // Only a program you are using now may take the keyboard with a menu — answering a
-        // click or a key you gave it (one in the background, even under the pointer, would
-        // get your keys): else the menu is closed at once (an invalid grab).
-        val client = popup.resource.client
-        if (!seat.isInputSerial(client, serial) || locked || (popup.parent == null && popup.layerParent == null)) {
-            windowsLog.info { "${client.name} asked for a menu grab not answering your input: the menu is closed" }
-            popup.dismiss()
-            return
-        }
-        grabs += popup
-        keyboardTo(popup.surface)
-    }
+    override fun popupGrab(popup: Popup, serial: Int) = popupHost.popupGrab(popup, serial)
 
     /** Marks [window] as wanting attention (or not); bars and the IPC socket show it, the focus clears it. */
     fun setUrgent(window: Window, urgent: Boolean) {
@@ -4429,10 +4364,10 @@ class Desktop(
 
     // Somebody should have the keyboard back (a menu closed): the newest menu that took it,
     // the panel that keeps it or was clicked, else the focused window (a scratchpad's too).
-    private fun restoreKeyboard() {
+    internal fun restoreKeyboard() {
         if (keyboardWidget != null) return
         if (locked) return keyboardLost()
-        keyboardTo(grabs.lastOrNull()?.surface ?: exclusiveLayer()?.surface ?: layerFocus?.surface ?: focusedWindow?.surface)
+        keyboardTo(popupHost.grabs.lastOrNull()?.surface ?: exclusiveLayer()?.surface ?: layerFocus?.surface ?: focusedWindow?.surface)
     }
 
     /**
@@ -4749,7 +4684,7 @@ class Desktop(
     internal fun tabletTarget(tablet: Tablet, x: Double, y: Double): Hit? {
         val tablets = tablets ?: return null
         if (tablet.settings.pointerOnly == true) return null
-        if ((overlay != null && !locked) || inOverview || grab != null || grabs.isNotEmpty() || buttonsHeld > 0) return null
+        if ((overlay != null && !locked) || inOverview || grab != null || popupHost.grabs.isNotEmpty() || buttonsHeld > 0) return null
         if (!locked && noticeBoard.at(x, y) != null) return null
         val hit = (hits.pointedAt(x, y, widgetsToo = true) as? Pointed.AtSurface)?.hit ?: return null
         // (Our title bars and window edges are above what is under them.)
@@ -5047,13 +4982,13 @@ class Desktop(
             return
         }
         // Title bars and edges of our own (no program sees these clicks).
-        if (grabs.isEmpty() && ownTitleBars.button(button, pressed)) return
+        if (popupHost.grabs.isEmpty() && ownTitleBars.button(button, pressed)) return
         if (pressed) {
             val hit = hits.surfaceAt(pointerX, pointerY)
             // A click outside the open menus closes them (and is not passed to the window below).
-            if (grabs.isNotEmpty() && (hit == null || popups.none { it.surface === hit.root })) {
-                grabs.toList().asReversed().forEach { it.dismiss() }
-                grabs.clear()
+            if (popupHost.grabs.isNotEmpty() && (hit == null || popupHost.popups.none { it.surface === hit.root })) {
+                popupHost.grabs.toList().asReversed().forEach { it.dismiss() }
+                popupHost.grabs.clear()
                 return
             }
             // A click on the dimmed area around an overlay scratchpad (or a special workspace) hides it.
@@ -5763,9 +5698,9 @@ class Desktop(
             if (pad.isSpecial) shadowsFirst(all, first)
         }
         addLayers(all, LayerShell.Layer.OVERLAY)
-        for (popup in popups) {
+        for (popup in popupHost.popups) {
             if (camera !== Camera.NONE) break // menus are not part of the overview
-            if (!popupShown(popup) || !drawnBehindLock(popup.surface)) continue
+            if (!popupHost.popupShown(popup) || !drawnBehindLock(popup.surface)) continue
             val (x, y) = hits.popupOrigin(popup)
             addTree(all, popup.surface, x, y)
         }
