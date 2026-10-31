@@ -41,7 +41,7 @@ class Desktop(
     private val touch = DesktopTouch(this, seat)
     private val pens = DesktopPens(this, seat)
     private val ownTitleBars = DesktopTitleBars(this)
-    private val pointerGrab = DesktopPointerGrab(this, seat)
+    internal val pointerGrab = DesktopPointerGrab(this, seat)
 
     internal val cursors = DesktopCursorLook(this)
 
@@ -52,6 +52,8 @@ class Desktop(
     internal val popupHost = DesktopPopups(this)
 
     internal val keys = DesktopKeys(this)
+
+    internal val overview = DesktopOverview(this)
 
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
@@ -750,7 +752,7 @@ class Desktop(
     }
 
     // The pointer leaves our widgets (the overview opens, the screen locks): the hovered one is told.
-    private fun leaveWidgets() {
+    internal fun leaveWidgets() {
         val left = hoveredWidget ?: pressedWidget?.widget
         hoveredWidget = null
         hoveredArea = null
@@ -1125,7 +1127,7 @@ class Desktop(
     internal val windowsLog = Logger("windows")
     private val focusLog = Logger("focus")
     internal val inputLog = Logger("input")
-    private val layoutLog = Logger("layout")
+    internal val layoutLog = Logger("layout")
     private val layersLog = Logger("layers")
     private val lockLog = Logger("lock")
     internal val cursorLog = Logger("cursor")
@@ -1946,10 +1948,10 @@ class Desktop(
         if (touch.touchingPrograms) touchCancel((System.nanoTime() / 1_000_000).toInt())
         if (inOverview) {
             inOverview = false
-            cameraFrom = Camera.NONE
-            cameraTo = Camera.NONE
+            overview.cameraFrom = DesktopOverview.Camera.NONE
+            overview.cameraTo = DesktopOverview.Camera.NONE
         }
-        overviewTarget = null
+        overview.overviewTarget = null
         closeOverlay()
         leaveWidgets()
         keyboardWidget?.takeIf { !widgetUsable(it) }?.let { old ->
@@ -2593,12 +2595,12 @@ class Desktop(
 
     // New sizes asked for, positions applied together once every window has drawn in its
     // new size (or after a short wait): so neighbours never jump one after another.
-    private val pending = HashMap<Window, Rect>()
+    internal val pending = HashMap<Window, Rect>()
     private var pendingTimer: EventLoop.Timer? = null
 
     // Puts the tiled windows of [workspace] where its layout wants them. With [extra], also
     // a window about to appear (to learn its size before its first frame) — without moving anyone.
-    private fun arrange(workspace: Workspace, extra: Window? = null): Map<Window, Rect> {
+    internal fun arrange(workspace: Workspace, extra: Window? = null): Map<Window, Rect> {
         val tiled = workspace.tiledWindows() + listOfNotNull(extra)
         if (tiled.isEmpty()) return emptyMap()
         val top = workspace.windows.lastOrNull { it in tiled } ?: extra
@@ -2702,27 +2704,9 @@ class Desktop(
 
     // --- overview: the whole workspace at a glance ------------------------------------------
 
-    // What the screen shows of the desktop: screen = world × scale + (dx, dy).
-    private class Camera(val scale: Double, val dx: Double, val dy: Double) {
-        fun apply(r: Rect) = Rect(
-            (r.x * scale + dx).roundToInt(), (r.y * scale + dy).roundToInt(),
-            (r.width * scale).roundToInt().coerceAtLeast(1), (r.height * scale).roundToInt().coerceAtLeast(1),
-        )
-
-        fun mix(other: Camera, t: Double) = Camera(scale + (other.scale - scale) * t, dx + (other.dx - dx) * t, dy + (other.dy - dy) * t)
-
-        companion object {
-            val NONE = Camera(1.0, 0.0, 0.0)
-        }
-    }
-
-    private var cameraFrom = Camera.NONE
-    private var cameraTo = Camera.NONE
-    private var cameraStart = 0L
-
     /** True while the overview shows the whole workspace. */
     var inOverview = false
-        private set
+        internal set
 
     /**
      * Zooms out until every window of the workspace fits on screen — also those beyond the
@@ -2730,22 +2714,7 @@ class Desktop(
      * window brings it into view and focuses it; Escape or a click elsewhere just goes back.
      * Windows keep their sizes: only their pictures get smaller.
      */
-    fun setOverview(on: Boolean) {
-        if (on == inOverview || (on && locked)) return
-        layoutLog.info { if (on) "Overview opens" else "Overview closes" }
-        pointerGrab.end()
-        val now = System.nanoTime()
-        cameraFrom = cameraAt(now)
-        cameraTo = if (on) overviewCamera() else Camera.NONE
-        cameraStart = now
-        inOverview = on
-        // Programs do not see the pointer while the overview is open.
-        if (on) {
-            seat.pointerMotion((now / 1_000_000).toInt(), null, 0.0, 0.0)
-            leaveWidgets()
-        }
-        changed()
-    }
+    fun setOverview(on: Boolean) = overview.setOverview(on)
 
     fun toggleOverview() = setOverview(!inOverview)
 
@@ -2766,82 +2735,22 @@ class Desktop(
     /** Two clicks on a title bar within this many milliseconds are a double click (maximize). */
     var doubleClickMillis = 400L
 
-    // The overview's zoom: its own time, else 1.5 × the global one.
-    private fun overviewAnimation() = animation("overview", animations.overviewMillis ?: (animationMillis * 3 / 2))
-
-    private val cameraMillis: Long get() = overviewAnimation().effectiveMillis.coerceAtLeast(1)
-
-    private fun cameraAt(now: Long): Camera {
-        val zoom = overviewAnimation()
-        val t = (now - cameraStart) / (zoom.effectiveMillis.coerceAtLeast(1) * 1_000_000.0)
-        if (t >= 1.0 || !zoom.on) return cameraTo
-        return cameraFrom.mix(cameraTo, zoom.curve.safeAt(t))
-    }
-
-    private fun cameraMoving(now: Long) = cameraTo !== cameraFrom && (now - cameraStart) < cameraMillis * 1_000_000
-
-    // Fits all windows of the workspace (and its monitor) into 90% of the monitor with the focus.
-    private fun overviewCamera(): Camera {
-        val area = focusedMonitor.area
-        var box = area
-        for (window in activeWorkspace.windows) box = box.union(currentRect(window))
-        val scale = minOf(1.0, area.width * overviewFill / box.width, area.height * overviewFill / box.height)
-        return Camera(
-            scale,
-            area.x + area.width / 2.0 - (box.x + box.width / 2.0) * scale,
-            area.y + area.height / 2.0 - (box.y + box.height / 2.0) * scale,
-        )
-    }
-
-    // The overview's camera while a pinch opens or closes it (null = no pinch going on).
-    private var overviewTarget: Camera? = null
-
     /**
      * Opens the overview part of the way ([progress] 0 = normal view, 1 = fully zoomed out),
      * following the fingers of a pinch. Finish with [endOverviewGesture].
      */
-    fun setOverviewProgress(progress: Double) {
-        if (locked) return
-        val target = overviewTarget ?: overviewCamera().also { overviewTarget = it }
-        val camera = Camera.NONE.mix(target, progress.coerceIn(0.0, 1.0))
-        cameraFrom = camera
-        cameraTo = camera // no animation: it follows the fingers exactly
-        changed()
-    }
+    fun setOverviewProgress(progress: Double) = overview.setOverviewProgress(progress)
 
     /** The fingers lifted: the overview finishes opening ([open]) or closing, smoothly from where it is. */
-    fun endOverviewGesture(open: Boolean) {
-        // (Locked meanwhile: the lock closed the overview, and it does not open behind it.)
-        if (locked) {
-            overviewTarget = null
-            return
-        }
-        val now = System.nanoTime()
-        val target = overviewTarget ?: overviewCamera()
-        overviewTarget = null
-        cameraFrom = cameraAt(now)
-        cameraTo = if (open) target else Camera.NONE
-        cameraStart = now
-        inOverview = open
-        if (open) seat.pointerMotion((now / 1_000_000).toInt(), null, 0.0, 0.0)
-        changed()
-    }
+    fun endOverviewGesture(open: Boolean) = overview.endOverviewGesture(open)
 
     // --- following the fingers --------------------------------------------------------------
-
-    // How far the fingers dragged the view so far (tiled windows move along).
-    private var dragX = 0.0
-    private var dragY = 0.0
 
     /**
      * Moves the tiled windows of the workspace by ([dx], [dy]) pixels, right under the
      * fingers of a swipe. Finish with [endViewDrag].
      */
-    fun dragView(dx: Double, dy: Double) {
-        dragX += dx
-        dragY += dy
-        changed()
-    }
+    fun dragView(dx: Double, dy: Double) = overview.dragView(dx, dy)
 
     /**
      * The fingers lifted: the layout takes the new view, rounded to what fits (whole cells
@@ -2849,35 +2758,7 @@ class Desktop(
      * if the layout cannot move its view. If the focused window went out of sight, the
      * window most in view gets the focus.
      */
-    fun endViewDrag() {
-        val dx = dragX.roundToInt()
-        val dy = dragY.roundToInt()
-        dragX = 0.0
-        dragY = 0.0
-        val workspace = activeWorkspace
-        workspace.model.command(TilingCommand.PanBy(-dx, -dy), focusedWindow?.takeIf { it.tiled })
-        arrange(workspace)
-        val screen = focusedMonitor.area
-        fun visibleShare(window: Window): Double {
-            val target = pending[window] ?: currentRect(window)
-            val inView = target.intersect(screen) ?: return 0.0
-            return inView.width.toDouble() * inView.height / (target.width.toDouble() * target.height)
-        }
-        val focused = focusedWindow
-        if (focused == null || (focused.tiled && visibleShare(focused) < 0.5)) {
-            workspace.windows.filter { it.tiled }.maxByOrNull(::visibleShare)?.takeIf { visibleShare(it) > 0 }?.let(::focus)
-        }
-        changed()
-    }
-
-    // A click in the overview: on a window = go there; elsewhere = just leave.
-    private fun overviewClick() {
-        val camera = cameraAt(System.nanoTime())
-        val point = Rect(pointerX.toInt(), pointerY.toInt(), 1, 1)
-        val chosen = stackingOrder().asReversed().firstOrNull { camera.apply(currentRect(it)).contains(point) }
-        setOverview(false)
-        if (chosen != null) focus(chosen)
-    }
+    fun endViewDrag() = overview.endViewDrag()
 
     // --- surfaces that place themselves (X11 menus and tooltips) ---------------------------
 
@@ -4972,7 +4853,7 @@ class Desktop(
             return
         }
         if (inOverview) {
-            if (pressed) overviewClick()
+            if (pressed) overview.overviewClick()
             return
         }
         if (grab != null) {
@@ -5150,10 +5031,10 @@ class Desktop(
         for (list in drawings.values) for (d in list) if (userCode("Your drawing (animating)", false) { d.animating(now) }) { directorMoving = true; movingThing = d }
         for (w in widgets.toList()) if (userCode("Your widget (animating)", false) { w.animating(now) }) { directorMoving = true; movingThing = w }
         val paintsNow = paintsMoving && paintsDue(now)
-        if (glides.isNotEmpty() || shownPads.any { it.changedAt != null } || cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsNow || focusChanging || directorMoving) {
+        if (glides.isNotEmpty() || shownPads.any { it.changedAt != null } || overview.cameraMoving(System.nanoTime()) || fadingNow || noticesMoving || animatingNow || backdropsChanging || paintsNow || focusChanging || directorMoving) {
             // Windows are gliding (or the overview zooms): the scene changes every frame until done.
             if (renderLog.level >= 2) {
-                val why = listOfNotNull("glides".takeIf { glides.isNotEmpty() }, "camera".takeIf { cameraMoving(System.nanoTime()) }, "fading".takeIf { fadingNow },
+                val why = listOfNotNull("glides".takeIf { glides.isNotEmpty() }, "camera".takeIf { overview.cameraMoving(System.nanoTime()) }, "fading".takeIf { fadingNow },
                     "notices".takeIf { noticesMoving }, "animating".takeIf { animatingNow }, "backdrops".takeIf { backdropsChanging }, "paints".takeIf { paintsNow },
                     "focus".takeIf { focusChanging }, "director".takeIf { directorAnimating }, movingThing?.let { "drawing or widget $it" })
                 renderLog.trace { "Moving: ${why.joinToString()}" }
@@ -5551,7 +5432,7 @@ class Desktop(
             return all
         }
         val now = System.nanoTime()
-        val camera = cameraAt(now)
+        val camera = overview.cameraAt(now)
         val placed = placeDirected(now)
         val (fullscreen, normal) = stackingOrder().filter { !directed(it) }.partition { it.fullscreen }
         // Our background on each monitor, below a wallpaper program's (which wins).
@@ -5586,17 +5467,17 @@ class Desktop(
             // The workspace before, on its way out (unless another monitor shows it now).
             if (monitorList.none { it.workspace === slide.from }) {
                 val start = all.size
-                val outgoing = Camera(1.0, frame.outgoingDx, frame.outgoingDy)
+                val outgoing = DesktopOverview.Camera(1.0, frame.outgoingDx, frame.outgoingDy)
                 for (window in stacking(slide.from)) addWindow(all, window, now, camera = outgoing)
                 fade(all, start, frame.outgoingAlpha, monitor)
             }
         }
         fun changeOf(window: Window) = changes.entries.firstOrNull { (workspace, _) -> window in workspace.windows || window in workspace.minimized }?.value
         // The overview's camera is on the monitor with the focus only; a changing workspace moves.
-        fun cameraFor(window: Window): Camera {
-            if (camera !== Camera.NONE) return if (window in activeWorkspace.windows || window in activeWorkspace.minimized) camera else Camera.NONE
-            val change = changeOf(window) ?: return Camera.NONE
-            return Camera(1.0, change.frame.incomingDx, change.frame.incomingDy)
+        fun cameraFor(window: Window): DesktopOverview.Camera {
+            if (camera !== DesktopOverview.Camera.NONE) return if (window in activeWorkspace.windows || window in activeWorkspace.minimized) camera else DesktopOverview.Camera.NONE
+            val change = changeOf(window) ?: return DesktopOverview.Camera.NONE
+            return DesktopOverview.Camera(1.0, change.frame.incomingDx, change.frame.incomingDy)
         }
         fun addWindowNow(window: Window) {
             val change = changeOf(window)
@@ -5636,12 +5517,12 @@ class Desktop(
         }
         addLayers(all, LayerShell.Layer.OVERLAY)
         for (popup in popupHost.popups) {
-            if (camera !== Camera.NONE) break // menus are not part of the overview
+            if (camera !== DesktopOverview.Camera.NONE) break // menus are not part of the overview
             if (!popupHost.popupShown(popup) || !drawnBehindLock(popup.surface)) continue
             val (x, y) = hits.popupOrigin(popup)
             addTree(all, popup.surface, x, y)
         }
-        if (camera === Camera.NONE) for ((surface, place) in unmanaged) if (drawnBehindLock(surface)) addTree(all, surface, place.first, place.second)
+        if (camera === DesktopOverview.Camera.NONE) for ((surface, place) in unmanaged) if (drawnBehindLock(surface)) addTree(all, surface, place.first, place.second)
         addDrawings(all, DrawingLevel.ON_TOP)
         // Our own notices above everything (not on a locked screen: what they say is private).
         if (!locked) for (monitor in monitorList) all += noticeBoard.items(monitor, monitorList, noticeFallback(monitor))
@@ -5739,7 +5620,7 @@ class Desktop(
     }
 
     // A window where it is (or on its way, see glides); a leaving one only while it moves.
-    private fun addWindow(all: MutableList<DrawItem>, window: Window, now: Long, leaving: Boolean = false, camera: Camera = Camera.NONE, plain: Boolean = false, fade: Float = 1f) {
+    private fun addWindow(all: MutableList<DrawItem>, window: Window, now: Long, leaving: Boolean = false, camera: DesktopOverview.Camera = DesktopOverview.Camera.NONE, plain: Boolean = false, fade: Float = 1f) {
         // Coming back out of the dock: its picture flies (see flights) until it is there.
         if (!plain && flights.any { it.window === window && it.kind == FlightKind.RESTORE }) {
             shownRects[window] = currentRect(window)
@@ -5753,8 +5634,8 @@ class Desktop(
         if (leaving && shown == null) return // gone out of sight
         var world = shown ?: target
         // Tiled windows follow the fingers while the view is dragged.
-        if ((dragX != 0.0 || dragY != 0.0) && window.tiled && window in activeWorkspace.windows) {
-            world = world.translate(dragX.roundToInt(), dragY.roundToInt())
+        if ((overview.dragX != 0.0 || overview.dragY != 0.0) && window.tiled && window in activeWorkspace.windows) {
+            world = world.translate(overview.dragX.roundToInt(), overview.dragY.roundToInt())
         }
         shownRects[window] = world
         // Appearing: as the open animation says (only its picture: the window itself is in place).
@@ -5790,7 +5671,7 @@ class Desktop(
                 alpha = frame.alpha * fade
             }
         }
-        val rect = if (camera === Camera.NONE) world else camera.apply(world)
+        val rect = if (camera === DesktopOverview.Camera.NONE) world else camera.apply(world)
         screenRects[window] = rect
         // While gliding (or zoomed out), the picture is stretched to the in-between size.
         val scaleX = if (target.width > 0) rect.width.toDouble() / target.width else 1.0
