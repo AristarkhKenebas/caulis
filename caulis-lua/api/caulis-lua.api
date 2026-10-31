@@ -1,7 +1,33 @@
+public abstract interface class dev/caulis/lua/LuaCallback {
+	public abstract fun invoke (Ljava/util/List;)Ljava/lang/Object;
+}
+
 public final class dev/caulis/lua/LuaConfig : dev/caulis/wm/config/ConfigLanguage {
 	public fun <init> ()V
 	public fun apply (Ldev/caulis/wm/Caulis;Ljava/nio/file/Path;)Ljava/util/List;
 	public fun getFileName ()Ljava/lang/String;
 	public fun stubs ()Ljava/lang/String;
+}
+
+public abstract interface class dev/caulis/lua/LuaPluginExtras {
+	public abstract fun add (Ldev/caulis/lua/LuaPluginTable;Ldev/caulis/wm/plugins/PluginApi;)V
+}
+
+public final class dev/caulis/lua/LuaPluginFormat : dev/caulis/plugins/PluginFormat {
+	public fun <init> ()V
+	public fun <init> (Ldev/caulis/lua/LuaPluginExtras;)V
+	public synthetic fun <init> (Ldev/caulis/lua/LuaPluginExtras;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getName ()Ljava/lang/String;
+	public fun recognize (Ljava/nio/file/Path;Ljava/lang/String;)Ldev/caulis/plugins/PluginSource;
+}
+
+public final class dev/caulis/lua/LuaPluginFormatProvider : dev/caulis/plugins/PluginFormatProvider {
+	public fun <init> ()V
+	public fun format ()Ldev/caulis/plugins/PluginFormat;
+}
+
+public abstract interface class dev/caulis/lua/LuaPluginTable {
+	public abstract fun function (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public abstract fun handle (Ljava/lang/AutoCloseable;)Ljava/lang/Object;
 }
 

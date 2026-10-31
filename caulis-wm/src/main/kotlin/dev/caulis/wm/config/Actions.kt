@@ -7,6 +7,7 @@ import dev.caulis.tiling.Direction
 import dev.caulis.tiling.TilingCommand
 import dev.caulis.wm.Caulis
 import dev.caulis.wm.DisplayMode
+import dev.caulis.wm.runPluginAction
 
 /**
  * Things to do, written as text — for keys in a configuration file, and for other programs
@@ -50,6 +51,11 @@ object Actions {
         dev.caulis.log.Logger("config").trace { "Action of your own: $name" }
     }
 
+    // [name] is no longer one (a plugin that had it was unloaded).
+    internal fun removeOwn(name: String) {
+        own.remove(name)
+    }
+
     // Actions of modules on the classpath (caulis-screenshot's "screenshot", ...).
     private val providers: List<ActionProvider> by lazy {
         java.util.ServiceLoader.load(ActionProvider::class.java, Actions::class.java.classLoader).toList()
@@ -59,6 +65,7 @@ object Actions {
         ActionInfo("close", "", "closes the focused window"),
         ActionInfo("quit", "", "quits the compositor"),
         ActionInfo("lock", "", "locks the screen"),
+        ActionInfo("plugin", "list|enable <id>|disable <id>|reload [id]|run <action> [argument]|layout <name>|cmd <name> [arguments]", "plugins: what is there, on and off, reloaded; an action, a layout or a command of a plugin (known once it runs, so a key may name one before)"),
         ActionInfo("xwayland-retry", "", "tries Xwayland again after it failed to start too often"),
         ActionInfo("terminal", "", "opens the terminal"),
         ActionInfo("exec", "command", "starts a program"),
@@ -318,12 +325,13 @@ object Actions {
                 "auto" -> ({ _ -> switchColorScheme(null) })
                 else -> throw IllegalArgumentException("\"$word\" is not dark, light, default, toggle or auto")
             }
+            "plugin" -> ({ _ -> runPluginAction(argument) })
             "mode" -> needs("a mode name, or reset").let { mode -> { _ -> enterKeyMode(mode.takeIf { it != "reset" && it != "default" }) } }
             else -> {
                 for (provider in providers) provider.parse(name, argument)?.let { return it }
                 // A compositor's own: run by the configuration of the moment.
                 if (own.containsKey(name)) return { window ->
-                    val action = ownActions[name] ?: throw IllegalStateException("the action \"$name\" is not in this configuration")
+                    val action = ownActions[name] ?: session?.rplugins?.actions?.get(name) ?: throw IllegalStateException("the action \"$name\" is not in this configuration")
                     action.run(this, argument, window)
                 }
                 val near = all.map { it.name }.minByOrNull { distance(it, name) }?.takeIf { distance(it, name) <= 2 }

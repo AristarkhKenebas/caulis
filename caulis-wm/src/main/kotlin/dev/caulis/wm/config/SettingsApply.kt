@@ -387,6 +387,7 @@ internal object SettingsApply {
             startup += action
         }
         section("autostart")?.let { a -> autostart(caulis.autostart, a) }
+        section("plugins")?.let { p -> applyPlugins(caulis.plugins, p) }
         section("reveal")?.let { r ->
             val reveal = caulis.reveal
             (r["enabled"] as Boolean?)?.let { reveal.enabled = it }
@@ -414,6 +415,26 @@ internal object SettingsApply {
     }
 
     // The autostart section onto [into]: its settings, its entries added.
+    @Suppress("UNCHECKED_CAST")
+    private fun applyPlugins(into: dev.caulis.wm.plugins.Plugins, p: Map<String, Any?>) {
+        (p["enabled"] as Boolean?)?.let { into.enabled = it }
+        (p["directories"] as List<String>?)?.let { list -> into.directories = list.map { java.nio.file.Path.of(it.replaceFirst("~", System.getProperty("user.home"))) } }
+        (p["disabled"] as List<String>?)?.let { into.disabled = it.toSet() }
+        (p["watch"] as Boolean?)?.let { into.watch = it }
+        (p["settleMillis"] as Int?)?.let { into.settleMillis = it.toLong() }
+        (p["failuresBeforeDisable"] as Int?)?.let { into.failuresBeforeDisable = it }
+        (p["hangReportMillis"] as Int?)?.let { into.hangReportMillis = it.toLong() }
+        (p["hangInterruptMillis"] as Int?)?.let { into.hangInterruptMillis = it.toLong() }
+        (p["hangQuarantineMillis"] as Int?)?.let { into.hangQuarantineMillis = it.toLong() }
+        (p["disableAfterHang"] as Boolean?)?.let { into.disableAfterHang = it }
+        (p["leakCheckMillis"] as Int?)?.let { into.leakCheckMillis = it.toLong() }
+        (p["maxLeakedGenerations"] as Int?)?.let { into.maxLeakedGenerations = it }
+        (p["allowUnsafePermissions"] as Boolean?)?.let { into.allowUnsafePermissions = it }
+        (p["stateFile"] as String?)?.let { into.stateFile = java.nio.file.Path.of(it.replaceFirst("~", System.getProperty("user.home"))) }
+        (p["settings"] as Map<String, Map<String, Any?>>?)?.let { into.settings.putAll(it) }
+        (p["allow"] as Map<String, List<String>>?)?.let { all -> all.forEach { (id, rights) -> into.allow[id] = rights.toSet() } }
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun autostart(into: dev.caulis.wm.Autostart, a: Map<String, Any?>) {
         (a["staggerMillis"] as Int?)?.let { into.staggerMillis = it.toLong() }

@@ -217,7 +217,7 @@ internal class IpcServer(private val running: Running, val path: Path) : AutoClo
                 Request.WhatCase.CHECK_CONFIG -> reply.setProblems(Problems.newBuilder().addAllProblems(ConfigFile.read(request.checkConfig.text).problems))
                 Request.WhatCase.EVAL -> {
                     val language = request.eval.language.ifBlank { "lua" }
-                    val evaluate = running.config.evaluators[language]
+                    val evaluate = if (language == "plugin") { code: String -> runCatching { running.rplugins.command(code.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }) } } else running.config.evaluators[language]
                     if (running.desktop.locked) {
                         // (Code can do anything an action can: not while the screen is locked.)
                         reply.setError("the screen is locked")

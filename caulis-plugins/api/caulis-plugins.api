@@ -1,0 +1,350 @@
+public final class dev/caulis/plugins/ApiVersion {
+	public static final field Companion Ldev/caulis/plugins/ApiVersion$Companion;
+	public fun <init> (II)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun copy (II)Ldev/caulis/plugins/ApiVersion;
+	public static synthetic fun copy$default (Ldev/caulis/plugins/ApiVersion;IIILjava/lang/Object;)Ldev/caulis/plugins/ApiVersion;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMajor ()I
+	public final fun getMinor ()I
+	public fun hashCode ()I
+	public static final fun parse (Ljava/lang/String;)Ldev/caulis/plugins/ApiVersion;
+	public final fun runs (Ldev/caulis/plugins/ApiVersion;)Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/plugins/ApiVersion$Companion {
+	public final fun parse (Ljava/lang/String;)Ldev/caulis/plugins/ApiVersion;
+}
+
+public final class dev/caulis/plugins/JarPluginFormat : dev/caulis/plugins/PluginFormat {
+	public fun <init> ()V
+	public fun getName ()Ljava/lang/String;
+	public fun recognize (Ljava/nio/file/Path;Ljava/lang/String;)Ldev/caulis/plugins/PluginSource;
+}
+
+public abstract interface class dev/caulis/plugins/Plugin {
+	public fun disable ()V
+	public abstract fun enable (Ldev/caulis/plugins/PluginContext;)V
+	public fun settingsChanged (Ldev/caulis/plugins/PluginSettings;)Z
+}
+
+public final class dev/caulis/plugins/Plugin$DefaultImpls {
+	public static fun disable (Ldev/caulis/plugins/Plugin;)V
+	public static fun settingsChanged (Ldev/caulis/plugins/Plugin;Ldev/caulis/plugins/PluginSettings;)Z
+}
+
+public final class dev/caulis/plugins/PluginClassLoader : java/net/URLClassLoader {
+	public static final field Companion Ldev/caulis/plugins/PluginClassLoader$Companion;
+	public static final field DEFAULT_SHARED Ljava/util/List;
+	public fun <init> (Ljava/lang/String;[Ljava/net/URL;Ljava/lang/ClassLoader;Ljava/util/List;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;[Ljava/net/URL;Ljava/lang/ClassLoader;Ljava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getResource (Ljava/lang/String;)Ljava/net/URL;
+	public fun getResources (Ljava/lang/String;)Ljava/util/Enumeration;
+}
+
+public final class dev/caulis/plugins/PluginClassLoader$Companion {
+}
+
+public abstract interface class dev/caulis/plugins/PluginCode : java/lang/AutoCloseable {
+	public abstract fun getClassLoader ()Ljava/lang/ClassLoader;
+	public abstract fun newPlugin ()Ldev/caulis/plugins/Plugin;
+}
+
+public final class dev/caulis/plugins/PluginCommandsKt {
+	public static final fun command (Ldev/caulis/plugins/PluginManager;Ljava/util/List;)Ljava/lang/String;
+}
+
+public final class dev/caulis/plugins/PluginContext {
+	public fun <init> (Ldev/caulis/plugins/PluginHandle;Ljava/lang/Object;)V
+	public final fun getApi ()Ljava/lang/Object;
+	public final fun getDataDir ()Ljava/nio/file/Path;
+	public final fun getHandle ()Ldev/caulis/plugins/PluginHandle;
+	public final fun getLog ()Ldev/caulis/log/Logger;
+	public final fun getManifest ()Ldev/caulis/plugins/PluginManifest;
+	public final fun getScope ()Ldev/caulis/plugins/PluginScope;
+	public final fun getSettings ()Ldev/caulis/plugins/PluginSettings;
+}
+
+public final class dev/caulis/plugins/PluginDependency {
+	public fun <init> (Ljava/lang/String;Ldev/caulis/plugins/PluginVersion;Z)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/caulis/plugins/PluginVersion;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ldev/caulis/plugins/PluginVersion;
+	public final fun component3 ()Z
+	public final fun copy (Ljava/lang/String;Ldev/caulis/plugins/PluginVersion;Z)Ldev/caulis/plugins/PluginDependency;
+	public static synthetic fun copy$default (Ldev/caulis/plugins/PluginDependency;Ljava/lang/String;Ldev/caulis/plugins/PluginVersion;ZILjava/lang/Object;)Ldev/caulis/plugins/PluginDependency;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAtLeast ()Ldev/caulis/plugins/PluginVersion;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getOptional ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/plugins/PluginFiles {
+	public static final field INSTANCE Ldev/caulis/plugins/PluginFiles;
+	public static final fun fingerprint (Ljava/nio/file/Path;)Ljava/lang/String;
+	public static final fun unsafeBecause (Ljava/nio/file/Path;)Ljava/lang/String;
+}
+
+public abstract interface class dev/caulis/plugins/PluginFormat {
+	public abstract fun getName ()Ljava/lang/String;
+	public abstract fun recognize (Ljava/nio/file/Path;Ljava/lang/String;)Ldev/caulis/plugins/PluginSource;
+}
+
+public abstract interface class dev/caulis/plugins/PluginFormatProvider {
+	public abstract fun format ()Ldev/caulis/plugins/PluginFormat;
+}
+
+public final class dev/caulis/plugins/PluginGuard {
+	public final fun call (Ljava/lang/String;Ljava/lang/Object;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+	public final fun failed (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public final fun getActive ()Z
+	public final fun getPluginId ()Ljava/lang/String;
+	public final fun getWatchdog ()Ldev/caulis/plugins/PluginWatchdog;
+	public final fun run (Ljava/lang/String;Ljava/lang/Runnable;)V
+}
+
+public final class dev/caulis/plugins/PluginHandle {
+	public final fun getDataDir ()Ljava/nio/file/Path;
+	public final fun getGuard ()Ldev/caulis/plugins/PluginGuard;
+	public final fun getLog ()Ldev/caulis/log/Logger;
+	public final fun getManifest ()Ldev/caulis/plugins/PluginManifest;
+	public final fun getScope ()Ldev/caulis/plugins/PluginScope;
+	public final fun getSettings ()Ldev/caulis/plugins/PluginSettings;
+}
+
+public abstract interface class dev/caulis/plugins/PluginHost {
+	public abstract fun apiFor (Ldev/caulis/plugins/PluginHandle;)Ljava/lang/Object;
+	public abstract fun dataDirFor (Ljava/lang/String;)Ljava/nio/file/Path;
+	public abstract fun getApiName ()Ljava/lang/String;
+	public abstract fun getApis ()Ljava/util/Map;
+	public fun mayChangeNow ()Z
+	public abstract fun notice (ZLjava/lang/String;Ljava/lang/String;)V
+	public abstract fun post (Ljava/lang/Runnable;)V
+}
+
+public final class dev/caulis/plugins/PluginHost$DefaultImpls {
+	public static fun mayChangeNow (Ldev/caulis/plugins/PluginHost;)Z
+}
+
+public final class dev/caulis/plugins/PluginInfo {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/caulis/plugins/PluginState;Ljava/lang/String;Ljava/nio/file/Path;Ljava/lang/String;ILjava/util/Map;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()Ljava/util/Map;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ldev/caulis/plugins/PluginState;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/nio/file/Path;
+	public final fun component8 ()Ljava/lang/String;
+	public final fun component9 ()I
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/caulis/plugins/PluginState;Ljava/lang/String;Ljava/nio/file/Path;Ljava/lang/String;ILjava/util/Map;)Ldev/caulis/plugins/PluginInfo;
+	public static synthetic fun copy$default (Ldev/caulis/plugins/PluginInfo;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/caulis/plugins/PluginState;Ljava/lang/String;Ljava/nio/file/Path;Ljava/lang/String;ILjava/util/Map;ILjava/lang/Object;)Ldev/caulis/plugins/PluginInfo;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getFormat ()Ljava/lang/String;
+	public final fun getGeneration ()I
+	public final fun getHeld ()Ljava/util/Map;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getPath ()Ljava/nio/file/Path;
+	public final fun getProblem ()Ljava/lang/String;
+	public final fun getState ()Ldev/caulis/plugins/PluginState;
+	public final fun getVersion ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/plugins/PluginLoadRequest {
+	public fun <init> (Ljava/lang/ClassLoader;Ljava/util/List;Ljava/util/List;I)V
+	public final fun getDependencies ()Ljava/util/List;
+	public final fun getGeneration ()I
+	public final fun getParent ()Ljava/lang/ClassLoader;
+	public final fun getShared ()Ljava/util/List;
+}
+
+public final class dev/caulis/plugins/PluginManager : java/lang/AutoCloseable {
+	public fun <init> (Ldev/caulis/plugins/PluginHost;Ldev/caulis/plugins/PluginOptions;Ljava/util/List;)V
+	public synthetic fun <init> (Ldev/caulis/plugins/PluginHost;Ldev/caulis/plugins/PluginOptions;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun classLoaderOf (Ljava/lang/String;)Ljava/lang/ClassLoader;
+	public fun close ()V
+	public final fun configure (Ldev/caulis/plugins/PluginOptions;)V
+	public final fun disable (Ljava/lang/String;)Ljava/lang/String;
+	public final fun enable (Ljava/lang/String;)Ljava/lang/String;
+	public final fun getLeaks ()I
+	public final fun getOptions ()Ldev/caulis/plugins/PluginOptions;
+	public final fun handleOf (Ljava/lang/String;)Ldev/caulis/plugins/PluginHandle;
+	public final fun instanceOf (Ljava/lang/String;)Ldev/caulis/plugins/Plugin;
+	public final fun list ()Ljava/util/List;
+	public final fun reload (Ljava/lang/String;)Ljava/lang/String;
+	public final fun rescan ()V
+	public final fun start ()V
+}
+
+public final class dev/caulis/plugins/PluginManifest {
+	public static final field Companion Ldev/caulis/plugins/PluginManifest$Companion;
+	public static final field FILE_NAME Ljava/lang/String;
+	public fun <init> (Ljava/lang/String;Ldev/caulis/plugins/PluginVersion;Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/caulis/plugins/PluginVersion;Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ldev/caulis/plugins/PluginVersion;
+	public final fun component3 ()Ljava/util/Map;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ldev/caulis/plugins/PluginVersion;Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Ldev/caulis/plugins/PluginManifest;
+	public static synthetic fun copy$default (Ldev/caulis/plugins/PluginManifest;Ljava/lang/String;Ldev/caulis/plugins/PluginVersion;Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ldev/caulis/plugins/PluginManifest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getApis ()Ljava/util/Map;
+	public final fun getDependencies ()Ljava/util/List;
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getMain ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getVersion ()Ldev/caulis/plugins/PluginVersion;
+	public fun hashCode ()I
+	public static final fun isId (Ljava/lang/String;)Z
+	public static final fun of (Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;)Ldev/caulis/plugins/PluginManifest;
+	public static final fun read (Ljava/io/Reader;Ljava/lang/String;Ljava/lang/String;)Ldev/caulis/plugins/PluginManifest;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/plugins/PluginManifest$Companion {
+	public final fun isId (Ljava/lang/String;)Z
+	public final fun of (Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;)Ldev/caulis/plugins/PluginManifest;
+	public final fun read (Ljava/io/Reader;Ljava/lang/String;Ljava/lang/String;)Ldev/caulis/plugins/PluginManifest;
+}
+
+public final class dev/caulis/plugins/PluginManifestException : java/lang/Exception {
+	public fun <init> (Ljava/lang/String;)V
+}
+
+public final class dev/caulis/plugins/PluginOptions {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;ZLjava/util/Set;Ljava/util/Map;ZJIJJJZJIZLjava/util/List;Ljava/nio/file/Path;Ljava/nio/file/Path;Ljava/lang/ClassLoader;)V
+	public synthetic fun <init> (Ljava/util/List;ZLjava/util/Set;Ljava/util/Map;ZJIJJJZJIZLjava/util/List;Ljava/nio/file/Path;Ljava/nio/file/Path;Ljava/lang/ClassLoader;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component10 ()J
+	public final fun component11 ()Z
+	public final fun component12 ()J
+	public final fun component13 ()I
+	public final fun component14 ()Z
+	public final fun component15 ()Ljava/util/List;
+	public final fun component16 ()Ljava/nio/file/Path;
+	public final fun component17 ()Ljava/nio/file/Path;
+	public final fun component18 ()Ljava/lang/ClassLoader;
+	public final fun component2 ()Z
+	public final fun component3 ()Ljava/util/Set;
+	public final fun component4 ()Ljava/util/Map;
+	public final fun component5 ()Z
+	public final fun component6 ()J
+	public final fun component7 ()I
+	public final fun component8 ()J
+	public final fun component9 ()J
+	public final fun copy (Ljava/util/List;ZLjava/util/Set;Ljava/util/Map;ZJIJJJZJIZLjava/util/List;Ljava/nio/file/Path;Ljava/nio/file/Path;Ljava/lang/ClassLoader;)Ldev/caulis/plugins/PluginOptions;
+	public static synthetic fun copy$default (Ldev/caulis/plugins/PluginOptions;Ljava/util/List;ZLjava/util/Set;Ljava/util/Map;ZJIJJJZJIZLjava/util/List;Ljava/nio/file/Path;Ljava/nio/file/Path;Ljava/lang/ClassLoader;ILjava/lang/Object;)Ldev/caulis/plugins/PluginOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAllowUnsafePermissions ()Z
+	public final fun getCacheDir ()Ljava/nio/file/Path;
+	public final fun getDirectories ()Ljava/util/List;
+	public final fun getDisableAfterHang ()Z
+	public final fun getDisabled ()Ljava/util/Set;
+	public final fun getEnabled ()Z
+	public final fun getFailuresBeforeDisable ()I
+	public final fun getHangInterruptMillis ()J
+	public final fun getHangQuarantineMillis ()J
+	public final fun getHangReportMillis ()J
+	public final fun getLeakCheckMillis ()J
+	public final fun getMaxLeakedGenerations ()I
+	public final fun getParentLoader ()Ljava/lang/ClassLoader;
+	public final fun getSettings ()Ljava/util/Map;
+	public final fun getSettleMillis ()J
+	public final fun getSharedPackages ()Ljava/util/List;
+	public final fun getStateFile ()Ljava/nio/file/Path;
+	public final fun getWatch ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/plugins/PluginScope : java/lang/AutoCloseable {
+	public final fun add (Ljava/lang/AutoCloseable;)Ljava/lang/AutoCloseable;
+	public final fun add (Ljava/lang/AutoCloseable;Ljava/lang/String;)Ljava/lang/AutoCloseable;
+	public static synthetic fun add$default (Ldev/caulis/plugins/PluginScope;Ljava/lang/AutoCloseable;Ljava/lang/String;ILjava/lang/Object;)Ljava/lang/AutoCloseable;
+	public fun close ()V
+	public final fun executor (Ljava/lang/String;)Ljava/util/concurrent/ExecutorService;
+	public final fun executor (Ljava/lang/String;I)Ljava/util/concurrent/ExecutorService;
+	public static synthetic fun executor$default (Ldev/caulis/plugins/PluginScope;Ljava/lang/String;IILjava/lang/Object;)Ljava/util/concurrent/ExecutorService;
+	public final fun getHeld ()Ljava/util/Map;
+	public final fun getSize ()I
+	public final fun onClose (Ljava/lang/Runnable;)Ljava/lang/AutoCloseable;
+	public final fun onClose (Lkotlin/jvm/functions/Function0;)Ljava/lang/AutoCloseable;
+	public final fun thread (Ljava/lang/String;Ljava/lang/Runnable;)Ljava/lang/Thread;
+	public final fun tracked (Ljava/lang/AutoCloseable;)Ljava/lang/AutoCloseable;
+	public final fun tracked (Ljava/lang/AutoCloseable;Ljava/lang/String;)Ljava/lang/AutoCloseable;
+	public static synthetic fun tracked$default (Ldev/caulis/plugins/PluginScope;Ljava/lang/AutoCloseable;Ljava/lang/String;ILjava/lang/Object;)Ljava/lang/AutoCloseable;
+}
+
+public final class dev/caulis/plugins/PluginSettings {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun boolean (Ljava/lang/String;Z)Z
+	public final fun double (Ljava/lang/String;D)D
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValues ()Ljava/util/Map;
+	public fun hashCode ()I
+	public final fun int (Ljava/lang/String;I)I
+	public final fun long (Ljava/lang/String;J)J
+	public final fun string (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+	public final fun strings (Ljava/lang/String;Ljava/util/List;)Ljava/util/List;
+	public static synthetic fun strings$default (Ldev/caulis/plugins/PluginSettings;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ljava/util/List;
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/caulis/plugins/PluginSource {
+	public abstract fun fingerprint ()Ljava/lang/String;
+	public abstract fun getManifest ()Ldev/caulis/plugins/PluginManifest;
+	public abstract fun getPath ()Ljava/nio/file/Path;
+	public abstract fun load (Ldev/caulis/plugins/PluginLoadRequest;)Ldev/caulis/plugins/PluginCode;
+	public fun prepare (Ljava/nio/file/Path;I)V
+}
+
+public final class dev/caulis/plugins/PluginSource$DefaultImpls {
+	public static fun prepare (Ldev/caulis/plugins/PluginSource;Ljava/nio/file/Path;I)V
+}
+
+public final class dev/caulis/plugins/PluginState : java/lang/Enum {
+	public static final field DISABLED Ldev/caulis/plugins/PluginState;
+	public static final field ENABLED Ldev/caulis/plugins/PluginState;
+	public static final field FAILED Ldev/caulis/plugins/PluginState;
+	public static final field LOADED Ldev/caulis/plugins/PluginState;
+	public static final field REFUSED Ldev/caulis/plugins/PluginState;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/caulis/plugins/PluginState;
+	public static fun values ()[Ldev/caulis/plugins/PluginState;
+}
+
+public final class dev/caulis/plugins/PluginVersion : java/lang/Comparable {
+	public static final field Companion Ldev/caulis/plugins/PluginVersion$Companion;
+	public fun compareTo (Ldev/caulis/plugins/PluginVersion;)I
+	public synthetic fun compareTo (Ljava/lang/Object;)I
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public static final fun parse (Ljava/lang/String;)Ldev/caulis/plugins/PluginVersion;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/plugins/PluginVersion$Companion {
+	public final fun parse (Ljava/lang/String;)Ldev/caulis/plugins/PluginVersion;
+}
+
+public final class dev/caulis/plugins/PluginWatchdog {
+	public final fun enter (Ldev/caulis/plugins/PluginGuard;Ljava/lang/String;)Z
+	public final fun leave ()V
+}
+

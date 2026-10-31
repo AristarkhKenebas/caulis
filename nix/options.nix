@@ -814,6 +814,24 @@ let
         "dir" = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; description = "the folder it starts in (~ is your home)"; };
       }; })); default = null; description = "the programs, in order"; };
     }; }); default = null; description = "programs started with the session, one after another, once per session (a reload starts only new entries)"; };
+    "plugins" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
+      "enabled" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "false: no plugin runs and no folder is followed (restart; default true)"; };
+      "directories" = lib.mkOption { type = lib.types.nullOr (lib.types.listOf (lib.types.either lib.types.str lib.types.path)); default = null; description = "the folders plugins are in (restart; default: plugins in the configuration's folder)"; };
+      "disabled" = lib.mkOption { type = lib.types.nullOr (lib.types.listOf lib.types.str); default = null; description = "plugins that stay off"; };
+      "watch" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "a jar replaced is hot-reloaded, a Lua file reloads on save (restart; default true)"; };
+      "settleMillis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (60000)); default = null; description = "a changed file must be quiet this long before it is read (default 300)"; };
+      "failuresBeforeDisable" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (1) (1000)); default = null; description = "how many failures before a plugin is disabled (default 1)"; };
+      "hangReportMillis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (600000)); default = null; description = "a call into a plugin longer than this is reported, with its stack; 0: never (restart; default 2000)"; };
+      "hangInterruptMillis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (600000)); default = null; description = "a call this long has its thread interrupted; 0: never (restart; default 5000)"; };
+      "hangQuarantineMillis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (600000)); default = null; description = "a call this long leaves the plugin off at the next start; 0: never (restart; default 10000)"; };
+      "disableAfterHang" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "a plugin that held up the desktop is disabled once its call returns (default true)"; };
+      "leakCheckMillis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (600000)); default = null; description = "after an unload: when to look whether the plugin's classes went from memory; 0: never (default 30000)"; };
+      "maxLeakedGenerations" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (1) (1000)); default = null; description = "with this many left in memory, hot reloads wait for a restart (default 8)"; };
+      "allowUnsafePermissions" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "run also what others can write to (default false: that would run their code as you)"; };
+      "stateFile" = lib.mkOption { type = lib.types.nullOr (lib.types.either lib.types.str lib.types.path); default = null; description = "where what `plugin disable` and a hang said is kept (default: plugins.properties in the state folder)"; };
+      "settings" = lib.mkOption { type = lib.types.nullOr (lib.types.attrsOf (lib.types.attrsOf lib.types.anything)); default = null; description = "what each plugin is told, by its id"; };
+      "allow" = lib.mkOption { type = lib.types.nullOr (lib.types.attrsOf (lib.types.listOf (lib.types.enum [ "exec" ]))); default = null; description = "what Lua plugins may do beyond their sandbox, by id (\"exec\": start programs)"; };
+    }; }); default = null; description = "plugins: where they are, and how much they are forgiven"; };
     "reveal" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
       "enabled" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "dark until warm, then the desktop fades in (default false)"; };
       "fadeMillis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (60000)); default = null; description = "how long the fade takes (default 600)"; };

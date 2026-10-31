@@ -898,6 +898,7 @@ class Caulis {
      */
     fun applySettings() {
         running?.rapply?.applySettingsNow()
+        running?.rplugins?.configurationChanged()
     }
 
     /**
@@ -2064,6 +2065,27 @@ class Caulis {
     fun evaluator(language: String, evaluate: (String) -> Result<String>) {
         evaluators[language] = evaluate
     }
+
+    /** Plugins: where they are, how much they are forgiven (see [dev.caulis.wm.plugins.Plugins]). */
+    val plugins = dev.caulis.wm.plugins.Plugins()
+
+    /** Settings of [plugins]. */
+    @JvmSynthetic
+    fun plugins(configure: dev.caulis.wm.plugins.Plugins.() -> Unit) {
+        plugins.configure()
+    }
+
+    /** The same for Java. */
+    fun plugins(configure: Consumer<dev.caulis.wm.plugins.Plugins>): Caulis = apply { configure.accept(plugins) }
+
+    /** The answer to `plugin list|enable <id>|disable <id>|reload [id]|run ...|layout ...|cmd ...`, for a compositor with a command line of its own. */
+    fun pluginCommand(text: String): String = live().rplugins.command(text.trim().split(Regex("\\s+")).filter { it.isNotEmpty() })
+
+    /** The commands plugins offer now. */
+    val pluginCommands: Set<String> get() = liveOrNull()?.rplugins?.commands?.keys.orEmpty()
+
+    // For plugins: [item] in [list] as if asked for in onStart; close the result to take it away.
+    internal fun <T> addHook(list: MutableList<T>, item: T): AutoCloseable = listen(list, item)
 
     internal val ownActions = LinkedHashMap<String, dev.caulis.wm.config.Actions.Own>()
 

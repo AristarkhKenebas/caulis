@@ -32,6 +32,8 @@ for a project closer to what you have in mind: `tiling` (like i3), `floating` (l
 `scrolling` (like niri), `kiosk` (one program on the whole screen), `desktop` (with a bar of your
 own in Compose) or `lua` (everything in a `config.lua`, no Kotlin).
 
+Extending a running compositor without touching its code: [Plugins](docs/plugins.md).
+
 What changed in each release: [CHANGELOG.md](CHANGELOG.md).
 
 Caulis is on Maven Central, and every release is also in its own Maven repository on GitHub
@@ -98,6 +100,7 @@ Wayland way when they can, and through X11 when that fails.
 | `caulis-libinput` | input devices through libinput (brought by `caulis-core`) |
 | `caulis-session` | the login session: libseat and logind (brought by `caulis-core`) |
 | `caulis-input` | plain input types: settings, gestures, scrolling, tablets (brought by `caulis-core`) |
+| `caulis-plugins` | plugins for any compositor: discovery, manifests, class loaders, hot reload, containment (brought by `caulis-wm`) |
 | `caulis-protocol` | the Wayland protocol (server and client side), generated from XML |
 | `caulis-render` | drawing on the GPU (OpenGL ES; Vulkan later) |
 | `caulis-geometry` | rectangles |

@@ -21,7 +21,7 @@ for argument in "$@"; do
     esac
 done
 if [[ ${#names[@]} -eq 0 ]]; then
-    for folder in "$caulis"/templates/*/; do names+=("$(basename "$folder")"); done
+    for folder in "$caulis"/templates/*/; do if [[ -f "$folder/about" ]]; then names+=("$(basename "$folder")"); fi; done
 fi
 
 gradle_options=(--console=plain)

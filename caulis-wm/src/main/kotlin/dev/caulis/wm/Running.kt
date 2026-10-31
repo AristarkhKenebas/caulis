@@ -61,6 +61,20 @@ internal class Running(
     var startingUp = false
         private set
 
+    /** Runs [body] so that what it adds stays through reloads, as in onStart (plugins). */
+    internal fun <T> asSession(body: () -> T): T {
+        val before = startingUp
+        startingUp = true
+        try {
+            return body()
+        } finally {
+            startingUp = before
+        }
+    }
+
+    /** The plugins. */
+    internal val rplugins = RunningPlugins(this)
+
     /** Widgets, drawings and the like the session keeps (from onStart): closed when the compositor ends. */
     val sessionResources = ArrayList<AutoCloseable>()
 
@@ -482,6 +496,7 @@ internal class Running(
             }
             if (rreload.keptItems.isNotEmpty()) log.info { "onStart added ${rreload.keptItems.size} keys and listeners: they stay through reloads" }
             config.startWaitingTimers()
+            safely("plugins") { rplugins.start() }
             if (config.hotReload) reloader = safely("hot reload", null) { Reloader.start(this) }
             log.info { "Your files (shaders, pictures): ${config.configFolder}${if (java.nio.file.Files.isDirectory(config.configFolder)) "" else " (not there yet)"}" }
             watchTheStart()
@@ -524,6 +539,8 @@ internal class Running(
     override fun close() {
         // Your onQuit first, while the desktop and the buses are still there.
         config.quitActions.toList().forEach { action -> safely("onQuit") { action(config) } }
+        // Then the plugins: each hears, and what it registered goes while all that is still there.
+        rplugins.close()
         // The configuration's window and focus listeners end here: windows that go away now (their
         // programs cut off as everything is taken down) are not "closed" by anyone — a handler
         // would find no desktop to act on.

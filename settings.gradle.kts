@@ -33,6 +33,7 @@ include(
     "caulis-core",
     "caulis-xwayland",
     "caulis-ipc",
+    "caulis-plugins",
     "caulis-wm",
     "caulis-screenshot",
     "caulis-compose",

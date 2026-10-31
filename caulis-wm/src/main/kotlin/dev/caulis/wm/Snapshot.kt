@@ -42,13 +42,14 @@ internal fun Caulis.snapshot(): Caulis {
     autostart.copyInto(copy.autostart)
     reveal.copyInto(copy.reveal)
     startupSound.copyInto(copy.startupSound)
+    plugins.copyInto(copy.plugins)
     return copy
 }
 
 // What a copy starts without: what the running compositor gave this configuration.
 private val NOT_COPIED = setOf(
     "running", "session", "codeOnly", "busScopes", "timers", "added", "waitingTimers",
-    "configAdded", "configProblems", "startWarnings", "keys", "autostart", "reveal", "startupSound", "pendingStarts", "backendInUse",
+    "configAdded", "configProblems", "startWarnings", "keys", "autostart", "reveal", "startupSound", "plugins", "pendingStarts", "backendInUse",
 )
 
 private val log = Logger("config")
