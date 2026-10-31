@@ -2443,14 +2443,14 @@ class Caulis {
         val own = locker
         if (own != null) {
             // (What it starts is the locker: its unlock may end the compositor's own lock screen.)
-            liveOrNull()?.startingLocker { own(this) } ?: own(this)
+            liveOrNull()?.rlock?.startingLocker { own(this) } ?: own(this)
             // (Only a locker that locked the desktop, or can say whether it shows, is watched.)
-            if (lockerShows != null) liveOrNull()?.watchLock("your locker")
+            if (lockerShows != null) liveOrNull()?.rlock?.watchLock("your locker")
         } else {
             val running = live()
             // (No second try through X11: a locker is Wayland's.)
-            running.startingLocker { running.launch(lockCommand, x11 = false, fallback = false) }
-            running.watchLock("\"${Launcher.programName(lockCommand)}\"")
+            running.rlock.startingLocker { running.launch(lockCommand, x11 = false, fallback = false) }
+            running.rlock.watchLock("\"${Launcher.programName(lockCommand)}\"")
         }
     }
 

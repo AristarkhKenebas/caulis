@@ -121,6 +121,7 @@ internal class Running(
     val seat = Seat(display, Keymap.fromNames(layouts = config.keyboardLayouts, variants = config.keyboardVariants, options = config.keyboardOptions, model = config.keyboardModel))
     private val compositor = Compositor(display, renderer)
     val desktop = Desktop(renderer, seat, compositor, width, height)
+    internal val rlock = RunningLock(this)
     internal val rmon = RunningMonitors(this)
     internal val rreload = RunningReload(this)
     internal val rgest = RunningGestures(this)
@@ -255,7 +256,7 @@ internal class Running(
     internal var ipc: IpcServer? = null
 
     // Starts programs: Wayland first, X11 when that fails.
-    private val launcher = Launcher(
+    internal val launcher = Launcher(
         environment = { env -> renv.fillEnvironment(env) },
         userEnvironment = renv::userEnvironment,
         x11Available = { xwayland != null },
@@ -290,9 +291,9 @@ internal class Running(
         dev.caulis.core.DataControl(display, clipboard)
         activation = dev.caulis.core.Activation(display, seat, desktop)
         logind?.let { l ->
-            l.onSleep = { ready -> goingToSleep(ready) }
-            l.onWake = ::wokeUp
-            l.onLock = { lock -> if (lock && !lockedNow()) safely("lock") { config.lock() } }
+            l.onSleep = { ready -> rlock.goingToSleep(ready) }
+            l.onWake = rlock::wokeUp
+            l.onLock = { lock -> if (lock && !rlock.lockedNow()) safely("lock") { config.lock() } }
         }
         idle = dev.caulis.core.Idle(display, loop, desktop)
         desktop.onUserActivity = ::userActive
@@ -312,13 +313,13 @@ internal class Running(
         // (The desktop handles lockers; we only note which one is in charge, and its unlock.)
         SessionLockManager(display).listener = object : SessionLockManager.Listener by desktop {
             override fun lockRequested(lock: dev.caulis.core.SessionLock): Boolean =
-                desktop.lockRequested(lock).also { granted -> if (granted) lockerProgram = lock }
+                desktop.lockRequested(lock).also { granted -> if (granted) rlock.lockerProgram = lock }
 
             override fun unlockRequested(lock: dev.caulis.core.SessionLock) {
                 desktop.unlockRequested(lock)
-                if (lock === lockerProgram) {
-                    lockerProgram = null
-                    lockerUnlocked(lock)
+                if (lock === rlock.lockerProgram) {
+                    rlock.lockerProgram = null
+                    rlock.lockerUnlocked(lock)
                 }
             }
         }
@@ -402,42 +403,6 @@ internal class Running(
         desktop.floatRule = { window -> defaultRule(window) || config.floatRules.any { rule -> safely("floatWhen", false) { rule(window) } } }
         desktop.onWindowOpened { window -> launcher.windowOpened(window.pid) }
         applyConfig()
-    }
-
-    // True while the screen is locked: by a locker program, or by the compositor's own (lockerShows).
-    private fun lockedNow(): Boolean =
-        desktop.locked || config.lockerShows?.let { shows -> safely("lockerShows", false) { shows(config) } } == true
-
-    // The computer is about to sleep: your onSleep, the screen locked (when asked for), then [ready].
-    private fun goingToSleep(ready: () -> Unit) {
-        config.sleepActions.toList().forEach { action -> safely("onSleep") { action(config) } }
-        if (!config.lockBeforeSleep || lockedNow()) return ready()
-        safely("the lock before sleep") { config.lock() }
-        // A lock screen of the compositor's own that cannot say when it shows: taken as up at once.
-        if (config.locker != null && config.lockerShows == null) return ready()
-        // Sleep once the lock screen shows (or after a while: logind does not wait for ever anyway).
-        val since = System.nanoTime()
-        fun check() {
-            when {
-                lockedNow() -> ready()
-                System.nanoTime() - since > config.sleepLockWaitMillis * 1_000_000 -> {
-                    lockFailed("it did not lock in ${config.sleepLockWaitMillis} ms before sleep")
-                    // (Our own lock screen: a moment to be on screen before the computer sleeps.)
-                    if (fallbackLock != null) loop.after(config.sleepOwnLockShowMillis) { ready() } else ready()
-                }
-                else -> loop.after(50) { check() }
-            }
-        }
-        check()
-    }
-
-    // The computer woke up: the monitors are set up anew (sleep may have reset them), the idle
-    // timers start over, and your onWake runs.
-    private fun wokeUp() {
-        safely("waking the monitors") { wakeMonitors() }
-        userActive()
-        safely("the colour schedule") { rlooks.updateColorScheme() } // (the clock went on while asleep)
-        config.wakeActions.toList().forEach { action -> safely("onWake") { action(config) } }
     }
 
     /** Hands the background rule over again (it was changed while running). */
@@ -718,91 +683,11 @@ internal class Running(
      */
     fun launch(command: String, x11: Boolean = false, fallback: Boolean = true) {
         val pid = launcher.launch(command, x11, fallback)
-        if (pid != null && startingLocker) lockerPids += pid
-    }
-
-    // Programs started as the screen locker (by Caulis.lock: lockCommand, or what your locker
-    // started): only their unlock ends the compositor's own lock screen. (Ended ones stay in
-    // the set: a pid is reused only after many others.)
-    internal val lockerPids = HashSet<Long>()
-    private var startingLocker = false
-
-    /** Runs [body], which starts the screen locker: the programs it starts may end our own lock screen. */
-    fun <T> startingLocker(body: () -> T): T {
-        val outer = startingLocker
-        startingLocker = true
-        try {
-            return body()
-        } finally {
-            startingLocker = outer
-        }
-    }
-
-    // Says so when a lock asked for has not shown in time (see Caulis.lock).
-    private var lockWatch: dev.caulis.event.EventLoop.Timer? = null
-
-    /** A lock was asked of [locker]: if the screen is not locked [Caulis.lockShowMillis] later, a notice says so. */
-    fun watchLock(locker: String) {
-        lockWatch?.cancel()
-        val millis = config.lockShowMillis
-        lockWatch = loop.after(millis) {
-            lockWatch = null
-            if (!lockedNow()) lockFailed("$locker showed no lock screen in $millis ms")
-        }
-    }
-
-    // A lock asked for did not show ([why]): said loudly, and — as lockFailure says — the
-    // compositor's own plain lock screen goes up instead.
-    private fun lockFailed(why: String) {
-        // (Said once: the lock before sleep and the watch on the lock may both find it.)
-        lockWatch?.cancel()
-        lockWatch = null
-        log.error("The screen did not lock: $why")
-        desktop.notify("The screen is NOT locked: $why. Is the locker installed? (lockCommand)", NoticeLevel.ERROR)
-        if (config.lockFailure == LockFailure.OWN_LOCK) lockOwnScreen()
-    }
-
-    // The compositor's own plain lock screen (the locker did not show), or null.
-    private var fallbackLock: FallbackLock? = null
-
-    // The locker program in charge now (to know its unlock ends our own lock screen too).
-    private var lockerProgram: dev.caulis.core.SessionLock? = null
-
-    /** Locks with the compositor's own plain lock screen (see [Caulis.lockFailure]). */
-    fun lockOwnScreen() {
-        if (fallbackLock != null) return
-        val screen = FallbackLock(color = { config.lockColor }, retry = {
-            log.info { "Starting the locker again (Enter on the compositor's own lock screen)" }
-            safely("the locker") { config.lock() }
-        })
-        fallbackLock = screen
-        desktop.lockInternally(screen, hideDesktop = true)
-        log.warn(
-            "Locked with the compositor's own plain lock screen: it ends when the locker the compositor starts unlocks — " +
-                "press Enter to start ${Launcher.programName(config.lockCommand)} again (from a text console: fix lockCommand in the configuration, save it, then press Enter)",
-        )
-    }
-
-    // A locker program unlocked the session: our own lock screen (if it is up) ends with it —
-    // if that locker is one the compositor started (lock(): Enter on our lock screen). Any
-    // other program could lock and unlock at once, without asking for a password.
-    private fun lockerUnlocked(lock: dev.caulis.core.SessionLock) {
-        val own = fallbackLock ?: return
-        val pid = lock.resource.client.pid
-        if (!launcher.descendsFrom(pid, lockerPids)) {
-            log.warn(
-                "${lock.resource.client.name} locked and unlocked, but it is not the locker the compositor started: " +
-                    "the compositor's own lock screen stays (press Enter on it to start ${Launcher.programName(config.lockCommand)})",
-            )
-            return
-        }
-        fallbackLock = null
-        if (desktop.lockScreen === own) desktop.unlockInternally()
-        log.info { "The locker unlocked: the compositor's own lock screen is gone too" }
+        if (pid != null && rlock.startingLocker) rlock.lockerPids += pid
     }
 
     fun spawn(command: List<String>, directory: java.io.File?): Process? =
-        launcher.spawn(command, directory)?.also { if (startingLocker) lockerPids += it.pid() }
+        launcher.spawn(command, directory)?.also { if (rlock.startingLocker) rlock.lockerPids += it.pid() }
 
     // Runs the user's code; a mistake in it is reported and the compositor keeps running.
     internal fun <T> safely(what: String, fallback: T, action: () -> T): T = try {

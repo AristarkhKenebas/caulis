@@ -99,7 +99,7 @@ class LockKeysTest {
             Thread.sleep(100)
             assertTrue(caulis.onLoop { it.desktop.lockedInternally && it.desktop.locked }, "a stranger's unlock does not end it")
             // The locker the compositor started (its pid: here the test's own process) ends it.
-            caulis.onLoop { it.lockerPids += ProcessHandle.current().pid() }
+            caulis.onLoop { it.rlock.lockerPids += ProcessHandle.current().pid() }
             lockAndUnlock()
             client.waitFor { !caulis.onLoop { it.desktop.locked } }
         }
