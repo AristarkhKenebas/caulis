@@ -211,7 +211,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
         // Blur reads around its area: a change near it (within its reach, not only under it)
         // changes it too — its whole reach redrawn first, in one part (else a bar's blur stayed
         // stale while a program drew next to it, and flashed when it caught up).
-        if (items.any { it is DrawItem.Blur && parts.any { part -> it.reachRect().intersect(part) != null } }) {
+        if (items.any { it is DrawItem.Blur && parts.any { part -> it.reachRect().overlaps(part) } }) {
             parts = withBlurParts(items.filterIsInstance<DrawItem.Blur>().map { it.reachRect() }, parts, bounds)
         }
         // In pixels, one more around each: a fractional scale must not leave a half-drawn edge.
@@ -226,6 +226,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
         }
         if (clips.isEmpty()) return
         desktop.renderLog.trace { "Frame of ${monitor.name}: redraw ${parts.joinToString()} (${clips.size} parts in pixels) of ${target.width}x${target.height} (buffer age $age), ${items.size} things to draw" }
+        val toPixels = monitor::toPixels
         for ((i, clip) in clips.withIndex()) {
             val (pixels, part) = clip
             // (One unit more around the part: what touches its pixels.)
@@ -236,7 +237,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
                 desktop.renderer.setClip(pixels)
                 desktop.renderer.drawColor(pixels.x, pixels.y, pixels.width, pixels.height, desktop.backgroundColor.red, desktop.backgroundColor.green, desktop.backgroundColor.blue)
             }
-            draw(items, near, monitor::toPixels, monitor.scale, monitor, pixels)
+            draw(items, near, toPixels, monitor.scale, monitor, pixels)
         }
         desktop.renderer.end()
         desktop.renderLog.trace { "Frame of ${monitor.name}: background $backgroundDrawn of $backgroundAsked pixels drawn (the rest under opaque windows)" }
@@ -278,7 +279,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
         val s = scale.toFloat()
         for (index in items.indices) {
             val item = items[index]
-            if (repaint != null && item.rect.intersect(repaint) == null) continue
+            if (repaint != null && !item.rect.overlaps(repaint)) continue
             if (monitor != null && item.only != null && item.only !== monitor) continue // (a sliding workspace of another monitor)
             val r = p(item.rect)
             when (item) {
@@ -320,7 +321,7 @@ internal class DesktopFrames(private val desktop: Desktop) {
         if (desktop.screenShader != null) return null // (every frame goes through it)
         val monitor = view.monitor
         // (A cursor on the cursor plane is no reason to draw: it is shown over the program's picture.)
-        val all = itemsFor(view).filter { it.rect.intersect(monitor.area) != null }
+        val all = itemsFor(view).filter { it.rect.overlaps(monitor.area) }
         val only = all.singleOrNull() as? DrawItem.Picture ?: return null
         val window = only.surface.roleObject as? Window ?: return null
         if (!window.fullscreen || only.rect != monitor.area) return null

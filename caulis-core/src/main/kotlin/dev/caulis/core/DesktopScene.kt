@@ -14,7 +14,7 @@ internal class DesktopScene(private val desktop: Desktop) {
         if (desktop.monitorList.size == 1 && desktop.placeholder != null) return // no real monitor yet: the default holds
         for (item in items) {
             if (item !is DrawItem.Picture) continue
-            val on = desktop.monitorList.filter { it.area.intersect(item.rect) != null }
+            val on = desktop.monitorList.filter { it.area.overlaps(item.rect) }
             if (on.isEmpty()) continue
             item.surface.placeOn(on.mapNotNull { it.output }, on.maxOf { it.scale })
         }

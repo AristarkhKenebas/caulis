@@ -141,7 +141,7 @@ internal fun partsToCopy(damage: List<Rect>, width: Int, height: Int, maxParts: 
             val iterator = parts.iterator()
             while (iterator.hasNext()) {
                 val part = iterator.next()
-                if (part.intersect(merged) != null) {
+                if (part.overlaps(merged)) {
                     merged = merged.union(part)
                     iterator.remove()
                     again = true

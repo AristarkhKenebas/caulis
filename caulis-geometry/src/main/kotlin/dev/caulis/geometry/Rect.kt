@@ -16,6 +16,10 @@ data class Rect(val x: Int, val y: Int, val width: Int, val height: Int) {
         return if (r > left && b > top) Rect(left, top, r - left, b - top) else null
     }
 
+    /** True if the two share any pixel (as [intersect] not being null, but nothing is made). */
+    fun overlaps(other: Rect): Boolean =
+        minOf(right, other.right) > maxOf(x, other.x) && minOf(bottom, other.bottom) > maxOf(y, other.y)
+
     /** True if [other] lies completely inside this rectangle. */
     fun contains(other: Rect): Boolean =
         other.x >= x && other.y >= y && other.right <= right && other.bottom <= bottom

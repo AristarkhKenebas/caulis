@@ -64,7 +64,7 @@ class Region internal constructor(resource: WlRegion, private val maxParts: Int 
         private val solid: List<Rect> by lazy {
             if (rough) return@lazy emptyList()
             parts.withIndex().filter { (index, part) ->
-                part.second && parts.subList(index + 1, parts.size).none { !it.second && it.first.intersect(part.first) != null }
+                part.second && parts.subList(index + 1, parts.size).none { !it.second && it.first.overlaps(part.first) }
             }.map { it.value.first }
         }
 
