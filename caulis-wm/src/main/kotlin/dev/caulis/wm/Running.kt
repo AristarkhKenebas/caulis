@@ -35,7 +35,6 @@ import dev.caulis.event.EventLoop
 import dev.caulis.protocol.Display
 import dev.caulis.render.GpuTarget
 import dev.caulis.render.Renderer
-import dev.caulis.tiling.RememberingLayout
 
 /**
  * A running compositor, the same in every mode: the Wayland socket, the features offered
@@ -54,7 +53,7 @@ internal class Running(
     // The configuration: replaced by a new one when it is reloaded (see reconfigure). Everything
     // reads it through here, so the user's code of the moment is what runs.
     var config: Caulis = initialConfig
-        private set
+        internal set
 
     /** False once it was closed (a configuration a reload replaced no longer reaches it then). */
     @Volatile
@@ -67,21 +66,6 @@ internal class Running(
 
     /** Widgets, drawings and the like the session keeps (from onStart): closed when the compositor ends. */
     val sessionResources = ArrayList<AutoCloseable>()
-
-    // Keys and listeners added in onStart (or by a replaced configuration), by the index of
-    // their list in Caulis.addableLists: each new configuration gets them too.
-    private val keptItems = ArrayList<Pair<Int, Any?>>()
-
-    /** Keeps [item] (in list [index] of Caulis.addableLists) in every configuration from now on. */
-    fun keepThroughReloads(index: Int, item: Any?) {
-        keptItems += index to item
-        log.trace { "Kept through reloads: ${item?.javaClass?.simpleName}" }
-    }
-
-    /** No longer keeps [item] (it was taken away). */
-    fun forget(item: Any?) {
-        keptItems.removeIf { it.second === item }
-    }
 
     // The buses as the session uses them (onStart, replaced configurations): never taken away.
     private val sessionScopes = HashMap<Boolean, dev.caulis.core.dbus.DBusScope>()
@@ -134,7 +118,7 @@ internal class Running(
     }
 
     // Notices about mistakes in the configuration: a reloaded one says anew what is still wrong.
-    private val configNotices = ArrayList<dev.caulis.core.Notice>()
+    internal val configNotices = ArrayList<dev.caulis.core.Notice>()
 
     val display = Display(loop)
     // The keymap and the settings it was made of (made anew when they change: a reload).
@@ -143,6 +127,7 @@ internal class Running(
     val seat = Seat(display, Keymap.fromNames(layouts = config.keyboardLayouts, variants = config.keyboardVariants, options = config.keyboardOptions, model = config.keyboardModel))
     private val compositor = Compositor(display, renderer)
     val desktop = Desktop(renderer, seat, compositor, width, height)
+    internal val rreload = RunningReload(this)
     internal val rgest = RunningGestures(this)
     internal val rinput = RunningInput(this)
     internal val renv = RunningEnvironment(this)
@@ -508,7 +493,7 @@ internal class Running(
         x.retry()
     }
 
-    private fun applyConfig() {
+    internal fun applyConfig() {
         val config = config
         applyCoreSettings()
         dev.caulis.ffi.Processes.method = config.processStart
@@ -716,167 +701,6 @@ internal class Running(
     }
 
     fun quit() = loop.stop()
-
-    // config.json saved again: main() runs once more (in this program, as it is) and hands over
-    // its configuration with the file on top; that one is taken on. Each file is followed where
-    // the user's own would be and in the system's folders ($XDG_CONFIG_DIRS, /etc/xdg: where
-    // the NixOS module puts it) — made, saved or taken away.
-    private fun followConfigFile() {
-        for (name in listOf("config.json") + dev.caulis.wm.config.ConfigFile.languageFileNames()) {
-            for (path in dev.caulis.wm.config.ConfigFile.places(config, name)) followConfigFile(path)
-        }
-        log.trace { "Following the configuration files in ${dev.caulis.wm.config.ConfigFile.places(config, "config.json").joinToString { it.parent.toString() }}" }
-    }
-
-    // Takes the configuration on again when [path] changes (made, saved, taken away).
-    private fun followConfigFile(path: java.nio.file.Path) {
-        configWatches += dev.caulis.wm.config.ConfigWatch(path) {
-            // main() (and with it config.lua, config.kts: compiling takes seconds) runs on a
-            // thread of its own: the desktop goes on meanwhile. One reload at a time.
-            configReloads.execute {
-                val next = try {
-                    Reloader.rerunMain()
-                } catch (e: Throwable) {
-                    if (e is OutOfMemoryError) throw e
-                    log.warn("The configuration could not be read again: ${e.message ?: e}")
-                    null
-                }
-                loop.post { takeOnConfig(next, path) }
-            }
-        }
-    }
-
-    // On the compositor's thread: [next] (or the files once more onto the configuration as it
-    // is, when main() cannot be run again) replaces the configuration — or, if that fails, the
-    // one before keeps running.
-    private fun takeOnConfig(next: Caulis?, path: java.nio.file.Path) {
-        val before = config
-        try {
-            if (next == null) {
-                // The files once more onto a copy of what the code said alone: a setting taken
-                // out of them goes back to the code's (without the copy: onto this one as it is).
-                val fresh = config.codeOnly?.let { code -> code.snapshot().also { it.codeOnly = code } } ?: config
-                log.info { "main() cannot be run again: ${path.fileName} applied onto ${if (fresh === config) "the configuration as it is" else "what the code says"}" }
-                fresh.configProblems = dev.caulis.wm.config.ConfigFile.applyTo(fresh)
-                reconfigure(fresh)
-            } else {
-                reconfigure(next)
-            }
-        } catch (e: Throwable) {
-            e.rethrowIfFatal()
-            log.warn("Taking on ${path.fileName} failed, back to the one before: $e")
-            runCatching { reconfigure(before) }
-            desktop.notify("$e", NoticeLevel.WARNING, "Your configuration failed — the one before keeps running")
-            return
-        }
-        log.info { "${path.fileName} taken on" }
-        desktop.notify(path.fileName.toString(), NoticeLevel.INFO, "Configuration reloaded")
-    }
-
-    // Config files followed, and the thread that reads them again.
-    private val configWatches = ArrayList<AutoCloseable>()
-    private val configReloads = java.util.concurrent.Executors.newSingleThreadExecutor { task ->
-        Thread(task, "caulis-config-reload").apply { isDaemon = true }
-    }
-
-    /**
-     * Runs with [next] from now on (the configuration was reloaded): its keys, rules, events,
-     * looks and scale; windows and programs stay. Returns the settings that only change
-     * after a restart, and notes on what was kept.
-     */
-    fun reconfigure(next: Caulis): Pair<List<String>, List<String>> {
-        val before = config
-        val notes = ArrayList<String>()
-        // A layout that remembers the arrangement (trees, columns, a canvas) of the same kind
-        // stays as it is: a new one would forget where your windows are.
-        val shown = desktop.layout
-        if (shown !== next.layout && shown is RememberingLayout && shown.javaClass == next.layout.javaClass && shown.name == next.layout.name) {
-            next.layout = shown // (not running yet: only the setting)
-            notes += "the ${shown.name} layout keeps your arrangement; its new settings apply when you switch layouts or restart"
-        }
-        val restartOnly = buildList {
-            fun check(name: String, old: Any?, new: Any?) { if (old != new) add(name) }
-            check("backend", before.backend, next.backend)
-            check("xwayland", before.xwayland, next.xwayland)
-            check("hardwareCursor", before.hardwareCursor, next.hardwareCursor)
-            check("directScanout", before.directScanout, next.directScanout)
-            check("ipc", before.ipc, next.ipc)
-            check("hotReload", before.hotReload, next.hotReload)
-            check("useConfigFile", before.useConfigFile, next.useConfigFile)
-            check("configName", before.configName, next.configName)
-            check("configDir", before.configDir, next.configDir)
-            check("headlessMonitors", before.headlessMonitors, next.headlessMonitors)
-            check("exportEnvironment", before.exportEnvironment, next.exportEnvironment)
-            check("exitAfterSeconds", before.exitAfterSeconds, next.exitAfterSeconds)
-            check("nestedIn", before.nestedIn, next.nestedIn)
-            check("sharpJavaScaling", before.sharpJavaScaling, next.sharpJavaScaling)
-            check("workspaceMode", before.workspaceMode, next.workspaceMode)
-            check("nestedMonitors", before.nestedMonitors, next.nestedMonitors)
-            check("title", before.title, next.title)
-            check("appId", before.appId, next.appId)
-            check("socketDirectory", before.socketDirectory, next.socketDirectory)
-            check("stats", before.stats, next.stats)
-            for (pad in next.scratchpads) {
-                val old = before.scratchpads.firstOrNull { it.name == pad.name } ?: continue
-                check("the style of scratchpad ${pad.name}", old.style, pad.style)
-            }
-        }
-        configNotices.forEach(desktop::dismiss)
-        configNotices.clear()
-        // New rules are for windows that open from now on (or fit them later), not for those
-        // already open where they fit: those stay where you have them.
-        for (window in desktop.allWindows) {
-            val facts = rrules.factsOf(window, next.rules)
-            rrules.rulesApplied.getOrPut(window) { HashSet() } += next.rules.filter { it.hasPlacement && safely("$it", false) { it.fits(window, facts) } }.map { it.signature }
-        }
-        // (The same configuration when config.json was applied onto it: nothing to compare.)
-        val same = before === next
-        // Keys and listeners from onStart (and from replaced configurations) are the new one's too.
-        if (!same) {
-            val lists = next.addableLists()
-            for ((index, item) in keptItems) {
-                @Suppress("UNCHECKED_CAST")
-                val list = lists[index] as MutableList<Any?>
-                if (list.none { it === item }) list += item
-                if (item is Caulis.Binding) item.owner = next
-            }
-        }
-        before.running = null
-        next.running = this
-        next.session = this
-        config = next
-        next.applyLogSettings(before)
-        applyConfig()
-        if (desktop.layout != next.layout) desktop.layout = next.layout
-        if (same || before.scale != next.scale || before.monitorSettings.mapValues { it.value.scale } != next.monitorSettings.mapValues { it.value.scale }) applyScale()
-        // A turn taken out of the configuration: the monitor stands as it is again.
-        for (monitor in desktop.monitors) {
-            if (before.monitorSettings[monitor.name]?.transform != null && next.monitorSettings[monitor.name]?.transform == null) {
-                desktop.setTransform(monitor, dev.caulis.core.Transform.NORMAL)
-            }
-        }
-        applyMonitorSettings()
-        applyCursor()
-        // Margins of the new rules: windows take them at once.
-        for (window in desktop.allWindows) {
-            val margins = rrules.marginsOf(window)
-            if (rrules.shownMargins.put(window, margins) != margins) desktop.marginsChanged(window)
-        }
-        // Only now that the new one runs, the one that goes hears it (to stop what it started)
-        // and its timers end: a new one that fails on the way leaves the old one whole.
-        if (!same) {
-            before.unloadActions.forEach { action -> safely("onUnload") { action(before) } }
-            before.timers.forEach { it.cancel() }
-            before.timers.clear()
-            before.added.toList().forEach { it.close() }
-            before.added.clear()
-            before.waitingTimers.forEach { it.close() }
-        }
-        next.startWaitingTimers()
-        next.reloadActions.forEach { action -> safely("onReload") { action(next) } }
-        ipc?.configReloaded(next.configProblems)
-        return restartOnly to notes
-    }
 
     /** Applies the scale to the desktop, the monitors (their own where set) and the programs. */
     fun applyScale() {
@@ -1134,7 +958,7 @@ internal class Running(
             config.exitAfterSeconds?.let { seconds -> loop.after(seconds * 1000) { quit() } }
             for (problem in config.startWarnings) desktop.notify("${problem.message} ${problem.fix}", NoticeLevel.WARNING)
             for (problem in config.configProblems) configNotices += desktop.notify(problem, NoticeLevel.WARNING)
-            if (config.useConfigFile) followConfigFile()
+            if (config.useConfigFile) rreload.followConfigFile()
             if (config.exportEnvironment ?: (switchConsole != null)) safely("handing the environment to the session") { renv.exportEnvironment() }
             // The start: dark until warm, the sound, the programs of autostart (see SessionStart).
             sessionStart.begin()
@@ -1145,7 +969,7 @@ internal class Running(
             } finally {
                 startingUp = false
             }
-            if (keptItems.isNotEmpty()) log.info { "onStart added ${keptItems.size} keys and listeners: they stay through reloads" }
+            if (rreload.keptItems.isNotEmpty()) log.info { "onStart added ${rreload.keptItems.size} keys and listeners: they stay through reloads" }
             config.startWaitingTimers()
             if (config.hotReload) reloader = safely("hot reload", null) { Reloader.start(this) }
             log.info { "Your files (shaders, pictures): ${config.configFolder}${if (java.nio.file.Files.isDirectory(config.configFolder)) "" else " (not there yet)"}" }
@@ -1209,9 +1033,9 @@ internal class Running(
         if (systemBusConnected) systemBus?.close()
         logind?.close()
         displays?.close()
-        configWatches.forEach(AutoCloseable::close)
+        rreload.configWatches.forEach(AutoCloseable::close)
         system.close()
-        configReloads.shutdownNow()
+        rreload.configReloads.shutdownNow()
         ipc?.close()
         reloader?.close()
         logNotices.close()

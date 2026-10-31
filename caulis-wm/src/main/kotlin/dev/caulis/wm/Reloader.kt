@@ -232,10 +232,10 @@ internal class Reloader private constructor(
     private fun takeOn(next: Caulis, started: Long) {
         val before = running.config
         val (restartOnly, notes) = try {
-            running.reconfigure(next)
+            running.rreload.reconfigure(next)
         } catch (e: Exception) {
             log.warn("Taking on the new configuration failed, back to the one before: $e")
-            runCatching { running.reconfigure(before) }
+            runCatching { running.rreload.reconfigure(before) }
             notify("$e", "Your configuration failed — the one before keeps running")
             return
         }

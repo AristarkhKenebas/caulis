@@ -73,7 +73,7 @@ class WindowRuleTest {
             client.window { it.setAppId("editor") }.draw()
             client.waitFor { caulis.onLoop { it.desktop.allWindows.size } == 1 }
             val next = caulis.reloaded { rule { appId("editor"); workspace = 4 } }
-            caulis.onLoop { it.reconfigure(next) }
+            caulis.onLoop { it.rreload.reconfigure(next) }
             assertEquals(1, next.onLoop { r -> r.desktop.workspaceNumberOf(r.desktop.allWindows.single()) }, "the open one stays")
             client.window { it.setAppId("editor") }.draw()
             client.waitFor { next.onLoop { r -> r.desktop.allWindows.size } == 2 }

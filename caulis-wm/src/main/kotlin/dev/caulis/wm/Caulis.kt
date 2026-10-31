@@ -1372,7 +1372,7 @@ class Caulis {
             from.bindings -= this
             from.liveOrNull()?.let { r ->
                 r.config.bindings -= this
-                r.forget(this)
+                r.rreload.forget(this)
                 r.rebindKeys()
             }
         }
@@ -1435,7 +1435,7 @@ class Caulis {
         @Suppress("UNCHECKED_CAST")
         val into = if (running == null && r != null && index >= 0) r.config.addableLists()[index] as MutableList<T> else list
         into += item
-        if (r != null && index >= 0 && (r.startingUp || running == null)) r.keepThroughReloads(index, item)
+        if (r != null && index >= 0 && (r.startingUp || running == null)) r.rreload.keepThroughReloads(index, item)
         return into
     }
 
@@ -1448,7 +1448,7 @@ class Caulis {
         val index = addableLists().indexOfFirst { it === list }
         if (index < 0) return
         r.config.addableLists()[index].removeIf { it === item }
-        r.forget(item)
+        r.rreload.forget(item)
     }
 
     /**

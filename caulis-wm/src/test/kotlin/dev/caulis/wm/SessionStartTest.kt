@@ -52,7 +52,7 @@ class SessionStartTest {
                     startup()
                     autostart { shell("echo four >> '$out'") }
                 }
-                caulis.onLoop { it.reconfigure(next) }
+                caulis.onLoop { it.rreload.reconfigure(next) }
                 client.waitFor { Files.readAllLines(out).size == 5 }
                 Thread.sleep(300)
                 assertEquals(listOf("one", "two x", "script three", "restored", "four"), Files.readAllLines(out))

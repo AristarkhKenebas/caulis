@@ -30,7 +30,7 @@ class SpecialWorkspacesTest {
 
             // A reload: still there, still shown.
             val next = caulis.reloaded { specialWorkspaces = SpecialWorkspaces(dim = 0.6f) }
-            caulis.onLoop { it.reconfigure(next) }
+            caulis.onLoop { it.rreload.reconfigure(next) }
             assertTrue(next.onLoop { it.desktop.specialWorkspace("music").shown })
             assertEquals(0.6f, next.onLoop { it.desktop.specialWorkspaces.dim })
 

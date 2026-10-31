@@ -45,7 +45,7 @@ class KeymapLifetimeTest {
                     keyboardOptions = "grp:win_space_toggle"
                     bindingModifiers = BindingModifiers.XKB
                 }
-                caulis.onLoop { it.reconfigure(next) }
+                caulis.onLoop { it.rreload.reconfigure(next) }
                 next.onLoop { r ->
                     next.keyboardLayouts = "us,ru"
                     next.keyboardOptions = "grp:alt_shift_toggle"

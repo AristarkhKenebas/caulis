@@ -32,7 +32,7 @@ class ReloadTest {
                 keyboardLayouts = "us,ru"
                 layout = Dwindle(Gaps(0, 0))
             }
-            val (restartOnly, _) = caulis.onLoop { it.reconfigure(next) }
+            val (restartOnly, _) = caulis.onLoop { it.rreload.reconfigure(next) }
             // (Keyboard layouts change live now: nothing waits for a restart.)
             assertEquals(emptyList(), restartOnly)
             assertSame(next, next.onLoop { it.config })
@@ -50,11 +50,11 @@ class ReloadTest {
         val tree = BinaryTree()
         withCaulis({ layout = tree }) { caulis, _ ->
             val next = caulis.reloaded { layout = BinaryTree(Gaps(20, 20)) }
-            val (_, notes) = caulis.onLoop { it.reconfigure(next) }
+            val (_, notes) = caulis.onLoop { it.rreload.reconfigure(next) }
             assertSame(tree, next.onLoop { it.desktop.layout }, "the same tree, with its arrangement")
             assertTrue(notes.single().contains("keeps your arrangement"))
             val third = caulis.reloaded { layout = Dwindle() }
-            next.onLoop { it.reconfigure(third) }
+            next.onLoop { it.rreload.reconfigure(third) }
             assertEquals("Dwindle", third.onLoop { it.desktop.layout.name })
         }
     }
@@ -64,7 +64,7 @@ class ReloadTest {
         withCaulis({ keys { close = "Super+F" } }) { caulis, client ->
             client.waitFor { caulis.onLoop { r -> r.desktop.notices.any { it.level == NoticeLevel.WARNING } } }
             val fixed = caulis.reloaded {} // the mistake is fixed
-            caulis.onLoop { it.reconfigure(fixed) }
+            caulis.onLoop { it.rreload.reconfigure(fixed) }
             client.waitFor { fixed.onLoop { r -> r.desktop.notices.none { it.level == NoticeLevel.WARNING } } }
         }
     }
@@ -88,7 +88,7 @@ class ReloadTest {
                     monitor("HEADLESS-1") { mode(1280, 720) }
                     monitor("HEADLESS-2") { mode(1920, 1080); scale = 1.25 } // no longer turned
                 }
-                caulis.onLoop { it.reconfigure(next) }
+                caulis.onLoop { it.rreload.reconfigure(next) }
                 next.onLoop { r ->
                     val (first, second) = r.desktop.monitors
                     assertEquals(1280 to 720, first.pixelWidth to first.pixelHeight, "the new mode")
@@ -102,7 +102,7 @@ class ReloadTest {
 
                 // The same again: nothing changes, nothing is laid out anew.
                 lines.clear()
-                next.onLoop { it.reconfigure(caulis.reloaded {
+                next.onLoop { it.rreload.reconfigure(caulis.reloaded {
                     log("layout", 2)
                     headlessMonitors = 2
                     scale = 1.5
