@@ -2093,7 +2093,7 @@ forward button `MouseExtra` (`ThumbForward`).
 
 ```kotlin
 pointerBindings.press("Super+WheelRight", PointerBindings.Options(cooldownMillis = 150)) { run("workspace next") }  // a side wheel
-pointerBindings.press("ThumbBack", PointerBindings.Options(pass = true)) { log.info { "back" } }  // the program gets the press too
+pointerBindings.press("ThumbBack", PointerBindings.Options(pass = true)) { launch("notify-send back") }  // the program gets the press too
 pointerBindings.click("WheelClick") { desktop.toggleOverview() }
 pointerBindings.longPress("WheelClick", 500) { launch("fuzzel") }
 pointerBindings.gesture("MouseTask", mapOf(

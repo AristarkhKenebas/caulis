@@ -89,7 +89,7 @@ class KotlinScriptConfigTest {
     fun `the input guide's Kotlin is right`() {
         val section = Files.readString(Path.of("../docs/getting-started.md")).substringAfter(". Mice, touchpads, tablets, and keys that do more\n").substringBefore("\n## ")
         val blocks = section.split("```kotlin\n").drop(1).map { it.substringBefore("```") }
-        assertEquals(5, blocks.size)
+        assertEquals(6, blocks.size)
         assertEquals(emptyList(), apply(blocks.joinToString("\n") + "\nonLid { closed -> if (closed) lock() }").second)
     }
 
