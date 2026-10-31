@@ -19,9 +19,9 @@ import java.lang.foreign.ValueLayout.JAVA_BYTE
  * (60, 144, ... Hz) paces everything.
  */
 class DrmOutput internal constructor(
-    private val loop: EventLoop,
+    internal val loop: EventLoop,
     internal val device: DrmDevice,
-    private val renderer: Renderer,
+    internal val renderer: Renderer,
     internal val isSessionActive: () -> Boolean,
     internal val connectorId: Int,
     internal val crtcId: Int,
@@ -40,6 +40,7 @@ class DrmOutput internal constructor(
     /** Its cursor plane (0: none). */
     internal val cursorPlaneId: Int = 0,
 ) : AutoCloseable {
+    internal val cursorSide = DrmCursorPlane(this)
     internal val gammaSide = DrmGamma(this)
     internal val log = dev.caulis.log.Logger("drm")
 
@@ -82,7 +83,7 @@ class DrmOutput internal constructor(
     internal val crtcProps = device.properties(crtcId, Drm.DRM_MODE_OBJECT_CRTC())
     private val planeProps = device.properties(planeId, Drm.DRM_MODE_OBJECT_PLANE())
 
-    private class Slot(val buffer: GpuBuffer, val framebuffer: Int) {
+    internal class Slot(val buffer: GpuBuffer, val framebuffer: Int) {
         /** The frame this buffer was last drawn in (0 = never). */
         var drawnInFrame = 0L
     }
@@ -100,12 +101,12 @@ class DrmOutput internal constructor(
     private var queuedDirect: DmabufBuffer? = null
 
     // A picture (or only the cursor's new place) is on its way to the screen; the next one waits for the flip.
-    private val flipPending: Boolean get() = queued != null || queuedDirect != null || cursorOnlyPending
-    @Volatile private var needsModeset = true
+    internal val flipPending: Boolean get() = queued != null || queuedDirect != null || cursorSide.cursorOnlyPending
+    @Volatile internal var needsModeset = true
 
     // Each commit has a serial that comes back with its flip: a flip of an old commit (from
     // before switching terminals) is not taken for the one awaited.
-    private var commitSerial = 0L
+    internal var commitSerial = 0L
     private var awaitedSerial = -1L
 
     // A flip that never comes (suspend, a GPU reset) must not freeze the screen: after a
@@ -166,187 +167,18 @@ class DrmOutput internal constructor(
         device.onFlip(crtcId) { nanos, sequence, serial -> flipped(nanos, sequence, serial) }
     }
 
-    // --- the cursor plane -------------------------------------------------------------------
-
-    private val cursorProps = if (cursorPlaneId != 0) device.properties(cursorPlaneId, Drm.DRM_MODE_OBJECT_PLANE()) else emptyMap()
-
-    // Two pictures: one shown, one to draw the next into.
-    private var cursorSlots: List<Slot> = emptyList()
-    private var cursorFront = 0
     // (Volatile: the input thread moves the cursor too — see moveFromAnyThread.)
-    @Volatile private var cursorX = 0
-    @Volatile private var cursorY = 0
-    @Volatile private var cursorVisible = false
-    // The cursor's state changed and is not on screen yet.
-    private var cursorDirty = false
-    // Only the cursor changed: a commit of its own is on its way.
-    private var cursorOnlyPending = false
-    // The display refused the cursor plane: the cursor goes into the frames from now on.
-    @Volatile private var cursorRefused = false
-    // The display took the cursor plane once (before that, mode sets leave it out).
-    @Volatile private var cursorTested = false
+    @Volatile internal var cursorX = 0
+    @Volatile internal var cursorY = 0
+    @Volatile internal var cursorVisible = false
 
     /** The cursor plane (null: none, or the display refused it). */
-    val hardwareCursor: dev.caulis.core.HardwareCursor? get() = if (cursorPlaneId == 0 || cursorRefused) null else cursorPlane
+    val hardwareCursor: dev.caulis.core.HardwareCursor? get() = if (cursorPlaneId == 0 || cursorSide.cursorRefused) null else cursorSide.cursorPlane
 
     // The legacy cursor move works here (false once the driver refused it: then only the
     // compositor's thread moves the cursor, with its commits). Closed: never again.
-    @Volatile private var quickMoves = true
-    @Volatile private var closed = false
-    // (The input thread's own count of refusals in a row.)
-    private var quickMoveFailures = 0
-
-    private val cursorPlane = object : dev.caulis.core.HardwareCursor, dev.caulis.core.MovableFromAnyThread {
-        // From the input thread: the same picture at another place, at once — not waiting for
-        // the compositor's thread (busy for a moment: the pointer would stand still). The next
-        // commit of the compositor's thread takes the same place along (cursorX, cursorY).
-        override fun moveFromAnyThread(x: Int, y: Int): Boolean {
-            if (!quickMoves || closed || cursorRefused || !cursorTested || !cursorVisible || !powered || needsModeset || mode == null || !isSessionActive()) return false
-            if (x == cursorX && y == cursorY) return true
-            val result = device.moveCursor(crtcId, x, y)
-            if (result == 0) {
-                cursorX = x
-                cursorY = y
-                quickMoveFailures = 0
-                return true
-            }
-            // Not ours just now (another terminal: EACCES/EPERM) or busy: the next time. Else,
-            // refused again and again, the driver cannot: from now on the compositor's thread
-            // alone moves it.
-            if (-result !in TRANSIENT_ERRNOS && ++quickMoveFailures >= 3) {
-                quickMoves = false
-                log.info { "$name: the cursor cannot be moved from the input thread (${errno(result)}); it moves with the compositor's thread" }
-            }
-            return false
-        }
-
-        override val width: Int = device.capability(DRM_CAP_CURSOR_WIDTH).takeIf { it in 16..512 }?.toInt() ?: 64
-        override val height: Int = device.capability(DRM_CAP_CURSOR_HEIGHT).takeIf { it in 16..512 }?.toInt() ?: 64
-
-        override fun show(x: Int, y: Int, draw: ((GpuTarget) -> Unit)?): Boolean {
-            if (cursorRefused) return false
-            if (draw != null) {
-                if (cursorSlots.isEmpty() && !makeCursorSlots(width, height)) return false
-                val back = cursorSlots[1 - cursorFront]
-                draw(back.buffer)
-                renderer.end()
-                cursorFront = 1 - cursorFront
-            } else if (cursorSlots.isEmpty()) {
-                return false
-            }
-            if (draw == null && cursorVisible && x == cursorX && y == cursorY) return true
-            if (!cursorTested) {
-                // Tested once the monitor runs (a display that cannot do it falls back for good);
-                // until then the cursor is drawn into the pictures.
-                if (needsModeset || !isSessionActive() || mode == null) return false
-                cursorX = x
-                cursorY = y
-                cursorVisible = true
-                if (!testCursor()) {
-                    log.info { "$name: the cursor plane is refused; the cursor is drawn into the pictures" }
-                    cursorRefused = true
-                    cursorVisible = false
-                    return false
-                }
-                cursorTested = true
-                log.info { "$name: the cursor is on its own plane (${width}x$height)" }
-            }
-            cursorX = x
-            cursorY = y
-            cursorVisible = true
-            cursorMoved()
-            return true
-        }
-
-        override fun hide() {
-            if (!cursorVisible) return
-            cursorVisible = false
-            cursorMoved()
-        }
-    }
-
-    private fun makeCursorSlots(width: Int, height: Int): Boolean {
-        val made = ArrayList<Slot>()
-        try {
-            repeat(2) {
-                // Plain rows: what cursor planes take everywhere.
-                val buffer = renderer.createBuffer(width, height, Dmabuf.ARGB8888, listOf(Dmabuf.MODIFIER_LINEAR), scanout = true)
-                try {
-                    made += Slot(buffer, device.addFramebuffer(buffer))
-                } catch (e: Exception) {
-                    buffer.close()
-                    throw e
-                }
-            }
-        } catch (e: Exception) {
-            log.info { "$name: no cursor plane pictures (${e.message}); the cursor is drawn into the pictures" }
-            made.forEach(::freeSlot)
-            cursorRefused = true
-            return false
-        }
-        cursorSlots = made
-        return true
-    }
-
-    // The cursor plane as it should be now.
-    private fun cursorState(request: DrmDevice.AtomicRequest) {
-        if (cursorPlaneId == 0) return
-        val slot = cursorSlots.getOrNull(cursorFront)
-        if (!cursorVisible || slot == null || cursorRefused || !cursorTested) {
-            request.set(cursorPlaneId, cursorProps, "FB_ID", 0)
-            request.set(cursorPlaneId, cursorProps, "CRTC_ID", 0)
-            return
-        }
-        val w = cursorPlane.width.toLong()
-        val h = cursorPlane.height.toLong()
-        request.set(cursorPlaneId, cursorProps, "FB_ID", slot.framebuffer.toLong())
-        request.set(cursorPlaneId, cursorProps, "CRTC_ID", crtcId.toLong())
-        request.set(cursorPlaneId, cursorProps, "SRC_X", 0)
-        request.set(cursorPlaneId, cursorProps, "SRC_Y", 0)
-        request.set(cursorPlaneId, cursorProps, "SRC_W", w shl 16)
-        request.set(cursorPlaneId, cursorProps, "SRC_H", h shl 16)
-        request.set(cursorPlaneId, cursorProps, "CRTC_X", cursorX.toLong())
-        request.set(cursorPlaneId, cursorProps, "CRTC_Y", cursorY.toLong())
-        request.set(cursorPlaneId, cursorProps, "CRTC_W", w)
-        request.set(cursorPlaneId, cursorProps, "CRTC_H", h)
-    }
-
-    private fun testCursor(): Boolean {
-        cursorTested = true // (so that cursorState includes it)
-        val ok = device.commit(Drm.DRM_MODE_ATOMIC_TEST_ONLY()) { request -> cursorState(request) } == 0
-        cursorTested = false
-        return ok
-    }
-
-    // The cursor changed: it goes with the next picture, or — if none is coming — on its own.
-    // Not at once: a picture drawn right after it (the same refresh) takes it along. A
-    // commit of the cursor alone would hold the monitor until the next refresh, and the
-    // picture would wait for it: with the mouse moving all the time over a window that
-    // redraws (a game), the pictures would hardly ever get through.
-    private fun cursorMoved() {
-        cursorDirty = true
-        if (cursorAloneQueued) return
-        cursorAloneQueued = true
-        loop.after(0) {
-            cursorAloneQueued = false
-            cursorAlone()
-        }
-    }
-
-    // A check for a cursor without a picture is waiting (see cursorMoved).
-    private var cursorAloneQueued = false
-
-    private fun commitCursor() {
-        val serial = ++commitSerial
-        val result = device.commit(Drm.DRM_MODE_ATOMIC_NONBLOCK() or Drm.DRM_MODE_PAGE_FLIP_EVENT(), serial) { request -> cursorState(request) }
-        if (result == 0) {
-            cursorDirty = false
-            cursorOnlyPending = true
-            awaitFlip(serial)
-        } else {
-            log.trace { "$name: the cursor's move was refused (${errno(result)}); with the next picture" }
-        }
-    }
+    @Volatile internal var quickMoves = true
+    @Volatile internal var closed = false
 
     /**
      * Turns the monitor on with the first mode that the kernel accepts (tested before
@@ -427,7 +259,7 @@ class DrmOutput internal constructor(
         // Our gamma table (a night light), also after switching terminals.
         request.setIfPresent(crtcId, crtcProps, "GAMMA_LUT", (gammaSide.pendingGamma ?: gammaSide.gammaBlob).toLong())
         showOnPlane(request, slot, mode)
-        cursorState(request)
+        cursorSide.cursorState(request)
         for (plane in strayPlanes()) {
             val props = device.properties(plane, Drm.DRM_MODE_OBJECT_PLANE())
             request.set(plane, props, "FB_ID", 0)
@@ -494,14 +326,14 @@ class DrmOutput internal constructor(
         } else {
             device.commit(Drm.DRM_MODE_ATOMIC_NONBLOCK() or Drm.DRM_MODE_PAGE_FLIP_EVENT(), serial) { request ->
                 request.set(planeId, planeProps, "FB_ID", slot.framebuffer.toLong())
-                if (cursorDirty) cursorState(request)
+                if (cursorSide.cursorDirty) cursorSide.cursorState(request)
                 // A new gamma table goes with the picture (no commit of its own, no stall).
                 if (gamma != null) request.setIfPresent(crtcId, crtcProps, "GAMMA_LUT", gamma.toLong())
             }
         }
         if (result == 0) {
             if (needsModeset) freeRetired() // the new mode is on screen
-            cursorDirty = false
+            cursorSide.cursorDirty = false
             needsModeset = false
             redrawAll = false
             modesetFailures = 0
@@ -532,7 +364,7 @@ class DrmOutput internal constructor(
     private val lateDirect = ArrayList<DmabufBuffer>()
 
     // Waits for the flip of commit [serial]; one that does not come within a second is given up.
-    private fun awaitFlip(serial: Long) {
+    internal fun awaitFlip(serial: Long) {
         awaitedSerial = serial
         flipWatchdog?.cancel()
         flipWatchdog = loop.after(FLIP_TIMEOUT_MILLIS) {
@@ -544,7 +376,7 @@ class DrmOutput internal constructor(
             // that does reach the screen, not now.
             queuedDirect?.let { lateDirect += it }
             queuedDirect = null
-            cursorOnlyPending = false
+            cursorSide.cursorOnlyPending = false
             awaitedSerial = -1
             needsModeset = true
             slots.forEach { it.drawnInFrame = 0 }
@@ -584,15 +416,15 @@ class DrmOutput internal constructor(
         }
         val serial = ++commitSerial
         val gamma = gammaSide.pendingGamma
-        val withCursor = cursorDirty
+        val withCursor = cursorSide.cursorDirty
         val result = device.commit(Drm.DRM_MODE_ATOMIC_NONBLOCK() or Drm.DRM_MODE_PAGE_FLIP_EVENT(), serial) { request ->
             request.set(planeId, planeProps, "FB_ID", id.toLong())
             // The cursor and a new gamma table go along, as with our own pictures.
-            if (withCursor) cursorState(request)
+            if (withCursor) cursorSide.cursorState(request)
             if (gamma != null) request.setIfPresent(crtcId, crtcProps, "GAMMA_LUT", gamma.toLong())
         }
         if (result != 0) return false
-        if (withCursor) cursorDirty = false
+        if (withCursor) cursorSide.cursorDirty = false
         gammaSide.gammaApplied(gamma)
         buffer.startShowing()
         queuedDirect = buffer
@@ -619,14 +451,14 @@ class DrmOutput internal constructor(
         awaitedSerial = -1
         flipWatchdog?.cancel()
         flipWatchdog = null
-        if (cursorOnlyPending) {
+        if (cursorSide.cursorOnlyPending) {
             // Only the cursor moved: nothing to report. A picture first (it takes the cursor
             // with it); the cursor alone only if no picture came — else, with the mouse moving
             // every refresh, windows would never get a frame.
-            cursorOnlyPending = false
+            cursorSide.cursorOnlyPending = false
             lastFlipNanos = System.nanoTime()
             nextFrame()
-            cursorAlone()
+            cursorSide.cursorAlone()
             return
         }
         val wasQueued = flipPending
@@ -657,12 +489,7 @@ class DrmOutput internal constructor(
             }
         }
         nextFrame()
-        cursorAlone()
-    }
-
-    // The cursor moved, and no picture is on its way to take it along: it goes on its own.
-    private fun cursorAlone() {
-        if (cursorDirty && !flipPending && !needsModeset && powered && isSessionActive() && mode != null) commitCursor()
+        cursorSide.cursorAlone()
     }
 
     /**
@@ -700,7 +527,7 @@ class DrmOutput internal constructor(
         awaitedSerial = -1 // flips from before belong to no commit of now
         flipWatchdog?.cancel()
         flipWatchdog = null
-        cursorOnlyPending = false
+        cursorSide.cursorOnlyPending = false
         queued = null
         queuedDirect?.stopShowing() // that flip never happened
         queuedDirect = null
@@ -828,8 +655,8 @@ class DrmOutput internal constructor(
                 // Every plane on the CRTC goes too: a plane left showing on a CRTC switched off
                 // makes drivers refuse the whole commit (the monitor would stay lit).
                 if (cursorPlaneId != 0) {
-                    request.set(cursorPlaneId, cursorProps, "FB_ID", 0)
-                    request.set(cursorPlaneId, cursorProps, "CRTC_ID", 0)
+                    request.set(cursorPlaneId, cursorSide.cursorProps, "FB_ID", 0)
+                    request.set(cursorPlaneId, cursorSide.cursorProps, "CRTC_ID", 0)
                 }
                 for (plane in strayPlanes()) {
                     val props = device.properties(plane, Drm.DRM_MODE_OBJECT_PLANE())
@@ -841,7 +668,7 @@ class DrmOutput internal constructor(
         mode = null
     }
 
-    private fun freeSlot(slot: Slot) {
+    internal fun freeSlot(slot: Slot) {
         device.removeFramebuffer(slot.framebuffer)
         slot.buffer.close()
     }
@@ -874,8 +701,8 @@ class DrmOutput internal constructor(
         frameTimer = null
         freeBuffers()
         freeRetired()
-        cursorSlots.forEach(::freeSlot)
-        cursorSlots = emptyList()
+        cursorSide.cursorSlots.forEach(::freeSlot)
+        cursorSide.cursorSlots = emptyList()
         gammaSide.pendingGamma?.let { if (it != 0) device.destroyBlob(it) }
         if (gammaSide.gammaBlob != 0) device.destroyBlob(gammaSide.gammaBlob)
     }
