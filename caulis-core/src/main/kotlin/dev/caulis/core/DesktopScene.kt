@@ -114,7 +114,7 @@ internal class DesktopScene(private val desktop: Desktop) {
                 all += DrawItem.Color("$LOCK_BACKGROUND ${monitor.name}", monitor.area, color.red, color.green, color.blue, covers = listOf(monitor.area))
             }
             desktop.lockBackdrop?.takeIf { !desktop.lockHost.sessionLocked }?.let { addLockBackdrop(all, it) }
-            for (lockSurface in desktop.lockHost.lockSurfaces()) desktop.lockMonitor(lockSurface).area.let { addTree(all, lockSurface.surface, it.x, it.y) }
+            for (lockSurface in desktop.lockHost.lockSurfaces()) desktop.screens.lockMonitor(lockSurface).area.let { addTree(all, lockSurface.surface, it.x, it.y) }
             for (level in DrawingLevel.entries) desktop.widgetHost.addWidgets(all, level, onLockScreen = true)
             sceneVisible.clear()
             for (item in all) if (item is DrawItem.Picture) sceneVisible += item.surface
@@ -127,7 +127,7 @@ internal class DesktopScene(private val desktop: Desktop) {
         val placed = placeDirected(now)
         val (fullscreen, normal) = stackingOrder().filter { !desktop.directed(it) }.partition { it.fullscreen }
         // Our background on each monitor, below a wallpaper program's (which wins).
-        val allMonitors = desktop.desktopBounds()
+        val allMonitors = desktop.screens.desktopBounds()
         desktop.wallpaperShaders.sample(desktop.pointerX, desktop.pointerY, now)
         for (monitor in desktop.monitorList) all += desktop.backdrops.items(monitor, monitor.workspace.number, desktop.pointerX, desktop.pointerY, now, allMonitors, desktop.largestScale)
         desktop.widgetHost.addDrawings(all, DrawingLevel.WALLPAPER)
@@ -235,7 +235,7 @@ internal class DesktopScene(private val desktop: Desktop) {
         if (!desktop.locked) all += desktop.osd.items(desktop.focusedMonitor, System.nanoTime())
 
         // Leave out what nobody can see; only the rest counts as visible.
-        val kept = cullHidden(all, desktop.desktopBounds())
+        val kept = cullHidden(all, desktop.screens.desktopBounds())
         // A moving wallpaper shader goes on only where it is seen (not under a wallpaper program, a fullscreen window).
         desktop.backdrops.sceneBuilt()
         desktop.wallpaperShaders.sceneBuilt(kept)
@@ -267,7 +267,7 @@ internal class DesktopScene(private val desktop: Desktop) {
         val now = System.nanoTime()
         if (backdrop.wallpaper) {
             desktop.wallpaperShaders.sample(desktop.pointerX, desktop.pointerY, now)
-            val allMonitors = desktop.desktopBounds()
+            val allMonitors = desktop.screens.desktopBounds()
             for (monitor in desktop.monitorList) all += desktop.backdrops.items(monitor, monitor.workspace.number, desktop.pointerX, desktop.pointerY, now, allMonitors, desktop.largestScale)
             desktop.widgetHost.addDrawings(all, DrawingLevel.WALLPAPER, withWidgets = false)
         }

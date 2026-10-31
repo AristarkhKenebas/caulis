@@ -200,7 +200,7 @@ internal class DesktopScratchpads(private val desktop: Desktop) {
         }
         desktop.layoutLog.info { "$window dragged out of the special workspace ${pad.name}" }
         val there = desktop.monitorAt(x, y)
-        if (there !== desktop.focusedMonitor) desktop.setFocusedMonitor(there)
+        if (there !== desktop.focusedMonitor) desktop.moveFocusTo(there)
         return moveOutOfSpecialWorkspace(window)
     }
 

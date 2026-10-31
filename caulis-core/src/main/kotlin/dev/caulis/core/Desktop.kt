@@ -84,6 +84,8 @@ class Desktop(
 
     internal val frames = DesktopFrames(this)
 
+    internal val screens = DesktopMonitors(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -196,7 +198,7 @@ class Desktop(
     /** The monitor with the focus: new windows open there, Super+N changes its workspace. */
     @Suppress("UNNECESSARY_LATEINIT") // set in init below, but notices before that ask isInitialized
     lateinit var focusedMonitor: Monitor
-        private set
+        internal set
 
     // Stands in until the backend adds the first real monitor (and in tests): the size given.
     internal var placeholder: Monitor? = null
@@ -235,198 +237,38 @@ class Desktop(
      * Shows [view]'s part of [monitor]'s background (a view moving over a big wallpaper and
      * zooming, as a canvas does); null: the whole background as usual.
      */
-    fun setBackgroundView(monitor: Monitor, view: BackgroundView?) {
-        if (backdrops.views[monitor.name] == view) return
-        if (view == null) backdrops.views -= monitor.name else backdrops.views[monitor.name] = view
-        changed()
-    }
+    fun setBackgroundView(monitor: Monitor, view: BackgroundView?) = screens.setBackgroundView(monitor, view)
 
     /** Gives [monitor] the scale [value] (the picture melts into the new one). */
-    fun setScale(monitor: Monitor, value: Double) {
-        require(value in 0.5..4.0) { "a scale must be between 0.5 and 4, not $value" }
-        if (value == monitor.scale) return
-        layoutLog.info { "Monitor ${monitor.name}: scale ${monitor.scale} → $value" }
-        scaleFade.fadeFromNow(monitor) // the old picture melts into the new one instead of jumping
-        monitor.scale = value
-        monitor.output?.rescale(value)
-        if (monitor === focusedMonitor) compositor.outputScale = value
-        placeMonitors() // its size in units changed: the ones beside it move
-        for (each in monitorList) monitorChanged(each)
-        cursors.cursorChanged()
-    }
+    fun setScale(monitor: Monitor, value: Double) = screens.setScale(monitor, value)
 
     /**
      * A monitor came: it shows a workspace of its own from now on. [x], [y] (desktop units)
      * place it; without them it goes to the right of the others. [scale] is its own, or the
      * desktop's ([Desktop.scale]).
      */
-    fun addMonitor(name: String, output: Output?, pixelWidth: Int, pixelHeight: Int, scale: Double = defaultScale, x: Int? = null, y: Int? = null): Monitor {
-        val monitor = Monitor(name, output, pixelWidth, pixelHeight, scale)
-        if (x != null && y != null) monitor.fixedPosition = x to y
-        val standIn = placeholder
-        if (standIn != null) {
-            // The first real monitor takes over from the stand-in: its workspace and views.
-            placeholder = null
-            monitorList -= standIn
-            monitor.workspace = standIn.workspace
-            for (view in views + capturing.captureViews) if (view.monitor === standIn) view.monitor = monitor
-            for (workspace in workspaces.values) if (workspace.monitor === standIn) workspace.monitor = monitor
-            if (workspaceMode == WorkspaceMode.SPANNING || workspaceMode == WorkspaceMode.SEPARATE) {
-                // Workspaces of their own on this monitor from now on (the stand-in's windows go along).
-                monitorList += monitor
-                focusedMonitor = monitor
-                mergeWorkspaces(of = standIn, into = monitor)
-                monitorList -= monitor
-                monitor.workspace = workspace(monitor.workspace.number, monitor)
-            }
-        } else {
-            monitor.workspace = workspaceForNewMonitor(monitor)
-        }
-        monitor.workspace.monitor = monitor
-        monitorList += monitor
-        if (standIn != null) focusedMonitor = monitor
-        // The primary monitor gets the focus when it comes before anything is open.
-        if (monitor.name == primaryMonitorName && allWindows.isEmpty()) focusedMonitor = monitor
-        output?.rescale(scale)
-        arrangePrimary()
-        ensurePersistent()
-        if (workspaceMode == WorkspaceMode.PINNED) for (each in monitorList) if (each.workspace.number > 0) pinnedHomes.putIfAbsent(each.workspace.number, each.name)
-        layoutLog.info { "Monitor ${monitor.name}: ${pixelWidth}x$pixelHeight, scale $scale, workspace ${monitor.workspace.number}" }
-        placeMonitors()
-        for (each in monitorList) monitorChanged(each)
-        return monitor
-    }
+    fun addMonitor(name: String, output: Output?, pixelWidth: Int, pixelHeight: Int, scale: Double = defaultScale, x: Int? = null, y: Int? = null): Monitor = screens.addMonitor(name, output, pixelWidth, pixelHeight, scale, x, y)
 
     /** A monitor went away: its workspaces stay (Super+N brings them back on another monitor). */
-    fun removeMonitor(monitor: Monitor) {
-        if (monitor !in monitorList) return
-        scaleFade.dropFade(monitor)
-        backdrops.forget(monitor.name)
-        if (monitorList.size == 1) {
-            // The last one: it stays as the stand-in, so windows keep a place until a monitor comes.
-            placeholder = monitor
-            return
-        }
-        monitorList -= monitor
-        val home = if (focusedMonitor === monitor) monitorList.first() else focusedMonitor
-        layoutLog.info { "Monitor ${monitor.name} is gone; its windows stay on their workspaces (now on ${home.name})" }
-        for (view in views + capturing.captureViews) if (view.monitor === monitor) view.monitor = home
-        // Scratchpads shown on it come over to [home]; a special workspace only if none is shown
-        // there (one a monitor: else two dimmings and two sets of windows on top of each other).
-        for (pad in pads.shownPads.toList()) if (pad.monitor === monitor && !pad.leaving) {
-            if (pad.isSpecial && pads.shownPads.any { it !== pad && it.isSpecial && !it.leaving && it.monitor === home }) {
-                layoutLog.info { "Special workspace ${pad.name} hidden: its monitor is gone and ${home.name} shows another one" }
-                pads.hideScratchpad(pad, focusBack = false)
-            } else {
-                pad.monitor = home
-            }
-        }
-        when (workspaceMode) {
-            WorkspaceMode.PER_MONITOR, WorkspaceMode.PINNED -> for (workspace in workspaces.values.toList()) if (workspace.monitor === monitor) moveWorkspace(workspace, home)
-            WorkspaceMode.SPANNING, WorkspaceMode.SEPARATE -> mergeWorkspaces(of = monitor, into = home)
-            WorkspaceMode.PRIMARY_ONLY -> {
-                val shown = monitor.workspace
-                val primary = primaryMonitor
-                if (shown.number == 0) {
-                    // A screen of its own: its windows go to what the primary monitor shows.
-                    mergeInto(shown, primary.workspace)
-                } else {
-                    // The primary monitor went: the next one shows its workspace (its own screen's windows join).
-                    val own = primary.workspace
-                    primary.workspace = shown
-                    moveWorkspace(shown, primary)
-                    if (own.number == 0) mergeInto(own, shown)
-                    arranger.arrange(shown)
-                }
-            }
-        }
-        // Panels on it close (programs like Waybar open new ones for the monitors there are).
-        for (layer in layerHost.layerSurfaces.filter { monitorOf(it) === monitor }.toList()) {
-            layer.close()
-            layerHost.layerMonitors -= layer
-        }
-        if (focusedMonitor === monitor) {
-            focusedMonitor = home
-            compositor.outputScale = home.scale
-            focus(home.workspace.windows.lastOrNull())
-        }
-        placeMonitors()
-        for (each in monitorList) monitorChanged(each)
-    }
+    fun removeMonitor(monitor: Monitor) = screens.removeMonitor(monitor)
 
     /**
      * Turns [monitor] ([Transform.ROTATE_90] for a screen standing on its side): its size and
      * what programs are told follow. The backend draws it turned (if it can, see [MonitorControl.canTransform]).
      */
-    fun setTransform(monitor: Monitor, transform: Transform) {
-        if (transform == monitor.transform) return
-        val swap = transform.sideways != monitor.transform.sideways
-        monitor.transform = transform
-        monitor.output?.setTransform(transform)
-        layoutLog.info { "Monitor ${monitor.name} turned: $transform" }
-        if (swap) resizeMonitor(monitor, monitor.pixelHeight, monitor.pixelWidth) else for (each in monitorList) monitorChanged(each)
-        changed()
-    }
+    fun setTransform(monitor: Monitor, transform: Transform) = screens.setTransform(monitor, transform)
 
     /** Switches [monitor]'s screen off (false) or on again (DPMS); false if the backend cannot. */
-    fun setPower(monitor: Monitor, on: Boolean): Boolean {
-        if (monitor.powered == on) return true
-        val done = monitor.control?.setPower(on) ?: false
-        if (done) {
-            monitor.powered = on
-            layoutLog.info { "Monitor ${monitor.name} ${if (on) "on" else "off"}" }
-            if (on) for (view in views) if (view.monitor === monitor) view.damageEverything()
-            changed()
-            events.powerListeners.toList().forEach { it(monitor) }
-        }
-        return done
-    }
+    fun setPower(monitor: Monitor, on: Boolean): Boolean = screens.setPower(monitor, on)
 
     /** Runs [listener] when a monitor's screen is switched off or on. */
     fun onPowerChanged(listener: (Monitor) -> Unit): AutoCloseable = events.onPowerChanged(listener)
 
     /** Puts [monitor] at [x], [y] on the desktop (units); null: to the right of the others. */
-    fun moveMonitor(monitor: Monitor, x: Int?, y: Int?) {
-        val place = if (x != null && y != null) x to y else null
-        if (place == monitor.fixedPosition) return // (windows are not laid out again for nothing)
-        monitor.fixedPosition = place
-        placeMonitors()
-        for (each in monitorList) monitorChanged(each)
-    }
+    fun moveMonitor(monitor: Monitor, x: Int?, y: Int?) = screens.moveMonitor(monitor, x, y)
 
     /** [monitor] is now [pixelWidth] x [pixelHeight] pixels (a new mode, the nested window resized). */
-    fun resizeMonitor(monitor: Monitor, pixelWidth: Int, pixelHeight: Int) {
-        if (pixelWidth == monitor.pixelWidth && pixelHeight == monitor.pixelHeight) return
-        monitor.pixelWidth = pixelWidth
-        monitor.pixelHeight = pixelHeight
-        monitor.output?.resize(pixelWidth, pixelHeight)
-        placeMonitors()
-        for (each in monitorList) monitorChanged(each)
-    }
-
-    // Monitors with a position of their own keep it; the others follow in a row to the right.
-    private fun placeMonitors() {
-        var nextX = monitorList.filter { it.fixedPosition != null }.maxOfOrNull { it.fixedPosition!!.first + it.units(it.pixelWidth) } ?: 0
-        for (monitor in monitorList) {
-            val (x, y) = monitor.fixedPosition ?: (nextX to 0).also { nextX += monitor.units(monitor.pixelWidth) }
-            monitor.area = Rect(x, y, monitor.units(monitor.pixelWidth), monitor.units(monitor.pixelHeight))
-            monitor.output?.position(x, y)
-        }
-    }
-
-    // A monitor's size, place or scale changed: its panels, windows and views follow.
-    private fun monitorChanged(monitor: Monitor) {
-        layerHost.arrangeLayers(monitor, refit = false)
-        refitWindows(monitor)
-        for (view in views + capturing.captureViews) if (view.monitor === monitor) view.damageEverything()
-    }
-
-    // All monitors together: the box around them.
-    internal fun desktopBounds(): Rect = monitorList.map { it.area }.reduce(Rect::union)
-
-    // The monitor a lock surface covers (its output's, else the first).
-    internal fun lockMonitor(surface: LockSurface): Monitor =
-        surface.output?.let { output -> monitorList.firstOrNull { it.output === output } } ?: monitorList.first()
+    fun resizeMonitor(monitor: Monitor, pixelWidth: Int, pixelHeight: Int) = screens.resizeMonitor(monitor, pixelWidth, pixelHeight)
 
     /** The size in pixels of the monitor with the focus. */
     val pixelWidth: Int get() = focusedMonitor.pixelWidth
@@ -440,13 +282,7 @@ class Desktop(
 
     /** The monitor at a desktop point, or the nearest one. */
     fun monitorAt(x: Double, y: Double): Monitor =
-        monitorList.firstOrNull { it.contains(x, y) } ?: monitorList.minBy { distance(it.area, x, y) }
-
-    private fun distance(area: Rect, x: Double, y: Double): Double {
-        val dx = maxOf(area.x - x, 0.0, x - (area.right - 1))
-        val dy = maxOf(area.y - y, 0.0, y - (area.bottom - 1))
-        return dx * dx + dy * dy
-    }
+        monitorList.firstOrNull { it.contains(x, y) } ?: monitorList.minBy { screens.distance(it.area, x, y) }
 
     /** The monitor showing [output], if any. */
     fun monitorOf(output: Output): Monitor? = monitorList.firstOrNull { it.output === output }
@@ -464,28 +300,6 @@ class Desktop(
     /** Size of the monitor with the focus, in desktop units. */
     val width: Int get() = focusedMonitor.area.width
     val height: Int get() = focusedMonitor.area.height
-
-    // A monitor changed size: maximized and fullscreen windows on it follow, layouts re-arrange.
-    internal fun refitWindows(monitor: Monitor) {
-        lockHost.lock?.surfaces?.filter { lockMonitor(it) === monitor }?.forEach { it.configure(monitor.area.width, monitor.area.height) }
-        for (pad in pads.shownPads) if (pad.monitor === monitor) pads.placeScratchpad(pad, appearing = emptySet())
-        for (workspace in workspaces.values) {
-            if ((workspace.monitor ?: focusedMonitor) !== monitor) continue
-            for (window in workspace.windows + workspace.minimized) {
-                if (!window.configured) continue
-                if (window.fullscreen) {
-                    window.configure(monitor.area.width, monitor.area.height)
-                    animator.moveSmoothly(window, monitor.area.x, monitor.area.y)
-                } else if (window.maximized) {
-                    val area = withoutTitle(window, monitor.usableArea)
-                    window.configure(area.width, area.height)
-                    animator.moveSmoothly(window, area.x, area.y)
-                }
-            }
-            arranger.arrange(workspace)
-        }
-        changed()
-    }
 
     /**
      * Called whenever something may have to be drawn again (a program drew, a window moved,
@@ -776,7 +590,7 @@ class Desktop(
     private fun onlyStandIn() = placeholder != null && monitorList.singleOrNull() === placeholder
 
     // Pinned workspaces: the monitor each was first shown on (kept while it is gone empty).
-    private val pinnedHomes = HashMap<Int, String>()
+    internal val pinnedHomes = HashMap<Int, String>()
 
     // Where workspace [number] belongs: its rule's monitor (if plugged in); pinned, also where it was first shown.
     internal fun homeOf(number: Int): Monitor? {
@@ -788,7 +602,7 @@ class Desktop(
     }
 
     // A new monitor shows: its own workspace from before (plugged in again), or the first free number.
-    private fun workspaceForNewMonitor(monitor: Monitor): Workspace {
+    internal fun workspaceForNewMonitor(monitor: Monitor): Workspace {
         when (workspaceMode) {
             WorkspaceMode.SPANNING -> return workspace(focusedMonitor.workspace.number.coerceAtLeast(1), monitor)
             WorkspaceMode.SEPARATE -> return workspaces.values.firstOrNull { it.homeMonitor == monitor.name && it.lastMonitorName == monitor.name } ?: workspace(1, monitor)
@@ -807,14 +621,14 @@ class Desktop(
     }
 
     // Workspaces of a monitor that went away (each monitor had its own): their windows join the same workspace on [into].
-    private fun mergeWorkspaces(of: Monitor, into: Monitor) {
+    internal fun mergeWorkspaces(of: Monitor, into: Monitor) {
         for (workspace in workspaces.values.filter { it.homeMonitor == of.name || (it.homeMonitor == null && of === placeholder) }.toList()) {
             mergeInto(workspace, workspace(workspace.number, into))
         }
     }
 
     // The windows of [from] join [to]; [from] is gone.
-    private fun mergeInto(from: Workspace, to: Workspace) {
+    internal fun mergeInto(from: Workspace, to: Workspace) {
         if (from === to) return
         for (window in from.windows.toList() + from.minimized.toList()) {
             val wasMinimized = window in from.minimized
@@ -829,7 +643,7 @@ class Desktop(
     }
 
     // PRIMARY_ONLY: the primary monitor shows the numbered workspaces, every other one a screen of its own.
-    private fun arrangePrimary() {
+    internal fun arrangePrimary() {
         if (workspaceMode != WorkspaceMode.PRIMARY_ONLY || monitorList.isEmpty() || onlyStandIn()) return
         val primary = primaryMonitor
         if (primary.workspace.number == 0) {
@@ -840,7 +654,7 @@ class Desktop(
                 ?: workspace(1, primary)
             monitorList.firstOrNull { it.workspace === numbered }?.let { other ->
                 // (The focus goes along with the workspaces.)
-                if (focusedMonitor === other) setFocusedMonitor(primary)
+                if (focusedMonitor === other) moveFocusTo(primary)
                 other.workspace = workspace(0, other)
                 moveWorkspace(other.workspace, other)
                 arranger.arrange(other.workspace)
@@ -874,7 +688,7 @@ class Desktop(
         ensurePersistent()
     }
 
-    private fun ensurePersistent() {
+    internal fun ensurePersistent() {
         if (onlyStandIn()) return
         for (rule in workspaceRules.filter { it.persistent && it.number <= workspaceCount }) {
             when (workspaceMode) {
@@ -941,7 +755,7 @@ class Desktop(
                     if (focusedMonitor !== primary) focusMonitor(primary)
                     return
                 }
-                setFocusedMonitor(primary)
+                moveFocusTo(primary)
                 show(workspace(number, primary), on = primary)
             }
             WorkspaceMode.PER_MONITOR, WorkspaceMode.PINNED -> {
@@ -956,7 +770,7 @@ class Desktop(
                     return
                 }
                 val on = home ?: focusedMonitor
-                setFocusedMonitor(on)
+                moveFocusTo(on)
                 show(target, on = on)
             }
         }
@@ -969,7 +783,7 @@ class Desktop(
     // [workspace] goes onto [monitor]: its floating windows keep their place relative to the
     // monitor's corner (and stay on it), maximized and fullscreen ones fit it; tiled ones are
     // arranged by whoever shows it.
-    private fun moveWorkspace(workspace: Workspace, monitor: Monitor) {
+    internal fun moveWorkspace(workspace: Workspace, monitor: Monitor) {
         val from = workspace.monitor
         workspace.monitor = monitor
         if (from == null || from === monitor) return
@@ -1023,24 +837,12 @@ class Desktop(
     /** Gives the focus to [monitor] (its top window gets the keyboard). */
     fun focusMonitor(monitor: Monitor) {
         if (monitor !in monitorList) return
-        setFocusedMonitor(monitor)
+        moveFocusTo(monitor)
         focus(arranger.topWindow(monitor.workspace))
     }
 
     /** The monitor next to the focused one in a direction ([dx], [dy] = -1, 0 or 1), if any. */
-    fun monitorBeside(dx: Int, dy: Int, from: Monitor = focusedMonitor): Monitor? {
-        val cx = from.area.x + from.area.width / 2.0
-        val cy = from.area.y + from.area.height / 2.0
-        return monitorList.filter { it !== from }.filter { other ->
-            val ox = other.area.x + other.area.width / 2.0
-            val oy = other.area.y + other.area.height / 2.0
-            (dx > 0 && ox > cx) || (dx < 0 && ox < cx) || (dy > 0 && oy > cy) || (dy < 0 && oy < cy)
-        }.minByOrNull { other ->
-            val ox = other.area.x + other.area.width / 2.0 - cx
-            val oy = other.area.y + other.area.height / 2.0 - cy
-            ox * ox + oy * oy
-        }
-    }
+    fun monitorBeside(dx: Int, dy: Int, from: Monitor = focusedMonitor): Monitor? = screens.monitorBeside(dx, dy, from)
 
     /** Moves [window] to the workspace shown on [monitor] (it keeps its place there if floating). */
     fun moveToMonitor(window: Window, monitor: Monitor) {
@@ -1057,7 +859,7 @@ class Desktop(
         focus(window)
     }
 
-    internal fun setFocusedMonitor(monitor: Monitor) {
+    internal fun moveFocusTo(monitor: Monitor) {
         if (focusedMonitor === monitor) return
         focusedMonitor = monitor
         compositor.outputScale = monitor.scale

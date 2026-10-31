@@ -152,7 +152,7 @@ internal class DesktopFocus(private val desktop: Desktop) {
                 // Its monitor gets the focus; a workspace on no monitor comes onto the focused one.
                 val showing = desktop.monitorList.firstOrNull { it.workspace === workspace }
                 if (showing != null) {
-                    desktop.setFocusedMonitor(showing)
+                    desktop.moveFocusTo(showing)
                 } else {
                     // Where this workspace belongs, as the workspace mode says (as switchTo does).
                     when {
@@ -163,7 +163,7 @@ internal class DesktopFocus(private val desktop: Desktop) {
                                 ?: (if (desktop.workspaceMode == WorkspaceMode.PRIMARY_ONLY && workspace.number > 0) desktop.primaryMonitor else null)
                                 ?: (if (workspace.number > 0) desktop.homeOf(workspace.number) else null)
                                 ?: desktop.focusedMonitor
-                            desktop.setFocusedMonitor(on)
+                            desktop.moveFocusTo(on)
                             desktop.show(workspace, on = on)
                         }
                     }

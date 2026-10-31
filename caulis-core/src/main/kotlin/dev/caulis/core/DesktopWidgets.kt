@@ -46,7 +46,7 @@ internal class DesktopWidgets(private val desktop: Desktop) {
     }
 
     // What wallpaper shaders drawn on canvases need now (the pointer, the clock, all monitors).
-    private fun wallpaperScene() = WallpaperScene(desktop.wallpaperShaders, desktop.renderer, desktop.pointerX, desktop.pointerY, System.nanoTime(), if (desktop.monitorList.isEmpty()) Rect(0, 0, 1, 1) else desktop.desktopBounds()) { name, code, problem -> desktop.looks.shaderWorks(name, code, problem) }
+    private fun wallpaperScene() = WallpaperScene(desktop.wallpaperShaders, desktop.renderer, desktop.pointerX, desktop.pointerY, System.nanoTime(), if (desktop.monitorList.isEmpty()) Rect(0, 0, 1, 1) else desktop.screens.desktopBounds()) { name, code, problem -> desktop.looks.shaderWorks(name, code, problem) }
 
     internal val widgets = ArrayList<Widget>()
 

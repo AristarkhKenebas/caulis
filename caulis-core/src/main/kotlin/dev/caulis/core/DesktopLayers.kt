@@ -82,7 +82,7 @@ internal class DesktopLayers(private val desktop: Desktop) {
         if (pushWindows > 0) usable = desktop.withoutBanners(usable, monitor, pushAll + pushWindows, bottom)
         if (usable != monitor.usableArea) {
             monitor.usableArea = usable
-            if (refit) desktop.refitWindows(monitor)
+            if (refit) desktop.screens.refitWindows(monitor)
         }
     }
 

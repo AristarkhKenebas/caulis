@@ -16,7 +16,7 @@ internal class DesktopHitTest(private val desktop: Desktop) {
             // Only the lock is there: the widgets usable on it, the locker's surfaces (each on its monitor).
             for (level in listOf(DrawingLevel.ON_TOP, DrawingLevel.ABOVE_WINDOWS, DrawingLevel.BELOW_WINDOWS, DrawingLevel.WALLPAPER)) widget(level)?.let { return it }
             for (lockSurface in desktop.lockHost.lockSurfaces()) {
-                val area = desktop.lockMonitor(lockSurface).area
+                val area = desktop.screens.lockMonitor(lockSurface).area
                 hitTree(lockSurface.surface, x - area.x, y - area.y, lockSurface.surface)?.let { return it.at() }
             }
             return null
