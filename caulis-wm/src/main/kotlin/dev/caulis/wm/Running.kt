@@ -14,16 +14,13 @@ import dev.caulis.xwayland.Xwayland
 import dev.caulis.core.FrameStats
 import dev.caulis.core.LayerShell
 import dev.caulis.core.LinuxDmabuf
-import dev.caulis.core.Monitor
 import dev.caulis.core.NoticeLevel
 import dev.caulis.core.WindowPlacement
-import dev.caulis.core.Output
 import dev.caulis.core.Presentation
 import dev.caulis.core.SessionLockManager
 import dev.caulis.core.Shm
 import dev.caulis.core.XdgOutputManager
 import dev.caulis.core.XdgShell
-import dev.caulis.core.cursor.CursorTheme
 import dev.caulis.core.input.CursorShape
 import dev.caulis.core.input.KeyBindings
 import dev.caulis.core.input.Keymap
@@ -76,9 +73,6 @@ internal class Running(
         dev.caulis.core.dbus.DBusScope(connection).also { sessionScopes[session] = it }
     }
 
-    // Monitors switched off because the configuration says enabled = false.
-    private val disabledByConfig = config.monitorSettings.values.filter { !it.enabled }.mapTo(HashSet()) { it.name }
-
     internal val log = Logger("config")
     internal val keyboardLog = Logger("keyboard")
     private val clientsLog = Logger("clients")
@@ -88,7 +82,7 @@ internal class Running(
 
     // The permission rules at work, and the person's answers.
     private val permissions = PermissionKeeper({ config }, { capture?.answered() }, { client -> display.privileged(client) })
-    private val cursorLog = Logger("cursor")
+    internal val cursorLog = Logger("cursor")
     internal val gesturesLog = Logger("gestures")
     internal val inputLog = Logger("input")
 
@@ -127,6 +121,7 @@ internal class Running(
     val seat = Seat(display, Keymap.fromNames(layouts = config.keyboardLayouts, variants = config.keyboardVariants, options = config.keyboardOptions, model = config.keyboardModel))
     private val compositor = Compositor(display, renderer)
     val desktop = Desktop(renderer, seat, compositor, width, height)
+    internal val rmon = RunningMonitors(this)
     internal val rreload = RunningReload(this)
     internal val rgest = RunningGestures(this)
     internal val rinput = RunningInput(this)
@@ -347,7 +342,7 @@ internal class Running(
             c.allowed = { client -> permissions.captureAllowed(client) }
             c.asking = { client -> permissions.asking(client, "screencopy") }
         }
-        applyCursor()
+        rmon.applyCursor()
         desktop.workspaceMode = config.workspaceMode // before the monitors come
         desktop.primaryMonitorName = config.primaryMonitor
         desktop.workspaceCount = config.workspaceCount
@@ -701,117 +696,6 @@ internal class Running(
     }
 
     fun quit() = loop.stop()
-
-    /** Applies the scale to the desktop, the monitors (their own where set) and the programs. */
-    fun applyScale() {
-        // Each monitor straight to its scale (one with its own never passes through the
-        // usual one: programs would draw twice, and the screen change twice).
-        desktop.defaultScale = config.scale
-        for (monitor in desktop.monitors) desktop.setScale(monitor, config.monitorSettings[monitor.name]?.scale ?: config.scale)
-        xwayland?.rescaled()
-        ipc?.changed()
-        outputManagement.changed()
-        log.info { "Scale ${config.scale}${desktop.monitors.filter { it.scale != config.scale }.joinToString("") { ", ${it.name} ${it.scale}" }}" }
-        applyCursor() // programs that draw their own cursor get the new size
-    }
-
-    /**
-     * A monitor came (the backend's): it gets its settings (scale, place) and shows a
-     * workspace from now on.
-     */
-    fun addMonitor(name: String, output: Output?, pixelWidth: Int, pixelHeight: Int): Monitor {
-        val settings = config.monitorSettings[name]
-        val x = settings?.x
-        val y = settings?.y
-        val monitor = desktop.addMonitor(name, output, pixelWidth, pixelHeight, settings?.scale ?: config.scale, x, y)
-        settings?.transform?.let { desktop.setTransform(monitor, it) }
-        config.monitorAdded.forEach { action -> safely("onMonitorAdded") { action(config, name) } }
-        xwayland?.rescaled() // the largest scale may be another now
-        ipc?.changed() // subscribers hear of the monitors
-        outputManagement.changed()
-        return monitor
-    }
-
-    /** A monitor went away (the backend's). */
-    fun removeMonitor(monitor: Monitor) {
-        desktop.removeMonitor(monitor)
-        config.monitorRemoved.forEach { action -> safely("onMonitorRemoved") { action(config, monitor.name) } }
-        xwayland?.rescaled()
-        ipc?.changed()
-        outputManagement.changed()
-    }
-
-    /**
-     * Applies changed monitor settings (mode, scale, turn, place, on or off) to the monitors
-     * there are; only what differs changes.
-     */
-    fun applyMonitorSettings() {
-        for (monitor in desktop.monitors) {
-            val settings = config.monitorSettings[monitor.name] ?: continue
-            applyMode(monitor, settings)
-            settings.scale?.let { desktop.setScale(monitor, it) }
-            settings.transform?.let { desktop.setTransform(monitor, it) }
-            desktop.moveMonitor(monitor, settings.x, settings.y)
-        }
-        // Off and on again, as the configuration says now (the last monitor stays: else nothing shows).
-        val heads = outputManagement.heads
-        for (monitor in desktop.monitors.toList()) {
-            if (config.monitorSettings[monitor.name]?.enabled != false) continue
-            if (desktop.monitors.size <= 1) {
-                log.warn("Monitor ${monitor.name} stays on: it is the only one (enabled = false is for one of several)")
-            } else if (heads.setEnabled(monitor.name, false)) {
-                disabledByConfig += monitor.name
-                log.info { "Monitor ${monitor.name} switched off (enabled = false)" }
-            }
-        }
-        for (name in disabledByConfig.toList()) {
-            if (config.monitorSettings[name]?.enabled == false) continue
-            disabledByConfig -= name
-            if (heads.setEnabled(name, true)) log.info { "Monitor $name used again" }
-        }
-        applyMonitorLinks?.invoke()
-        xwayland?.rescaled()
-        ipc?.changed()
-        outputManagement.changed()
-    }
-
-    // The mode the configuration asks of [monitor] (mode(width, height, refreshHz)), if it is another.
-    private fun applyMode(monitor: Monitor, settings: Caulis.MonitorSettings) {
-        val width = settings.width ?: return
-        val height = settings.height ?: return
-        val control = monitor.control ?: return
-        val hz = settings.refreshHz
-        val wanted = control.modes.filter { it.width == width && it.height == height }
-            .minByOrNull { mode -> hz?.let { Math.abs(mode.refreshMillihertz / 1000.0 - it) } ?: -mode.refreshMillihertz.toDouble() }
-            ?: if (control.customModes) dev.caulis.core.MonitorMode(width, height, ((hz ?: 60.0) * 1000).toInt()) else null
-        if (wanted == null) {
-            log.warn("Monitor ${monitor.name} has no mode ${width}x$height (it has ${control.modes.joinToString()})")
-            return
-        }
-        val current = control.currentMode
-        if (current != null && current.width == wanted.width && current.height == wanted.height && current.refreshMillihertz == wanted.refreshMillihertz) return
-        if (control.setMode(wanted)) log.info { "Monitor ${monitor.name}: mode $wanted" } else log.warn("Monitor ${monitor.name} could not take the mode $wanted")
-    }
-
-    /** Applies the cursor settings (theme, size, hiding). */
-    fun applyCursor() {
-        val theme = CursorTheme.load(config.cursorTheme, config.cursorSize)
-        if (!theme.found) {
-            cursorLog.warn("The cursor theme \"${theme.name}\" is not installed; using the system's. " +
-                "Installed: ${CursorTheme.available().joinToString()}")
-        }
-        cursorLog.info { "Cursor theme ${theme.name}${if (theme.found) "" else " (not found)"}, ${theme.size} px" }
-        desktop.cursorTheme = theme
-        xwayland?.cursorChanged()
-        desktop.hideCursorWhileTyping = config.hideCursorWhileTyping
-        desktop.hideCursorAfterMillis = config.hideCursorAfterSeconds * 1000L
-        cursorFolder = safely("cursor theme files", null) {
-            // On disk, once (a theme is tens of megabytes; the runtime folder is in memory).
-            val cache = System.getenv("XDG_CACHE_HOME")?.takeIf { it.isNotBlank() } ?: (System.getProperty("user.home") + "/.cache")
-            val folder = java.nio.file.Path.of(cache, "caulis", "icons")
-            if (theme.exportTo(folder)) folder else null
-        }
-    }
 
     // When each scratchpad's program was started (so a second press does not start it twice).
     private val startedAt = HashMap<String, Long>()

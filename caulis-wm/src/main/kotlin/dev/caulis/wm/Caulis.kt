@@ -431,7 +431,7 @@ class Caulis {
         set(value) {
             require(value in 0.5..4.0) { "scale must be between 0.5 and 4" }
             field = value
-            running?.applyScale()
+            running?.rmon?.applyScale()
         }
 
     /**
@@ -609,7 +609,7 @@ class Caulis {
     var adaptiveSync = false
         set(value) {
             field = value
-            running?.applyMonitorSettings()
+            running?.rmon?.applyMonitorSettings()
         }
 
     /**
@@ -619,7 +619,7 @@ class Caulis {
      */
     fun monitor(name: String, settings: MonitorSettings.() -> Unit) {
         monitorSettings.getOrPut(name) { MonitorSettings(name) }.apply(settings)
-        running?.applyMonitorSettings()
+        running?.rmon?.applyMonitorSettings()
     }
 
     /**
@@ -978,7 +978,7 @@ class Caulis {
     var cursorTheme: String? = null
         set(value) {
             field = value
-            running?.applyCursor()
+            running?.rmon?.applyCursor()
         }
 
     // --- light and dark --------------------------------------------------------------------
@@ -1078,14 +1078,14 @@ class Caulis {
         set(value) {
             require(value == null || value in 8..256) { "cursorSize must be between 8 and 256" }
             field = value
-            running?.applyCursor()
+            running?.rmon?.applyCursor()
         }
 
     /** Hide the cursor while typing; it comes back when the mouse moves. Changed while running: at once. */
     var hideCursorWhileTyping = false
         set(value) {
             field = value
-            running?.applyCursor()
+            running?.rmon?.applyCursor()
         }
 
     /** Hide the cursor after the mouse was still for this many seconds (0 = never). Changed while running: at once. */
@@ -1093,7 +1093,7 @@ class Caulis {
         set(value) {
             require(value >= 0) { "hideCursorAfterSeconds must not be negative" }
             field = value
-            running?.applyCursor()
+            running?.rmon?.applyCursor()
         }
 
     /** The terminal [openTerminal] (and the default Super+Return) starts (a command, run by /bin/sh). */

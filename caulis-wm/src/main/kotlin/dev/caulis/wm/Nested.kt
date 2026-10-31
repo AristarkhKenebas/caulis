@@ -33,7 +33,7 @@ internal fun runNested(config: Caulis) {
                         val name = "NESTED-${index + 1}"
                         val settings = config.monitorSettings[name]
                         val output = Output(running.display, name, "${config.title} (nested)", window.width, window.height, 60_000, scale = settings?.scale ?: config.scale)
-                        val monitor = running.addMonitor(name, output, window.width, window.height)
+                        val monitor = running.rmon.addMonitor(name, output, window.width, window.height)
                         val view = desktop.createView(monitor)
                         connect(window, monitor, view, running, config, stats)
                     }

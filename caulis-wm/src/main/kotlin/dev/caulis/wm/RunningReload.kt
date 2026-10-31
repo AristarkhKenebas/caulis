@@ -156,15 +156,15 @@ internal class RunningReload(private val running: Running) {
         next.applyLogSettings(before)
         running.applyConfig()
         if (running.desktop.layout != next.layout) running.desktop.layout = next.layout
-        if (same || before.scale != next.scale || before.monitorSettings.mapValues { it.value.scale } != next.monitorSettings.mapValues { it.value.scale }) running.applyScale()
+        if (same || before.scale != next.scale || before.monitorSettings.mapValues { it.value.scale } != next.monitorSettings.mapValues { it.value.scale }) running.rmon.applyScale()
         // A turn taken out of the configuration: the monitor stands as it is again.
         for (monitor in running.desktop.monitors) {
             if (before.monitorSettings[monitor.name]?.transform != null && next.monitorSettings[monitor.name]?.transform == null) {
                 running.desktop.setTransform(monitor, dev.caulis.core.Transform.NORMAL)
             }
         }
-        running.applyMonitorSettings()
-        running.applyCursor()
+        running.rmon.applyMonitorSettings()
+        running.rmon.applyCursor()
         // Margins of the new rules: windows take them at once.
         for (window in running.desktop.allWindows) {
             val margins = running.rrules.marginsOf(window)

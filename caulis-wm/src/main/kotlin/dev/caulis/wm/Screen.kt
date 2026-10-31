@@ -93,7 +93,7 @@ internal fun runOnScreen(config: Caulis) {
                         make = edid?.make ?: "Unknown", model = edid?.model ?: monitor.name,
                         scale = config.monitorSettings[monitor.name]?.scale ?: config.scale,
                     )
-                    val place = running.addMonitor(monitor.name, output, mode.width, mode.height)
+                    val place = running.rmon.addMonitor(monitor.name, output, mode.width, mode.height)
                     // Each refresh: draw what changed (if anything), then tell programs
                     // their last frame is on screen.
                     val view = desktop.createView(place)
@@ -143,7 +143,7 @@ internal fun runOnScreen(config: Caulis) {
                     }
                     shown.remove(monitor)?.let { gone ->
                         desktop.removeView(gone.view)
-                        running.removeMonitor(gone.monitor)
+                        running.rmon.removeMonitor(gone.monitor)
                         gone.output.remove()
                     }
                 }

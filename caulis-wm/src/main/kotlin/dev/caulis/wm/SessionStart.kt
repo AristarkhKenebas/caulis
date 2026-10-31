@@ -41,7 +41,7 @@ internal class SessionStart(
 
     private val curtain = RevealCurtain(
         config.reveal, config.reveal.enabled, running.desktop, ::later, { running.loop.post(it) },
-        revealing = ::revealing, revealed = ::shown, restoreCursor = { running.applyCursor() },
+        revealing = ::revealing, revealed = ::shown, restoreCursor = { running.rmon.applyCursor() },
     )
 
     /** The start begins (right before onStart): waiting until warm, the sound, maybe the programs. */

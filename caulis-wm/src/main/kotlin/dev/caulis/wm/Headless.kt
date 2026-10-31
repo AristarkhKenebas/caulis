@@ -36,7 +36,7 @@ internal fun runHeadless(config: Caulis) {
                     // (Changed with the mode: a frame per refresh of the mode in use.)
                     var refreshNanos = (1_000_000_000 / hz).toLong()
                     val output = Output(running.display, name, "${config.title} (headless)", width, height, (hz * 1000).toInt(), scale = settings?.scale ?: config.scale)
-                    val monitor = running.addMonitor(name, output, width, height)
+                    val monitor = running.rmon.addMonitor(name, output, width, height)
                     val view = desktop.createView(monitor)
                     var target = renderer.createTarget(width, height)
                     val rotator = dev.caulis.core.Rotator(renderer, desktop)
