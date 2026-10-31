@@ -131,7 +131,7 @@ internal class DesktopTitleBars(private val desktop: Desktop) : AutoCloseable {
     /** The topmost title bar or edge at a point, if no program's window is above it there. */
     fun at(x: Double, y: Double): Decoration? {
         if (desktop.locked || desktop.inOverview) return null
-        val (fullscreen, normal) = desktop.stackingOrder().partition { it.fullscreen }
+        val (fullscreen, normal) = desktop.sceneBuilder.stackingOrder().partition { it.fullscreen }
         if (fullscreen.any { !desktop.directed(it) && desktop.hits.windowHit(it, x, y) != null }) return null
         // A director's windows are where it draws them, with no bars or edges of ours.
         for ((window, place) in desktop.places.entries.reversed()) if (window.mapped && place.takesInput && place.alpha > 0f && desktop.hits.directedHit(window, place, x, y) != null) return null

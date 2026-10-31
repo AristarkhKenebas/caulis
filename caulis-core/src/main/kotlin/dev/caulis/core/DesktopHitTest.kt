@@ -52,7 +52,7 @@ internal class DesktopHitTest(private val desktop: Desktop) {
                 hitTree(window.surface, x - (window.x - visible.x), y - (window.y - visible.y), window.surface)?.let { return it.at() }
             }
         }
-        val (fullscreen, normal) = desktop.stackingOrder().partition { it.fullscreen }
+        val (fullscreen, normal) = desktop.sceneBuilder.stackingOrder().partition { it.fullscreen }
         for (window in fullscreen.asReversed()) if (window !in desktop.places && !desktop.directed(window)) windowHit(window, x, y)?.let { return it.at() }
         layerAt(LayerShell.Layer.TOP, x, y)?.let { return it.at() }
         widget(DrawingLevel.ABOVE_WINDOWS)?.let { return it }

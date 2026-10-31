@@ -45,7 +45,7 @@ internal class DesktopFocus(private val desktop: Desktop) {
         }
         val origin = desktop.windowRoles.currentRect(from)
         // Windows on every monitor count: past the last one here comes the next monitor.
-        val shown = desktop.stackingOrder()
+        val shown = desktop.sceneBuilder.stackingOrder()
         val candidates = shown.filter { it !== from }.map { it to desktop.windowRoles.currentRect(it) }.filter { (_, rect) ->
             (dx > 0 && rect.x >= origin.right - 1) || (dx < 0 && rect.right <= origin.x + 1) ||
                 (dy > 0 && rect.y >= origin.bottom - 1) || (dy < 0 && rect.bottom <= origin.y + 1)

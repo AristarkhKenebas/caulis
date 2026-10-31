@@ -88,7 +88,7 @@ internal class DesktopAnimations(private val desktop: Desktop) {
     // it is: for animations that move the picture rather than the window. Null if it is not drawn.
     internal fun pictureOf(window: Window): Triple<GpuTarget, GpuTexture, Rect>? {
         val items = ArrayList<DrawItem>()
-        desktop.addWindow(items, window, System.nanoTime(), plain = true)
+        desktop.sceneBuilder.addWindow(items, window, System.nanoTime(), plain = true)
         val parts = items.filter { it !is DrawItem.Blur } // (blur needs what is behind: not in a picture of its own)
         if (parts.none { it is DrawItem.Picture }) return null
         val box = parts.map { (it as? DrawItem.Shadow)?.box?.union(it.rect) ?: it.rect }.reduce(Rect::union)

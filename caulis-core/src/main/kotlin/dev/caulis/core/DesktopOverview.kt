@@ -139,7 +139,7 @@ internal class DesktopOverview(private val desktop: Desktop) {
     internal fun overviewClick() {
         val camera = cameraAt(System.nanoTime())
         val point = Rect(desktop.pointerX.toInt(), desktop.pointerY.toInt(), 1, 1)
-        val chosen = desktop.stackingOrder().asReversed().firstOrNull { camera.apply(desktop.windowRoles.currentRect(it)).contains(point) }
+        val chosen = desktop.sceneBuilder.stackingOrder().asReversed().firstOrNull { camera.apply(desktop.windowRoles.currentRect(it)).contains(point) }
         setOverview(false)
         if (chosen != null) desktop.focus(chosen)
     }

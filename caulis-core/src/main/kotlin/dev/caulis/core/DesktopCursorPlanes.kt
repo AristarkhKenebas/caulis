@@ -19,8 +19,8 @@ internal class DesktopCursorPlanes(private val desktop: Desktop) {
             return
         }
         val monitor = view.monitor
-        val all = desktop.items()
-        val cursor = all.subList(desktop.itemsCursorStart.coerceAtMost(all.size), all.size)
+        val all = desktop.sceneBuilder.items()
+        val cursor = all.subList(desktop.sceneBuilder.itemsCursorStart.coerceAtMost(all.size), all.size)
         fun intoFrames() {
             if (view.cursorOnPlane || view.planeCursorKey != null) plane.hide()
             view.cursorOnPlane = false

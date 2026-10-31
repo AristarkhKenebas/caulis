@@ -36,8 +36,8 @@ internal class DesktopCapture(private val desktop: Desktop) {
     // Everything on screen, with or without our cursor; windows hidden from capture are
     // black boxes (their popups too).
     internal fun captureItems(cursor: Boolean, hide: Boolean = true): List<DrawItem> {
-        val all = desktop.items()
-        val shown = if (cursor) all else all.subList(0, desktop.itemsCursorStart.coerceAtMost(all.size))
+        val all = desktop.sceneBuilder.items()
+        val shown = if (cursor) all else all.subList(0, desktop.sceneBuilder.itemsCursorStart.coerceAtMost(all.size))
         if (!hide) return shown
         if (desktop.allWindows.none { desktop.behaviorOf(it).hiddenFromCapture } && desktop.layerHost.layerSurfaces.none { desktop.layerHost.layerBehaviorOf(it).hiddenFromCapture }) return shown
         return shown.map { item ->
@@ -89,7 +89,7 @@ internal class DesktopCapture(private val desktop: Desktop) {
         if (desktop.behaviorOf(window).hiddenFromCapture) {
             items += DrawItem.Color(EffectKey("hidden from capture", window), Rect(0, 0, visible.width, visible.height), 0f, 0f, 0f)
         } else {
-            desktop.addTree(items, window.surface, -visible.x, -visible.y)
+            desktop.sceneBuilder.addTree(items, window.surface, -visible.x, -visible.y)
         }
         val scale = desktop.monitorOf(window).scale
         desktop.renderer.begin(target, 0f, 0f, 0f, alpha = 0f)

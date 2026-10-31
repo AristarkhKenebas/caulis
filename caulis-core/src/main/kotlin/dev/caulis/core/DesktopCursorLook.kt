@@ -22,13 +22,13 @@ internal class DesktopCursorLook(private val desktop: Desktop) {
         val x = Math.floor(desktop.pointerX).toInt()
         val y = Math.floor(desktop.pointerY).toInt()
         // What is dragged (drag and drop), under the cursor.
-        desktop.seat.drag?.let { drag -> drag.icon?.takeIf { it.hasContent && it.resource.isAlive }?.let { desktop.addTree(items, it, x + drag.iconX, y + drag.iconY) } }
+        desktop.seat.drag?.let { drag -> drag.icon?.takeIf { it.hasContent && it.resource.isAlive }?.let { desktop.sceneBuilder.addTree(items, it, x + drag.iconX, y + drag.iconY) } }
         if (cursorHidden) return
         val shape = cursorShapeNow()
         if (shape == null) {
             // The program drew its own cursor (or hid it).
             val own = desktop.seat.cursorSurface
-            if (own != null && own.hasContent) desktop.addTree(items, own, x - desktop.seat.cursorHotspotX, y - desktop.seat.cursorHotspotY)
+            if (own != null && own.hasContent) desktop.sceneBuilder.addTree(items, own, x - desktop.seat.cursorHotspotX, y - desktop.seat.cursorHotspotY)
             return
         }
         if (shape != shownShape) {
