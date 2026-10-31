@@ -745,6 +745,17 @@ class Caulis {
         }
 
     /**
+     * A program's picture its GPU still draws waits for it, the one before staying on screen: one
+     * slow program does not make all windows miss the screen's refresh. Needs Linux 6.0; only
+     * GPU buffers. False by default.
+     */
+    var waitForClientGpu = false
+        set(value) {
+            field = value
+            running?.desktop?.waitForClientGpu = value
+        }
+
+    /**
      * Blocks the C library hands out of this many kB or more get a mapping of their own and go
      * back to the system the moment they are freed (glibc otherwise raises this limit by itself
      * and keeps the pictures Skia and the GPU driver make and free each frame in its pools:

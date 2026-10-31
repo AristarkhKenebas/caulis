@@ -399,6 +399,24 @@ internal object Libc {
         check("waitid", waitidHandle.invokeExact(state, 1, pid, info, options) as Int, state)
     }
 
+    /** ioctl([fd], [request], [memory]): the request reads and writes [memory] (throws what it fails with). */
+    fun ioctlMemory(fd: Int, request: Long, memory: MemorySegment) {
+        val state = errnoState.get()
+        check("ioctl", ioctlIntHandle.invokeExact(state, fd, request, memory) as Int, state)
+    }
+
+    private val pollHandle = function("poll", JAVA_INT, ADDRESS, JAVA_LONG, JAVA_INT)
+
+    /** True if reading [fd] would not wait (poll without waiting: also for one that is broken). */
+    fun readableNow(fd: Int): Boolean = Arena.ofConfined().use { arena ->
+        // struct pollfd { int fd; short events; short revents; }, POLLIN = 1
+        val pollFd = arena.allocate(8, 4)
+        pollFd.set(JAVA_INT, 0, fd)
+        pollFd.set(java.lang.foreign.ValueLayout.JAVA_SHORT, 4, 1.toShort())
+        val state = errnoState.get()
+        check("poll", pollHandle.invokeExact(state, pollFd, 1L, 0) as Int, state) != 0
+    }
+
     /** ioctl([fd], [request], &int): the int it gives back (FIONREAD: the bytes waiting to be read). */
     fun ioctlInt(fd: Int, request: Long): Int = Arena.ofConfined().use { arena ->
         val value = arena.allocate(JAVA_INT)

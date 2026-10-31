@@ -270,6 +270,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getTrimMemoryEveryMinutes ()I
 	public final fun getUnlockFocus ()Ldev/caulis/core/UnlockFocus;
 	public final fun getUseConfigFile ()Z
+	public final fun getWaitForClientGpu ()Z
 	public final fun getWakeScreensAfterMillis ()J
 	public final fun getWakeScreensOnInput ()Z
 	public final fun getWallpaperFpsLimit ()I
@@ -527,6 +528,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setTrimMemoryEveryMinutes (I)V
 	public final fun setUnlockFocus (Ldev/caulis/core/UnlockFocus;)V
 	public final fun setUseConfigFile (Z)V
+	public final fun setWaitForClientGpu (Z)V
 	public final fun setWakeScreensAfterMillis (J)V
 	public final fun setWakeScreensOnInput (Z)V
 	public final fun setWallpaperFpsLimit (I)V

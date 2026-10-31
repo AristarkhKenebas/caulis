@@ -1047,6 +1047,10 @@
           "maximum": 16,
           "description": "threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)"
         },
+        "waitForClientGpu": {
+          "type": "boolean",
+          "description": "a program's picture its GPU still draws waits for it, the one before stays (one slow program does not make all windows miss a refresh; Linux 6.0; default false)"
+        },
         "movingPaintsFps": {
           "type": "integer",
           "minimum": 0,

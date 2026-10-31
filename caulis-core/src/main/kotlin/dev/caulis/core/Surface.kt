@@ -409,7 +409,23 @@ class Surface internal constructor(val resource: WlSurface, private val composit
             sub.cache(pending)
             return
         }
+        // Waiting for the program's GPU, if asked to (see ClientFences): in order, the picture
+        // before stays till then.
+        val fences = if (pending.newBuffer) compositor.clientFences?.invoke(pending).orEmpty() else emptyList()
+        if (fences.isNotEmpty() || heldCommits?.isEmpty == false) {
+            val held = heldCommits ?: HeldCommits(compositor.display.loop, ::applyIfAlive).also { heldCommits = it }
+            val state = SurfaceState()
+            state.takeFrom(pending)
+            held.add(state, fences)
+            return
+        }
         apply(pending)
+    }
+
+    private var heldCommits: HeldCommits? = null
+
+    private fun applyIfAlive(state: SurfaceState) {
+        if (resource.isAlive) apply(state)
     }
 
     /** Makes [state] current. Also applies cached state of synchronized subsurfaces. */
@@ -479,6 +495,7 @@ class Surface internal constructor(val resource: WlSurface, private val composit
     }
 
     internal fun destroyed() {
+        heldCommits?.forget()
         if (subsurface != null || texture != null) compositor.surfaceGone(this)
         for (feedback in current.feedbackList) feedback.discard()
         current.feedbackList.clear()

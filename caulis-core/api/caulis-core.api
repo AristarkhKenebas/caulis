@@ -636,6 +636,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun getUnlockFocus ()Ldev/caulis/core/UnlockFocus;
 	public final fun getUrgentWindows ()Ljava/util/List;
 	public final fun getUsableArea ()Ldev/caulis/geometry/Rect;
+	public final fun getWaitForClientGpu ()Z
 	public final fun getWallpaperFpsLimit ()I
 	public final fun getWallpaperShadersPaused ()Z
 	public final fun getWidgetThreads ()I
@@ -794,6 +795,7 @@ public final class dev/caulis/core/Desktop : dev/caulis/core/LayerShell$Listener
 	public final fun setTransform (Ldev/caulis/core/Monitor;Ldev/caulis/core/Transform;)V
 	public final fun setUnlockFocus (Ldev/caulis/core/UnlockFocus;)V
 	public final fun setUrgent (Ldev/caulis/core/Window;Z)V
+	public final fun setWaitForClientGpu (Z)V
 	public final fun setWallpaperFpsLimit (I)V
 	public final fun setWallpaperShadersPaused (Z)V
 	public final fun setWidgetThreads (I)V

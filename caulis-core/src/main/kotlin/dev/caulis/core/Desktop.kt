@@ -323,6 +323,20 @@ class Desktop(
         events.windowListChanged()
     }
 
+    /**
+     * A program's picture still being drawn by its GPU waits for it: until then the picture before
+     * stays, and one slow program does not make every window miss the screen's refresh. Needs
+     * Linux 6.0 (else programs go on as without this); only GPU buffers. Off by default.
+     */
+    var waitForClientGpu: Boolean = false
+        set(value) {
+            if (value == field) return
+            field = value
+            renderLog.info { if (value) "Programs' pictures wait for their GPU" else "Programs' pictures do not wait for their GPU" }
+            val fences = ClientFences(renderLog)
+            compositor.clientFences = if (value) { state -> state.buffer?.dataAs<DmabufBuffer>()?.let { fences.of(it.dmabuf) }.orEmpty() } else null
+        }
+
     /** Runs [action] on the compositor's thread in [millis] milliseconds (cancel it with what comes back). */
     fun after(millis: Long, action: () -> Unit): dev.caulis.event.EventLoop.Timer = compositor.display.loop.after(millis, action)
 

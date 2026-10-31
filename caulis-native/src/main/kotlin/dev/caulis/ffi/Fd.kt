@@ -26,6 +26,12 @@ class Fd private constructor(private var number: Int, private val owned: Boolean
 
     val isOpen: Boolean get() = number >= 0
 
+    /** True if reading it would not wait now. */
+    fun readableNow(): Boolean = Libc.readableNow(value)
+
+    /** ioctl with [memory] for the request to read and write; throws what it fails with. */
+    fun ioctl(request: Long, memory: java.lang.foreign.MemorySegment) = Libc.ioctlMemory(value, request, memory)
+
     /** Gives up ownership and returns the raw number; this object will not close it. */
     fun release(): Int {
         val raw = value

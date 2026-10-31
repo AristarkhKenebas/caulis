@@ -92,6 +92,7 @@ internal object SettingsApply {
             (p["mallocMapAboveKb"] as Int?)?.let { caulis.mallocMapAboveKb = if (it in 1..15) 16 else it }
             (p["glVendorByDriver"] as Boolean?)?.let { caulis.glVendorByDriver = it }
             (p["widgetThreads"] as Int?)?.let { caulis.widgetThreads = it }
+            (p["waitForClientGpu"] as Boolean?)?.let { caulis.waitForClientGpu = it }
             (p["movingPaintsFps"] as Int?)?.let { caulis.movingPaintsFps = it }
         }
         section("cursor")?.let { c ->
