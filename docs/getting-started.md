@@ -2341,7 +2341,10 @@ blocks of `mallocMapAboveKb` (256) kB or more go back to the system the moment t
 Compose widgets (bars, menus) are composed on the loop but drawn into pixels on
 `widgetThreads` (2) threads of their own (0: on the loop). In config.json they are in
 `"performance": { "stallReportMillis", "trimMemory", "trimMemoryEveryMinutes", "mallocPools",
-"mallocMapAboveKb", "quickCursor", "inputThread", "glVendorByDriver", "widgetThreads", "waitForClientGpu" }`.
+"mallocMapAboveKb", "quickCursor", "inputThread", "glVendorByDriver", "widgetThreads", "waitForClientGpu", "maxRenderMillis" }`.
+
+`maxRenderMillis` (0: off): frames are begun this long before each monitor's next refresh, so they
+show on that very one, up to one refresh less delay; a frame that takes longer shows a refresh later.
 
 `waitForClientGpu` (off): a program's picture its GPU still draws waits for it, the one before staying
 on screen, so one slow program does not make every window miss the screen's refresh. Needs Linux 6.0

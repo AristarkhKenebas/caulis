@@ -127,6 +127,13 @@ class DrmOutput internal constructor(
     // then on (logged by name), the others still apply.
     private val refusedProperties = HashSet<String>()
 
+    /**
+     * Pictures are begun this long before the screen's next refresh, so they show on that very
+     * one (up to one refresh less delay). Too short: a picture misses it and shows one refresh
+     * later. 0: as soon as the last one was shown.
+     */
+    var maxRenderMillis = 0
+
     // maxBpc or adaptiveSync changed since the last tested mode set.
     internal var extrasChanged = false
 

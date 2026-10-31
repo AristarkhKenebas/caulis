@@ -180,7 +180,7 @@ internal class DrmFlips(private val drmOutput: DrmOutput) {
             // every refresh, windows would never get a frame.
             drmOutput.cursorSide.cursorOnlyPending = false
             drmOutput.lastFlipNanos = System.nanoTime()
-            nextFrame()
+            frameAfterFlip()
             drmOutput.cursorSide.cursorAlone()
             return
         }
@@ -211,20 +211,26 @@ internal class DrmFlips(private val drmOutput: DrmOutput) {
                 drmOutput.log.error("Reporting a frame of $drmOutput.name failed", e)
             }
         }
-        nextFrame()
+        frameAfterFlip()
         drmOutput.cursorSide.cursorAlone()
     }
 
     fun requestFrame() {
         if (drmOutput.flipPending || drmOutput.mode == null) return // onFrame comes with the next flip anyway
-        val wait = (drmOutput.lastFlipNanos + drmOutput.refreshNanos - System.nanoTime()).coerceAtLeast(0) / 1_000_000
-        scheduleFrame(wait)
+        scheduleFrame(frameDelayMillis(drmOutput.lastFlipNanos, drmOutput.refreshNanos, System.nanoTime(), drmOutput.maxRenderMillis))
     }
 
     // Nothing reaches the screen (switched off, or another terminal is shown): no refresh paces
     // the frames then, so they come only as a slow heartbeat — programs do not freeze, and
     // the compositor does not draw for nothing as fast as it can.
     private val dark: Boolean get() = !drmOutput.powered || !drmOutput.isSessionActive()
+
+    // The next picture after a flip: at once; with maxRenderMillis, that long before the next refresh.
+    private fun frameAfterFlip() {
+        if (drmOutput.maxRenderMillis <= 0) return nextFrame()
+        val delay = frameDelayMillis(drmOutput.lastFlipNanos, drmOutput.refreshNanos, System.nanoTime(), drmOutput.maxRenderMillis)
+        if (delay <= 0) nextFrame() else scheduleFrame(delay)
+    }
 
     // Asks for the next picture. If drawing fails, the screen must not freeze for good:
     // the error is logged and drawing is tried again a little later.
@@ -254,4 +260,17 @@ internal class DrmFlips(private val drmOutput: DrmOutput) {
     internal var frameTimer: EventLoop.Timer? = null
 
     private var frameDue = 0L
+}
+
+/**
+ * How long to wait before drawing the next picture, [lastFlip] being the last refresh (nanoseconds).
+ * [maxRenderMillis] 0: until the next refresh is due (the picture shows at the one after it).
+ * Else: until that long before the next refresh still ahead, so that it shows on that very one
+ * (at once when that moment is past: it shows a refresh later, as a frame drawn too late does).
+ */
+internal fun frameDelayMillis(lastFlip: Long, refresh: Long, now: Long, maxRenderMillis: Int): Long {
+    if (maxRenderMillis <= 0 || refresh <= 0) return (lastFlip + refresh - now).coerceAtLeast(0) / 1_000_000
+    val render = minOf(maxRenderMillis * 1_000_000L, refresh)
+    val periods = if (now <= lastFlip) 1 else (now - lastFlip) / refresh + 1
+    return (lastFlip + periods * refresh - render - now).coerceAtLeast(0) / 1_000_000
 }

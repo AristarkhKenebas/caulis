@@ -218,6 +218,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getMallocPools ()I
 	public final fun getMaxForwardedStringBytes ()I
 	public final fun getMaxRegionParts ()I
+	public final fun getMaxRenderMillis ()I
 	public final fun getMode ()Ldev/caulis/wm/Caulis$Mode;
 	public final fun getMonitorEdges ()Ldev/caulis/core/MonitorEdges;
 	public final fun getMovingPaintsFps ()I
@@ -485,6 +486,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setMallocPools (I)V
 	public final fun setMaxForwardedStringBytes (I)V
 	public final fun setMaxRegionParts (I)V
+	public final fun setMaxRenderMillis (I)V
 	public final fun setMode (Ldev/caulis/wm/Caulis$Mode;)V
 	public final fun setMonitorEdges (Ldev/caulis/core/MonitorEdges;)V
 	public final fun setMovingPaintsFps (I)V

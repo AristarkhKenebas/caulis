@@ -286,6 +286,7 @@
 ---@field inputThread? boolean keyboards, mice and touchpads are read on a thread of their own; the cursor keeps moving while the compositor is busy
 ---@field glVendorByDriver? boolean only the EGL driver for the GPU in use is loaded, not every one installed (only at the start)
 ---@field widgetThreads? integer threads the compositor's own widgets (bars, menus) draw their pixels on (0: its own thread)
+---@field maxRenderMillis? integer frames are begun this long before the next refresh, up to one refresh less delay; a frame taking longer shows a refresh later (0: as soon as the last was shown; default 0)
 ---@field waitForClientGpu? boolean a program's picture its GPU still draws waits for it, the one before stays (one slow program does not make all windows miss a refresh; Linux 6.0; default false)
 ---@field movingPaintsFps? integer borders and shadows that move by themselves (turning gradients, shaders) drawn anew at most this often a second (0: every frame)
 

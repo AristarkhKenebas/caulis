@@ -93,6 +93,7 @@ internal object SettingsApply {
             (p["glVendorByDriver"] as Boolean?)?.let { caulis.glVendorByDriver = it }
             (p["widgetThreads"] as Int?)?.let { caulis.widgetThreads = it }
             (p["waitForClientGpu"] as Boolean?)?.let { caulis.waitForClientGpu = it }
+            (p["maxRenderMillis"] as Int?)?.let { caulis.maxRenderMillis = it }
             (p["movingPaintsFps"] as Int?)?.let { caulis.movingPaintsFps = it }
         }
         section("cursor")?.let { c ->

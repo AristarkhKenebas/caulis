@@ -2994,6 +2994,7 @@ public final class dev/caulis/core/drm/DrmOutput : java/lang/AutoCloseable {
 	public final fun getHardwareCursor ()Ldev/caulis/core/HardwareCursor;
 	public final fun getHeight ()I
 	public final fun getMaxBpc ()I
+	public final fun getMaxRenderMillis ()I
 	public final fun getMode ()Ldev/caulis/core/drm/DrmOutput$Mode;
 	public final fun getModes ()Ljava/util/List;
 	public final fun getName ()Ljava/lang/String;
@@ -3012,6 +3013,7 @@ public final class dev/caulis/core/drm/DrmOutput : java/lang/AutoCloseable {
 	public final fun setAdaptiveSync (Z)V
 	public final fun setGamma ([S[S[S)Z
 	public final fun setMaxBpc (I)V
+	public final fun setMaxRenderMillis (I)V
 	public final fun setOnFrame (Lkotlin/jvm/functions/Function0;)V
 	public final fun setOnPresented (Lkotlin/jvm/functions/Function4;)V
 	public final fun setPower (Z)Z

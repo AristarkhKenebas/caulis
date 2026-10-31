@@ -52,6 +52,7 @@ internal fun runOnScreen(config: Caulis) {
                     val wish = running.config.monitorSettings[monitor.name]
                     monitor.maxBpc = wish?.maxBpc ?: 8
                     monitor.adaptiveSync = wish?.adaptiveSync ?: running.config.adaptiveSync
+                    monitor.maxRenderMillis = running.config.maxRenderMillis
                 }
                 running.rapply.applyMonitorLinks = { shown.keys.forEach(::applyLink) }
                 backend.onPluggedChanged = { now -> displays.pluggedChanged(now.map { Displays.Screen(it.name, identity(it.name, it.edid), it.output != null) }) }

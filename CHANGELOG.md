@@ -27,6 +27,7 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - The login session (`Session`, `Logind`) is a module of its own, `caulis-session`. Nothing changes for users: `caulis-core` depends on it (as an `api` dependency), and the packages and classes are the same.
 - The plain input types (`InputSettings`, `Gesture`, `Scroll`, `EarlyPointer`, the tablet value types) are a module of their own, `caulis-input`. Nothing changes for users: `caulis-core` depends on it (as an `api` dependency), and the packages and classes are the same.
 ### Added
+- `maxRenderMillis` (in code and in config.json's `performance`, 0 by default: off): on a real screen, frames are begun this long before the next refresh, up to one refresh less delay; a frame that takes longer shows a refresh later.
 - `waitForClientGpu` (in code and in config.json's `performance`, off by default): a program's picture its GPU still draws waits for it (the kernel's sync file, Linux 6.0), the one before staying on screen, so one slow program does not make every window miss the screen's refresh.
 - `ComposeScenes.keepPixelsSeconds` (2): a Compose scene not drawn for this long lets go of its pixels in memory, the GPU keeps the picture. `0`: kept, as before.
 - More project templates: `templates/new-compositor.sh --template <name>` with `tiling` (like i3), `floating`
