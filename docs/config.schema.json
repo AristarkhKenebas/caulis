@@ -4491,6 +4491,34 @@
           "maximum": 1,
           "description": "how sharp the shader is drawn (0.5: half the pixels each way, a quarter of the work)"
         },
+        "movingArea": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 4,
+          "maxItems": 4,
+          "description": "the only part of the shader's picture that changes: [x, y, width, height], 0..1; the rest is drawn once and kept (one screen-sized picture on the GPU), and the shader must keep still outside it (movingFade)"
+        },
+        "movingRestFps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 240,
+          "description": "with a movingArea: frames a second while the pointer rests and no burst goes on (0: framesPerSecond)"
+        },
+        "movingBurst": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "with a movingArea: [every, for], seconds of the shader's time at full pace (a blink)"
+        },
         "fpsLimit": {
           "type": "integer",
           "minimum": 0,
