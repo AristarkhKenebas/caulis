@@ -1,11 +1,11 @@
 package dev.caulis.compose
 
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerButton
@@ -27,14 +27,11 @@ import dev.caulis.core.WidgetKey
 import dev.caulis.geometry.Rect
 import dev.caulis.log.Logger
 import dev.caulis.render.GpuTexture
-import dev.caulis.core.NoticeLevel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.CoroutineContext
 
@@ -64,7 +61,7 @@ import kotlin.coroutines.CoroutineContext
  * it is not drawn at all.
  */
 class ComposeWidget @JvmOverloads constructor(
-    private val desktop: Desktop,
+    internal val desktop: Desktop,
     /** Runs a task on the compositor's thread soon (from any thread): `EventLoop.post`, `Caulis.post`. */
     private val post: (Runnable) -> Unit,
     /** Where it is on a monitor (desktop units), or null: not there. */
@@ -91,7 +88,7 @@ class ComposeWidget @JvmOverloads constructor(
     /** The compositor's clipboard for its text fields (`Caulis.clipboard`); null: copying and pasting do nothing. */
     private val clipboard: DataDeviceManager? = null,
     /** What it does when its content fails (an exception): logged, then started over — see [ComposeRecovery]. */
-    private val recovery: ComposeRecovery = ComposeRecovery.DEFAULT,
+    internal val recovery: ComposeRecovery = ComposeRecovery.DEFAULT,
     /**
      * Shown and used while the session is locked too (an on-screen keyboard, a "battery low"
      * pill: see [Widget.showsWhileLocked]). A lock screen of your own in Compose needs no
@@ -100,6 +97,7 @@ class ComposeWidget @JvmOverloads constructor(
     override val showsWhileLocked: Boolean = false,
     private val content: @Composable (monitor: Monitor) -> Unit,
 ) : Widget, AutoCloseable {
+    internal val contentFailures = ComposeFailures(this)
 
     // Caulis 0.1.1's constructor with its defaults left out (level, reserve, takesKeyboard):
     // what Kotlin code built against it calls — the defaults' mask and marker as Kotlin passes
@@ -125,15 +123,17 @@ class ComposeWidget @JvmOverloads constructor(
         content = content,
     )
 
-    private val log = Logger("compose")
+    internal val log = Logger("compose")
 
     // The compositor's thread for everything Compose dispatches.
-    private val dispatcher = object : CoroutineDispatcher() {
+    internal val dispatcher = object : CoroutineDispatcher() {
         override fun dispatch(context: CoroutineContext, block: Runnable) = post(block)
     }
 
+    // Waits before scenes start over (cancelled when it closes).
+    internal val restarts = CoroutineScope(dispatcher + SupervisorJob())
     // One scene per monitor it is on, the picture it last made and its size in pixels.
-    private class Part(val scene: Scene, val width: Int, val height: Int, val scale: Double) {
+    internal class Part(val scene: Scene, val width: Int, val height: Int, val scale: Double) {
         var texture: GpuTexture? = null
         // Its picture is up to date (false: never drawn, or moved on while not seen).
         var drawnOnce = false
@@ -157,12 +157,12 @@ class ComposeWidget @JvmOverloads constructor(
      */
     var keepHiddenSeconds: Int? = null
 
-    private val parts = HashMap<String, Part>()
+    internal val parts = HashMap<String, Part>()
     private var keyboardLost by mutableIntStateOf(0)
     private val heldKeys = LinkedHashMap<Int, WidgetKey>()
-    private var hoverOn: String? = null
+    internal var hoverOn: String? = null
     private var keysOn: String? = null
-    private var closed = false
+    internal var closed = false
     // (Compose of another version than this module's: said once, then nothing is shown.)
     private var broken = false
     private val compositorClipboard = clipboard?.let { CompositorClipboard(it, log) }
@@ -187,7 +187,7 @@ class ComposeWidget @JvmOverloads constructor(
             // waits for its size gets it) but not drawn, and no frames kept coming for it —
             // its picture is made when it shows.
             if (!part.failed && part.scene.hasInvalidations()) {
-                guarded(monitor.name, part) { part.scene.layout(System.nanoTime()) }
+                contentFailures.guarded(monitor.name, part) { part.scene.layout(System.nanoTime()) }
                 part.drawnOnce = false
             }
             return
@@ -257,7 +257,7 @@ class ComposeWidget @JvmOverloads constructor(
     private fun partFor(monitor: Monitor, area: Rect): Part? {
         if (closed || broken) return null
         // Failed a moment ago: what it showed last, until it starts over.
-        if (monitor.name in restartAt) return parts[monitor.name]
+        if (monitor.name in contentFailures.restartAt) return parts[monitor.name]
         val scale = monitor.scale
         val size = sceneSize(monitor) ?: SceneSize(area.width, area.height)
         val width = Math.round(size.width * scale).toInt()
@@ -274,7 +274,7 @@ class ComposeWidget @JvmOverloads constructor(
         } catch (e: Throwable) {
             // (Its content threw the first time it was composed — also an Error: TODO().)
             e.rethrowIfFatalHere()
-            failed(name, e)
+            contentFailures.failed(name, e)
             return null
         }
         log.info { "Compose scene on ${monitor.name}: ${width}x$height px at scale $scale" }
@@ -286,7 +286,7 @@ class ComposeWidget @JvmOverloads constructor(
     private fun newScene(monitor: Monitor, width: Int, height: Int, scale: Double): Scene {
         val name = monitor.name
         // (Its own coroutines fail into [failed], not into the thread's.)
-        val context = dispatcher + CoroutineExceptionHandler { _, e -> post(Runnable { failed(name, e) }) }
+        val context = dispatcher + CoroutineExceptionHandler { _, e -> post(Runnable { contentFailures.failed(name, e) }) }
         return Scene(width, height, Density(scale.toFloat()), context, ::pointerIcon) {
             // The keyboard gone elsewhere: no text field keeps it (or its caret blinking).
             val focus = LocalFocusManager.current
@@ -332,7 +332,7 @@ class ComposeWidget @JvmOverloads constructor(
         }
         log.info { "Compose scene on $name made ahead on ${Thread.currentThread().name}: ${w}x$h px in ${(System.nanoTime() - started) / 1_000_000} ms" }
         post(Runnable {
-            if (closed || broken || parts[name] != null || name in restartAt) return@Runnable closePart(part)
+            if (closed || broken || parts[name] != null || name in contentFailures.restartAt) return@Runnable closePart(part)
             part.scene.focused = hasKeyboard
             parts[name] = part
             desktop.requestRedraw()
@@ -361,7 +361,7 @@ class ComposeWidget @JvmOverloads constructor(
         if (part.texture != null && desktop.widgetThreads > 0) return renderOnWorker(name, part)
         val started = System.nanoTime()
         part.drawnOnce = true
-        val pixels = guarded(name, part) { part.scene.render(started) } ?: return
+        val pixels = contentFailures.guarded(name, part) { part.scene.render(started) } ?: return
         val rendered = System.nanoTime()
         val texture = part.texture ?: desktop.renderer.createTexture(part.width, part.height).also { part.texture = it }
         texture.upload(pixels, 0, part.height)
@@ -377,7 +377,7 @@ class ComposeWidget @JvmOverloads constructor(
     private fun renderOnWorker(name: String, part: Part) {
         val started = System.nanoTime()
         part.drawnOnce = true
-        val picture = guarded(name, part) { part.scene.record(started) } ?: return
+        val picture = contentFailures.guarded(name, part) { part.scene.record(started) } ?: return
         part.busy = true
         val recorded = System.nanoTime()
         Workers.run(desktop.widgetThreads) {
@@ -400,80 +400,6 @@ class ComposeWidget @JvmOverloads constructor(
                     log.info { "Compose frame of ${part.width}x${part.height} px on $name took %.1f ms (composed %.1f here, drawn on a worker)".format(ms, (recorded - started) / 1e6) }
                 }
             })
-        }
-    }
-
-    // --- content that fails ---------------------------------------------------------------
-
-    // Monitors whose scene failed: when it may start over (System.nanoTime()).
-    private val restartAt = HashMap<String, Long>()
-    private var failures = 0
-    private var lastFailure = 0L
-    private var noticeShown = false
-    // Waits before scenes start over (cancelled when it closes).
-    private val restarts = CoroutineScope(dispatcher + SupervisorJob())
-
-    // Runs [action] on [part]'s scene (on [name]); if it throws, the scene failed: null.
-    private inline fun <T> guarded(name: String, part: Part, action: () -> T): T? {
-        if (part.failed) return null
-        return try {
-            action()
-        } catch (e: Throwable) {
-            // (An Error too — TODO() is one — else it would fail on every frame past us.)
-            e.rethrowIfFatalHere()
-            failed(name, e)
-            null
-        }
-    }
-
-    // What nothing here can recover from goes on (the JVM's own trouble, but for a stack
-    // overflow: that is the content's own, and fails it as any mistake does).
-    private fun Throwable.rethrowIfFatalHere() {
-        if (this is VirtualMachineError && this !is StackOverflowError) throw this
-    }
-
-    // The content on [name] threw [error]: said, then its scene starts over after a while.
-    private fun failed(name: String, error: Throwable) {
-        if (closed) return
-        val part = parts[name]
-        if (part != null) {
-            if (part.failed) return
-            part.failed = true
-        } else if (name in restartAt) {
-            return
-        }
-        val now = System.nanoTime()
-        if (failures > 0 && now - lastFailure > recovery.forgetAfterMillis * 1_000_000) failures = 0
-        failures++
-        lastFailure = now
-        val wait = recovery.delayAfter(failures)
-        restartAt[name] = now + wait * 1_000_000
-        // (The whole story the first time; after that a line each — it may fail again and again.)
-        if (failures == 1) {
-            log.error("Your Compose content failed on $name: it starts over in $wait ms", error)
-        } else {
-            log.error("Your Compose content failed on $name again ($failures times in a row: $error): it starts over in $wait ms")
-        }
-        try {
-            recovery.onError(error)
-        } catch (e: Throwable) {
-            e.rethrowIfFatalHere()
-            log.error("Your onError of a Compose widget failed", e)
-        }
-        val notice = recovery.notice
-        if (notice != null && !noticeShown) {
-            noticeShown = true
-            desktop.notify(notice.replace("{error}", error.message ?: error.javaClass.simpleName), NoticeLevel.ERROR)
-        }
-        // Not now: it may have failed in the middle of its own frame.
-        restarts.launch {
-            delay(wait)
-            restartAt.remove(name)
-            if (closed) return@launch
-            log.info { "The Compose content on $name starts over" }
-            if (parts[name]?.failed == true) drop(name)
-            if (hoverOn == name) hoverOn = null
-            desktop.requestRedraw()
         }
     }
 
@@ -587,13 +513,13 @@ class ComposeWidget @JvmOverloads constructor(
         button: PointerButton? = null,
     ) {
         val part = sceneOf(name) ?: return
-        guarded(name!!, part) { part.scene.sendPointerEvent(type, at, scrollDelta, modifiers, button) }
+        contentFailures.guarded(name!!, part) { part.scene.sendPointerEvent(type, at, scrollDelta, modifiers, button) }
     }
 
     // [key] as Compose's key events to the scene on [name].
     private fun sendKeys(name: String, key: WidgetKey) {
         val part = sceneOf(name) ?: return
-        for (event in AwtKeys.events(key, log)) guarded(name, part) { part.scene.sendKeyEvent(event) } ?: return
+        for (event in AwtKeys.events(key, log)) contentFailures.guarded(name, part) { part.scene.sendKeyEvent(event) } ?: return
     }
 
     /** True while it has the keyboard ([Desktop.focusWidget]). */
@@ -639,7 +565,7 @@ class ComposeWidget @JvmOverloads constructor(
         closed = true
         Writes.remove(this)
         restarts.cancel()
-        restartAt.clear()
+        contentFailures.restartAt.clear()
         for (name in parts.keys.toList()) drop(name)
         hoverOn = null
         keysOn = null
@@ -672,8 +598,8 @@ class ComposeWidget @JvmOverloads constructor(
             log.trace { "A Compose widget starts over" }
             for (name in parts.keys.toList()) drop(name)
             // (Started over by hand: failures before do not count, none waits.)
-            restartAt.clear()
-            failures = 0
+            contentFailures.restartAt.clear()
+            contentFailures.failures = 0
             // (The new scenes are entered anew by the next move; the keys go where the next click is.)
             hoverOn = null
             keysOn = null
@@ -682,7 +608,7 @@ class ComposeWidget @JvmOverloads constructor(
         })
     }
 
-    private fun drop(name: String) {
+    internal fun drop(name: String) {
         val part = parts.remove(name) ?: return
         // (Its pixels still being drawn on a worker: closed when that is done.)
         if (part.busy) part.dropped = true else closePart(part)
@@ -753,31 +679,6 @@ class ComposeWidget @JvmOverloads constructor(
         }
     }
 
-    private companion object {
-        const val BTN_LEFT = 272
-        const val BTN_RIGHT = 273
-        const val BTN_MIDDLE = 274
-        const val BTN_SIDE = 275
-        const val BTN_EXTRA = 276
-
-        // Units of the compositor's scrolling in one notch of a wheel (Wayland's 15).
-        const val WHEEL_UNITS = 15.0
-
-        // As see-through as this: not seen (not drawn, no frames for it, no clicks).
-        const val HIDDEN = 0.002f
-
-        // A frame this slow (ms) is said at level 2.
-        const val SLOW_FRAME_MILLIS = 50
-
-        // Compose's pointer shapes (Java's cursors on the desktop) and the compositor's names.
-        val CURSORS = listOf(
-            java.awt.Cursor.DEFAULT_CURSOR to "default", java.awt.Cursor.TEXT_CURSOR to "text", java.awt.Cursor.HAND_CURSOR to "pointer",
-            java.awt.Cursor.CROSSHAIR_CURSOR to "crosshair", java.awt.Cursor.MOVE_CURSOR to "move", java.awt.Cursor.WAIT_CURSOR to "wait",
-            java.awt.Cursor.N_RESIZE_CURSOR to "n-resize", java.awt.Cursor.S_RESIZE_CURSOR to "s-resize", java.awt.Cursor.E_RESIZE_CURSOR to "e-resize",
-            java.awt.Cursor.W_RESIZE_CURSOR to "w-resize", java.awt.Cursor.NE_RESIZE_CURSOR to "ne-resize", java.awt.Cursor.NW_RESIZE_CURSOR to "nw-resize",
-            java.awt.Cursor.SE_RESIZE_CURSOR to "se-resize", java.awt.Cursor.SW_RESIZE_CURSOR to "sw-resize",
-        )
-    }
 }
 
 /** Settings for every [ComposeWidget]. */
@@ -795,3 +696,33 @@ object ComposeScenes {
             field = value
         }
 }
+
+// What nothing here can recover from goes on (the JVM's own trouble, but for a stack
+// overflow: that is the content's own, and fails it as any mistake does).
+internal fun Throwable.rethrowIfFatalHere() {
+    if (this is VirtualMachineError && this !is StackOverflowError) throw this
+}
+
+internal const val BTN_LEFT = 272
+internal const val BTN_RIGHT = 273
+internal const val BTN_MIDDLE = 274
+internal const val BTN_SIDE = 275
+internal const val BTN_EXTRA = 276
+
+// Units of the compositor's scrolling in one notch of a wheel (Wayland's 15).
+internal const val WHEEL_UNITS = 15.0
+
+// As see-through as this: not seen (not drawn, no frames for it, no clicks).
+internal const val HIDDEN = 0.002f
+
+// A frame this slow (ms) is said at level 2.
+internal const val SLOW_FRAME_MILLIS = 50
+
+// Compose's pointer shapes (Java's cursors on the desktop) and the compositor's names.
+internal val CURSORS = listOf(
+    java.awt.Cursor.DEFAULT_CURSOR to "default", java.awt.Cursor.TEXT_CURSOR to "text", java.awt.Cursor.HAND_CURSOR to "pointer",
+    java.awt.Cursor.CROSSHAIR_CURSOR to "crosshair", java.awt.Cursor.MOVE_CURSOR to "move", java.awt.Cursor.WAIT_CURSOR to "wait",
+    java.awt.Cursor.N_RESIZE_CURSOR to "n-resize", java.awt.Cursor.S_RESIZE_CURSOR to "s-resize", java.awt.Cursor.E_RESIZE_CURSOR to "e-resize",
+    java.awt.Cursor.W_RESIZE_CURSOR to "w-resize", java.awt.Cursor.NE_RESIZE_CURSOR to "ne-resize", java.awt.Cursor.NW_RESIZE_CURSOR to "nw-resize",
+    java.awt.Cursor.SE_RESIZE_CURSOR to "se-resize", java.awt.Cursor.SW_RESIZE_CURSOR to "sw-resize",
+)
