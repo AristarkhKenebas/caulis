@@ -19,6 +19,7 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 - A window's new title now reaches its title bar and your rules at once; before, it waited for the program's next commit.
 
 ### Changed
+- `Caulis.every` timers of a second or more keep to a common beat: ten once-a-second timers wake the processor once a second. Their first turn still comes after a whole period at least.
 - Following a bus name (`onSignal` with a well-known `sender`) asks the bus only for that name's owner changes, not for every program coming and going: the program is not woken for them. New overload of `DBusConnection.onSignal` / `DBusScope.onSignal` with `arg0`.
 - With several monitors, something moving builds one scene per moment instead of one per monitor's refresh: a 60 Hz monitor no longer pays for a 144 Hz monitor's animation.
 - An event loop at rest wakes once a second, not ten times (the main loop, the X11 router, the input thread's); `stop()` wakes it at once.

@@ -2425,8 +2425,9 @@ class Caulis {
         val mine = !(r.startingUp || running == null)
         var stopped = false
         var timer: dev.caulis.event.EventLoop.Timer? = null
+        var first = true
         fun next() {
-            timer = r.loop.after(millis) {
+            timer = r.loop.after(timerDelayMillis(millis, System.nanoTime() / 1_000_000, first).also { first = false }) {
                 timers -= timer!!
                 if (stopped) return@after
                 r.loop.taskOrigin = action
