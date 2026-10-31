@@ -1,0 +1,453 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>PluginClassLoader</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-plugins/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-plugins/main" data-filter=":caulis-plugins/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="caulis-plugins::dev.caulis.plugins/PluginClassLoader///PointingToDeclaration//1654156786">
+  <div class="breadcrumbs"><a href="../../index.html">caulis-plugins</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.plugins</a><span class="delimiter">/</span><span class="current">PluginClassLoader</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Plugin</span><wbr><span>Class</span><wbr><span><span>Loader</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">PluginClassLoader</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">urls<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-array/index.html">Array</a><span class="token operator">&lt;</span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/net/URL.html">URL</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">parent<span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/ClassLoader.html">ClassLoader</a><span class="token punctuation">, </span></span><span class="parameter ">shared<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">dependencies<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="index.html">PluginClassLoader</a><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyList()</span></span><span class="token punctuation">)</span> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/net/URLClassLoader.html">URLClassLoader</a></div><p class="paragraph">One plugin's classes: its jar first, so plugins cannot collide over a library, then the plugins it depends on, then the compositor's. The packages in <a href="../../../caulis-plugins/dev.caulis.plugins/-plugin-class-loader/--root--.html">shared</a> always come from the compositor (the API, Kotlin, the JDK), also when the jar brings its own copy: two copies of an interface would not fit each other.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="-836468818%2FConstructors%2F1654156786" anchor-label="PluginClassLoader" id="-836468818%2FConstructors%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-class-loader.html"><span>Plugin</span><wbr><span>Class</span><wbr><span><span>Loader</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-836468818%2FConstructors%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">urls<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-array/index.html">Array</a><span class="token operator">&lt;</span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/net/URL.html">URL</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">parent<span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/ClassLoader.html">ClassLoader</a><span class="token punctuation">, </span></span><span class="parameter ">shared<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">dependencies<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="index.html">PluginClassLoader</a><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyList()</span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="-314319360%2FClasslikes%2F1654156786" anchor-label="Companion" id="-314319360%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-314319360%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="-1702030048%2FProperties%2F1654156786" anchor-label="definedPackages" id="-1702030048%2FProperties%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-1702030048%2FProperties%2F1654156786"><span>defined</span><wbr><span><span>Packages</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1702030048%2FProperties%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="index.html#-1702030048%2FProperties%2F1654156786">definedPackages</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-array/index.html">Array</a><span class="token operator">&lt;</span><span class="token keyword">out </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/Package.html">Package</a><span class="token operator">?</span><span class="token operator">&gt;</span><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="720218351%2FProperties%2F1654156786" anchor-label="isRegisteredAsParallelCapable" id="720218351%2FProperties%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#720218351%2FProperties%2F1654156786"><span>is</span><wbr><span>Registered</span><wbr><span>As</span><wbr><span>Parallel</span><wbr><span><span>Capable</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="720218351%2FProperties%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="index.html#720218351%2FProperties%2F1654156786">isRegisteredAsParallelCapable</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-496928135%2FProperties%2F1654156786" anchor-label="name" id="-496928135%2FProperties%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-496928135%2FProperties%2F1654156786"><span><span>name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-496928135%2FProperties%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">val </span><a href="index.html#-496928135%2FProperties%2F1654156786">name</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1459003258%2FProperties%2F1654156786" anchor-label="parent" id="1459003258%2FProperties%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#1459003258%2FProperties%2F1654156786"><span><span>parent</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1459003258%2FProperties%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="index.html#1459003258%2FProperties%2F1654156786">parent</a><span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/ClassLoader.html">ClassLoader</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1201644394%2FProperties%2F1654156786" anchor-label="unnamedModule" id="1201644394%2FProperties%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#1201644394%2FProperties%2F1654156786"><span>unnamed</span><wbr><span><span>Module</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1201644394%2FProperties%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="index.html#1201644394%2FProperties%2F1654156786">unnamedModule</a><span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/Module.html">Module</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1594543932%2FProperties%2F1654156786" anchor-label="urLs" id="-1594543932%2FProperties%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-1594543932%2FProperties%2F1654156786"><span>ur</span><wbr><span><span>Ls</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1594543932%2FProperties%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">val </span><a href="index.html#-1594543932%2FProperties%2F1654156786">urLs</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-array/index.html">Array</a><span class="token operator">&lt;</span><span class="token keyword">out </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/net/URL.html">URL</a><span class="token operator">?</span><span class="token operator">&gt;</span><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="1259311869%2FFunctions%2F1654156786" anchor-label="clearAssertionStatus" id="1259311869%2FFunctions%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#1259311869%2FFunctions%2F1654156786"><span>clear</span><wbr><span>Assertion</span><wbr><span><span>Status</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1259311869%2FFunctions%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="index.html#1259311869%2FFunctions%2F1654156786"><span class="token function">clearAssertionStatus</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1117130810%2FFunctions%2F1654156786" anchor-label="close" id="-1117130810%2FFunctions%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-plugin-code/index.html#-1117130810%2FFunctions%2F1654156786"><span><span>close</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1117130810%2FFunctions%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../-plugin-code/index.html#-1117130810%2FFunctions%2F1654156786"><span class="token function">close</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1456156793%2FFunctions%2F1654156786" anchor-label="findResource" id="-1456156793%2FFunctions%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-1456156793%2FFunctions%2F1654156786"><span>find</span><wbr><span><span>Resource</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1456156793%2FFunctions%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="index.html#-1456156793%2FFunctions%2F1654156786"><span class="token function">findResource</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/net/URL.html">URL</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1242204294%2FFunctions%2F1654156786" anchor-label="findResources" id="-1242204294%2FFunctions%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-1242204294%2FFunctions%2F1654156786"><span>find</span><wbr><span><span>Resources</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1242204294%2FFunctions%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="index.html#-1242204294%2FFunctions%2F1654156786"><span class="token function">findResources</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/util/Enumeration.html">Enumeration</a><span class="token operator">&lt;</span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/net/URL.html">URL</a><span class="token operator">?</span><span class="token operator">&gt;</span><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1597049535%2FFunctions%2F1654156786" anchor-label="getDefinedPackage" id="-1597049535%2FFunctions%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-1597049535%2FFunctions%2F1654156786"><span>get</span><wbr><span>Defined</span><wbr><span><span>Package</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1597049535%2FFunctions%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="index.html#-1597049535%2FFunctions%2F1654156786"><span class="token function">getDefinedPackage</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/Package.html">Package</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1976965521%2FFunctions%2F1654156786" anchor-label="getResource" id="-1976965521%2FFunctions%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-resource.html"><span>get</span><wbr><span><span>Resource</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1976965521%2FFunctions%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="get-resource.html"><span class="token function">getResource</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/net/URL.html">URL</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-996926908%2FFunctions%2F1654156786" anchor-label="getResourceAsStream" id="-996926908%2FFunctions%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-996926908%2FFunctions%2F1654156786"><span>get</span><wbr><span>Resource</span><wbr><span>As</span><wbr><span><span>Stream</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-996926908%2FFunctions%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="index.html#-996926908%2FFunctions%2F1654156786"><span class="token function">getResourceAsStream</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/io/InputStream.html">InputStream</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-207405678%2FFunctions%2F1654156786" anchor-label="getResources" id="-207405678%2FFunctions%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-resources.html"><span>get</span><wbr><span><span>Resources</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-207405678%2FFunctions%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="get-resources.html"><span class="token function">getResources</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/util/Enumeration.html">Enumeration</a><span class="token operator">&lt;</span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/net/URL.html">URL</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1986538048%2FFunctions%2F1654156786" anchor-label="loadClass" id="1986538048%2FFunctions%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#1986538048%2FFunctions%2F1654156786"><span>load</span><wbr><span><span>Class</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1986538048%2FFunctions%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="index.html#1986538048%2FFunctions%2F1654156786"><span class="token function">loadClass</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/Class.html">Class</a><span class="token operator">&lt;</span><span class="token operator">*</span><span class="token operator">&gt;</span><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2133604877%2FFunctions%2F1654156786" anchor-label="resources" id="-2133604877%2FFunctions%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-2133604877%2FFunctions%2F1654156786"><span><span>resources</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2133604877%2FFunctions%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="index.html#-2133604877%2FFunctions%2F1654156786"><span class="token function">resources</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/util/stream/Stream.html">Stream</a><span class="token operator">&lt;</span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/net/URL.html">URL</a><span class="token operator">?</span><span class="token operator">&gt;</span><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1049952072%2FFunctions%2F1654156786" anchor-label="setClassAssertionStatus" id="-1049952072%2FFunctions%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-1049952072%2FFunctions%2F1654156786"><span>set</span><wbr><span>Class</span><wbr><span>Assertion</span><wbr><span><span>Status</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1049952072%2FFunctions%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="index.html#-1049952072%2FFunctions%2F1654156786"><span class="token function">setClassAssertionStatus</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">className<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter ">enabled<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1271555514%2FFunctions%2F1654156786" anchor-label="setDefaultAssertionStatus" id="-1271555514%2FFunctions%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-1271555514%2FFunctions%2F1654156786"><span>set</span><wbr><span>Default</span><wbr><span>Assertion</span><wbr><span><span>Status</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1271555514%2FFunctions%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="index.html#-1271555514%2FFunctions%2F1654156786"><span class="token function">setDefaultAssertionStatus</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">enabled<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-888282426%2FFunctions%2F1654156786" anchor-label="setPackageAssertionStatus" id="-888282426%2FFunctions%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-888282426%2FFunctions%2F1654156786"><span>set</span><wbr><span>Package</span><wbr><span>Assertion</span><wbr><span><span>Status</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-888282426%2FFunctions%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="index.html#-888282426%2FFunctions%2F1654156786"><span class="token function">setPackageAssertionStatus</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">packageName<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter ">enabled<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

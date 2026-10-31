@@ -1,0 +1,520 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>dev.caulis.plugins</title>
+<link href="../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../index.html" tabindex="1">
+                    Caulis
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":caulis-plugins/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":caulis-plugins/main" data-filter=":caulis-plugins/main">
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Caulis
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="package" id="content" pageids="caulis-plugins::dev.caulis.plugins////PointingToDeclaration//1654156786">
+  <div class="breadcrumbs"><a href="../index.html">caulis-plugins</a><span class="delimiter">/</span><span class="current">dev.caulis.plugins</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+    <div class="platform-hinted UnderCoverText" data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><p class="paragraph"><a href="-plugin/index.html">dev.caulis.plugins.Plugin</a> (what a plugin implements), <a href="-plugin-manifest/index.html">dev.caulis.plugins.PluginManifest</a> (what it says of itself), <a href="-plugin-manager/index.html">dev.caulis.plugins.PluginManager</a> (the running of them).</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button><button class="section-tab" data-togglable="FUNCTION,EXTENSION_FUNCTION">Functions</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="490608110%2FClasslikes%2F1654156786" anchor-label="ApiVersion" id="490608110%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-api-version/index.html"><span>Api</span><wbr><span><span>Version</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="490608110%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-api-version/index.html">ApiVersion</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>major<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>minor<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">The version of an API, <code class="lang-kotlin">major.minor</code>. A plugin written for 1.2 runs on 1.2 and 1.5, not on 1.1 or 2.0. While the major is 0 the same holds: within 0.x the minor only grows when the API does, and what breaks plugins raises the major's successor in the changelog.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1366084753%2FClasslikes%2F1654156786" anchor-label="JarPluginFormat" id="1366084753%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-jar-plugin-format/index.html"><span>Jar</span><wbr><span>Plugin</span><wbr><span><span>Format</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1366084753%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-jar-plugin-format/index.html">JarPluginFormat</a><span class="token operator">&lt;</span><a href="-jar-plugin-format/index.html">H</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span> : <a href="-plugin-format/index.html">PluginFormat</a><span class="token operator">&lt;</span><a href="-jar-plugin-format/index.html">H</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">Jar files with a manifest at the top.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1022894279%2FClasslikes%2F1654156786" anchor-label="Plugin" id="-1022894279%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin/index.html"><span><span>Plugin</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1022894279%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-plugin/index.html">Plugin</a><span class="token operator">&lt;</span><a href="-plugin/index.html">H</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">What a plugin implements; <a href="-plugin/index.html">H</a> is what the compositor offers it (Caulis: <code class="lang-kotlin">PluginApi</code>). The manifest's <code class="lang-kotlin">main</code> names the class, which has a constructor without arguments (or is a Kotlin <code class="lang-kotlin">object</code>). Each enabling gets a new instance, so a field cannot outlive a disable.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1660905214%2FClasslikes%2F1654156786" anchor-label="PluginClassLoader" id="1660905214%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-class-loader/index.html"><span>Plugin</span><wbr><span>Class</span><wbr><span><span>Loader</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1660905214%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-plugin-class-loader/index.html">PluginClassLoader</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">urls<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-array/index.html">Array</a><span class="token operator">&lt;</span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/net/URL.html">URL</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">parent<span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/ClassLoader.html">ClassLoader</a><span class="token punctuation">, </span></span><span class="parameter ">shared<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">dependencies<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="-plugin-class-loader/index.html">PluginClassLoader</a><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyList()</span></span><span class="token punctuation">)</span> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/net/URLClassLoader.html">URLClassLoader</a></div><div class="brief "><p class="paragraph">One plugin's classes: its jar first, so plugins cannot collide over a library, then the plugins it depends on, then the compositor's. The packages in <a href="../../caulis-plugins/dev.caulis.plugins/-plugin-class-loader/--root--.html">shared</a> always come from the compositor (the API, Kotlin, the JDK), also when the jar brings its own copy: two copies of an interface would not fit each other.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-796954164%2FClasslikes%2F1654156786" anchor-label="PluginCode" id="-796954164%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-code/index.html"><span>Plugin</span><wbr><span><span>Code</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-796954164%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-plugin-code/index.html">PluginCode</a><span class="token operator">&lt;</span><a href="-plugin-code/index.html">H</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/AutoCloseable.html">AutoCloseable</a></div><div class="brief "><p class="paragraph">A plugin's loaded code.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-987736710%2FClasslikes%2F1654156786" anchor-label="PluginContext" id="-987736710%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-context/index.html"><span>Plugin</span><wbr><span><span>Context</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-987736710%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-plugin-context/index.html">PluginContext</a><span class="token operator">&lt;</span><a href="-plugin-context/index.html">H</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>handle<span class="token operator">: </span><a href="-plugin-handle/index.html">PluginHandle</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>api<span class="token operator">: </span><a href="-plugin-context/index.html">H</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">What a plugin gets when it is enabled.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="368976942%2FClasslikes%2F1654156786" anchor-label="PluginDependency" id="368976942%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-dependency/index.html"><span>Plugin</span><wbr><span><span>Dependency</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="368976942%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-plugin-dependency/index.html">PluginDependency</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>id<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>atLeast<span class="token operator">: </span><a href="-plugin-version/index.html">PluginVersion</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>optional<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Another plugin this one needs.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-884480078%2FClasslikes%2F1654156786" anchor-label="PluginFiles" id="-884480078%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-files/index.html"><span>Plugin</span><wbr><span><span>Files</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-884480078%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-plugin-files/index.html">PluginFiles</a></div><div class="brief "><p class="paragraph">What the formats and the manager ask of files.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="360254722%2FClasslikes%2F1654156786" anchor-label="PluginFormat" id="360254722%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-format/index.html"><span>Plugin</span><wbr><span><span>Format</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="360254722%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-plugin-format/index.html">PluginFormat</a><span class="token operator">&lt;</span><a href="-plugin-format/index.html">H</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">A kind of plugin file: jars (<a href="-jar-plugin-format/index.html">JarPluginFormat</a>), Lua scripts (caulis-lua), or one of your own.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="652019473%2FClasslikes%2F1654156786" anchor-label="PluginFormatProvider" id="652019473%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-format-provider/index.html"><span>Plugin</span><wbr><span>Format</span><wbr><span><span>Provider</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="652019473%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token keyword">interface </span><a href="-plugin-format-provider/index.html">PluginFormatProvider</a></div><div class="brief "><p class="paragraph">A <a href="-plugin-format/index.html">PluginFormat</a> found by itself on the class path (ServiceLoader): how caulis-lua's comes.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="807007044%2FClasslikes%2F1654156786" anchor-label="PluginGuard" id="807007044%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-guard/index.html"><span>Plugin</span><wbr><span><span>Guard</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="807007044%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-plugin-guard/index.html">PluginGuard</a></div><div class="brief "><p class="paragraph">Runs one plugin's code: what it throws is caught and makes the plugin fail, and a call on the compositor's thread is timed by the watchdog. Every hook an API gives a plugin goes through <a href="-plugin-guard/call.html">call</a>. Once the plugin is disabled its code is not run any more.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1946173425%2FClasslikes%2F1654156786" anchor-label="PluginHandle" id="1946173425%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-handle/index.html"><span>Plugin</span><wbr><span><span>Handle</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1946173425%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-plugin-handle/index.html">PluginHandle</a></div><div class="brief "><p class="paragraph">The parts of one enabling of a plugin that depend on no compositor (see <a href="-plugin-context/index.html">PluginContext</a>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="378192497%2FClasslikes%2F1654156786" anchor-label="PluginHost" id="378192497%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-host/index.html"><span>Plugin</span><wbr><span><span>Host</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="378192497%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-plugin-host/index.html">PluginHost</a><span class="token operator">&lt;</span><a href="-plugin-host/index.html">H</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">What a compositor tells the <a href="-plugin-manager/index.html">PluginManager</a>; <a href="-plugin-host/index.html">H</a> is the API its plugins get.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1554851371%2FClasslikes%2F1654156786" anchor-label="PluginInfo" id="1554851371%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-info/index.html"><span>Plugin</span><wbr><span><span>Info</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1554851371%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-plugin-info/index.html">PluginInfo</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>id<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>version<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>format<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>state<span class="token operator">: </span><a href="-plugin-state/index.html">PluginState</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>problem<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>path<span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/nio/file/Path.html">Path</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>description<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>generation<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>held<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">What can be said of a plugin at a moment (<code class="lang-kotlin">plugin list</code>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="489404832%2FClasslikes%2F1654156786" anchor-label="PluginLoadRequest" id="489404832%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-load-request/index.html"><span>Plugin</span><wbr><span>Load</span><wbr><span><span>Request</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="489404832%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-plugin-load-request/index.html">PluginLoadRequest</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>parent<span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/ClassLoader.html">ClassLoader</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>shared<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>dependencies<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="-plugin-class-loader/index.html">PluginClassLoader</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>generation<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">What loading a plugin's code may need.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2118456636%2FClasslikes%2F1654156786" anchor-label="PluginManager" id="2118456636%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-manager/index.html"><span>Plugin</span><wbr><span><span>Manager</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2118456636%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-plugin-manager/index.html">PluginManager</a><span class="token operator">&lt;</span><a href="-plugin-manager/index.html">H</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">host<span class="token operator">: </span><a href="-plugin-host/index.html">PluginHost</a><span class="token operator">&lt;</span><a href="-plugin-manager/index.html">H</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">options<span class="token operator">: </span><a href="-plugin-options/index.html">PluginOptions</a><span class="token punctuation">, </span></span><span class="parameter ">formats<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="-plugin-format/index.html">PluginFormat</a><span class="token operator">&lt;</span><a href="-plugin-manager/index.html">H</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyList()</span></span><span class="token punctuation">)</span> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/AutoCloseable.html">AutoCloseable</a></div><div class="brief "><p class="paragraph">Runs a compositor's plugins: finds them in folders, orders them by what they depend on, loads, enables, disables, unloads and hot-reloads them. Everything but reading files happens on the compositor's thread, where all its functions must be called.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1556589514%2FClasslikes%2F1654156786" anchor-label="PluginManifest" id="1556589514%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-manifest/index.html"><span>Plugin</span><wbr><span><span>Manifest</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1556589514%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-plugin-manifest/index.html">PluginManifest</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>id<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>version<span class="token operator">: </span><a href="-plugin-version/index.html">PluginVersion</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>apis<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="-api-version/index.html">ApiVersion</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>main<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span>id<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>description<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">""</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>dependencies<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="-plugin-dependency/index.html">PluginDependency</a><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyList()</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">What a plugin says of itself: <code class="lang-kotlin">caulis-plugin.properties</code> at the top of a jar (or in a plugin's folder), in Java's properties format:</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="575901545%2FClasslikes%2F1654156786" anchor-label="PluginManifestException" id="575901545%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-manifest-exception/index.html"><span>Plugin</span><wbr><span>Manifest</span><wbr><span><span>Exception</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="575901545%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-plugin-manifest-exception/index.html">PluginManifestException</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">message<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/Exception.html">Exception</a></div><div class="brief "><p class="paragraph">A plugin's manifest is wrong: what is wrong, in words for the person who installed it.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1559257237%2FClasslikes%2F1654156786" anchor-label="PluginOptions" id="-1559257237%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-options/index.html"><span>Plugin</span><wbr><span><span>Options</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1559257237%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-plugin-options/index.html">PluginOptions</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>directories<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/nio/file/Path.html">Path</a><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyList()<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>enabled<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">true</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>disabled<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token operator"> = </span>emptySet()<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>settings<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">?</span><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyMap()<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>watch<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">true</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>settleMillis<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">300</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>failuresBeforeDisable<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>hangReportMillis<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>hangInterruptMillis<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>hangQuarantineMillis<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>disableAfterHang<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">true</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>leakCheckMillis<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>maxLeakedGenerations<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">8</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>allowUnsafePermissions<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>sharedPackages<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token operator"> = </span>PluginClassLoader.DEFAULT_SHARED<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>stateFile<span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/nio/file/Path.html">Path</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>cacheDir<span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/nio/file/Path.html">Path</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>parentLoader<span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/ClassLoader.html">ClassLoader</a><span class="token operator"> = </span>PluginOptions::class.java.classLoader</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">How a <a href="-plugin-manager/index.html">PluginManager</a> behaves; each one a setting of the compositor.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="188319349%2FClasslikes%2F1654156786" anchor-label="PluginScope" id="188319349%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-scope/index.html"><span>Plugin</span><wbr><span><span>Scope</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="188319349%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-plugin-scope/index.html">PluginScope</a> : <a href="https://docs.oracle.com/en/java/javase/27/docs/api/java.base/java/lang/AutoCloseable.html">AutoCloseable</a></div><div class="brief "><p class="paragraph">What one enabling of a plugin registered, taken away when it is disabled, the last first. Every API a plugin gets adds to it; for what the API does not know (a socket, a thread of a library), <a href="-plugin-scope/add.html">add</a> and <a href="-plugin-scope/on-close.html">onClose</a>. Thread-safe. What is added after the end is closed at once, so a thread of the plugin that was still busy cannot leave something behind.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="924448854%2FClasslikes%2F1654156786" anchor-label="PluginSettings" id="924448854%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-settings/index.html"><span>Plugin</span><wbr><span><span>Settings</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="924448854%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-plugin-settings/index.html">PluginSettings</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>values<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">?</span><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyMap()</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">The configuration's settings for one plugin: read with a default, so a plugin works without any.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1405727394%2FClasslikes%2F1654156786" anchor-label="PluginSource" id="-1405727394%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-source/index.html"><span>Plugin</span><wbr><span><span>Source</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1405727394%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-plugin-source/index.html">PluginSource</a><span class="token operator">&lt;</span><a href="-plugin-source/index.html">H</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">One plugin as found on disk.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2091020584%2FClasslikes%2F1654156786" anchor-label="PluginState" id="-2091020584%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-state/index.html"><span>Plugin</span><wbr><span><span>State</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2091020584%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">enum </span><a href="-plugin-state/index.html">PluginState</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="-plugin-state/index.html">PluginState</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">Where a plugin is in its life.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1655529871%2FClasslikes%2F1654156786" anchor-label="PluginVersion" id="-1655529871%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-version/index.html"><span>Plugin</span><wbr><span><span>Version</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1655529871%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-plugin-version/index.html">PluginVersion</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-comparable/index.html">Comparable</a><span class="token operator">&lt;</span><a href="-plugin-version/index.html">PluginVersion</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">A plugin's version: numbers with dots, compared as numbers; what follows a <code class="lang-kotlin">-</code> is only shown.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="622785964%2FClasslikes%2F1654156786" anchor-label="PluginWatchdog" id="622785964%2FClasslikes%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plugin-watchdog/index.html"><span>Plugin</span><wbr><span><span>Watchdog</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="622785964%2FClasslikes%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-plugin-watchdog/index.html">PluginWatchdog</a></div><div class="brief "><p class="paragraph">Watches the calls into plugins on the compositor's thread, from a thread of its own. It only exists while a plugin is loaded or a class loader is waited for: with no plugin there is no thread at all. It also looks whether the class loaders of unloaded plugins were collected.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="EXTENSION_FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="133366082%2FFunctions%2F1654156786" anchor-label="command" id="133366082%2FFunctions%2F1654156786" data-filterable-set=":caulis-plugins/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-plugins/main" data-filterable-set=":caulis-plugins/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="command.html"><span><span>command</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="133366082%2FFunctions%2F1654156786"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-plugins/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="-plugin-manager/index.html">PluginManager</a><span class="token operator">&lt;</span><span class="token operator">*</span><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="command.html"><span class="token function">command</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">words<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div><div class="brief "><p class="paragraph">The manager's own text answer to <code class="lang-kotlin">plugin list|enable|disable|reload [id]</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -143,6 +143,19 @@
             </span></div>
         </div>
       </div>
+<a data-name="494154745%2FMain%2F0" anchor-label="caulis-input" id="494154745%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-input/index.html">caulis-input</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="494154745%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">The plain types of input that everything handling input shares: dev.caulis.core.input.InputSettings and its enums, gestures, scrolling, the tablet value types. Nothing here talks to clients (the seat and the keymap are in <code class="lang-kotlin">caulis-core</code>). <code class="lang-kotlin">caulis-core</code> brings it.</p>
+            </span></div>
+        </div>
+      </div>
 <a data-name="-1607335833%2FMain%2F0" anchor-label="caulis-ipc" id="-1607335833%2FMain%2F0" data-filterable-set=""></a>
       <div class="table-row table-row_multimodule">
         <div class="main-subrow ">
@@ -153,6 +166,19 @@
               </span></span></div>
           <div><span class="brief-comment">
               <p class="paragraph">The IPC socket of a running compositor: its messages, described in <code class="lang-kotlin">src/main/proto/caulis/ipc/v1/caulis.proto</code> (programs in any language make their code from it), and dev.caulis.ipc.CaulisIpc, a client for programs on the JVM. The compositor's side is part of caulis-wm.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="577726938%2FMain%2F0" anchor-label="caulis-libinput" id="577726938%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-libinput/index.html">caulis-libinput</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="577726938%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">dev.caulis.core.libinput.InputDevices: input devices through libinput, with the settings of <code class="lang-kotlin">caulis-input</code>, on the compositor's thread or on one of their own. <code class="lang-kotlin">caulis-core</code> brings it.</p>
             </span></div>
         </div>
       </div>
@@ -192,6 +218,19 @@
               </span></span></div>
           <div><span class="brief-comment">
               <p class="paragraph">Safe Kotlin around the C pieces Caulis needs: file descriptors, sockets, shared memory, epoll — and the event loop (dev.caulis.event.EventLoop) everything runs on.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="-814799773%2FMain%2F0" anchor-label="caulis-plugins" id="-814799773%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-plugins/index.html">caulis-plugins</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-814799773%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">Plugins for any compositor: dev.caulis.plugins.PluginManager finds them in a folder, and loads, enables, disables, unloads and hot-reloads them, for a dev.caulis.plugins.PluginHost saying what they may call. Jar plugins run with the user's rights and are not sandboxed.</p>
             </span></div>
         </div>
       </div>
@@ -257,6 +296,19 @@
               </span></span></div>
           <div><span class="brief-comment">
               <p class="paragraph"><code class="lang-kotlin">config.kts</code>: a compositor's configuration as a Kotlin script, compiled by the compositor itself — no Gradle, no project. A compositor with this module on its class path reads <code class="lang-kotlin">config.kts</code> from its folder by itself. It contains the Kotlin compiler. See the guide, step 28.</p>
+            </span></div>
+        </div>
+      </div>
+<a data-name="-199607763%2FMain%2F0" anchor-label="caulis-session" id="-199607763%2FMain%2F0" data-filterable-set=""></a>
+      <div class="table-row table-row_multimodule">
+        <div class="main-subrow ">
+          <div class="w-100"><span class="inline-flex">
+              <div><a href="caulis-session/index.html">caulis-session</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-199607763%2FMain%2F0"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div><span class="brief-comment">
+              <p class="paragraph">The login session: dev.caulis.core.session.Session opens devices through libseat and follows terminal switches; dev.caulis.core.Logind hears logind's signals over D-Bus. <code class="lang-kotlin">caulis-core</code> brings it.</p>
             </span></div>
         </div>
       </div>
