@@ -32,6 +32,8 @@ fun main() = caulis {
     // configuration never locks you in: Super+Shift+Escape quits, Super+Return opens a terminal.)
     bind("Ctrl+Alt+Shift+F12") { }
 
+    plugins { enabled = false }             // a kiosk runs nothing but what it was given
+
     hideCursorAfterSeconds = 5              // the pointer out of sight when it is not used; 0: always there
 
     // Every window of the program full-screen, popups included.
