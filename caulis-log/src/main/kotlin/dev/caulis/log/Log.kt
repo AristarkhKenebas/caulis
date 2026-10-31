@@ -49,6 +49,7 @@ object Log {
         "layout" to "arranging windows: layouts, workspaces, tiling commands, glides",
         "layers" to "panels, docks, wallpapers and launchers (layer shell)",
         "lock" to "the screen lock",
+        "plugins" to "plugins found, started, stopped, reloaded, failing; each plugin logs under plugin-<id>",
         "docks" to "what docks and taskbars are told and ask for",
         "cursor" to "cursor themes and shapes",
         "capture" to "screenshots and screen recordings: who takes pictures, of what",
@@ -129,7 +130,7 @@ object Log {
                 value == null || value !in QUIET..EVERYTHING -> warnSetting("\"$part\" is not a log level (0 to 3)")
                 name.isEmpty() -> level = value
                 else -> {
-                    if (name !in AREAS) warnSetting("there is no log area \"$name\" (the areas: ${AREAS.keys.joinToString()})")
+                    if (name !in AREAS && !name.startsWith("plugin-")) warnSetting("there is no log area \"$name\" (the areas: ${AREAS.keys.joinToString()})")
                     setLevel(name, value)
                 }
             }

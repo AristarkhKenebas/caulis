@@ -98,6 +98,7 @@ Wayland way when they can, and through X11 when that fails.
 | `caulis-libinput` | input devices through libinput (brought by `caulis-core`) |
 | `caulis-session` | the login session: libseat and logind (brought by `caulis-core`) |
 | `caulis-input` | plain input types: settings, gestures, scrolling, tablets (brought by `caulis-core`) |
+| `caulis-plugins` | plugins for any compositor: discovery, manifests, class loaders, hot reload, containment (brought by `caulis-wm`) |
 | `caulis-protocol` | the Wayland protocol (server and client side), generated from XML |
 | `caulis-render` | drawing on the GPU (OpenGL ES; Vulkan later) |
 | `caulis-geometry` | rectangles |
