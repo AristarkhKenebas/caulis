@@ -16,8 +16,8 @@ class StuckKeysTest {
     private val harness = CaulisTest()
 
     private fun Running.tap(vararg codes: Int) {
-        for (code in codes) key(0, code, true)
-        for (code in codes.reversed()) key(0, code, false)
+        for (code in codes) rinput.key(0, code, true)
+        for (code in codes.reversed()) rinput.key(0, code, false)
     }
 
     @Test
@@ -29,8 +29,8 @@ class StuckKeysTest {
             onKey { key -> key.keysym == "Super_L" && !key.pressed }
         }, headless = true) { caulis, _ ->
             caulis.onLoop { r ->
-                r.key(0, SUPER, true)
-                r.key(0, SUPER, false)
+                r.rinput.key(0, SUPER, true)
+                r.rinput.key(0, SUPER, false)
                 assertFalse(r.keys.isHeld(Modifier.SUPER), "Super is not held any more")
                 r.tap(CTRL, X)
             }
@@ -45,7 +45,7 @@ class StuckKeysTest {
             bind("Super+Z", BindOptions(repeat = true)) { runs++ }
             onKey { key -> key.keysym == "z" && !key.pressed }
         }, headless = true) { caulis, client ->
-            caulis.onLoop { r -> r.key(0, SUPER, true); r.key(0, Z, true); r.key(0, Z, false); r.key(0, SUPER, false) }
+            caulis.onLoop { r -> r.rinput.key(0, SUPER, true); r.rinput.key(0, Z, true); r.rinput.key(0, Z, false); r.rinput.key(0, SUPER, false) }
             val after = caulis.onLoop { runs }
             var looks = 0
             client.waitFor { Thread.sleep(50); ++looks > 16 } // past the repeat delay
@@ -64,12 +64,12 @@ class StuckKeysTest {
             bind("Ctrl+X") { fired += "ctrl+x" }
         }, headless = true) { caulis, _ ->
             caulis.onLoop { r ->
-                r.key(0, SUPER, true)
+                r.rinput.key(0, SUPER, true)
                 caulis.switchKeyboardLayout(1) // Russian: the key of D types "в"
                 r.tap(D)
                 caulis.keyboardOptions = "grp:alt_shift_toggle" // a reload gives a new keymap
                 r.tap(D)
-                r.key(0, SUPER, false)
+                r.rinput.key(0, SUPER, false)
                 assertFalse(r.keys.isHeld(Modifier.SUPER), "Super is not stuck")
                 assertEquals(0, r.seat.modifierBits and 64, "programs see Super let go")
                 r.tap(CTRL, X)
@@ -102,19 +102,19 @@ class StuckKeysTest {
             onKey { key -> seen += "${key.keysym} ${if (key.pressed) "down" else "up"}"; false }
         }, headless = true) { caulis, _ ->
             caulis.onLoop { r ->
-                r.key(0, SUPER, true)
+                r.rinput.key(0, SUPER, true)
                 r.desktop.openOverlay(object : dev.caulis.core.Overlay {
                     override fun draw(monitor: dev.caulis.core.Monitor, canvas: dev.caulis.core.OverlayCanvas) {}
                 })
-                r.key(0, SUPER, false)
+                r.rinput.key(0, SUPER, false)
                 r.desktop.closeOverlay()
             }
             assertEquals(listOf("Super_L down", "Super_L up"), seen.toList())
             seen.clear()
             caulis.onLoop { r ->
-                r.key(0, CTRL, true)
-                r.releaseKeys() // the keyboard went to another console
-                r.key(0, X, true)
+                r.rinput.key(0, CTRL, true)
+                r.rinput.releaseKeys() // the keyboard went to another console
+                r.rinput.key(0, X, true)
             }
             assertEquals(listOf("Control_L down", "Control_L up", "x down"), seen.toList())
             caulis.onLoop { r -> assertEquals(emptySet(), r.keys.heldModifiers()) }

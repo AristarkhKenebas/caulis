@@ -70,7 +70,7 @@ class IdleInhibitTest {
             caulis.onLoop { caulis.switchKeyboardLayout(1) }
             assertEquals("й", caulis.onLoop { caulis.keyText(16) })
             assertFalse(caulis.onLoop { caulis.capsLockOn })
-            caulis.onLoop { r -> r.key(0, 58, true); r.key(0, 58, false) } // Caps Lock
+            caulis.onLoop { r -> r.rinput.key(0, 58, true); r.rinput.key(0, 58, false) } // Caps Lock
             assertTrue(caulis.onLoop { caulis.capsLockOn })
         }
     }

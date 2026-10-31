@@ -878,7 +878,7 @@ class Caulis {
     var keyboardLayouts = "us"
         set(value) {
             field = value
-            running?.applyKeymap()
+            running?.rinput?.applyKeymap()
         }
 
     /**
@@ -888,7 +888,7 @@ class Caulis {
     var keyboardOptions = ""
         set(value) {
             field = value
-            running?.applyKeymap()
+            running?.rinput?.applyKeymap()
         }
 
     /**
@@ -952,14 +952,14 @@ class Caulis {
     var keyboardVariants = ""
         set(value) {
             field = value
-            running?.applyKeymap()
+            running?.rinput?.applyKeymap()
         }
 
     /** The keyboard model as for setxkbmap ("pc105"). Changed while running: at once. */
     var keyboardModel = "pc105"
         set(value) {
             field = value
-            running?.applyKeymap()
+            running?.rinput?.applyKeymap()
         }
 
     /**
@@ -1540,7 +1540,7 @@ class Caulis {
     }
 
     /** Turns the key mode [name] on (see [keyMode]); null: back to the usual keys. */
-    fun enterKeyMode(name: String?) = live().enterMode(name)
+    fun enterKeyMode(name: String?) = live().rinput.enterMode(name)
 
     /** The old name of [enterKeyMode]. */
     @Deprecated("Renamed to enterKeyMode", ReplaceWith("enterKeyMode(name)"))
@@ -1712,35 +1712,35 @@ class Caulis {
     fun simulatePointer(x: Double, y: Double, button: Int = 0) {
         val running = live()
         val time = (System.nanoTime() / 1_000_000).toInt()
-        running.pointerMovedTo(time, x, y)
+        running.rinput.pointerMovedTo(time, x, y)
         if (button != 0) {
-            running.pointerButton(time, button, true)
-            running.pointerButton(time + 20, button, false)
+            running.rinput.pointerButton(time, button, true)
+            running.rinput.pointerButton(time + 20, button, false)
         }
     }
 
     /** For tests: the mouse moved by [dx], [dy] (as a mouse moves it: the configuration's onPointerMotion sees it). */
     fun simulateMotion(dx: Double, dy: Double) {
         val running = live()
-        running.pointerMovedBy((System.nanoTime() / 1_000_000).toInt(), dx, dy, dx, dy)
+        running.rinput.pointerMovedBy((System.nanoTime() / 1_000_000).toInt(), dx, dy, dx, dy)
     }
 
     /** For tests: a mouse [button] (272 left) pressed or let go where the pointer is (see [simulatePointer]). */
     fun simulateButton(button: Int, pressed: Boolean) {
         val running = live()
-        running.pointerButton((System.nanoTime() / 1_000_000).toInt(), button, pressed)
+        running.rinput.pointerButton((System.nanoTime() / 1_000_000).toInt(), button, pressed)
     }
 
     /** For tests: a key ([evdevCode], e.g. 56 left Alt, 42 left Shift, 30 A) pressed or let go, as from a keyboard (see [simulatePointer]). */
     fun simulateKey(evdevCode: Int, pressed: Boolean) {
         val running = live()
-        running.key((System.nanoTime() / 1_000_000).toInt(), evdevCode, pressed)
+        running.rinput.key((System.nanoTime() / 1_000_000).toInt(), evdevCode, pressed)
     }
 
     /** For tests: the wheel turned [notches] (positive: down), as from a mouse (see [simulatePointer]). */
     fun simulateScroll(notches: Int) {
         val running = live()
-        running.pointerAxis((System.nanoTime() / 1_000_000).toInt(), dev.caulis.core.input.Scroll(dev.caulis.core.input.Scroll.Source.WHEEL, vertical = 15.0 * notches, vertical120 = 120 * notches))
+        running.rinput.pointerAxis((System.nanoTime() / 1_000_000).toInt(), dev.caulis.core.input.Scroll(dev.caulis.core.input.Scroll.Source.WHEEL, vertical = 15.0 * notches, vertical120 = 120 * notches))
     }
 
     /**

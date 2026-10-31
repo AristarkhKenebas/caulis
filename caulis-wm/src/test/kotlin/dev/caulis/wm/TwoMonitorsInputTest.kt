@@ -89,16 +89,16 @@ class TwoMonitorsInputTest {
                         val w = r.desktop.allWindows.first { it.appId == "w$index" }
                         Triple(w.x + (w.visibleRect.width / 3).toDouble() + 0.5, w.y + (w.visibleRect.height / 4).toDouble() + 0.25, w)
                     }
-                    caulis.onLoop { r -> r.pointerMovedTo(0, x, y) }
+                    caulis.onLoop { r -> r.rinput.pointerMovedTo(0, x, y) }
                     client.waitFor { heard.pointerOn === windows[index].surface }
                     val expected = (x - w.x) to (y - w.y)
                     // (Sent as fixed point numbers: 1/256 apart.)
                     fun near() = Math.abs(heard.pointerAt.first - expected.first) < 0.01 && Math.abs(heard.pointerAt.second - expected.second) < 0.01
                     runCatching { client.waitFor { near() } }
                     assertTrue(near(), "${setup.name}: the point inside w$index is $expected, the program heard ${heard.pointerAt}")
-                    caulis.onLoop { r -> r.pointerButton(0, BTN_LEFT, true); r.pointerButton(0, BTN_LEFT, false) }
+                    caulis.onLoop { r -> r.rinput.pointerButton(0, BTN_LEFT, true); r.rinput.pointerButton(0, BTN_LEFT, false) }
                     client.waitFor { heard.keyboardOn === windows[index].surface }
-                    caulis.onLoop { r -> r.key(0, KEY_A, true); r.key(0, KEY_A, false) }
+                    caulis.onLoop { r -> r.rinput.key(0, KEY_A, true); r.rinput.key(0, KEY_A, false) }
                     client.waitFor { heard.keys.isNotEmpty() }
                     assertEquals(listOf(windows[index].surface to KEY_A), heard.keys.toList(), "${setup.name}: the key went to w$index")
                     assertTrue(heard.buttons.single() === windows[index].surface, "${setup.name}: the click went to w$index")

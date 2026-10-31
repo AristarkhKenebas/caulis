@@ -27,10 +27,10 @@ class ShortcutsInhibitTest {
             client.waitFor { active }
 
             fun superAnd(code: Int) = caulis.onLoop { r ->
-                r.key(0, KEY_SUPER, true)
-                r.key(0, code, true)
-                r.key(0, code, false)
-                r.key(0, KEY_SUPER, false)
+                r.rinput.key(0, KEY_SUPER, true)
+                r.rinput.key(0, code, true)
+                r.rinput.key(0, code, false)
+                r.rinput.key(0, KEY_SUPER, false)
             }
             superAnd(KEY_B)
             assertEquals(0, pressed.get(), "Super+B went to the window")
@@ -58,10 +58,10 @@ class ShortcutsInhibitTest {
                 }
                 client.waitFor { active }
                 caulis.onLoop { r ->
-                    r.key(0, KEY_SUPER, true)
-                    r.key(0, KEY_L, true)
-                    r.key(0, KEY_L, false)
-                    r.key(0, KEY_SUPER, false)
+                    r.rinput.key(0, KEY_SUPER, true)
+                    r.rinput.key(0, KEY_L, true)
+                    r.rinput.key(0, KEY_L, false)
+                    r.rinput.key(0, KEY_SUPER, false)
                 }
                 assertEquals(if (lockWins) 1 else 0, locks.get(), "Super+L with lockWhileInhibited = $lockWins")
             }

@@ -163,8 +163,8 @@ internal fun runOnScreen(config: Caulis) {
                 }
 
                 val input = backend.input
-                input.onKey = running::key
-                input.onPointerMotion = running::pointerMovedBy
+                input.onKey = running.rinput::key
+                input.onPointerMotion = running.rinput::pointerMovedBy
                 // Touch screens and devices that point at a place: on the monitor the configuration
                 // names (touchscreenMonitor), else the laptop's own screen, else the first.
                 val missingTouchMonitors = HashSet<String>()
@@ -180,8 +180,8 @@ internal fun runOnScreen(config: Caulis) {
                     val area = touchArea()
                     desktop.pointerMoved(time, area.x + x * area.width, area.y + y * area.height)
                 }
-                input.onPointerButton = running::pointerButton
-                input.onPointerAxis = running::pointerAxis
+                input.onPointerButton = running.rinput::pointerButton
+                input.onPointerAxis = running.rinput::pointerAxis
                 input.onTouchDown = { time, id, x, y -> touchArea().let { a -> desktop.touchDown(time, id, a.x + x * a.width, a.y + y * a.height) } }
                 input.onTouchMotion = { time, id, x, y -> touchArea().let { a -> desktop.touchMotion(time, id, a.x + x * a.width, a.y + y * a.height) } }
                 input.onTouchUp = desktop::touchUp

@@ -41,7 +41,7 @@ class CaulisTest {
             assertEquals(listOf("tiled", "floating"), focused)
 
             // Pressing the broken binding (Super+X) only logs the mistake.
-            caulis.onLoop { running -> running.key(0, 125, true); running.key(0, 45, true) }
+            caulis.onLoop { running -> running.rinput.key(0, 125, true); running.rinput.key(0, 45, true) }
             client.connection.roundtrip()
             assertEquals(2, caulis.onLoop { it.desktop.windows.size }, "still running, windows still there")
         }
@@ -63,7 +63,7 @@ class CaulisTest {
                 assertTrue(lines.any { " T focus" in it }, "focus in detail")
                 assertTrue(lines.none { " T windows" in it }, "the other areas at level 2 only")
 
-                caulis.onLoop { it.key(0, 125, true); it.key(0, 88, true); it.key(0, 88, false); it.key(0, 125, false) } // Super+F12
+                caulis.onLoop { it.rinput.key(0, 125, true); it.rinput.key(0, 88, true); it.rinput.key(0, 88, false); it.rinput.key(0, 125, false) } // Super+F12
                 client.waitFor { lines.any { "The state now" in it } }
                 val state = lines.first { "The state now" in it }
                 assertTrue("workspace 1" in state && "logged" in state && "focused" in state, state)

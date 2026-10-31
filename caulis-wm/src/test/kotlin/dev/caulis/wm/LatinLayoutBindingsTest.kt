@@ -17,8 +17,8 @@ class LatinLayoutBindingsTest {
     private val harness = CaulisTest()
 
     private fun Running.tap(vararg codes: Int) {
-        for (code in codes) key(0, code, true)
-        for (code in codes.reversed()) key(0, code, false)
+        for (code in codes) rinput.key(0, code, true)
+        for (code in codes.reversed()) rinput.key(0, code, false)
     }
 
     // The usual three combinations, each pressed once on every layout of [layouts].
@@ -62,13 +62,13 @@ class LatinLayoutBindingsTest {
             bind("Ctrl+X") { fired += "ctrl+x" }
         }, headless = true) { caulis, _ ->
             caulis.onLoop { r ->
-                r.key(0, SUPER, true)
+                r.rinput.key(0, SUPER, true)
                 r.tap(SPACE) // Super+Space: Russian
                 assertEquals(1, r.seat.layoutIndex)
-                r.key(0, D, true)
+                r.rinput.key(0, D, true)
                 r.tap(SPACE) // back to us while D is held
-                r.key(0, D, false)
-                r.key(0, SUPER, false)
+                r.rinput.key(0, D, false)
+                r.rinput.key(0, SUPER, false)
                 assertEquals(emptySet(), r.keys.heldModifiers())
                 r.tap(CTRL, X)
             }

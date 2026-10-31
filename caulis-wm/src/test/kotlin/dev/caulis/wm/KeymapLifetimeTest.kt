@@ -52,8 +52,8 @@ class KeymapLifetimeTest {
                     next.switchKeyboardLayout(1)
                     r.applySettingsNow()
                     // Alt+Shift switches the layout (as the friend does).
-                    r.key(0, KEY_LEFTALT, true); r.key(0, KEY_LEFTSHIFT, true)
-                    r.key(0, KEY_LEFTSHIFT, false); r.key(0, KEY_LEFTALT, false)
+                    r.rinput.key(0, KEY_LEFTALT, true); r.rinput.key(0, KEY_LEFTSHIFT, true)
+                    r.rinput.key(0, KEY_LEFTSHIFT, false); r.rinput.key(0, KEY_LEFTALT, false)
                 }
                 client.waitFor { first.size >= 2 }
                 assertTrue(first.all { it > 0 }, "every keymap sent is a real file: $first")

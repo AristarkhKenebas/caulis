@@ -35,8 +35,8 @@ class InputTest {
             CaulisIpc.connect(socket).use { ipc ->
                 ipc.subscribe(EventKind.EVENT_KIND_KEYS)
                 fun tap(vararg codes: Int) = caulis.onLoop { r ->
-                    codes.forEach { r.key(0, it, true) }
-                    codes.reversed().forEach { r.key(0, it, false) }
+                    codes.forEach { r.rinput.key(0, it, true) }
+                    codes.reversed().forEach { r.rinput.key(0, it, false) }
                 }
                 tap(SUPER, R)
                 assertEquals("resize", ipc.nextEvent()!!.keyModeChanged)
@@ -50,18 +50,18 @@ class InputTest {
             }
 
             caulis.onLoop { r ->
-                r.pointerButton(0, 0x113, true)
-                r.pointerButton(0, 0x113, false)
-                r.key(0, SUPER, true)
-                r.pointerAxis(0, dev.caulis.core.input.Scroll(dev.caulis.core.input.Scroll.Source.WHEEL, vertical = 15.0, vertical120 = 120))
-                r.key(0, SUPER, false)
+                r.rinput.pointerButton(0, 0x113, true)
+                r.rinput.pointerButton(0, 0x113, false)
+                r.rinput.key(0, SUPER, true)
+                r.rinput.pointerAxis(0, dev.caulis.core.input.Scroll(dev.caulis.core.input.Scroll.Source.WHEEL, vertical = 15.0, vertical120 = 120))
+                r.rinput.key(0, SUPER, false)
             }
             assertEquals(1, side.get())
             assertEquals(3, caulis.onLoop { it.desktop.activeWorkspace.number }, "Super+WheelDown")
 
-            caulis.onLoop { r -> r.key(0, VOLUME_UP, true) }
+            caulis.onLoop { r -> r.rinput.key(0, VOLUME_UP, true) }
             Thread.sleep(400) // 150 ms, then every 50 ms
-            caulis.onLoop { r -> r.key(0, VOLUME_UP, false) }
+            caulis.onLoop { r -> r.rinput.key(0, VOLUME_UP, false) }
             val count = louder.get()
             assertTrue(count in 4..9, "repeated while held: $count")
             Thread.sleep(150)

@@ -20,7 +20,7 @@ class LockKeysTest {
             client.waitFor { caulis.onLoop { it.desktop.windows.size } == 1 }
 
             // Super goes down before the lock (as with Super+L) and comes up while locked.
-            caulis.onLoop { it.key(0, KEY_SUPER, true) }
+            caulis.onLoop { it.rinput.key(0, KEY_SUPER, true) }
             var locked = false
             val lock = client.sessionLock!!.lock()
             lock.events = object : ExtSessionLockV1.Events {
@@ -31,9 +31,9 @@ class LockKeysTest {
             client.waitFor { locked }
 
             caulis.onLoop { r ->
-                r.key(0, KEY_Q, true) // Super+Q: would close the window
-                r.key(0, KEY_Q, false)
-                r.key(0, KEY_SUPER, false)
+                r.rinput.key(0, KEY_Q, true) // Super+Q: would close the window
+                r.rinput.key(0, KEY_Q, false)
+                r.rinput.key(0, KEY_SUPER, false)
                 r.gesture(Gesture.PinchBegin(0, 4)) // would open the overview
                 r.gesture(Gesture.PinchUpdate(0, 0.0, 0.0, 0.3, 0.0))
                 r.gesture(Gesture.PinchEnd(0, cancelled = false))
@@ -60,11 +60,11 @@ class LockKeysTest {
                 }
                 client.waitFor { locked }
                 val bound = caulis.onLoop { r ->
-                    r.key(0, KEY_CTRL, true)
-                    r.key(0, KEY_ALT, true)
-                    r.activeKeys().has(KEY_BACKSPACE).also {
-                        r.key(0, KEY_ALT, false)
-                        r.key(0, KEY_CTRL, false)
+                    r.rinput.key(0, KEY_CTRL, true)
+                    r.rinput.key(0, KEY_ALT, true)
+                    r.rinput.activeKeys().has(KEY_BACKSPACE).also {
+                        r.rinput.key(0, KEY_ALT, false)
+                        r.rinput.key(0, KEY_CTRL, false)
                     }
                 }
                 assertEquals(allowed, bound, "Ctrl+Alt+BackSpace quits on a locked screen: $bound (quitWhileLocked = $allowed)")

@@ -38,7 +38,7 @@ class ReloadTest {
             assertSame(next, next.onLoop { it.config })
             assertEquals(1, next.onLoop { it.desktop.windows.size }, "the window is still there")
 
-            next.onLoop { r -> r.key(0, SUPER, true); r.key(0, X, true); r.key(0, X, false); r.key(0, SUPER, false) }
+            next.onLoop { r -> r.rinput.key(0, SUPER, true); r.rinput.key(0, X, true); r.rinput.key(0, X, false); r.rinput.key(0, SUPER, false) }
             client.window().draw()
             client.waitFor { next.onLoop { it.desktop.windows.size } == 2 }
             assertEquals(listOf("old opened", "reloaded", "new", "new opened"), pressed.toList())

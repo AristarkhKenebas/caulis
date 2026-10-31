@@ -69,8 +69,8 @@ internal class RunningTablets(private val running: Running) {
     fun padButton(timeMillis: Int, pad: TabletPad, button: Int, pressed: Boolean) {
         running.userActive()
         val code = KeyBindings.padButton(button)
-        val active = running.activeKeys()
-        if (!pressed) for (other in running.allKeys()) if (other !== active) other.key(code, false)
+        val active = running.rinput.activeKeys()
+        if (!pressed) for (other in running.rinput.allKeys()) if (other !== active) other.key(code, false)
         if (active.key(code, pressed)) return
         running.tablets.padButton(timeMillis, pad, button, pressed)
     }

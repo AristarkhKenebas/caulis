@@ -203,7 +203,7 @@ class DailyProtocolsTest {
                 override fun resumed(proxy: ExtIdleNotificationV1) { resumed = true }
             }
             client.waitFor { idle }
-            caulis.onLoop { r -> r.key(0, 30, true); r.key(0, 30, false) }
+            caulis.onLoop { r -> r.rinput.key(0, 30, true); r.rinput.key(0, 30, false) }
             client.waitFor { resumed }
 
             // A video player keeps its window on screen: no idle.

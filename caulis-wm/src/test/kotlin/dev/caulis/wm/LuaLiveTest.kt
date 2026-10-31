@@ -42,10 +42,10 @@ class LuaLiveTest {
                 client.waitFor { caulis.onLoop { r -> r.desktop.notices.any { it.level == NoticeLevel.WARNING && "config.lua:9: boom" in it.text } } }
 
                 caulis.onLoop { r ->
-                    r.key(0, KEY_SUPER, true)
-                    r.key(0, KEY_B, true)
-                    r.key(0, KEY_B, false)
-                    r.key(0, KEY_SUPER, false)
+                    r.rinput.key(0, KEY_SUPER, true)
+                    r.rinput.key(0, KEY_B, true)
+                    r.rinput.key(0, KEY_B, false)
+                    r.rinput.key(0, KEY_SUPER, false)
                 }
                 client.waitFor { caulis.onLoop { r -> r.desktop.activeWorkspace.number } == 3 }
                 assertEquals(1, caulis.onLoop { r -> r.desktop.allWindows.count { it.appId == "broken" } }, "still running")
@@ -179,10 +179,10 @@ class LuaLiveTest {
     }
 
     private fun CaulisTest.press(caulis: Caulis) = caulis.onLoop { r ->
-        r.key(0, KEY_SUPER, true)
-        r.key(0, KEY_B, true)
-        r.key(0, KEY_B, false)
-        r.key(0, KEY_SUPER, false)
+        r.rinput.key(0, KEY_SUPER, true)
+        r.rinput.key(0, KEY_B, true)
+        r.rinput.key(0, KEY_B, false)
+        r.rinput.key(0, KEY_SUPER, false)
     }
 
     private companion object {

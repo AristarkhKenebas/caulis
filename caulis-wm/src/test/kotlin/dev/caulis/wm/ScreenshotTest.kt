@@ -30,13 +30,13 @@ class ScreenshotTest {
                     assertEquals("the screenshot chooser", r.desktop.overlay?.toString(), "the chooser is open")
                     assertEquals("crosshair", r.desktop.cursorShape)
                     r.desktop.pointerMoved(0, 100.0, 120.0)
-                    r.pointerButton(0, BTN_LEFT, true)
+                    r.rinput.pointerButton(0, BTN_LEFT, true)
                     r.desktop.pointerMoved(0, 300.0, 270.0)
-                    r.pointerButton(0, BTN_LEFT, false)
-                    r.key(0, KEY_RIGHT, true) // moved by one
-                    r.key(0, KEY_RIGHT, false)
-                    r.key(0, KEY_ENTER, true)
-                    r.key(0, KEY_ENTER, false)
+                    r.rinput.pointerButton(0, BTN_LEFT, false)
+                    r.rinput.key(0, KEY_RIGHT, true) // moved by one
+                    r.rinput.key(0, KEY_RIGHT, false)
+                    r.rinput.key(0, KEY_ENTER, true)
+                    r.rinput.key(0, KEY_ENTER, false)
                     assertNull(r.desktop.overlay, "closed when taken")
                 }
                 client.waitFor { Files.list(folder).use { it.count() } == 1L && PNG in clipboard.offered }
@@ -52,8 +52,8 @@ class ScreenshotTest {
                 caulis.onLoop { r ->
                     Actions.parse("screenshot window")(caulis)
                     assertEquals("the screenshot chooser", r.desktop.overlay?.toString())
-                    r.key(0, KEY_ESC, true)
-                    r.key(0, KEY_ESC, false)
+                    r.rinput.key(0, KEY_ESC, true)
+                    r.rinput.key(0, KEY_ESC, false)
                     assertNull(r.desktop.overlay)
                 }
             }

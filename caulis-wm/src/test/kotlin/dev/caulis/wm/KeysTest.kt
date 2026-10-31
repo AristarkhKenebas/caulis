@@ -52,7 +52,7 @@ class KeysTest {
             client.connection.roundtrip()
             assertEquals(1, mine)
             assertEquals(false, window.closeRequested, "not closed")
-            caulis.onLoop { r -> listOf(CTRL, ALT, DELETE).forEach { r.key(0, it, true) } }
+            caulis.onLoop { r -> listOf(CTRL, ALT, DELETE).forEach { r.rinput.key(0, it, true) } }
             client.waitFor { caulis.running == null }
         }
     }
@@ -90,8 +90,8 @@ class KeysTest {
 
     private fun CaulisTest.press(caulis: Caulis, vararg codes: Int) {
         caulis.onLoop { r ->
-            codes.forEach { r.key(0, it, true) }
-            codes.reversed().forEach { r.key(0, it, false) }
+            codes.forEach { r.rinput.key(0, it, true) }
+            codes.reversed().forEach { r.rinput.key(0, it, false) }
         }
     }
 

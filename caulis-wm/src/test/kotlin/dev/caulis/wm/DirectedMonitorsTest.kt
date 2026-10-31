@@ -76,10 +76,10 @@ class DirectedMonitorsTest {
 
             for (index in listOf(1, 0, 1)) {
                 val (x, y) = if (index == 1) 1640.0 + 300.5 to 100.0 + 200.25 else 100.0 + 300.5 to 100.0 + 200.25
-                caulis.onLoop { r -> r.pointerMovedTo(0, x, y); r.pointerButton(0, BTN_LEFT, true); r.pointerButton(0, BTN_LEFT, false) }
+                caulis.onLoop { r -> r.rinput.pointerMovedTo(0, x, y); r.rinput.pointerButton(0, BTN_LEFT, true); r.rinput.pointerButton(0, BTN_LEFT, false) }
                 client.waitFor { pointerOn === windows[index].surface && keyboardOn === windows[index].surface }
                 assertEquals(300.5 to 200.25, pointerAt, "w$index: the point inside it")
-                caulis.onLoop { r -> r.key(0, KEY_A, true); r.key(0, KEY_A, false) }
+                caulis.onLoop { r -> r.rinput.key(0, KEY_A, true); r.rinput.key(0, KEY_A, false) }
                 client.waitFor { keys.isNotEmpty() }
                 assertEquals(listOf(windows[index].surface), keys.toList(), "the key went to w$index")
                 keys.clear()
