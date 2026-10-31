@@ -57,6 +57,8 @@ class Desktop(
 
     internal val capturing = DesktopCapture(this)
 
+    internal val events = DesktopEvents(this)
+
     // What the protocol objects (Activation, ServerDecorations, ForeignToplevels) ask of the desktop.
     internal val protocols = DesktopProtocols(this)
 
@@ -350,18 +352,13 @@ class Desktop(
             layoutLog.info { "Monitor ${monitor.name} ${if (on) "on" else "off"}" }
             if (on) for (view in views) if (view.monitor === monitor) view.damageEverything()
             changed()
-            powerListeners.toList().forEach { it(monitor) }
+            events.powerListeners.toList().forEach { it(monitor) }
         }
         return done
     }
 
-    private val powerListeners = ArrayList<(Monitor) -> Unit>()
-
     /** Runs [listener] when a monitor's screen is switched off or on. */
-    fun onPowerChanged(listener: (Monitor) -> Unit): AutoCloseable {
-        powerListeners += listener
-        return AutoCloseable { powerListeners -= listener }
-    }
+    fun onPowerChanged(listener: (Monitor) -> Unit): AutoCloseable = events.onPowerChanged(listener)
 
     /** Puts [monitor] at [x], [y] on the desktop (units); null: to the right of the others. */
     fun moveMonitor(monitor: Monitor, x: Int?, y: Int?) {
@@ -609,7 +606,7 @@ class Desktop(
     internal fun changed() {
         version++
         onChange()
-        windowListChanged()
+        events.windowListChanged()
     }
 
     /** Something your rules depend on changed (a window's tags): looks and effects are asked again. */
@@ -845,8 +842,8 @@ class Desktop(
 
     override fun windowInfoChanged(window: Window) {
         windowsLog.trace { "Now called $window" }
-        windowListChanged()
-        if (window.mapped) notifyEach(windowInfoListeners, window, "window-info-changed")
+        events.windowListChanged()
+        if (window.mapped) notifyEach(events.windowInfoListeners, window, "window-info-changed")
     }
 
     // --- a picture of the whole state, for finding problems ------------------------------------
@@ -914,113 +911,36 @@ class Desktop(
     /** True if [window] is minimized (on any workspace). */
     fun isMinimized(window: Window): Boolean = workspaces.values.any { window in it.minimized }
 
-    private val windowListListeners = ArrayList<() -> Unit>()
-    private var windowListPending = false
-
     /**
      * Runs [listener] when the windows or what a window list shows of them changed: a window
      * opened or closed, its title, the focus, minimized, maximized, fullscreen. Many changes
      * at once (a whole batch from the programs) are one call, at the end of the batch.
      */
-    fun onWindowListChanged(listener: () -> Unit): AutoCloseable {
-        windowListListeners += listener
-        return AutoCloseable { windowListListeners -= listener }
-    }
-
-    private fun windowListChanged() {
-        if (windowListPending || windowListListeners.isEmpty()) return
-        windowListPending = true
-        compositor.display.loop.post {
-            windowListPending = false
-            for (listener in windowListListeners.toList()) {
-                try {
-                    listener()
-                } catch (e: Throwable) {
-                    e.rethrowIfFatal()
-                    log.error("A window list listener failed (ignored): $e", e)
-                }
-            }
-        }
-    }
-
-    // Where each window goes when minimized: a rectangle in a surface (a dock's icon).
-    private val minimizeTargets = HashMap<Window, Pair<Surface, Rect>>()
+    fun onWindowListChanged(listener: () -> Unit): AutoCloseable = events.onWindowListChanged(listener)
 
     /**
      * Where [window] goes when it is minimized (and comes back from): [rect] inside
      * [surface], e.g. its icon in a dock. Null for none (it then just sinks down). Docks set
      * this through the wlr-foreign-toplevel protocol.
      */
-    fun setMinimizeTarget(window: Window, surface: Surface?, rect: Rect?) {
-        if (surface == null || rect == null || rect.isEmpty) minimizeTargets -= window else minimizeTargets[window] = surface to rect
-    }
-
-    // The window's minimized place on screen: the dock icon, or a sliver at its bottom.
-    private fun minimizedRect(window: Window, from: Rect): Rect {
-        minimizeTargets[window]?.let { (surface, rect) ->
-            surfaceOrigin(surface)?.let { (x, y) -> return rect.translate(x, y) }
-        }
-        val width = (from.width / 4).coerceAtLeast(1)
-        val height = (from.height / 8).coerceAtLeast(1)
-        return Rect(from.x + (from.width - width) / 2, from.bottom - height, width, height)
-    }
-
-    // Where a surface's top left corner is on screen (null if it is not shown).
-    private fun surfaceOrigin(surface: Surface): Pair<Int, Int>? {
-        if (!surface.resource.isAlive) return null
-        var current = surface
-        var dx = 0
-        var dy = 0
-        while (true) {
-            val sub = current.subsurface ?: break
-            dx += sub.x
-            dy += sub.y
-            current = sub.parent ?: return null
-        }
-        return when (val role = current.roleObject) {
-            is LayerSurface -> (role.x + dx) to (role.y + dy)
-            is Window -> screenRects[role]?.let { (it.x - role.visibleRect.x + dx) to (it.y - role.visibleRect.y + dy) }
-            else -> null
-        }
-    }
+    fun setMinimizeTarget(window: Window, surface: Surface?, rect: Rect?) = events.setMinimizeTarget(window, surface, rect)
 
     // --- events for your own code ------------------------------------------------------------
 
-    private val windowOpenedListeners = ArrayList<(Window) -> Unit>()
-    private val windowClosedListeners = ArrayList<(Window) -> Unit>()
-    private val focusListeners = ArrayList<(Window?) -> Unit>()
-    private val workspaceListeners = ArrayList<(Workspace) -> Unit>()
-    private val windowInfoListeners = ArrayList<(Window) -> Unit>()
-
     /** Runs [listener] when a window's title or app id changes. Close the result to stop. */
-    fun onWindowInfoChanged(listener: (Window) -> Unit): AutoCloseable {
-        windowInfoListeners += listener
-        return AutoCloseable { windowInfoListeners -= listener }
-    }
+    fun onWindowInfoChanged(listener: (Window) -> Unit): AutoCloseable = events.onWindowInfoChanged(listener)
 
     /** Runs [listener] when a window appears (after it got its place and the focus). Close the result to stop. */
-    fun onWindowOpened(listener: (Window) -> Unit): AutoCloseable {
-        windowOpenedListeners += listener
-        return AutoCloseable { windowOpenedListeners -= listener }
-    }
+    fun onWindowOpened(listener: (Window) -> Unit): AutoCloseable = events.onWindowOpened(listener)
 
     /** Runs [listener] when a window goes away. Close the result to stop. */
-    fun onWindowClosed(listener: (Window) -> Unit): AutoCloseable {
-        windowClosedListeners += listener
-        return AutoCloseable { windowClosedListeners -= listener }
-    }
+    fun onWindowClosed(listener: (Window) -> Unit): AutoCloseable = events.onWindowClosed(listener)
 
     /** Runs [listener] when another window gets the keyboard (null = none). Close the result to stop. */
-    fun onFocusChanged(listener: (Window?) -> Unit): AutoCloseable {
-        focusListeners += listener
-        return AutoCloseable { focusListeners -= listener }
-    }
+    fun onFocusChanged(listener: (Window?) -> Unit): AutoCloseable = events.onFocusChanged(listener)
 
     /** Runs [listener] when another workspace is shown. Close the result to stop. */
-    fun onWorkspaceChanged(listener: (Workspace) -> Unit): AutoCloseable {
-        workspaceListeners += listener
-        return AutoCloseable { workspaceListeners -= listener }
-    }
+    fun onWorkspaceChanged(listener: (Workspace) -> Unit): AutoCloseable = events.onWorkspaceChanged(listener)
 
     // A layout's places for [windows] (fewer: the rest are not placed, as Floating does); one
     // that fails leaves every window the whole [area] meanwhile.
@@ -1342,7 +1262,7 @@ class Desktop(
         if (before > 0 && before != activeWorkspace.number) previousWorkspaceNumber = before
         focus(topWindow(activeWorkspace))
         layoutLog.info { "Workspace ${activeWorkspace.number} (${activeWorkspace.layout.name})${if (monitorList.size > 1) " on ${focusedMonitor.name}" else ""}" }
-        notifyEach(workspaceListeners, activeWorkspace, "workspace")
+        notifyEach(events.workspaceListeners, activeWorkspace, "workspace")
     }
 
     // [workspace] goes onto [monitor]: its floating windows keep their place relative to the
@@ -2202,7 +2122,7 @@ class Desktop(
             glides -= window
             if (hadFocus) passFocusOn(windows.lastOrNull())
         }
-        windowListChanged()
+        events.windowListChanged()
         changed()
     }
 
@@ -2227,7 +2147,7 @@ class Desktop(
         arrange(workspace)
         layoutLog.info { "$window moved out of ${pad.name} onto workspace ${workspace.number}" }
         focus(window)
-        windowListChanged()
+        events.windowListChanged()
         changed()
         return true
     }
@@ -3631,7 +3551,7 @@ class Desktop(
             pad.windows += window
             if (pad.isSpecial && (!pad.shown || pad.leaving) && !placement.goToWorkspace) {
                 layoutLog.info { "$window opened in the special workspace ${pad.name} (hidden)" }
-                windowListChanged()
+                events.windowListChanged()
                 changed()
             } else if (pad.isSpecial && (!pad.shown || pad.leaving)) {
                 showSpecial(pad)
@@ -3639,7 +3559,7 @@ class Desktop(
                 showScratchpad(pad, appearing = setOf(window))
             }
             windowsLog.info { "Opened $window (workspace ${workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
-            notifyEach(windowOpenedListeners, window, "window-opened")
+            notifyEach(events.windowOpenedListeners, window, "window-opened")
             return
         }
         val placement = placementOf(window)
@@ -3651,7 +3571,7 @@ class Desktop(
             window.tiled = false
             if (placement.goToWorkspace || placement.focus) focus(window) else changed()
             windowsLog.info { "Opened $window (placed by the director)" }
-            notifyEach(windowOpenedListeners, window, "window-opened")
+            notifyEach(events.windowOpenedListeners, window, "window-opened")
             return
         }
         val monitor = workspace.monitor ?: focusedMonitor
@@ -3694,7 +3614,7 @@ class Desktop(
         }
         if (placement.goToWorkspace || (shown && placement.focus)) focus(window) else changed()
         windowsLog.info { "Opened $window (workspace ${workspaceOf(window)?.number ?: "-"}, ${if (window.tiled) "tiled" else "floating"})" }
-        notifyEach(windowOpenedListeners, window, "window-opened")
+        notifyEach(events.windowOpenedListeners, window, "window-opened")
     }
 
     override fun windowUnmapped(window: Window) {
@@ -3712,7 +3632,7 @@ class Desktop(
         appearingPictures.remove(window)?.close()
         (lastLooks.remove(window) ?: lastLookOf(window))?.let { flights += it }
         ownTitleBars.forget(window)
-        minimizeTargets -= window
+        events.minimizeTargets -= window
         // What every closed window leaves behind (a scratchpad's too).
         pending.remove(window)
         floatingRects -= window
@@ -3724,7 +3644,7 @@ class Desktop(
         // (It had the focus even if a launcher, a widget or a panel has the keyboard now.)
         val hadFocus = window === lastFocused || window.activated || seat.keyboardFocus === window.surface
         if (lastFocused === window) lastFocused = null
-        windowListChanged()
+        events.windowListChanged()
         scratchpadOf(window)?.let { pad ->
             pad.windows -= window
             pad.workspace.model.forget(window)
@@ -3742,7 +3662,7 @@ class Desktop(
             }
             if (padFocus === window || hadFocus) passFocusOn(pad.windows.lastOrNull()?.takeIf { pad.shown } ?: back ?: windows.lastOrNull())
             changed()
-            notifyEach(windowClosedListeners, window, "window-closed")
+            notifyEach(events.windowClosedListeners, window, "window-closed")
             return
         }
         val workspace = workspaceOf(window)
@@ -3754,7 +3674,7 @@ class Desktop(
         }
         if (hadFocus) passFocusOn(windows.lastOrNull())
         changed()
-        notifyEach(windowClosedListeners, window, "window-closed")
+        notifyEach(events.windowClosedListeners, window, "window-closed")
     }
 
     // Also for a window that never appeared: its placement (asked before its first frame) and
@@ -3929,11 +3849,11 @@ class Desktop(
     fun minimize(window: Window) {
         val workspace = workspaceOf(window) ?: return
         if (window !in workspace.windows) return
-        windowsLog.info { "$window: minimized${if (window in minimizeTargets) " (into its dock icon)" else ""}" }
+        windowsLog.info { "$window: minimized${if (window in events.minimizeTargets) " (into its dock icon)" else ""}" }
         // Into its dock icon (or down out of sight), as the minimize animation says.
         val shown = shownRects[window]
         stopFlights(window)
-        if (shown != null) flightOf(window, FlightKind.MINIMIZE, "minimize", animations.minimize, to = minimizedRect(window, shown))?.let { flights += it }
+        if (shown != null) flightOf(window, FlightKind.MINIMIZE, "minimize", animations.minimize, to = events.minimizedRect(window, shown))?.let { flights += it }
         workspace.windowList -= window
         workspace.minimizedList += window
         window.setMinimized(true)
@@ -4109,8 +4029,8 @@ class Desktop(
         if (window.urgent == urgent) return
         window.urgent = urgent
         focusLog.info { "$window ${if (urgent) "wants attention" else "no longer wants attention"}" }
-        if (window.mapped) notifyEach(windowInfoListeners, window, "window-info-changed")
-        windowListChanged()
+        if (window.mapped) notifyEach(events.windowInfoListeners, window, "window-info-changed")
+        events.windowListChanged()
         changed()
     }
 
@@ -4149,7 +4069,7 @@ class Desktop(
             lastFocused = next
             focusedAt = System.nanoTime()
             focusLog.info { "Focus: ${next ?: "nothing"} (the keyboard stays where it is)" }
-            notifyEach(focusListeners, next, "focus")
+            notifyEach(events.focusListeners, next, "focus")
         }
         changed()
     }
@@ -4210,7 +4130,7 @@ class Desktop(
                 lastFocused = window
                 focusedAt = System.nanoTime()
                 focusLog.info { "Focus: $window" }
-                notifyEach(focusListeners, window, "focus")
+                notifyEach(events.focusListeners, window, "focus")
             }
             changed()
             return
@@ -4238,7 +4158,7 @@ class Desktop(
                         }
                     }
                     layoutLog.info { "Workspace ${workspace.number} (${workspace.layout.name})" }
-                    notifyEach(workspaceListeners, workspace, "workspace")
+                    notifyEach(events.workspaceListeners, workspace, "workspace")
                 }
             }
             if (activeWorkspace.minimizedList.remove(window)) {
@@ -4247,7 +4167,7 @@ class Desktop(
                 // Back out of its dock icon (or up from below), as the restore animation says.
                 stopFlights(window)
                 glides -= window
-                flightOf(window, FlightKind.RESTORE, "restore", animations.restore, to = minimizedRect(window, currentRect(window)))?.let { flights += it }
+                flightOf(window, FlightKind.RESTORE, "restore", animations.restore, to = events.minimizedRect(window, currentRect(window)))?.let { flights += it }
             }
         }
         val list = activeWorkspace.windowList
@@ -4268,7 +4188,7 @@ class Desktop(
             lastFocused = window
             focusedAt = System.nanoTime()
             focusLog.info { "Focus: ${window ?: "nothing"}" }
-            notifyEach(focusListeners, window, "focus")
+            notifyEach(events.focusListeners, window, "focus")
         }
         // Layouts that follow the focus (scrolling) move their windows.
         if (window != null && window.tiled && activeWorkspace.layout !== Floating) arrange(activeWorkspace)
@@ -4388,7 +4308,7 @@ class Desktop(
         val ended = lastLock
         if (ended != null && ended !== now) {
             // A lock let go: the pointer goes where the program said it should be.
-            ended.hint?.let { (hx, hy) -> surfaceOrigin(ended.surface)?.let { (ox, oy) -> pointerX = ox + hx; pointerY = oy + hy } }
+            ended.hint?.let { (hx, hy) -> events.surfaceOrigin(ended.surface)?.let { (ox, oy) -> pointerX = ox + hx; pointerY = oy + hy } }
         }
         lastLock = now?.takeIf { it.locks }
         return now
@@ -4396,7 +4316,7 @@ class Desktop(
 
     // [x], [y] kept inside the confinement (the part of the region the pointer is in).
     private fun confined(c: dev.caulis.core.input.PointerConstraints.Constraint, x: Double, y: Double): Pair<Double, Double> {
-        val (ox, oy) = surfaceOrigin(c.surface) ?: return x to y
+        val (ox, oy) = events.surfaceOrigin(c.surface) ?: return x to y
         val rects = c.region?.solidRects()?.takeIf { it.isNotEmpty() } ?: listOf(Rect(0, 0, c.surface.width, c.surface.height))
         val px = pointerX - ox
         val py = pointerY - oy
