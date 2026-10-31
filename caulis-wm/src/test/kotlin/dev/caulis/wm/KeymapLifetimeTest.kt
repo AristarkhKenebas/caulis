@@ -50,7 +50,7 @@ class KeymapLifetimeTest {
                     next.keyboardLayouts = "us,ru"
                     next.keyboardOptions = "grp:alt_shift_toggle"
                     next.switchKeyboardLayout(1)
-                    r.applySettingsNow()
+                    r.rapply.applySettingsNow()
                     // Alt+Shift switches the layout (as the friend does).
                     r.rinput.key(0, KEY_LEFTALT, true); r.rinput.key(0, KEY_LEFTSHIFT, true)
                     r.rinput.key(0, KEY_LEFTSHIFT, false); r.rinput.key(0, KEY_LEFTALT, false)

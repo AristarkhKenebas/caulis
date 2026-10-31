@@ -53,7 +53,7 @@ internal fun runOnScreen(config: Caulis) {
                     monitor.maxBpc = wish?.maxBpc ?: 8
                     monitor.adaptiveSync = wish?.adaptiveSync ?: running.config.adaptiveSync
                 }
-                running.applyMonitorLinks = { shown.keys.forEach(::applyLink) }
+                running.rapply.applyMonitorLinks = { shown.keys.forEach(::applyLink) }
                 backend.onPluggedChanged = { now -> displays.pluggedChanged(now.map { Displays.Screen(it.name, identity(it.name, it.edid), it.output != null) }) }
                 backend.enabled = { name -> config.monitorSettings[name]?.enabled != false && displays.wants(name) }
                 fun mirrorSource() = shown.values.firstOrNull { config.isBuiltIn(it.monitor.name) }

@@ -173,7 +173,7 @@ object Actions {
             "close" -> window { it.close() }
             "quit" -> { _ -> quit() }
             "lock" -> { _ -> lock() }
-            "xwayland-retry" -> { _ -> liveOrNull()?.retryXwayland() }
+            "xwayland-retry" -> { _ -> liveOrNull()?.rapply?.retryXwayland() }
             "terminal" -> { _ -> openTerminal() }
             "exec" -> needs("a command").let { command -> { _ -> launch(command) } }
             "overview" -> { _ -> desktop.toggleOverview() }

@@ -81,7 +81,7 @@ internal class Running(
     private var capture: ScreenCapture? = null
 
     // The permission rules at work, and the person's answers.
-    private val permissions = PermissionKeeper({ config }, { capture?.answered() }, { client -> display.privileged(client) })
+    internal val permissions = PermissionKeeper({ config }, { capture?.answered() }, { client -> display.privileged(client) })
     internal val cursorLog = Logger("cursor")
     internal val gesturesLog = Logger("gestures")
     internal val inputLog = Logger("input")
@@ -119,8 +119,9 @@ internal class Running(
     internal var keymapOf = listOf(config.keyboardLayouts, config.keyboardVariants, config.keyboardOptions, config.keyboardModel)
     // (The seat owns the keymap: it closes the one it replaces, and its last one.)
     val seat = Seat(display, Keymap.fromNames(layouts = config.keyboardLayouts, variants = config.keyboardVariants, options = config.keyboardOptions, model = config.keyboardModel))
-    private val compositor = Compositor(display, renderer)
+    internal val compositor = Compositor(display, renderer)
     val desktop = Desktop(renderer, seat, compositor, width, height)
+    internal val rapply = RunningSettings(this)
     internal val rlock = RunningLock(this)
     internal val rmon = RunningMonitors(this)
     internal val rreload = RunningReload(this)
@@ -216,10 +217,6 @@ internal class Running(
     var outputManagement: dev.caulis.core.OutputManagement
         private set
 
-    // The configuration's own idle timers (replaced on a reload).
-    private val idleWatches = ArrayList<AutoCloseable>()
-    private var appliedNumLock: Boolean? = null
-
     /** What programs are told about how to look (light or dark, the accent colour). */
     val appearance = dev.caulis.core.appearance.Appearance()
     /** The session bus, connected when first asked for and shared (null: there is none). */
@@ -241,7 +238,7 @@ internal class Running(
     private var reloader: Reloader? = null
 
     // The user's event listeners of the configuration of the moment (replaced on a reload).
-    private val configListeners = ArrayList<AutoCloseable>()
+    internal val configListeners = ArrayList<AutoCloseable>()
 
     // Where a cursor theme that came with a library is put for programs that draw their own cursor.
     internal var cursorFolder: java.nio.file.Path? = null
@@ -402,262 +399,7 @@ internal class Running(
         }
         desktop.floatRule = { window -> defaultRule(window) || config.floatRules.any { rule -> safely("floatWhen", false) { rule(window) } } }
         desktop.onWindowOpened { window -> launcher.windowOpened(window.pid) }
-        applyConfig()
-    }
-
-    /** Hands the background rule over again (it was changed while running). */
-    fun applyLooks() {
-        desktop.backgroundFor = config.backgroundFor?.let { rule -> { monitor, workspace -> safely("backgroundFor", null) { rule(monitor.name, workspace) } } }
-    }
-
-    // What of the configuration is handed over to the desktop, keys and events — at the
-    // start and again after each reload.
-    /** Settings changed by code while running (Caulis.applySettings). */
-    internal fun applySettingsNow() = applyConfig()
-
-    // The desktop's own focus-stealing rule (focusStealing SAME_PROGRAM), kept the first time.
-    // (No initializer: this is first used from init, which runs before this line would.)
-    private lateinit var sameProgramRule: (dev.caulis.core.Window, dev.caulis.core.WindowRequest) -> Boolean
-
-    /** The settings of Caulis's core parts as the configuration says (see Caulis.focusStealing, maxRegionParts, ...). */
-    fun applyCoreSettings() {
-        val config = config
-        if (!::sameProgramRule.isInitialized) sameProgramRule = desktop.programMayTakeFocus
-        desktop.backgroundColor = config.backgroundColor
-        desktop.programMayTakeFocus = config.focusStealingRule?.let { rule -> { window, why -> safely("focusStealingRule", false) { rule(window, why) } } }
-            ?: when (config.focusStealing) {
-                FocusStealing.SAME_PROGRAM -> sameProgramRule
-                FocusStealing.ALWAYS -> { _, _ -> true }
-                FocusStealing.NEVER -> { _, _ -> false }
-            }
-        idle.inhibitorsWorkWhileLocked = config.idleInhibitorsWhileLocked
-        idle.protocolInhibitors = config.idleInhibitors
-        desktop.unlockFocus = config.unlockFocus
-        display.maxForwardedStringBytes = config.maxForwardedStringBytes
-        compositor.maxRegionParts = config.maxRegionParts
-        xwayland?.let { x ->
-            x.restartDelayMillis = config.xwaylandRestartMillis
-            x.restartDelayMaxMillis = config.xwaylandRestartMaxMillis
-            x.maxFailedStarts = config.xwaylandMaxFailedStarts
-        }
-        applyMonitorLinks?.invoke()
-        log.trace { "Core settings: focus stealing ${config.focusStealing}, strings ${config.maxForwardedStringBytes} bytes, regions ${config.maxRegionParts} parts" }
-    }
-
-    /** Set by the screen backend: each monitor's link settings (maxBpc, adaptiveSync) as the configuration says. */
-    var applyMonitorLinks: (() -> Unit)? = null
-    /** Tries Xwayland again after it failed too often (the action "xwayland-retry"). */
-    fun retryXwayland() {
-        val x = xwayland ?: return log.info { "Xwayland is off" }
-        log.info { "Trying Xwayland again" }
-        x.retry()
-    }
-
-    internal fun applyConfig() {
-        val config = config
-        applyCoreSettings()
-        dev.caulis.ffi.Processes.method = config.processStart
-        desktop.effects = config.effects
-        desktop.specialWorkspaces = config.specialWorkspaces
-        if (desktop.director !== config.director) desktop.director = config.director
-        display.privileged = { client ->
-            // (Every program asks which features there are right as it connects: the launcher
-            // learns here that one of its programs is a Wayland one.)
-            launcher.clientConnected(client.pid)
-            safely("privilegedClients", false) { this.config.privilegedClients(client) }
-        }
-        // Each privileged feature: the permission rules first, else the privileged rule.
-        display.mayUse = { client, feature -> permissions.mayUse(client, feature) }
-        desktop.screenShader = config.screenShader
-        desktop.titleBars = config.titleBars
-        desktop.titleBarStyle = config.titleBarStyle
-        desktop.titleBarsFor = if (config.titleBarRules.isEmpty() && config.rules.none { it.titleBars != null }) null else rrules::titleBarsOf
-        desktop.noticeStyle = config.noticeStyle
-        desktop.animationMillis = config.animationMillis
-        desktop.animations = config.animations
-        desktop.background = config.background
-        applyLooks()
-        desktop.backgroundChangeMillis = config.backgroundChangeMillis
-        desktop.wallpaperShadersPaused = config.wallpaperShadersPaused
-        desktop.wallpaperFpsLimit = config.wallpaperFpsLimit
-        desktop.movingPaintsFps = config.movingPaintsFps
-        desktop.overviewFill = config.overviewFill
-        desktop.monitorEdges = config.monitorEdges
-        desktop.resizeBorder = config.resizeBorder
-        desktop.doubleClickMillis = config.doubleClickMillis
-        desktop.lockColor = config.lockColor
-        desktop.focusFollowsMouse = config.focusFollowsMouse
-        desktop.quickCursorMoves = config.quickCursorMoves
-        desktop.widgetThreads = config.widgetThreads
-        desktop.osdHandler = config.osdHandler
-        activation.focusOnActivate = config.focusOnActivate
-        activation.tokensNeedFocus = config.activationTokensNeedFocus
-        idle.fullscreenInhibits = config.fullscreenKeepsAwake
-        applyIdleWatches()
-        applyKeyRepeat()
-        rinput.applyKeymap()
-        applyNumLock()
-        rlooks.applyAppearance()
-        inputDevices?.settings = config.input
-        inputDevices?.ownThread = config.inputThread
-        applyWorkspaces()
-        desktop.primaryMonitorName = config.primaryMonitor
-        applyScratchpads()
-        rewireEvents()
-        sessionStart.reconfigure()
-    }
-
-    /** The configuration's idle timers, made anew (they count from now). */
-    fun applyIdleWatches() {
-        idleWatches.forEach(AutoCloseable::close)
-        idleWatches.clear()
-        val config = config
-        for (watch in config.idleWatches) {
-            idleWatches += idle.watch(watch.seconds * 1000L, onIdle = { safely("onIdle") { watch.idle(config) } }, onResume = { safely("onIdle resume") { watch.resume(config) } })
-        }
-        log.trace { "Idle timers: ${config.idleWatches.joinToString { "${it.seconds} s" }.ifEmpty { "none" }}" }
-    }
-
-    /** Key repeat as the configuration says, for programs and for the compositor's own keys. */
-    fun applyKeyRepeat() {
-        seat.repeatRate = config.repeatRate
-        seat.repeatDelay = config.repeatDelayMillis.toInt()
-        for (bindings in rinput.allKeys()) {
-            bindings.repeatDelay = config.repeatDelayMillis.toInt()
-            bindings.repeatRate = config.repeatRate
-        }
-        keyboardLog.trace { "Key repeat: ${config.repeatRate} a second after ${config.repeatDelayMillis} ms" }
-    }
-
-    /** Num Lock as configured, when that changes (not again on each reload: the key may have switched it since). */
-    fun applyNumLock() {
-        val on = config.numLock ?: return
-        if (on == appliedNumLock) return
-        seat.setNumLock(on)
-        appliedNumLock = on
-        keyboardLog.info { "Num Lock ${if (on) "on" else "off"}" }
-    }
-
-    /** The configuration's workspaces: how many, and how each is. */
-    fun applyWorkspaces() {
-        desktop.workspaceCount = config.workspaceCount
-        desktop.workspaceRules = config.workspaceRules
-    }
-
-    /** The configuration's scratchpads: those not there yet made, and their keys bound. */
-    fun applyScratchpads() {
-        for (pad in config.scratchpads) {
-            // A scratchpad asks the configuration of the moment which windows are its own.
-            if (desktop.scratchpad(pad.name) == null) {
-                desktop.addScratchpad(pad.name, pad.style) { window ->
-                    val now = this.config.scratchpads.firstOrNull { it.name == pad.name } ?: return@addScratchpad false
-                    safely("scratchpad ${pad.name}", false) { now.match(window) }
-                }
-                log.info { "Scratchpad ${pad.name}" }
-            }
-        }
-        rebindKeys()
-    }
-
-    /** Hands the configuration's event listeners to the desktop anew (after a reload, or one added or taken away). */
-    fun rewireEvents() {
-        configListeners.forEach(AutoCloseable::close)
-        configListeners.clear()
-        val config = config
-        config.noticeListeners.forEach { action -> configListeners += desktop.onNotice { notice -> safely("onNotice") { action(config, notice) } } }
-        config.windowOpened.forEach { action -> configListeners += desktop.onWindowOpened { window -> action(config, window) } }
-        config.windowClosed.forEach { action -> configListeners += desktop.onWindowClosed { window -> action(config, window) } }
-        config.windowChanged.forEach { action -> configListeners += desktop.onWindowInfoChanged { window -> safely("onWindowChanged") { action(config, window) } } }
-        config.focusChanged.forEach { action -> configListeners += desktop.onFocusChanged { window -> action(config, window) } }
-        config.workspaceChanged.forEach { action -> configListeners += desktop.onWorkspaceChanged { workspace -> action(config, workspace.number) } }
-    }
-
-    /**
-     * Binds every key anew: the usual ones, yours (those switched on), scratchpads', quitting
-     * and consoles — at the start, after a reload, and when one of yours is switched on or off.
-     */
-    fun rebindKeys() {
-        keys.clear()
-        lockedKeys.clear()
-        inhibitedKeys.clear()
-        bindKeys()
-        for (pad in config.scratchpads) pad.key?.let { key -> keys.bind(key) { toggleScratchpad(pad.name) } }
-        // Text consoles also work while the screen is locked (when they are on); quitting only
-        // when keys.quitWhileLocked says so (else it would get round the lock).
-        val usual = config.keys
-        for (bindings in listOf(keys, lockedKeys, inhibitedKeys)) {
-            if (bindings !== lockedKeys || usual.quitWhileLocked) usual.quit?.let { bindings.bind(it) { quit() } }
-            if (switchConsole != null) usual.consoles?.let { modifiers -> for (n in 1..12) bindings.bind("$modifiers+F$n") { switchConsole.invoke(n) } }
-        }
-        usual.restoreShortcuts?.let { inhibitedKeys.bind(it) { shortcutsInhibit.restore() } }
-        if (usual.quit == null && (usual.consoles == null || switchConsole == null)) {
-            log.warn("No key quits and none switches to a text console (keys.quit and keys.consoles are off): if a program takes the whole screen, only another computer (ssh) or the power button gets you out")
-        }
-        // Not one key of ours at all (every usual key off, none of your own): a way out and a
-        // terminal anyway, so a broken configuration never locks you in.
-        if (usual.bindings(config.workspaceCount).isEmpty() && config.bindings.none { it.enabled } && config.scratchpads.none { it.key != null }) {
-            keys.bind(EMERGENCY_QUIT) { quit() }
-            keys.bind(EMERGENCY_TERMINAL) { safely("the emergency terminal") { config.openTerminal() } }
-            log.warn("Your configuration has no keys at all: $EMERGENCY_QUIT quits and $EMERGENCY_TERMINAL opens a terminal until it has some")
-        }
-    }
-
-    // The usual keys first, the user's own after them (later ones win on the same combination).
-    private fun bindKeys() {
-        // Those you changed after the others: on the same keys, yours wins over a default one.
-        val usual = config.keys.bindings(config.workspaceCount).sortedBy { config.keys.changed(it.first) }
-        val taken = HashMap<Pair<Set<KeyBindings.Modifier>, Int>, String>()
-        for ((name, combination, action) in usual) {
-            val parsed = KeyBindings.parse(combination)
-            taken.put(parsed, name)?.takeIf { it != name }?.let { other ->
-                log.warn("keys.$name and keys.$other are both $combination: keys.$name wins")
-            }
-            val options = KeyBindings.Options(repeat = config.keys.repeats(name))
-            val run = { safely(combination) { action(config) } }
-            keys.bind(combination, options, run)
-            if (config.keys.whileLocked(name)) lockedKeys.bind(combination, options, run)
-            // (A program that keeps the keys for itself never keeps the screen from locking.)
-            if (name == "lock" && config.keys.lockWhileInhibited) inhibitedKeys.bind(combination, options, run)
-        }
-        modeKeys.clear()
-        for (name in config.modeNames) modeKeys[name] = KeyBindings()
-        for (binding in config.bindings) {
-            if (!binding.enabled) continue
-            val combination = binding.combination
-            val run = { safely(combination) { binding.action(config) } }
-            val mode = binding.keyMode
-            if (mode != null) {
-                modeKeys.getOrPut(mode) { KeyBindings() }.bind(combination, binding.options, run)
-                continue
-            }
-            KeyBindings.parseAllowingTap(combination).takeIf { it.second != null }?.let { parsed ->
-                taken[parsed.first to parsed.second!!]?.let { name -> log.info { "bind(\"$combination\") replaces keys.$name" } }
-            }
-            keys.bind(combination, binding.options, run)
-            if (binding.options.whileLocked) lockedKeys.bind(combination, binding.options, run)
-        }
-        // Quitting and consoles in every key mode too.
-        val always = config.keys
-        for (bindings in modeKeys.values) {
-            always.quit?.let { bindings.bind(it) { quit() } }
-            if (switchConsole != null) always.consoles?.let { modifiers -> for (n in 1..12) bindings.bind("$modifiers+F$n") { switchConsole.invoke(n) } }
-        }
-        // A mode that is gone after a reload is left.
-        if (keyMode != null && keyMode !in modeKeys) rinput.enterMode(null)
-        // Combinations that repeat use the loop and the key repeat of the moment.
-        // Which keys are modifiers: as the keymap says (caps:super, altwin:swap_lalt_lwin), or the physical ones.
-        val modifierOf: (Int) -> KeyBindings.Modifier? =
-            if (config.bindingModifiers == BindingModifiers.XKB) seat::modifierOfKey else { code -> KeyBindings.Modifier.of(code) }
-        // Which key a combination's letter is: as the layout says (the first Latin one for Russian), or the physical key.
-        val keyOf: (Int) -> Int = if (config.bindingsUseFirstLatinLayout) seat::bindingKeyOf else { code -> code }
-        keyboardLog.trace { "Bindings by ${if (config.bindingsUseFirstLatinLayout) "the layout (the first Latin one for other scripts)" else "the physical keys"}" }
-        for (bindings in rinput.allKeys()) {
-            bindings.modifierOf = modifierOf
-            bindings.keyOf = keyOf
-            bindings.schedule = { millis, task -> loop.after(millis) { task() }.let { timer -> AutoCloseable { timer.cancel() } } }
-            bindings.repeatDelay = config.repeatDelayMillis.toInt()
-            bindings.repeatRate = config.repeatRate
-        }
+        rapply.applyConfig()
     }
 
     fun quit() = loop.stop()

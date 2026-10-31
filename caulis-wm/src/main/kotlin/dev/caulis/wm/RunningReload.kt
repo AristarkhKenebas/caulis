@@ -154,7 +154,7 @@ internal class RunningReload(private val running: Running) {
         next.session = running
         running.config = next
         next.applyLogSettings(before)
-        running.applyConfig()
+        running.rapply.applyConfig()
         if (running.desktop.layout != next.layout) running.desktop.layout = next.layout
         if (same || before.scale != next.scale || before.monitorSettings.mapValues { it.value.scale } != next.monitorSettings.mapValues { it.value.scale }) running.rmon.applyScale()
         // A turn taken out of the configuration: the monitor stands as it is again.

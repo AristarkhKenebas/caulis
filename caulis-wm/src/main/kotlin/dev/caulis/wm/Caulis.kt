@@ -183,7 +183,7 @@ class Caulis {
     @JvmSynthetic
     fun backgroundFor(rule: (monitor: String, workspace: Int) -> Background?) {
         backgroundFor = rule
-        running?.applyLooks()
+        running?.rapply?.applyLooks()
     }
 
     /**
@@ -291,7 +291,7 @@ class Caulis {
     var focusStealing = FocusStealing.SAME_PROGRAM
         set(value) {
             field = value
-            running?.applyCoreSettings()
+            running?.rapply?.applyCoreSettings()
         }
 
     /**
@@ -304,7 +304,7 @@ class Caulis {
     var unlockFocus = dev.caulis.core.UnlockFocus.FOCUSED_BEFORE
         set(value) {
             field = value
-            running?.applyCoreSettings()
+            running?.rapply?.applyCoreSettings()
         }
 
     /** Sets [unlockFocus] (Java). */
@@ -314,14 +314,14 @@ class Caulis {
     var focusStealingRule: ((Window, dev.caulis.core.WindowRequest) -> Boolean)? = null
         set(value) {
             field = value
-            running?.applyCoreSettings()
+            running?.rapply?.applyCoreSettings()
         }
 
     /** Idle inhibitors (a video playing) keep the screen on while it is locked too (false: they count for nothing then). */
     var idleInhibitorsWhileLocked = false
         set(value) {
             field = value
-            running?.applyCoreSettings()
+            running?.rapply?.applyCoreSettings()
         }
 
     /**
@@ -332,7 +332,7 @@ class Caulis {
         set(value) {
             require(value in 16..3000) { "maxForwardedStringBytes is 16 to 3000, not $value" }
             field = value
-            running?.applyCoreSettings()
+            running?.rapply?.applyCoreSettings()
         }
 
     /** How many rectangles a program's region (where it takes input, where it is opaque) keeps exactly (1 to 100000). */
@@ -340,7 +340,7 @@ class Caulis {
         set(value) {
             require(value in 1..100_000) { "maxRegionParts is 1 to 100000, not $value" }
             field = value
-            running?.applyCoreSettings()
+            running?.rapply?.applyCoreSettings()
         }
 
     /**
@@ -354,7 +354,7 @@ class Caulis {
         set(value) {
             require(value in 0..600_000) { "xwaylandRestartMillis is 0 to 600000, not $value" }
             field = value
-            running?.applyCoreSettings()
+            running?.rapply?.applyCoreSettings()
         }
 
     /** The longest that wait gets, in milliseconds. */
@@ -362,7 +362,7 @@ class Caulis {
         set(value) {
             require(value in 0..3_600_000) { "xwaylandRestartMaxMillis is 0 to 3600000, not $value" }
             field = value
-            running?.applyCoreSettings()
+            running?.rapply?.applyCoreSettings()
         }
 
     /** After this many failed starts in a row Xwayland is not tried again until the action "xwayland-retry". */
@@ -370,7 +370,7 @@ class Caulis {
         set(value) {
             require(value in 1..1000) { "xwaylandMaxFailedStarts is 1 to 1000, not $value" }
             field = value
-            running?.applyCoreSettings()
+            running?.rapply?.applyCoreSettings()
         }
 
     /**
@@ -381,7 +381,7 @@ class Caulis {
     var bindingModifiers = BindingModifiers.XKB
         set(value) {
             field = value
-            running?.rebindKeys()
+            running?.rapply?.rebindKeys()
         }
 
     /**
@@ -395,7 +395,7 @@ class Caulis {
     var bindingsUseFirstLatinLayout = true
         set(value) {
             field = value
-            running?.rebindKeys()
+            running?.rapply?.rebindKeys()
         }
 
     /**
@@ -551,7 +551,7 @@ class Caulis {
     @JvmSynthetic
     fun workspace(number: Int, configure: WorkspaceRule.() -> Unit) {
         workspaceRules += WorkspaceRule(number).apply(configure)
-        running?.applyWorkspaces() // (while running: at once)
+        running?.rapply?.applyWorkspaces() // (while running: at once)
     }
 
     /** What one monitor should be like; see [monitor]. */
@@ -897,7 +897,7 @@ class Caulis {
      * does (a compositor with a configuration of its own calls it after reading that).
      */
     fun applySettings() {
-        running?.applySettingsNow()
+        running?.rapply?.applySettingsNow()
     }
 
     /**
@@ -945,7 +945,7 @@ class Caulis {
     var numLock: Boolean? = null
         set(value) {
             field = value
-            running?.applyNumLock()
+            running?.rapply?.applyNumLock()
         }
 
     /** Keyboard layout variants, one per layout as for setxkbmap: "", "dvorak", ",phonetic". Changed while running: at once. */
@@ -1362,7 +1362,7 @@ class Caulis {
             set(value) {
                 if (field == value) return
                 field = value
-                owner?.liveOrNull()?.rebindKeys()
+                owner?.liveOrNull()?.rapply?.rebindKeys()
             }
 
         /** Takes it away for good. */
@@ -1373,7 +1373,7 @@ class Caulis {
             from.liveOrNull()?.let { r ->
                 r.config.bindings -= this
                 r.rreload.forget(this)
-                r.rebindKeys()
+                r.rapply.rebindKeys()
             }
         }
     }
@@ -1419,10 +1419,10 @@ class Caulis {
     // Adds [action] to [list] (while running, it listens at once); close the result to take it away.
     private fun <T> listen(list: MutableList<T>, action: T): AutoCloseable {
         val into = addTo(list, action)
-        liveOrNull()?.rewireEvents()
+        liveOrNull()?.rapply?.rewireEvents()
         return AutoCloseable {
             takeFrom(list, into, action)
-            liveOrNull()?.rewireEvents()
+            liveOrNull()?.rapply?.rewireEvents()
         }
     }
 
@@ -1481,7 +1481,7 @@ class Caulis {
         val r = liveOrNull()
         binding.owner = if (running == null && r != null) r.config else this
         addTo(bindings, binding)
-        r?.rebindKeys()
+        r?.rapply?.rebindKeys()
         return binding
     }
 
@@ -1503,7 +1503,7 @@ class Caulis {
         require(name.isNotBlank() && name != "reset" && name != "default") { "a key mode needs a name of its own, not \"$name\"" }
         modeNames += name
         KeyMode(name).configure()
-        running?.rebindKeys() // (one without keys yet: known at once)
+        running?.rapply?.rebindKeys() // (one without keys yet: known at once)
     }
 
     /** The same for Java: `keyMode("resize", m -> m.bind("Escape", c -> c.enterKeyMode(null)))`. */
@@ -1576,7 +1576,7 @@ class Caulis {
         set(value) {
             require(value in 0..1000) { "repeatRate is 0 to 1000, not $value" }
             field = value
-            running?.applyKeyRepeat()
+            running?.rapply?.applyKeyRepeat()
         }
 
     /** How long a key is held before it repeats, in milliseconds. Changed while running: at once. */
@@ -1584,7 +1584,7 @@ class Caulis {
         set(value) {
             require(value in 1..10_000) { "repeatDelayMillis is 1 to 10000, not $value" }
             field = value
-            running?.applyKeyRepeat()
+            running?.rapply?.applyKeyRepeat()
         }
 
     /** The old name of [repeatDelayMillis]. */
@@ -1628,7 +1628,7 @@ class Caulis {
     var idleInhibitors = true
         set(value) {
             field = value
-            running?.applyCoreSettings()
+            running?.rapply?.applyCoreSettings()
         }
 
     /**
@@ -1671,7 +1671,7 @@ class Caulis {
     fun onIdle(seconds: Long, resume: Caulis.() -> Unit = {}, idle: Caulis.() -> Unit) {
         require(seconds in 1..86_400) { "onIdle: 1 to 86400 seconds, not $seconds" }
         idleWatches += IdleWatch(seconds, idle, resume)
-        running?.applyIdleWatches()
+        running?.rapply?.applyIdleWatches()
     }
 
     /** The same for Java: [idle] after [seconds] without input, [resume] when someone is back. */
@@ -1959,7 +1959,7 @@ class Caulis {
         match: (Window) -> Boolean = { it.appId == name },
     ) {
         scratchpads += ScratchpadSetup(name, key, command, style, match)
-        running?.applyScratchpads() // (while running: its key works at once)
+        running?.rapply?.applyScratchpads() // (while running: its key works at once)
     }
 
     /**

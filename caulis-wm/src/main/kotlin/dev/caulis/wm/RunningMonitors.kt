@@ -79,7 +79,7 @@ internal class RunningMonitors(private val running: Running) {
             disabledByConfig -= name
             if (heads.setEnabled(name, true)) running.log.info { "Monitor $name used again" }
         }
-        running.applyMonitorLinks?.invoke()
+        running.rapply.applyMonitorLinks?.invoke()
         running.xwayland?.rescaled()
         running.ipc?.changed()
         running.outputManagement.changed()
