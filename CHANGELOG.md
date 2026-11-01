@@ -15,6 +15,8 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-11-01
+
 ### Added
 - `MovingArea(keptSeconds, settleSeconds, maxKeptSize)`: how long a wallpaper shader's kept picture stays while nothing draws it (600 s), how long a new size stands still before it is drawn again (0.3 s), and its most, times the monitor's pixels each way (2). JSON/Lua: `background.movingKeptSeconds`, `movingSettleSeconds`, `movingMaxKeptSize`. They were fixed numbers.
 
@@ -497,7 +499,8 @@ The first release on Maven Central.
 - A project template (`templates/new-compositor.sh`), examples, a getting-started guide, API docs,
   a Nix flake with NixOS and Home Manager modules.
 
-[Unreleased]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.10...HEAD
+[Unreleased]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.11...HEAD
+[0.1.11]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.7...v0.1.8
