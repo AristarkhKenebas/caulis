@@ -15,6 +15,9 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+### Fixed
+- A moving part drawn live after a kept one read `movingKept` as true.
+
 ### Added
 
 - A wallpaper shader's `seed` (`float seed`, 0..1, in its code): `.with(seed = 42)`, config.json `"seed": 42` or `"seed": "random"`, another picture of the same shader, chosen once per run.

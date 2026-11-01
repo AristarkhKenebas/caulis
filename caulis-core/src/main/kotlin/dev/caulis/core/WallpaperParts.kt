@@ -208,7 +208,7 @@ internal class WallpaperParts {
         val shaded = ArrayList<ShadedPart>()
         fun flush(): Boolean {
             if (shaded.isEmpty()) return true
-            val drawn = renderer.drawShadedParts(source, floats, ints, shaded, picture)
+            val drawn = renderer.drawShadedParts(source, floats, ints + ("movingKept" to 0), shaded, picture)
             shaded.clear()
             return drawn
         }
