@@ -4502,6 +4502,17 @@
           "maxItems": 4,
           "description": "the only part of the shader's picture that changes: [x, y, width, height], 0..1; the rest is drawn once and kept (one screen-sized picture on the GPU), and the shader must keep still outside it (movingFade)"
         },
+        "movingQuietArea": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 4,
+          "maxItems": 4,
+          "description": "with a movingArea: all that changes outside bursts, [x, y, width, height]"
+        },
         "movingRestFps": {
           "type": "integer",
           "minimum": 0,

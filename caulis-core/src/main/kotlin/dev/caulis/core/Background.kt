@@ -330,7 +330,9 @@ class WallpaperShader private constructor(
  * [restFps], [burstEvery] and [burstFor] spare frames too: while the pointer rests and no burst
  * goes on it is drawn only [restFps] times a second (0: as fast as its framesPerSecond), for
  * something slow; every [burstEvery] seconds of `time` it goes at full pace for [burstFor]
- * seconds (a blink, 0: never).
+ * seconds (a blink, 0: never). [quietArea], inside this one, is all that changes outside bursts
+ * (the eye without its lids): then only that is drawn anew; a burst, and a frame or two after it,
+ * draws all of this one.
  */
 data class MovingArea @JvmOverloads constructor(
     val x: Double,
@@ -340,6 +342,7 @@ data class MovingArea @JvmOverloads constructor(
     val restFps: Int = 0,
     val burstEvery: Double = 0.0,
     val burstFor: Double = 0.0,
+    val quietArea: MovingArea? = null,
 ) {
     init {
         require(x >= 0 && y >= 0 && width > 0 && height > 0 && x + width <= 1 + 1e-9 && y + height <= 1 + 1e-9) { "a moving area lies inside the picture (0..1): $x, $y, $width x $height" }

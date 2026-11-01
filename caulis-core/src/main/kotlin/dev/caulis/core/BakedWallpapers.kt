@@ -44,6 +44,21 @@ internal class BakedWallpapers(private val loop: EventLoop, private val changed:
         return minOf(fps, area.restFps)
     }
 
+    // Those last drawn for a burst: all of the area once more, for what the burst left behind.
+    private val afterBurst = HashSet<Any>()
+
+    private fun inBurst(area: MovingArea, seconds: Double) = area.burstEvery > 0 && seconds >= 0 && seconds % area.burstEvery < area.burstFor
+
+    /** What of [area] is drawn anew at [seconds]: its [MovingArea.quietArea], but for a burst and the first frame after one. */
+    fun partNow(key: Any, area: MovingArea, seconds: Double): MovingArea {
+        val quiet = area.quietArea ?: return area
+        if (inBurst(area, seconds)) {
+            afterBurst += key
+            return area
+        }
+        return if (key in afterBurst) area else quiet
+    }
+
     // --- its size, settling --------------------------------------------------------------------------
 
     private class Seen(var width: Int, var height: Int, var since: Long)
@@ -110,7 +125,7 @@ internal class BakedWallpapers(private val loop: EventLoop, private val changed:
      * False: it does not compile.
      */
     fun draw(
-        key: Any, r: Rect, area: MovingArea, shown: FloatArray?, resolution: Float, maxWidth: Int, maxHeight: Int, look: Any?, settled: Boolean, changing: Any?, seconds: Float,
+        key: Any, r: Rect, area: MovingArea, shown: FloatArray?, resolution: Float, maxWidth: Int, maxHeight: Int, look: Any?, settled: Boolean, changing: Any?, seconds: Float, burstOver: Boolean,
         source: String, moving: Map<String, FloatArray>, still: Map<String, FloatArray>, ints: Map<String, Int>, stillInts: Map<String, Int>,
         picture: GpuTexture?, alpha: Float, renderer: Renderer,
     ): Boolean {
@@ -138,6 +153,7 @@ internal class BakedWallpapers(private val loop: EventLoop, private val changed:
             entry.size = size
             entry.changing = NOTHING
             entry.area = null
+            entry.since = seconds
             whole = true
             log.info { "A wallpaper shader drawn whole and kept: ${width}x$height, ${width * 4L * height / 1_048_576} MB on the GPU" }
             log.trace { "(Its commands sent in ${(System.nanoTime() - started) / 1_000_000} ms.)" }
@@ -154,6 +170,7 @@ internal class BakedWallpapers(private val loop: EventLoop, private val changed:
             entry.changing = changing
             entry.area = part
             entry.since = seconds
+            if (burstOver) afterBurst -= key
             log.trace { "A wallpaper shader's moving part drawn anew: $part of ${width}x$height${if (whole) ", all of it" else ""}" }
         }
         renderer.drawTexture(texture, r.x, r.y, r.width, r.height, opaque = false, alpha = alpha)
@@ -172,6 +189,9 @@ internal class BakedWallpapers(private val loop: EventLoop, private val changed:
         val top = floor(y0 * height).toInt().coerceAtLeast(0)
         return Rect(left, top, ceil(x1 * width).toInt().coerceAtMost(width) - left, ceil(y1 * height).toInt().coerceAtMost(height) - top)
     }
+
+    /** True if [area] is not in a burst at [seconds]. */
+    fun burstOver(area: MovingArea, seconds: Double) = !inBurst(area, seconds)
 
     /** How much GPU memory the kept pictures take (for tests and the log). */
     val bytes: Long get() = entries.values.sumOf { it.target.width * 4L * it.target.height }

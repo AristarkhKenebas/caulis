@@ -1298,7 +1298,8 @@ public final class dev/caulis/core/MovingArea {
 	public fun <init> (DDDDI)V
 	public fun <init> (DDDDID)V
 	public fun <init> (DDDDIDD)V
-	public synthetic fun <init> (DDDDIDDILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (DDDDIDDLdev/caulis/core/MovingArea;)V
+	public synthetic fun <init> (DDDDIDDLdev/caulis/core/MovingArea;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()D
 	public final fun component2 ()D
 	public final fun component3 ()D
@@ -1306,12 +1307,14 @@ public final class dev/caulis/core/MovingArea {
 	public final fun component5 ()I
 	public final fun component6 ()D
 	public final fun component7 ()D
-	public final fun copy (DDDDIDD)Ldev/caulis/core/MovingArea;
-	public static synthetic fun copy$default (Ldev/caulis/core/MovingArea;DDDDIDDILjava/lang/Object;)Ldev/caulis/core/MovingArea;
+	public final fun component8 ()Ldev/caulis/core/MovingArea;
+	public final fun copy (DDDDIDDLdev/caulis/core/MovingArea;)Ldev/caulis/core/MovingArea;
+	public static synthetic fun copy$default (Ldev/caulis/core/MovingArea;DDDDIDDLdev/caulis/core/MovingArea;ILjava/lang/Object;)Ldev/caulis/core/MovingArea;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBurstEvery ()D
 	public final fun getBurstFor ()D
 	public final fun getHeight ()D
+	public final fun getQuietArea ()Ldev/caulis/core/MovingArea;
 	public final fun getRestFps ()I
 	public final fun getWidth ()D
 	public final fun getX ()D

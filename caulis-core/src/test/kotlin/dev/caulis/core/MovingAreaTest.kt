@@ -125,6 +125,55 @@ class MovingAreaTest {
     }
 
     @Test
+    fun `a quiet part is drawn between bursts, and all of the area in one and once after it`() = withServer { server ->
+        val quiet = MovingArea(0.4, 0.4, 0.2, 0.2)
+        val bursting = area.copy(burstEvery = 10.0, burstFor = 1.0, quietArea = quiet)
+        // (The quiet part moves with time; the rest of the area only in a burst, its first second of ten.)
+        val code = """
+            vec4 wallpaper(vec2 at) {
+                float k = movingFade(at, 0.05);
+                bool burst = mod(time, 10.0) < 1.0;
+                float v = burst ? 0.9 : 0.2;
+                if (!movingWhole && !burst && mod(movingSince, 10.0) >= 1.0 && (abs(at.x - 0.5) > 0.1 || abs(at.y - 0.5) > 0.1)) discard;
+                bool inQuiet = abs(at.x - 0.5) < 0.1 && abs(at.y - 0.5) < 0.1;
+                return vec4(mix(0.2, v, k) + 0.001 * at.x, inQuiet ? fract(time) : 0.0, 0.0, 1.0);
+            }
+        """.trimIndent()
+        server.onServer {
+            it.backgroundChangeMillis = 0
+            it.wallpaperShadersPaused = true
+            it.wallpaperShadersClock = 5.0
+            it.background = Background.shader(WallpaperShader(code).with(movingArea = bursting))
+        }
+        settled(server)
+        fun redAt(x: Int, y: Int) = server.screenshot()[y * width + x] shr 16 and 0xff
+        val inArea = width * 3 / 10 // (in the area, outside the quiet part)
+        val before = redAt(inArea, height / 2)
+        assertTrue(before < 80, "at rest: $before")
+        server.onServer { it.wallpaperShadersClock = 10.5 }
+        waitFor { redAt(inArea, height / 2) > 200 }
+        // Straight to rest: the first frame after the burst puts all of it back.
+        server.onServer { it.wallpaperShadersClock = 15.0 }
+        waitFor { redAt(inArea, height / 2) < 80 }
+    }
+
+    @Test
+    fun `a moving part under something opaque is hidden, and said to come back`() {
+        dev.caulis.event.EventLoop().use { loop ->
+            val baked = BakedWallpapers(loop) {}
+            val item = DrawItem.Custom("key", Rect(0, 0, 100, 100), "a", changing = 1, changingArea = Rect(10, 10, 20, 20)) { }
+            val cover = DrawItem.Color("over", Rect(0, 0, 50, 50), 0f, 0f, 0f, listOf(Rect(0, 0, 50, 50)))
+            val half = DrawItem.Color("over", Rect(0, 0, 20, 50), 0f, 0f, 0f, listOf(Rect(0, 0, 20, 50)))
+            assertFalse(baked.look(item, listOf(item, cover), 0))
+            assertTrue(baked.isHidden("key"))
+            assertEquals(1, baked.changing("key", true, 1))
+            assertEquals(1, baked.changing("key", false, 2), "while hidden: what it said last, nothing drawn anew")
+            assertTrue(baked.look(item, listOf(item, half), 0), "partly seen: back")
+            assertFalse(baked.isHidden("key"))
+        }
+    }
+
+    @Test
     fun `an area outside the picture is refused`() {
         assertTrue(runCatching { MovingArea(0.5, 0.5, 0.6, 0.1) }.isFailure)
         assertTrue(runCatching { MovingArea(0.1, 0.1, 0.0, 0.1) }.isFailure)

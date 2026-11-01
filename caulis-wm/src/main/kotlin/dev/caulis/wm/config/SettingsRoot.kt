@@ -337,6 +337,7 @@ internal object SettingsRoot {
                         Field("fallback", ColorType, "shown if the shader does not compile"),
                         Field("resolution", DecimalType(0.1, 1.0), "how sharp the shader is drawn (0.5: half the pixels each way, a quarter of the work)"),
                         Field("movingArea", ListType(DecimalType(0.0, 1.0), 4, 4), "the only part of the shader's picture that changes: [x, y, width, height], 0..1; the rest is drawn once and kept (one screen-sized picture on the GPU), and the shader must keep still outside it (movingFade)"),
+                        Field("movingQuietArea", ListType(DecimalType(0.0, 1.0), 4, 4), "with a movingArea: all that changes outside bursts, [x, y, width, height]"),
                         Field("movingRestFps", IntegerType(0, 240), "with a movingArea: frames a second while the pointer rests and no burst goes on (0: framesPerSecond)"),
                         Field("movingBurst", ListType(DecimalType(0.0, 1e6), 2, 2), "with a movingArea: [every, for], seconds of the shader's time at full pace (a blink)"),
                         Field("fpsLimit", IntegerType(0, 240), "the most frames a second for any wallpaper shader (0: as each asks)"),

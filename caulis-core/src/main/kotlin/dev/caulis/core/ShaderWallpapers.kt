@@ -183,7 +183,8 @@ internal class ShaderWallpapers(
         }
         if (moving != null) {
             // Its moving part on the monitor, in desktop units: all that a frame of its own changes.
-            val movingRect = rect.partAt(moving).intersect(monitor.area)
+            val partNow = baked.partNow(key, moving, seconds)
+            val movingRect = rect.partAt(partNow).intersect(monitor.area)
             val seen = movingRect != null && !baked.isHidden(key)
             val changing = baked.changing(key, seen, listOf(frame, pointerLook))
             val settled = baked.settled(key, rect, now)
@@ -195,13 +196,13 @@ internal class ShaderWallpapers(
             val itemLook = listOf(stillLook, alpha, settled)
             return DrawItem.Custom(key, rect, itemLook, framesPerSecond = if (seen) wants else 0, wallpaper = shader, changing = changing, changingArea = movingRect) { r ->
                 val floats = floats(r, seconds, pointer, pointerPixels, velocity, workspace, rect, desktop, monitor, physical, onDesktop, viewPart, clickList, shader)
-                val still = floats(r, 0.0, NOWHERE, NOWHERE, floatArrayOf(0f, 0f), workspace, rect, desktop, monitor, physical, NOWHERE, viewPart, emptyList(), shader)
+                val still = floats(r, seconds, NOWHERE, NOWHERE, floatArrayOf(0f, 0f), workspace, rect, desktop, monitor, physical, NOWHERE, viewPart, emptyList(), shader)
                 val ints = mapOf("hasPicture" to if (picture != null) 1 else 0, "clickCount" to clickList.size, "colorCount" to shader.colors.size, "movingDeclared" to 1)
                 val area = floatArrayOf(moving.x.toFloat(), moving.y.toFloat(), moving.width.toFloat(), moving.height.toFloat())
                 val pixelWide = Math.round(monitor.pixelWidth * MAX_KEPT_SIZE).toInt()
                 val pixelHigh = Math.round(monitor.pixelHeight * MAX_KEPT_SIZE).toInt()
                 val drawn = baked.draw(
-                    key, r, moving, shown, shader.resolution, pixelWide, pixelHigh, stillLook, settled, changing, seconds.toFloat(), source,
+                    key, r, partNow, shown, shader.resolution, pixelWide, pixelHigh, stillLook, settled, changing, seconds.toFloat(), baked.burstOver(moving, seconds), source,
                     floats + ("alpha" to floatArrayOf(1f)) + ("movingArea" to area), still + ("alpha" to floatArrayOf(1f)) + ("movingArea" to area) + ("movingSince" to floatArrayOf(0f)),
                     ints, ints + ("clickCount" to 0), picture, alpha, renderer,
                 )
