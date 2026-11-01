@@ -65,7 +65,8 @@ internal class DesktopAnimations(private val desktop: Desktop) {
     // back out of it — drawn by an animation from [from] to [to].
     internal class Flight(
         val target: GpuTarget, val texture: GpuTexture, val from: Rect, val to: Rect, val start: Long,
-        val workspace: Workspace, val animation: WindowAnimation, val millis: Long, val curve: Curve,
+        // (Null: a director's window, drawn wherever it was.)
+        val workspace: Workspace?, val animation: WindowAnimation, val millis: Long, val curve: Curve,
         val kind: FlightKind, val window: Window?,
     )
 
@@ -89,6 +90,10 @@ internal class DesktopAnimations(private val desktop: Desktop) {
     internal fun pictureOf(window: Window): Triple<GpuTarget, GpuTexture, Rect>? {
         val items = ArrayList<DrawItem>()
         desktop.sceneBuilder.addWindow(items, window, System.nanoTime(), plain = true)
+        return pictureOf(window, items)
+    }
+
+    private fun pictureOf(window: Window, items: List<DrawItem>): Triple<GpuTarget, GpuTexture, Rect>? {
         val parts = items.filter { it !is DrawItem.Blur } // (blur needs what is behind: not in a picture of its own)
         if (parts.none { it is DrawItem.Picture }) return null
         val box = parts.map { (it as? DrawItem.Shadow)?.box?.union(it.rect) ?: it.rect }.reduce(Rect::union)
@@ -131,9 +136,30 @@ internal class DesktopAnimations(private val desktop: Desktop) {
 
     // The last look of a window that is going away (taken while its picture is still there).
     internal fun lastLookOf(window: Window): Flight? {
+        if (desktop.directed(window)) return directedLastLookOf(window)
         val workspace = desktop.workspaceHost.workspaceOf(window) ?: return null
         if (window !in workspace.windows) return null
         return flightOf(window, FlightKind.CLOSE, "windowsOut", desktop.animations.windowClose, workspace = workspace)
+    }
+
+    // The same of a director's window: as it is drawn now, if the director wants one.
+    private fun directedLastLookOf(window: Window): Flight? {
+        if (desktop.locked) return null
+        val place = desktop.places[window] ?: return null
+        if (place.alpha <= 0f) return null
+        val closing = try {
+            desktop.director?.closing(window, place)
+        } catch (e: Throwable) {
+            e.rethrowIfFatal()
+            desktop.log.error("Your WindowDirector failed on a closing window (it is gone at once)", e)
+            null
+        } ?: return null
+        if (closing.millis <= 0) return null
+        val items = ArrayList<DrawItem>()
+        desktop.sceneBuilder.addDirected(items, window, place, decorated = false)
+        val (target, texture, box) = pictureOf(window, items) ?: return null
+        desktop.renderLog.trace { "Last look of $window taken at $box, ${closing.millis} ms" }
+        return Flight(target, texture, box, box, System.nanoTime(), null, closing.look, closing.millis, closing.curve, FlightKind.CLOSE, window)
     }
 
     // How a flight is drawn now (null once it is over).
@@ -220,7 +246,7 @@ internal class DesktopAnimations(private val desktop: Desktop) {
                 if (kind == FlightKind.RESTORE) desktop.changed() // the window itself is drawn again
                 continue
             }
-            if (desktop.monitorList.any { it.workspace === flight.workspace }) all += item
+            if (flight.workspace == null || desktop.monitorList.any { it.workspace === flight.workspace }) all += item
             // Where the window is drawn now, for shownRect (going away: it is not there any more).
             if (flight.window != null && kind != FlightKind.CLOSE) {
                 shownRects[flight.window] = (item as? DrawItem.Effect)?.fallback ?: item.rect

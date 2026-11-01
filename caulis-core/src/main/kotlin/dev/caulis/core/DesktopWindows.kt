@@ -123,12 +123,12 @@ internal class DesktopWindows(private val desktop: Desktop) {
         desktop.arranger.placements -= window
         desktop.animator.appearing -= window
         desktop.arranger.pinned -= window
-        // Where the director drew it last: gone too (the pointer looked there before the next frame).
-        if (window in desktop.places) desktop.places = desktop.places - window
         // Its last look goes away smoothly (taken just before its picture went, or now).
         desktop.animator.stopFlights(window)
         desktop.animator.appearingPictures.remove(window)?.close()
         (desktop.animator.lastLooks.remove(window) ?: desktop.animator.lastLookOf(window))?.let { desktop.animator.flights += it }
+        // Where the director drew it last: gone too (the pointer looked there before the next frame).
+        if (window in desktop.places) desktop.places = desktop.places - window
         desktop.ownTitleBars.forget(window)
         desktop.events.minimizeTargets -= window
         // What every closed window leaves behind (a scratchpad's too).

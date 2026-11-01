@@ -18,6 +18,7 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 ### Added
 - `Curve.SETTLE` ("settle"): a spring without a bounce fitted into an animation's time. `Curve.springRatio(dampingRatio, stiffness)`: a spring as niri and Compose say it.
 - `Curve.carried`: what a speed a thing already had adds to an animation along the curve, for turning back without a corner.
+- `WindowDirector.closing`: a director's closing window can leave its last picture going away as an animation (`WindowClosing`), with its corners, clip and fade as last drawn.
 - `AnimationSettings.slowdown`: every animation of a tree this many times as long.
 
 ### Changed

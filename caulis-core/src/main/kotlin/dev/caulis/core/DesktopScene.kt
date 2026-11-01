@@ -445,7 +445,8 @@ internal class DesktopScene(private val desktop: Desktop) {
     }
 
     // A director's window at [place]: its picture stretched into it, with its effects.
-    private fun addDirected(all: MutableList<DrawItem>, window: Window, place: WindowPlace) {
+    // ([decorated] false: only the window, for a picture of it.)
+    internal fun addDirected(all: MutableList<DrawItem>, window: Window, place: WindowPlace, decorated: Boolean = true) {
         if (place.alpha <= 0f || place.width <= 0 || place.height <= 0) return
         val rect = place.rect
         // Its menus open from there, and it counts as on the monitor it is drawn on.
@@ -466,10 +467,10 @@ internal class DesktopScene(private val desktop: Desktop) {
             else -> look.clip.intersect(place.clip) ?: return
         }
         val clipped = DesktopLooks.Look(clip, look.radius, look.alpha, look.dim)
-        desktop.widgetHost.addDecorations(all, window, place, above = false)
+        if (decorated) desktop.widgetHost.addDecorations(all, window, place, above = false)
         addTree(all, window.surface, rect.x - (visible.x * scaleX).roundToInt(), rect.y - (visible.y * scaleY).roundToInt(), scaleX, scaleY, clipped)
         if (look.dim > 0f) all += DrawItem.Tint(EffectKey("dim", window), rect, look.radius, 0f, 0f, 0f, look.dim * place.alpha)
-        desktop.widgetHost.addDecorations(all, window, place, above = true)
+        if (decorated) desktop.widgetHost.addDecorations(all, window, place, above = true)
     }
 
     internal fun addTree(
