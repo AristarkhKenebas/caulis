@@ -2,6 +2,35 @@ public final class dev/caulis/core/FatalKt {
 	public static final fun rethrowIfFatal (Ljava/lang/Throwable;)V
 }
 
+public final class dev/caulis/log/CrashReports {
+	public static final field INSTANCE Ldev/caulis/log/CrashReports;
+	public static final fun fact (Ljava/lang/String;Ljava/lang/String;)V
+	public static final fun facts ()Ljava/util/Map;
+	public static final fun getFolder ()Ljava/nio/file/Path;
+	public static final fun getKeep ()I
+	public static final fun getLastLines ()I
+	public static final fun getPrivateWords ()Lkotlin/jvm/functions/Function0;
+	public static final fun getState ()Lkotlin/jvm/functions/Function0;
+	public static final fun list ()Ljava/util/List;
+	public static final fun list (Ljava/nio/file/Path;)Ljava/util/List;
+	public static synthetic fun list$default (Ljava/nio/file/Path;ILjava/lang/Object;)Ljava/util/List;
+	public static final fun setFolder (Ljava/nio/file/Path;)V
+	public static final fun setKeep (I)V
+	public static final fun setLastLines (I)V
+	public static final fun setPrivateWords (Lkotlin/jvm/functions/Function0;)V
+	public static final fun setState (Lkotlin/jvm/functions/Function0;)V
+	public static final fun text (Ljava/lang/String;)Ljava/lang/String;
+	public static final fun text (Ljava/lang/String;Ljava/lang/Throwable;)Ljava/lang/String;
+	public static final fun text (Ljava/lang/String;Ljava/lang/Throwable;Ljava/lang/Thread;)Ljava/lang/String;
+	public static final fun text (Ljava/lang/String;Ljava/lang/Throwable;Ljava/lang/Thread;Z)Ljava/lang/String;
+	public static synthetic fun text$default (Ljava/lang/String;Ljava/lang/Throwable;Ljava/lang/Thread;ZILjava/lang/Object;)Ljava/lang/String;
+	public static final fun write (Ljava/lang/String;)Ljava/nio/file/Path;
+	public static final fun write (Ljava/lang/String;Ljava/lang/Throwable;)Ljava/nio/file/Path;
+	public static final fun write (Ljava/lang/String;Ljava/lang/Throwable;Ljava/lang/Thread;)Ljava/nio/file/Path;
+	public static final fun write (Ljava/lang/String;Ljava/lang/Throwable;Ljava/lang/Thread;Z)Ljava/nio/file/Path;
+	public static synthetic fun write$default (Ljava/lang/String;Ljava/lang/Throwable;Ljava/lang/Thread;ZILjava/lang/Object;)Ljava/nio/file/Path;
+}
+
 public abstract interface annotation class dev/caulis/log/InternalCaulisApi : java/lang/annotation/Annotation {
 }
 
@@ -12,15 +41,22 @@ public final class dev/caulis/log/Log {
 	public static final field INSTANCE Ldev/caulis/log/Log;
 	public static final field PROBLEMS I
 	public static final field QUIET I
+	public static final fun areaLevels ()Ljava/util/Map;
 	public static final fun clearLevel (Ljava/lang/String;)V
 	public static final fun configure (Ljava/lang/String;)V
 	public static final fun getFile ()Ljava/nio/file/Path;
+	public static final fun getFileKeep ()I
+	public static final fun getFileLevel ()I
+	public static final fun getFileLimitBytes ()J
 	public static final fun getLevel ()I
 	public static final fun getListener ()Lkotlin/jvm/functions/Function1;
 	public static final fun getToConsole ()Z
 	public static final fun levelOf (Ljava/lang/String;)I
 	public static final fun recent ()Ljava/util/List;
 	public static final fun setFile (Ljava/nio/file/Path;)V
+	public static final fun setFileKeep (I)V
+	public static final fun setFileLevel (I)V
+	public static final fun setFileLimitBytes (J)V
 	public static final fun setLevel (I)V
 	public static final fun setLevel (Ljava/lang/String;I)V
 	public static final fun setListener (Lkotlin/jvm/functions/Function1;)V
@@ -58,5 +94,21 @@ public final class dev/caulis/log/Logger {
 	public final fun warn (Ljava/lang/String;)V
 	public final fun warn (Ljava/lang/String;Ljava/lang/Throwable;)V
 	public static synthetic fun warn$default (Ldev/caulis/log/Logger;Ljava/lang/String;Ljava/lang/Throwable;ILjava/lang/Object;)V
+}
+
+public final class dev/caulis/log/Redactor {
+	public static final field Companion Ldev/caulis/log/Redactor$Companion;
+	public static final field PRIVATE_AREAS Ljava/util/Set;
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Collection;)V
+	public fun <init> (Ljava/util/Collection;Ljava/lang/String;)V
+	public fun <init> (Ljava/util/Collection;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/util/Collection;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Ljava/util/Collection;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/util/Collection;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun clean (Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class dev/caulis/log/Redactor$Companion {
 }
 
