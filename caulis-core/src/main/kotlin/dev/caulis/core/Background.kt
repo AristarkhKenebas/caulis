@@ -325,6 +325,7 @@ class WallpaperShader private constructor(
  * - `bool movingWhole` — this drawing must give every pixel it is asked for (the first one).
  *   When false, a pixel that did not change since `float movingSince` (the `time` of the last
  *   drawing) can be left out with `discard`, and costs only the check: it keeps its colour.
+ *   (After you read `dFdx` or `dFdy`: a pixel beside one thrown away earlier gets a wrong slope.)
  *
  * [restFps], [burstEvery] and [burstFor] spare frames too: while the pointer rests and no burst
  * goes on it is drawn only [restFps] times a second (0: as fast as its framesPerSecond), for
