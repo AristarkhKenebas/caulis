@@ -78,6 +78,7 @@ class Redactor @JvmOverloads constructor(
             Regex("(?i)(wi-?fi|ssid|bluetooth|device)( network)?( name)?(\\s*[=:]?\\s*)\"[^\"]*\"") to "$1$2$3$4\"<text>\"",
             // A window as it shows itself: Window("title", app.id).
             Regex("Window\\(\"(?:[^\"\\\\]|\\\\.)*\"") to "Window(\"<title>\"",
+            Regex("(<View \\d+ \\([^)]*\\): )\"[^\"]*\"") to "$1\"<title>\"",
             Regex("(?i)\\btitle\\s*[=:]\\s*(\"[^\"]*\"|'[^']*'|\\S+)") to "title=<title>",
             Regex("[\\w.+-]+@[\\w-]+\\.[\\w.-]+") to "<mail>",
             Regex("\\b(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}\\b") to "<mac>",

@@ -176,5 +176,5 @@ abstract class Window : LayoutWindow {
     /** Asks the program to close the window (it may show "save changes?" first). */
     abstract fun close()
 
-    override fun toString() = "Window(\"$title\", $appId)"
+    override fun toString() = "Window(\"${title.replace('"', '\'')}\", $appId)"
 }
