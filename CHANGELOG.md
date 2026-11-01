@@ -41,6 +41,8 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 ### Changed
 - Level 3 of `input` no longer names typing keys, only shortcuts' keys (with Ctrl, Alt or Super held) and keys that type nothing. Level 3 of `wayland` no longer shows what input methods and virtual keyboards type.
 - A problem kept in the black box (`Log.recent()`) has the first steps of its stack with it.
+### Added
+- `Widget.takesPointerAt` and `ComposeWidget.pointerShape`: a widget says which part of its area takes the pointer; elsewhere the pointer and clicks go on to what is below, its picture staying where it is. For a dock whose icons grow, or any shape not square.
 
 ## [0.1.10] - 2026-10-31
 

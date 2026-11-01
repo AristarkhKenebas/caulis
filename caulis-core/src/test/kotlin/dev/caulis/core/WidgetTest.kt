@@ -66,6 +66,29 @@ class WidgetTest {
     }
 
     @Test
+    fun `a widget takes the pointer only where it says, the rest goes to what is below`() = withServer { server, client ->
+        val bar = object : Bar() {
+            override fun reserve(monitor: Monitor): Reserve? = null
+            override fun takesPointerAt(monitor: Monitor, x: Double, y: Double) = x < 50
+        }
+        server.onServer { d ->
+            d.layout = Columns(Gaps(0, 0))
+            d.animationMillis = 0
+            d.addWidget(bar)
+        }
+        client.window().draw()
+        client.waitFor { server.onServer { d -> d.windows.size } == 1 }
+        server.onServer { d ->
+            d.pointerMoved(0, 20.0, 10.0)
+            assertEquals(20.0 to 10.0, bar.moves.last(), "where it says")
+            assertNull(d.pointerWindow)
+            d.pointerMoved(0, 100.0, 10.0)
+            assertEquals(20.0 to 10.0, bar.moves.last(), "not beside it")
+            assertTrue(d.pointerWindow != null, "the window below has it")
+        }
+    }
+
+    @Test
     fun `a widget under a fullscreen window gets no input, one over the windows does`() = withServer { server, client ->
         val bar = object : Bar() {
             override val level get() = DrawingLevel.ABOVE_WINDOWS
