@@ -30,4 +30,37 @@ class CurveTest {
         assertEquals(1.0, soft.at(1.0))
         assertEquals(1.0, bouncy.at(0.999), 0.01)
     }
+
+    @Test
+    fun `settle starts from rest, is soon nearly there, ends exactly`() {
+        val c = Curve.SETTLE
+        assertEquals(0.0, c.at(0.0))
+        assertEquals(1.0, c.at(1.0))
+        assertTrue(c.at(0.01) < 0.01, "from rest")
+        assertTrue(c.at(0.4) > 0.9, "nine tenths at two fifths: ${c.at(0.4)}")
+        assertTrue((0..100).map { c.at(it / 100.0) }.zipWithNext().all { (a, b) -> b >= a }, "only onward")
+        assertEquals(c, Curve.named("settle"))
+    }
+
+    @Test
+    fun `what a speed adds rises as fast as the time, then dies out`() {
+        for (c in listOf(Curve.SETTLE, Curve.LINEAR, Curve.spring(800.0, 56.0), Curve.spring(400.0, 8.0), Curve.spring(400.0, 80.0))) {
+            assertEquals(0.0, c.carried(0.0))
+            assertEquals(0.0, c.carried(1.0))
+            assertEquals(1.0, c.carried(1e-5) / 1e-5, 0.01, "its slope at the start")
+            assertTrue(Math.abs(c.carried(0.999)) < 0.01, "nothing left at the end: ${c.carried(0.999)}")
+        }
+    }
+
+    @Test
+    fun `a spring by its ratio, and a slowdown of everything`() {
+        val still = Curve.springRatio(1.0, 800.0)
+        assertTrue(still.naturalMillis!! in 250..450, "${still.naturalMillis}")
+        assertTrue((0..200).map { still.at(it / 200.0) }.max() <= 1.0005, "no bounce")
+        assertTrue((0..200).map { Curve.springRatio(0.4, 800.0).at(it / 200.0) }.max() > 1.1, "a bounce")
+        val tree = AnimationTree(listOf(AnimationNode("a", millis = 100)))
+        assertEquals(500L, AnimationSettings(tree, true, slowdown = 5.0).resolve("a").millis)
+        assertEquals(1000L, AnimationSettings(tree, true, slowdown = 5.0).resolve("a", 200).millis)
+        assertEquals(500L, AnimationSettings(tree, true, slowdown = 5.0).with("a", AnimationEntry.ON).resolve("a").millis, "kept by with")
+    }
 }

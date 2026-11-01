@@ -15,6 +15,14 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+### Added
+- `Curve.SETTLE` ("settle"): a spring without a bounce fitted into an animation's time. `Curve.springRatio(dampingRatio, stiffness)`: a spring as niri and Compose say it.
+- `Curve.carried`: what a speed a thing already had adds to an animation along the curve, for turning back without a corner.
+- `AnimationSettings.slowdown`: every animation of a tree this many times as long.
+
+### Changed
+- `Curve.spring` is worked out by its law instead of a table of ten thousand numbers per spring.
+
 ## [0.1.10] - 2026-10-31
 
 ### Fixed

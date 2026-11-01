@@ -258,7 +258,7 @@ internal object SettingsApply {
             (a["millis"] as Int?)?.let { caulis.animationMillis = it.toLong() }
             val base = caulis.animations
             // Curves by name: the ready ones and yours.
-            val curves = HashMap<String, Curve>(mapOf("ease-out" to Curve.EASE_OUT, "ease-in-out" to Curve.EASE_IN_OUT, "linear" to Curve.LINEAR, "overshoot" to Curve.OVERSHOOT, "smooth" to Curve.SMOOTH))
+            val curves = HashMap<String, Curve>(mapOf("ease-out" to Curve.EASE_OUT, "ease-in-out" to Curve.EASE_IN_OUT, "linear" to Curve.LINEAR, "overshoot" to Curve.OVERSHOOT, "smooth" to Curve.SMOOTH, "settle" to Curve.SETTLE))
             (a["curves"] as Map<String, Map<String, Any?>>?)?.forEach { (name, c) ->
                 val bezier = c["bezier"] as List<Double>?
                 val spring = c["spring"] as Map<String, Any?>?

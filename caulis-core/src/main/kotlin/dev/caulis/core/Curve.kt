@@ -19,6 +19,19 @@ fun interface Curve {
     /** How long an animation along it takes when the animation does not say (a spring's own time), or null. */
     val naturalMillis: Long? get() = null
 
+    /**
+     * What a speed the moving thing already had when this animation began still adds to where it
+     * is, [t] of the time gone: 0 at both ends, rising at first as fast as the time itself. The
+     * thing is at `from + (to - from) * at(t) + speed * seconds * carried(t)` (speed in units a
+     * second, seconds the animation's time): turning back mid way is then a soft curve, not a
+     * corner. The usual shape dies out early; a spring answers with its own law.
+     */
+    fun carried(t: Double): Double {
+        if (t <= 0.0 || t >= 1.0) return 0.0
+        val rest = 1 - t
+        return t * rest * rest * rest * rest
+    }
+
     companion object {
         /**
          * A cubic Bézier curve from (0, 0) to (1, 1) with the control points ([x1], [y1]) and
@@ -51,36 +64,42 @@ fun interface Curve {
          * A spring pulling to the end from rest: [stiffness] how strongly, [damping] how much
          * it is held back (less: it bounces past the end), [mass] how heavy. An animation along
          * it lasts until the spring is still ([naturalMillis]), unless it says otherwise.
+         * Worked out by its law at each moment, nothing kept but its numbers.
          */
         @JvmStatic
         @JvmOverloads
         fun spring(stiffness: Double = 200.0, damping: Double = 20.0, mass: Double = 1.0): Curve {
             require(stiffness > 0 && damping > 0 && mass > 0) { "a spring's stiffness, damping and mass are more than 0" }
-            // Moved step by step (half a millisecond) until it rests; at most 5 seconds.
-            val step = 0.0005
-            val samples = ArrayList<Double>()
-            var x = 0.0
-            var v = 0.0
-            var still = 0
-            while (samples.size < 10_000) {
-                samples += x
-                val a = (-stiffness * (x - 1) - damping * v) / mass
-                v += a * step
-                x += v * step
-                still = if (Math.abs(x - 1) < 0.001 && Math.abs(v) < 0.01) still + 1 else 0
-                if (still > 20) break
+            return Spring(stiffness / mass, damping / mass)
+        }
+
+        /**
+         * A spring of [dampingRatio] (1: no bounce and no slower than it has to be; less: it
+         * bounces) and [stiffness], as niri and Compose say it.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun springRatio(dampingRatio: Double = 1.0, stiffness: Double = 800.0): Curve {
+            require(dampingRatio > 0 && stiffness > 0) { "a spring's damping ratio and stiffness are more than 0" }
+            return Spring(stiffness, 2 * dampingRatio * Math.sqrt(stiffness))
+        }
+
+        /**
+         * A spring without a bounce fitted into the animation's time, whatever that is: it starts
+         * from rest, is nine tenths there at two fifths of the time and comes to rest softly exactly
+         * at the end. With [carried], a change of mind half way is one soft movement.
+         */
+        @JvmField val SETTLE: Curve = object : Curve {
+            private val strength = 10.0
+            private val end = 1 - (1 + strength) * Math.exp(-strength)
+
+            override fun at(t: Double): Double {
+                if (t <= 0.0) return 0.0
+                if (t >= 1.0) return 1.0
+                return (1 - (1 + strength * t) * Math.exp(-strength * t)) / end
             }
-            samples += 1.0
-            val millis = Math.round(samples.size * step * 1000).coerceIn(1, 5000)
-            return object : Curve {
-                override val naturalMillis: Long = millis
-                override fun at(t: Double): Double {
-                    if (t >= 1.0) return 1.0
-                    val at = t.coerceAtLeast(0.0) * (samples.size - 1)
-                    val i = at.toInt()
-                    return samples[i] + (samples[i + 1] - samples[i]) * (at - i)
-                }
-            }
+
+            override fun carried(t: Double): Double = if (t <= 0.0 || t >= 1.0) 0.0 else t * Math.exp(-strength * t)
         }
 
         /** The same speed all the way. */
@@ -97,7 +116,7 @@ fun interface Curve {
 
         /**
          * A ready curve by its name: "linear", "ease-out" (also "default"), "ease-in-out",
-         * "smooth", "overshoot"; null for another name.
+         * "smooth", "overshoot", "settle"; null for another name.
          */
         @JvmStatic
         fun named(name: String): Curve? = when (name.trim().lowercase()) {
@@ -106,6 +125,7 @@ fun interface Curve {
             "ease-in-out", "easeinout" -> EASE_IN_OUT
             "smooth" -> SMOOTH
             "overshoot" -> OVERSHOOT
+            "settle" -> SETTLE
             else -> null
         }
 
@@ -115,4 +135,42 @@ fun interface Curve {
             1 + (c + 1) * (t - 1).pow(3) + c * (t - 1).pow(2)
         }
     }
+}
+
+/** The law of a spring (per unit of mass) from rest to 1: [k] how strongly it pulls, [c] how much it is held back. */
+private class Spring(k: Double, c: Double) : Curve {
+    private val a = c / 2 // How fast it dies out.
+    private val w2 = k - a * a // Below 0: too held back to bounce; 0: just enough.
+    private val w = Math.sqrt(Math.abs(w2))
+
+    // Its whole length, seconds: until it is still (at most 5 seconds).
+    private val seconds: Double = run {
+        var s = 0.001
+        var still = 0
+        while (s < 5.0 && still < 20) {
+            still = if (Math.abs(position(s) - 1) < 0.0005 && Math.abs(response(s)) * k < 0.01) still + 1 else 0
+            s += 0.001
+        }
+        s
+    }
+
+    override val naturalMillis: Long = Math.round(seconds * 1000).coerceIn(1, 5000)
+
+    // Where it is, [s] seconds in.
+    private fun position(s: Double): Double = 1 - Math.exp(-a * s) * when {
+        Math.abs(w2) < 1e-9 -> 1 + a * s
+        w2 > 0 -> Math.cos(w * s) + a / w * Math.sin(w * s)
+        else -> Math.cosh(w * s) + a / w * Math.sinh(w * s)
+    }
+
+    // What a speed of 1 at the start adds to where it is, [s] seconds in.
+    private fun response(s: Double): Double = Math.exp(-a * s) * when {
+        Math.abs(w2) < 1e-9 -> s
+        w2 > 0 -> Math.sin(w * s) / w
+        else -> Math.sinh(w * s) / w
+    }
+
+    override fun at(t: Double): Double = if (t >= 1.0) 1.0 else position(t.coerceAtLeast(0.0) * seconds)
+
+    override fun carried(t: Double): Double = if (t <= 0.0 || t >= 1.0) 0.0 else response(t * seconds) / seconds
 }

@@ -233,9 +233,12 @@ class AnimationSettings @JvmOverloads constructor(
     val curve: Curve = Curve.EASE_OUT,
     /** Settings by animation name (names of [tree]). */
     val entries: Map<String, AnimationEntry> = emptyMap(),
+    /** Every animation takes this many times as long (to look at them closely; 1: as they are). */
+    val slowdown: Double = 1.0,
 ) {
     init {
         require(millis in 0..10_000) { "an animation takes 0 to 10000 milliseconds, not $millis" }
+        require(slowdown > 0.0 && slowdown <= 100.0) { "slowdown is more than 0, at most 100, not $slowdown" }
         for (name in entries.keys) require(name in tree) { tree.unknown(name) }
     }
 
@@ -270,13 +273,13 @@ class AnimationSettings @JvmOverloads constructor(
         }
         val finalCurve = curve ?: usualCurve ?: chain.firstNotNullOfOrNull { it.curve } ?: this.curve
         val finalTime = time ?: usualMillis ?: chain.firstNotNullOfOrNull { it.millis } ?: finalCurve.naturalMillis ?: millis
-        return ResolvedAnimation(name, on ?: enabled, finalTime, finalCurve, style)
+        return ResolvedAnimation(name, on ?: enabled, if (slowdown == 1.0) finalTime else Math.round(finalTime * slowdown), finalCurve, style)
     }
 
     /** The same with [entry] for [name] (added to what [name] had). */
     fun with(name: String, entry: AnimationEntry): AnimationSettings {
         require(name in tree) { tree.unknown(name) }
-        return AnimationSettings(tree, enabled, millis, curve, entries + (name to (entries[name]?.and(entry) ?: entry)))
+        return AnimationSettings(tree, enabled, millis, curve, entries + (name to (entries[name]?.and(entry) ?: entry)), slowdown)
     }
 
     /** One line per animation: what it comes to now (for logs). */
