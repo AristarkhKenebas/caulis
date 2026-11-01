@@ -58,6 +58,14 @@ interface Widget {
     /** True while it changes by itself (an animation): frames keep coming. Else [Desktop.requestRedraw] after a change. */
     fun animating(now: Long): Boolean = false
 
+    /**
+     * True if the pointer at [x], [y] (units from the top left of its [area]) is on it; where it
+     * is false, the pointer and clicks go on to what is below. True by default: all of its area.
+     * For a widget with room in its picture it does not always use (a dock whose icons grow on
+     * hover, a shape not square): its picture stays where it is, only what it takes changes.
+     */
+    fun takesPointerAt(monitor: Monitor, x: Double, y: Double): Boolean = true
+
     /** The pointer is at [x], [y] (its own units) of its part on [monitor] — entering or moving. */
     fun pointerMoved(monitor: Monitor, x: Double, y: Double) {}
 

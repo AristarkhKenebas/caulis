@@ -154,6 +154,14 @@ class ComposeWidget @JvmOverloads constructor(
      */
     var keepHiddenSeconds: Int? = null
 
+    /**
+     * Which part of its area takes the pointer ([Widget.takesPointerAt]; x, y in units from the
+     * area's top left), asked at each move; null: all of it. Elsewhere clicks go to what is below.
+     */
+    var pointerShape: ((monitor: Monitor, x: Double, y: Double) -> Boolean)? = null
+
+    override fun takesPointerAt(monitor: Monitor, x: Double, y: Double): Boolean = pointerShape?.invoke(monitor, x, y) ?: true
+
     internal val parts = HashMap<String, Part>()
     internal var keyboardLost by mutableIntStateOf(0)
     internal val heldKeys = LinkedHashMap<Int, WidgetKey>()

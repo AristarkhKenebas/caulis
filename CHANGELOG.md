@@ -15,6 +15,9 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+### Added
+- `Widget.takesPointerAt` and `ComposeWidget.pointerShape`: a widget says which part of its area takes the pointer; elsewhere the pointer and clicks go on to what is below, its picture staying where it is. For a dock whose icons grow, or any shape not square.
+
 ## [0.1.10] - 2026-10-31
 
 ### Fixed

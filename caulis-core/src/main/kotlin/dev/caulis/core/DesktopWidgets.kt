@@ -147,7 +147,8 @@ internal class DesktopWidgets(private val desktop: Desktop) {
             if (desktop.locked && !desktop.lockHost.widgetUsable(widget)) continue // (nothing behind the lock gets the pointer)
             if (userCode("Your widget (level)", null) { widget.level } != level) continue
             val area = userCode("Your widget (area)", null) { widget.area(monitor) } ?: continue
-            if (x >= area.x && y >= area.y && x < area.right && y < area.bottom) return widget to area
+            if (x >= area.x && y >= area.y && x < area.right && y < area.bottom &&
+                userCode("Your widget (takesPointerAt)", true) { widget.takesPointerAt(monitor, x - area.x, y - area.y) }) return widget to area
         }
         return null
     }

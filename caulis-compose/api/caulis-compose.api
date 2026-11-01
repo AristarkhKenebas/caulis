@@ -95,6 +95,7 @@ public final class dev/caulis/compose/ComposeWidget : dev/caulis/core/Widget, ja
 	public final fun getHasKeyboard ()Z
 	public final fun getKeepHiddenSeconds ()Ljava/lang/Integer;
 	public fun getLevel ()Ldev/caulis/core/DrawingLevel;
+	public final fun getPointerShape ()Lkotlin/jvm/functions/Function3;
 	public fun getShowsWhileLocked ()Z
 	public fun getTakesKeyboard ()Z
 	public fun key (Ldev/caulis/core/WidgetKey;)V
@@ -109,6 +110,8 @@ public final class dev/caulis/compose/ComposeWidget : dev/caulis/core/Widget, ja
 	public final fun restart ()V
 	public fun scroll (DD)V
 	public final fun setKeepHiddenSeconds (Ljava/lang/Integer;)V
+	public final fun setPointerShape (Lkotlin/jvm/functions/Function3;)V
+	public fun takesPointerAt (Ldev/caulis/core/Monitor;DD)Z
 	public fun toString ()Ljava/lang/String;
 }
 
