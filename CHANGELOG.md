@@ -15,6 +15,16 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+### Added
+
+- A wallpaper shader's `seed` (`float seed`, 0..1, in its code): `.with(seed = 42)`, config.json `"seed": 42` or `"seed": "random"`, another picture of the same shader, chosen once per run.
+- `MovingParts`: small things moving over a wallpaper shader's picture drawn once and kept. The shader runs only over each part's own pixels, a part that did not change costs nothing, and a `kept` part is drawn once into a small picture and then only moved and faded. `FixedMovingParts` and config.json's `movingParts`, `movingPartsFps`, `movingPartsEvery` give places that stay.
+- `Renderer.drawShadedParts` and `Renderer.clipNow`.
+
+### Changed
+
+- A frame is drawn in up to 24 separate parts before they become one box (it was 8): small changes far apart stay small.
+
 ## [0.1.11] - 2026-11-01
 
 ### Added

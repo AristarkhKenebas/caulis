@@ -4554,6 +4554,47 @@
           "maximum": 8,
           "description": "with a movingArea: the kept picture's most, times the monitor's pixels each way (2; 4 bytes a pixel)"
         },
+        "movingParts": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 2
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "minItems": 0,
+          "maxItems": 256,
+          "description": "small things moving over a picture drawn once and kept: a list of [x, y, width, height], 0..1; each is drawn alone, blended over it, with movingPart its number and movingData.x its time; nothing else is worked out anew"
+        },
+        "movingPartsFps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 240,
+          "description": "with movingParts: frames a second (10)"
+        },
+        "movingPartsEvery": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256,
+          "description": "with movingParts: one part in so many changes per frame (1: all), so that a frame redraws less"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "enum": ["random"]
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            }
+          ],
+          "description": "what makes one picture of the shader differ from another (float seed in its code, 0..1): a number, or \"random\": another each time the compositor starts"
+        },
         "fpsLimit": {
           "type": "integer",
           "minimum": 0,

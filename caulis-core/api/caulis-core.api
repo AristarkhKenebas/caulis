@@ -985,6 +985,34 @@ public final class dev/caulis/core/FileWatch {
 	public static final fun watch (Ljava/nio/file/Path;Lkotlin/jvm/functions/Function0;)Ljava/lang/AutoCloseable;
 }
 
+public final class dev/caulis/core/FixedMovingParts : dev/caulis/core/MovingParts {
+	public fun <init> (Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;I)V
+	public fun <init> (Ljava/util/List;II)V
+	public fun <init> (Ljava/util/List;IID)V
+	public fun <init> (Ljava/util/List;IIDD)V
+	public fun <init> (Ljava/util/List;IIDDD)V
+	public synthetic fun <init> (Ljava/util/List;IIDDDILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun at (DD)Ljava/util/List;
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()D
+	public final fun component5 ()D
+	public final fun component6 ()D
+	public final fun copy (Ljava/util/List;IIDDD)Ldev/caulis/core/FixedMovingParts;
+	public static synthetic fun copy$default (Ldev/caulis/core/FixedMovingParts;Ljava/util/List;IIDDDILjava/lang/Object;)Ldev/caulis/core/FixedMovingParts;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAreas ()Ljava/util/List;
+	public final fun getEvery ()I
+	public fun getFramesPerSecond ()I
+	public fun getKeptSeconds ()D
+	public fun getMaxKeptSize ()D
+	public fun getSettleSeconds ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/caulis/core/ForeignToplevels {
 	public static final field Companion Ldev/caulis/core/ForeignToplevels$Companion;
 	public static final field EXT_VERSION I
@@ -1342,6 +1370,42 @@ public final class dev/caulis/core/MovingArea {
 	public final fun getY ()D
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/caulis/core/MovingPart {
+	public fun <init> (IDDDD)V
+	public fun <init> (IDDDDI)V
+	public fun <init> (IDDDDI[F)V
+	public fun <init> (IDDDDI[FF)V
+	public fun <init> (IDDDDI[FFZ)V
+	public fun <init> (IDDDDI[FFZF)V
+	public synthetic fun <init> (IDDDDI[FFZFILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAlpha ()F
+	public final fun getData ()[F
+	public final fun getHeight ()D
+	public final fun getId ()I
+	public final fun getKept ()Z
+	public final fun getKeptScale ()F
+	public final fun getKind ()I
+	public final fun getWidth ()D
+	public final fun getX ()D
+	public final fun getY ()D
+	public fun hashCode ()I
+}
+
+public abstract interface class dev/caulis/core/MovingParts {
+	public abstract fun at (DD)Ljava/util/List;
+	public abstract fun getFramesPerSecond ()I
+	public fun getKeptSeconds ()D
+	public fun getMaxKeptSize ()D
+	public fun getSettleSeconds ()D
+}
+
+public final class dev/caulis/core/MovingParts$DefaultImpls {
+	public static fun getKeptSeconds (Ldev/caulis/core/MovingParts;)D
+	public static fun getMaxKeptSize (Ldev/caulis/core/MovingParts;)D
+	public static fun getSettleSeconds (Ldev/caulis/core/MovingParts;)D
 }
 
 public final class dev/caulis/core/Notice {
@@ -2258,9 +2322,12 @@ public final class dev/caulis/core/WallpaperShader {
 	public final fun getImage ()Ljava/nio/file/Path;
 	public final fun getMoving ()Z
 	public final fun getMovingArea ()Ldev/caulis/core/MovingArea;
+	public final fun getMovingParts ()Ldev/caulis/core/MovingParts;
 	public final fun getName ()Ljava/lang/String;
 	public final fun getPath ()Ljava/nio/file/Path;
 	public final fun getResolution ()F
+	public final fun getSeed ()J
+	public final fun getSeedValue ()F
 	public final fun getUsesPointer ()Z
 	public final fun getUsesTime ()Z
 	public final fun getValues ()Ljava/util/Map;
@@ -2275,7 +2342,9 @@ public final class dev/caulis/core/WallpaperShader {
 	public final fun with (Ljava/util/List;Ljava/util/Map;Ldev/caulis/render/Color;I)Ldev/caulis/core/WallpaperShader;
 	public final fun with (Ljava/util/List;Ljava/util/Map;Ldev/caulis/render/Color;IF)Ldev/caulis/core/WallpaperShader;
 	public final fun with (Ljava/util/List;Ljava/util/Map;Ldev/caulis/render/Color;IFLdev/caulis/core/MovingArea;)Ldev/caulis/core/WallpaperShader;
-	public static synthetic fun with$default (Ldev/caulis/core/WallpaperShader;Ljava/util/List;Ljava/util/Map;Ldev/caulis/render/Color;IFLdev/caulis/core/MovingArea;ILjava/lang/Object;)Ldev/caulis/core/WallpaperShader;
+	public final fun with (Ljava/util/List;Ljava/util/Map;Ldev/caulis/render/Color;IFLdev/caulis/core/MovingArea;J)Ldev/caulis/core/WallpaperShader;
+	public final fun with (Ljava/util/List;Ljava/util/Map;Ldev/caulis/render/Color;IFLdev/caulis/core/MovingArea;JLdev/caulis/core/MovingParts;)Ldev/caulis/core/WallpaperShader;
+	public static synthetic fun with$default (Ldev/caulis/core/WallpaperShader;Ljava/util/List;Ljava/util/Map;Ldev/caulis/render/Color;IFLdev/caulis/core/MovingArea;JLdev/caulis/core/MovingParts;ILjava/lang/Object;)Ldev/caulis/core/WallpaperShader;
 }
 
 public final class dev/caulis/core/WallpaperShader$Companion {

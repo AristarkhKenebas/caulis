@@ -145,7 +145,7 @@ class DesktopView internal constructor(monitor: Monitor) {
 
     private companion object {
         const val MAX_AGE = 4
-        const val MAX_PARTS = 8
+        const val MAX_PARTS = 24
         val EMPTY = Rect(0, 0, 0, 0)
     }
 }
@@ -245,6 +245,8 @@ internal sealed class DrawItem {
         val background: Boolean = wallpaper != null,
         val changing: Any? = null,
         val changingArea: Rect? = null,
+        /** What of it looks different since the item whose [changing] was the one given (null: that is too long ago, all of it). Instead of [changingArea]. */
+        val changedSince: ((Any?) -> List<Rect>?)? = null,
         val paint: (Rect) -> Unit,
     ) : DrawItem()
 
@@ -359,6 +361,10 @@ internal fun uncoveredAreas(item: DrawItem, list: List<DrawItem>, index: Int): L
  */
 internal fun changedAreas(item: DrawItem, list: List<DrawItem>, index: Int, before: DrawItem, listBefore: List<DrawItem>, indexBefore: Int): List<Rect> {
     if (item is DrawItem.Custom && before is DrawItem.Custom && item.rect == before.rect && item.look == before.look) {
+        // (Many small parts, each moving by itself, from where it was.)
+        item.changedSince?.invoke(before.changing)?.let { parts ->
+            return uncovered(parts, list, index, parts.size + MAX_UNCOVERED) ?: parts
+        }
         val area = item.changingArea
         // (Where it moved from is the same place, or none: nothing moved there before.)
         val old = before.changingArea

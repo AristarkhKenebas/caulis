@@ -149,6 +149,7 @@ internal class ShaderWallpapers(
     ): DrawItem {
         val seconds = seconds(now)
         val code = shader.code
+        if (shader.movingParts != null) return partsItem(key, renderer, monitor, rect, shader, shader.movingParts, alpha, now, seconds, desktop, workspace, view, picture, look, works)
         val usesTime = shader.usesTime
         val usesPointer = shader.usesPointer
         val moving = shader.movingArea
@@ -243,6 +244,7 @@ internal class ShaderWallpapers(
         floats["physicalSize"] = physical
         floats["desktopPointer"] = onDesktop
         floats["view"] = viewPart
+        floats["seed"] = floatArrayOf(shader.seedValue)
         for (i in 0 until MAX_CLICKS) floats["clicks[$i]"] = clickList.getOrNull(i) ?: NO_CLICK
         for ((i, c) in shader.colors.withIndex()) floats["colors[$i]"] = floatArrayOf(c.red, c.green, c.blue, c.alpha)
         for ((name, value) in shader.values) floats[name] = floatArrayOf(value)
@@ -256,6 +258,49 @@ internal class ShaderWallpapers(
         val right = kotlin.math.ceil(x + (area.x + area.width) * width).toInt()
         val bottom = kotlin.math.ceil(y + (area.y + area.height) * height).toInt()
         return Rect(left, top, right - left, bottom - top)
+    }
+
+    // --- with moving parts: a kept picture, and small things over it --------------------------------
+
+    private val parts = WallpaperParts()
+
+    // All that shows of [shader]: its picture drawn once and kept, its [MovingParts] over it, drawn
+    // anew only where one of them changed.
+    private fun partsItem(
+        key: Any, renderer: Renderer, monitor: Monitor, rect: Rect, shader: WallpaperShader, moving: MovingParts, alpha: Float, now: Long, seconds: Double,
+        desktop: Rect, workspace: Int, view: BackgroundView?, picture: GpuTexture?, look: List<Any?>, works: (name: String, code: String, problem: String?) -> Unit,
+    ): DrawItem {
+        val code = shader.code
+        val fileProblem = shader.fileProblem
+        val source = shader.source(code)
+        val w = rect.width.coerceAtLeast(1).toDouble()
+        val h = rect.height.coerceAtLeast(1).toDouble()
+        val physical = monitor.output?.let { floatArrayOf(it.physicalWidthMm.toFloat(), it.physicalHeightMm.toFloat()) } ?: floatArrayOf(0f, 0f)
+        val viewPart = view?.let { floatArrayOf(it.x.toFloat(), it.y.toFloat(), it.width.toFloat(), it.height.toFloat()) } ?: floatArrayOf(0f, 0f, 1f, 1f)
+        val fallback = shader.fallback ?: USUAL_COLOR
+        val settled = baked.settled(key, rect, now, moving.settleSeconds)
+        val stillLook = listOf(look, source, picture, viewPart.toList(), shader.resolution, shader.seed, if (shader.usesWorkspace) workspace else null, if (shader.usesPlace) listOf(rect.x, rect.y) else null)
+        // (Their own place's ratio: one thing does not change its shape with the view.)
+        val state = parts.update(key, moving.at(seconds, w / h), rect)
+        val fps = if (paused || parts.isHidden(key)) 0 else effectiveFps(shader.with(framesPerSecond = moving.framesPerSecond))
+        val pixelWide = Math.round(monitor.pixelWidth * moving.maxKeptSize).toInt()
+        val pixelHigh = Math.round(monitor.pixelHeight * moving.maxKeptSize).toInt()
+        return DrawItem.Custom(
+            key, rect, listOf(stillLook, alpha, settled), framesPerSecond = fps, wallpaper = shader, changing = state.version, changedSince = state::changedSince,
+        ) { r ->
+            val floats = floats(r, seconds, NOWHERE, NOWHERE, floatArrayOf(0f, 0f), workspace, rect, desktop, monitor, physical, NOWHERE, viewPart, emptyList(), shader)
+            floats["alpha"] = floatArrayOf(1f)
+            val ints = mapOf("hasPicture" to if (picture != null) 1 else 0, "clickCount" to 0, "colorCount" to shader.colors.size, "movingDeclared" to 1, "movingPart" to -1)
+            floats["movingArea"] = floatArrayOf(0f, 0f, 0f, 0f)
+            floats["movingSince"] = floatArrayOf(0f)
+            var drawn = baked.draw(
+                key, r, NO_AREA, moving.keptSeconds, null, shader.resolution, pixelWide, pixelHigh, stillLook, settled, null, seconds.toFloat(), true, source,
+                floats, floats, ints, ints, picture, alpha, renderer,
+            )
+            if (drawn) drawn = parts.paint(key, state, r, stillLook, settled, moving.keptSeconds, source, floats, ints, picture, alpha, renderer)
+            works(shader.name, code, fileProblem ?: if (drawn) null else renderer.effectProblem(source) ?: "it does not compile")
+            if (!drawn) renderer.drawColor(r.x, r.y, r.width, r.height, fallback.red, fallback.green, fallback.blue, fallback.alpha * alpha)
+        }
     }
 
     // --- with a moving area: all of it kept, only that part drawn anew -----------------------------
@@ -322,11 +367,18 @@ internal class ShaderWallpapers(
             this.kept.entries.removeIf { (_, entry) -> (now - entry.used > KEPT_NANOS).also { if (it) entry.target.close() } }
         }
         baked.letGo(System.nanoTime())
+        parts.letGo(System.nanoTime())
         var fps = 0
         var pointer = 0
         for ((index, item) in kept.withIndex()) {
             if (item !is DrawItem.Custom) continue
             val shader = item.wallpaper ?: continue
+            if (shader.movingParts != null) {
+                val back = parts.look(item, kept, index)
+                if (parts.isHidden(item.key)) continue
+                fps = maxOf(fps, if (back) effectiveFps(shader.with(framesPerSecond = shader.movingParts.framesPerSecond)) else item.framesPerSecond)
+                continue
+            }
             // (A moving part under windows wants no frames; one coming out of them does, at once.)
             if (baked.look(item, kept, index)) fps = maxOf(fps, effectiveFps(shader))
             if (shader.movingArea != null && (baked.isHidden(item.key) || item.changingArea == null)) continue
@@ -371,6 +423,7 @@ internal class ShaderWallpapers(
         kept.values.forEach { it.target.close() }
         kept.clear()
         baked.close()
+        parts.close()
     }
 
     internal companion object {
@@ -391,6 +444,9 @@ internal class ShaderWallpapers(
 
         private val NO_CLICK = floatArrayOf(-1f, -1f, -1000f, 0f)
         private val NOWHERE = floatArrayOf(-1f, -1f)
+
+        // (A kept picture with no part of it drawn anew.)
+        private val NO_AREA = MovingArea(0.0, 0.0, 1.0, 1.0)
 
         val USUAL_COLOR = (Background.USUAL as Background.Solid).color
     }

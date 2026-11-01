@@ -122,7 +122,9 @@ fun interface BackgroundPainter {
  * [Desktop.wallpaperShadersPaused] and [Desktop.wallpaperFpsLimit] hold them all still or slower.
  *
  * A big picture of which only a part moves can say so ([movingArea]): all of it is drawn once
- * and kept, and only that part is drawn anew for its frames. See [MovingArea].
+ * and kept, and only that part is drawn anew for its frames. See [MovingArea]. Many small things
+ * moving, each with a few pixels, over a picture that does not change: [movingParts].
+ * `float seed`, 0..1, comes from [seed]: another seed, another picture of the same shader.
  */
 class WallpaperShader private constructor(
     private val inline: String?,
@@ -145,6 +147,10 @@ class WallpaperShader private constructor(
     val resolution: Float,
     /** The only part of the picture that changes; the rest is drawn once and kept (null, the usual: all of it is drawn each frame). */
     val movingArea: MovingArea?,
+    /** What makes this picture differ from another of the same shader, 0 or more: the code reads it as `float seed`, 0..1. */
+    val seed: Long = 0L,
+    /** Small things moving over a picture drawn once and kept (null: none). See [MovingParts]. */
+    val movingParts: MovingParts? = null,
 ) {
     /** A shader written in your code. */
     @JvmOverloads
@@ -158,13 +164,14 @@ class WallpaperShader private constructor(
                 "\"$name\" cannot be a shader value's name (letters, digits and _, not one of Caulis's own: ${RESERVED.joinToString()})"
             }
         }
+        require(seed >= 0) { "a wallpaper shader's seed is 0 or more, not $seed" }
         require(resolution in 0.1f..1f) { "a wallpaper shader's resolution is 0.1 to 1, not $resolution" }
         require(values.values.all { it.isFinite() }) { "a shader value is a number, not ${values.values.firstOrNull { !it.isFinite() }}" }
     }
 
     /**
      * The same shader with other [colors], [values], [fallback], [framesPerSecond] or
-     * [resolution] or [movingArea] (the file, if any, is still followed: a saved change shows at once).
+     * [resolution] or [movingArea] or [seed] or [movingParts] (the file, if any, is still followed: a saved change shows at once).
      */
     @JvmOverloads
     fun with(
@@ -174,7 +181,12 @@ class WallpaperShader private constructor(
         framesPerSecond: Int = this.framesPerSecond,
         resolution: Float = this.resolution,
         movingArea: MovingArea? = this.movingArea,
-    ): WallpaperShader = WallpaperShader(inline, file, image, framesPerSecond, colors.toList(), LinkedHashMap(values), fallback, resolution, movingArea)
+        seed: Long = this.seed,
+        movingParts: MovingParts? = this.movingParts,
+    ): WallpaperShader = WallpaperShader(inline, file, image, framesPerSecond, colors.toList(), LinkedHashMap(values), fallback, resolution, movingArea, seed, movingParts)
+
+    /** [seed] as the code reads it: 0..1, and two seeds near each other far apart. */
+    val seedValue: Float get() = ((seed * 2654435761L) and 0xFFFFFFL).toFloat() / 0x1000000
 
     /** The GLSL code with the `wallpaper` function (and any helpers it needs); a file's as it is now. */
     val code: String get() = inline ?: file!!.text
@@ -216,7 +228,7 @@ class WallpaperShader private constructor(
 
     // The same code, picture and settings is the same shader (compiled once, a mistake said once).
     override fun equals(other: Any?) = other is WallpaperShader && other.code == code && other.image == image && other.framesPerSecond == framesPerSecond &&
-        other.colors == colors && other.values == values && other.fallback == fallback && other.resolution == resolution && other.movingArea == movingArea
+        other.colors == colors && other.values == values && other.fallback == fallback && other.resolution == resolution && other.movingArea == movingArea && other.seed == seed && other.movingParts == movingParts
     override fun hashCode() = code.hashCode() * 31 + (image?.hashCode() ?: 0)
     override fun toString() = "WallpaperShader(${code.length} characters${image?.let { ", $it" } ?: ""})"
 
@@ -247,7 +259,12 @@ class WallpaperShader private constructor(
         uniform bool movingDeclared;
         uniform bool movingWhole;
         uniform float movingSince;
-        """ + values.keys.joinToString("") { "uniform float $it;\n" } + """
+        uniform int movingPart;
+        uniform bool movingKept;
+        uniform vec4 movingBox;
+        uniform vec4 movingData;
+        uniform vec4 movingMore;
+        """ + (if (SEED_USED.containsMatchIn(code) && !SEED_DECLARED.containsMatchIn(code)) "uniform float seed;\n" else "") + values.keys.joinToString("") { "uniform float $it;\n" } + """
         out vec4 caulisColor;
         vec4 image(vec2 p) { return hasPicture ? texture(picture, p) : vec4(0.0); }
         vec2 unitsAt(vec2 p) { return monitor.xy + p * monitor.zw; }
@@ -273,12 +290,17 @@ class WallpaperShader private constructor(
             "time", "size", "pointer", "pointerPixels", "pointerVelocity", "clicks", "clickCount", "colors", "colorCount", "workspace", "alpha",
             "picture", "hasPicture", "monitor", "desktop", "scale", "physicalSize", "desktopPointer", "view", "uv", "image", "unitsAt", "desktopAt",
             "viewAt", "wallpaper", "main", "movingArea", "movingDeclared", "movingWhole", "movingSince", "movingFade",
+            "movingPart", "movingKept", "movingBox", "movingData", "movingMore", "seed",
         )
         private val NAME = Regex("[A-Za-z_][A-Za-z0-9_]*")
         private val TIME = Regex("""\btime\b""")
         private val POINTER = Regex("""\b(pointer|pointerPixels|pointerVelocity|clicks|clickCount|desktopPointer)\b""")
         private val PLACE = Regex("""\b(monitor|desktop|unitsAt|desktopAt)\b""")
         private val WORKSPACE = Regex("""\bworkspace\b""")
+
+        // (A shader of before with a seed of its own keeps it: Caulis's is only there for those that use the word and do not declare it.)
+        private val SEED_USED = Regex("""\bseed\b""")
+        private val SEED_DECLARED = Regex("""\b(float|int|uint|vec[234])\s+seed\b""")
 
         /**
          * A shader from a file (e.g. next to your configuration): read again whenever you

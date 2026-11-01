@@ -664,6 +664,31 @@ background = Background.shader(
 )
 ```
 
+**Many small things moving over a still picture.** `movingParts` costs far less than a moving
+area: the picture is drawn once and kept, and the shader is run only over each part's own few
+pixels, blended over the kept picture, with `int movingPart` saying which (-1: the kept picture),
+`vec4 movingBox` where it is and `vec4 movingData`, `movingMore` its numbers. It returns the part
+alone, premultiplied (alpha 0 with a colour adds light), and nothing needs erasing. A part that is
+the same as in the last frame costs nothing, not even a pixel of the screen. `kept = true`: the
+shader draws that part only once, into a small picture (`at` 0..1 over it, `movingKept` true), and
+after that only that picture is moved and faded, between pixels too: a planet, a big soft cloud
+(`keptScale = 0.25`). Say what moves with a `MovingParts` of your own (`at(seconds, aspect)` gives
+the list), or, from a file of settings, places that stay: `movingParts` with `movingPartsFps` and
+`movingPartsEvery` (one part in so many changes per frame, so each frame redraws less).
+
+```kotlin
+val stars = object : MovingParts {
+    override val framesPerSecond = 12
+    override fun at(seconds: Double, aspect: Double) = listOf(MovingPart(0, 0.4, 0.3, 0.01, 0.01 * aspect, data = floatArrayOf(seconds.toFloat())))
+    override fun equals(other: Any?) = other === this
+}
+background = Background.shader(WallpaperShader.file(file("sky.glsl")).with(movingParts = stars))
+```
+
+**Another picture each time.** `float seed`, 0..1, in a shader's code comes from
+`.with(seed = 42)`, or config.json's `"seed": 42` or `"seed": "random"` (another for each run of the
+compositor; reading the configuration again keeps it).
+
 **Wallpapers that answer the mouse and match your look.** Besides `pointer`, a shader can read
 `pointerPixels` (the pointer in pixels), `pointerVelocity` (how fast it moves, in `at` units a
 second, smoothed — a trail, a wake), the last four presses `clicks[0..3]` (x, y as `at`, the

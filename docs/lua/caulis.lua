@@ -834,6 +834,10 @@
 ---@field movingKeptSeconds? number with a movingArea: how long the kept picture stays while nothing draws it (600; drawing it again costs one full frame)
 ---@field movingSettleSeconds? number with a movingArea: how long a new size stands still before the picture is drawn again at it (0.3)
 ---@field movingMaxKeptSize? number with a movingArea: the kept picture's most, times the monitor's pixels each way (2; 4 bytes a pixel)
+---@field movingParts? ((number)[])[] small things moving over a picture drawn once and kept: a list of [x, y, width, height], 0..1; each is drawn alone, blended over it, with movingPart its number and movingData.x its time; nothing else is worked out anew
+---@field movingPartsFps? integer with movingParts: frames a second (10)
+---@field movingPartsEvery? integer with movingParts: one part in so many changes per frame (1: all), so that a frame redraws less
+---@field seed? "random"|integer what makes one picture of the shader differ from another (float seed in its code, 0..1): a number, or "random": another each time the compositor starts
 ---@field fpsLimit? integer the most frames a second for any wallpaper shader (0: as each asks)
 ---@field paused? boolean wallpaper shaders stand still
 ---@field changeMillis? integer how long one background melts into the next

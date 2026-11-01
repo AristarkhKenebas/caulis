@@ -37,6 +37,24 @@ class ConfigFileTest {
     }
 
     @Test
+    fun `a wallpaper shader's seed and moving parts in config_json`() {
+        val read = ConfigFile.read(
+            """{ "background": { "shader": "aurora", "seed": 7, "movingParts": [[0.1, 0.1, 0.01, 0.01], [0.5, 0.5, 0.01, 0.01]], "movingPartsFps": 12, "movingPartsEvery": 2 } }""",
+        )
+        assertEquals(emptyList(), read.problems)
+        @Suppress("UNCHECKED_CAST")
+        val shader = (SettingsApplyLooks.background(Caulis(), read.values["background"] as Map<String, Any?>) as dev.caulis.core.Background.Shader).shader
+        assertEquals(7L, shader.seed)
+        assertEquals(12, shader.movingParts!!.framesPerSecond)
+        assertEquals(2, shader.movingParts!!.at(0.0, 1.0).size)
+        val random = ConfigFile.read("""{ "background": { "shader": "aurora", "seed": "random" } }""")
+        assertEquals(emptyList(), random.problems)
+        @Suppress("UNCHECKED_CAST")
+        val rolled = (SettingsApplyLooks.background(Caulis(), random.values["background"] as Map<String, Any?>) as dev.caulis.core.Background.Shader).shader
+        assertTrue(rolled.seed > 0)
+    }
+
+    @Test
     fun `a wallpaper shader's kept picture is said in config_json`() {
         val read = ConfigFile.read(
             """{ "background": { "shader": "aurora", "movingArea": [0.1, 0.1, 0.5, 0.5], "movingKeptSeconds": 30, "movingSettleSeconds": 1.5, "movingMaxKeptSize": 3 } }""",

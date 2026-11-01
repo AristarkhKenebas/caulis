@@ -132,8 +132,20 @@ interface Renderer : AutoCloseable {
         texture: GpuTexture? = null, part: FloatArray = floatArrayOf(0f, 0f, 1f, 1f),
     ): Boolean = false
 
+    /**
+     * The same as [drawShaded] for many small [parts] of one picture, blended over what is there:
+     * the shader and its [floats] and [ints] set once, then each part's own. Much less work than
+     * as many [drawShaded]s. Returns false (drawing nothing) if it does not compile, or if this renderer cannot.
+     */
+    fun drawShadedParts(
+        fragment: String, floats: Map<String, FloatArray>, ints: Map<String, Int>, parts: List<ShadedPart>, texture: GpuTexture? = null,
+    ): Boolean = false
+
     /** From now on, draws only inside [clip] (pixels; null: everywhere) — for a frame redrawn in parts. */
     fun setClip(clip: Rect?) {}
+
+    /** Where drawing goes now ([setClip]); null: everywhere, or this renderer does not say. */
+    val clipNow: Rect? get() = null
 
     /** Fills the rectangle with a colour. */
     fun drawColor(x: Int, y: Int, width: Int, height: Int, red: Float, green: Float, blue: Float, alpha: Float = 1f)
@@ -289,3 +301,9 @@ data class BlurTone @JvmOverloads constructor(
         @JvmField val HYPRLAND = BlurTone(noise = 0.0117f, contrast = 0.8916f, brightness = 0.8172f, vibrancy = 0.1696f)
     }
 }
+
+/**
+ * One small part of a picture for [Renderer.drawShadedParts]: [rect] in the target's pixels,
+ * [source] the part of the shader's `uv` it shows (x, y, width, height), and its own values.
+ */
+class ShadedPart(val rect: Rect, val source: FloatArray, val floats: Map<String, FloatArray>, val ints: Map<String, Int>)

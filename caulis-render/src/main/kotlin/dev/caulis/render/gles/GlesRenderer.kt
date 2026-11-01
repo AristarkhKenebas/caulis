@@ -345,27 +345,41 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         }
     }
 
-    private fun shaded(
-        x: Int, y: Int, width: Int, height: Int, fragment: String,
-        floats: Map<String, FloatArray>, ints: Map<String, Int>, texture: GpuTexture?, part: FloatArray?,
+    override fun drawShadedParts(
+        fragment: String, floats: Map<String, FloatArray>, ints: Map<String, Int>, parts: List<dev.caulis.render.ShadedPart>, texture: GpuTexture?,
     ): Boolean {
-        val program = shaded.compiledOnce(fragment) {
-            try {
-                Program(Shaders.VERTEX, fragment)
-            } catch (e: IllegalStateException) {
-                effectProblems[fragment] = e.message ?: "$e"
-                null
-            }
-        } ?: return false
+        val program = shadedProgram(fragment) ?: return false
         program.use()
-        setRect(program, x, y, width, height)
-        if (part != null) Gles.glUniform4f(program.uniform("source"), part[0], part[1], part[2], part[3]) else Gles.glUniform4f(program.uniform("source"), 0f, 0f, 1f, 1f)
         if (texture != null) {
             texture as? GlTexture ?: throw notOurs(texture)
             Gles.glActiveTexture(Gles.GL_TEXTURE0())
             Gles.glBindTexture(Gles.GL_TEXTURE_2D(), texture.id)
             Gles.glUniform1i(program.uniform("picture"), 0)
         }
+        setValues(program, floats, ints)
+        for (part in parts) {
+            setRect(program, part.rect.x, part.rect.y, part.rect.width, part.rect.height)
+            val source = part.source
+            Gles.glUniform4f(program.uniform("source"), source[0], source[1], source[2], source[3])
+            setValues(program, part.floats, part.ints)
+            Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
+        }
+        Gl.drain("a shader of yours")
+        return true
+    }
+
+    override val clipNow: Rect? get() = clip
+
+    private fun shadedProgram(fragment: String): Program? = shaded.compiledOnce(fragment) {
+        try {
+            Program(Shaders.VERTEX, fragment)
+        } catch (e: IllegalStateException) {
+            effectProblems[fragment] = e.message ?: "$e"
+            null
+        }
+    }
+
+    private fun setValues(program: Program, floats: Map<String, FloatArray>, ints: Map<String, Int>) {
         for ((name, value) in floats) {
             val at = program.uniform(name)
             when (value.size) {
@@ -376,6 +390,23 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
             }
         }
         for ((name, value) in ints) Gles.glUniform1i(program.uniform(name), value)
+    }
+
+    private fun shaded(
+        x: Int, y: Int, width: Int, height: Int, fragment: String,
+        floats: Map<String, FloatArray>, ints: Map<String, Int>, texture: GpuTexture?, part: FloatArray?,
+    ): Boolean {
+        val program = shadedProgram(fragment) ?: return false
+        program.use()
+        setRect(program, x, y, width, height)
+        if (part != null) Gles.glUniform4f(program.uniform("source"), part[0], part[1], part[2], part[3]) else Gles.glUniform4f(program.uniform("source"), 0f, 0f, 1f, 1f)
+        if (texture != null) {
+            texture as? GlTexture ?: throw notOurs(texture)
+            Gles.glActiveTexture(Gles.GL_TEXTURE0())
+            Gles.glBindTexture(Gles.GL_TEXTURE_2D(), texture.id)
+            Gles.glUniform1i(program.uniform("picture"), 0)
+        }
+        setValues(program, floats, ints)
         Gles.glDrawArrays(Gles.GL_TRIANGLE_STRIP(), 0, 4)
         Gl.drain("a shader of yours")
         return true

@@ -9,6 +9,7 @@ import dev.caulis.core.NoticeStyle
 import dev.caulis.core.Paints
 import dev.caulis.core.Shadow
 import dev.caulis.core.TitleBars
+import dev.caulis.core.FixedMovingParts
 import dev.caulis.core.MovingArea
 import dev.caulis.core.WallpaperShader
 import dev.caulis.core.WindowAnimation
@@ -183,6 +184,9 @@ internal object SettingsApplyLooks {
         else -> Paint.solid(Color(1f, 1f, 1f))
     }
 
+    // seed = "random": one for this run (a configuration read again keeps the picture).
+    private val randomSeed = java.util.concurrent.ThreadLocalRandom.current().nextLong(1L, Int.MAX_VALUE.toLong())
+
     @Suppress("UNCHECKED_CAST")
     internal fun background(caulis: Caulis, b: Map<String, Any?>): Background? {
         (b["shader"] as String?)?.let { name ->
@@ -198,6 +202,14 @@ internal object SettingsApplyLooks {
                     movingArea = (b["movingArea"] as List<Double>?)?.let { a ->
                         val burst = b["movingBurst"] as List<Double>?
                         MovingArea(a[0], a[1], a[2], a[3], b["movingRestFps"] as Int? ?: 0, burst?.get(0) ?: 0.0, burst?.get(1) ?: 0.0, (b["movingQuietArea"] as List<Double>?)?.let { q -> MovingArea(q[0], q[1], q[2], q[3]) }, b["movingKeptSeconds"] as Double? ?: 600.0, b["movingSettleSeconds"] as Double? ?: 0.3, b["movingMaxKeptSize"] as Double? ?: 2.0)
+                    },
+                    seed = when (val seed = b["seed"]) {
+                        "random" -> randomSeed
+                        is Int -> seed.toLong()
+                        else -> 0L
+                    },
+                    movingParts = (b["movingParts"] as List<List<Double>>?)?.let { areas ->
+                        FixedMovingParts(areas, b["movingPartsFps"] as Int? ?: 10, b["movingPartsEvery"] as Int? ?: 1, b["movingKeptSeconds"] as Double? ?: 600.0, b["movingSettleSeconds"] as Double? ?: 0.3, b["movingMaxKeptSize"] as Double? ?: 2.0)
                     },
                 ),
             )
