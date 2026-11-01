@@ -84,5 +84,6 @@ enum class NoticeAction {
 internal fun curveAt(curve: Curve, t: Double): Double = try {
     curve.at(t)
 } catch (e: Exception) {
+    dev.caulis.log.Logger("notices").warn("Your curve of the notices failed (a straight line instead): $e")
     t
 }

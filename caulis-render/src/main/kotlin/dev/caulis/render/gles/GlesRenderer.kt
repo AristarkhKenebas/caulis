@@ -134,6 +134,7 @@ class GlesRenderer private constructor(private val egl: EglContext) : Renderer {
         return try {
             images.texture(image, buffer.width, buffer.height)
         } catch (e: Exception) {
+            importLog.info { "A program's GPU buffer of ${buffer.width}x${buffer.height} cannot be read by the GPU: $e" }
             images.destroyImage(image) // the GPU cannot read it after all: not importable
             null
         }
@@ -574,3 +575,5 @@ private val YUV_FORMATS = setOf(
 private val COLOR_UNIFORMS = Array(16) { "colors[$it]" }
 
 private fun colorUniform(i: Int): String = COLOR_UNIFORMS.getOrNull(i) ?: "colors[$i]"
+
+private val importLog = dev.caulis.log.Logger("render")

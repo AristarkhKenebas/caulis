@@ -223,7 +223,7 @@ internal class Launcher(
         Thread.ofVirtual().name("caulis-output-$program").start {
             runCatching {
                 process.inputStream.bufferedReader().useLines { lines -> lines.forEach { line -> log.info { "$program: $line" } } }
-            }
+            }.onFailure { log.trace { "$program's output ended: $it" } }
         }
     }
 

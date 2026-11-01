@@ -293,7 +293,8 @@ internal class RevealCurtain(
         val curved = try {
             settings.curve.at(t)
         } catch (e: Exception) {
-            t // (a curve of your own that failed: straight)
+            log.warn("reveal: your curve failed (a straight line instead): $e")
+            t
         }
         return (1.0 - curved).coerceIn(0.0, 1.0).toFloat()
     }

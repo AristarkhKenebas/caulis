@@ -496,6 +496,7 @@ fun readClipboard(data: ClipboardData, mimeType: String, maxBytes: Int = 32 shl 
         // program, ours the compositor's own data writes on a thread of its own.)
         data.send(mimeType, writeEnd)
     } catch (e: Exception) {
+        clipboardLog.info { "The clipboard's holder could not send $mimeType: $e" }
         readEnd.close()
         runCatching { writeEnd.close() }
         // (On a thread too, as when it is read: [done] is never run on the caller's thread.)

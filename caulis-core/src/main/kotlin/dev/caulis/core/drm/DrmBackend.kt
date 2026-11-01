@@ -439,6 +439,7 @@ class DrmBackend private constructor(
                     val device = try {
                         DrmDevice(loop, session, card)
                     } catch (e: Exception) {
+                        dev.caulis.log.Logger("drm").warn("The GPU $card cannot be opened (the next is tried): $e")
                         lastError = e
                         continue
                     }
@@ -468,6 +469,7 @@ class DrmBackend private constructor(
                             throw e
                         }
                     } catch (e: Exception) {
+                        dev.caulis.log.Logger("drm").warn("The GPU $card cannot be drawn on (the next is tried): $e")
                         device.close()
                         lastError = e
                     }
@@ -487,6 +489,7 @@ class DrmBackend private constructor(
                 return Device.open(card).also { log.info { "Drawing on a descriptor of its own ($card)" } }
             } catch (e: Exception) {
                 // (No rights to the card node itself: seatd without the video group.)
+                log.info { "No descriptor of its own for $card ($e): its render node instead" }
             }
             val renderNode = CStrings.takeOwned(Drm.drmGetRenderDeviceNameFromFd(device.fd))
             if (renderNode != null) {

@@ -72,7 +72,7 @@ internal class RunningReload(private val running: Running) {
         } catch (e: Throwable) {
             e.rethrowIfFatal()
             running.log.warn("Taking on ${path.fileName} failed, back to the one before: $e")
-            runCatching { reconfigure(before) }
+            runCatching { reconfigure(before) }.onFailure { running.log.error("Going back to the configuration before failed too: $it", it) }
             running.desktop.notify("$e", NoticeLevel.WARNING, "Your configuration failed — the one before keeps running")
             return
         }

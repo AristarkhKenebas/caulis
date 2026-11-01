@@ -546,7 +546,7 @@ internal class Running(
         // The configuration's window and focus listeners end here: windows that go away now (their
         // programs cut off as everything is taken down) are not "closed" by anyone — a handler
         // would find no desktop to act on.
-        configListeners.forEach { runCatching { it.close() } }
+        configListeners.forEach { runCatching { it.close() }.onFailure { e -> log.warn("Ending a listener of the configuration failed: $e") } }
         configListeners.clear()
         javaUpdates?.close()
         // (No program of autostart is started again while they are being stopped.)
@@ -554,7 +554,7 @@ internal class Running(
         if (config.stopProgramsOnQuit) safely("stopping the programs") { launcher.stopAll() }
         isOpen = false
         if (config.running === this) config.running = null
-        sessionResources.toList().forEach { runCatching { it.close() } }
+        sessionResources.toList().forEach { runCatching { it.close() }.onFailure { e -> log.warn("Closing $it at the end failed: $e") } }
         sessionResources.clear()
         sessionScopes.values.forEach { it.close() }
         rlooks.colorSchemeTimer?.cancel()

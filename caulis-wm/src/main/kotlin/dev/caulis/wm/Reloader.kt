@@ -235,7 +235,7 @@ internal class Reloader private constructor(
             running.rreload.reconfigure(next)
         } catch (e: Exception) {
             log.warn("Taking on the new configuration failed, back to the one before: $e")
-            runCatching { running.rreload.reconfigure(before) }
+            runCatching { running.rreload.reconfigure(before) }.onFailure { log.error("Going back to the configuration before failed too: $it", it) }
             notify("$e", "Your configuration failed — the one before keeps running")
             return
         }
