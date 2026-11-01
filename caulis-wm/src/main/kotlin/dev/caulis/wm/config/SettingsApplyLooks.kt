@@ -197,7 +197,7 @@ internal object SettingsApplyLooks {
                     resolution = (b["resolution"] as Double?)?.toFloat() ?: 1f,
                     movingArea = (b["movingArea"] as List<Double>?)?.let { a ->
                         val burst = b["movingBurst"] as List<Double>?
-                        MovingArea(a[0], a[1], a[2], a[3], b["movingRestFps"] as Int? ?: 0, burst?.get(0) ?: 0.0, burst?.get(1) ?: 0.0, (b["movingQuietArea"] as List<Double>?)?.let { q -> MovingArea(q[0], q[1], q[2], q[3]) })
+                        MovingArea(a[0], a[1], a[2], a[3], b["movingRestFps"] as Int? ?: 0, burst?.get(0) ?: 0.0, burst?.get(1) ?: 0.0, (b["movingQuietArea"] as List<Double>?)?.let { q -> MovingArea(q[0], q[1], q[2], q[3]) }, b["movingKeptSeconds"] as Double? ?: 600.0, b["movingSettleSeconds"] as Double? ?: 0.3, b["movingMaxKeptSize"] as Double? ?: 2.0)
                     },
                 ),
             )

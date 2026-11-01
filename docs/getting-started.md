@@ -654,6 +654,9 @@ on `time` or the pointer: multiply what moves by `movingFade(at, width)`, which 
 the part and exactly 0 at its edge. A pixel that did not change since the last drawing
 (`movingSince`) can be left out with `discard` unless `movingWhole` is set. `restFps` is the pace
 while the pointer rests; `burstEvery`, `burstFor` give full pace for a moment (a blink).
+`keptSeconds` (600) is how long the kept picture stays while nothing draws it, `settleSeconds`
+(0.3) how long a new size stands still before it is drawn again, `maxKeptSize` (2) its most,
+times the monitor's pixels each way (4 bytes a pixel; further in, it is stretched).
 
 ```kotlin
 background = Background.shader(

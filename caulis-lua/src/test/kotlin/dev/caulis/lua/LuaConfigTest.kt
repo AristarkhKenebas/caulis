@@ -29,6 +29,20 @@ class LuaConfigTest {
     }
 
     @Test
+    fun `a wallpaper shader's kept picture is said in config_lua`() {
+        val (caulis, problems) = apply(
+            """
+            caulis.settings {
+              background = { shader = "aurora", movingArea = { 0.1, 0.1, 0.5, 0.5 }, movingKeptSeconds = 30, movingSettleSeconds = 1.5, movingMaxKeptSize = 3 },
+            }
+            """,
+        )
+        assertEquals(emptyList(), problems)
+        val area = (caulis.background as dev.caulis.core.Background.Shader).shader.movingArea!!
+        assertEquals(listOf(30.0, 1.5, 3.0), listOf(area.keptSeconds, area.settleSeconds, area.maxKeptSize))
+    }
+
+    @Test
     fun `settings, keys and rules`() {
         val (caulis, problems) = apply(
             """

@@ -15,6 +15,9 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+### Added
+- `MovingArea(keptSeconds, settleSeconds, maxKeptSize)`: how long a wallpaper shader's kept picture stays while nothing draws it (600 s), how long a new size stands still before it is drawn again (0.3 s), and its most, times the monitor's pixels each way (2). JSON/Lua: `background.movingKeptSeconds`, `movingSettleSeconds`, `movingMaxKeptSize`. They were fixed numbers.
+
 ### Changed
 - A wallpaper shader's kept picture stays ten minutes unseen instead of 30 seconds: drawing it again stalled the next animation.
 

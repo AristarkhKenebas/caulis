@@ -333,6 +333,13 @@ class WallpaperShader private constructor(
  * seconds (a blink, 0: never). [quietArea], inside this one, is all that changes outside bursts
  * (the eye without its lids): then only that is drawn anew; a burst, and a frame or two after it,
  * draws all of this one.
+ *
+ * What is kept costs GPU memory, so these three say how much and how long: [keptSeconds], how long
+ * a kept picture nothing draws (a fullscreen window over it, another wallpaper) stays, at least a
+ * second; drawing it again costs one full frame. [settleSeconds], how long a new size
+ * must stand still before the picture is drawn again at it (a zooming view stretches the old one
+ * meanwhile). [maxKeptSize], the most it is of the monitor's pixels each way (a view zoomed in
+ * further stretches it): 4 bytes a pixel.
  */
 data class MovingArea @JvmOverloads constructor(
     val x: Double,
@@ -343,11 +350,17 @@ data class MovingArea @JvmOverloads constructor(
     val burstEvery: Double = 0.0,
     val burstFor: Double = 0.0,
     val quietArea: MovingArea? = null,
+    val keptSeconds: Double = 600.0,
+    val settleSeconds: Double = 0.3,
+    val maxKeptSize: Double = 2.0,
 ) {
     init {
         require(x >= 0 && y >= 0 && width > 0 && height > 0 && x + width <= 1 + 1e-9 && y + height <= 1 + 1e-9) { "a moving area lies inside the picture (0..1): $x, $y, $width x $height" }
         require(restFps in 0..240) { "a moving area's restFps is 0 to 240, not $restFps" }
         require(burstEvery.isFinite() && burstFor.isFinite() && burstEvery >= 0 && burstFor >= 0) { "a moving area's bursts are in seconds, 0 or more" }
+        require(keptSeconds.isFinite() && keptSeconds >= 1) { "a moving area's keptSeconds is 1 or more, not $keptSeconds" }
+        require(settleSeconds.isFinite() && settleSeconds >= 0) { "a moving area's settleSeconds is 0 or more, not $settleSeconds" }
+        require(maxKeptSize in 0.25..8.0) { "a moving area's maxKeptSize is 0.25 to 8, not $maxKeptSize" }
     }
 }
 

@@ -19,7 +19,7 @@ import kotlin.math.floor
 internal class BakedWallpapers(private val loop: EventLoop, private val changed: () -> Unit) {
     private val log = Logger("render")
 
-    private class Entry(val target: GpuTarget) {
+    private class Entry(val target: GpuTarget, var keptNanos: Long) {
         /** What the kept picture was drawn for (null: it needs drawing). */
         var look: Any? = null
 
@@ -67,13 +67,14 @@ internal class BakedWallpapers(private val loop: EventLoop, private val changed:
     private var settle: EventLoop.Timer? = null
 
     /**
-     * True if [rect]'s size has stood still for a moment (or is new): a kept picture of another
-     * size is drawn again only then. A view zooming stretches the one kept meanwhile.
+     * True if [rect]'s size has stood still for [settleSeconds] (or is new): a kept picture of
+     * another size is drawn again only then. A view zooming stretches the one kept meanwhile.
      */
-    fun settled(key: Any, rect: Rect, now: Long): Boolean {
+    fun settled(key: Any, rect: Rect, now: Long, settleSeconds: Double): Boolean {
+        val settleNanos = (settleSeconds * 1e9).toLong()
         val seen = sizes[key]
         if (seen == null) {
-            sizes[key] = Seen(rect.width, rect.height, now - SETTLE_NANOS)
+            sizes[key] = Seen(rect.width, rect.height, now - settleNanos)
             return true
         }
         if (seen.width != rect.width || seen.height != rect.height) {
@@ -81,9 +82,9 @@ internal class BakedWallpapers(private val loop: EventLoop, private val changed:
             seen.height = rect.height
             seen.since = now
         }
-        if (now - seen.since >= SETTLE_NANOS) return true
+        if (now - seen.since >= settleNanos) return true
         if (settle == null) {
-            settle = loop.after(SETTLE_NANOS / 1_000_000 + 1) {
+            settle = loop.after(settleNanos / 1_000_000 + 1) {
                 settle = null
                 changed()
             }
@@ -125,7 +126,7 @@ internal class BakedWallpapers(private val loop: EventLoop, private val changed:
      * False: it does not compile.
      */
     fun draw(
-        key: Any, r: Rect, area: MovingArea, shown: FloatArray?, resolution: Float, maxWidth: Int, maxHeight: Int, look: Any?, settled: Boolean, changing: Any?, seconds: Float, burstOver: Boolean,
+        key: Any, r: Rect, area: MovingArea, keptSeconds: Double, shown: FloatArray?, resolution: Float, maxWidth: Int, maxHeight: Int, look: Any?, settled: Boolean, changing: Any?, seconds: Float, burstOver: Boolean,
         source: String, moving: Map<String, FloatArray>, still: Map<String, FloatArray>, ints: Map<String, Int>, stillInts: Map<String, Int>,
         picture: GpuTexture?, alpha: Float, renderer: Renderer,
     ): Boolean {
@@ -138,7 +139,9 @@ internal class BakedWallpapers(private val loop: EventLoop, private val changed:
             entries -= key
             entry = null
         }
-        if (entry == null) entry = Entry(renderer.createTarget(width, height)).also { entries[key] = it }
+        val keptNanos = (keptSeconds * 1e9).toLong()
+        if (entry == null) entry = Entry(renderer.createTarget(width, height), keptNanos).also { entries[key] = it }
+        entry.keptNanos = keptNanos
         entry.used = System.nanoTime()
         val texture = entry.target.texture ?: return false
         var whole = false
@@ -200,7 +203,7 @@ internal class BakedWallpapers(private val loop: EventLoop, private val changed:
     fun letGo(now: Long) {
         if (entries.isEmpty()) return
         entries.entries.removeIf { (key, entry) ->
-            (now - entry.used > KEPT_NANOS).also {
+            (now - entry.used > entry.keptNanos).also {
                 if (it) {
                     entry.target.close()
                     sizes -= key
@@ -221,12 +224,6 @@ internal class BakedWallpapers(private val loop: EventLoop, private val changed:
 
     private companion object {
         val NOTHING = Any()
-
-        // How long a size must stand still before the picture is drawn again at it.
-        const val SETTLE_NANOS = 300_000_000L
-
-        // How long a kept picture stays while nothing draws it (drawing it again costs one full frame).
-        const val KEPT_NANOS = 600_000_000_000L
 
         const val MAX_PIECES = 32
     }

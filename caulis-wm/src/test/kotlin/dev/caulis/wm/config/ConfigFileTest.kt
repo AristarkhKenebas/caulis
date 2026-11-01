@@ -37,6 +37,21 @@ class ConfigFileTest {
     }
 
     @Test
+    fun `a wallpaper shader's kept picture is said in config_json`() {
+        val read = ConfigFile.read(
+            """{ "background": { "shader": "aurora", "movingArea": [0.1, 0.1, 0.5, 0.5], "movingKeptSeconds": 30, "movingSettleSeconds": 1.5, "movingMaxKeptSize": 3 } }""",
+        )
+        assertEquals(emptyList(), read.problems)
+        @Suppress("UNCHECKED_CAST")
+        val background = SettingsApplyLooks.background(Caulis(), read.values["background"] as Map<String, Any?>) as dev.caulis.core.Background.Shader
+        val area = background.shader.movingArea!!
+        assertEquals(30.0, area.keptSeconds)
+        assertEquals(1.5, area.settleSeconds)
+        assertEquals(3.0, area.maxKeptSize)
+        assertEquals(1, problems("""{ "background": { "movingKeptSeconds": 0 } }""").size, "at least a second")
+    }
+
+    @Test
     fun `a wrong name gets a guess and its line, the rest still applies`() {
         val read = ConfigFile.read("{\n  \"scale\": 1.5,\n  \"terminl\": \"foot\"\n}")
         val problem = read.problems.single()

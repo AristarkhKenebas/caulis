@@ -831,6 +831,9 @@
 ---@field movingQuietArea? (number)[] with a movingArea: all that changes outside bursts, [x, y, width, height]
 ---@field movingRestFps? integer with a movingArea: frames a second while the pointer rests and no burst goes on (0: framesPerSecond)
 ---@field movingBurst? (number)[] with a movingArea: [every, for], seconds of the shader's time at full pace (a blink)
+---@field movingKeptSeconds? number with a movingArea: how long the kept picture stays while nothing draws it (600; drawing it again costs one full frame)
+---@field movingSettleSeconds? number with a movingArea: how long a new size stands still before the picture is drawn again at it (0.3)
+---@field movingMaxKeptSize? number with a movingArea: the kept picture's most, times the monitor's pixels each way (2; 4 bytes a pixel)
 ---@field fpsLimit? integer the most frames a second for any wallpaper shader (0: as each asks)
 ---@field paused? boolean wallpaper shaders stand still
 ---@field changeMillis? integer how long one background melts into the next

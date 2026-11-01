@@ -4536,6 +4536,24 @@
           "maxItems": 2,
           "description": "with a movingArea: [every, for], seconds of the shader's time at full pace (a blink)"
         },
+        "movingKeptSeconds": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 1000000,
+          "description": "with a movingArea: how long the kept picture stays while nothing draws it (600; drawing it again costs one full frame)"
+        },
+        "movingSettleSeconds": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 60,
+          "description": "with a movingArea: how long a new size stands still before the picture is drawn again at it (0.3)"
+        },
+        "movingMaxKeptSize": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 8,
+          "description": "with a movingArea: the kept picture's most, times the monitor's pixels each way (2; 4 bytes a pixel)"
+        },
         "fpsLimit": {
           "type": "integer",
           "minimum": 0,

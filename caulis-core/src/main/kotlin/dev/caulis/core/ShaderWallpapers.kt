@@ -187,7 +187,7 @@ internal class ShaderWallpapers(
             val movingRect = rect.partAt(partNow).intersect(monitor.area)
             val seen = movingRect != null && !baked.isHidden(key)
             val changing = baked.changing(key, seen, listOf(frame, pointerLook))
-            val settled = baked.settled(key, rect, now)
+            val settled = baked.settled(key, rect, now, moving.settleSeconds)
             // What the kept picture depends on (where it is only if it reads that).
             val stillLook = listOf(
                 look, source, picture, viewPart.toList(), shader.resolution, if (shader.usesWorkspace) workspace else null,
@@ -199,10 +199,10 @@ internal class ShaderWallpapers(
                 val still = floats(r, seconds, NOWHERE, NOWHERE, floatArrayOf(0f, 0f), workspace, rect, desktop, monitor, physical, NOWHERE, viewPart, emptyList(), shader)
                 val ints = mapOf("hasPicture" to if (picture != null) 1 else 0, "clickCount" to clickList.size, "colorCount" to shader.colors.size, "movingDeclared" to 1)
                 val area = floatArrayOf(moving.x.toFloat(), moving.y.toFloat(), moving.width.toFloat(), moving.height.toFloat())
-                val pixelWide = Math.round(monitor.pixelWidth * MAX_KEPT_SIZE).toInt()
-                val pixelHigh = Math.round(monitor.pixelHeight * MAX_KEPT_SIZE).toInt()
+                val pixelWide = Math.round(monitor.pixelWidth * moving.maxKeptSize).toInt()
+                val pixelHigh = Math.round(monitor.pixelHeight * moving.maxKeptSize).toInt()
                 val drawn = baked.draw(
-                    key, r, partNow, shown, shader.resolution, pixelWide, pixelHigh, stillLook, settled, changing, seconds.toFloat(), baked.burstOver(moving, seconds), source,
+                    key, r, partNow, moving.keptSeconds, shown, shader.resolution, pixelWide, pixelHigh, stillLook, settled, changing, seconds.toFloat(), baked.burstOver(moving, seconds), source,
                     floats + ("alpha" to floatArrayOf(1f)) + ("movingArea" to area), still + ("alpha" to floatArrayOf(1f)) + ("movingArea" to area) + ("movingSince" to floatArrayOf(0f)),
                     ints, ints + ("clickCount" to 0), picture, alpha, renderer,
                 )
@@ -391,10 +391,6 @@ internal class ShaderWallpapers(
 
         private val NO_CLICK = floatArrayOf(-1f, -1f, -1000f, 0f)
         private val NOWHERE = floatArrayOf(-1f, -1f)
-
-        // A kept picture is at most this many times the monitor's pixels each way (a view zoomed
-        // in further stretches it: memory stays bounded, 4 bytes a pixel).
-        const val MAX_KEPT_SIZE = 2.0
 
         val USUAL_COLOR = (Background.USUAL as Background.Solid).color
     }

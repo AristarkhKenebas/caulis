@@ -174,6 +174,47 @@ class MovingAreaTest {
     }
 
     @Test
+    fun `how long and how big it is kept are settings`() {
+        val big = MovingArea(0.25, 0.25, 0.5, 0.5, maxKeptSize = 0.5)
+        withServer { server ->
+            server.onServer {
+                it.backgroundChangeMillis = 0
+                it.background = Background.shader(WallpaperShader(code).with(movingArea = big))
+            }
+            waitFor {
+                server.screenshot()
+                server.onServer { d -> d.wallpaperShaders.bakedBytes } == width / 2 * 4L * (height / 2)
+            }
+            // Kept a second: another background, and it goes.
+            server.onServer { it.background = Background.shader(WallpaperShader(code).with(movingArea = big.copy(keptSeconds = 1.0))) }
+            waitFor {
+                server.screenshot()
+                server.onServer { d -> d.wallpaperShaders.bakedBytes } > 0L
+            }
+            server.onServer { it.background = Background.color(Color.hex("#112233")) }
+            Thread.sleep(1200)
+            server.onServer { it.background = Background.color(Color.hex("#223344")) }
+            waitFor {
+                server.screenshot()
+                server.onServer { d -> d.wallpaperShaders.bakedBytes } == 0L
+            }
+        }
+        dev.caulis.event.EventLoop().use { loop ->
+            val baked = BakedWallpapers(loop) {}
+            val second = 1_000_000_000L
+            assertTrue(baked.settled("key", Rect(0, 0, 100, 100), 10 * second, 2.0), "a new one has nothing to wait for")
+            assertFalse(baked.settled("key", Rect(0, 0, 200, 100), 11 * second, 2.0), "another size: not yet")
+            assertFalse(baked.settled("key", Rect(0, 0, 200, 100), 12 * second, 2.0))
+            assertTrue(baked.settled("key", Rect(0, 0, 200, 100), 13 * second, 2.0), "two seconds later")
+            assertTrue(baked.settled("key", Rect(0, 0, 300, 100), 14 * second, 0.0), "no waiting at all")
+            baked.close()
+        }
+        assertTrue(runCatching { MovingArea(0.1, 0.1, 0.1, 0.1, keptSeconds = 0.0) }.isFailure)
+        assertTrue(runCatching { MovingArea(0.1, 0.1, 0.1, 0.1, settleSeconds = -1.0) }.isFailure)
+        assertTrue(runCatching { MovingArea(0.1, 0.1, 0.1, 0.1, maxKeptSize = 100.0) }.isFailure)
+    }
+
+    @Test
     fun `an area outside the picture is refused`() {
         assertTrue(runCatching { MovingArea(0.5, 0.5, 0.6, 0.1) }.isFailure)
         assertTrue(runCatching { MovingArea(0.1, 0.1, 0.0, 0.1) }.isFailure)
