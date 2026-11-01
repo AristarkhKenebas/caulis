@@ -93,7 +93,7 @@
   <div class="breadcrumbs"><a href="../../index.html">caulis-log</a><span class="delimiter">/</span><a href="../index.html">dev.caulis.log</a><span class="delimiter">/</span><span class="current">Log</span></div>
   <div class="cover ">
     <h1 class="cover"><span><span>Log</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-log/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="index.html">Log</a></div><p class="paragraph">Caulis's log. How much is written is a level, for everything or for single areas:</p><ul><li><p class="paragraph"><strong>0</strong>: nearly nothing (only what makes the compositor stop);</p></li><li><p class="paragraph"><strong>1</strong>: problems — errors and warnings (the default);</p></li><li><p class="paragraph"><strong>2</strong>: what happens — windows opening and closing, monitors, layouts, locking, ...;</p></li><li><p class="paragraph"><strong>3</strong>: everything, step by step — every Wayland message, every focus change, every key, every frame — to follow exactly what happened before something went wrong.</p></li></ul><p class="paragraph">Set it when starting, without changing code:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">CAULIS_LOG=2 ./my-compositor                       # level 2 for everything<br>CAULIS_LOG="1,focus=3,windows=3" ./my-compositor   # level 1, but focus and windows in detail<br>CAULIS_LOG=3 CAULIS_LOG_FILE=/tmp/caulis.log ./my-compositor</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><p class="paragraph">or in code (<code class="lang-kotlin">Log.level = 2</code>, <code class="lang-kotlin">Log.setLevel("focus", 3)</code>, <code class="lang-kotlin">Log.configure("1,wayland=3")</code>), also while running. The areas are listed in <a href="-a-r-e-a-s.html">AREAS</a>.</p><p class="paragraph">Messages of a level that is off cost nothing: their text is not even made.</p></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-log/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="index.html">Log</a></div><p class="paragraph">Caulis's log. How much is written is a level, for everything or for single areas:</p><ul><li><p class="paragraph"><strong>0</strong>: nearly nothing (only what makes the compositor stop);</p></li><li><p class="paragraph"><strong>1</strong>: problems — errors and warnings (the default);</p></li><li><p class="paragraph"><strong>2</strong>: what happens — windows opening and closing, monitors, layouts, locking, ...;</p></li><li><p class="paragraph"><strong>3</strong>: everything, step by step — every Wayland message, every focus change, every key, every frame — to follow exactly what happened before something went wrong.</p></li></ul><p class="paragraph">Set it when starting, without changing code:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">CAULIS_LOG=2 ./my-compositor                       # level 2 for everything<br>CAULIS_LOG="1,focus=3,windows=3" ./my-compositor   # level 1, but focus and windows in detail<br>CAULIS_LOG=3 CAULIS_LOG_FILE=/tmp/caulis.log ./my-compositor</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><p class="paragraph">or in code (<code class="lang-kotlin">Log.level = 2</code>, <code class="lang-kotlin">Log.setLevel("focus", 3)</code>, <code class="lang-kotlin">Log.configure("1,wayland=3")</code>), also while running. The areas are listed in <a href="-a-r-e-a-s.html">AREAS</a>.</p><p class="paragraph">A <a href="../-logger/trace.html">Logger.trace</a> of a level that is off costs nothing: its text is not even made. A <a href="../-logger/info.html">Logger.info</a> is kept in the black box (<a href="recent.html">recent</a>) even then, so it never goes on a path that runs for every frame or every message: there, <a href="../-logger/trace.html">Logger.trace</a> (or <a href="../-logger/tracing.html">Logger.tracing</a>).</p></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
@@ -179,6 +179,51 @@
               </div>
             </div>
           </div>
+<a data-name="-1404131856%2FProperties%2F-600525034" anchor-label="fileKeep" id="-1404131856%2FProperties%2F-600525034" data-filterable-set=":caulis-log/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-log/main" data-filterable-set=":caulis-log/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="file-keep.html"><span>file</span><wbr><span><span>Keep</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1404131856%2FProperties%2F-600525034"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-log/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-static/index.html"><span class="token annotation builtin">JvmStatic</span></a></div><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-volatile/index.html"><span class="token annotation builtin">Volatile</span></a></div></div><span class="token keyword">var </span><a href="file-keep.html">fileKeep</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">How many files moved aside by <a href="file-limit-bytes.html">fileLimitBytes</a> are kept; the oldest goes (0: none is).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1241355871%2FProperties%2F-600525034" anchor-label="fileLevel" id="-1241355871%2FProperties%2F-600525034" data-filterable-set=":caulis-log/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-log/main" data-filterable-set=":caulis-log/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="file-level.html"><span>file</span><wbr><span><span>Level</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1241355871%2FProperties%2F-600525034"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-log/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-static/index.html"><span class="token annotation builtin">JvmStatic</span></a></div><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-volatile/index.html"><span class="token annotation builtin">Volatile</span></a></div></div><span class="token keyword">var </span><a href="file-level.html">fileLevel</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div><div class="brief "><p class="paragraph">The file gets at least this level for every area, whatever the console gets: with 2, a crash that took the program with it (a native one, the power) still leaves what happened up to then. 0 to 2 (level 3 only for the areas set to it); 0: as the console.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1530670181%2FProperties%2F-600525034" anchor-label="fileLimitBytes" id="1530670181%2FProperties%2F-600525034" data-filterable-set=":caulis-log/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-log/main" data-filterable-set=":caulis-log/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="file-limit-bytes.html"><span>file</span><wbr><span>Limit</span><wbr><span><span>Bytes</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1530670181%2FProperties%2F-600525034"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-log/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-static/index.html"><span class="token annotation builtin">JvmStatic</span></a></div><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-volatile/index.html"><span class="token annotation builtin">Volatile</span></a></div></div><span class="token keyword">var </span><a href="file-limit-bytes.html">fileLimitBytes</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></div><div class="brief "><p class="paragraph">A log file that grows to this many bytes is moved aside (file.1, the one before to file.2, ...) and begun anew; 0: it may grow without end.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="-2074628347%2FProperties%2F-600525034" anchor-label="level" id="-2074628347%2FProperties%2F-600525034" data-filterable-set=":caulis-log/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":caulis-log/main" data-filterable-set=":caulis-log/main">
             <div class="main-subrow keyValue ">
@@ -258,7 +303,22 @@
       </div>
       <div data-togglable="FUNCTION">
         <h2 class="tableheader">Functions</h2>
-        <div class="table"><a data-name="-887663702%2FFunctions%2F-600525034" anchor-label="clearLevel" id="-887663702%2FFunctions%2F-600525034" data-filterable-set=":caulis-log/main"></a>
+        <div class="table"><a data-name="-102697963%2FFunctions%2F-600525034" anchor-label="areaLevels" id="-102697963%2FFunctions%2F-600525034" data-filterable-set=":caulis-log/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":caulis-log/main" data-filterable-set=":caulis-log/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="area-levels.html"><span>area</span><wbr><span><span>Levels</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-102697963%2FFunctions%2F-600525034"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":caulis-log/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-static/index.html"><span class="token annotation builtin">JvmStatic</span></a></div></div><span class="token keyword">fun </span><a href="area-levels.html"><span class="token function">areaLevels</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">The areas that have a level of their own (see <a href="set-level.html">setLevel</a>), with it.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-887663702%2FFunctions%2F-600525034" anchor-label="clearLevel" id="-887663702%2FFunctions%2F-600525034" data-filterable-set=":caulis-log/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":caulis-log/main" data-filterable-set=":caulis-log/main">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
