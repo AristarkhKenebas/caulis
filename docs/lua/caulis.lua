@@ -820,6 +820,10 @@
 ---@field values? table<string, number> the shader's settings: each a float of its name in its code (speed, intensity, ...)
 ---@field fallback? string shown if the shader does not compile
 ---@field resolution? number how sharp the shader is drawn (0.5: half the pixels each way, a quarter of the work)
+---@field movingArea? (number)[] the only part of the shader's picture that changes: [x, y, width, height], 0..1; the rest is drawn once and kept (one screen-sized picture on the GPU), and the shader must keep still outside it (movingFade)
+---@field movingQuietArea? (number)[] with a movingArea: all that changes outside bursts, [x, y, width, height]
+---@field movingRestFps? integer with a movingArea: frames a second while the pointer rests and no burst goes on (0: framesPerSecond)
+---@field movingBurst? (number)[] with a movingArea: [every, for], seconds of the shader's time at full pace (a blink)
 ---@field fpsLimit? integer the most frames a second for any wallpaper shader (0: as each asks)
 ---@field paused? boolean wallpaper shaders stand still
 ---@field changeMillis? integer how long one background melts into the next
