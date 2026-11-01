@@ -258,7 +258,8 @@ internal class NoticeBoard(
             val (notice, rect) = placed.lastOrNull { (n, r) -> n.open && x >= r.x && x < r.right && y >= r.y && y < r.bottom } ?: continue
             val scale = scales[monitor] ?: 1.0
             val look = NoticeLook(Math.round(rect.width * scale).toInt(), Math.round(rect.height * scale).toInt(), scale, notice, notice === hovered, style)
-            val action = runCatching { style.painter.actionAt(look, (x - rect.x) * scale, (y - rect.y) * scale) }.getOrNull() ?: return null
+            val action = runCatching { style.painter.actionAt(look, (x - rect.x) * scale, (y - rect.y) * scale) }
+                .onFailure { log.warn("Your NoticePainter's actionAt failed: $it") }.getOrNull() ?: return null
             return notice to action
         }
         return null

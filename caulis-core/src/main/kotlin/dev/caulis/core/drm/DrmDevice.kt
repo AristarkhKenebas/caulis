@@ -99,7 +99,7 @@ class DrmDevice(private val loop: EventLoop, private val session: Session, val p
                 loop.remove(device.fd)
                 return@add
             }
-            if (Drm.drmHandleEvent(fd, eventContext) < 0) log.warn("Reading the GPU's events failed")
+            if (Drm.drmHandleEvent(fd, eventContext) < 0) log.warn("Reading the events of the GPU fd $fd failed: frames may stop coming")
         }
     }
 

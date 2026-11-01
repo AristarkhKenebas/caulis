@@ -33,6 +33,7 @@ object XCursor {
     fun read(file: ByteArray, size: Int): List<CursorImage>? = try {
         parse(ByteBuffer.wrap(file).order(ByteOrder.LITTLE_ENDIAN), size)
     } catch (e: RuntimeException) { // out of bounds, nonsense numbers
+        dev.caulis.log.Logger("cursor").info { "A cursor file of ${file.size} bytes is damaged: $e" }
         null
     }
 

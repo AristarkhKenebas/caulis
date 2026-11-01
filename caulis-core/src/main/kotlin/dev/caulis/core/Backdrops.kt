@@ -84,7 +84,7 @@ internal class Backdrops(
             if (t >= 1.0 || !melt.on) {
                 leaving -= monitor.name
             } else {
-                val alpha = try { 1 - melt.curve.at(t) } catch (e: Exception) { 1 - t }
+                val alpha = try { 1 - melt.curve.at(t) } catch (e: Exception) { log.warn("Your curve of the wallpaper's change failed (a straight line instead): $e"); 1 - t }
                 items += item(monitor, workspace, old, alpha.toFloat().coerceIn(0f, 1f), pointerX, pointerY, now, "background before ${monitor.name}")
             }
         }

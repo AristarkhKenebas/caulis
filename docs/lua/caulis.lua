@@ -73,6 +73,12 @@
 ---@field reveal? caulis.Settings.reveal the start, smooth: dark until warm, then the desktop fades in
 ---@field startupSound? caulis.Settings.startupSound a sound when the session starts
 ---@field logLevel? integer how much the log says
+---@field logFileLimitMb? integer a log file that grows to this many MB moves aside and begins anew (0: no limit)
+---@field logFileKeep? integer how many files moved aside are kept
+---@field logFileLevel? integer the log file gets at least this level, whatever the console gets
+---@field crashReports? boolean a report file when something stops the compositor
+---@field crashReportLines? integer how many lines of the log a report takes along
+---@field crashReportsKept? integer how many reports stay
 
 ---@class caulis.Settings.layout
 ---@field name? "floating"|"dwindle"|"spiral"|"grid"|"columns"|"rows"|"monocle"|"master-stack"|"centered-master"|"master-strips"|"tree"|"tree-spiral"|"manual"|"scrolling-columns"|"canvas" how windows are arranged
@@ -279,6 +285,7 @@
 
 ---@class caulis.Settings.performance
 ---@field stallReportMillis? integer the main loop busy this long with one thing is logged with what it was (0: not watched)
+---@field stallWarnMillis? integer the main loop busy this long is logged as a problem, with what it was (0: never)
 ---@field trimMemory? boolean memory the C library freed is given back to the system after the start and now and then
 ---@field trimMemoryEveryMinutes? integer how often after the start (0: only after the start)
 ---@field mallocPools? integer at most this many malloc pools for the compositor (0: glibc's own; only at the start)

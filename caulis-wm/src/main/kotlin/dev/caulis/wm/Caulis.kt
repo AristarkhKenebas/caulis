@@ -692,6 +692,13 @@ class Caulis {
             field = value
         }
 
+    /** The main loop busy this long (milliseconds) with one thing is a problem: logged at level 1, with what it was. 0: never. */
+    var stallWarnMillis = 1000L
+        set(value) {
+            require(value in 0..60_000) { "stallWarnMillis is 0 to 60000, not $value" }
+            field = value
+        }
+
     /**
      * Memory freed by the C library (Skia, the GPU driver, fonts) given back to the system
      * after the start (20 s and 60 s after it) and then every [trimMemoryEveryMinutes]: glibc
@@ -1250,6 +1257,72 @@ class Caulis {
      * wins over it. A reload that takes it away closes the file.
      */
     var logFile: java.nio.file.Path? = null
+
+    /** A log file that grows to this many bytes moves aside (file.1, ...) and begins anew; 0: no limit. */
+    var logFileLimitBytes: Long = 16L * 1024 * 1024
+        set(value) {
+            require(value >= 0) { "logFileLimitBytes is 0 or more, not $value" }
+            field = value
+        }
+
+    /** How many files moved aside by [logFileLimitBytes] are kept (0: none is). */
+    var logFileKeep: Int = 2
+        set(value) {
+            require(value in 0..100) { "logFileKeep is 0 to 100, not $value" }
+            field = value
+        }
+
+    /** The log file gets at least this level, whatever the console gets: 0 (as the console), 1 or 2. */
+    var logFileLevel: Int = Log.QUIET
+        set(value) {
+            require(value in 0..2) { "logFileLevel is 0, 1 or 2, not $value" }
+            field = value
+        }
+
+    /**
+     * On an exception nothing caught, a start that failed or a stuck main loop, a report goes to
+     * [crashReportFolder]: versions (Caulis, JDK, kernel, GPU), what failed, the last lines of
+     * the log, the state. Secrets, names and titles are taken out, so it can be shared as it is.
+     */
+    var crashReports: Boolean = true
+
+    /** Where reports go; null: `$XDG_STATE_HOME/<configName>/crashes` (`~/.local/state/...`). */
+    var crashReportFolder: java.nio.file.Path? = null
+
+    /** How many lines of the log a report takes along. */
+    var crashReportLines: Int = 200
+        set(value) {
+            require(value in 0..1000) { "crashReportLines is 0 to 1000, not $value" }
+            field = value
+        }
+
+    /** How many reports stay; older ones go. */
+    var crashReportsKept: Int = 10
+        set(value) {
+            require(value in 1..1000) { "crashReportsKept is 1 to 1000, not $value" }
+            field = value
+        }
+
+    /**
+     * The card shown after a report was written (at the next start, when all had stopped);
+     * `{file}` becomes its path; null: no card.
+     */
+    var crashNotice: String? = "Something went wrong last time. A report is in {file}"
+
+    /**
+     * What to do about a problem shown as a card: asked with the card's text, an answer goes
+     * under it. Null: none.
+     */
+    var noticeHint: ((String) -> String?)? = null
+
+    /** The log's settings ([logLevel], [logFile], ...) and the crash reports' taken on now, while it runs. */
+    fun applyLogging() {
+        applyLogSettings()
+        CrashHandling.apply(this)
+    }
+
+    /** Told of each report written, with its file (e.g. to send it on), on the thread that failed. */
+    var onCrashReport: ((java.nio.file.Path) -> Unit)? = null
 
     internal val logAreas = LinkedHashMap<String, Int>()
 
@@ -2729,6 +2802,7 @@ class Caulis {
         // Whose main() this is (to run it again when config.json changes).
         Reloader.startedFrom = Thread.currentThread().stackTrace.lastOrNull { it.methodName == "main" }?.className
         applyLogSettings()
+        CrashHandling.install(this)
         if (mallocPools > 0) dev.caulis.ffi.NativeMemory.limitPools(mallocPools)
         if (mallocMapAboveKb > 0) dev.caulis.ffi.NativeMemory.mapBlocksAbove(mallocMapAboveKb)
         dev.caulis.render.gles.GlesRenderer.vendorByDriver = glVendorByDriver
@@ -2742,7 +2816,7 @@ class Caulis {
         }
         val problems = Preflight.check(this, nested = actual == Backend.NESTED, headless = actual == Backend.HEADLESS)
         if (!Preflight.report(problems, title)) {
-            throw CannotStartException("$title cannot start (see the problems listed above)")
+            throw CannotStartException("$title cannot start: " + problems.filter { it.fatal }.joinToString(" ") { "${it.message} ${it.fix}" })
         }
         startWarnings = problems.filter { !it.fatal }
         backendInUse = actual
@@ -2780,6 +2854,9 @@ class Caulis {
     // file it no longer names is closed. ([before]: the configuration a reload replaces.)
     internal fun applyLogSettings(before: Caulis? = null) {
         Log.level = logLevel
+        Log.fileLimitBytes = logFileLimitBytes
+        Log.fileKeep = logFileKeep
+        Log.fileLevel = logFileLevel
         before?.logAreas?.keys?.filter { it !in logAreas }?.forEach(Log::clearLevel)
         for ((area, level) in logAreas) Log.setLevel(area, level)
         System.getenv("CAULIS_LOG")?.takeIf { it.isNotBlank() }?.let(Log::configure)
@@ -2806,7 +2883,10 @@ fun caulis(configure: Caulis.() -> Unit) {
     try {
         compositor.run()
     } catch (e: CannotStartException) {
-        exitProcess(1) // the reasons were already printed
+        // (The reasons were already printed; a report for when no console was there to read them.)
+        Logger("crash").fatal(e.message ?: "The compositor cannot start")
+        CrashHandling.stopped(e.message ?: "The compositor cannot start", null)
+        exitProcess(1)
     } catch (e: Exception) {
         System.err.println("The compositor stopped: ${e.message}")
         e.cause?.let { System.err.println("  (${it.message})") }
@@ -2818,9 +2898,14 @@ fun caulis(configure: Caulis.() -> Unit) {
             System.err.println("\nThe last events:")
             recent.forEach(System.err::println)
         }
-        runCatching { compositor.running?.desktop?.describe() }.getOrNull()?.let {
-            System.err.println("\nThe state when it stopped:\n$it")
+        val state = try {
+            compositor.running?.desktop?.describe()
+        } catch (failure: Exception) {
+            "(it could not be told: $failure)"
         }
+        state?.let { System.err.println("\nThe state when it stopped:\n$it") }
+        Logger("crash").fatal("The compositor stopped: $e", e)
+        CrashHandling.stopped("The compositor stopped: $e", e)
         exitProcess(1)
     }
 }

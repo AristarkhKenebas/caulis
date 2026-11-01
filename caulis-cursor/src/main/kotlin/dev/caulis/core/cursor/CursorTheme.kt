@@ -128,8 +128,9 @@ class CursorTheme private constructor(
                 val file = root.resolve(theme).resolve(path)
                 try {
                     if (Files.isRegularFile(file) && Files.size(file) <= MAX_FILE) return Files.readAllBytes(file)
-                } catch (_: Exception) {
+                } catch (e: Exception) {
                     // unreadable: try the next folder
+                    dev.caulis.log.Logger("cursor").info { "The cursor file $file cannot be read: $e" }
                 }
             }
             return null

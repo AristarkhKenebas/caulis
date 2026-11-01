@@ -1007,6 +1007,12 @@
           "maximum": 60000,
           "description": "the main loop busy this long with one thing is logged with what it was (0: not watched)"
         },
+        "stallWarnMillis": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "description": "the main loop busy this long is logged as a problem, with what it was (0: never)"
+        },
         "trimMemory": {
           "type": "boolean",
           "description": "memory the C library freed is given back to the system after the start and now and then"
@@ -5218,6 +5224,40 @@
       "minimum": 0,
       "maximum": 3,
       "description": "how much the log says"
+    },
+    "logFileLimitMb": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100000,
+      "description": "a log file that grows to this many MB moves aside and begins anew (0: no limit)"
+    },
+    "logFileKeep": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "how many files moved aside are kept"
+    },
+    "logFileLevel": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2,
+      "description": "the log file gets at least this level, whatever the console gets"
+    },
+    "crashReports": {
+      "type": "boolean",
+      "description": "a report file when something stops the compositor"
+    },
+    "crashReportLines": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000,
+      "description": "how many lines of the log a report takes along"
+    },
+    "crashReportsKept": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000,
+      "description": "how many reports stay"
     }
   }
 }

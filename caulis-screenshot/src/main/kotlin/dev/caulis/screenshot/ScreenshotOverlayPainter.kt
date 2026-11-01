@@ -25,6 +25,7 @@ internal class ScreenshotOverlayPainter(private val screenshotOverlay: Screensho
         return try {
             coming.at(t).toFloat()
         } catch (e: Exception) {
+            dev.caulis.log.Logger("screenshot").warn("Your curve of the screenshot chooser failed (a straight line instead): $e")
             t.toFloat()
         }
     }

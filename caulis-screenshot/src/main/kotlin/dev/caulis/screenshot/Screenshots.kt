@@ -427,7 +427,7 @@ class Screenshots internal constructor(private val caulis: Caulis) {
                 }
             } catch (e: Throwable) {
                 // (Out of memory too — a huge picture: said, not a thread gone without a word.)
-                log.error("The screenshot could not be saved", e)
+                log.error("The screenshot could not be saved to $folder (is it writable, is the disk full?): $e", e)
                 caulis.post { notify(words.notSaved.with(e.message ?: e.javaClass.simpleName), title = words.title) }
                 if (e is VirtualMachineError && e !is OutOfMemoryError) throw e
             }

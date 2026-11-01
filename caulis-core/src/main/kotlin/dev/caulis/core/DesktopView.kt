@@ -18,7 +18,11 @@ class DesktopView internal constructor(monitor: Monitor) {
         internal set(value) {
             if (value !== field) everything = true // (another part of the desktop now)
             field = value
+            frameName = "the frame of ${value.name}"
         }
+
+    // What a slow run of the event loop is called while this view draws (made once: see refresh).
+    internal var frameName: String = "the frame of ${monitor.name}"
 
     // What the last frame on this screen showed, in drawing order.
     internal var shown: List<DrawItem> = emptyList()

@@ -17,6 +17,7 @@ fun Curve.easing(): Easing {
         try {
             curve.at(t.toDouble()).toFloat()
         } catch (e: Exception) {
+            dev.caulis.log.Logger("compose").warn("Your animation curve failed (a straight line instead): $e")
             t
         }
     }

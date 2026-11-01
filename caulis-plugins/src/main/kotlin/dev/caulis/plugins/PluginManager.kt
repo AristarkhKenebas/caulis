@@ -456,7 +456,7 @@ class PluginManager<H : Any>(
         val old = code ?: return
         val loader = old.classLoader
         if (loader != null) lookForThreads(id, loader)
-        runCatching { old.close() }
+        runCatching { old.close() }.onFailure { log.warn("Plugin $id: its class loader could not be closed: $it") }
         if (loader != null) watchdog.checkCollected(id, loader)
     }
 
@@ -599,7 +599,7 @@ class PluginManager<H : Any>(
         watch?.close()
         for (entry in ordered().asReversed()) off(entry, PluginState.DISABLED, null)
         reader.shutdownNow()
-        temporaryCache?.let { folder -> runCatching { Files.walk(folder).use { all -> all.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists) } } }
+        temporaryCache?.let { folder -> runCatching { Files.walk(folder).use { all -> all.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists) } }.onFailure { log.info { "The plugins' temporary folder $folder stays: $it" } } }
     }
 
     private companion object {

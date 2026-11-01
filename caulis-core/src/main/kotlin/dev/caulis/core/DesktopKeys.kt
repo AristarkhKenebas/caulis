@@ -8,9 +8,19 @@ import dev.caulis.event.EventLoop
  */
 internal class DesktopKeys(private val desktop: Desktop) {
 
+    // Whether the key may be named in the log (see key).
+    private fun loggable(evdevCode: Int) = evdevCode in MODIFIER_KEYS || evdevCode >= FIRST_NON_TYPING_KEY || desktop.seat.modifierBits and SHORTCUT_MODIFIERS != 0
+
     fun key(timeMillis: Int, evdevCode: Int, pressed: Boolean) {
         // Never what is typed into a locker (a password).
-        desktop.inputLog.trace { if (desktop.locked) "A key (not logged while locked)" else "Key $evdevCode ${if (pressed) "pressed" else "released"} → ${desktop.seat.keyboardFocus}" }
+        // Nor what is typed anywhere: only a shortcut's key (with Ctrl, Alt or Super held) or a key that types nothing.
+        desktop.inputLog.trace {
+            when {
+                desktop.locked -> "A key (not logged while locked)"
+                !loggable(evdevCode) -> "A typing key ${if (pressed) "pressed" else "released"} → ${desktop.seat.keyboardFocus}"
+                else -> "Key $evdevCode ${if (pressed) "pressed" else "released"} → ${desktop.seat.keyboardFocus}"
+            }
+        }
         // Typing (not just holding Ctrl or Super): the cursor makes way.
         if (pressed && desktop.hideCursorWhileTyping && evdevCode !in MODIFIER_KEYS && desktop.seat.keyboardFocus != null) desktop.cursors.hideCursor()
         if (pressed || evdevCode == widgetRepeatKey) stopWidgetRepeat()
@@ -76,3 +86,9 @@ internal class DesktopKeys(private val desktop: Desktop) {
         }
     }
 }
+
+// Ctrl, Alt and Super in the seat's modifier bits.
+private const val SHORTCUT_MODIFIERS = 4 or 8 or 64
+
+// Evdev codes from here on are a laptop's, media and mouse keys: they type nothing.
+private const val FIRST_NON_TYPING_KEY = 113

@@ -119,7 +119,14 @@ internal class Running(
                 entry.isWarning -> NoticeLevel.WARNING
                 else -> NoticeLevel.INFO
             }
-            val text = entry.message + (entry.cause?.let { cause -> if (cause.toString() in entry.message) "" else " — $cause" } ?: "")
+            val said = entry.message + (entry.cause?.let { cause -> if (cause.toString() in entry.message) "" else " — $cause" } ?: "")
+            val hint = try {
+                config.noticeHint?.invoke(said)
+            } catch (e: Exception) {
+                e.rethrowIfFatal()
+                null // (a broken rule is not logged: that line would come here again)
+            }
+            val text = if (hint != null) "$said\n$hint" else said
             val notice = desktop.notify(text, level)
             if (entry.area == "config") configNotices += notice
         }
@@ -500,6 +507,7 @@ internal class Running(
             if (config.hotReload) reloader = safely("hot reload", null) { Reloader.start(this) }
             log.info { "Your files (shaders, pictures): ${config.configFolder}${if (java.nio.file.Files.isDirectory(config.configFolder)) "" else " (not there yet)"}" }
             watchTheStart()
+            safely("telling of the last crash report") { CrashHandling.tellOfLast(config, desktop) }
             loop.run()
         } finally {
             config.running = null
@@ -509,6 +517,7 @@ internal class Running(
     // How the start went (the longest the loop was busy), and the memory the start freed given back.
     private fun watchTheStart() {
         loop.stallMillis = config.stallReportMillis
+        loop.stallWarnMillis = config.stallWarnMillis
         if (config.stallReportMillis > 0) {
             loop.after(START_REPORT_MILLIS) {
                 val longest = loop.longestStall?.let { "${loop.longestStallMillis} ms: $it" } ?: "never ${config.stallReportMillis} ms or more"
@@ -544,7 +553,7 @@ internal class Running(
         // The configuration's window and focus listeners end here: windows that go away now (their
         // programs cut off as everything is taken down) are not "closed" by anyone — a handler
         // would find no desktop to act on.
-        configListeners.forEach { runCatching { it.close() } }
+        configListeners.forEach { runCatching { it.close() }.onFailure { e -> log.warn("Ending a listener of the configuration failed: $e") } }
         configListeners.clear()
         javaUpdates?.close()
         // (No program of autostart is started again while they are being stopped.)
@@ -552,7 +561,7 @@ internal class Running(
         if (config.stopProgramsOnQuit) safely("stopping the programs") { launcher.stopAll() }
         isOpen = false
         if (config.running === this) config.running = null
-        sessionResources.toList().forEach { runCatching { it.close() } }
+        sessionResources.toList().forEach { runCatching { it.close() }.onFailure { e -> log.warn("Closing $it at the end failed: $e") } }
         sessionResources.clear()
         sessionScopes.values.forEach { it.close() }
         rlooks.colorSchemeTimer?.cancel()

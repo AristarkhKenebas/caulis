@@ -208,11 +208,17 @@ internal fun runOnScreen(config: Caulis) {
                 if (shown.isEmpty()) println("No monitor is connected yet; waiting for one.")
                 val quitting = running.config.keys.quit?.let { "$it quits." } ?: "No key quits (keys.quit is off)."
                 println("Programs inside it use WAYLAND_DISPLAY=${running.socket}. $quitting")
-                Watchdog(loop).use { running.runLoop() }
+                Watchdog(loop, onStuck = {
+                    // (A report first, and then the kernel gives screen and keyboard back.)
+                    CrashHandling.stuck(WATCHDOG_GIVES_UP_MILLIS)
+                    Runtime.getRuntime().halt(Watchdog.EXIT_STUCK)
+                }).use { running.runLoop() }
             }
         }
     }
 }
+
+private const val WATCHDOG_GIVES_UP_MILLIS = 10_000L
 
 // The time comes from the display hardware at the refresh (vsync) itself.
 private const val EXACT_PRESENTATION = WpPresentationFeedback.Kind.VSYNC or

@@ -28,7 +28,9 @@ import java.util.concurrent.ConcurrentHashMap
  * or in code (`Log.level = 2`, `Log.setLevel("focus", 3)`, `Log.configure("1,wayland=3")`),
  * also while running. The areas are listed in [AREAS].
  *
- * Messages of a level that is off cost nothing: their text is not even made.
+ * A [Logger.trace] of a level that is off costs nothing: its text is not even made. A
+ * [Logger.info] is kept in the black box ([recent]) even then, so it never goes on a path that
+ * runs for every frame or every message: there, [Logger.trace] (or [Logger.tracing]).
  */
 object Log {
 
@@ -81,6 +83,7 @@ object Log {
         "script" to "a config.kts: compiling it, its mistakes",
         "compose" to "Compose widgets: their scenes, drawing, failures",
         "screenshot" to "the screenshot tool: what was taken, where it went",
+        "crash" to "reports of what stopped the compositor or one of its threads",
     )
 
     /** The level of every area that has none of its own. */
@@ -117,6 +120,10 @@ object Log {
     @JvmStatic
     fun levelOf(area: String): Int = areaLevels[area] ?: level
 
+    /** The areas that have a level of their own (see [setLevel]), with it. */
+    @JvmStatic
+    fun areaLevels(): Map<String, Int> = areaLevels.toSortedMap()
+
     /**
      * Sets levels from text, as `CAULIS_LOG` does: "2" (everything at 2), "focus=3" (one
      * area), or both: "1,wayland=3,focus=3". Unknown parts are reported, not fatal.
@@ -147,22 +154,97 @@ object Log {
     var toConsole = true
 
     private var fileStream: PrintStream? = null
+    private var fileBytes = 0L
 
     /** Also write the log to this file (appended), or null for none. `CAULIS_LOG_FILE` sets it too. */
     @JvmStatic
     var file: Path? = null
         @Synchronized set(value) {
             fileStream?.close()
-            fileStream = value?.let {
-                it.parent?.let(Files::createDirectories)
-                // Readable by you alone (it may name programs, windows and commands), made so before the first line.
-                if (!Files.exists(it)) {
-                    runCatching { Files.createFile(it, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))) }
-                }
-                PrintStream(Files.newOutputStream(it, StandardOpenOption.CREATE, StandardOpenOption.APPEND), true)
-            }
+            fileStream = value?.let(::openFile)
             field = value
         }
+
+    /**
+     * A log file that grows to this many bytes is moved aside (file.1, the one before to
+     * file.2, ...) and begun anew; 0: it may grow without end.
+     */
+    @Volatile
+    @JvmStatic
+    var fileLimitBytes: Long = 16L * 1024 * 1024
+        set(value) {
+            require(value >= 0) { "fileLimitBytes is 0 or more, not $value" }
+            field = value
+        }
+
+    /** How many files moved aside by [fileLimitBytes] are kept; the oldest goes (0: none is). */
+    @Volatile
+    @JvmStatic
+    var fileKeep: Int = 2
+        set(value) {
+            require(value in 0..100) { "fileKeep is 0 to 100, not $value" }
+            field = value
+        }
+
+    /**
+     * The file gets at least this level for every area, whatever the console gets: with 2, a
+     * crash that took the program with it (a native one, the power) still leaves what happened
+     * up to then. 0 to 2 (level 3 only for the areas set to it); 0: as the console.
+     */
+    @Volatile
+    @JvmStatic
+    var fileLevel: Int = QUIET
+        set(value) {
+            require(value in QUIET..EVENTS) { "fileLevel is 0, 1 or 2, not $value" }
+            field = value
+        }
+
+    // Opened for appending; readable by you alone (it may name programs, windows and commands),
+    // made so before the first line.
+    private fun openFile(path: Path): PrintStream {
+        path.parent?.let(Files::createDirectories)
+        if (!Files.exists(path)) {
+            try {
+                Files.createFile(path, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------")))
+            } catch (_: java.nio.file.FileAlreadyExistsException) {
+                // Made just now by someone else: appended to.
+            } catch (_: UnsupportedOperationException) {
+                // Not a POSIX file system: made below, with its usual rights.
+            }
+        }
+        fileBytes = if (Files.exists(path)) Files.size(path) else 0L
+        return PrintStream(Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.APPEND), true)
+    }
+
+    // The file is full: it moves aside and a new one begins. (Called holding the lock of Log.)
+    // A move that fails (the disk, rights) must not stop anything: said once, and writing goes on.
+    private fun rotateFile() {
+        val path = file ?: return
+        val keep = fileKeep
+        fileStream?.close()
+        try {
+            if (keep == 0) {
+                Files.deleteIfExists(path)
+            } else {
+                Files.deleteIfExists(rotated(path, keep))
+                for (n in keep - 1 downTo 1) if (Files.exists(rotated(path, n))) Files.move(rotated(path, n), rotated(path, n + 1))
+                Files.move(path, rotated(path, 1))
+            }
+        } catch (e: java.io.IOException) {
+            System.err.println("The log file $path cannot be moved aside: $e")
+            fileBytes = Long.MIN_VALUE / 2 // (no more tries in this run)
+        }
+        val before = fileBytes
+        fileStream = try {
+            openFile(path)
+        } catch (e: java.io.IOException) {
+            System.err.println("The log file $path cannot be written: $e")
+            null
+        }
+        if (before < 0) fileBytes = before
+    }
+
+    private fun rotated(path: Path, number: Int): Path = path.resolveSibling("${path.fileName}.$number")
 
     /** Your own place for log lines (e.g. a window that shows them), besides console and file. */
     @Volatile
@@ -221,7 +303,7 @@ object Log {
         val seconds = (System.nanoTime() - start) / 1_000_000_000.0
         val line = buildString {
             append(LocalTime.now().format(clock))
-            append(String.format(" %9.3f ", seconds))
+            append(String.format(java.util.Locale.ROOT, " %9.3f ", seconds))
             append(mark).append(' ')
             append(area.padEnd(8)).append(' ')
             append(message)
@@ -230,32 +312,59 @@ object Log {
         val shown = level <= levelOf(area)
         if (watchers.isNotEmpty()) {
             val entry = Entry(area, level, message, error, mark)
+            // (A watcher that fails is not logged: that line would come here again.)
             for (watcher in watchers) runCatching { watcher(entry) }
         }
         if (level <= EVENTS) {
             synchronized(recent) {
                 if (recent.size == RECENT_LINES) recent.removeFirst()
-                recent.addLast(line)
+                // (A problem with where it came from: what a report is read for.)
+                recent.addLast(if (error != null && level <= PROBLEMS) line + stackBrief(error) else line)
             }
         }
-        if (!shown) return
+        val inFile = level <= fileLevel
+        if (!shown && !inFile) return
         synchronized(this) {
-            if (toConsole) {
+            if (toConsole && shown) {
                 System.err.println(line)
                 if (error != null && level <= PROBLEMS) error.printStackTrace(System.err)
             }
             fileStream?.let { out ->
                 out.println(line)
-                if (error != null) error.printStackTrace(out)
+                fileBytes += line.length + 1
+                if (error != null) {
+                    val stack = java.io.StringWriter().also { error.printStackTrace(java.io.PrintWriter(it)) }.toString()
+                    out.print(stack)
+                    fileBytes += stack.length
+                }
+                val limit = fileLimitBytes
+                if (limit in 1..fileBytes) rotateFile()
             }
         }
+        if (!shown) return
         listener?.let { runCatching { it(line) } }
     }
+
+    // The first steps of [error]'s stack, and of its cause's, as more lines of one entry.
+    private fun stackBrief(error: Throwable): String = buildString {
+        var e: Throwable? = error
+        var depth = 0
+        while (e != null && depth < 3) {
+            if (depth > 0) append("\n    caused by ").append(e)
+            for (frame in e.stackTrace.take(STACK_BRIEF_FRAMES)) append("\n    at ").append(frame)
+            e = e.cause.takeIf { it !== e }
+            depth++
+        }
+    }
+
+    private const val STACK_BRIEF_FRAMES = 8
 
     // Problems said lately, by their gist: when last let through, and how often since.
     private class Repeat(var since: Long, var count: Int)
 
     private val lately = LinkedHashMap<String, Repeat>()
+    private val GIST_NOISE = Regex("\"[^\"]*\"|\\([^)]*\\)|\\d+")
+    private val DIGITS = Regex("\\d+")
     private const val REPEAT_SECONDS = 10
     private const val REPEAT_BURST = 5
 
@@ -263,7 +372,7 @@ object Log {
     // many times it came since it was last let through (1: the first).
     private fun repeats(area: String, message: String, error: Throwable?): Int? = synchronized(lately) {
         // (Its gist: without what changes from one time to the next, such as a window's title.)
-        val gist = area + "|" + message.replace(Regex("\"[^\"]*\"|\\([^)]*\\)|\\d+"), "") + "|" + error?.javaClass?.name + error?.message?.replace(Regex("\\d+"), "")
+        val gist = area + "|" + message.replace(GIST_NOISE, "") + "|" + error?.javaClass?.name + error?.message?.replace(DIGITS, "")
         val now = System.nanoTime()
         val seen = lately[gist]
         if (seen == null) {

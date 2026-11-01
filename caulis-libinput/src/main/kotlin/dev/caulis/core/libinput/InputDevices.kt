@@ -248,6 +248,7 @@ class InputDevices(internal val loop: EventLoop, internal val session: Session) 
         val device = try {
             session.openDevice(Path.of(path))
         } catch (e: Exception) {
+            log.warn("The input device $path cannot be opened, so it does not work: $e. Are you in a seat (logged in on this console), or in the input group with seatd?")
             return -1 // libinput skips the device; everything else keeps working
         }
         opened[device.fd.value] = device

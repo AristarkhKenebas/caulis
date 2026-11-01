@@ -21,7 +21,7 @@ object Wire {
     val tracing: Boolean get() = log.tracing
 
     /** A request a client sent to us (server side). */
-    fun request(resource: Resource, name: String, args: String) = log.trace("${resource.client.name} → $resource.$name($args)")
+    fun request(resource: Resource, name: String, args: String) = log.trace("${resource.client.name} → $resource.$name(${private(resource.type.name, name, args)})")
 
     /** An event we send to a client (server side). */
     fun event(resource: Resource, name: String, args: String) =
@@ -34,9 +34,15 @@ object Wire {
     fun received(proxy: Any, name: String, args: String) =
         log.trace("← server $proxy.$name(${private(proxy.toString().substringBefore('@'), name, args)})")
 
-    // Which keys are pressed never goes into the log (it could be a password).
-    private fun private(type: String, name: String, args: String) =
-        if (type == "wl_keyboard" && name == "key") args.replace(Regex("key=\\d+"), "key=•") else args
+    // Which keys are pressed never goes into the log (it could be a password), nor what an
+    // input method or a virtual keyboard types.
+    private fun private(type: String, name: String, args: String) = when {
+        name == "key" && (type == "wl_keyboard" || type == "zwp_virtual_keyboard_v1" || type == "zwp_input_method_keyboard_grab_v2") -> args.replace(KEY_ARGUMENT, "key=•")
+        name == "commit_string" || name == "set_preedit_string" || name == "preedit_string" || name == "delete_surrounding_text" || name == "surrounding_text" || name == "set_surrounding_text" -> "•"
+        else -> args
+    }
+
+    private val KEY_ARGUMENT = Regex("key=\\d+")
 
     /** How an argument looks in the log. */
     fun show(value: Any?): String = when (value) {

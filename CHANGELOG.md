@@ -32,6 +32,15 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ### Changed
 - `Curve.spring` is worked out by its law instead of a table of ten thousand numbers per spring.
+### Added
+- Crash reports: an exception nothing caught on any thread, a start that failed and a main loop stuck until the watchdog ends the program each write a file to `~/.local/state/<configName>/crashes` with versions (Caulis, JDK, kernel, GPU and driver), the configuration's folder, what failed, every thread's stack when stuck, the state and the last lines of the log. The next start shows a card with its path. Settings: `crashReports`, `crashReportFolder`, `crashReportLines`, `crashReportsKept`, `crashNotice`, `onCrashReport`; API: `CrashReports`.
+- `Redactor` takes secrets, your home folder, user and computer names, mail and network addresses, window titles and Wi-Fi names out of text to be shared. Crash reports go through it.
+- The log file has a size limit (`logFileLimitBytes`, 16 MB by default) and moves aside when full (`logFileKeep`, 2 files); `logFileLevel` gives the file more than the console (what happened before a crash stays on disk).
+- `stallWarnMillis` (1 s): the main loop busy that long is said as a problem at level 1, not only at level 2. A slow frame is named by its monitor, with how much it had to draw.
+
+### Changed
+- Level 3 of `input` no longer names typing keys, only shortcuts' keys (with Ctrl, Alt or Super held) and keys that type nothing. Level 3 of `wayland` no longer shows what input methods and virtual keyboards type.
+- A problem kept in the black box (`Log.recent()`) has the first steps of its stack with it.
 
 ## [0.1.10] - 2026-10-31
 
