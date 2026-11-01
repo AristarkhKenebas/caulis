@@ -1,0 +1,158 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-libinput",
+    "version": "0.1.12",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-input",
+          "version": {
+            "requires": "0.1.12"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-session",
+          "version": {
+            "requires": "0.1.12"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-native",
+          "version": {
+            "requires": "0.1.12"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-log",
+          "version": {
+            "requires": "0.1.12"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-libinput-0.1.12.jar",
+          "url": "caulis-libinput-0.1.12.jar",
+          "size": 77982,
+          "sha512": "011c77cefde1f7f04fcc59fcb3c4d0b644e7deddaabaf411a79a945383e20cf9fdb87f728d42565c0936bd85a3396ef834bd5ab4c9153abbf55c113ca2cb6d49",
+          "sha256": "8cdc293ff3ecd8c22ecb4068470ef601c4984ec88713119ec34e77e6651ad555",
+          "sha1": "c0e7483fdca3458581bcc163a635e771ed7ec527",
+          "md5": "a7ab4e30d5c0aa49aaa5dd154300a375"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-input",
+          "version": {
+            "requires": "0.1.12"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-session",
+          "version": {
+            "requires": "0.1.12"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-native",
+          "version": {
+            "requires": "0.1.12"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-log",
+          "version": {
+            "requires": "0.1.12"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-libinput-0.1.12.jar",
+          "url": "caulis-libinput-0.1.12.jar",
+          "size": 77982,
+          "sha512": "011c77cefde1f7f04fcc59fcb3c4d0b644e7deddaabaf411a79a945383e20cf9fdb87f728d42565c0936bd85a3396ef834bd5ab4c9153abbf55c113ca2cb6d49",
+          "sha256": "8cdc293ff3ecd8c22ecb4068470ef601c4984ec88713119ec34e77e6651ad555",
+          "sha1": "c0e7483fdca3458581bcc163a635e771ed7ec527",
+          "md5": "a7ab4e30d5c0aa49aaa5dd154300a375"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-libinput-0.1.12-sources.jar",
+          "url": "caulis-libinput-0.1.12-sources.jar",
+          "size": 24030,
+          "sha512": "fa8b102da718ca46046906686d70037a004b67f62450522c00d54ee04f47bc0cc1e60365d68cabf9e4c46e2fbdb885a27bb04d86037243b06e9115939c075703",
+          "sha256": "08693bf4085678fbac1a1a75afb3f00c8a30a61db12b18470d9ac2d67b930089",
+          "sha1": "5bc77b434184ce4eb7bce1840a272393c3d5dc64",
+          "md5": "948a38f5bdf302902084c223eaea4c84"
+        }
+      ]
+    }
+  ]
+}

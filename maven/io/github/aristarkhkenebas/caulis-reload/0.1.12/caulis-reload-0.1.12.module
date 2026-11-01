@@ -1,0 +1,137 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-reload",
+    "version": "0.1.12",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-wm",
+          "version": {
+            "requires": "0.1.12"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-reload-0.1.12.jar",
+          "url": "caulis-reload-0.1.12.jar",
+          "size": 41846,
+          "sha512": "23af885edbb47890b5f02ecad88ff9bb38b78613a0c02cab4f9d7bc0e70bfb4ca62c4bbd5d31a84a2590c213664aaad5fa2bedc56613d49f374f99da6dd3dd7b",
+          "sha256": "b360af9fc8fa3ea6c27d11cdef065e3c4b5243f1b1cb52bbdf5ab6b0e40676ac",
+          "sha1": "58dc095ff2e6a2dc602c753c63483d7d08f37b6a",
+          "md5": "6ffc4285d6ea17350e038f2c75ff3bc1"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-compiler-embeddable",
+          "version": {
+            "requires": "2.4.21"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-build-tools-api",
+          "version": {
+            "requires": "2.4.21"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-wm",
+          "version": {
+            "requires": "0.1.12"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-build-tools-impl",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-reload-0.1.12.jar",
+          "url": "caulis-reload-0.1.12.jar",
+          "size": 41846,
+          "sha512": "23af885edbb47890b5f02ecad88ff9bb38b78613a0c02cab4f9d7bc0e70bfb4ca62c4bbd5d31a84a2590c213664aaad5fa2bedc56613d49f374f99da6dd3dd7b",
+          "sha256": "b360af9fc8fa3ea6c27d11cdef065e3c4b5243f1b1cb52bbdf5ab6b0e40676ac",
+          "sha1": "58dc095ff2e6a2dc602c753c63483d7d08f37b6a",
+          "md5": "6ffc4285d6ea17350e038f2c75ff3bc1"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-reload-0.1.12-sources.jar",
+          "url": "caulis-reload-0.1.12-sources.jar",
+          "size": 14360,
+          "sha512": "4e8ceab1d424a9b56d9ce4090ce56a092fdf39e428ff323d5dbd9fe2e458f0166f70e61fd3197bef71c4915ad8be30e571adeb2418ed147ab71372c406916613",
+          "sha256": "c76476c5d93878ae10cbc4a2cc8b689988a5d8cc5a85815af7c1072976559a6f",
+          "sha1": "c1b853154d3235ecefeb74d9ad0bd239499f77e0",
+          "md5": "b4651b088a562c142eafa196a32b5eda"
+        }
+      ]
+    }
+  ]
+}
