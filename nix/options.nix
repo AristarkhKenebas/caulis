@@ -210,6 +210,7 @@ let
     }; }); default = null; description = "programs started inside"; };
     "performance" = lib.mkOption { type = lib.types.nullOr (lib.types.submodule { options = {
       "stallReportMillis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (60000)); default = null; description = "the main loop busy this long with one thing is logged with what it was (0: not watched)"; };
+      "stallWarnMillis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (60000)); default = null; description = "the main loop busy this long is logged as a problem, with what it was (0: never)"; };
       "trimMemory" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "memory the C library freed is given back to the system after the start and now and then"; };
       "trimMemoryEveryMinutes" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (1440)); default = null; description = "how often after the start (0: only after the start)"; };
       "mallocPools" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (64)); default = null; description = "at most this many malloc pools for the compositor (0: glibc's own; only at the start)"; };
@@ -855,6 +856,12 @@ let
       "playerTimeoutMillis" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (1000) (600000)); default = null; description = "how long a player may play before it is stopped (default 30000)"; };
     }; }); default = null; description = "a sound when the session starts"; };
     "logLevel" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (3)); default = null; description = "how much the log says"; };
+    "logFileLimitMb" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (100000)); default = null; description = "a log file that grows to this many MB moves aside and begins anew (0: no limit)"; };
+    "logFileKeep" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (100)); default = null; description = "how many files moved aside are kept"; };
+    "logFileLevel" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (2)); default = null; description = "the log file gets at least this level, whatever the console gets"; };
+    "crashReports" = lib.mkOption { type = lib.types.nullOr lib.types.bool; default = null; description = "a report file when something stops the compositor"; };
+    "crashReportLines" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (0) (1000)); default = null; description = "how many lines of the log a report takes along"; };
+    "crashReportsKept" = lib.mkOption { type = lib.types.nullOr (lib.types.ints.between (1) (1000)); default = null; description = "how many reports stay"; };
   }; });
 in
 settingsType

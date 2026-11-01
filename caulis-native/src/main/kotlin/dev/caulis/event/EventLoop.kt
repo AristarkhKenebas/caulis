@@ -46,6 +46,10 @@ class EventLoop : AutoCloseable {
     @Volatile
     var stallMillis: Long = 50
 
+    /** A run this long (milliseconds) is more than a note: said as a problem (level 1), every time. 0: never. */
+    @Volatile
+    var stallWarnMillis: Long = 1000
+
     /**
      * Told of each run of [stallMillis] or longer: what it was (its kind and the code it came
      * from) and for how long. By default logged (area "native", level 2; at most one line a
@@ -71,6 +75,8 @@ class EventLoop : AutoCloseable {
     private var stallsLeftOut = 0
 
     private fun stallLog(what: String, millis: Long) {
+        val warnAt = stallWarnMillis
+        if (warnAt in 1..millis) return stallLog.warn("The main loop was busy for $millis ms: $what; nothing else ran meanwhile (no input, no frames)")
         val now = System.nanoTime()
         if (lastStallLine != 0L && now - lastStallLine < 1_000_000_000L) {
             stallsLeftOut++
@@ -219,7 +225,8 @@ class EventLoop : AutoCloseable {
         } catch (e: Throwable) {
             try {
                 onError(what, e)
-            } catch (_: Throwable) {
+            } catch (failure: Throwable) {
+                log.error("Reporting that $what failed, failed too: $failure")
             }
         }
         val limit = stallMillis
@@ -237,7 +244,8 @@ class EventLoop : AutoCloseable {
         }
         try {
             onStall(text, millis)
-        } catch (_: Throwable) {
+        } catch (e: Throwable) {
+            log.warn("Your onStall failed: $e")
         }
     }
 
@@ -264,6 +272,7 @@ class EventLoop : AutoCloseable {
          */
         @JvmStatic
         fun codeName(code: Any): String {
+            if (code is CharSequence) return code.toString() // (it says itself: "the frame of DP-1")
             val name = code.javaClass.name
             return name.substringBefore("$$").substringBefore('/')
         }

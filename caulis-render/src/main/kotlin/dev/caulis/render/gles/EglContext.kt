@@ -42,6 +42,11 @@ internal class EglContext private constructor(
     val extensions: Set<String> = glString(Gles.GL_EXTENSIONS()).split(' ').filter { it.isNotEmpty() }.toSet()
 
     init {
+        // For the log and a crash report: which GPU and driver (Mesa says its version here).
+        val version = glString(Gles.GL_VERSION())
+        dev.caulis.log.CrashReports.fact("GPU", renderer)
+        dev.caulis.log.CrashReports.fact("OpenGL", version)
+        dev.caulis.log.Logger("render").info { "GPU: $renderer; $version" }
         // Client buffers come as BGRA bytes, and frames are read back as BGRA.
         for (needed in listOf("GL_EXT_texture_format_BGRA8888", "GL_EXT_read_format_bgra")) {
             check(needed in extensions) { "The GPU driver lacks $needed" }

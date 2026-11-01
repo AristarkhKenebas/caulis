@@ -84,6 +84,7 @@ internal object SettingsApply {
         }
         section("performance")?.let { p ->
             (p["stallReportMillis"] as Int?)?.let { caulis.stallReportMillis = it.toLong() }
+            (p["stallWarnMillis"] as Int?)?.let { caulis.stallWarnMillis = it.toLong() }
             (p["trimMemory"] as Boolean?)?.let { caulis.trimMemory = it }
             (p["trimMemoryEveryMinutes"] as Int?)?.let { caulis.trimMemoryEveryMinutes = it }
             (p["mallocPools"] as Int?)?.let { caulis.mallocPools = it }
@@ -413,6 +414,12 @@ internal object SettingsApply {
             (o["playerTimeoutMillis"] as Int?)?.let { sound.playerTimeoutMillis = it.toLong() }
         }
         (values["logLevel"] as Int?)?.let { caulis.logLevel = it }
+        (values["logFileLimitMb"] as Int?)?.let { caulis.logFileLimitBytes = it * 1024L * 1024L }
+        (values["logFileKeep"] as Int?)?.let { caulis.logFileKeep = it }
+        (values["logFileLevel"] as Int?)?.let { caulis.logFileLevel = it }
+        (values["crashReports"] as Boolean?)?.let { caulis.crashReports = it }
+        (values["crashReportLines"] as Int?)?.let { caulis.crashReportLines = it }
+        (values["crashReportsKept"] as Int?)?.let { caulis.crashReportsKept = it }
         return Settings.Added(rules, bindings, startup)
     }
 

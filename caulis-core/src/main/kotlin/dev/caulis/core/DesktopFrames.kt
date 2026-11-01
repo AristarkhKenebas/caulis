@@ -74,6 +74,8 @@ internal class DesktopFrames(private val desktop: Desktop) {
         if (desktop.overlayHost.brokenOverlay != null && desktop.overlayHost.brokenOverlay === desktop.overlay) desktop.closeOverlay()
         // Each asked every time (they move their animations on, and let go of what faded away:
         // none may be skipped because another already said yes).
+        // (A slow run of the loop is then named by this frame: no text made, it is kept in the view.)
+        desktop.compositor.display.loop.taskOrigin = view.frameName
         val now = System.nanoTime()
         val noticesMoving = desktop.noticeBoard.animating() or desktop.osd.animating(now)
         val fadingNow = desktop.scaleFade.fading()
@@ -149,8 +151,21 @@ internal class DesktopFrames(private val desktop: Desktop) {
         frameShown(view, (System.nanoTime() / 1_000_000).toInt())
         for (listener in desktop.capturing.frameListeners.toList()) listener()
         if (draw && desktop.renderLog.level >= 2) busy.drawn(view.monitor.name)
+        slowFrame(view, now)
         return draw
     }
+
+    // A frame that took longer than the loop's report limit: which monitor, what it had to draw.
+    private fun slowFrame(view: DesktopView, started: Long) {
+        val limit = desktop.compositor.display.loop.stallMillis
+        if (limit <= 0) return
+        val millis = (System.nanoTime() - started) / 1_000_000
+        if (millis < limit || started - lastSlowFrame < SLOW_FRAME_LINE_NANOS) return
+        lastSlowFrame = started
+        desktop.renderLog.info { "A frame of ${view.monitor.name} took $millis ms: ${view.shown.size} things to draw, ${desktop.windows.size} windows, ${view.monitor.pixelWidth}x${view.monitor.pixelHeight}" }
+    }
+
+    private var lastSlowFrame = 0L
 
     // What kept the screens being drawn: said every few seconds at the render log's info level
     // (CAULIS_LOG=render=2) — the frames drawn per monitor, and what was moving, most often first.
@@ -520,3 +535,5 @@ internal class DesktopFrames(private val desktop: Desktop) {
         it.current.frameCallbacks.isNotEmpty() && it !in desktop.sceneBuilder.visible && !isKeptUpdating(it)
     }
 }
+
+private const val SLOW_FRAME_LINE_NANOS = 1_000_000_000L

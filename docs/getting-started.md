@@ -2313,6 +2313,8 @@ CAULIS_LOG=3 CAULIS_LOG_FILE=/tmp/caulis.log ./gradlew run   # everything, into 
 ```
 
 or in code: `logLevel = 2`, `log("windows", 3)`, `logFile = Path.of("/tmp/caulis.log")`.
+A log file moves aside at `logFileLimitBytes` (16 MB; `logFileKeep` files stay), and
+`logFileLevel = 2` gives the file what happens while the console has only problems.
 The areas: `wayland`, `clients`, `windows`, `focus`, `input`, `gestures`, `layout`,
 `layers`, `lock`, `docks`, `cursor`, `capture`, `clipboard`, `render`, `drm`, `session`,
 `nested`, `xwayland`, `notices` (messages on screen), `reload` (changes taken on while
@@ -2332,12 +2334,22 @@ the focus, panels, the lock, the cursor — the first thing to look at when wind
 oddly. (`dumpState()` does the same from your code.) And if the compositor stops with an
 error, its report ends with the last events before it, even when the log level was low.
 
+**Crash reports.** An exception nothing caught, a start that failed or a main loop stuck until
+the watchdog ends the program writes a text file to `~/.local/state/<configName>/crashes`
+(`crashReportFolder`): versions (Caulis, JDK, kernel, GPU and driver), what failed, the state and
+the last `crashReportLines` lines of the log. Secrets, your home folder, user and computer names,
+window titles and Wi-Fi names are taken out (`Redactor`, also for your own reports), so it can be
+sent as it is. The next start shows a card with its path (`crashNotice`, null: none).
+`crashReports = false` turns them off; `onCrashReport = { file -> ... }` hears of each, and
+`CrashReports.fact("My compositor", "1.2")` adds a line to every report.
+
 ### Stutters and memory
 
 Everything the compositor does runs on one loop: while one thing takes long, no input is
 handled and no frame drawn — the pointer stands still. `CAULIS_LOG=native=2` names each thing
 that took 50 ms or more (`stallReportMillis`; 0: not watched), with the code it came from,
-and 30 s after the start the longest of the start:
+and 30 s after the start the longest of the start. A run of `stallWarnMillis` (1 s; 0: never) is
+said at level 1 too, and a slow frame says its monitor (`render`, level 2):
 
 ```
 20:39:40.520    13,031 I native   The main loop was busy for 268 ms: a timer (newm.Warmup)

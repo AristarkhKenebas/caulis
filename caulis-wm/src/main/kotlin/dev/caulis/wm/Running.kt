@@ -500,6 +500,7 @@ internal class Running(
             if (config.hotReload) reloader = safely("hot reload", null) { Reloader.start(this) }
             log.info { "Your files (shaders, pictures): ${config.configFolder}${if (java.nio.file.Files.isDirectory(config.configFolder)) "" else " (not there yet)"}" }
             watchTheStart()
+            safely("telling of the last crash report") { CrashHandling.tellOfLast(config, desktop) }
             loop.run()
         } finally {
             config.running = null
@@ -509,6 +510,7 @@ internal class Running(
     // How the start went (the longest the loop was busy), and the memory the start freed given back.
     private fun watchTheStart() {
         loop.stallMillis = config.stallReportMillis
+        loop.stallWarnMillis = config.stallWarnMillis
         if (config.stallReportMillis > 0) {
             loop.after(START_REPORT_MILLIS) {
                 val longest = loop.longestStall?.let { "${loop.longestStallMillis} ms: $it" } ?: "never ${config.stallReportMillis} ms or more"

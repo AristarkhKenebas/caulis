@@ -152,6 +152,7 @@ internal object SettingsRoot {
                 SectionType(
                     listOf(
                         Field("stallReportMillis", IntegerType(0, 60_000), "the main loop busy this long with one thing is logged with what it was (0: not watched)"),
+                        Field("stallWarnMillis", IntegerType(0, 60_000), "the main loop busy this long is logged as a problem, with what it was (0: never)"),
                         Field("trimMemory", FlagType, "memory the C library freed is given back to the system after the start and now and then"),
                         Field("trimMemoryEveryMinutes", IntegerType(0, 1440), "how often after the start (0: only after the start)"),
                         Field("mallocPools", IntegerType(0, 64), "at most this many malloc pools for the compositor (0: glibc's own; only at the start)"),
@@ -499,6 +500,12 @@ internal object SettingsRoot {
                 "a sound when the session starts",
             ),
             Field("logLevel", IntegerType(0, 3), "how much the log says"),
+            Field("logFileLimitMb", IntegerType(0, 100_000), "a log file that grows to this many MB moves aside and begins anew (0: no limit)"),
+            Field("logFileKeep", IntegerType(0, 100), "how many files moved aside are kept"),
+            Field("logFileLevel", IntegerType(0, 2), "the log file gets at least this level, whatever the console gets"),
+            Field("crashReports", FlagType, "a report file when something stops the compositor"),
+            Field("crashReportLines", IntegerType(0, 1000), "how many lines of the log a report takes along"),
+            Field("crashReportsKept", IntegerType(1, 1000), "how many reports stay"),
         ),
         "the configuration",
     )

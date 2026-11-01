@@ -161,6 +161,11 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getConfigDir ()Ljava/nio/file/Path;
 	public final fun getConfigFolder ()Ljava/nio/file/Path;
 	public final fun getConfigName ()Ljava/lang/String;
+	public final fun getCrashNotice ()Ljava/lang/String;
+	public final fun getCrashReportFolder ()Ljava/nio/file/Path;
+	public final fun getCrashReportLines ()I
+	public final fun getCrashReports ()Z
+	public final fun getCrashReportsKept ()I
 	public final fun getCursorSize ()Ljava/lang/Integer;
 	public final fun getCursorTheme ()Ljava/lang/String;
 	public final fun getDesktop ()Ldev/caulis/core/Desktop;
@@ -213,6 +218,9 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getLocker ()Lkotlin/jvm/functions/Function1;
 	public final fun getLockerShows ()Lkotlin/jvm/functions/Function1;
 	public final fun getLogFile ()Ljava/nio/file/Path;
+	public final fun getLogFileKeep ()I
+	public final fun getLogFileLevel ()I
+	public final fun getLogFileLimitBytes ()J
 	public final fun getLogLevel ()I
 	public final fun getMallocMapAboveKb ()I
 	public final fun getMallocPools ()I
@@ -227,6 +235,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getNoticeStyle ()Ldev/caulis/core/NoticeStyle;
 	public final fun getNoticesFromLog ()Lkotlin/jvm/functions/Function1;
 	public final fun getNumLock ()Ljava/lang/Boolean;
+	public final fun getOnCrashReport ()Lkotlin/jvm/functions/Function1;
 	public final fun getOverviewFill ()D
 	public final fun getOverviewPinchFingers ()I
 	public final fun getPermissions ()Ldev/caulis/wm/Permissions;
@@ -259,6 +268,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getSocketDirectory ()Ljava/nio/file/Path;
 	public final fun getSpecialWorkspaces ()Ldev/caulis/core/SpecialWorkspaces;
 	public final fun getStallReportMillis ()J
+	public final fun getStallWarnMillis ()J
 	public final fun getStartupSound ()Ldev/caulis/wm/StartupSound;
 	public final fun getStats ()Z
 	public final fun getStopProgramsOnQuit ()Z
@@ -445,6 +455,11 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setCompiledScriptsKept (I)V
 	public final fun setConfigDir (Ljava/nio/file/Path;)V
 	public final fun setConfigName (Ljava/lang/String;)V
+	public final fun setCrashNotice (Ljava/lang/String;)V
+	public final fun setCrashReportFolder (Ljava/nio/file/Path;)V
+	public final fun setCrashReportLines (I)V
+	public final fun setCrashReports (Z)V
+	public final fun setCrashReportsKept (I)V
 	public final fun setCursorSize (Ljava/lang/Integer;)V
 	public final fun setCursorTheme (Ljava/lang/String;)V
 	public final fun setDesktopName (Ljava/lang/String;)V
@@ -487,6 +502,9 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setLocker (Lkotlin/jvm/functions/Function1;)V
 	public final fun setLockerShows (Lkotlin/jvm/functions/Function1;)V
 	public final fun setLogFile (Ljava/nio/file/Path;)V
+	public final fun setLogFileKeep (I)V
+	public final fun setLogFileLevel (I)V
+	public final fun setLogFileLimitBytes (J)V
 	public final fun setLogLevel (I)V
 	public final fun setMallocMapAboveKb (I)V
 	public final fun setMallocPools (I)V
@@ -501,6 +519,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setNoticeStyle (Ldev/caulis/core/NoticeStyle;)V
 	public final synthetic fun setNoticesFromLog (Lkotlin/jvm/functions/Function1;)V
 	public final fun setNumLock (Ljava/lang/Boolean;)V
+	public final fun setOnCrashReport (Lkotlin/jvm/functions/Function1;)V
 	public final fun setOverviewFill (D)V
 	public final fun setOverviewPinchFingers (I)V
 	public final fun setPrimaryMonitor (Ljava/lang/String;)V
@@ -524,6 +543,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setSocketDirectory (Ljava/nio/file/Path;)V
 	public final fun setSpecialWorkspaces (Ldev/caulis/core/SpecialWorkspaces;)V
 	public final fun setStallReportMillis (J)V
+	public final fun setStallWarnMillis (J)V
 	public final fun setStats (Z)V
 	public final fun setStopProgramsOnQuit (Z)V
 	public final fun setSwipeDistance (D)V

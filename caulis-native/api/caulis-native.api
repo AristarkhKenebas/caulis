@@ -14,6 +14,7 @@ public final class dev/caulis/event/EventLoop : java/lang/AutoCloseable {
 	public final fun getOnError ()Lkotlin/jvm/functions/Function2;
 	public final fun getOnStall ()Lkotlin/jvm/functions/Function2;
 	public final fun getStallMillis ()J
+	public final fun getStallWarnMillis ()J
 	public final fun getTaskOrigin ()Ljava/lang/Object;
 	public final fun post (Lkotlin/jvm/functions/Function0;)V
 	public final fun remove (Ldev/caulis/ffi/Fd;)V
@@ -21,6 +22,7 @@ public final class dev/caulis/event/EventLoop : java/lang/AutoCloseable {
 	public final fun setOnError (Lkotlin/jvm/functions/Function2;)V
 	public final fun setOnStall (Lkotlin/jvm/functions/Function2;)V
 	public final fun setStallMillis (J)V
+	public final fun setStallWarnMillis (J)V
 	public final fun setTaskOrigin (Ljava/lang/Object;)V
 	public final fun stop ()V
 	public final fun update (Ldev/caulis/ffi/Fd;ZZ)V
