@@ -72,12 +72,14 @@ public final class dev/caulis/core/AnimationSettings {
 	public fun <init> (Ldev/caulis/core/AnimationTree;ZJ)V
 	public fun <init> (Ldev/caulis/core/AnimationTree;ZJLdev/caulis/core/Curve;)V
 	public fun <init> (Ldev/caulis/core/AnimationTree;ZJLdev/caulis/core/Curve;Ljava/util/Map;)V
-	public synthetic fun <init> (Ldev/caulis/core/AnimationTree;ZJLdev/caulis/core/Curve;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ldev/caulis/core/AnimationTree;ZJLdev/caulis/core/Curve;Ljava/util/Map;D)V
+	public synthetic fun <init> (Ldev/caulis/core/AnimationTree;ZJLdev/caulis/core/Curve;Ljava/util/Map;DILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun describe ()Ljava/lang/String;
 	public final fun getCurve ()Ldev/caulis/core/Curve;
 	public final fun getEnabled ()Z
 	public final fun getEntries ()Ljava/util/Map;
 	public final fun getMillis ()J
+	public final fun getSlowdown ()D
 	public final fun getTree ()Ldev/caulis/core/AnimationTree;
 	public final fun resolve (Ljava/lang/String;)Ldev/caulis/core/ResolvedAnimation;
 	public final fun resolve (Ljava/lang/String;Ljava/lang/Long;)Ldev/caulis/core/ResolvedAnimation;
@@ -446,15 +448,20 @@ public abstract interface class dev/caulis/core/Curve {
 	public static final field EASE_OUT Ldev/caulis/core/Curve;
 	public static final field LINEAR Ldev/caulis/core/Curve;
 	public static final field OVERSHOOT Ldev/caulis/core/Curve;
+	public static final field SETTLE Ldev/caulis/core/Curve;
 	public static final field SMOOTH Ldev/caulis/core/Curve;
 	public abstract fun at (D)D
 	public static fun bezier (DDDD)Ldev/caulis/core/Curve;
+	public fun carried (D)D
 	public fun getNaturalMillis ()Ljava/lang/Long;
 	public static fun named (Ljava/lang/String;)Ldev/caulis/core/Curve;
 	public static fun spring ()Ldev/caulis/core/Curve;
 	public static fun spring (D)Ldev/caulis/core/Curve;
 	public static fun spring (DD)Ldev/caulis/core/Curve;
 	public static fun spring (DDD)Ldev/caulis/core/Curve;
+	public static fun springRatio ()Ldev/caulis/core/Curve;
+	public static fun springRatio (D)Ldev/caulis/core/Curve;
+	public static fun springRatio (DD)Ldev/caulis/core/Curve;
 }
 
 public final class dev/caulis/core/Curve$Companion {
@@ -465,9 +472,14 @@ public final class dev/caulis/core/Curve$Companion {
 	public final fun spring (DD)Ldev/caulis/core/Curve;
 	public final fun spring (DDD)Ldev/caulis/core/Curve;
 	public static synthetic fun spring$default (Ldev/caulis/core/Curve$Companion;DDDILjava/lang/Object;)Ldev/caulis/core/Curve;
+	public final fun springRatio ()Ldev/caulis/core/Curve;
+	public final fun springRatio (D)Ldev/caulis/core/Curve;
+	public final fun springRatio (DD)Ldev/caulis/core/Curve;
+	public static synthetic fun springRatio$default (Ldev/caulis/core/Curve$Companion;DDILjava/lang/Object;)Ldev/caulis/core/Curve;
 }
 
 public final class dev/caulis/core/Curve$DefaultImpls {
+	public static fun carried (Ldev/caulis/core/Curve;D)D
 	public static fun getNaturalMillis (Ldev/caulis/core/Curve;)Ljava/lang/Long;
 }
 
@@ -2462,8 +2474,19 @@ public final class dev/caulis/core/WindowBehavior {
 public final class dev/caulis/core/WindowBehavior$Companion {
 }
 
+public final class dev/caulis/core/WindowClosing {
+	public fun <init> (J)V
+	public fun <init> (JLdev/caulis/core/Curve;)V
+	public fun <init> (JLdev/caulis/core/Curve;Ldev/caulis/core/WindowAnimation;)V
+	public synthetic fun <init> (JLdev/caulis/core/Curve;Ldev/caulis/core/WindowAnimation;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getCurve ()Ldev/caulis/core/Curve;
+	public final fun getLook ()Ldev/caulis/core/WindowAnimation;
+	public final fun getMillis ()J
+}
+
 public abstract interface class dev/caulis/core/WindowDirector {
 	public fun animating (J)Z
+	public fun closing (Ldev/caulis/core/Window;Ldev/caulis/core/WindowPlace;)Ldev/caulis/core/WindowClosing;
 	public fun decorate (Ldev/caulis/core/Window;Ldev/caulis/core/WindowPlace;Ldev/caulis/core/OverlayCanvas;Z)V
 	public fun initialSize (Ldev/caulis/core/Window;)Lkotlin/Pair;
 	public fun manages (Ldev/caulis/core/Window;)Z
@@ -2477,6 +2500,7 @@ public abstract interface class dev/caulis/core/WindowDirector {
 
 public final class dev/caulis/core/WindowDirector$DefaultImpls {
 	public static fun animating (Ldev/caulis/core/WindowDirector;J)Z
+	public static fun closing (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;Ldev/caulis/core/WindowPlace;)Ldev/caulis/core/WindowClosing;
 	public static fun decorate (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;Ldev/caulis/core/WindowPlace;Ldev/caulis/core/OverlayCanvas;Z)V
 	public static fun initialSize (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;)Lkotlin/Pair;
 	public static fun manages (Ldev/caulis/core/WindowDirector;Ldev/caulis/core/Window;)Z
