@@ -15,6 +15,9 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+### Changed
+- A wallpaper shader's kept picture stays ten minutes unseen instead of 30 seconds: drawing it again stalled the next animation.
+
 ### Added
 
 - Wallpaper shaders can say which part of them moves: `WallpaperShader.with(movingArea = MovingArea(x, y, width, height, restFps, burstEvery, burstFor, quietArea))` (JSON/Lua: `background.movingArea`, `movingRestFps`, `movingBurst`, `movingQuietArea`). The whole picture is drawn once into one screen-sized picture kept on the GPU (4 bytes a pixel, drawn again when its size, colours or values change, let go 30 s after it stops being drawn); each frame draws only that part anew, damages only that part, and none are asked for while it is under windows or off the monitor. The shader reads `movingFade(at, width)`, `movingDeclared`, `movingWhole` and `movingSince` to keep still outside it and to leave out pixels that did not change. Without one nothing changes and nothing is kept. Shaders using these names for themselves must rename them.

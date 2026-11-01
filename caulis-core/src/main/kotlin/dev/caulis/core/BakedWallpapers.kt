@@ -226,7 +226,7 @@ internal class BakedWallpapers(private val loop: EventLoop, private val changed:
         const val SETTLE_NANOS = 300_000_000L
 
         // How long a kept picture stays while nothing draws it (drawing it again costs one full frame).
-        const val KEPT_NANOS = 30_000_000_000L
+        const val KEPT_NANOS = 600_000_000_000L
 
         const val MAX_PIECES = 32
     }
