@@ -282,7 +282,7 @@ internal class ShaderWallpapers(
         val stillLook = listOf(look, source, picture, viewPart.toList(), shader.resolution, shader.seed, if (shader.usesWorkspace) workspace else null, if (shader.usesPlace) listOf(rect.x, rect.y) else null)
         // (Their own place's ratio: one thing does not change its shape with the view.)
         val state = parts.update(key, moving.at(seconds, w / h), rect)
-        val fps = if (paused || parts.isHidden(key)) 0 else effectiveFps(shader.with(framesPerSecond = moving.framesPerSecond))
+        val fps = if (paused || parts.isHidden(key)) 0 else effectiveFps(moving.framesPerSecondAt(seconds))
         val pixelWide = Math.round(monitor.pixelWidth * moving.maxKeptSize).toInt()
         val pixelHigh = Math.round(monitor.pixelHeight * moving.maxKeptSize).toInt()
         return DrawItem.Custom(
@@ -350,7 +350,9 @@ internal class ShaderWallpapers(
         return true
     }
 
-    private fun effectiveFps(shader: WallpaperShader): Int = if (fpsLimit > 0) minOf(fpsLimit, shader.framesPerSecond) else shader.framesPerSecond
+    private fun effectiveFps(shader: WallpaperShader): Int = effectiveFps(shader.framesPerSecond)
+
+    private fun effectiveFps(fps: Int): Int = if (fpsLimit > 0) minOf(fpsLimit, fps) else fps
 
     // --- frames: as often as the shaders seen want ----------------------------------------------------
 
@@ -376,7 +378,7 @@ internal class ShaderWallpapers(
             if (shader.movingParts != null) {
                 val back = parts.look(item, kept, index)
                 if (parts.isHidden(item.key)) continue
-                fps = maxOf(fps, if (back) effectiveFps(shader.with(framesPerSecond = shader.movingParts.framesPerSecond)) else item.framesPerSecond)
+                fps = maxOf(fps, if (back) effectiveFps(shader.movingParts.framesPerSecond) else item.framesPerSecond)
                 continue
             }
             // (A moving part under windows wants no frames; one coming out of them does, at once.)

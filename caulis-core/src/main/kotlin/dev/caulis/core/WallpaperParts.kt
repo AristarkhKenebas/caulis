@@ -66,6 +66,9 @@ interface MovingParts {
     /** How often [at] is asked: the most any part changes, a second. */
     val framesPerSecond: Int
 
+    /** How often [at] is asked around [seconds], for what moves quickly only for a moment (a meteor). */
+    fun framesPerSecondAt(seconds: Double): Int = framesPerSecond
+
     /** How long what is kept stays while nothing draws it, in seconds. */
     val keptSeconds: Double get() = 600.0
 
