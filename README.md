@@ -1,8 +1,13 @@
 # Caulis
 
-A toolkit for writing Wayland compositors in Kotlin and Java.
+**Your own Wayland compositor in a dozen lines of Kotlin, and it reloads while you type.**
 
-Status: early development.
+A toolkit for writing Wayland compositors in Kotlin and Java: tiling, animations, a bar in
+Compose, lock screens, Lua configs, plugins, all optional and all yours to change. No C, no
+wlroots glue in your code. [newm](https://github.com/AristarkhKenebas/newm) is built on it, if you want
+to see how far it goes.
+
+Status: early but moving fast; used daily.
 
 A complete compositor — tiling with gaps, workspaces, the usual keys — in a few lines:
 
@@ -28,11 +33,19 @@ Caulis.create()
 
 **New here? Start with [Your first compositor](docs/getting-started.md)**, or create a
 ready project right away: `templates/new-compositor.sh ~/my-compositor`. Add `--template <name>`
-for a project closer to what you have in mind: `tiling` (like i3), `floating` (like Openbox),
-`scrolling` (like niri), `kiosk` (one program on the whole screen), `desktop` (with a bar of your
-own in Compose) or `lua` (everything in a `config.lua`, no Kotlin).
+for a project closer to what you have in mind:
 
-Extending a running compositor without touching its code: [Plugins](docs/plugins.md).
+| Template | What you start from |
+|---|---|
+| `tiling` | like i3 |
+| `floating` | like Openbox |
+| `scrolling` | like niri |
+| `kiosk` | one program on the whole screen |
+| `desktop` | with a bar of your own in Compose |
+| `lua` | everything in a `config.lua`, no Kotlin |
+
+**Plugins** extend a running compositor without touching its code: a jar (Kotlin or Java, the
+full API, hot reload) or Lua (simple and sandboxed). See [Plugins](docs/plugins.md) and `templates/plugins`.
 
 What changed in each release: [CHANGELOG.md](CHANGELOG.md).
 
