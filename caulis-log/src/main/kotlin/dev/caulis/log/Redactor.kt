@@ -25,7 +25,7 @@ class Redactor @JvmOverloads constructor(
     // Longest first: a title that holds another title goes whole.
     private val words = words.filter { it.length >= MIN_WORD }.distinct().sortedByDescending { it.length }
     private val home = home?.trimEnd('/')?.takeIf { it.length > 1 }
-    private val user = user?.takeIf { it.length >= MIN_NAME && it != "root" }?.let { Regex("(?<![\\w-])" + Regex.escape(it) + "(?![\\w-])") }
+    private val user = user?.takeIf { it.length >= MIN_NAME && it != "root" }?.let { Regex("(?<!\\w)" + Regex.escape(it) + "(?!\\w)") }
     private val host = host?.takeIf { it.length >= MIN_NAME && it != "localhost" }?.let { Regex("(?<![\\w-])" + Regex.escape(it) + "(?![\\w-])") }
 
     /** [text] (any number of lines) with all that is private taken out. */
@@ -73,7 +73,7 @@ class Redactor @JvmOverloads constructor(
             // scheme://user:password@host
             Regex("(\\w+://)[^/\\s:@]+:[^/\\s@]+@") to "$1<secret>@",
             // What only a key looks like: a long run of letters and digits together.
-            Regex("\\b(?=[\\w+/-]*\\d)(?=[\\w+/-]*[a-zA-Z])[\\w+/-]{40,}={0,2}") to "<secret>",
+            Regex("\\b(?=[\\w+-]*\\d)(?=[\\w+-]*[a-zA-Z])[\\w+-]{40,}={0,2}") to "<secret>",
             // Wi-Fi and Bluetooth names, in whatever area they were said.
             Regex("(?i)(wi-?fi|ssid|bluetooth|device)( network)?( name)?(\\s*[=:]?\\s*)\"[^\"]*\"") to "$1$2$3$4\"<text>\"",
             // A window as it shows itself: Window("title", app.id).
@@ -82,7 +82,7 @@ class Redactor @JvmOverloads constructor(
             Regex("(?i)\\btitle\\s*[=:]\\s*(\"[^\"]*\"|'[^']*'|\\S+)") to "title=<title>",
             Regex("[\\w.+-]+@[\\w-]+\\.[\\w.-]+") to "<mail>",
             Regex("\\b(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}\\b") to "<mac>",
-            Regex("\\b(?!127\\.)(?:\\d{1,3}\\.){3}\\d{1,3}\\b") to "<ip>",
+            Regex("(?<![\\d.])(?!127\\.)(?:\\d{1,3}\\.){3}\\d{1,3}(?![\\d.]*\\d)") to "<ip>",
         )
 
         // /etc/hostname, else what the system says; null when neither can be read.

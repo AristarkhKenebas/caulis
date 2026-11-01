@@ -119,7 +119,14 @@ internal class Running(
                 entry.isWarning -> NoticeLevel.WARNING
                 else -> NoticeLevel.INFO
             }
-            val text = entry.message + (entry.cause?.let { cause -> if (cause.toString() in entry.message) "" else " — $cause" } ?: "")
+            val said = entry.message + (entry.cause?.let { cause -> if (cause.toString() in entry.message) "" else " — $cause" } ?: "")
+            val hint = try {
+                config.noticeHint?.invoke(said)
+            } catch (e: Exception) {
+                e.rethrowIfFatal()
+                null // (a broken rule is not logged: that line would come here again)
+            }
+            val text = if (hint != null) "$said\n$hint" else said
             val notice = desktop.notify(text, level)
             if (entry.area == "config") configNotices += notice
         }

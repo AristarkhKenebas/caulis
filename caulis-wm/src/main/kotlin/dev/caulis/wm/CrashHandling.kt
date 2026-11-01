@@ -47,6 +47,7 @@ internal object CrashHandling {
 
     /** The settings of [config] taken on (also after a reload). */
     fun apply(config: Caulis) {
+        current = config
         CrashReports.folder = if (config.crashReports) config.crashReportFolder ?: defaultFolder(config) else null
         CrashReports.lastLines = config.crashReportLines
         CrashReports.keep = config.crashReportsKept

@@ -1309,6 +1309,18 @@ class Caulis {
      */
     var crashNotice: String? = "Something went wrong last time. A report is in {file}"
 
+    /**
+     * What to do about a problem shown as a card: asked with the card's text, an answer goes
+     * under it. Null: none.
+     */
+    var noticeHint: ((String) -> String?)? = null
+
+    /** The log's settings ([logLevel], [logFile], ...) and the crash reports' taken on now, while it runs. */
+    fun applyLogging() {
+        applyLogSettings()
+        CrashHandling.apply(this)
+    }
+
     /** Told of each report written, with its file (e.g. to send it on), on the thread that failed. */
     var onCrashReport: ((java.nio.file.Path) -> Unit)? = null
 

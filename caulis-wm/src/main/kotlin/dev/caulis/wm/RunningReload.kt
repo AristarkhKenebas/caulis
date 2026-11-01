@@ -154,6 +154,7 @@ internal class RunningReload(private val running: Running) {
         next.session = running
         running.config = next
         next.applyLogSettings(before)
+        CrashHandling.apply(next)
         running.rapply.applyConfig()
         if (running.desktop.layout != next.layout) running.desktop.layout = next.layout
         if (same || before.scale != next.scale || before.monitorSettings.mapValues { it.value.scale } != next.monitorSettings.mapValues { it.value.scale }) running.rmon.applyScale()

@@ -103,6 +103,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun animations (Ldev/caulis/core/Animations;)Ldev/caulis/wm/Caulis;
 	public final fun animations (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun animations (Lkotlin/jvm/functions/Function1;)V
+	public final fun applyLogging ()V
 	public final fun applySettings ()V
 	public final fun autostart (Ljava/util/function/Consumer;)Ldev/caulis/wm/Caulis;
 	public final synthetic fun autostart (Lkotlin/jvm/functions/Function1;)V
@@ -232,6 +233,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun getMovingPaintsFps ()I
 	public final fun getNestedIn ()Ljava/nio/file/Path;
 	public final fun getNestedMonitors ()I
+	public final fun getNoticeHint ()Lkotlin/jvm/functions/Function1;
 	public final fun getNoticeStyle ()Ldev/caulis/core/NoticeStyle;
 	public final fun getNoticesFromLog ()Lkotlin/jvm/functions/Function1;
 	public final fun getNumLock ()Ljava/lang/Boolean;
@@ -516,6 +518,7 @@ public final class dev/caulis/wm/Caulis {
 	public final fun setMovingPaintsFps (I)V
 	public final fun setNestedIn (Ljava/nio/file/Path;)V
 	public final fun setNestedMonitors (I)V
+	public final fun setNoticeHint (Lkotlin/jvm/functions/Function1;)V
 	public final fun setNoticeStyle (Ldev/caulis/core/NoticeStyle;)V
 	public final synthetic fun setNoticesFromLog (Lkotlin/jvm/functions/Function1;)V
 	public final fun setNumLock (Ljava/lang/Boolean;)V

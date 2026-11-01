@@ -30,7 +30,7 @@ class ReportsTest {
             """
             run --password hunter2 now, token=abc123 API_KEY: "zzz" and https://bob:pw@example.org/x
             Authorization: Bearer abcdefghijkl0123
-            /home/alice/.config/newm/config.kts and /home/carol/x of alice on alices-laptop
+            /home/alice/.config/newm/config.kts and /home/carol/x of alice on alices-laptop, kernel 7.3-alice
             Window("My bank - Firefox", firefox) and Window("Other title", foot)
             Wi-Fi "Cafe Net" ssid = "Home 5G" device "Pixel of Bob"
             mail bob@example.org mac aa:bb:cc:dd:ee:ff ip 192.168.1.20
@@ -53,7 +53,7 @@ class ReportsTest {
 
     @Test
     fun `what is needed to act stays`() {
-        val line = "at dev.caulis.core.Desktop.frame(Desktop.kt:12) DP-1 3840x2160 config.kts:12"
+        val line = "at dev.caulis.core.Desktop.frame(Desktop.kt:12) DP-1 3840x2160 config.kts:12 JDK 27.0.1.3.8 Mesa 25.1.2"
         assertEquals(line, redactor.clean(line))
     }
 
