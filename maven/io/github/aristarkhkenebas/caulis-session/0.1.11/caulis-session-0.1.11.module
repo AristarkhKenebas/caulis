@@ -1,0 +1,144 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-session",
+    "version": "0.1.11",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-dbus",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-native",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-log",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-session-0.1.11.jar",
+          "url": "caulis-session-0.1.11.jar",
+          "size": 24000,
+          "sha512": "0eaae640f9d80fbea10aeb858ea57bd64e65fe91727423ff6e30925287266fcc0961492649045e04bcfbeffc749b741fab5ecbc8b8c528d9262305b8d3af7072",
+          "sha256": "5015c6305595c9ae7533b3d07bb17c55cadf360fe83c9665e0fec6b47276bc40",
+          "sha1": "7eaf94017fbfc7db820cfd50b28255143121a8a5",
+          "md5": "a1cc71aca9c4d5cc7df465365d1fbc75"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-dbus",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-native",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-log",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-session-0.1.11.jar",
+          "url": "caulis-session-0.1.11.jar",
+          "size": 24000,
+          "sha512": "0eaae640f9d80fbea10aeb858ea57bd64e65fe91727423ff6e30925287266fcc0961492649045e04bcfbeffc749b741fab5ecbc8b8c528d9262305b8d3af7072",
+          "sha256": "5015c6305595c9ae7533b3d07bb17c55cadf360fe83c9665e0fec6b47276bc40",
+          "sha1": "7eaf94017fbfc7db820cfd50b28255143121a8a5",
+          "md5": "a1cc71aca9c4d5cc7df465365d1fbc75"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-session-0.1.11-sources.jar",
+          "url": "caulis-session-0.1.11-sources.jar",
+          "size": 11539,
+          "sha512": "e1220c584646b3b69fcb9452650d31a01b3d1856bf13d835abfb8f8e78e4ea1a80d65a971f56bc756dfe495cee4a5e9106a5119b69608a8aae209ecc9f5bfb68",
+          "sha256": "6b9bca0d71a9c10894d57281251236c06e39268c8073d88a26f58789c4a806f2",
+          "sha1": "a84b7d684dc59aa15b289bef31b608cdb8ec3a68",
+          "md5": "54ac751bdf8a690a9626a34181285a2f"
+        }
+      ]
+    }
+  ]
+}

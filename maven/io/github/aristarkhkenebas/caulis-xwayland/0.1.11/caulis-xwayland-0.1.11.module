@@ -1,0 +1,116 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-xwayland",
+    "version": "0.1.11",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-core",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-xwayland-0.1.11.jar",
+          "url": "caulis-xwayland-0.1.11.jar",
+          "size": 334349,
+          "sha512": "bb926d9fe3f8508ffeb92f50e501b352882b848fbb7778d4b5dc04c9d3a46cd42fd3785dce137fbc31c798c17d5d2b7bf5c07528f8173836f3fc0a72a41915b0",
+          "sha256": "d1f04553441bd9c8d5997d7f0931d88e1286580eec1b7e943d1ea99e3808466f",
+          "sha1": "75fcb89648915bb1dd1d66e60967c2ce2df0d4e5",
+          "md5": "a7200e4ccd9f410648d9a8f350a42a91"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-core",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-xwayland-0.1.11.jar",
+          "url": "caulis-xwayland-0.1.11.jar",
+          "size": 334349,
+          "sha512": "bb926d9fe3f8508ffeb92f50e501b352882b848fbb7778d4b5dc04c9d3a46cd42fd3785dce137fbc31c798c17d5d2b7bf5c07528f8173836f3fc0a72a41915b0",
+          "sha256": "d1f04553441bd9c8d5997d7f0931d88e1286580eec1b7e943d1ea99e3808466f",
+          "sha1": "75fcb89648915bb1dd1d66e60967c2ce2df0d4e5",
+          "md5": "a7200e4ccd9f410648d9a8f350a42a91"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-xwayland-0.1.11-sources.jar",
+          "url": "caulis-xwayland-0.1.11-sources.jar",
+          "size": 127762,
+          "sha512": "badc6d583805311b639d5f20287f32baadfaa2e30936087e1bb6b3333149b7cf3893132ddca43d25b7c1d6fec4fe04280fd63e19777578595ce0f4dd066c6aae",
+          "sha256": "910bb64519dafd016eeeda873331edf58839c0c4d39b501b8c9a09c4ad30519b",
+          "sha1": "b1c5b6b37fb89998eb7ba3e514c37be5d9cf0f80",
+          "md5": "2e636ecaef15e3c51012081a54aae329"
+        }
+      ]
+    }
+  ]
+}

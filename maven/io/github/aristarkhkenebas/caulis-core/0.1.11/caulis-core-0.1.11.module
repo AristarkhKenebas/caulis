@@ -1,0 +1,214 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.aristarkhkenebas",
+    "module": "caulis-core",
+    "version": "0.1.11",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-dbus",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-libinput",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-session",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-input",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-cursor",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-protocol",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-render",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-tiling",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-core-0.1.11.jar",
+          "url": "caulis-core-0.1.11.jar",
+          "size": 1677307,
+          "sha512": "ff5e19de7d4e6cca82544ebff630214ddd279e55d1bc0cb77dda3c4fed722370d149cf008ca81d9052fea82372199c6c88293efed6656de40bf2a586ffd47fa7",
+          "sha256": "bb66ca0e586cc997c996246e5e3271a365989b352740751a12ecd10424359c61",
+          "sha1": "77815b98b1a09f042e2f60afacc0941cb29caf5f",
+          "md5": "60003415c64d77870e22167dc0d8dcdb"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 26,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-dbus",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-libinput",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-session",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-input",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-cursor",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-protocol",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-render",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "io.github.aristarkhkenebas",
+          "module": "caulis-tiling",
+          "version": {
+            "requires": "0.1.11"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.4.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "caulis-core-0.1.11.jar",
+          "url": "caulis-core-0.1.11.jar",
+          "size": 1677307,
+          "sha512": "ff5e19de7d4e6cca82544ebff630214ddd279e55d1bc0cb77dda3c4fed722370d149cf008ca81d9052fea82372199c6c88293efed6656de40bf2a586ffd47fa7",
+          "sha256": "bb66ca0e586cc997c996246e5e3271a365989b352740751a12ecd10424359c61",
+          "sha1": "77815b98b1a09f042e2f60afacc0941cb29caf5f",
+          "md5": "60003415c64d77870e22167dc0d8dcdb"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "caulis-core-0.1.11-sources.jar",
+          "url": "caulis-core-0.1.11-sources.jar",
+          "size": 398550,
+          "sha512": "c613e7969b81e347a352c31517e163f6c94fd185a0f020c672db0564fcbdadfbe140e4508cf4f2cb79f13580596c2846b52ed3112efa56deac1eebd223914d05",
+          "sha256": "0767022f1ba0863f131a303931d1686c363337bb8698477a5f2ab034cab6b2ca",
+          "sha1": "eb845729bb06a70d9da6948187fc63c93d757807",
+          "md5": "a1f60131539542c3414d24a6b8097237"
+        }
+      ]
+    }
+  ]
+}
