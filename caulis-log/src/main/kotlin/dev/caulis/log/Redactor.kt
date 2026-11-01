@@ -80,7 +80,7 @@ class Redactor @JvmOverloads constructor(
             Regex("Window\\(\"(?:[^\"\\\\]|\\\\.)*\"") to "Window(\"<title>\"",
             Regex("(<View \\d+ \\([^)]*\\): )\"[^\"]*\"") to "$1\"<title>\"",
             Regex("(?i)\\btitle\\s*[=:]\\s*(\"[^\"]*\"|'[^']*'|\\S+)") to "title=<title>",
-            Regex("[\\w.+-]+@[\\w-]+\\.[\\w.-]+") to "<mail>",
+            Regex("[\\w.+-]+@[\\w-]+(?:\\.[\\w-]+)*\\.[a-zA-Z]{2,}\\b") to "<mail>",
             Regex("\\b(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}\\b") to "<mac>",
             Regex("(?<![\\d.])(?!127\\.)(?:\\d{1,3}\\.){3}\\d{1,3}(?![\\d.]*\\d)") to "<ip>",
         )

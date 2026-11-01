@@ -53,7 +53,7 @@ class ReportsTest {
 
     @Test
     fun `what is needed to act stays`() {
-        val line = "at dev.caulis.core.Desktop.frame(Desktop.kt:12) DP-1 3840x2160 config.kts:12 JDK 27.0.1.3.8 Mesa 25.1.2"
+        val line = "at dev.caulis.core.Desktop.frame(Desktop.kt:12) DP-1 3840x2160 config.kts:12 1920x1080@1.0 JDK 27.0.1.3.8 Mesa 25.1.2"
         assertEquals(line, redactor.clean(line))
     }
 

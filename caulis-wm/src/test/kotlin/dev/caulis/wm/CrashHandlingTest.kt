@@ -34,5 +34,14 @@ class CrashHandlingTest {
         assertEquals(null, CrashReports.folder)
     }
 
+    @Test
+    fun `the watchdog giving up leaves every thread's stack`() {
+        val folder = Files.createTempDirectory("crashes")
+        CrashHandling.install(Caulis().apply { crashReportFolder = folder })
+        CrashHandling.stuck(10_000)
+        val text = Files.readString(CrashReports.list(folder).single())
+        assertTrue("did not respond for 10000 ms" in text && "## Every thread" in text && "caulis-crash-report" in text, text)
+    }
+
     private fun failHere(): Nothing = error("the thing broke")
 }

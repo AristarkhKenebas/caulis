@@ -61,10 +61,19 @@ internal object CrashHandling {
     }
 
     private fun uncaught(thread: Thread, error: Throwable) {
-        log.error("Nothing caught this on the thread \"${thread.name}\": $error", error)
-        val file = report("The thread \"${thread.name}\" stopped: $error", error, thread) ?: return
-        // The compositor goes on when it was a helper: said on screen too.
-        if (thread !== mainThread) current?.let { config -> config.running?.loop?.post { showCard(config, file) } }
+        val file = report("The thread \"${thread.name}\" stopped: $error", error, thread)
+        // (An error in the log is a card too, while it runs: this line is all that needs saying,
+        // and the next start need not say it again.)
+        log.error("Nothing caught this on the thread \"${thread.name}\": $error" + (file?.let { ". A report: ${shown(it)}" } ?: ""), error)
+        if (file != null && thread !== mainThread && current?.running != null) markTold(file)
+    }
+
+    private fun markTold(file: Path) {
+        try {
+            Files.writeString(file.resolveSibling(TOLD), file.fileName.toString())
+        } catch (e: java.io.IOException) {
+            log.warn("Which crash report was told of cannot be kept next to $file: $e")
+        }
     }
 
     /**
@@ -111,25 +120,20 @@ internal object CrashHandling {
         } catch (e: java.io.IOException) {
             return log.warn("The crash reports in $folder cannot be read: $e")
         } ?: return
-        val mark = folder.resolve(".told")
+        val mark = folder.resolve(TOLD)
         try {
             if (Files.exists(mark) && Files.readString(mark).trim() >= last.fileName.toString()) return
-            Files.writeString(mark, last.fileName.toString())
         } catch (e: java.io.IOException) {
-            log.warn("Which crash report was told of cannot be kept in $mark: $e")
+            log.warn("Which crash report was told of cannot be read from $mark: $e")
         }
+        markTold(last)
         log.info { "The last run left a report: $last" }
         card(config, desktop, last)
     }
 
-    private fun showCard(config: Caulis, file: Path) {
-        val desktop = config.running?.desktop ?: return
-        card(config, desktop, file)
-    }
-
     private fun card(config: Caulis, desktop: dev.caulis.core.Desktop, file: Path) {
         val words = config.crashNotice ?: return
-        desktop.notify(words.replace("{file}", shown(file)), NoticeLevel.WARNING, config.title)
+        desktop.notify(words.replace("{file}", shown(file)), NoticeLevel.WARNING, config.desktopName)
     }
 
     // The path as you would type it.
@@ -152,6 +156,7 @@ internal object CrashHandling {
         Runtime.getRuntime().halt(1)
     }
 
+    private const val TOLD = ".told"
     private const val STUCK_REPORT_MILLIS = 2000L
     private const val EXIT_WAIT_MILLIS = 3000L
     private const val MAX_REPORTS = 8

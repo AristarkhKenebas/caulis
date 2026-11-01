@@ -117,12 +117,13 @@ object CrashReports {
                 // (Out of memory, perhaps: the short one, which needs nothing.)
                 Redactor().clean("# Crash report\n\nWhat happened: $what\n$error\n(The full report failed: $e)\n")
             }
-            Files.createDirectories(dir)
+            // (Only you may read them, as the log.)
+            if (!Files.exists(dir)) Files.createDirectories(dir, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")))
             val file = dir.resolve("crash-" + LocalDateTime.now().format(FILE_TIME) + "-" + serial.incrementAndGet() + ".txt")
             Files.createFile(file, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------")))
             Files.writeString(file, body)
             tidy(dir)
-            log.error("A report of this is in $file")
+            log.info { "A report of this is in $file" }
             file
         } catch (e: Exception) {
             log.warn("The crash report could not be written to $dir: $e")
