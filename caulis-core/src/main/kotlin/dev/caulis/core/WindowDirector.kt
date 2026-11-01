@@ -76,6 +76,12 @@ interface WindowDirector {
     fun onScreen(window: Window): Boolean = true
 
     /**
+     * [window] is closing, last shown at [place]: how its last picture goes away, as an
+     * animation over what is there (null, the usual: it is simply gone).
+     */
+    fun closing(window: Window, place: WindowPlace): WindowClosing? = null
+
+    /**
      * Pictures of your own with [window] at [place]: below it ([above] false: a blur of what is
      * behind it, a shadow) or above it (a border, a title bar of your own) — between it and
      * the windows above, so they stay in order.
@@ -112,3 +118,13 @@ interface WindowDirector {
      */
     fun workMonitor(): Monitor? = null
 }
+
+/**
+ * How the last picture of a director's closing window goes away ([WindowDirector.closing]):
+ * [look] runs backwards ([Motion.progress] 1 → 0) for [millis], along [curve].
+ */
+class WindowClosing @JvmOverloads constructor(
+    val millis: Long,
+    val curve: Curve = Curve.SMOOTH,
+    val look: WindowAnimation = WindowAnimation.pop(0.96),
+)
