@@ -15,6 +15,8 @@ The entries up to 0.1.4 were written afterwards from the Git history and the rel
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-11-01
+
 ### Fixed
 - A moving part drawn live after a kept one read `movingKept` as true.
 
@@ -512,7 +514,8 @@ The first release on Maven Central.
 - A project template (`templates/new-compositor.sh`), examples, a getting-started guide, API docs,
   a Nix flake with NixOS and Home Manager modules.
 
-[Unreleased]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.11...HEAD
+[Unreleased]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.12...HEAD
+[0.1.12]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/AristarkhKenebas/caulis/compare/v0.1.8...v0.1.9
